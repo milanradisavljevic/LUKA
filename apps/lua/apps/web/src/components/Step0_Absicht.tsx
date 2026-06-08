@@ -1,11 +1,16 @@
 import { useState, useCallback, useMemo } from 'react';
-import { ArrowRight, Clock, FolderOpen, BookOpen } from 'lucide-react';
+import { ArrowRight, Clock, FolderOpen, BookOpen, ClipboardCheck } from 'lucide-react';
 import type { AppState, AppAction } from '../lib/types';
 import { BLOCK_TYPE_DEFS, SCHWIERIGKEIT_RULES } from '../lib/constants';
 import { buildSkelett, type Auftrag } from '@lehrunterlagen/schema';
 import { EXAMPLE_ABSICHTEN } from '../lib/exampleAbsichten';
 import { loadDocuments } from '../lib/storage';
 import { getDefaultTemplate } from '@lehrunterlagen/renderer';
+import {
+  parseBridgeExport,
+  mapBridgeToPrefill,
+  type BridgeExportMeta,
+} from '../lib/nataschaBridge';
 
 interface Props {
   state: AppState;
@@ -51,7 +56,13 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates }: Props)
   const [gesamtpunkteZiel, setGesamtpunkteZiel] = useState<number | ''>('');
   const [notizen, setNotizen] = useState(lastMeta?.notizen ?? '');
   const [lernzieleRaw, setLernzieleRaw] = useState(lastMeta?.lernziele?.join(', ') ?? '');
+  const [fokusThemen, setFokusThemen] = useState<string[]>(lastMeta?.fokusThemen ?? []);
   const [fehler, setFehler] = useState<string | null>(null);
+
+  // NATASCHA-Datei-Brücke (Phase 1)
+  const [nataschaExports, setNataschaExports] = useState<BridgeExportMeta[] | null>(null);
+  const [nataschaBusy, setNataschaBusy] = useState(false);
+  const [nataschaInfo, setNataschaInfo] = useState<string | null>(null);
 
   const handleContinueLast = useCallback(() => {
     if (!lastDoc) return;
@@ -63,6 +74,62 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates }: Props)
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
   }, []);
+
+  const ladeNataschaExporte = useCallback(async () => {
+    setNataschaInfo(null);
+    setNataschaBusy(true);
+    try {
+      const { invoke } = await import('@tauri-apps/api/core');
+      const list = await invoke<BridgeExportMeta[]>('list_bridge_exports', { dir: '' });
+      setNataschaExports(list);
+      if (list.length === 0) {
+        setNataschaInfo(
+          'Keine NATASCHA-Exporte gefunden. Exportiere zuerst in NATASCHA eine korrigierte Klasse für das Übungs-Tool.',
+        );
+      }
+    } catch (err) {
+      setNataschaInfo(
+        err instanceof Error
+          ? err.message
+          : 'NATASCHA-Exporte konnten nicht geladen werden (läuft die App in Tauri?).',
+      );
+    } finally {
+      setNataschaBusy(false);
+    }
+  }, []);
+
+  const uebernehmeNataschaExport = useCallback(
+    async (meta: BridgeExportMeta) => {
+      setNataschaInfo(null);
+      setNataschaBusy(true);
+      try {
+        const { invoke } = await import('@tauri-apps/api/core');
+        const raw = await invoke<string>('read_bridge_export', { path: meta.pfad });
+        const ex = parseBridgeExport(raw);
+        const p = mapBridgeToPrefill(ex);
+        setTyp('schuluebung');
+        setFach(p.fach);
+        setStufe(p.stufe);
+        dispatch({ type: 'SET_RENDER_TEMPLATE', template: getDefaultTemplate(p.stufe).id });
+        setThema(p.thema);
+        setKlasse(ex.klasse);
+        setNotizen(p.notizen);
+        setFokusThemen(p.fokusThemen);
+        setGewuenschteAufgabenarten(p.gewuenschteAufgabenarten);
+        setNataschaExports(null);
+        setNataschaInfo(
+          `Übernommen: ${ex.klasse} · ${ex.aufgabe}. Du kannst alles unten anpassen, dann „Erstellen".`,
+        );
+      } catch (err) {
+        setNataschaInfo(
+          err instanceof Error ? err.message : 'Export konnte nicht übernommen werden.',
+        );
+      } finally {
+        setNataschaBusy(false);
+      }
+    },
+    [dispatch],
+  );
 
   const handleErstellen = useCallback(() => {
     setFehler(null);
@@ -86,6 +153,7 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates }: Props)
       gesamtpunkteZiel: gesamtpunkteZiel !== '' ? Number(gesamtpunkteZiel) : undefined,
       notizen: notizen.trim() || undefined,
       lernziele: lernzieleRaw.split(',').map((s) => s.trim()).filter(Boolean) || undefined,
+      fokusThemen: fokusThemen.length > 0 ? fokusThemen : undefined,
     };
 
     try {
@@ -111,13 +179,14 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates }: Props)
           typ,
           schwierigkeit,
           lernziele: lernzieleRaw.split(',').map((s) => s.trim()).filter(Boolean) || undefined,
+          fokusThemen: fokusThemen.length > 0 ? fokusThemen : undefined,
         },
       });
       dispatch({ type: 'SET_STEP', step: 'input' });
     } catch (err) {
       setFehler(err instanceof Error ? err.message : 'Fehler beim Erstellen des Skeletts.');
     }
-  }, [typ, fach, stufe, thema, datum, klasse, dauerMinuten, schwierigkeit, gewuenschteAufgabenarten, gesamtpunkteZiel, notizen, state.quelltexte, state.bloecke, dispatch]);
+  }, [typ, fach, stufe, thema, datum, klasse, dauerMinuten, schwierigkeit, gewuenschteAufgabenarten, gesamtpunkteZiel, notizen, lernzieleRaw, fokusThemen, state.quelltexte, state.bloecke, dispatch]);
 
   const fachLabel = fach === 'deutsch' ? 'Deutsch' : 'Englisch';
   const stufeLabel = stufe === 'oberstufe' ? 'Oberstufe' : 'Unterstufe';
@@ -206,6 +275,92 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates }: Props)
           )}
         </section>
       )}
+
+      {/* NATASCHA-Korrektur → gezielte Übungen (Datei-Brücke Phase 1) */}
+      <section style={{ marginBottom: '1.25rem' }}>
+        <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.875rem' }}>
+          Aus NATASCHA-Korrektur
+        </label>
+        {nataschaExports && nataschaExports.length > 0 ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.5rem' }}>
+            {nataschaExports.map((ex) => (
+              <button
+                key={ex.pfad}
+                disabled={nataschaBusy}
+                onClick={() => uebernehmeNataschaExport(ex)}
+                style={{
+                  textAlign: 'left',
+                  padding: '0.75rem 1rem',
+                  borderRadius: 'var(--radius)',
+                  border: '1px solid var(--color-border)',
+                  background: 'var(--color-bg-surface)',
+                  cursor: nataschaBusy ? 'wait' : 'pointer',
+                  fontSize: '0.8125rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.25rem',
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-accent)';
+                  (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-highlight-bg)';
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-border)';
+                  (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg-surface)';
+                }}
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: 'var(--color-accent)', fontWeight: 600 }}>
+                  <ClipboardCheck size={16} /> {ex.klasse} · {ex.aufgabe}
+                </span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+                  {ex.anzahlAbgaben > 0 ? `${ex.anzahlAbgaben} Abgaben · ` : ''}{ex.datum}
+                </span>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <button
+            type="button"
+            disabled={nataschaBusy}
+            onClick={ladeNataschaExporte}
+            style={{
+              textAlign: 'left',
+              padding: '0.75rem 1rem',
+              borderRadius: 'var(--radius)',
+              border: '1px solid var(--color-border)',
+              background: 'var(--color-bg-surface)',
+              cursor: nataschaBusy ? 'wait' : 'pointer',
+              fontSize: '0.8125rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.25rem',
+              width: '100%',
+              maxWidth: '420px',
+            }}
+            onMouseEnter={(e) => {
+              if (nataschaBusy) return;
+              (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-accent)';
+              (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-highlight-bg)';
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-border)';
+              (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg-surface)';
+            }}
+          >
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: 'var(--color-accent)', fontWeight: 600 }}>
+              <ClipboardCheck size={16} /> {nataschaBusy ? 'Lädt …' : 'Aus NATASCHA-Korrektur generieren'}
+            </span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+              Erzeugt Übungen zu den Fehlerschwerpunkten einer korrigierten Klasse.
+            </span>
+          </button>
+        )}
+        {nataschaInfo && (
+          <p style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+            {nataschaInfo}
+          </p>
+        )}
+      </section>
 
       {/* Schnellstart — Beispiel-Absichten */}
       <section style={{ marginBottom: '1.25rem' }}>

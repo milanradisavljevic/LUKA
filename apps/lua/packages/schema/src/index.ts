@@ -30,6 +30,9 @@ export const MetaSchema = z.object({
   typ: UnterlagentypSchema.optional(),
   schwierigkeit: z.enum(['leicht', 'mittel', 'schwer']).optional(),
   lernziele: z.array(z.string().min(1)).optional(),
+  // Fehlerschwerpunkte aus einer NATASCHA-Korrektur (z. B. ["Zeichensetzung", "Grammatik"]).
+  // Speist einen gezielten Hinweis in den Generierungs-Prompt (siehe packages/llm buildMessages).
+  fokusThemen: z.array(z.string().min(1)).optional(),
 });
 
 export type Meta = z.infer<typeof MetaSchema>;
@@ -572,6 +575,8 @@ export const AuftragSchema = z.object({
   gesamtpunkteZiel: z.number().int().positive().optional(),
   notizen: z.string().optional(),
   lernziele: z.array(z.string().min(1)).optional(),
+  // Fehlerschwerpunkte aus einer NATASCHA-Korrektur — wird in die Meta übernommen.
+  fokusThemen: z.array(z.string().min(1)).optional(),
 });
 export type Auftrag = z.infer<typeof AuftragSchema>;
 

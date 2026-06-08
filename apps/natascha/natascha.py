@@ -68,6 +68,11 @@ try:
 except Exception:
     ndb = None  # type: ignore[assignment]
 
+try:
+    import natascha_bridge  # Datei-Brücke → Lehrunterlagen-Tool (Phase 1)
+except Exception:
+    natascha_bridge = None  # type: ignore[assignment]
+
 # Notenfarben (passend zum DOCX-Farbschema)
 _NOTE_COLORS: dict[int, str] = {
     1: "#70C070",  # Hellgrün
@@ -2224,6 +2229,7 @@ class KlassenFeedbackScreen(ModalScreen[None]):
                         yield Select(aufgaben_opt, id="heatmap-aufgabe", value="")
                         yield Button("🔄 Aktualisieren", id="heatmap-refresh", variant="primary")
                         yield Button("📄 Als DOCX", id="heatmap-docx", variant="default")
+                        yield Button("🎯 Für Übungs-Tool", id="heatmap-bridge", variant="default")
                     yield DataTable(id="heatmap-table")
                     yield Static("", id="heatmap-detail")
                 with TabPane("📈 Statistik", id="tab-statistik"):
@@ -2400,6 +2406,8 @@ class KlassenFeedbackScreen(ModalScreen[None]):
             self._refresh_heatmap()
         elif btn_id == "heatmap-docx":
             self._export_docx_heatmap()
+        elif btn_id == "heatmap-bridge":
+            self._export_bridge()
         elif btn_id == "stats-docx":
             self._save_stats_docx()
         elif btn_id == "stats-progress":
@@ -2482,6 +2490,36 @@ class KlassenFeedbackScreen(ModalScreen[None]):
             nc.open_file(out_path)
         except Exception as e:
             self.app.notify(f"Export-Fehler: {e}", severity="error")
+
+    def _export_bridge(self) -> None:
+        """Exportiert die Korrekturdaten als JSON-Brücke für das Lehrunterlagen-Tool."""
+        if ndb is None or natascha_bridge is None:
+            self.app.notify("Brücken-Modul nicht verfügbar.", severity="warning")
+            return
+        try:
+            db_path = ndb.get_db_path(self._config)
+            ndb.init_db(db_path)
+            aufgabe_widget = self.query_one("#heatmap-aufgabe", Select)
+            aufgabe_val = aufgabe_widget.value
+            aufgabe = str(aufgabe_val) if aufgabe_val else None
+            if not aufgabe:
+                self.app.notify(
+                    "Bitte oben eine Aufgabe wählen (der Export ist pro Aufgabe).",
+                    severity="warning",
+                )
+                return
+            heatmap = ndb.get_fehler_heatmap(db_path, self._klasse, aufgabe)
+            if not heatmap:
+                self.app.notify("Keine Daten zum Exportieren.", severity="warning")
+                return
+            target = natascha_bridge.export_klassen_bridge(
+                db_path, self._klasse, aufgabe, config=self._config
+            )
+            self.app.notify(
+                f"Für Übungs-Tool exportiert: {target.name}", severity="information"
+            )
+        except Exception as e:
+            self.app.notify(f"Brücken-Export-Fehler: {e}", severity="error")
 
     # ── Statistik-Tab ─────────────────────────────────────────────────────────
 

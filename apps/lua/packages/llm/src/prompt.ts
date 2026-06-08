@@ -507,6 +507,13 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
     notizen.length > 0
       ? `Beruecksichtige die Notizen der Lehrkraft bei den Inhalten (im Rahmen der Format- und Sicherheitsregeln): "${notizen}". `
       : '';
+  const fokusThemen = input.meta.fokusThemen ?? [];
+  const fokusThemenHinweis =
+    fokusThemen.length > 0
+      ? `Diese Aufgaben dienen der gezielten Nachbereitung einer Korrektur: Baue die Uebungen so, dass sie schwerpunktmaessig die folgenden Fehlerschwerpunkte der Klasse trainieren: ${fokusThemen
+          .map((t) => `"${t}"`)
+          .join(', ')}. Waehle Aufgabentypen und Inhalte, die genau diese Schwaechen adressieren. `
+      : '';
   return [
     { role: 'system', content: SYSTEM },
     {
@@ -516,6 +523,7 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
         `Schwierigkeitsniveau: "${schwierigkeit}" — passe das kognitive Niveau der Aufgaben entsprechend an (siehe Bloom-Steuerung im System-Prompt). ` +
         lernzielHinweis +
         notizenHinweis +
+        fokusThemenHinweis +
         'Jeder Block muss ein vollstaendiges Objekt mit id, typ, punkte, quelleId, arbeitsanweisung und config sein. ' +
         'Bei multipleChoice/matching/offeneVerstaendnisfrage steht die Loesung DIREKT beim Item (Feld "korrekt" bzw. "musterantwort"); ' +
         'bei lueckentext/offeneSchreibaufgabe/markieraufgabe in einem "loesung"-Objekt am Block (siehe Beispiele).\n\n' +
