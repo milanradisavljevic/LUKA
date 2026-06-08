@@ -43,6 +43,9 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 - NATASCHA seed (`seed_testdaten.py`) → Export → `jsonschema.validate` — PASS.
 
 ### Noch offen
-- Live-GUI-Test des LUA-Imports (`pnpm tauri:dev`, braucht Display/Windows).
 - Phase 2 (gemeinsame SQLite) und Phase 3 (Unified Tauri-Frontend) — geplant,
-  nicht gebaut. Siehe `AGENTS.md` → Roadmap.
+  nicht gebaut. Siehe `AGENTS.md` → Roadmap und `docs/phase2-shared-db.md`.
+
+### 2026-06-08 — Live-GUI-Test bestanden
+- `pnpm tauri:dev` baut & läuft (Tauri-Backend inkl. `commands/bridge.rs`
+  kompiliert in ~1m13s); NATASCHA-Sektion in Step0 sichtbar und funktional.
