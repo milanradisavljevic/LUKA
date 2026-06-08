@@ -38,9 +38,21 @@ export interface BridgeExportMeta {
   datum: string;
   fach: string;
   anzahlAbgaben: number;
+  /** Summe aller Heatmap-Fehler (für das "X Fehler"-Badge). */
+  gesamtFehler: number;
+  /** Heatmap, stärkste Kategorie zuerst (für die Mini-Vorschau). */
+  heatmap: BridgeHeatmapEintrag[];
   pfad: string;
   dateiname: string;
 }
+
+/** Farben je Fehlerkategorie für die Heatmap-Vorschau in der Auswahlliste. */
+export const TYP_FARBE: Record<BridgeHeatmapEintrag['typ'], string> = {
+  R: '#e57373',
+  G: '#64b5f6',
+  Z: '#ffb74d',
+  A: '#ba68c8',
+};
 
 export const SUPPORTED_BRIDGE_VERSION = 1;
 

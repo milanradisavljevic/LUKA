@@ -122,7 +122,7 @@ describe('storage — Standard-Vorgaben', () => {
 
   it('saveSettings + loadSettings sind roundtrip-fähig', () => {
     saveSettings({ defaultProvider: 'deepseek', defaultModel: 'DeepSeek V4 Pro', defaultKreativitaet: 0.2, defaultAusgabeSprache: 'en', judgeEnabled: false });
-    expect(loadSettings()).toEqual({ defaultProvider: 'deepseek', defaultModel: 'DeepSeek V4 Pro', defaultKreativitaet: 0.2, defaultAusgabeSprache: 'en', judgeEnabled: false });
+    expect(loadSettings()).toEqual({ defaultProvider: 'deepseek', defaultModel: 'DeepSeek V4 Pro', defaultKreativitaet: 0.2, defaultAusgabeSprache: 'en', judgeEnabled: false, nataschaInboxDir: '' });
   });
 });
 

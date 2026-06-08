@@ -11,6 +11,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   defaultKreativitaet: 0.4,
   defaultAusgabeSprache: 'de',
   judgeEnabled: true,
+  nataschaInboxDir: '',
 };
 
 // --- Dokumente -------------------------------------------------------------
