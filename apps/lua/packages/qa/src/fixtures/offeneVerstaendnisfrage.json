@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "0.1.0",
+  "meta": {
+    "stufe": "unterstufe",
+    "fach": "deutsch",
+    "thema": "Umweltschutz im Alltag",
+    "datum": "2026-06-01",
+    "klasse": "4A",
+    "notizen": ""
+  },
+  "quelltexte": [
+    {
+      "id": "q1",
+      "titel": "Mülltrennung einfach erklaert",
+      "inhalt": "Jeder von uns produziert jeden Tag Müll. Um die Umwelt zu schützen, ist es wichtig, Müll richtig zu trennen. In Österreich gibt es den gelben Sack für Verpackungen, die Biotonne für Essensreste und den Restmüll für alles andere. Glas und Papier gehören in eigene Container. Wenn wir Müll trennen, können viele Rohstoffe wiederverwertet werden. Zum Beispiel wird aus alten Plastikflaschen neue Verpackung.",
+      "herkunft": { "typ": "upload", "ref": "muelltrennung.pdf" }
+    }
+  ],
+  "bloecke": [
+    {
+      "id": "b4",
+      "typ": "offeneVerstaendnisfrage",
+      "punkte": 10,
+      "quelleId": "q1",
+      "arbeitsanweisung": "Beantworte die Fragen in ganzen Saetzen.",
+      "config": {
+        "fragen": [
+          { "nr": 1, "frage": "Welche Muellsorten gibt es in Oesterreich?", "zeilen": 4 },
+          { "nr": 2, "frage": "Warum ist Muelltrennung wichtig?", "zeilen": 6 }
+        ]
+      },
+      "loesung": {
+        "antworten": {
+          "1": "In Oesterreich gibt es den gelben Sack fuer Verpackungen, die Biotonne fuer Essensreste, den Restmuell fuer alles andere sowie eigene Container fuer Glas und Papier.",
+          "2": "Muelltrennung ist wichtig, weil dadurch viele Rohstoffe wiederverwertet werden koennen. Zum Beispiel werden aus alten Plastikflaschen neue Verpackungen hergestellt."
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "schemaVersion": "0.1.0",
+  "meta": {
+    "stufe": "oberstufe",
+    "fach": "deutsch",
+    "thema": "Songanalyse: AnnenMayKantereit – Pocahontas",
+    "datum": "2026-05-30",
+    "klasse": "11A",
+    "notizen": ""
+  },
+  "quelltexte": [
+    {
+      "id": "q1",
+      "titel": "Songtext",
+      "inhalt": "Pocahontas, wo bist du? Ich hab dich verloren in dieser Welt aus Beton und Stein. Du bist mein Anker, mein Kompass, mein Zuhause.",
+      "herkunft": { "typ": "upload", "ref": "pocahontas.txt" }
+    }
+  ],
+  "bloecke": [
+    {
+      "id": "b11",
+      "typ": "songanalyse",
+      "punkte": 14,
+      "arbeitsanweisung": "Analysiere den Songtext hinsichtlich Bildsprache und Wirkung.",
+      "config": {
+        "interpret": "AnnenMayKantereit",
+        "titel": "Pocahontas",
+        "medium": "song",
+        "genre": "Indie-Folk",
+        "lyrics": "Pocahontas, wo bist du? Ich hab dich verloren in dieser Welt aus Beton und Stein. Du bist mein Anker, mein Kompass, mein Zuhause.",
+        "aufgabe": "wirkungsanalyse"
+      },
+      "loesung": {
+        "ergebnis": "Der Song thematisiert Verlust, Sehnsucht und die Suche nach einem emotionalen Anker in einer entfremdeten, urbanen Welt. Die Figur Pocahontas steht symbolisch für Naturverbundenheit und Geborgenheit.",
+        "zitate": [
+          "Welt aus Beton und Stein",
+          "mein Anker, mein Kompass, mein Zuhause"
+        ],
+        "analysepunkte": [
+          {
+            "aspekt": "Metapher",
+            "befund": "Pocahontas als Symbolfigur für Natur und Geborgenheit in einer entfremdeten Welt.",
+            "zitat": "Welt aus Beton und Stein"
+          },
+          {
+            "aspekt": "Aufzählung / Trikolon",
+            "befund": "Dreifache Aufzählung von Anker, Kompass und Zuhause betont Sehnsucht nach Orientierung und Sicherheit.",
+            "zitat": "mein Anker, mein Kompass, mein Zuhause"
+          },
+          {
+            "aspekt": "Rhetorische Frage",
+            "befund": "Eröffnung mit rhetorischer Frage schafft intime Ansprache an eine verlorene Bezugsperson.",
+            "zitat": "Pocahontas, wo bist du?"
+          }
+        ]
+      }
+    }
+  ]
+}

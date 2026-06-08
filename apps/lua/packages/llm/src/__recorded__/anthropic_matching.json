@@ -1,0 +1,34 @@
+{
+  "provider": "anthropic",
+  "model": "claude-sonnet-4-6",
+  "blockType": "matching",
+  "timestamp": "2026-06-01T23:19:11.728Z",
+  "rawResponse": "```json\n{\n  \"title\": \"Schularbeit: Rhetorische Mittel\",\n  \"subject\": \"Deutsch\",\n  \"grade\": \"7. Klasse Oberstufe\",\n  \"blocks\": [\n    {\n      \"type\": \"matching\",\n      \"instruction\": \"Ordne den folgenden rhetorischen Mitteln die jeweils passende Definition zu. Achtung: Eine Definition bleibt übrig!\",\n      \"points\": 6,\n      \"items\": [\n        {\n          \"id\": \"item_1\",\n          \"term\": \"Metapher\"\n        },\n        {\n          \"id\": \"item_2\",\n          \"term\": \"Anapher\"\n        },\n        {\n          \"id\": \"item_3\",\n          \"term\": \"Ironie\"\n        }\n      ],\n      \"options\": [\n        {\n          \"id\": \"option_a\",\n          \"definition\": \"Wiederholung desselben Wortes oder derselben Wortgruppe am Anfang aufeinanderfolgender Sätze oder Verse.\",\n          \"correct_for\": \"item_2\"\n        },\n        {\n          \"id\": \"option_b\",\n          \"definition\": \"Aussage, bei der das Gemeinte dem wörtlich Gesagten entgegengesetzt ist, oft um Spott oder Kritik auszudrücken.\",\n          \"correct_for\": \"item_3\"\n        },\n        {\n          \"id\": \"option_c\",\n          \"definition\": \"Steigerung von Begriffen oder Aussagen in aufsteigender Reihenfolge nach ihrer Bedeutung oder Wirkung.\",\n          \"correct_for\": null\n        },\n        {\n          \"id\": \"option_d\",\n          \"definition\": \"Übertragung eines Begriffs auf etwas anderes aufgrund einer inhaltlichen Ähnlichkeit, ohne ein Vergleichswort zu verwenden.\",\n          \"correct_for\": \"item_1\"\n        }\n      ],\n      \"points_per_match\": 2\n    }\n  ]\n}\n```",
+  "fullApiResponse": {
+    "model": "claude-sonnet-4-6",
+    "id": "msg_01KXN3n3x7m1y3TCiNFFwCM1",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+      {
+        "type": "text",
+        "text": "```json\n{\n  \"title\": \"Schularbeit: Rhetorische Mittel\",\n  \"subject\": \"Deutsch\",\n  \"grade\": \"7. Klasse Oberstufe\",\n  \"blocks\": [\n    {\n      \"type\": \"matching\",\n      \"instruction\": \"Ordne den folgenden rhetorischen Mitteln die jeweils passende Definition zu. Achtung: Eine Definition bleibt übrig!\",\n      \"points\": 6,\n      \"items\": [\n        {\n          \"id\": \"item_1\",\n          \"term\": \"Metapher\"\n        },\n        {\n          \"id\": \"item_2\",\n          \"term\": \"Anapher\"\n        },\n        {\n          \"id\": \"item_3\",\n          \"term\": \"Ironie\"\n        }\n      ],\n      \"options\": [\n        {\n          \"id\": \"option_a\",\n          \"definition\": \"Wiederholung desselben Wortes oder derselben Wortgruppe am Anfang aufeinanderfolgender Sätze oder Verse.\",\n          \"correct_for\": \"item_2\"\n        },\n        {\n          \"id\": \"option_b\",\n          \"definition\": \"Aussage, bei der das Gemeinte dem wörtlich Gesagten entgegengesetzt ist, oft um Spott oder Kritik auszudrücken.\",\n          \"correct_for\": \"item_3\"\n        },\n        {\n          \"id\": \"option_c\",\n          \"definition\": \"Steigerung von Begriffen oder Aussagen in aufsteigender Reihenfolge nach ihrer Bedeutung oder Wirkung.\",\n          \"correct_for\": null\n        },\n        {\n          \"id\": \"option_d\",\n          \"definition\": \"Übertragung eines Begriffs auf etwas anderes aufgrund einer inhaltlichen Ähnlichkeit, ohne ein Vergleichswort zu verwenden.\",\n          \"correct_for\": \"item_1\"\n        }\n      ],\n      \"points_per_match\": 2\n    }\n  ]\n}\n```"
+      }
+    ],
+    "stop_reason": "end_turn",
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+      "input_tokens": 169,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 523,
+      "service_tier": "standard",
+      "inference_geo": "global"
+    }
+  }
+}

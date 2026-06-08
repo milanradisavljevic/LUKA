@@ -1,0 +1,35 @@
+{
+  "provider": "deepseek",
+  "model": "deepseek-chat",
+  "blockType": "matching",
+  "timestamp": "2026-06-01T23:20:37.732Z",
+  "rawResponse": "{\n  \"blockTyp\": \"matching\",\n  \"punkte\": 6,\n  \"items\": [\n    {\n      \"id\": 1,\n      \"begriff\": \"Anapher\"\n    },\n    {\n      \"id\": 2,\n      \"begriff\": \"Metapher\"\n    },\n    {\n      \"id\": 3,\n      \"begriff\": \"Hyperbel\"\n    }\n  ],\n  \"optionen\": [\n    {\n      \"id\": \"A\",\n      \"definition\": \"Wiederholung gleicher Wörter am Satz- oder Versanfang\"\n    },\n    {\n      \"id\": \"B\",\n      \"definition\": \"Sprachlicher Ausdruck, bei dem ein Wort aus seinem eigentlichen Bedeutungszusammenhang in einen anderen übertragen wird\"\n    },\n    {\n      \"id\": \"C\",\n      \"definition\": \"Starke Übertreibung zur Verstärkung der Aussage\"\n    },\n    {\n      \"id\": \"D\",\n      \"definition\": \"Gegenüberstellung gegensätzlicher Begriffe\"\n    }\n  ],\n  \"zuordnung\": {\n    \"1\": \"A\",\n    \"2\": \"B\",\n    \"3\": \"C\"\n  }\n}",
+  "fullApiResponse": {
+    "id": "0bdf9fb8-bcb0-4481-b58c-b5812e4a4d54",
+    "object": "chat.completion",
+    "created": 1780356035,
+    "model": "deepseek-v4-flash",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\n  \"blockTyp\": \"matching\",\n  \"punkte\": 6,\n  \"items\": [\n    {\n      \"id\": 1,\n      \"begriff\": \"Anapher\"\n    },\n    {\n      \"id\": 2,\n      \"begriff\": \"Metapher\"\n    },\n    {\n      \"id\": 3,\n      \"begriff\": \"Hyperbel\"\n    }\n  ],\n  \"optionen\": [\n    {\n      \"id\": \"A\",\n      \"definition\": \"Wiederholung gleicher Wörter am Satz- oder Versanfang\"\n    },\n    {\n      \"id\": \"B\",\n      \"definition\": \"Sprachlicher Ausdruck, bei dem ein Wort aus seinem eigentlichen Bedeutungszusammenhang in einen anderen übertragen wird\"\n    },\n    {\n      \"id\": \"C\",\n      \"definition\": \"Starke Übertreibung zur Verstärkung der Aussage\"\n    },\n    {\n      \"id\": \"D\",\n      \"definition\": \"Gegenüberstellung gegensätzlicher Begriffe\"\n    }\n  ],\n  \"zuordnung\": {\n    \"1\": \"A\",\n    \"2\": \"B\",\n    \"3\": \"C\"\n  }\n}"
+        },
+        "logprobs": null,
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 132,
+      "completion_tokens": 263,
+      "total_tokens": 395,
+      "prompt_tokens_details": {
+        "cached_tokens": 128
+      },
+      "prompt_cache_hit_tokens": 128,
+      "prompt_cache_miss_tokens": 4
+    },
+    "system_fingerprint": "fp_8b330d02d0_prod0820_fp8_kvcache_20260402"
+  }
+}

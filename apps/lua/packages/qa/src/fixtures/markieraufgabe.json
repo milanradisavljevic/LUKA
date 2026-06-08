@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "0.1.0",
+  "meta": {
+    "stufe": "oberstufe",
+    "fach": "deutsch",
+    "thema": "Stilmittel der Literatur",
+    "datum": "2026-05-30",
+    "klasse": "7A",
+    "notizen": ""
+  },
+  "quelltexte": [
+    {
+      "id": "q1",
+      "titel": "Herbsttag von Rainer Maria Rilke",
+      "inhalt": "Herbsttag: Herbst! -- Noch ist es so, dass ich den Himmel rate. -- Doch die Geschopfe meiner Phantasie -- Immer schon sind Herbst und Uebergang. -- Nie wird der Herbst so sehr mich uberlisten, -- wie fern die Zukunft, die ich mir ertraeume.",
+      "herkunft": { "typ": "upload", "ref": "rilke_herbsttag.txt" }
+    }
+  ],
+  "bloecke": [
+    {
+      "id": "b6",
+      "typ": "markieraufgabe",
+      "punkte": 5,
+      "quelleId": "q1",
+      "arbeitsanweisung": "Markiere im Text alle Stilmittel, die du findest.",
+      "config": {
+        "quelleId": "q1",
+        "anweisung": "Markiere alle Stilmittel im Gedicht."
+      },
+      "loesung": {
+        "stellen": [
+          "die Geschopfe meiner Phantasie",
+          "Nie wird der Herbst so sehr mich uberlisten",
+          "wie fern die Zukunft"
+        ]
+      }
+    }
+  ]
+}

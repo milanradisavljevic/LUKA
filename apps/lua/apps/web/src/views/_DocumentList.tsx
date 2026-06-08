@@ -1,0 +1,127 @@
+import { Star, Trash2, X, RotateCcw } from 'lucide-react';
+import type { SavedDocument } from '../lib/types';
+
+const FACH_LABEL: Record<string, string> = { deutsch: 'Deutsch', englisch: 'Englisch' };
+const STUFE_LABEL: Record<string, string> = { oberstufe: 'Oberstufe', unterstufe: 'Unterstufe' };
+
+function formatDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' });
+  } catch {
+    return iso;
+  }
+}
+
+interface Props {
+  documents: SavedDocument[];
+  emptyMessage: string;
+  /** Klick auf „Öffnen" — lädt den Snapshot in den Wizard. */
+  onOpen?: (doc: SavedDocument) => void;
+  /** Favoriten-Stern umschalten. */
+  onToggleFavorite?: (id: string) => void;
+  /** Soft-Delete (in den Papierkorb). */
+  onDelete?: (id: string) => void;
+  /** Aus dem Papierkorb wiederherstellen. */
+  onRestore?: (id: string) => void;
+  /** Endgültig löschen. */
+  onPurge?: (id: string) => void;
+}
+
+export function DocumentList({
+  documents,
+  emptyMessage,
+  onOpen,
+  onToggleFavorite,
+  onDelete,
+  onRestore,
+  onPurge,
+}: Props) {
+  if (documents.length === 0) {
+    return (
+      <p style={{ color: 'var(--color-text-secondary)', textAlign: 'center', padding: '2rem 1rem', fontSize: '0.875rem' }}>
+        {emptyMessage}
+      </p>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+      {documents.map((doc) => {
+        const meta = doc.snapshot.meta;
+        const blockCount = doc.snapshot.bloecke.length;
+        return (
+          <div
+            key={doc.id}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              padding: '0.875rem 1rem',
+              border: '1px solid var(--color-border)',
+              borderRadius: 'var(--radius)',
+              background: 'var(--color-bg-surface)',
+            }}
+          >
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {doc.isFavorite && (
+                  <Star size={14} fill="#f5b301" color="#f5b301" aria-label="Favorit" style={{ flexShrink: 0 }} />
+                )}
+                <strong style={{ fontSize: '0.9375rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {doc.title || 'Unbenannt'}
+                </strong>
+              </div>
+              <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', margin: '0.25rem 0 0' }}>
+                {FACH_LABEL[meta.fach] ?? meta.fach} · {STUFE_LABEL[meta.stufe] ?? meta.stufe}
+                {' · '}{blockCount} Block{blockCount !== 1 ? 'e' : ''}
+                {doc.snapshot.llmProvider ? ` · ${doc.snapshot.llmProvider}` : ''}
+              </p>
+              <p style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)', margin: '0.125rem 0 0' }}>
+                {doc.isDeleted && doc.deletedAt
+                  ? `Gelöscht: ${formatDate(doc.deletedAt)}`
+                  : `Geändert: ${formatDate(doc.updatedAt)}`}
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.375rem', flexShrink: 0 }}>
+              {onOpen && (
+                <button className="btn-primary" onClick={() => onOpen(doc)}
+                  style={{ fontSize: '0.75rem', padding: '0.375rem 0.75rem' }}>
+                  Öffnen
+                </button>
+              )}
+              {onToggleFavorite && (
+                <button className="btn-secondary" onClick={() => onToggleFavorite(doc.id)}
+                  title={doc.isFavorite ? 'Favorit entfernen' : 'Als Favorit markieren'}
+                  aria-pressed={doc.isFavorite}
+                  style={{ display: 'inline-flex', alignItems: 'center', padding: '0.375rem 0.5rem' }}>
+                  <Star size={16} {...(doc.isFavorite ? { fill: '#f5b301', color: '#f5b301' } : {})} />
+                </button>
+              )}
+              {onRestore && (
+                <button className="btn-secondary" onClick={() => onRestore(doc.id)}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.75rem', padding: '0.375rem 0.75rem' }}>
+                  <RotateCcw size={14} /> Wiederherstellen
+                </button>
+              )}
+              {onDelete && (
+                <button className="btn-danger" onClick={() => onDelete(doc.id)}
+                  title="In den Papierkorb"
+                  style={{ display: 'inline-flex', alignItems: 'center', padding: '0.375rem 0.5rem' }}>
+                  <Trash2 size={16} />
+                </button>
+              )}
+              {onPurge && (
+                <button className="btn-danger" onClick={() => onPurge(doc.id)}
+                  title="Endgültig löschen"
+                  style={{ display: 'inline-flex', alignItems: 'center', padding: '0.375rem 0.5rem' }}>
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}

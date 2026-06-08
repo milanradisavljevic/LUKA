@@ -1,0 +1,32 @@
+{
+  "provider": "mistral",
+  "model": "mistral-large-latest",
+  "blockType": "offeneVerstaendnisfrage",
+  "timestamp": "2026-06-01T23:21:49.374Z",
+  "rawResponse": "```json\n{\n  \"schularbeit\": {\n    \"thema\": \"Medienkonsum\",\n    \"klasse\": \"7. Klasse (Oberstufe)\",\n    \"block\": {\n      \"typ\": \"offeneVerstaendnisfrage\",\n      \"punkte\": 8,\n      \"anzahlFragen\": 2,\n      \"fragen\": [\n        {\n          \"frage\": \"Beschreibe zwei mögliche negative Auswirkungen von exzessivem Medienkonsum auf Jugendliche und erkläre kurz, warum sie auftreten können.\",\n          \"musterantwort\": \"Exzessiver Medienkonsum kann zu Schlafmangel führen, weil das blaue Licht von Bildschirmen die Produktion des Schlafhormons Melatonin hemmt. Zudem kann er Konzentrationsschwierigkeiten verursachen, da ständige Reizüberflutung das Gehirn überlastet und die Fähigkeit zur längeren Aufmerksamkeit verringert.\"\n        },\n        {\n          \"frage\": \"Nenne zwei Strategien, mit denen Jugendliche ihren Medienkonsum bewusst reduzieren können, und begründe, warum diese wirksam sein könnten.\",\n          \"musterantwort\": \"Eine Strategie ist das Festlegen fester Bildschirmzeiten, z. B. durch Apps, die die Nutzungsdauer begrenzen. Das hilft, weil klare Regeln Überblick und Kontrolle schaffen. Eine weitere Möglichkeit ist das Ersetzen von Medienzeit durch Hobbys wie Sport, da körperliche Aktivität ablenkt und gleichzeitig das Wohlbefinden steigert.\"\n        }\n      ]\n    }\n  }\n}\n```",
+  "fullApiResponse": {
+    "id": "cc41f48fb7824980a19fa92a34f144b8",
+    "created": 1780356099,
+    "model": "mistral-large-latest",
+    "usage": {
+      "prompt_tokens": 124,
+      "total_tokens": 458,
+      "completion_tokens": 334,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "object": "chat.completion",
+    "choices": [
+      {
+        "index": 0,
+        "finish_reason": "stop",
+        "message": {
+          "role": "assistant",
+          "tool_calls": null,
+          "content": "```json\n{\n  \"schularbeit\": {\n    \"thema\": \"Medienkonsum\",\n    \"klasse\": \"7. Klasse (Oberstufe)\",\n    \"block\": {\n      \"typ\": \"offeneVerstaendnisfrage\",\n      \"punkte\": 8,\n      \"anzahlFragen\": 2,\n      \"fragen\": [\n        {\n          \"frage\": \"Beschreibe zwei mögliche negative Auswirkungen von exzessivem Medienkonsum auf Jugendliche und erkläre kurz, warum sie auftreten können.\",\n          \"musterantwort\": \"Exzessiver Medienkonsum kann zu Schlafmangel führen, weil das blaue Licht von Bildschirmen die Produktion des Schlafhormons Melatonin hemmt. Zudem kann er Konzentrationsschwierigkeiten verursachen, da ständige Reizüberflutung das Gehirn überlastet und die Fähigkeit zur längeren Aufmerksamkeit verringert.\"\n        },\n        {\n          \"frage\": \"Nenne zwei Strategien, mit denen Jugendliche ihren Medienkonsum bewusst reduzieren können, und begründe, warum diese wirksam sein könnten.\",\n          \"musterantwort\": \"Eine Strategie ist das Festlegen fester Bildschirmzeiten, z. B. durch Apps, die die Nutzungsdauer begrenzen. Das hilft, weil klare Regeln Überblick und Kontrolle schaffen. Eine weitere Möglichkeit ist das Ersetzen von Medienzeit durch Hobbys wie Sport, da körperliche Aktivität ablenkt und gleichzeitig das Wohlbefinden steigert.\"\n        }\n      ]\n    }\n  }\n}\n```"
+        }
+      }
+    ]
+  }
+}

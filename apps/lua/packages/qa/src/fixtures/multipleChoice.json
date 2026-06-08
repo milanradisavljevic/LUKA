@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "0.1.0",
+  "meta": {
+    "stufe": "unterstufe",
+    "fach": "englisch",
+    "thema": "Daily Routines",
+    "datum": "2026-06-01",
+    "klasse": "3B",
+    "notizen": "Probearbeitsanweisung"
+  },
+  "quelltexte": [
+    {
+      "id": "q1",
+      "titel": "My Daily Routine",
+      "inhalt": "I wake up at seven o'clock. First, I brush my teeth. Then I have breakfast with my family. After breakfast, I go to school by bus. School starts at half past eight. My favourite subject is English. In the afternoon, I play football with my friends. In the evening, I do my homework and watch TV. I go to bed at nine o'clock.",
+      "herkunft": { "typ": "upload", "ref": "daily_routine.txt" }
+    }
+  ],
+  "bloecke": [
+    {
+      "id": "b3",
+      "typ": "multipleChoice",
+      "punkte": 4,
+      "quelleId": "q1",
+      "arbeitsanweisung": "Kreuze die richtige Antwort an.",
+      "config": {
+        "fragen": [
+          {
+            "nr": 1,
+            "frage": "What time does the writer wake up?",
+            "optionen": [
+              { "key": "A", "text": "at six o'clock" },
+              { "key": "B", "text": "at seven o'clock" },
+              { "key": "C", "text": "at half past seven" },
+              { "key": "D", "text": "at eight o'clock" }
+            ],
+            "mehrfach": false
+          },
+          {
+            "nr": 2,
+            "frage": "Which activities are mentioned in the afternoon? (Choose two)",
+            "optionen": [
+              { "key": "A", "text": "playing football" },
+              { "key": "B", "text": "doing homework" },
+              { "key": "C", "text": "reading a book" },
+              { "key": "D", "text": "watching TV" }
+            ],
+            "mehrfach": true
+          }
+        ]
+      },
+      "loesung": {
+        "antworten": { "1": ["B"], "2": ["A", "D"] }
+      }
+    }
+  ]
+}

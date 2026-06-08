@@ -1,0 +1,166 @@
+{
+  "schemaVersion": "0.1.0",
+  "meta": {
+    "stufe": "oberstufe",
+    "fach": "deutsch",
+    "thema": "Medienkonsum und Jugendliche",
+    "datum": "2026-05-30",
+    "klasse": "7A",
+    "notizen": ""
+  },
+  "quelltexte": [
+    {
+      "id": "q1",
+      "titel": "Social Media und Wohlbefinden",
+      "inhalt": "Zahlreiche Studien belegen, dass exzessiver Social-Media-Konsum das Wohlbefinden von Jugendlichen beeintraechtigern kann. Besonders betroffen sind junge Menschen, die mehr als drei Stunden taeglich auf Plattformen wie Instagram oder TikTok verbringen. Forscher der Universitaet Wien stellten fest, dass diese Gruppe haeufiger unter Schlafproblemen, Vergleichsdruck und Einsamkeit leidet als Gleichaltrige mit geringerer Nutzung. Gleichzeitig bieten soziale Netzwerke Chancen: Sie ermoeglichen globalen Austausch, foerdern Kreativitaet und koennen soziale Unterstuetzung bieten – vorausgesetzt, die Nutzung bleibt bewusst und reflektiert.",
+      "herkunft": {
+        "typ": "upload",
+        "ref": "quelltext_social_media.pdf"
+      }
+    }
+  ],
+  "bloecke": [
+    {
+      "id": "b1",
+      "typ": "lueckentext",
+      "punkte": 8,
+      "quelleId": "q1",
+      "arbeitsanweisung": "Lies den Text. Setze die fehlenden Begriffe sinngemaeß ein.",
+      "config": {
+        "anzahlLuecken": 8,
+        "wortbank": false,
+        "distraktoren": 0
+      },
+      "loesung": {
+        "luecken": [
+          { "nr": 1, "wort": "Wohlbefinden" },
+          { "nr": 2, "wort": "Jugendlichen" },
+          { "nr": 3, "wort": "drei" },
+          { "nr": 4, "wort": "Schlafproblemen" },
+          { "nr": 5, "wort": "Vergleichsdruck" },
+          { "nr": 6, "wort": "Kreativitaet" },
+          { "nr": 7, "wort": "bewusst" },
+          { "nr": 8, "wort": "reflektiert" }
+        ]
+      }
+    },
+    {
+      "id": "b2",
+      "typ": "matching",
+      "punkte": 6,
+      "quelleId": "q1",
+      "arbeitsanweisung": "Ordne die Begriffe den richtigen Erklaerungen zu. Achtung: Es gibt mehr Erklaerungen als Begriffe.",
+      "config": {
+        "items": [
+          { "nr": 1, "prompt": "Vergleichsdruck" },
+          { "nr": 2, "prompt": "Exzessiver Konsum" },
+          { "nr": 3, "prompt": "Globaler Austausch" }
+        ],
+        "optionen": [
+          { "key": "A", "text": "Nutzung, die Grenzen ueberschreitet und schaedlich wirkt" },
+          { "key": "B", "text": "Kommunikation mit Menschen weltweit" },
+          { "key": "C", "text": "Drang, sich mit anderen zu messen und gleichzuziehen" },
+          { "key": "D", "text": "Bewusstes und dosiertes Nutzen von Medien" }
+        ]
+      },
+      "loesung": {
+        "zuordnung": {
+          "1": "C",
+          "2": "A",
+          "3": "B"
+        }
+      }
+    },
+    {
+      "id": "b3",
+      "typ": "multipleChoice",
+      "punkte": 4,
+      "quelleId": "q1",
+      "arbeitsanweisung": "Kreuze die jeweils richtige Antwort an.",
+      "config": {
+        "fragen": [
+          {
+            "nr": 1,
+            "frage": "Ab wie vielen Stunden taeglicher Nutzung wurden negative Auswirkungen festgestellt?",
+            "optionen": [
+              { "key": "A", "text": "Mehr als einer Stunde" },
+              { "key": "B", "text": "Mehr als drei Stunden" },
+              { "key": "C", "text": "Mehr als fuenf Stunden" },
+              { "key": "D", "text": "Mehr als acht Stunden" }
+            ],
+            "mehrfach": false
+          },
+          {
+            "nr": 2,
+            "frage": "Welche Institution fuehrte die im Text erwaehnte Studie durch?",
+            "optionen": [
+              { "key": "A", "text": "Technische Universitaet Graz" },
+              { "key": "B", "text": "Universitaet Salzburg" },
+              { "key": "C", "text": "Universitaet Wien" },
+              { "key": "D", "text": "Akademie der Wissenschaften" }
+            ],
+            "mehrfach": false
+          }
+        ]
+      },
+      "loesung": {
+        "antworten": {
+          "1": ["B"],
+          "2": ["C"]
+        }
+      }
+    },
+    {
+      "id": "b4",
+      "typ": "offeneVerstaendnisfrage",
+      "punkte": 10,
+      "quelleId": "q1",
+      "arbeitsanweisung": "Beantworte die Fragen in ganzen Saetzen.",
+      "config": {
+        "fragen": [
+          {
+            "nr": 1,
+            "frage": "Welche negativen Auswirkungen von Social Media nennt der Text? Nenne mindestens zwei.",
+            "zeilen": 4
+          },
+          {
+            "nr": 2,
+            "frage": "Unter welcher Bedingung koennen soziale Netzwerke laut Text auch positiv sein?",
+            "zeilen": 3
+          }
+        ]
+      },
+      "loesung": {
+        "antworten": {
+          "1": "Der Text nennt Schlafprobleme, Vergleichsdruck und Einsamkeit als negative Auswirkungen.",
+          "2": "Soziale Netzwerke koennen positiv sein, wenn die Nutzung bewusst und reflektiert bleibt."
+        }
+      }
+    },
+    {
+      "id": "b5",
+      "typ": "offeneSchreibaufgabe",
+      "punkte": 30,
+      "arbeitsanweisung": "Verfasse einen Kommentar zum Thema Social Media und Jugendliche.",
+      "config": {
+        "situation": "Du hast in der Schule einen Artikel ueber die Auswirkungen von Social Media auf Jugendliche gelesen.",
+        "textsorte": "Kommentar",
+        "umfangWorte": { "min": 270, "max": 330 },
+        "aspekte": [
+          "Erklaere, welche Auswirkungen Social Media auf das Wohlbefinden von Jugendlichen haben kann.",
+          "Nimm Stellung dazu, wer die Verantwortung fuer einen gesunden Umgang traegt.",
+          "Formuliere eine klare Schlussfolgerung oder Forderung."
+        ]
+      },
+      "loesung": {
+        "musterloesung": "Social Media ist aus dem Alltag von Jugendlichen nicht mehr wegzudenken – und das hat seinen Preis. Wie Forschende der Universitaet Wien zeigen, leiden junge Menschen, die taeglich mehr als drei Stunden auf Plattformen wie Instagram verbringen, haeufiger unter Schlafproblemen und dem staendigen Drang, sich mit anderen zu vergleichen. Das sind Signale, die wir ernst nehmen muessen.\n\nDoch wer ist verantwortlich? Die Plattformen locken mit Algorithmen, die auf maximale Nutzungszeit ausgelegt sind – das ist kein Geheimnis. Eltern und Schulen koennen Bewusstsein schaffen, aber sie koennen nicht jede Bildschirmminute kontrollieren. Am Ende liegt die Verantwortung zu einem grossen Teil bei den Jugendlichen selbst: Sie muessen lernen, Social Media als Werkzeug zu nutzen, nicht als Zeitfalle.\n\nMein Fazit: Nicht Social Media ist das Problem, sondern die unreflektierte Nutzung. Wer bewusst entscheidet, wann und wie lange er online ist, kann von den Vorteilen profitieren – ohne die Nachteile in Kauf nehmen zu muessen. Digitale Kompetenz sollte deshalb endlich als Pflichtfach in den Lehrplan.",
+        "erwartungshorizont": {
+          "inhalt": "Alle drei Aspekte angesprochen; eigene Meinung klar formuliert; Bezug zum Ausgangstext erkennbar.",
+          "struktur": "Einleitung mit Themennennung, strukturierter Hauptteil, klarer Schluss mit Forderung oder Fazit.",
+          "ausdruck": "Kommentartypische Sprache; appellative und wertende Formulierungen; variierter Satzbau.",
+          "sprachrichtigkeit": "Keine gravierenden Fehler in Grammatik, Rechtschreibung und Zeichensetzung."
+        }
+      }
+    }
+  ]
+}

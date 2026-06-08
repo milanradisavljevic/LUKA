@@ -1,0 +1,19 @@
+{
+  "name": "lehrunterlagen-tool",
+  "private": true,
+  "scripts": {
+    "test": "pnpm -r test",
+    "smoke": "node scripts/llm-smoke.mjs",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.11.2"
+  }
+}

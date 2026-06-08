@@ -1,0 +1,210 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Natascha Feedback Data",
+  "type": "object",
+  "required": [
+    "datei",
+    "textsorte",
+    "fach",
+    "schulstufe",
+    "rubrik",
+    "bewertung",
+    "fehler"
+  ],
+  "properties": {
+    "datei": {
+      "type": "string",
+      "description": "Originale DOCX-Datei aus /input/."
+    },
+    "schueler": {
+      "type": "string"
+    },
+    "klasse": {
+      "type": "string"
+    },
+    "textsorte": {
+      "type": "string"
+    },
+    "fach": {
+      "type": "string",
+      "enum": [
+        "Deutsch",
+        "Englisch"
+      ]
+    },
+    "schulstufe": {
+      "type": "string",
+      "enum": [
+        "Unterstufe",
+        "Oberstufe"
+      ]
+    },
+    "rubrik": {
+      "type": "string"
+    },
+    "modell": {
+      "type": "string"
+    },
+    "provider": {
+      "type": "string"
+    },
+    "zusammenfassung": {
+      "type": "string",
+      "description": "2-3 Sätze holistische Gesamteinschätzung der Arbeit."
+    },
+    "staerken_global": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Genau 3 globale Stärken der Arbeit."
+    },
+    "verbesserungsbereiche": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Genau 3 konkrete Verbesserungsbereiche."
+    },
+    "transkription": {
+      "type": "string",
+      "description": "Vollständige Abschrift des handgeschriebenen Schülertexts (nur bei Bild/PDF-Input)."
+    },
+    "hinweise": {
+      "type": "array",
+      "description": "Pädagogische Randnotizen (Stilbeobachtungen, Stärken, Tipps) — NICHT für Rechtschreib-/Grammatikfehler.",
+      "items": {
+        "type": "object",
+        "required": ["zitat", "kommentar"],
+        "properties": {
+          "zitat": {
+            "type": "string",
+            "description": "Exaktes Wort oder exakte Phrase aus dem Schülertext (wortgetreu)."
+          },
+          "kommentar": {
+            "type": "string",
+            "description": "Kurzer Lehrerkommentar zu diesem Wort/dieser Phrase."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "fehler": {
+      "type": "array",
+      "description": "Vollständige Liste aller Sprachfehler (R/G/Z/A). Kein Limit.",
+      "items": {
+        "type": "object",
+        "required": ["zitat", "korrektur", "typ"],
+        "properties": {
+          "zitat": {
+            "type": "string",
+            "description": "1-6 Wörter aus dem Schülertext, wortgetreu."
+          },
+          "korrektur": {
+            "type": "string",
+            "description": "Korrigierte Fassung des Zitats."
+          },
+          "typ": {
+            "type": "string",
+            "enum": ["R", "G", "Z", "A"],
+            "description": "R=Rechtschreibung, G=Grammatik, Z=Zeichensetzung, A=Ausdruck"
+          },
+          "erklaerung": {
+            "type": "string",
+            "description": "Knappe Erklärung der verletzten Regel (1 Satz, optional)."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "bewertung": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "$ref": "#/$defs/kriterium"
+      }
+    },
+    "notenempfehlung": {
+      "$ref": "#/$defs/notenempfehlung"
+    },
+    "notendetail": {
+      "type": "object",
+      "description": "App-seitige Notenberechnung mit K1/K3-Aufschlüsselung (nicht im DOCX, nur für UI).",
+      "additionalProperties": true
+    }
+  },
+  "$defs": {
+    "kriterium": {
+      "type": "object",
+      "required": [
+        "stufe",
+        "punkte",
+        "staerken",
+        "vorschlaege"
+      ],
+      "properties": {
+        "stufe": {
+          "type": [
+            "string",
+            "number"
+          ]
+        },
+        "punkte": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "gewicht": {
+          "type": "number"
+        },
+        "staerken": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "schwaechen": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "vorschlaege": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rhetorische_figuren": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "notenempfehlung": {
+      "type": "object",
+      "required": [
+        "durchschnitt",
+        "note",
+        "bezeichnung",
+        "begruendung"
+      ],
+      "properties": {
+        "durchschnitt": {
+          "type": "number"
+        },
+        "note": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "bezeichnung": {
+          "type": "string"
+        },
+        "begruendung": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

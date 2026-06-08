@@ -1,0 +1,34 @@
+{
+  "provider": "anthropic",
+  "model": "claude-sonnet-4-6",
+  "blockType": "lueckentext",
+  "timestamp": "2026-06-01T23:19:02.318Z",
+  "rawResponse": "```json\n{\n  \"title\": \"Schularbeit: Medienkonsum\",\n  \"subject\": \"Deutsch\",\n  \"grade\": \"7. Klasse (Oberstufe)\",\n  \"topic\": \"Medienkonsum\",\n  \"blocks\": [\n    {\n      \"type\": \"lueckentext\",\n      \"points\": 8,\n      \"instruction\": \"Fülle die Lücken (1) bis (4) mit dem jeweils passenden Wort aus dem Kontext aus. Pro richtige Antwort erhältst du 2 Punkte.\",\n      \"text\": \"Der tägliche Medienkonsum von Jugendlichen hat in den letzten Jahren erheblich zugenommen. Besonders soziale Netzwerke wie Instagram oder TikTok üben eine starke (1) __________ auf junge Menschen aus, da sie ständig neue Inhalte liefern und zur Interaktion einladen. Experten warnen jedoch davor, dass übermäßiger Medienkonsum die (2) __________ beeinträchtigen kann, weil die Konzentration auf lange Texte oder komplexe Aufgaben abnimmt. Ein bewusster Umgang mit Medien – auch als (3) __________ bezeichnet – hilft dabei, die eigene Bildschirmzeit sinnvoll zu regulieren und ein gesundes Gleichgewicht zwischen Online- und Offline-Aktivitäten zu finden. Wer regelmäßig digitale Pausen einlegt und analoge Freizeitbeschäftigungen pflegt, kann negativen Folgen wie Schlafmangel oder soziale Isolation entgegenwirken und seine (4) __________ langfristig stärken.\",\n      \"gaps\": [\n        {\n          \"number\": 1,\n          \"solution\": \"Anziehungskraft\",\n          \"alternatives\": [\"Faszination\", \"Wirkung\", \"Attraktivität\"]\n        },\n        {\n          \"number\": 2,\n          \"solution\": \"Konzentrationsfähigkeit\",\n          \"alternatives\": [\"Aufmerksamkeit\", \"Konzentration\"]\n        },\n        {\n          \"number\": 3,\n          \"solution\": \"Medienkompetenz\",\n          \"alternatives\": [\"Medienerziehung\"]\n        },\n        {\n          \"number\": 4,\n          \"solution\": \"Gesundheit\",\n          \"alternatives\": [\"Lebensqualität\", \"Ausgeglichenheit\"]\n        }\n      ],\n      \"total_points\": 8,\n      \"points_per_gap\": 2\n    }\n  ]\n}\n```",
+  "fullApiResponse": {
+    "model": "claude-sonnet-4-6",
+    "id": "msg_01UQ9Xuaon9zbqMsfLQoTcHR",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+      {
+        "type": "text",
+        "text": "```json\n{\n  \"title\": \"Schularbeit: Medienkonsum\",\n  \"subject\": \"Deutsch\",\n  \"grade\": \"7. Klasse (Oberstufe)\",\n  \"topic\": \"Medienkonsum\",\n  \"blocks\": [\n    {\n      \"type\": \"lueckentext\",\n      \"points\": 8,\n      \"instruction\": \"Fülle die Lücken (1) bis (4) mit dem jeweils passenden Wort aus dem Kontext aus. Pro richtige Antwort erhältst du 2 Punkte.\",\n      \"text\": \"Der tägliche Medienkonsum von Jugendlichen hat in den letzten Jahren erheblich zugenommen. Besonders soziale Netzwerke wie Instagram oder TikTok üben eine starke (1) __________ auf junge Menschen aus, da sie ständig neue Inhalte liefern und zur Interaktion einladen. Experten warnen jedoch davor, dass übermäßiger Medienkonsum die (2) __________ beeinträchtigen kann, weil die Konzentration auf lange Texte oder komplexe Aufgaben abnimmt. Ein bewusster Umgang mit Medien – auch als (3) __________ bezeichnet – hilft dabei, die eigene Bildschirmzeit sinnvoll zu regulieren und ein gesundes Gleichgewicht zwischen Online- und Offline-Aktivitäten zu finden. Wer regelmäßig digitale Pausen einlegt und analoge Freizeitbeschäftigungen pflegt, kann negativen Folgen wie Schlafmangel oder soziale Isolation entgegenwirken und seine (4) __________ langfristig stärken.\",\n      \"gaps\": [\n        {\n          \"number\": 1,\n          \"solution\": \"Anziehungskraft\",\n          \"alternatives\": [\"Faszination\", \"Wirkung\", \"Attraktivität\"]\n        },\n        {\n          \"number\": 2,\n          \"solution\": \"Konzentrationsfähigkeit\",\n          \"alternatives\": [\"Aufmerksamkeit\", \"Konzentration\"]\n        },\n        {\n          \"number\": 3,\n          \"solution\": \"Medienkompetenz\",\n          \"alternatives\": [\"Medienerziehung\"]\n        },\n        {\n          \"number\": 4,\n          \"solution\": \"Gesundheit\",\n          \"alternatives\": [\"Lebensqualität\", \"Ausgeglichenheit\"]\n        }\n      ],\n      \"total_points\": 8,\n      \"points_per_gap\": 2\n    }\n  ]\n}\n```"
+      }
+    ],
+    "stop_reason": "end_turn",
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+      "input_tokens": 172,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 658,
+      "service_tier": "standard",
+      "inference_geo": "global"
+    }
+  }
+}

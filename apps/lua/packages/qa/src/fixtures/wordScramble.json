@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "0.1.0",
+  "meta": {
+    "stufe": "unterstufe",
+    "fach": "deutsch",
+    "thema": "Satzbau üben",
+    "datum": "2026-05-30",
+    "klasse": "5B",
+    "notizen": ""
+  },
+  "quelltexte": [
+    {
+      "id": "q1",
+      "titel": "Beispielsatz",
+      "inhalt": "Lena liest abends ein spannendes Buch im Bett.",
+      "herkunft": { "typ": "upload", "ref": "satzbeispiel.txt" }
+    }
+  ],
+  "bloecke": [
+    {
+      "id": "b7",
+      "typ": "wordScramble",
+      "punkte": 4,
+      "arbeitsanweisung": "Bringe die Wörter in die richtige Reihenfolge.",
+      "config": {
+        "wort": "Lena liest abends ein Buch im Bett",
+        "anzahlWoerter": 7,
+        "loesungsreihenfolge": [1, 2, 3, 4, 5, 6, 7]
+      },
+      "loesung": {
+        "korrektAnordnung": ["Lena", "liest", "abends", "ein", "Buch", "im", "Bett"]
+      }
+    }
+  ]
+}

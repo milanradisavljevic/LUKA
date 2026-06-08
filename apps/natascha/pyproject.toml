@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools>=70", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "natascha"
+version = "0.7.0"
+description = "Normbasierte Analyse von Textproduktionen – Automatisierte Schularbeits-Correction als Hilfe-Agent"
+requires-python = ">=3.11"
+license = "MIT"
+
+dependencies = [
+    "textual>=0.47",
+    "python-docx>=1.1",
+    "lxml>=6.1.0",          # Security: PYSEC-2026-87 (XML-Backend von python-docx)
+    "anthropic>=0.30",
+    "openai>=1.30",
+    "pillow>=12.2.0",       # Security: CVE-2026-40192/-42309/-42310/-42311, PYSEC-2026-165
+    "tomlkit>=0.13",
+    "rich>=13",
+    "InquirerPy>=0.3",
+    "jsonschema>=4.20",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7",
+    "ruff>=0.4",
+]
+
+[project.scripts]
+natascha = "natascha:main"
+natascha-wizard = "natascha_wizard:main"
+
+[tool.setuptools]
+py-modules = [
+    "natascha",
+    "natascha_core",
+    "natascha_db",
+    "natascha_wizard",
+    "generate_feedback",
+]
+
+[tool.setuptools.package-data]
+"*" = ["*.tcss", "*.toml", "*.json", "*.md", "assets/*.png"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

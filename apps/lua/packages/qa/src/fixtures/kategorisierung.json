@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "0.1.0",
+  "meta": {
+    "stufe": "unterstufe",
+    "fach": "deutsch",
+    "thema": "Organe des Menschen",
+    "datum": "2026-05-30",
+    "klasse": "5B",
+    "notizen": ""
+  },
+  "quelltexte": [
+    {
+      "id": "q1",
+      "titel": "Sachinformation",
+      "inhalt": "Der menschliche Körper hat verschiedene Organe für unterschiedliche Aufgaben.",
+      "herkunft": { "typ": "upload", "ref": "organe.txt" }
+    }
+  ],
+  "bloecke": [
+    {
+      "id": "b8",
+      "typ": "kategorisierung",
+      "punkte": 6,
+      "arbeitsanweisung": "Ordne die Organe dem passenden System zu.",
+      "config": {
+        "items": [
+          { "nr": 1, "text": "Magen", "optionen": ["Verdauung", "Atmung"] },
+          { "nr": 2, "text": "Lunge", "optionen": ["Verdauung", "Atmung"] },
+          { "nr": 3, "text": "Darm", "optionen": ["Verdauung", "Atmung"] },
+          { "nr": 4, "text": "Bronchien", "optionen": ["Verdauung", "Atmung"] }
+        ],
+        "kategorien": [
+          { "name": "Verdauung", "anzahlItems": 2 },
+          { "name": "Atmung", "anzahlItems": 2 }
+        ]
+      },
+      "loesung": {
+        "zuordnung": {
+          "1": ["Verdauung"],
+          "2": ["Atmung"],
+          "3": ["Verdauung"],
+          "4": ["Atmung"]
+        }
+      }
+    }
+  ]
+}

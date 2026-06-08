@@ -1,0 +1,28 @@
+{
+  "provider": "kimi",
+  "model": "moonshot-v1-8k",
+  "blockType": "markieraufgabe",
+  "timestamp": "2026-06-01T23:22:26.233Z",
+  "rawResponse": "{\n  \"block\": {\n    \"blockType\": \"markieraufgabe\",\n    \"points\": 4,\n    \"prompt\": \"Die Generation Z wächst mit digitalen Medien auf. Smartphones, soziale Netzwerke und Streaming-Dienste sind fester Bestandteil ihres Alltags. Kritiker warnen vor Suchtgefahr und Realitätsverlust, während Befürworter die Chancen für Bildung und Vernetzung betonen.\",\n    \"instructions\": \"Bitte markieren Sie in dem obigen Text alle Argumente, die für digitale Medien sprechen (PRO digitale Medien).\",\n    \"answers\": {\n      \"proArguments\": [\n        \"Smartphones, soziale Netzwerke und Streaming-Dienste sind fester Bestandteil ihres Alltags.\",\n        \"Befürworter die Chancen für Bildung und Vernetzung betonen.\"\n      ]\n    }\n  }\n}",
+  "fullApiResponse": {
+    "id": "chatcmpl-6a1e142d334a63f06bf1ff07",
+    "object": "chat.completion",
+    "created": 1780356141,
+    "model": "moonshot-v1-8k",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\n  \"block\": {\n    \"blockType\": \"markieraufgabe\",\n    \"points\": 4,\n    \"prompt\": \"Die Generation Z wächst mit digitalen Medien auf. Smartphones, soziale Netzwerke und Streaming-Dienste sind fester Bestandteil ihres Alltags. Kritiker warnen vor Suchtgefahr und Realitätsverlust, während Befürworter die Chancen für Bildung und Vernetzung betonen.\",\n    \"instructions\": \"Bitte markieren Sie in dem obigen Text alle Argumente, die für digitale Medien sprechen (PRO digitale Medien).\",\n    \"answers\": {\n      \"proArguments\": [\n        \"Smartphones, soziale Netzwerke und Streaming-Dienste sind fester Bestandteil ihres Alltags.\",\n        \"Befürworter die Chancen für Bildung und Vernetzung betonen.\"\n      ]\n    }\n  }\n}"
+        },
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 185,
+      "completion_tokens": 201,
+      "total_tokens": 386
+    }
+  }
+}

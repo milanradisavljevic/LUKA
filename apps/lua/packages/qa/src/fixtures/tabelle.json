@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "0.1.0",
+  "meta": {
+    "stufe": "oberstufe",
+    "fach": "deutsch",
+    "thema": "Epochen der deutschen Literatur",
+    "datum": "2026-05-30",
+    "klasse": "12A",
+    "notizen": ""
+  },
+  "quelltexte": [
+    {
+      "id": "q1",
+      "titel": "Literaturepochen Übersicht",
+      "inhalt": "Von der Aufklärung bis zur Gegenwartsliteratur: Ein Überblick. Die Aufklärung (1720–1800) stellte die Vernunft als Leitprinzip in den Mittelpunkt. Der Sturm und Drang (1765–1790) betonte Geniekult und Gefühl. Die Klassik (1786–1832) strebte nach Harmonie und Formstrenge.",
+      "herkunft": { "typ": "upload", "ref": "epochen.txt" }
+    }
+  ],
+  "bloecke": [
+    {
+      "id": "b9",
+      "typ": "tabelle",
+      "punkte": 12,
+      "arbeitsanweisung": "Fülle die leeren Felder der Tabelle aus.",
+      "config": {
+        "spalten": [
+          { "titel": "Epoche", "breiteProzent": 30 },
+          { "titel": "Zeitraum", "breiteProzent": 25 },
+          { "titel": "Merkmal", "breiteProzent": 45 }
+        ],
+        "zeilen": [
+          { "nr": 1, "zellen": [{ "text": "Aufklärung" }, { "luecke": true }, { "luecke": true }] },
+          { "nr": 2, "zellen": [{ "text": "Sturm und Drang" }, { "luecke": true }, { "luecke": true }] },
+          { "nr": 3, "zellen": [{ "text": "Klassik" }, { "luecke": true }, { "luecke": true }] }
+        ]
+      },
+      "loesung": {
+        "zellen": {
+          "1,1": "1720–1800",
+          "1,2": "Vernunft als Leitprinzip",
+          "2,1": "1765–1790",
+          "2,2": "Geniekult, Gefühl",
+          "3,1": "1786–1832",
+          "3,2": "Harmonie, Formstrenge"
+        }
+      }
+    }
+  ]
+}

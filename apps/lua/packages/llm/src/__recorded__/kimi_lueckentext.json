@@ -1,0 +1,28 @@
+{
+  "provider": "kimi",
+  "model": "moonshot-v1-8k",
+  "blockType": "lueckentext",
+  "timestamp": "2026-06-01T23:21:56.152Z",
+  "rawResponse": "{\n  \"type\": \"lueckentext\",\n  \"points\": 8,\n  \"number_of_gaps\": 4,\n  \"text\": \"Im heutigen Zeitalter ist der Medienkonsum ein unverzichtbarer Teil des täglichen Lebens. Viele Menschen nutzen various media form all over the day, such as television, radio, newspapers, and the internet. (1) _______ ist dabei ein wichtiger Faktor, um Nachrichten und Informationen zu erhalten. Die Vielfalt der Medien ermöglicht es uns, (2) _______ und (3) _______ Inhalte zu konsumieren, die unseren Interessen entsprechen. Das Fließband an Nachrichten und Unterhaltungen auf sozialen Plattformen, wie zum Beispiel Facebook, Twitter und Instagram, sorgt dafür, dass wir immer (4) _______ auf dem Laufenden über das, was in der Welt passiert. Gerade bei jungen Menschen ist der Medienkonsum ein wichtiger Teil ihres sozialen Austauschs, und sie kommunizieren oft über die von ihnen genutzten Medien.\",\n  \"solutions\": {\n    \"(1)\": \"Der Zugang\",\n    \"(2)\": \"aktuell\",\n    \"(3)\": \"wesentlich\",\n    \"(4)\": \"auf dem\"\n  }\n}",
+  "fullApiResponse": {
+    "id": "chatcmpl-6a1e140e05fea989df95f44d",
+    "object": "chat.completion",
+    "created": 1780356110,
+    "model": "moonshot-v1-8k",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\n  \"type\": \"lueckentext\",\n  \"points\": 8,\n  \"number_of_gaps\": 4,\n  \"text\": \"Im heutigen Zeitalter ist der Medienkonsum ein unverzichtbarer Teil des täglichen Lebens. Viele Menschen nutzen various media form all over the day, such as television, radio, newspapers, and the internet. (1) _______ ist dabei ein wichtiger Faktor, um Nachrichten und Informationen zu erhalten. Die Vielfalt der Medien ermöglicht es uns, (2) _______ und (3) _______ Inhalte zu konsumieren, die unseren Interessen entsprechen. Das Fließband an Nachrichten und Unterhaltungen auf sozialen Plattformen, wie zum Beispiel Facebook, Twitter und Instagram, sorgt dafür, dass wir immer (4) _______ auf dem Laufenden über das, was in der Welt passiert. Gerade bei jungen Menschen ist der Medienkonsum ein wichtiger Teil ihres sozialen Austauschs, und sie kommunizieren oft über die von ihnen genutzten Medien.\",\n  \"solutions\": {\n    \"(1)\": \"Der Zugang\",\n    \"(2)\": \"aktuell\",\n    \"(3)\": \"wesentlich\",\n    \"(4)\": \"auf dem\"\n  }\n}"
+        },
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 141,
+      "completion_tokens": 288,
+      "total_tokens": 429
+    }
+  }
+}

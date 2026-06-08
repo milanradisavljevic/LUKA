@@ -1,0 +1,35 @@
+{
+  "provider": "deepseek",
+  "model": "deepseek-chat",
+  "blockType": "markieraufgabe",
+  "timestamp": "2026-06-01T23:20:53.120Z",
+  "rawResponse": "{\n  \"block\": \"markieraufgabe\",\n  \"punkte\": 4,\n  \"quelltext\": \"Die Generation Z wächst mit digitalen Medien auf. Smartphones, soziale Netzwerke und Streaming-Dienste sind fester Bestandteil ihres Alltags. Kritiker warnen vor Suchtgefahr und Realitätsverlust, während Befürworter die Chancen für Bildung und Vernetzung betonen.\",\n  \"aufgabe\": \"Markiere alle Argumente PRO digitale Medien im folgenden Text.\",\n  \"loesung\": [\"Chancen für Bildung\", \"Vernetzung\"]\n}",
+  "fullApiResponse": {
+    "id": "264b1065-e97c-44f5-b01b-ccdba6b32c5b",
+    "object": "chat.completion",
+    "created": 1780356051,
+    "model": "deepseek-v4-flash",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\n  \"block\": \"markieraufgabe\",\n  \"punkte\": 4,\n  \"quelltext\": \"Die Generation Z wächst mit digitalen Medien auf. Smartphones, soziale Netzwerke und Streaming-Dienste sind fester Bestandteil ihres Alltags. Kritiker warnen vor Suchtgefahr und Realitätsverlust, während Befürworter die Chancen für Bildung und Vernetzung betonen.\",\n  \"aufgabe\": \"Markiere alle Argumente PRO digitale Medien im folgenden Text.\",\n  \"loesung\": [\"Chancen für Bildung\", \"Vernetzung\"]\n}"
+        },
+        "logprobs": null,
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 178,
+      "completion_tokens": 129,
+      "total_tokens": 307,
+      "prompt_tokens_details": {
+        "cached_tokens": 128
+      },
+      "prompt_cache_hit_tokens": 128,
+      "prompt_cache_miss_tokens": 50
+    },
+    "system_fingerprint": "fp_8b330d02d0_prod0820_fp8_kvcache_20260402"
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "provider": "openai",
+  "model": "gpt-4o-mini",
+  "blockType": "multipleChoice",
+  "timestamp": "2026-06-01T23:20:14.875Z",
+  "rawResponse": "{\n  \"block\": {\n    \"typ\": \"multipleChoice\",\n    \"punkte\": 4,\n    \"fragen\": [\n      {\n        \"frage\": \"Welches Medium hat in den letzten Jahren den größten Anstieg in der Nutzung erfahren?\",\n        \"antworten\": [\n          { \"option\": \"A\", \"text\": \"Fernsehen\" },\n          { \"option\": \"B\", \"text\": \"Soziale Medien\" },\n          { \"option\": \"C\", \"text\": \"Printmedien\" },\n          { \"option\": \"D\", \"text\": \"Radio\" }\n        ],\n        \"richtigeAntwort\": \"B\"\n      },\n      {\n        \"frage\": \"Wie viel Zeit verbringen Jugendliche durchschnittlich täglich mit digitalen Medien?\",\n        \"antworten\": [\n          { \"option\": \"A\", \"text\": \"1-2 Stunden\" },\n          { \"option\": \"B\", \"text\": \"3-4 Stunden\" },\n          { \"option\": \"C\", \"text\": \"5-6 Stunden\" },\n          { \"option\": \"D\", \"text\": \"Über 6 Stunden\" }\n        ],\n        \"richtigeAntwort\": \"C\"\n      }\n    ]\n  }\n}",
+  "fullApiResponse": {
+    "id": "chatcmpl-Dm6DSazH671p0oNXbwlphSLHWA0VN",
+    "object": "chat.completion",
+    "created": 1780356010,
+    "model": "gpt-4o-mini-2024-07-18",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\n  \"block\": {\n    \"typ\": \"multipleChoice\",\n    \"punkte\": 4,\n    \"fragen\": [\n      {\n        \"frage\": \"Welches Medium hat in den letzten Jahren den größten Anstieg in der Nutzung erfahren?\",\n        \"antworten\": [\n          { \"option\": \"A\", \"text\": \"Fernsehen\" },\n          { \"option\": \"B\", \"text\": \"Soziale Medien\" },\n          { \"option\": \"C\", \"text\": \"Printmedien\" },\n          { \"option\": \"D\", \"text\": \"Radio\" }\n        ],\n        \"richtigeAntwort\": \"B\"\n      },\n      {\n        \"frage\": \"Wie viel Zeit verbringen Jugendliche durchschnittlich täglich mit digitalen Medien?\",\n        \"antworten\": [\n          { \"option\": \"A\", \"text\": \"1-2 Stunden\" },\n          { \"option\": \"B\", \"text\": \"3-4 Stunden\" },\n          { \"option\": \"C\", \"text\": \"5-6 Stunden\" },\n          { \"option\": \"D\", \"text\": \"Über 6 Stunden\" }\n        ],\n        \"richtigeAntwort\": \"C\"\n      }\n    ]\n  }\n}",
+          "refusal": null,
+          "annotations": []
+        },
+        "logprobs": null,
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 114,
+      "completion_tokens": 249,
+      "total_tokens": 363,
+      "prompt_tokens_details": {
+        "cached_tokens": 0,
+        "audio_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0,
+        "audio_tokens": 0,
+        "accepted_prediction_tokens": 0,
+        "rejected_prediction_tokens": 0
+      }
+    },
+    "service_tier": "default",
+    "system_fingerprint": "fp_df8c8d3b43"
+  }
+}

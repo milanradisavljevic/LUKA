@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "0.1.0",
+  "meta": {
+    "stufe": "oberstufe",
+    "fach": "deutsch",
+    "thema": "Stilmittel der Literatur",
+    "datum": "2026-05-30",
+    "klasse": "7A",
+    "notizen": ""
+  },
+  "quelltexte": [
+    {
+      "id": "q1",
+      "titel": "Gedicht: Herbsttag von Rainer Maria Rilke",
+      "inhalt": "Herbsttag: Herbst! -- Noch ist es so, dass ich den Himmel rate. -- Doch die Geschopfe meiner Phantasie -- Immer schon sind Herbst und Uebergang. -- Nie wird der Herbst so sehr mich uberlisten, -- wie fern die Zukunft, die ich mir ertraeume.",
+      "herkunft": { "typ": "upload", "ref": "rilke_herbsttag.txt" }
+    }
+  ],
+  "bloecke": [
+    {
+      "id": "b2",
+      "typ": "matching",
+      "punkte": 6,
+      "quelleId": "q1",
+      "arbeitsanweisung": "Ordne die folgenden Stilmittel den richtigen Definitionen zu.",
+      "config": {
+        "items": [
+          { "nr": 1, "prompt": "Metapher" },
+          { "nr": 2, "prompt": "Hyperbel" },
+          { "nr": 3, "prompt": "Ironie" }
+        ],
+        "optionen": [
+          { "key": "A", "text": "Uebertreibung zur Verstaerkung der Aussage" },
+          { "key": "B", "text": "Scheinbare Zustimmung mit gegenteiligem Sinn" },
+          { "key": "C", "text": "Bildhafter Vergleich ohne Vergleichspartikel" },
+          { "key": "D", "text": "Vergleich mit 'wie' oder 'als'" }
+        ]
+      },
+      "loesung": {
+        "zuordnung": { "1": "C", "2": "A", "3": "B" }
+      }
+    }
+  ]
+}

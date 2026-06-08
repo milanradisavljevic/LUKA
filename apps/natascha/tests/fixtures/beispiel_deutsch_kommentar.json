@@ -1,0 +1,102 @@
+{
+  "datei": "beispiel_schueler_kommentar.docx",
+  "schueler": "Beispiel Schüler/in",
+  "klasse": "6i",
+  "textsorte": "Kommentar",
+  "fach": "Deutsch",
+  "schulstufe": "Oberstufe",
+  "rubrik": "kommentar.md",
+  "hinweise": [
+    {"zitat": "bei Seite legen", "kommentar": "Stilistisch stark — übertragene Bedeutung bewusst eingesetzt."},
+    {"zitat": "zu umgangssprachlich", "kommentar": "Register für einen Kommentar zu informell."}
+  ],
+  "fehler": [
+    {"zitat": "dem lesen von Büchern", "korrektur": "dem Lesen von Büchern", "typ": "R", "erklaerung": "Substantivierter Infinitiv wird großgeschrieben"},
+    {"zitat": "Schüler die keine", "korrektur": "Schüler, die keine", "typ": "Z", "erklaerung": "Komma vor einleitendem Relativsatz"},
+    {"zitat": "da sie keine Zeit haben", "korrektur": "da sie keine Zeit haben,", "typ": "Z", "erklaerung": "Komma nach eingeschobenem Nebensatz"},
+    {"zitat": "obwohl es wichtig ist", "korrektur": "obwohl es wichtig ist,", "typ": "Z", "erklaerung": "Komma nach konzessivem Nebensatz"},
+    {"zitat": "nämlich das Problem", "korrektur": "nämlich das Problem,", "typ": "Z", "erklaerung": "Komma nach erläuterndem Einschub mit 'nämlich'"},
+    {"zitat": "Es gibt viele Faktoren die", "korrektur": "Es gibt viele Faktoren, die", "typ": "Z", "erklaerung": "Komma vor Relativsatz"},
+    {"zitat": "sie haben sich damit auseinander gesetzt", "korrektur": "sie haben sich damit auseinandergesetzt", "typ": "R", "erklaerung": "Zusammenschreibung bei übertragener Bedeutung"},
+    {"zitat": "infolge dessen", "korrektur": "infolgedessen", "typ": "R", "erklaerung": "Verschmelzung zu einem Wort"},
+    {"zitat": "das Problem ist das", "korrektur": "das Problem ist, dass", "typ": "Z", "erklaerung": "Komma vor Objektsatz; 'dass' (Konjunktion) nicht 'das' (Artikel)"},
+    {"zitat": "wegen dem schlechten Wetter", "korrektur": "wegen des schlechten Wetters", "typ": "G", "erklaerung": "Präposition 'wegen' regiert Genitiv"},
+    {"zitat": "aufgrund von diesen Gründen", "korrektur": "aufgrund dieser Gründe", "typ": "G", "erklaerung": "'Aufgrund' regiert Genitiv; 'von diesen Gründen' ist Dativ-Ersatz"},
+    {"zitat": "mega wichtig", "korrektur": "sehr wichtig / äußerst bedeutsam", "typ": "A", "erklaerung": "Umgangssprache — im Kommentar unangemessenes Register"},
+    {"zitat": "irgendwie schwierig", "korrektur": "durchaus anspruchsvoll", "typ": "A", "erklaerung": "Vage Ausdrucksweise — präzisere Formulierung bevorzugt"}
+  ],
+  "bewertung": {
+    "inhalt": {
+      "stufe": "3",
+      "punkte": 3,
+      "gewicht": 30,
+      "staerken": [
+        "Klare Positionierung zum Thema erkennbar.",
+        "Eigene Erfahrungen werden eingebracht."
+      ],
+      "schwaechen": [
+        "Argumente werden nicht ausreichend belegt.",
+        "Gegenargumente fehlen weitgehend."
+      ],
+      "vorschlaege": [
+        "Mindestens ein Gegenargument mit Entkräftung einbauen.",
+        "Konkrete Beispiele oder Belege ergänzen."
+      ]
+    },
+    "aufbau": {
+      "stufe": "3",
+      "punkte": 3,
+      "gewicht": 20,
+      "staerken": [
+        "Einleitung und Schluss sind erkennbar."
+      ],
+      "schwaechen": [
+        "Übergänge zwischen den Absätzen fehlen.",
+        "Schluss geht nicht auf die Einleitung zurück."
+      ],
+      "vorschlaege": [
+        "Verbindungsformulierungen zwischen Absätzen einfügen.",
+        "Schluss als Bogen zur Eingangsthese gestalten."
+      ]
+    },
+    "ausdruck": {
+      "stufe": "2",
+      "punkte": 2,
+      "gewicht": 20,
+      "staerken": [
+        "Einige treffende Formulierungen vorhanden."
+      ],
+      "schwaechen": [
+        "Häufige Umgangssprache ('mega', 'irgendwie').",
+        "Wortwiederholungen ('das Problem', 'wichtig')."
+      ],
+      "vorschlaege": [
+        "Register an die Textsorte Kommentar anpassen.",
+        "Synonyme für häufig wiederholte Begriffe verwenden."
+      ]
+    },
+    "sprachrichtigkeit": {
+      "stufe": "2",
+      "punkte": 2,
+      "gewicht": 30,
+      "staerken": [
+        "Satzgefüge zeigen Ansätze von Komplexität."
+      ],
+      "schwaechen": [
+        "Mehrfache Kommasetzungsfehler bei Nebensätzen.",
+        "Fehler bei Genitiv nach Präpositionen.",
+        "Getrennt-/Zusammenschreibung unsicher."
+      ],
+      "vorschlaege": [
+        "Kommaregeln für Relativ- und Nebensätze wiederholen.",
+        "Präpositionen mit Genitiv gezielt üben."
+      ]
+    }
+  },
+  "notenempfehlung": {
+    "durchschnitt": 2.5,
+    "note": 3,
+    "bezeichnung": "Befriedigend",
+    "begruendung": "Die Arbeit erfüllt die grundlegenden Anforderungen, weist aber in Ausdruck und Sprachrichtigkeit deutliche Schwächen auf. Inhalt und Aufbau sind erkennbar, aber noch ausbaufähig."
+  }
+}

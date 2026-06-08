@@ -1,0 +1,46 @@
+{
+  "schemaVersion": "0.1.0",
+  "meta": {
+    "stufe": "oberstufe",
+    "fach": "deutsch",
+    "thema": "Medienkonsum und Jugendliche",
+    "datum": "2026-05-30",
+    "klasse": "7A",
+    "notizen": ""
+  },
+  "quelltexte": [
+    {
+      "id": "q1",
+      "titel": "Social Media und das Wohlbefinden",
+      "inhalt": "Die Nutzung von sozialen Medien hat in den letzten Jahren stark zugenommen. Besonders Jugendliche verbringen每天 mehrere Stunden am Tag auf Plattformen wie Instagram und TikTok. While some studies show positive effects on social connection, there is growing evidence that excessive screen time can lead to anxiety and decreased self-esteem. The constant comparison with curated online personas creates unrealistic expectations. Experts recommend setting daily time limits and taking regular breaks from screens.",
+      "herkunft": { "typ": "upload", "ref": "quelltext_social_media.pdf" }
+    }
+  ],
+  "bloecke": [
+    {
+      "id": "b5",
+      "typ": "offeneSchreibaufgabe",
+      "punkte": 30,
+      "quelleId": "q1",
+      "arbeitsanweisung": "Verfasse einen Kommentar zu den Auswirkungen von Social Media auf Jugendliche.",
+      "config": {
+        "situation": "Du hast einen Artikel ueber Social Media und das Wohlbefinden von Jugendlichen gelesen.",
+        "textsorte": "Kommentar",
+        "umfangWorte": { "min": 270, "max": 330 },
+        "aspekte": [
+          "Erklaere die Auswirkungen von Social Media auf das Wohlbefinden von Jugendlichen.",
+          "Nimm Stellung zur Verantwortung der Plattformen und der Eltern."
+        ]
+      },
+      "loesung": {
+        "musterloesung": "Social Media beeinflusst das Leben von Jugendlichen in vielerlei Hinsicht. Einerseits bieten Plattformen wie Instagram und TikTok die Moeglichkeit, mit Freunden in Kontakt zu bleiben und sich kreativ auszudruecken. Andererseits fraught die staendige Konfrontation mit inszenierten Bildern das Selbstwertgefaehl. Jugendliche vergleichen sich permanent mit anderen und entwickeln unerreichbare Ideale. Die Verantwortung liegt bei den Plattformen, die algorithmisch optimierte Inhalte bevorzugen, sowie bei den Eltern, die ein gesundes Medienverhalten vorleben und Grenzen setzen sollten. Eine offene Auseinandersetzung mit dem Thema ist essenziell, um Jugendliche fuer die Risiken zu sensibilisieren und ihnen gleichzeitig die Vorteile der digitalen Welt zu eroeffnen.",
+        "erwartungshorizont": {
+          "inhalt": "Beide Aspekte werden angesprochen: Auswirkungen auf das Wohlbefinden und Verantwortung von Plattformen/Eltern. Eigene Meinung ist klar erkennbar.",
+          "struktur": "Einleitung, Hauptteil (pro/con), Schluss mit Fazit erkennbar.",
+          "ausdruck": "Treffende Wortwahl, variierter Satzbau, sachlicher Ton.",
+          "sprachrichtigkeit": "Keine gravierenden grammatikalischen oder orthographischen Fehler."
+        }
+      }
+    }
+  ]
+}

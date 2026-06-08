@@ -1,0 +1,34 @@
+{
+  "provider": "anthropic",
+  "model": "claude-sonnet-4-6",
+  "blockType": "offeneSchreibaufgabe",
+  "timestamp": "2026-06-01T23:19:50.339Z",
+  "rawResponse": "```json\n{\n  \"title\": \"Schularbeit: Medienkonsum\",\n  \"subject\": \"Deutsch\",\n  \"grade\": \"7. Klasse (Oberstufe)\",\n  \"blocks\": [\n    {\n      \"type\": \"offeneSchreibaufgabe\",\n      \"punkte\": 20,\n      \"aufgabe\": {\n        \"situation\": \"In einer aktuellen Studie wurde festgestellt, dass Jugendliche in Österreich durchschnittlich mehr als sechs Stunden täglich digitale Medien konsumieren. Die Schülerzeitung deiner Schule möchte in ihrer nächsten Ausgabe einen Kommentar zu diesem Thema veröffentlichen und hat dich gebeten, einen Beitrag einzureichen.\",\n        \"textsorte\": \"Kommentar\",\n        \"umfang\": \"250–300 Wörter\",\n        \"aspekte\": [\n          \"Setze dich kritisch mit den Chancen und Risiken eines hohen Medienkonsums bei Jugendlichen auseinander.\",\n          \"Nimm eine klare, gut begründete Stellung dazu ein, ob und wie der Medienkonsum von Jugendlichen reguliert werden sollte.\",\n          \"Berücksichtige dabei die Rolle von Schule, Eltern und den Jugendlichen selbst in Bezug auf einen verantwortungsvollen Umgang mit Medien.\"\n        ]\n      },\n      \"musterloesung\": {\n        \"titel\": \"Sechs Stunden am Tag – Fluch oder Segen?\",\n        \"text\": \"Sechs Stunden täglich vor Bildschirmen – diese Zahl klingt erschreckend, ist aber für viele Jugendliche längst Realität. Doch bevor wir vorschnell urteilen, lohnt ein genauerer Blick: Medienkonsum ist nicht per se problematisch. Entscheidend ist, wie, wann und warum wir Medien nutzen.\\n\\nDigitale Medien bieten zweifellos enorme Chancen. Sie ermöglichen globale Vernetzung, schnellen Zugang zu Wissen und fördern kreative Ausdrucksformen. Wer heute keine digitalen Kompetenzen besitzt, ist in Schule und Beruf klar im Nachteil. Gleichzeitig lassen sich die Risiken nicht leugnen: Schlafmangel, soziale Isolation und eine zunehmende Unfähigkeit zur Konzentration sind reale Folgen eines unkritischen Dauerkonsums. Algorithmen lenken unsere Aufmerksamkeit gezielt, und was als kurze Pause beginnt, endet oft in stundenlangem passivem Scrollen.\\n\\nDie Forderung nach strikten Verboten greift hier jedoch zu kurz. Verbote erzeugen Widerstand, keine Kompetenz. Sinnvoller wäre ein gemeinsamer Ansatz: Schulen müssen Medienkompetenz als ernstzunehmendes Unterrichtsfach etablieren – nicht als einmaliges Projekt, sondern als kontinuierlichen Bestandteil der Ausbildung. Eltern tragen Verantwortung, indem sie gemeinsam mit ihren Kindern Regeln aushandeln, anstatt entweder alles zu erlauben oder pauschal zu verbieten.\\n\\nVor allem aber sind die Jugendlichen selbst gefragt. Selbstreflexion ist keine Schwäche, sondern eine Stärke. Wer bewusst entscheidet, wann das Smartphone weggelegtwird, gewinnt Kontrolle über das eigene Leben zurück.\\n\\nMedienkonsum regulieren bedeutet nicht, die digitale Welt abzulehnen. Es bedeutet, sie mündig zu gestalten. Und das ist eine Aufgabe, der sich alle stellen müssen – gemeinsam.\"\n      }\n    }\n  ]\n}\n```",
+  "fullApiResponse": {
+    "model": "claude-sonnet-4-6",
+    "id": "msg_01XKNyChcJwL21cXCyVVsND4",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+      {
+        "type": "text",
+        "text": "```json\n{\n  \"title\": \"Schularbeit: Medienkonsum\",\n  \"subject\": \"Deutsch\",\n  \"grade\": \"7. Klasse (Oberstufe)\",\n  \"blocks\": [\n    {\n      \"type\": \"offeneSchreibaufgabe\",\n      \"punkte\": 20,\n      \"aufgabe\": {\n        \"situation\": \"In einer aktuellen Studie wurde festgestellt, dass Jugendliche in Österreich durchschnittlich mehr als sechs Stunden täglich digitale Medien konsumieren. Die Schülerzeitung deiner Schule möchte in ihrer nächsten Ausgabe einen Kommentar zu diesem Thema veröffentlichen und hat dich gebeten, einen Beitrag einzureichen.\",\n        \"textsorte\": \"Kommentar\",\n        \"umfang\": \"250–300 Wörter\",\n        \"aspekte\": [\n          \"Setze dich kritisch mit den Chancen und Risiken eines hohen Medienkonsums bei Jugendlichen auseinander.\",\n          \"Nimm eine klare, gut begründete Stellung dazu ein, ob und wie der Medienkonsum von Jugendlichen reguliert werden sollte.\",\n          \"Berücksichtige dabei die Rolle von Schule, Eltern und den Jugendlichen selbst in Bezug auf einen verantwortungsvollen Umgang mit Medien.\"\n        ]\n      },\n      \"musterloesung\": {\n        \"titel\": \"Sechs Stunden am Tag – Fluch oder Segen?\",\n        \"text\": \"Sechs Stunden täglich vor Bildschirmen – diese Zahl klingt erschreckend, ist aber für viele Jugendliche längst Realität. Doch bevor wir vorschnell urteilen, lohnt ein genauerer Blick: Medienkonsum ist nicht per se problematisch. Entscheidend ist, wie, wann und warum wir Medien nutzen.\\n\\nDigitale Medien bieten zweifellos enorme Chancen. Sie ermöglichen globale Vernetzung, schnellen Zugang zu Wissen und fördern kreative Ausdrucksformen. Wer heute keine digitalen Kompetenzen besitzt, ist in Schule und Beruf klar im Nachteil. Gleichzeitig lassen sich die Risiken nicht leugnen: Schlafmangel, soziale Isolation und eine zunehmende Unfähigkeit zur Konzentration sind reale Folgen eines unkritischen Dauerkonsums. Algorithmen lenken unsere Aufmerksamkeit gezielt, und was als kurze Pause beginnt, endet oft in stundenlangem passivem Scrollen.\\n\\nDie Forderung nach strikten Verboten greift hier jedoch zu kurz. Verbote erzeugen Widerstand, keine Kompetenz. Sinnvoller wäre ein gemeinsamer Ansatz: Schulen müssen Medienkompetenz als ernstzunehmendes Unterrichtsfach etablieren – nicht als einmaliges Projekt, sondern als kontinuierlichen Bestandteil der Ausbildung. Eltern tragen Verantwortung, indem sie gemeinsam mit ihren Kindern Regeln aushandeln, anstatt entweder alles zu erlauben oder pauschal zu verbieten.\\n\\nVor allem aber sind die Jugendlichen selbst gefragt. Selbstreflexion ist keine Schwäche, sondern eine Stärke. Wer bewusst entscheidet, wann das Smartphone weggelegtwird, gewinnt Kontrolle über das eigene Leben zurück.\\n\\nMedienkonsum regulieren bedeutet nicht, die digitale Welt abzulehnen. Es bedeutet, sie mündig zu gestalten. Und das ist eine Aufgabe, der sich alle stellen müssen – gemeinsam.\"\n      }\n    }\n  ]\n}\n```"
+      }
+    ],
+    "stop_reason": "end_turn",
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+      "input_tokens": 200,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1008,
+      "service_tier": "standard",
+      "inference_geo": "global"
+    }
+  }
+}

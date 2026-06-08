@@ -1,0 +1,30 @@
+{
+  "$schema": "https://raw.githubusercontent.com/tauri-apps/tauri/dev/crates/tauri-cli/schema.json",
+  "productName": "Lehrunterlagen-Tool",
+  "version": "0.1.0",
+  "identifier": "com.lehrunterlagen.tool",
+  "build": {
+    "beforeDevCommand": "pnpm --filter @lehrunterlagen/web dev",
+    "devUrl": "http://localhost:5173",
+    "beforeBuildCommand": "pnpm --filter @lehrunterlagen/web build",
+    "frontendDist": "../apps/web/dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "LUA — Lehrunterlagen-Applikation",
+        "width": 1280,
+        "height": 800,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api.anthropic.com https://api.openai.com https://api.deepseek.com https://api.mistral.ai https://dashscope.aliyuncs.com https://api.moonshot.ai"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all"
+  }
+}

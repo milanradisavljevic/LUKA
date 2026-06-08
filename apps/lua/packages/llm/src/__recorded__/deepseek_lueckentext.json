@@ -1,0 +1,35 @@
+{
+  "provider": "deepseek",
+  "model": "deepseek-chat",
+  "blockType": "lueckentext",
+  "timestamp": "2026-06-01T23:20:35.282Z",
+  "rawResponse": "{\n  \"blockTyp\": \"lueckentext\",\n  \"punkte\": 8,\n  \"anzahlLuecken\": 4,\n  \"text\": \"Die heutige Jugend wächst mit einer enormen Vielfalt an digitalen Medien auf. Studien zeigen, dass der tägliche (1) von sozialen Netzwerken und Streamingdiensten bei vielen Jugendlichen mehrere Stunden beträgt. Dieser hohe Konsum kann negative Auswirkungen auf die Konzentrationsfähigkeit haben, da das Gehirn ständig neuen Reizen ausgesetzt ist. Experten empfehlen daher, regelmäßige (2) vom Bildschirm einzulegen, um die Augen zu entlasten und die Kreativität zu fördern. Ein weiteres Problem ist die Verbreitung von Falschinformationen, die oft nur schwer als solche zu (3) sind. Umso wichtiger ist es, dass Schülerinnen und Schüler lernen, Quellen kritisch zu hinterfragen und ihre eigene (4) im Umgang mit Medien zu stärken.\",\n  \"loesungen\": [\n    \"Konsum\",\n    \"Pausen\",\n    \"erkennen\",\n    \"Kompetenz\"\n  ]\n}",
+  "fullApiResponse": {
+    "id": "b8d5e9c5-6e98-4bbf-a0aa-9c3ddca4567a",
+    "object": "chat.completion",
+    "created": 1780356032,
+    "model": "deepseek-v4-flash",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\n  \"blockTyp\": \"lueckentext\",\n  \"punkte\": 8,\n  \"anzahlLuecken\": 4,\n  \"text\": \"Die heutige Jugend wächst mit einer enormen Vielfalt an digitalen Medien auf. Studien zeigen, dass der tägliche (1) von sozialen Netzwerken und Streamingdiensten bei vielen Jugendlichen mehrere Stunden beträgt. Dieser hohe Konsum kann negative Auswirkungen auf die Konzentrationsfähigkeit haben, da das Gehirn ständig neuen Reizen ausgesetzt ist. Experten empfehlen daher, regelmäßige (2) vom Bildschirm einzulegen, um die Augen zu entlasten und die Kreativität zu fördern. Ein weiteres Problem ist die Verbreitung von Falschinformationen, die oft nur schwer als solche zu (3) sind. Umso wichtiger ist es, dass Schülerinnen und Schüler lernen, Quellen kritisch zu hinterfragen und ihre eigene (4) im Umgang mit Medien zu stärken.\",\n  \"loesungen\": [\n    \"Konsum\",\n    \"Pausen\",\n    \"erkennen\",\n    \"Kompetenz\"\n  ]\n}"
+        },
+        "logprobs": null,
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 136,
+      "completion_tokens": 255,
+      "total_tokens": 391,
+      "prompt_tokens_details": {
+        "cached_tokens": 128
+      },
+      "prompt_cache_hit_tokens": 128,
+      "prompt_cache_miss_tokens": 8
+    },
+    "system_fingerprint": "fp_8b330d02d0_prod0820_fp8_kvcache_20260402"
+  }
+}

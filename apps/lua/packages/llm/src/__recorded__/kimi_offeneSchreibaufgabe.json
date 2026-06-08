@@ -1,0 +1,28 @@
+{
+  "provider": "kimi",
+  "model": "moonshot-v1-8k",
+  "blockType": "offeneSchreibaufgabe",
+  "timestamp": "2026-06-01T23:22:21.543Z",
+  "rawResponse": "{\n  \"Aufgabe\": {\n    \"Titel\": \"Medienkonsum\",\n    \"Klasse\": \"Oberstufe, 7. Klasse\",\n    \"Schreibtyp\": \"offeneSchreibaufgabe\",\n    \"Punkte\": 20,\n    \"Textsorte\": \"Kommentar\",\n    \"Umfang\": \"250-300 Wörter\",\n    \"Aspekte\": [\n      \"Persönliche Erfahrungen mit dem Medienkonsum\",\n      \"Gesellschaftliche Auswirkungen des Medienkonsums\",\n      \"Möglichkeiten zur Kontrolle und减zierung des Medienkonsums\"\n    ],\n    \"Anweisungen\": \"Bitte schreibe einen Kommentar über die oben genannten Aspekte und reflektiere über deine persönlichen Erfahrungen, die gesellschaftlichen Auswirkungen des Medienkonsums und Möglichkeiten, diesen zu kontrollieren und zu reduzieren.\"\n  },\n  \"Musterlösung\": {\n    \"Autor\": \"Schülerin der 7. Klasse\",\n    \"Kommentar\": \"Seit ich klein bin, war Medienkonsum ein fester Bestandteil meines Lebens. Ich erinnere mich, wie ich gemeinsam mit meiner Familie ferngesehen habe, um gemeinsame Momente zu spenden. Heute ist der Medienkonsum jedoch ein viel größeres Phänomen geworden. Ich nutze Social Media, um mit Freunden in Kontakt zu bleiben und Nachrichten zu verfolgen, was mir die Kommunikation erleichtert, kann aber auch Zeit rauben, die ich für andere Aktivitäten nutzen könnte.\\n\\nDie Gesellschaft wird stark von Medien beeinflusst, wie wir täglich sehen, wenn wir Nachrichten verfolgen oder Meinungen im Netz teilen. Dies kann sowohl positive als auch negative Auswirkungen haben. Es ist wichtig, kritisch zu denken und die Informationen, die wir konsumieren, zu hinterfragen.\\n\\nUm den Medienkonsum zu kontrollieren und zu reduzieren, kann man sich Zeit für andere Aktivitäten nehmen, wie Sport oder Lesen. Es ist auch möglich, die Dauer des Online-Aufenthalts zu begrenzen oder sich entschieden zu vermeiden, zu viele soziale Medien-Plattformen gleichzeitig zu nutzen. Auf diese Weise kann man seine Zeit besser nutzen und gleichzeitig den Medienkonsum gezielt gestalten.\"\n  }\n}",
+  "fullApiResponse": {
+    "id": "chatcmpl-6a1e1424334a63f06bf1fee0",
+    "object": "chat.completion",
+    "created": 1780356132,
+    "model": "moonshot-v1-8k",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\n  \"Aufgabe\": {\n    \"Titel\": \"Medienkonsum\",\n    \"Klasse\": \"Oberstufe, 7. Klasse\",\n    \"Schreibtyp\": \"offeneSchreibaufgabe\",\n    \"Punkte\": 20,\n    \"Textsorte\": \"Kommentar\",\n    \"Umfang\": \"250-300 Wörter\",\n    \"Aspekte\": [\n      \"Persönliche Erfahrungen mit dem Medienkonsum\",\n      \"Gesellschaftliche Auswirkungen des Medienkonsums\",\n      \"Möglichkeiten zur Kontrolle und减zierung des Medienkonsums\"\n    ],\n    \"Anweisungen\": \"Bitte schreibe einen Kommentar über die oben genannten Aspekte und reflektiere über deine persönlichen Erfahrungen, die gesellschaftlichen Auswirkungen des Medienkonsums und Möglichkeiten, diesen zu kontrollieren und zu reduzieren.\"\n  },\n  \"Musterlösung\": {\n    \"Autor\": \"Schülerin der 7. Klasse\",\n    \"Kommentar\": \"Seit ich klein bin, war Medienkonsum ein fester Bestandteil meines Lebens. Ich erinnere mich, wie ich gemeinsam mit meiner Familie ferngesehen habe, um gemeinsame Momente zu spenden. Heute ist der Medienkonsum jedoch ein viel größeres Phänomen geworden. Ich nutze Social Media, um mit Freunden in Kontakt zu bleiben und Nachrichten zu verfolgen, was mir die Kommunikation erleichtert, kann aber auch Zeit rauben, die ich für andere Aktivitäten nutzen könnte.\\n\\nDie Gesellschaft wird stark von Medien beeinflusst, wie wir täglich sehen, wenn wir Nachrichten verfolgen oder Meinungen im Netz teilen. Dies kann sowohl positive als auch negative Auswirkungen haben. Es ist wichtig, kritisch zu denken und die Informationen, die wir konsumieren, zu hinterfragen.\\n\\nUm den Medienkonsum zu kontrollieren und zu reduzieren, kann man sich Zeit für andere Aktivitäten nehmen, wie Sport oder Lesen. Es ist auch möglich, die Dauer des Online-Aufenthalts zu begrenzen oder sich entschieden zu vermeiden, zu viele soziale Medien-Plattformen gleichzeitig zu nutzen. Auf diese Weise kann man seine Zeit besser nutzen und gleichzeitig den Medienkonsum gezielt gestalten.\"\n  }\n}"
+        },
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 157,
+      "completion_tokens": 524,
+      "total_tokens": 681
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "0.1.0",
+  "meta": {
+    "stufe": "oberstufe",
+    "fach": "deutsch",
+    "thema": "Stilübung: Umgangssprache zu Standardsprache",
+    "datum": "2026-05-30",
+    "klasse": "10A",
+    "notizen": ""
+  },
+  "quelltexte": [
+    {
+      "id": "q1",
+      "titel": "Beispieltext",
+      "inhalt": "Der Typ war echt cool drauf, der hatte voll den Durchblick.",
+      "herkunft": { "typ": "upload", "ref": "umgangssprache.txt" }
+    }
+  ],
+  "bloecke": [
+    {
+      "id": "b10",
+      "typ": "stiluebung",
+      "punkte": 6,
+      "arbeitsanweisung": "Formuliere den Text in gehobener Sprache.",
+      "config": {
+        "ausgangstext": "Der Typ war echt cool drauf, der hatte voll den Durchblick.",
+        "zielniveau": "gehoben",
+        "transformation": "verdeutlichen"
+      },
+      "loesung": {
+        "umformulierung": "Der junge Mann zeigte sich überaus souverän und verfügte über bemerkenswerte Auffassungsgabe.",
+        "begruendung": "Umgangssprachliche Wendungen (\"Typ\", \"cool drauf\", \"voll den Durchblick\") wurden durch standardsprachliche Formulierungen ersetzt. Die Transformation verdeutlicht die Aussage, ohne den Inhalt zu verändern."
+      }
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "provider": "kimi",
+  "model": "moonshot-v1-8k",
+  "blockType": "multipleChoice",
+  "timestamp": "2026-06-01T23:22:07.311Z",
+  "rawResponse": "{\n  \"Typ\": \"multipleChoice\",\n  \"Punkte\": 4,\n  \"Fragen\": [\n    {\n      \"Frage\": \"Wie viel Zeit verbringen Sie im Durchschnitt täglich mit dem Medienkonsum?\",\n      \"Antworten\": [\n        {\"A\": \"weniger als 1 Stunde\"},\n        {\"B\": \"1 bis 2 Stunden\"},\n        {\"C\": \"2 bis 4 Stunden\"},\n        {\"D\": \"mehr als 4 Stunden\"}\n      ],\n      \"RichtigeAntwort\": \"C\"\n    },\n    {\n      \"Frage\": \"Welche der folgenden Medien nutzen Sie am häufigsten?\",\n      \"Antworten\": [\n        {\"A\": \"Fernsehen\"},\n        {\"B\": \"Internet\"},\n        {\"C\": \"Printmedien (Zeitungen, Bücher)\"},\n        {\"D\": \"Musikstreaming\"}\n      ],\n      \"RichtigeAntwort\": \"B\"\n    }\n  ]\n}",
+  "fullApiResponse": {
+    "id": "chatcmpl-6a1e141a05fea989df95f498",
+    "object": "chat.completion",
+    "created": 1780356122,
+    "model": "moonshot-v1-8k",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\n  \"Typ\": \"multipleChoice\",\n  \"Punkte\": 4,\n  \"Fragen\": [\n    {\n      \"Frage\": \"Wie viel Zeit verbringen Sie im Durchschnitt täglich mit dem Medienkonsum?\",\n      \"Antworten\": [\n        {\"A\": \"weniger als 1 Stunde\"},\n        {\"B\": \"1 bis 2 Stunden\"},\n        {\"C\": \"2 bis 4 Stunden\"},\n        {\"D\": \"mehr als 4 Stunden\"}\n      ],\n      \"RichtigeAntwort\": \"C\"\n    },\n    {\n      \"Frage\": \"Welche der folgenden Medien nutzen Sie am häufigsten?\",\n      \"Antworten\": [\n        {\"A\": \"Fernsehen\"},\n        {\"B\": \"Internet\"},\n        {\"C\": \"Printmedien (Zeitungen, Bücher)\"},\n        {\"D\": \"Musikstreaming\"}\n      ],\n      \"RichtigeAntwort\": \"B\"\n    }\n  ]\n}"
+        },
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 126,
+      "completion_tokens": 233,
+      "total_tokens": 359
+    }
+  }
+}

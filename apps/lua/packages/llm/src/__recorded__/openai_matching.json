@@ -1,0 +1,43 @@
+{
+  "provider": "openai",
+  "model": "gpt-4o-mini",
+  "blockType": "matching",
+  "timestamp": "2026-06-01T23:20:09.262Z",
+  "rawResponse": "{\n  \"block\": {\n    \"type\": \"matching\",\n    \"points\": 6,\n    \"items\": [\n      {\n        \"id\": 1,\n        \"term\": \"Metapher\"\n      },\n      {\n        \"id\": 2,\n        \"term\": \"Alliteration\"\n      },\n      {\n        \"id\": 3,\n        \"term\": \"Hyperbel\"\n      }\n    ],\n    \"options\": [\n      {\n        \"id\": 1,\n        \"definition\": \"Eine extreme Übertreibung, die oft zur Steigerung der Ausdruckskraft verwendet wird.\"\n      },\n      {\n        \"id\": 2,\n        \"definition\": \"Eine Wortwiederholung am Anfang benachbarter Wörter, um einen klanglichen Effekt zu erzeugen.\"\n      },\n      {\n        \"id\": 3,\n        \"definition\": \"Ein bildlicher Ausdruck, der einen Vergleich ohne 'wie' herstellt.\"\n      },\n      {\n        \"id\": 4,\n        \"definition\": \"Eine rhetorische Figur, die eine direkte Ansprache an den Leser oder Zuhörer beinhaltet.\"\n      }\n    ]\n  }\n}",
+  "fullApiResponse": {
+    "id": "chatcmpl-Dm6DNYW1PZVFKQMymxGLUjQsrkCtU",
+    "object": "chat.completion",
+    "created": 1780356005,
+    "model": "gpt-4o-mini-2024-07-18",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\n  \"block\": {\n    \"type\": \"matching\",\n    \"points\": 6,\n    \"items\": [\n      {\n        \"id\": 1,\n        \"term\": \"Metapher\"\n      },\n      {\n        \"id\": 2,\n        \"term\": \"Alliteration\"\n      },\n      {\n        \"id\": 3,\n        \"term\": \"Hyperbel\"\n      }\n    ],\n    \"options\": [\n      {\n        \"id\": 1,\n        \"definition\": \"Eine extreme Übertreibung, die oft zur Steigerung der Ausdruckskraft verwendet wird.\"\n      },\n      {\n        \"id\": 2,\n        \"definition\": \"Eine Wortwiederholung am Anfang benachbarter Wörter, um einen klanglichen Effekt zu erzeugen.\"\n      },\n      {\n        \"id\": 3,\n        \"definition\": \"Ein bildlicher Ausdruck, der einen Vergleich ohne 'wie' herstellt.\"\n      },\n      {\n        \"id\": 4,\n        \"definition\": \"Eine rhetorische Figur, die eine direkte Ansprache an den Leser oder Zuhörer beinhaltet.\"\n      }\n    ]\n  }\n}",
+          "refusal": null,
+          "annotations": []
+        },
+        "logprobs": null,
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 122,
+      "completion_tokens": 235,
+      "total_tokens": 357,
+      "prompt_tokens_details": {
+        "cached_tokens": 0,
+        "audio_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0,
+        "audio_tokens": 0,
+        "accepted_prediction_tokens": 0,
+        "rejected_prediction_tokens": 0
+      }
+    },
+    "service_tier": "default",
+    "system_fingerprint": "fp_da89e836d0"
+  }
+}
