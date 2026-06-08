@@ -7,6 +7,11 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added
+- `docs/phase2-shared-db.md` — ausführbares Design für Phase 2 (gemeinsame
+  SQLite). Kernentscheidung dokumentiert: `storage.ts` ist synchron, SQLite-
+  über-Tauri ist async → Hydrate-Cache (Weg A), sync-API erhalten.
+
 ## 2026-06-08 — Phase 1: Datei-Brücke NATASCHA → LUA (MVP)
 
 ### Added
