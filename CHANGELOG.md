@@ -7,6 +7,18 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Phase 3a: NATASCHA-Korrektur aus der App starten
+- Sidebar-Eintrag **„Korrektur (NATASCHA)"** + neue `KorrekturView` mit Button
+  „NATASCHA-Korrektur öffnen" (startet die TUI in einem Terminalfenster) und
+  manuellem Fallback-Befehl.
+- Tauri-Command `launch_natascha` (`src-tauri/src/commands/natascha.rs`),
+  plattformspezifisch (Windows/macOS/Linux, je `#[cfg]`); findet `apps/natascha`
+  automatisch relativ zur App.
+- Einstellungen: `AppSettings.nataschaDir` + `pythonCommand` (Abschnitt „NATASCHA").
+- Design-Doku `docs/phase3-correction-ui.md` (Wege A/B/C + Empfehlung).
+- **Verifikation offen:** Terminal-Spawn nur auf Linux kompiliert; Windows-Pfad
+  braucht echten Test (Fallback-Befehl in der View dokumentiert).
+
 ### Added
 - **Phase-1-UX:** Auswahlliste „Aus NATASCHA-Korrektur" zeigt jetzt pro Export
   ein Badge „X Fehler · Y Kategorien" + Mini-Heatmap-Balken (farbcodiert R/G/Z/A)

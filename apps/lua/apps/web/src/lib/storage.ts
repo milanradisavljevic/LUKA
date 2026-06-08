@@ -12,6 +12,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   defaultAusgabeSprache: 'de',
   judgeEnabled: true,
   nataschaInboxDir: '',
+  nataschaDir: '',
+  pythonCommand: '',
 };
 
 // --- Dokumente -------------------------------------------------------------
