@@ -74,11 +74,11 @@ cd apps/natascha && python3 seed_testdaten.py && python3 natascha_bridge.py TEST
 ## Roadmap
 
 - **Phase 1 — Datei-Brücke (MVP): DONE.** Siehe CHANGELOG 2026-06-08.
-- **Phase 2 — Gemeinsame SQLite (geplant).** Beide Apps auf eine DB. Größter
-  Brocken: LUA von `localStorage` (`apps/web/src/lib/storage.ts`,
-  `loadDocuments`/`saveDocuments`) auf SQLite via Tauri-Rust-Command umstellen,
-  ohne die `storage.ts`-API zu brechen. Schema-Eigentümer: NATASCHA; LUA
-  migriert dagegen. Backup-Pflicht vor erstem LUA-Schreibzugriff.
+- **Phase 2 — Gemeinsame SQLite (geplant).** Ausführbares Design:
+  **`docs/phase2-shared-db.md`**. Größter Brocken: LUA von `localStorage`
+  (`apps/web/src/lib/storage.ts`) auf SQLite via Tauri-Rust-Command umstellen
+  ohne API-Bruch (sync→async: Hydrate-Cache). Schema-Eigentümer: NATASCHA; LUA
+  migriert additiv dagegen. Backup-Pflicht vor erstem LUA-Schreibzugriff.
 - **Phase 3 — Unified Tauri-Frontend (geplant).** Ein UI, zwei Module; NATASCHAs
   Pipeline headless via `Command::new("python")` aus Tauri. Erst nach Phase 2
   sinnvoll.
