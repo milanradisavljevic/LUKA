@@ -13,6 +13,7 @@ export type ActiveView =
   | 'history'
   | 'favorites'
   | 'trash'
+  | 'korrektur'
   | 'settings'
   | 'help';
 
@@ -25,6 +26,10 @@ export interface AppSettings {
   judgeEnabled?: boolean;
   /** Ordner, in dem NATASCHA-Korrektur-Exporte liegen. Leer = Default (~/lehr-suite-bridge/inbox). */
   nataschaInboxDir?: string;
+  /** Ordner der NATASCHA-App (enthält natascha.py). Leer = Auto-Erkennung (apps/natascha). */
+  nataschaDir?: string;
+  /** Python-Befehl zum Starten von NATASCHA. Leer = OS-Default (python/python3). */
+  pythonCommand?: string;
 }
 
 export interface AppState {

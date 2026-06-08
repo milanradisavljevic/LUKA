@@ -164,7 +164,7 @@ export function SettingsView() {
         padding: '1.25rem', border: '1px solid var(--color-border)',
         borderRadius: 'var(--radius)', background: 'var(--color-bg-surface)', marginBottom: '1.5rem',
       }}>
-        <h3 style={{ fontSize: '1rem', margin: '0 0 0.75rem' }}>NATASCHA-Brücke</h3>
+        <h3 style={{ fontSize: '1rem', margin: '0 0 0.75rem' }}>NATASCHA</h3>
         <label style={labelStyle}>Inbox-Ordner für Korrektur-Exporte</label>
         <input
           type="text"
@@ -173,9 +173,29 @@ export function SettingsView() {
           onChange={(e) => update({ nataschaInboxDir: e.target.value })}
           style={{ width: '100%', boxSizing: 'border-box' }}
         />
-        <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', marginBottom: 0 }}>
+        <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', marginBottom: '1rem' }}>
           Hier sucht „Aus NATASCHA-Korrektur" (Schritt 1) nach Exporten. Muss mit dem
           in NATASCHA eingestellten <code>[bridge] inbox_dir</code> übereinstimmen.
+        </p>
+
+        <label style={labelStyle}>NATASCHA-Ordner (enthält natascha.py)</label>
+        <input
+          type="text"
+          value={settings.nataschaDir ?? ''}
+          placeholder="Leer = Auto-Erkennung (apps/natascha)"
+          onChange={(e) => update({ nataschaDir: e.target.value })}
+          style={{ width: '100%', boxSizing: 'border-box' }}
+        />
+        <label style={{ ...labelStyle, marginTop: '1rem' }}>Python-Befehl</label>
+        <input
+          type="text"
+          value={settings.pythonCommand ?? ''}
+          placeholder="Leer = OS-Standard (python / python3)"
+          onChange={(e) => update({ pythonCommand: e.target.value })}
+          style={{ width: '100%', boxSizing: 'border-box' }}
+        />
+        <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', marginBottom: 0 }}>
+          Steuert den Start über <strong>Korrektur (NATASCHA)</strong> in der Seitenleiste.
         </p>
       </section>
 

@@ -22,6 +22,7 @@ import { HistoryView } from './views/HistoryView';
 import { TemplatesView } from './views/TemplatesView';
 import { HelpView } from './views/HelpView';
 import { SettingsView } from './views/SettingsView';
+import { KorrekturView } from './views/KorrekturView';
 import { loadDocuments, upsertDocument, snapshotFromState } from './lib/storage';
 import './App.css';
 
@@ -179,6 +180,8 @@ export default function App() {
         return <HistoryView />;
       case 'templates':
         return <TemplatesView meta={state.meta} bloecke={state.bloecke} onLoad={handleLoadTemplate} />;
+      case 'korrektur':
+        return <KorrekturView />;
       case 'settings':
         return <SettingsView />;
       case 'help':

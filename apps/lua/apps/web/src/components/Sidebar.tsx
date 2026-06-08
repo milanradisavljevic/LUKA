@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
   Plus, FolderOpen, Files, Clock, Star, Trash2, Settings, HelpCircle,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, SpellCheck,
 } from 'lucide-react';
 import type { ActiveView } from '../lib/types';
 import { LogoChip, WORDMARK_STYLE } from './BrandLogo';
@@ -26,6 +26,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { id: 'new', label: 'Neue erstellen', Icon: Plus, action: 'new' },
   { id: 'documents', label: 'Meine Unterlagen', Icon: FolderOpen, view: 'documents' },
+  { id: 'korrektur', label: 'Korrektur (NATASCHA)', Icon: SpellCheck, view: 'korrektur' },
   { id: 'templates', label: 'Vorlagen', Icon: Files, view: 'templates' },
   { id: 'history', label: 'Verlauf', Icon: Clock, view: 'history' },
   { id: 'favorites', label: 'Favoriten', Icon: Star, view: 'favorites' },
