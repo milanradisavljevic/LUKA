@@ -8,6 +8,16 @@ use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 
+/// Kompakter Heatmap-Eintrag für die Vorschau in der Auswahlliste.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HeatmapMini {
+    pub typ: String,
+    pub kategorie: String,
+    pub anzahl: u64,
+    pub prozent: f64,
+}
+
 /// Vorschau-Metadaten eines Exports für die Auswahlliste in Step0.
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -17,6 +27,10 @@ pub struct BridgeExportMeta {
     pub datum: String,
     pub fach: String,
     pub anzahl_abgaben: u64,
+    /// Summe aller Heatmap-Fehler (für das "X Fehler"-Badge).
+    pub gesamt_fehler: u64,
+    /// Heatmap, stärkste Kategorie zuerst (für die Mini-Vorschau).
+    pub heatmap: Vec<HeatmapMini>,
     /// Absoluter Pfad — wird unverändert an `read_bridge_export` zurückgegeben.
     pub pfad: String,
     pub dateiname: String,
@@ -78,12 +92,31 @@ pub async fn list_bridge_exports(dir: String) -> Result<Vec<BridgeExportMeta>, S
             .unwrap_or("")
             .to_string();
 
+        // Heatmap zusammenfassen (Gesamtfehler + sortierte Mini-Liste).
+        let mut heatmap: Vec<HeatmapMini> = Vec::new();
+        let mut gesamt_fehler: u64 = 0;
+        if let Some(arr) = json.get("heatmap").and_then(|v| v.as_array()) {
+            for h in arr {
+                let anzahl = h.get("anzahl").and_then(|v| v.as_u64()).unwrap_or(0);
+                gesamt_fehler += anzahl;
+                heatmap.push(HeatmapMini {
+                    typ: h.get("typ").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                    kategorie: h.get("kategorie").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                    anzahl,
+                    prozent: h.get("prozent").and_then(|v| v.as_f64()).unwrap_or(0.0),
+                });
+            }
+        }
+        heatmap.sort_by(|a, b| b.anzahl.cmp(&a.anzahl));
+
         exports.push(BridgeExportMeta {
             klasse: get("klasse"),
             aufgabe: get("aufgabe"),
             datum: get("datum"),
             fach: get("fach"),
             anzahl_abgaben: json.get("anzahlAbgaben").and_then(|v| v.as_u64()).unwrap_or(0),
+            gesamt_fehler,
+            heatmap,
             pfad: path.to_string_lossy().to_string(),
             dateiname,
         });
@@ -112,4 +145,11 @@ pub async fn read_bridge_export(path: String) -> Result<String, String> {
         return Err("Nur .json-Exporte werden unterstützt.".to_string());
     }
     std::fs::read_to_string(&p).map_err(|e| format!("Export nicht lesbar: {}", e))
+}
+
+/// Liefert den tatsächlich verwendeten Inbox-Pfad (für Anzeige im Leerzustand).
+/// Leerer `dir` → Standard-Inbox.
+#[tauri::command]
+pub async fn resolve_bridge_inbox(dir: String) -> Result<String, String> {
+    Ok(resolve_dir(&dir).to_string_lossy().to_string())
 }

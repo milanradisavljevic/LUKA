@@ -4,11 +4,12 @@ import type { AppState, AppAction } from '../lib/types';
 import { BLOCK_TYPE_DEFS, SCHWIERIGKEIT_RULES } from '../lib/constants';
 import { buildSkelett, type Auftrag } from '@lehrunterlagen/schema';
 import { EXAMPLE_ABSICHTEN } from '../lib/exampleAbsichten';
-import { loadDocuments } from '../lib/storage';
+import { loadDocuments, loadSettings } from '../lib/storage';
 import { getDefaultTemplate } from '@lehrunterlagen/renderer';
 import {
   parseBridgeExport,
   mapBridgeToPrefill,
+  TYP_FARBE,
   type BridgeExportMeta,
 } from '../lib/nataschaBridge';
 
@@ -63,6 +64,8 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates }: Props)
   const [nataschaExports, setNataschaExports] = useState<BridgeExportMeta[] | null>(null);
   const [nataschaBusy, setNataschaBusy] = useState(false);
   const [nataschaInfo, setNataschaInfo] = useState<string | null>(null);
+  const [nataschaInboxPfad, setNataschaInboxPfad] = useState<string | null>(null);
+  const nataschaInboxDir = useMemo(() => loadSettings().nataschaInboxDir ?? '', []);
 
   const handleContinueLast = useCallback(() => {
     if (!lastDoc) return;
@@ -80,23 +83,29 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates }: Props)
     setNataschaBusy(true);
     try {
       const { invoke } = await import('@tauri-apps/api/core');
-      const list = await invoke<BridgeExportMeta[]>('list_bridge_exports', { dir: '' });
+      const [list, pfad] = await Promise.all([
+        invoke<BridgeExportMeta[]>('list_bridge_exports', { dir: nataschaInboxDir }),
+        invoke<string>('resolve_bridge_inbox', { dir: nataschaInboxDir }).catch(() => null),
+      ]);
+      setNataschaInboxPfad(pfad);
       setNataschaExports(list);
       if (list.length === 0) {
         setNataschaInfo(
-          'Keine NATASCHA-Exporte gefunden. Exportiere zuerst in NATASCHA eine korrigierte Klasse für das Übungs-Tool.',
+          `Keine Korrektur-Exporte gefunden${pfad ? ` in ${pfad}` : ''}. ` +
+            'Exportiere in NATASCHA im Heatmap-Tab über „🎯 Für Übungs-Tool". ' +
+            'Den Ordner kannst du in den Einstellungen ändern.',
         );
       }
     } catch (err) {
       setNataschaInfo(
         err instanceof Error
-          ? err.message
-          : 'NATASCHA-Exporte konnten nicht geladen werden (läuft die App in Tauri?).',
+          ? `Exporte konnten nicht geladen werden: ${err.message}`
+          : 'Exporte konnten nicht geladen werden — die NATASCHA-Brücke ist nur in der Desktop-App (Tauri) verfügbar.',
       );
     } finally {
       setNataschaBusy(false);
     }
-  }, []);
+  }, [nataschaInboxDir]);
 
   const uebernehmeNataschaExport = useCallback(
     async (meta: BridgeExportMeta) => {
@@ -313,8 +322,26 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates }: Props)
                   <ClipboardCheck size={16} /> {ex.klasse} · {ex.aufgabe}
                 </span>
                 <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
-                  {ex.anzahlAbgaben > 0 ? `${ex.anzahlAbgaben} Abgaben · ` : ''}{ex.datum}
+                  {ex.anzahlAbgaben > 0 ? `${ex.anzahlAbgaben} Abgaben · ` : ''}
+                  {ex.gesamtFehler} Fehler · {ex.heatmap.length}{' '}
+                  {ex.heatmap.length === 1 ? 'Kategorie' : 'Kategorien'} · {ex.datum}
                 </span>
+                {ex.heatmap.length > 0 && (
+                  <>
+                    <span style={{ display: 'flex', height: 6, borderRadius: 3, overflow: 'hidden', marginTop: '0.125rem', background: 'var(--color-border)' }}>
+                      {ex.heatmap.map((h) => (
+                        <span
+                          key={h.typ}
+                          title={`${h.kategorie}: ${h.anzahl} (${(h.prozent ?? 0).toFixed(0)}%)`}
+                          style={{ flex: `0 0 ${h.prozent ?? 0}%`, background: TYP_FARBE[h.typ] ?? 'var(--color-border)' }}
+                        />
+                      ))}
+                    </span>
+                    <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)' }}>
+                      {ex.heatmap.slice(0, 3).map((h) => `${h.kategorie} ${(h.prozent ?? 0).toFixed(0)}%`).join(' · ')}
+                    </span>
+                  </>
+                )}
               </button>
             ))}
           </div>

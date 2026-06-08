@@ -13,6 +13,7 @@ fn main() {
             web::fetch_url,
             bridge::list_bridge_exports,
             bridge::read_bridge_export,
+            bridge::resolve_bridge_inbox,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

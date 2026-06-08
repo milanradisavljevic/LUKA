@@ -8,6 +8,16 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 ## [Unreleased]
 
 ### Added
+- **Phase-1-UX:** Auswahlliste „Aus NATASCHA-Korrektur" zeigt jetzt pro Export
+  ein Badge „X Fehler · Y Kategorien" + Mini-Heatmap-Balken (farbcodiert R/G/Z/A)
+  + Top-3-Kategorien. Rust-`BridgeExportMeta` um `gesamtFehler` + `heatmap`
+  erweitert (`commands/bridge.rs`).
+- **Inbox-Ordner konfigurierbar:** neues Feld `AppSettings.nataschaInboxDir`
+  (Default leer = `~/lehr-suite-bridge/inbox`), Eingabe im Einstellungen-View
+  (Abschnitt „NATASCHA-Brücke"). Step0 übergibt den Ordner an die Bridge-Commands.
+- **Bessere Leer-/Fehlerzustände:** Leerzustand zeigt den tatsächlich gesuchten
+  Pfad (neuer Command `resolve_bridge_inbox`) + Hinweis auf NATASCHA-Export-Button
+  und die Einstellung; klarere Fehlermeldungen (z. B. „nur in Desktop-App").
 - `docs/phase2-shared-db.md` — ausführbares Design für Phase 2 (gemeinsame
   SQLite). Kernentscheidung dokumentiert: `storage.ts` ist synchron, SQLite-
   über-Tauri ist async → Hydrate-Cache (Weg A), sync-API erhalten.

@@ -23,6 +23,8 @@ export interface AppSettings {
   defaultKreativitaet: number;
   defaultAusgabeSprache: string;
   judgeEnabled?: boolean;
+  /** Ordner, in dem NATASCHA-Korrektur-Exporte liegen. Leer = Default (~/lehr-suite-bridge/inbox). */
+  nataschaInboxDir?: string;
 }
 
 export interface AppState {

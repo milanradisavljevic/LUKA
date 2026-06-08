@@ -159,7 +159,27 @@ export function SettingsView() {
         </div>
       </section>
 
-      {/* Abschnitt 2: API-Schlüssel */}
+      {/* Abschnitt 2: NATASCHA-Brücke */}
+      <section style={{
+        padding: '1.25rem', border: '1px solid var(--color-border)',
+        borderRadius: 'var(--radius)', background: 'var(--color-bg-surface)', marginBottom: '1.5rem',
+      }}>
+        <h3 style={{ fontSize: '1rem', margin: '0 0 0.75rem' }}>NATASCHA-Brücke</h3>
+        <label style={labelStyle}>Inbox-Ordner für Korrektur-Exporte</label>
+        <input
+          type="text"
+          value={settings.nataschaInboxDir ?? ''}
+          placeholder="Leer = Standard (~/lehr-suite-bridge/inbox)"
+          onChange={(e) => update({ nataschaInboxDir: e.target.value })}
+          style={{ width: '100%', boxSizing: 'border-box' }}
+        />
+        <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', marginBottom: 0 }}>
+          Hier sucht „Aus NATASCHA-Korrektur" (Schritt 1) nach Exporten. Muss mit dem
+          in NATASCHA eingestellten <code>[bridge] inbox_dir</code> übereinstimmen.
+        </p>
+      </section>
+
+      {/* Abschnitt 3: API-Schlüssel */}
       <section style={{
         padding: '1.25rem', border: '1px solid var(--color-border)',
         borderRadius: 'var(--radius)', background: 'var(--color-bg-surface)',
