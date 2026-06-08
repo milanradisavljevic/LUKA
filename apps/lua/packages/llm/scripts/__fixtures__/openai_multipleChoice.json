@@ -1,0 +1,42 @@
+{
+  "provider": "openai",
+  "model": "gpt-4o-mini",
+  "timestamp": "2026-06-01T15:10:05.766Z",
+  "rawResponse": "{\n  \"block\": {\n    \"typ\": \"multipleChoice\",\n    \"punkte\": 4,\n    \"fragen\": [\n      {\n        \"frage\": \"Welcher der folgenden Begriffe beschreibt am besten den Einfluss von Medien auf unsere Wahrnehmung?\",\n        \"antworten\": [\n          {\n            \"option\": \"A\",\n            \"text\": \"Manipulation\"\n          },\n          {\n            \"option\": \"B\",\n            \"text\": \"Neutralität\"\n          },\n          {\n            \"option\": \"C\",\n            \"text\": \"Unabhängigkeit\"\n          },\n          {\n            \"option\": \"D\",\n            \"text\": \"Unbeteiligtheit\"\n          }\n        ],\n        \"richtigeAntwort\": \"A\"\n      },\n      {\n        \"frage\": \"Wie viele Stunden pro Tag verbringen Jugendliche durchschnittlich mit digitalen Medien?\",\n        \"antworten\": [\n          {\n            \"option\": \"A\",\n            \"text\": \"1-2 Stunden\"\n          },\n          {\n            \"option\": \"B\",\n            \"text\": \"2-4 Stunden\"\n          },\n          {\n            \"option\": \"C\",\n            \"text\": \"4-6 Stunden\"\n          },\n          {\n            \"option\": \"D\",\n            \"text\": \"Über 6 Stunden\"\n          }\n        ],\n        \"richtigeAntwort\": \"C\"\n      }\n    ]\n  }\n}",
+  "fullApiResponse": {
+    "id": "chatcmpl-DlyZ4sFT35ooENH6KTBKdTcjy7XTB",
+    "object": "chat.completion",
+    "created": 1780326598,
+    "model": "gpt-4o-mini-2024-07-18",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\n  \"block\": {\n    \"typ\": \"multipleChoice\",\n    \"punkte\": 4,\n    \"fragen\": [\n      {\n        \"frage\": \"Welcher der folgenden Begriffe beschreibt am besten den Einfluss von Medien auf unsere Wahrnehmung?\",\n        \"antworten\": [\n          {\n            \"option\": \"A\",\n            \"text\": \"Manipulation\"\n          },\n          {\n            \"option\": \"B\",\n            \"text\": \"Neutralität\"\n          },\n          {\n            \"option\": \"C\",\n            \"text\": \"Unabhängigkeit\"\n          },\n          {\n            \"option\": \"D\",\n            \"text\": \"Unbeteiligtheit\"\n          }\n        ],\n        \"richtigeAntwort\": \"A\"\n      },\n      {\n        \"frage\": \"Wie viele Stunden pro Tag verbringen Jugendliche durchschnittlich mit digitalen Medien?\",\n        \"antworten\": [\n          {\n            \"option\": \"A\",\n            \"text\": \"1-2 Stunden\"\n          },\n          {\n            \"option\": \"B\",\n            \"text\": \"2-4 Stunden\"\n          },\n          {\n            \"option\": \"C\",\n            \"text\": \"4-6 Stunden\"\n          },\n          {\n            \"option\": \"D\",\n            \"text\": \"Über 6 Stunden\"\n          }\n        ],\n        \"richtigeAntwort\": \"C\"\n      }\n    ]\n  }\n}",
+          "refusal": null,
+          "annotations": []
+        },
+        "logprobs": null,
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 114,
+      "completion_tokens": 279,
+      "total_tokens": 393,
+      "prompt_tokens_details": {
+        "cached_tokens": 0,
+        "audio_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0,
+        "audio_tokens": 0,
+        "accepted_prediction_tokens": 0,
+        "rejected_prediction_tokens": 0
+      }
+    },
+    "service_tier": "default",
+    "system_fingerprint": "fp_f49dc726a8"
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "provider": "mistral",
+  "model": "mistral-large-latest",
+  "blockType": "multipleChoice",
+  "timestamp": "2026-06-01T23:21:39.190Z",
+  "rawResponse": "```json\n{\n  \"schularbeit\": {\n    \"thema\": \"Medienkonsum\",\n    \"klasse\": \"7. Klasse (Oberstufe)\",\n    \"block\": {\n      \"typ\": \"multipleChoice\",\n      \"punkte\": 4,\n      \"fragen\": [\n        {\n          \"frage\": \"Welcher der folgenden Faktoren trägt am stärksten zur Entwicklung einer Medienabhängigkeit bei Jugendlichen bei?\",\n          \"optionen\": {\n            \"A\": \"Regelmäßige Bewegung an der frischen Luft\",\n            \"B\": \"Exzessive Nutzung sozialer Medien ohne zeitliche Begrenzung\",\n            \"C\": \"Ausgewogene Ernährung mit viel Obst und Gemüse\",\n            \"D\": \"Regelmäßige Schlafenszeiten und ausreichend Schlaf\"\n          },\n          \"richtigeAntwort\": \"B\"\n        },\n        {\n          \"frage\": \"Was versteht man unter dem Begriff 'Digital Detox'?\",\n          \"optionen\": {\n            \"A\": \"Eine spezielle Diät zur Verbesserung der Konzentration beim Lernen\",\n            \"B\": \"Eine bewusste Phase der Abstinenz von digitalen Medien zur Reduzierung von Stress\",\n            \"C\": \"Ein neues soziales Netzwerk für Jugendliche\",\n            \"D\": \"Eine Technik zur schnelleren Verarbeitung digitaler Daten\"\n          },\n          \"richtigeAntwort\": \"B\"\n        }\n      ]\n    }\n  }\n}\n```",
+  "fullApiResponse": {
+    "id": "90d48d27d3c8416197ceca7e89e57ab4",
+    "created": 1780356079,
+    "model": "mistral-large-latest",
+    "usage": {
+      "prompt_tokens": 116,
+      "total_tokens": 419,
+      "completion_tokens": 303,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "object": "chat.completion",
+    "choices": [
+      {
+        "index": 0,
+        "finish_reason": "stop",
+        "message": {
+          "role": "assistant",
+          "tool_calls": null,
+          "content": "```json\n{\n  \"schularbeit\": {\n    \"thema\": \"Medienkonsum\",\n    \"klasse\": \"7. Klasse (Oberstufe)\",\n    \"block\": {\n      \"typ\": \"multipleChoice\",\n      \"punkte\": 4,\n      \"fragen\": [\n        {\n          \"frage\": \"Welcher der folgenden Faktoren trägt am stärksten zur Entwicklung einer Medienabhängigkeit bei Jugendlichen bei?\",\n          \"optionen\": {\n            \"A\": \"Regelmäßige Bewegung an der frischen Luft\",\n            \"B\": \"Exzessive Nutzung sozialer Medien ohne zeitliche Begrenzung\",\n            \"C\": \"Ausgewogene Ernährung mit viel Obst und Gemüse\",\n            \"D\": \"Regelmäßige Schlafenszeiten und ausreichend Schlaf\"\n          },\n          \"richtigeAntwort\": \"B\"\n        },\n        {\n          \"frage\": \"Was versteht man unter dem Begriff 'Digital Detox'?\",\n          \"optionen\": {\n            \"A\": \"Eine spezielle Diät zur Verbesserung der Konzentration beim Lernen\",\n            \"B\": \"Eine bewusste Phase der Abstinenz von digitalen Medien zur Reduzierung von Stress\",\n            \"C\": \"Ein neues soziales Netzwerk für Jugendliche\",\n            \"D\": \"Eine Technik zur schnelleren Verarbeitung digitaler Daten\"\n          },\n          \"richtigeAntwort\": \"B\"\n        }\n      ]\n    }\n  }\n}\n```"
+        }
+      }
+    ]
+  }
+}

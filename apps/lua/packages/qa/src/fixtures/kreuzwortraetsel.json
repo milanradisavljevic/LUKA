@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "0.1.0",
+  "meta": {
+    "stufe": "unterstufe",
+    "fach": "deutsch",
+    "thema": "Wortschatz Natur",
+    "datum": "2026-05-30",
+    "klasse": "3B",
+    "notizen": ""
+  },
+  "quelltexte": [
+    {
+      "id": "q1",
+      "titel": "Natur",
+      "inhalt": "Im Garten stehen ein Baum und ein Haus mit einer großen Tür.",
+      "herkunft": { "typ": "upload", "ref": "natur.txt" }
+    }
+  ],
+  "bloecke": [
+    {
+      "id": "b1",
+      "typ": "kreuzwortraetsel",
+      "punkte": 6,
+      "quelleId": "q1",
+      "arbeitsanweisung": "Löse das Kreuzworträtsel mithilfe der Hinweise.",
+      "config": {
+        "eintraege": [
+          { "wort": "HAUS", "hinweis": "Gebäude zum Wohnen" },
+          { "wort": "GARTEN", "hinweis": "Grünfläche am Haus" },
+          { "wort": "BAUM", "hinweis": "Pflanze mit Stamm und Krone" },
+          { "wort": "TUER", "hinweis": "Eingang in ein Gebäude" }
+        ]
+      }
+    }
+  ]
+}

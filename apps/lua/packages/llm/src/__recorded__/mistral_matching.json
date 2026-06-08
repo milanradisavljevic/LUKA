@@ -1,0 +1,32 @@
+{
+  "provider": "mistral",
+  "model": "mistral-large-latest",
+  "blockType": "matching",
+  "timestamp": "2026-06-01T23:21:19.970Z",
+  "rawResponse": "```json\n{\n  \"schularbeit\": {\n    \"block\": {\n      \"typ\": \"matching\",\n      \"punkte\": 6,\n      \"items\": [\n        {\n          \"begriff\": \"Anapher\",\n          \"optionen\": [\n            \"Wiederholung eines Wortes oder einer Wortgruppe am Anfang aufeinanderfolgender Sätze oder Verse.\",\n            \"Gegenüberstellung von Gegensätzen zur Verstärkung der Aussage.\",\n            \"Übertreibung zur Hervorhebung eines Sachverhalts.\",\n            \"Frage, auf die keine Antwort erwartet wird.\"\n          ]\n        },\n        {\n          \"begriff\": \"Hyperbel\",\n          \"optionen\": [\n            \"Übertreibung zur Hervorhebung eines Sachverhalts.\",\n            \"Wiederholung eines Wortes oder einer Wortgruppe am Anfang aufeinanderfolgender Sätze oder Verse.\",\n            \"Frage, auf die keine Antwort erwartet wird.\",\n            \"Bildhafter Vergleich ohne Verwendung von 'wie' oder 'als'.\"\n          ]\n        },\n        {\n          \"begriff\": \"Rhetorische Frage\",\n          \"optionen\": [\n            \"Frage, auf die keine Antwort erwartet wird.\",\n            \"Gegenüberstellung von Gegensätzen zur Verstärkung der Aussage.\",\n            \"Wiederholung eines Wortes oder einer Wortgruppe am Ende aufeinanderfolgender Sätze oder Verse.\",\n            \"Untertreibung zur Abschwächung einer Aussage.\"\n          ]\n        }\n      ]\n    }\n  }\n}\n```",
+  "fullApiResponse": {
+    "id": "df85d3ccbb6f49d697697255b4801729",
+    "created": 1780356074,
+    "model": "mistral-large-latest",
+    "usage": {
+      "prompt_tokens": 122,
+      "total_tokens": 438,
+      "completion_tokens": 316,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "object": "chat.completion",
+    "choices": [
+      {
+        "index": 0,
+        "finish_reason": "stop",
+        "message": {
+          "role": "assistant",
+          "tool_calls": null,
+          "content": "```json\n{\n  \"schularbeit\": {\n    \"block\": {\n      \"typ\": \"matching\",\n      \"punkte\": 6,\n      \"items\": [\n        {\n          \"begriff\": \"Anapher\",\n          \"optionen\": [\n            \"Wiederholung eines Wortes oder einer Wortgruppe am Anfang aufeinanderfolgender Sätze oder Verse.\",\n            \"Gegenüberstellung von Gegensätzen zur Verstärkung der Aussage.\",\n            \"Übertreibung zur Hervorhebung eines Sachverhalts.\",\n            \"Frage, auf die keine Antwort erwartet wird.\"\n          ]\n        },\n        {\n          \"begriff\": \"Hyperbel\",\n          \"optionen\": [\n            \"Übertreibung zur Hervorhebung eines Sachverhalts.\",\n            \"Wiederholung eines Wortes oder einer Wortgruppe am Anfang aufeinanderfolgender Sätze oder Verse.\",\n            \"Frage, auf die keine Antwort erwartet wird.\",\n            \"Bildhafter Vergleich ohne Verwendung von 'wie' oder 'als'.\"\n          ]\n        },\n        {\n          \"begriff\": \"Rhetorische Frage\",\n          \"optionen\": [\n            \"Frage, auf die keine Antwort erwartet wird.\",\n            \"Gegenüberstellung von Gegensätzen zur Verstärkung der Aussage.\",\n            \"Wiederholung eines Wortes oder einer Wortgruppe am Ende aufeinanderfolgender Sätze oder Verse.\",\n            \"Untertreibung zur Abschwächung einer Aussage.\"\n          ]\n        }\n      ]\n    }\n  }\n}\n```"
+        }
+      }
+    ]
+  }
+}

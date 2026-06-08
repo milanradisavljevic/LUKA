@@ -1,0 +1,294 @@
+import { useState, useEffect, useCallback } from 'react';
+import { Save, Command, ArrowLeft, ArrowRight } from 'lucide-react';
+import type { AppAction, ActiveView, SavedDocument } from './lib/types';
+import type { Meta, Block } from '@lehrunterlagen/schema';
+import { useWizard } from './hooks/useWizard';
+import { useTheme } from './hooks/useTheme';
+import { useZoom } from './hooks/useZoom';
+import { WizardStepper } from './components/WizardStepper';
+import { Step0_Absicht } from './components/Step0_Absicht';
+import { Step1_Input } from './components/Step1_Input';
+import { Step2_Baukasten } from './components/Step2_Baukasten';
+import { Step3_LLMOptions } from './components/Step3_LLMOptions';
+import { Step4_Generate } from './components/Step4_Generate';
+import { TemplateManager } from './components/TemplateManager';
+import { CommandPalette } from './components/CommandPalette';
+import { Sidebar } from './components/Sidebar';
+import { ThemeToggle } from './components/ThemeToggle';
+import { DocumentsView } from './views/DocumentsView';
+import { FavoritesView } from './views/FavoritesView';
+import { TrashView } from './views/TrashView';
+import { HistoryView } from './views/HistoryView';
+import { TemplatesView } from './views/TemplatesView';
+import { HelpView } from './views/HelpView';
+import { SettingsView } from './views/SettingsView';
+import { loadDocuments, upsertDocument, snapshotFromState } from './lib/storage';
+import './App.css';
+
+export default function App() {
+  const { state, dispatch, goNext, goBack, goToStep, currentIndex } = useWizard();
+  const { resolved: theme, toggle: toggleTheme } = useTheme();
+  const { zoom, reset: resetZoom } = useZoom();
+  const [activeView, setActiveView] = useState<ActiveView>('wizard');
+  const [saveMsg, setSaveMsg] = useState<string | null>(null);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setPaletteOpen((p) => !p);
+      }
+      if (e.key === 'Escape' && paletteOpen) {
+        setPaletteOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [paletteOpen]);
+
+  const handlePaletteActions = useCallback((actions: AppAction | AppAction[]) => {
+    const arr = Array.isArray(actions) ? actions : [actions];
+    for (const action of arr) {
+      if (action.type === 'REMOVE_BLOCK' && action.id === '__last__') {
+        const blocks = state.bloecke;
+        if (blocks.length > 0) {
+          dispatch({ type: 'REMOVE_BLOCK', id: blocks[blocks.length - 1]!.id });
+        }
+      } else if (action.type === 'UPDATE_BLOCK' && action.id === '__last__') {
+        const blocks = state.bloecke;
+        if (blocks.length > 0) {
+          dispatch({ type: 'UPDATE_BLOCK', id: blocks[blocks.length - 1]!.id, block: action.block });
+        }
+      } else if (action.type === 'SET_META' && typeof action.meta.notizen === 'string' && action.meta.notizen.startsWith('__TEMPLATE_')) {
+        const parts = action.meta.notizen.split(':');
+        if (parts[0] === '__TEMPLATE_SAVE' && parts[1]) {
+          const name = parts.slice(1).join(':');
+          try {
+            const raw = localStorage.getItem('lehrunterlagen-templates');
+            const templates = raw ? JSON.parse(raw) : [];
+            const tpl = {
+              name, meta: state.meta,
+              bloecke: state.bloecke.map((b) => ({
+                typ: b.typ, punkte: b.punkte,
+                arbeitsanweisung: b.arbeitsanweisung, clue: b.clue, config: b.config,
+              })),
+              savedAt: new Date().toISOString(),
+            };
+            const merged = [...templates.filter((t: { name: string }) => t.name !== name), tpl];
+            localStorage.setItem('lehrunterlagen-templates', JSON.stringify(merged));
+          } catch { /* ignore */ }
+        }
+      } else {
+        dispatch(action);
+      }
+    }
+  }, [dispatch, state.bloecke, state.meta]);
+
+  const handlePaletteExport = useCallback(() => {
+    dispatch({ type: 'SET_STEP', step: 'generate' });
+  }, [dispatch]);
+
+  const handleLoadTemplate = (meta: Meta, bloecke: Block[]) => {
+    dispatch({ type: 'SET_META', meta });
+    dispatch({ type: 'REORDER_BLOCKS', bloecke });
+    setActiveView('wizard');
+    goToStep('baukasten');
+  };
+
+  const handleSaveDocument = useCallback(() => {
+    const existing = state.aktuelleDokumentId
+      ? loadDocuments().find((d) => d.id === state.aktuelleDokumentId)
+      : undefined;
+    const now = new Date().toISOString();
+    const id = existing?.id ?? crypto.randomUUID();
+    const doc: SavedDocument = {
+      id,
+      title: state.meta.thema?.trim() || 'Unbenannt',
+      savedAt: existing?.savedAt ?? now,
+      updatedAt: now,
+      isFavorite: existing?.isFavorite ?? false,
+      isDeleted: false,
+      deletedAt: null,
+      snapshot: snapshotFromState(state),
+    };
+    upsertDocument(doc);
+    if (state.aktuelleDokumentId !== id) {
+      dispatch({ type: 'SET_DOCUMENT_ID', id });
+    }
+    setSaveMsg('Gespeichert');
+    window.setTimeout(() => setSaveMsg(null), 2000);
+  }, [state, dispatch]);
+
+  const handleOpenDocument = useCallback((doc: SavedDocument) => {
+    const hasWork = state.bloecke.length > 0 || state.generiertesDokument !== null;
+    if (hasWork && !window.confirm('Aktuellen Stand verwerfen und das gespeicherte Dokument laden?')) {
+      return;
+    }
+    dispatch({ type: 'LOAD_SNAPSHOT', snapshot: doc.snapshot, documentId: doc.id });
+    setActiveView('wizard');
+  }, [state.bloecke.length, state.generiertesDokument, dispatch]);
+
+  const handleNewDocument = useCallback(() => {
+    const hasWork = state.bloecke.length > 0 || state.generiertesDokument !== null;
+    if (hasWork && !window.confirm('Aktuellen Stand verwerfen und ein neues Dokument beginnen?')) {
+      return;
+    }
+    dispatch({ type: 'RESET_STATE' });
+    setActiveView('wizard');
+  }, [state.bloecke.length, state.generiertesDokument, dispatch]);
+
+  const renderStep = () => {
+    switch (state.step) {
+      case 'absicht':
+        return <Step0_Absicht state={state} dispatch={dispatch} onNavigateToTemplates={() => setActiveView('templates')} />;
+      case 'input':
+        return <Step1_Input state={state} dispatch={dispatch} />;
+      case 'baukasten':
+        return <Step2_Baukasten state={state} dispatch={dispatch} />;
+      case 'llm':
+        return <Step3_LLMOptions state={state} dispatch={dispatch} />;
+      case 'generate':
+        return <Step4_Generate state={state} dispatch={dispatch} />;
+    }
+  };
+
+  const renderView = () => {
+    switch (activeView) {
+      case 'wizard':
+        return (
+          <div style={{ maxWidth: 960, margin: '0 auto' }}>
+            <WizardStepper currentStep={state.step} onStepClick={goToStep} />
+            <div style={{ marginTop: '1.25rem' }}>{renderStep()}</div>
+          </div>
+        );
+      case 'documents':
+        return <DocumentsView onOpenDocument={handleOpenDocument} />;
+      case 'favorites':
+        return <FavoritesView onOpenDocument={handleOpenDocument} />;
+      case 'trash':
+        return <TrashView />;
+      case 'history':
+        return <HistoryView />;
+      case 'templates':
+        return <TemplatesView meta={state.meta} bloecke={state.bloecke} onLoad={handleLoadTemplate} />;
+      case 'settings':
+        return <SettingsView />;
+      case 'help':
+        return <HelpView />;
+    }
+  };
+
+  const isWizard = activeView === 'wizard';
+
+  return (
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+      {!isMobile && (
+        <Sidebar
+          currentView={activeView}
+          onViewChange={setActiveView}
+          onNewDocument={handleNewDocument}
+        />
+      )}
+
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        {/* Kopfleiste */}
+        <header style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          padding: '0.75rem 1.25rem',
+          background: 'var(--color-bg-surface)',
+          borderBottom: '1px solid var(--color-border)',
+        }}>
+          <div>
+            <h1 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: 'var(--color-text-primary)' }}>
+              Lehrunterlagen-Applikation
+            </h1>
+            <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', margin: 0 }}>
+              AHS Deutsch &amp; Englisch · Unter- und Oberstufe
+            </p>
+          </div>
+          {isWizard && (
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              {saveMsg && (
+                <span style={{ fontSize: '0.75rem', color: 'var(--color-success)' }}>{saveMsg}</span>
+              )}
+              <button className="btn-secondary" onClick={() => setPaletteOpen(true)}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.75rem', padding: '0.375rem 0.625rem' }}
+                title="Befehl eingeben (Ctrl+K)">
+                <Command size={14} /> Befehle
+              </button>
+              <button className="btn-secondary" onClick={handleSaveDocument}
+                disabled={state.bloecke.length === 0}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.75rem', padding: '0.375rem 0.625rem' }}
+                title={state.bloecke.length === 0 ? 'Erst Blöcke anlegen' : 'Dokument speichern'}>
+                <Save size={14} /> Speichern
+              </button>
+              <TemplateManager meta={state.meta} bloecke={state.bloecke} onLoad={handleLoadTemplate} />
+              <ThemeToggle theme={theme} onToggle={toggleTheme} />
+            </div>
+          )}
+        </header>
+
+        {/* Hauptbereich */}
+        <main style={{ flex: 1, overflow: 'auto', padding: '1.25rem', background: 'var(--color-bg-base)' }}>
+          {renderView()}
+        </main>
+
+        {/* Footer-Navigation (nur im Assistenten) */}
+        {isWizard && (
+          <footer style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            padding: '0.75rem 1.25rem',
+            background: 'var(--color-bg-surface)',
+            borderTop: '1px solid var(--color-border)',
+          }}>
+            {currentIndex > 0 ? (
+              <button className="btn-secondary" onClick={goBack}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                <ArrowLeft size={16} /> Zurück
+              </button>
+            ) : <div />}
+            {currentIndex < 4 && (
+              <button className="btn-primary" onClick={goNext}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                Weiter <ArrowRight size={16} />
+              </button>
+            )}
+          </footer>
+        )}
+      </div>
+
+      <CommandPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        onActions={handlePaletteActions}
+        onNavigate={(dir) => dir === 'next' ? goNext() : goBack()}
+        onExport={handlePaletteExport}
+        blockCount={state.bloecke.length}
+      />
+
+      {/* Zoom-Anzeige */}
+      {zoom !== 1.0 && (
+        <div style={{
+          position: 'fixed', top: 52, right: 12,
+          padding: '4px 10px', borderRadius: 'var(--radius)',
+          background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border)',
+          fontSize: '0.75rem', color: 'var(--color-text-secondary)',
+          boxShadow: 'var(--shadow)', zIndex: 1000, display: 'flex', alignItems: 'center', gap: 6,
+        }}>
+          Zoom: {Math.round(zoom * 100)}%
+          <button onClick={resetZoom} className="btn-secondary" style={{ fontSize: '0.6875rem', padding: '2px 6px' }}>
+            Reset
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -1,0 +1,34 @@
+{
+  "provider": "anthropic",
+  "model": "claude-sonnet-4-6",
+  "blockType": "markieraufgabe",
+  "timestamp": "2026-06-01T23:20:01.359Z",
+  "rawResponse": "{\n  \"title\": \"Schularbeit: Medienkonsum\",\n  \"class\": \"7. Klasse\",\n  \"subject\": \"Deutsch\",\n  \"blocks\": [\n    {\n      \"type\": \"markieraufgabe\",\n      \"points\": 4,\n      \"instruction\": \"Markiere im folgenden Text alle Argumente, die PRO digitale Medien sprechen.\",\n      \"source_text\": \"Die Generation Z wächst mit digitalen Medien auf. Smartphones, soziale Netzwerke und Streaming-Dienste sind fester Bestandteil ihres Alltags. Kritiker warnen vor Suchtgefahr und Realitätsverlust, während Befürworter die Chancen für Bildung und Vernetzung betonen.\",\n      \"segments\": [\n        {\n          \"id\": 1,\n          \"text\": \"Die Generation Z wächst mit digitalen Medien auf.\",\n          \"is_correct\": false\n        },\n        {\n          \"id\": 2,\n          \"text\": \"Smartphones, soziale Netzwerke und Streaming-Dienste sind fester Bestandteil ihres Alltags.\",\n          \"is_correct\": false\n        },\n        {\n          \"id\": 3,\n          \"text\": \"Kritiker warnen vor Suchtgefahr und Realitätsverlust,\",\n          \"is_correct\": false\n        },\n        {\n          \"id\": 4,\n          \"text\": \"während Befürworter die Chancen für Bildung und Vernetzung betonen.\",\n          \"is_correct\": true\n        }\n      ],\n      \"solution_explanation\": \"Nur das letzte Textsegment enthält ein Argument PRO digitale Medien: die Betonung der Chancen für Bildung und Vernetzung. Die anderen Segmente sind entweder neutrale Feststellungen oder nennen Gegenargumente (Suchtgefahr, Realitätsverlust).\"\n    }\n  ]\n}",
+  "fullApiResponse": {
+    "model": "claude-sonnet-4-6",
+    "id": "msg_019p59iRXyCBhycUq8pTP2bX",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"title\": \"Schularbeit: Medienkonsum\",\n  \"class\": \"7. Klasse\",\n  \"subject\": \"Deutsch\",\n  \"blocks\": [\n    {\n      \"type\": \"markieraufgabe\",\n      \"points\": 4,\n      \"instruction\": \"Markiere im folgenden Text alle Argumente, die PRO digitale Medien sprechen.\",\n      \"source_text\": \"Die Generation Z wächst mit digitalen Medien auf. Smartphones, soziale Netzwerke und Streaming-Dienste sind fester Bestandteil ihres Alltags. Kritiker warnen vor Suchtgefahr und Realitätsverlust, während Befürworter die Chancen für Bildung und Vernetzung betonen.\",\n      \"segments\": [\n        {\n          \"id\": 1,\n          \"text\": \"Die Generation Z wächst mit digitalen Medien auf.\",\n          \"is_correct\": false\n        },\n        {\n          \"id\": 2,\n          \"text\": \"Smartphones, soziale Netzwerke und Streaming-Dienste sind fester Bestandteil ihres Alltags.\",\n          \"is_correct\": false\n        },\n        {\n          \"id\": 3,\n          \"text\": \"Kritiker warnen vor Suchtgefahr und Realitätsverlust,\",\n          \"is_correct\": false\n        },\n        {\n          \"id\": 4,\n          \"text\": \"während Befürworter die Chancen für Bildung und Vernetzung betonen.\",\n          \"is_correct\": true\n        }\n      ],\n      \"solution_explanation\": \"Nur das letzte Textsegment enthält ein Argument PRO digitale Medien: die Betonung der Chancen für Bildung und Vernetzung. Die anderen Segmente sind entweder neutrale Feststellungen oder nennen Gegenargumente (Suchtgefahr, Realitätsverlust).\"\n    }\n  ]\n}"
+      }
+    ],
+    "stop_reason": "end_turn",
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+      "input_tokens": 234,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 505,
+      "service_tier": "standard",
+      "inference_geo": "global"
+    }
+  }
+}

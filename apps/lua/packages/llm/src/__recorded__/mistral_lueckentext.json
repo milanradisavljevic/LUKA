@@ -1,0 +1,32 @@
+{
+  "provider": "mistral",
+  "model": "mistral-large-latest",
+  "blockType": "lueckentext",
+  "timestamp": "2026-06-01T23:21:14.385Z",
+  "rawResponse": "```json\n{\n  \"schularbeit\": {\n    \"thema\": \"Medienkonsum\",\n    \"klasse\": \"7. Klasse (Oberstufe)\",\n    \"block\": {\n      \"typ\": \"lueckentext\",\n      \"punkte\": 8,\n      \"aufgabe\": \"Ergänze den folgenden Text mit den passenden Wörtern. Die Lösungen lassen sich aus dem Kontext ableiten.\\n\\nMedienkonsum spielt im Alltag vieler Jugendlicher eine zentrale Rolle. Durch die ständige Verfügbarkeit von (1)__________ wie Smartphones oder Tablets fällt es oft schwer, bewusst Pausen einzulegen. Studien zeigen, dass übermäßiger Medienkonsum zu Schlafstörungen oder Konzentrationsproblemen führen kann. Besonders problematisch ist der sogenannte (2)__________, bei dem mehrere Medien gleichzeitig genutzt werden, etwa das gleichzeitige Schauen von Videos und das Scrollen durch soziale Netzwerke. Experten empfehlen daher, feste (3)__________ für die Nutzung digitaler Geräte festzulegen, um eine gesunde Balance zu finden. Auch das bewusste (4)__________ von Medieninhalten kann helfen, den eigenen Konsum kritisch zu reflektieren.\",\n      \"luecken\": [\n        {\n          \"nummer\": 1,\n          \"loesung\": [\"Geräten\", \"Endgeräten\"]\n        },\n        {\n          \"nummer\": 2,\n          \"loesung\": [\"Multitasking\", \"Medienmultitasking\"]\n        },\n        {\n          \"nummer\": 3,\n          \"loesung\": [\"Zeitlimits\", \"Nutzungszeiten\", \"Regeln\"]\n        },\n        {\n          \"nummer\": 4,\n          \"loesung\": [\"Hinterfragen\", \"Reflektieren\", \"Analysieren\"]\n        }\n      ]\n    }\n  }\n}\n```",
+  "fullApiResponse": {
+    "id": "21638745ce3040c4a7628b036a328331",
+    "created": 1780356053,
+    "model": "mistral-large-latest",
+    "usage": {
+      "prompt_tokens": 132,
+      "total_tokens": 533,
+      "completion_tokens": 401,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "object": "chat.completion",
+    "choices": [
+      {
+        "index": 0,
+        "finish_reason": "stop",
+        "message": {
+          "role": "assistant",
+          "tool_calls": null,
+          "content": "```json\n{\n  \"schularbeit\": {\n    \"thema\": \"Medienkonsum\",\n    \"klasse\": \"7. Klasse (Oberstufe)\",\n    \"block\": {\n      \"typ\": \"lueckentext\",\n      \"punkte\": 8,\n      \"aufgabe\": \"Ergänze den folgenden Text mit den passenden Wörtern. Die Lösungen lassen sich aus dem Kontext ableiten.\\n\\nMedienkonsum spielt im Alltag vieler Jugendlicher eine zentrale Rolle. Durch die ständige Verfügbarkeit von (1)__________ wie Smartphones oder Tablets fällt es oft schwer, bewusst Pausen einzulegen. Studien zeigen, dass übermäßiger Medienkonsum zu Schlafstörungen oder Konzentrationsproblemen führen kann. Besonders problematisch ist der sogenannte (2)__________, bei dem mehrere Medien gleichzeitig genutzt werden, etwa das gleichzeitige Schauen von Videos und das Scrollen durch soziale Netzwerke. Experten empfehlen daher, feste (3)__________ für die Nutzung digitaler Geräte festzulegen, um eine gesunde Balance zu finden. Auch das bewusste (4)__________ von Medieninhalten kann helfen, den eigenen Konsum kritisch zu reflektieren.\",\n      \"luecken\": [\n        {\n          \"nummer\": 1,\n          \"loesung\": [\"Geräten\", \"Endgeräten\"]\n        },\n        {\n          \"nummer\": 2,\n          \"loesung\": [\"Multitasking\", \"Medienmultitasking\"]\n        },\n        {\n          \"nummer\": 3,\n          \"loesung\": [\"Zeitlimits\", \"Nutzungszeiten\", \"Regeln\"]\n        },\n        {\n          \"nummer\": 4,\n          \"loesung\": [\"Hinterfragen\", \"Reflektieren\", \"Analysieren\"]\n        }\n      ]\n    }\n  }\n}\n```"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,895 @@
+import { z } from 'zod';
+
+// Deterministischer Gitter-Generator (Kreuzworträtsel) — von Renderer + Web genutzt.
+export * from './grids.js';
+
+// Heuristische Quelltext-Säuberung — von Renderer + Web + Input genutzt.
+export * from './clean.js';
+
+// ---------------------------------------------------------------------------
+// Meta
+// ---------------------------------------------------------------------------
+
+export const UnterlagentypSchema = z.enum(['hausuebung', 'test', 'schuluebung', 'schularbeit']);
+export type Unterlagentyp = z.infer<typeof UnterlagentypSchema>;
+
+export const StufeSchema = z.enum(['oberstufe', 'unterstufe']);
+export type Stufe = z.infer<typeof StufeSchema>;
+
+export const FachSchema = z.enum(['deutsch', 'englisch']);
+export type Fach = z.infer<typeof FachSchema>;
+
+export const MetaSchema = z.object({
+  stufe: StufeSchema,
+  fach: FachSchema,
+  thema: z.string().min(1),
+  datum: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Datum muss im Format YYYY-MM-DD sein'),
+  // Klasse ist optional (nicht jedes Arbeitsblatt zielt auf eine bestimmte Klasse) → leer erlaubt.
+  klasse: z.string(),
+  notizen: z.string(),
+  typ: UnterlagentypSchema.optional(),
+  schwierigkeit: z.enum(['leicht', 'mittel', 'schwer']).optional(),
+  lernziele: z.array(z.string().min(1)).optional(),
+});
+
+export type Meta = z.infer<typeof MetaSchema>;
+
+// ---------------------------------------------------------------------------
+// QuellText
+// ---------------------------------------------------------------------------
+
+export const QuellTextSchema = z.object({
+  id: z.string().min(1),
+  // Bei Direkteingabe oft leer — Renderer/Preview fallen auf "Text N" zurück.
+  titel: z.string(),
+  inhalt: z.string(),
+  herkunft: z.object({
+    // 'eingabe' = direkt eingegebener/eingefuegter Text (kein Datei-/URL-Bezug).
+    typ: z.enum(['upload', 'url', 'drive', 'eingabe']),
+    // Bei manueller Eingabe gibt es keine Quellreferenz → leer erlaubt.
+    ref: z.string(),
+  }),
+});
+
+export type QuellText = z.infer<typeof QuellTextSchema>;
+
+// ---------------------------------------------------------------------------
+// Shared block base fields
+// ---------------------------------------------------------------------------
+
+const BlockBaseSchema = z.object({
+  id: z.string().min(1),
+  punkte: z.number().int().min(0),
+  quelleId: z.string().min(1).optional(),
+  arbeitsanweisung: z.string().min(1),
+  clue: z.string().optional(),
+  // Welche meta.lernziele dieser Block abdeckt (vom LLM getaggt, exakte Strings
+  // aus meta.lernziele). Optional + abwärtskompatibel; speist die Coverage-Ansicht.
+  lernziele: z.array(z.string().min(1)).optional(),
+});
+
+// ---------------------------------------------------------------------------
+// Block: lueckentext
+// ---------------------------------------------------------------------------
+
+export const LueckentextBlockSchema = BlockBaseSchema.extend({
+  typ: z.literal('lueckentext'),
+  text: z.string().min(1).optional(),
+  config: z
+    .object({
+      anzahlLuecken: z.number().int().positive(),
+      wortbank: z.boolean(),
+      distraktoren: z.number().int().min(0),
+      distraktorWoerter: z.array(z.string().min(1)).optional(),
+    })
+    .refine(
+      (c) => !(c.wortbank && c.distraktoren < 1),
+      { message: 'Wenn wortbank=true, muss distraktoren >= 1 sein' },
+    ),
+  loesung: z.object({
+    luecken: z.array(
+      z.object({ nr: z.number().int().positive(), wort: z.string().min(1) }),
+    ),
+  }),
+});
+
+export type LueckentextBlock = z.infer<typeof LueckentextBlockSchema>;
+
+// ---------------------------------------------------------------------------
+// Block: matching
+// ---------------------------------------------------------------------------
+
+export const MatchingBlockSchema = BlockBaseSchema.extend({
+  typ: z.literal('matching'),
+  config: z
+    .object({
+      items: z.array(z.object({ nr: z.number().int().positive(), prompt: z.string().min(1) })).min(1),
+      optionen: z.array(z.object({ key: z.string().min(1), text: z.string().min(1) })),
+    })
+    .refine(
+      (c) => c.optionen.length > c.items.length,
+      { message: 'Es muss mehr Optionen als Items geben' },
+    ),
+  loesung: z.object({
+    zuordnung: z.record(z.string(), z.string()),
+  }),
+});
+
+export type MatchingBlock = z.infer<typeof MatchingBlockSchema>;
+
+// ---------------------------------------------------------------------------
+// Block: multipleChoice
+// ---------------------------------------------------------------------------
+
+export const MultipleChoiceBlockSchema = BlockBaseSchema.extend({
+  typ: z.literal('multipleChoice'),
+  config: z.object({
+    fragen: z
+      .array(
+        z.object({
+          nr: z.number().int().positive(),
+          frage: z.string().min(1),
+          optionen: z.array(z.object({ key: z.string().min(1), text: z.string().min(1) })).min(4),
+          mehrfach: z.boolean(),
+        }),
+      )
+      .min(1),
+  }),
+  loesung: z.object({
+    antworten: z.record(z.string(), z.array(z.string().min(1))),
+  }),
+});
+
+export type MultipleChoiceBlock = z.infer<typeof MultipleChoiceBlockSchema>;
+
+// ---------------------------------------------------------------------------
+// Block: offeneVerstaendnisfrage
+// ---------------------------------------------------------------------------
+
+export const OffeneVerstaendnisfrageBlockSchema = BlockBaseSchema.extend({
+  typ: z.literal('offeneVerstaendnisfrage'),
+  config: z.object({
+    fragen: z
+      .array(
+        z.object({
+          nr: z.number().int().positive(),
+          frage: z.string().min(1),
+          zeilen: z.number().int().positive(),
+        }),
+      )
+      .min(1),
+  }),
+  loesung: z.object({
+    antworten: z.record(z.string(), z.string().min(1)),
+  }),
+});
+
+export type OffeneVerstaendnisfrageBlock = z.infer<typeof OffeneVerstaendnisfrageBlockSchema>;
+
+// ---------------------------------------------------------------------------
+// Block: offeneSchreibaufgabe
+// ---------------------------------------------------------------------------
+
+export const OffeneSchreibaufgabeBlockSchema = BlockBaseSchema.extend({
+  typ: z.literal('offeneSchreibaufgabe'),
+  config: z
+    .object({
+      situation: z.string().min(1),
+      textsorte: z.string().min(1),
+      umfangWorte: z.object({ min: z.number().int().positive(), max: z.number().int().positive() }),
+      aspekte: z.array(z.string().min(1)).min(1),
+    })
+    .refine(
+      (c) => c.umfangWorte.min <= c.umfangWorte.max,
+      { message: 'umfangWorte.min darf nicht groesser als max sein' },
+    ),
+  loesung: z.object({
+    musterloesung: z.string().min(1),
+    erwartungshorizont: z.object({
+      inhalt: z.string().min(1),
+      struktur: z.string().min(1),
+      ausdruck: z.string().min(1),
+      sprachrichtigkeit: z.string().min(1),
+    }),
+  }),
+});
+
+export type OffeneSchreibaufgabeBlock = z.infer<typeof OffeneSchreibaufgabeBlockSchema>;
+
+// ---------------------------------------------------------------------------
+// Block: markieraufgabe
+// ---------------------------------------------------------------------------
+
+export const MarkieraufgabeBlockSchema = BlockBaseSchema.extend({
+  typ: z.literal('markieraufgabe'),
+  config: z.object({
+    quelleId: z.string().min(1),
+    anweisung: z.string().min(1),
+  }),
+  loesung: z.object({
+    stellen: z.array(z.string().min(1)).min(1),
+  }),
+});
+
+export type MarkieraufgabeBlock = z.infer<typeof MarkieraufgabeBlockSchema>;
+
+// ---------------------------------------------------------------------------
+// Block: wordScramble
+// ---------------------------------------------------------------------------
+
+export const WordScrambleBlockSchema = BlockBaseSchema.extend({
+  typ: z.literal('wordScramble'),
+  config: z.object({
+    wort: z.string().min(1),
+    anzahlWoerter: z.number().int().positive(),
+    loesungsreihenfolge: z.array(z.number().int().positive()),
+  }).refine(
+    (c) => c.loesungsreihenfolge.length === c.anzahlWoerter,
+    { message: 'loesungsreihenfolge.length muss anzahlWoerter entsprechen' },
+  ),
+  loesung: z.object({
+    korrektAnordnung: z.array(z.string().min(1)),
+  }).refine(
+    (l) => l.korrektAnordnung.every((w) => w.length > 0),
+    { message: 'korrektAnordnung darf keine leeren Strings enthalten' },
+  ),
+});
+
+export type WordScrambleBlock = z.infer<typeof WordScrambleBlockSchema>;
+
+// ---------------------------------------------------------------------------
+// Block: kategorisierung
+// ---------------------------------------------------------------------------
+
+export const KategorisierungItemSchema = z.object({
+  nr: z.number().int().positive(),
+  text: z.string().min(1),
+  optionen: z.array(z.string().min(1)),
+});
+
+export const KategorisierungBlockSchema = BlockBaseSchema.extend({
+  typ: z.literal('kategorisierung'),
+  config: z.object({
+    items: z.array(KategorisierungItemSchema).min(2),
+    kategorien: z.array(
+      z.object({
+        name: z.string().min(1),
+        anzahlItems: z.number().int().positive(),
+      }),
+    ).min(2),
+  }),
+  loesung: z.object({
+    // nr -> Kategorie(n). Array erlaubt Mehrfachzuordnung ("beide" / "Jack and Diane").
+    zuordnung: z.record(z.string(), z.array(z.string().min(1)).min(1)),
+  }),
+});
+
+export type KategorisierungBlock = z.infer<typeof KategorisierungBlockSchema>;
+
+// ---------------------------------------------------------------------------
+// Block: tabelle
+// ---------------------------------------------------------------------------
+
+export const TabelleZelleSchema = z.union([
+  z.object({ text: z.string() }),
+  z.object({ luecke: z.literal(true) }),
+]);
+
+export const TabelleBlockSchema = BlockBaseSchema.extend({
+  typ: z.literal('tabelle'),
+  config: z.object({
+    spalten: z.array(
+      z.object({
+        titel: z.string().min(1),
+        breiteProzent: z.number().int().min(1).max(100),
+      }),
+    ).min(2).max(5),
+    zeilen: z.array(
+      z.object({
+        nr: z.number().int().positive(),
+        // Eine Zelle je Spalte: entweder fester Text oder eine auszufüllende Lücke.
+        zellen: z.array(TabelleZelleSchema).min(2),
+      }),
+    ).min(1),
+  }).refine(
+    (c) => c.zeilen.every((z) => z.zellen.length === c.spalten.length),
+    { message: 'Jede Zeile muss genau so viele Zellen wie Spalten haben' },
+  ),
+  loesung: z.object({
+    // Key "zeilenNr,spaltenIndex" (spaltenIndex 0-basiert) -> Wert der Lücke.
+    zellen: z.record(z.string(), z.string().min(1)),
+  }),
+});
+
+export type TabelleBlock = z.infer<typeof TabelleBlockSchema>;
+
+// ---------------------------------------------------------------------------
+// Block: stiluebung
+// ---------------------------------------------------------------------------
+
+export const StiluebungBlockSchema = BlockBaseSchema.extend({
+  typ: z.literal('stiluebung'),
+  config: z.object({
+    ausgangstext: z.string().min(1),
+    zielniveau: z.enum(['umgangssprachlich', 'standard', 'gehoben', 'fachsprachlich']),
+    transformation: z.enum(['verdeutlichen', 'variieren', 'kuerzen', 'erweitern']),
+  }),
+  loesung: z.object({
+    umformulierung: z.string().min(1),
+    begruendung: z.string().min(1),
+  }),
+});
+
+export type StiluebungBlock = z.infer<typeof StiluebungBlockSchema>;
+
+// ---------------------------------------------------------------------------
+// Block: songanalyse
+// ---------------------------------------------------------------------------
+
+export const SonganalyseBlockSchema = BlockBaseSchema.extend({
+  typ: z.literal('songanalyse'),
+  config: z.object({
+    interpret: z.string().min(1),
+    titel: z.string().min(1),
+    medium: z.literal('song'),
+    genre: z.string().optional(),
+    lyrics: z.string().min(1),
+    aufgabe: z.enum(['inhaltsangabe', 'wirkungsanalyse', 'sprachanalyse', 'vergleich']),
+  }),
+  loesung: z.object({
+    ergebnis: z.string().min(1),
+    zitate: z.array(z.string().min(1)),
+    analysepunkte: z.array(
+      z.object({
+        aspekt: z.string().min(1),
+        befund: z.string().min(1),
+        zitat: z.string().optional(),
+      }),
+    ).min(1),
+  }),
+});
+
+export type SonganalyseBlock = z.infer<typeof SonganalyseBlockSchema>;
+
+// ---------------------------------------------------------------------------
+// Block: kreuzwortraetsel
+// ---------------------------------------------------------------------------
+// LLM liefert nur Wort+Hinweis; das Gitter baut `baueKreuzwortgitter` (grids.ts)
+// deterministisch. Keine separate loesung — die Wörter in config.eintraege SIND
+// die Lösung (Renderer zeigt sie nur in der Lösungsfassung).
+
+export const KreuzwortraetselBlockSchema = BlockBaseSchema.extend({
+  typ: z.literal('kreuzwortraetsel'),
+  config: z.object({
+    anzahlWoerter: z.number().int().positive().optional(),
+    eintraege: z.array(
+      z.object({
+        wort: z.string().min(2),   // ein einzelnes Wort, mind. 2 Buchstaben
+        hinweis: z.string().min(1), // Definition/Frage, ohne das Wort zu nennen
+      }),
+    ).optional(),
+  }),
+});
+
+export type KreuzwortraetselBlock = z.infer<typeof KreuzwortraetselBlockSchema>;
+
+// ---------------------------------------------------------------------------
+// Block: wortgitter (Wortsuchrätsel)
+// ---------------------------------------------------------------------------
+// LLM liefert nur die zu suchenden Wörter; das Buchstabengitter baut
+// `baueWortgitter` (grids.ts) deterministisch. Keine separate loesung.
+
+export const WortgitterBlockSchema = BlockBaseSchema.extend({
+  typ: z.literal('wortgitter'),
+  config: z.object({
+    anzahlWoerter: z.number().int().positive().optional(),
+    woerter: z.array(z.string().min(2)).optional(),
+  }),
+});
+
+export type WortgitterBlock = z.infer<typeof WortgitterBlockSchema>;
+
+// ---------------------------------------------------------------------------
+// Block: vokabeluebung
+// ---------------------------------------------------------------------------
+
+export const VokabeluebungBlockSchema = BlockBaseSchema.extend({
+  typ: z.literal('vokabeluebung'),
+  config: z.object({
+    richtung: z.enum(['de_fremd', 'fremd_de']),
+    anzahlVokabeln: z.number().int().positive().optional(),
+    vokabeln: z.array(
+      z.object({
+        deutsch: z.string().min(1),
+        fremdsprache: z.string().min(1),
+        kontextsatz: z.string().optional(),
+      })
+    ).optional(),
+  }),
+  loesung: z.object({
+    antworten: z.record(z.string(), z.string()),
+  }).optional(),
+});
+
+export type VokabeluebungBlock = z.infer<typeof VokabeluebungBlockSchema>;
+
+// ---------------------------------------------------------------------------
+// Discriminated union of all block types
+// ---------------------------------------------------------------------------
+
+export const BlockSchema = z.discriminatedUnion('typ', [
+  LueckentextBlockSchema,
+  MatchingBlockSchema,
+  MultipleChoiceBlockSchema,
+  OffeneVerstaendnisfrageBlockSchema,
+  OffeneSchreibaufgabeBlockSchema,
+  MarkieraufgabeBlockSchema,
+  WordScrambleBlockSchema,
+  KategorisierungBlockSchema,
+  TabelleBlockSchema,
+  StiluebungBlockSchema,
+  SonganalyseBlockSchema,
+  KreuzwortraetselBlockSchema,
+  WortgitterBlockSchema,
+  VokabeluebungBlockSchema,
+]);
+
+export type Block = z.infer<typeof BlockSchema>;
+
+// ---------------------------------------------------------------------------
+// Full Document
+// ---------------------------------------------------------------------------
+
+export const DocumentSchema = z
+  .object({
+    schemaVersion: z.literal('0.1.0'),
+    meta: MetaSchema,
+    quelltexte: z.array(QuellTextSchema).min(1),
+    bloecke: z.array(BlockSchema).min(1),
+  })
+;
+
+export type DocumentV1 = z.infer<typeof DocumentSchema>;
+
+// ---------------------------------------------------------------------------
+// Schema-Versionierung + Migration
+// ---------------------------------------------------------------------------
+
+export const CURRENT_SCHEMA_VERSION = '0.1.0' as const;
+
+/**
+ * Bringt ein (möglicherweise altes) gespeichertes Dokument auf die aktuelle
+ * Schema-Version und validiert es. Greift beim Laden von Vorlagen/Dokumenten
+ * (Import), damit künftige Feldänderungen gespeicherte Daten nicht brechen.
+ *
+ * Aktuell existiert nur Version 0.1.0 — die Migrationskette ist daher leer.
+ * Künftige Versionen erweitern den switch um schrittweise Transformationen
+ * (0.1.0 → 0.2.0 → …), bevor am Ende gegen DocumentSchema validiert wird.
+ */
+export function migrateDocument(raw: unknown): DocumentV1 {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+    throw new Error('Kein gültiges Dokument-Objekt.');
+  }
+  const obj = { ...(raw as Record<string, unknown>) };
+  let version = typeof obj.schemaVersion === 'string' ? obj.schemaVersion : '0.0.0';
+
+  // Migrationskette (zukünftig): jede Stufe transformiert obj in-place und hebt version an.
+  // switch (version) { case '0.0.0': /* … */ version = '0.1.0'; /* fallthrough */ }
+
+  // Fehlende/abweichende Version auf aktuelle setzen (sobald die Kette durchlaufen ist).
+  if (version !== CURRENT_SCHEMA_VERSION) {
+    obj.schemaVersion = CURRENT_SCHEMA_VERSION;
+    version = CURRENT_SCHEMA_VERSION;
+  }
+
+  const parsed = DocumentSchema.safeParse(obj);
+  if (!parsed.success) {
+    const detail = parsed.error.issues.map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`).join('; ');
+    throw new Error(`Dokument-Migration fehlgeschlagen: ${detail}`);
+  }
+  return parsed.data;
+}
+
+// ---------------------------------------------------------------------------
+// BlockTyp (fuer Auftrag und TypProfil)
+// ---------------------------------------------------------------------------
+
+export const BlockTypSchema = z.enum([
+  'lueckentext',
+  'matching',
+  'multipleChoice',
+  'offeneVerstaendnisfrage',
+  'offeneSchreibaufgabe',
+  'markieraufgabe',
+  'wordScramble',
+  'kategorisierung',
+  'tabelle',
+  'stiluebung',
+  'songanalyse',
+  'kreuzwortraetsel',
+  'wortgitter',
+  'vokabeluebung',
+]);
+export type BlockTyp = z.infer<typeof BlockTypSchema>;
+
+// ---------------------------------------------------------------------------
+// Bloom-Eignung von Aufgabentypen je Schwierigkeit
+// ---------------------------------------------------------------------------
+// EINZIGE QUELLE DER WAHRHEIT fuer UI-Typ-Gating (apps/web) UND Prompt-Steuerung
+// (packages/llm). Beide Seiten muessen identisch entscheiden, welche Typen zu welchem
+// kognitiven Niveau passen — sonst driften Baukasten und LLM auseinander.
+//
+// "abgeraten" = der Typ widerspricht dem kognitiven Niveau (z. B. geschlossenes Multiple
+// Choice bei "schwer" = Bewerten/Erschaffen). NICHT verboten: die UI graut aus und warnt,
+// der Prompt hebt die kognitive Tiefe innerhalb des Typs. Der Blocktyp wird NIEMALS
+// eigenmaechtig vom LLM getauscht (das wuerde buildSkelett/PROFILE desynchronisieren).
+// Diese Matrix ist bewusst justierbar — paedagogische Feinjustierung erwuenscht.
+
+export type Schwierigkeit = 'leicht' | 'mittel' | 'schwer';
+export type TypEignung = 'geeignet' | 'abgeraten';
+
+export const BLOOM_TYP_ABGERATEN: Record<Schwierigkeit, { typ: BlockTyp; grund: string }[]> = {
+  leicht: [
+    { typ: 'offeneSchreibaufgabe', grund: 'Produktives Schreiben (Bloom 5–6) ueberfordert das Niveau "leicht".' },
+    { typ: 'songanalyse', grund: 'Interpretation (Bloom 4–5) ist fuer "leicht" zu anspruchsvoll.' },
+    { typ: 'stiluebung', grund: 'Umformulierung im Zielstil setzt Analyse/Synthese voraus.' },
+  ],
+  mittel: [],
+  schwer: [
+    { typ: 'lueckentext', grund: 'Geschlossener Reproduktionstyp (Bloom 1–2) — ungeeignet fuer Bewerten/Erschaffen.' },
+    { typ: 'matching', grund: 'Geschlossener Zuordnungstyp — kein Urteil, keine Synthese moeglich.' },
+    { typ: 'multipleChoice', grund: 'Geschlossener Typ; "schweres MC" bleibt faktisch Bloom 1–2. Besser offene Typen.' },
+    { typ: 'wordScramble', grund: 'Reine Reproduktion.' },
+    { typ: 'kreuzwortraetsel', grund: 'Reine Reproduktion/Spielform.' },
+    { typ: 'wortgitter', grund: 'Reine Reproduktion/Spielform.' },
+    { typ: 'vokabeluebung', grund: 'Reine Reproduktion.' },
+  ],
+};
+
+export function getTypEignung(typ: BlockTyp, schwierigkeit: Schwierigkeit): TypEignung {
+  return BLOOM_TYP_ABGERATEN[schwierigkeit].some((e) => e.typ === typ) ? 'abgeraten' : 'geeignet';
+}
+
+export function getAbratungsgrund(typ: BlockTyp, schwierigkeit: Schwierigkeit): string | undefined {
+  return BLOOM_TYP_ABGERATEN[schwierigkeit].find((e) => e.typ === typ)?.grund;
+}
+
+// ---------------------------------------------------------------------------
+// Auftrag — die Absicht der Lehrkraft (Primaerweg)
+// ---------------------------------------------------------------------------
+
+export const AuftragSchema = z.object({
+  typ: UnterlagentypSchema,
+  fach: FachSchema,
+  stufe: StufeSchema,
+  thema: z.string(),
+  datum: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Datum muss im Format YYYY-MM-DD sein'),
+  klasse: z.string().optional(),
+  quelltexte: z.array(QuellTextSchema).default([]),
+  dauerMinuten: z.number().int().positive().optional(),
+  schwierigkeit: z.enum(['leicht', 'mittel', 'schwer']).optional(),
+  gewuenschteAufgabenarten: z.array(BlockTypSchema).optional(),
+  gesamtpunkteZiel: z.number().int().positive().optional(),
+  notizen: z.string().optional(),
+  lernziele: z.array(z.string().min(1)).optional(),
+});
+export type Auftrag = z.infer<typeof AuftragSchema>;
+
+// ---------------------------------------------------------------------------
+// Typ-Profil — liefert die Struktur deterministisch
+// ---------------------------------------------------------------------------
+
+export interface TypProfil {
+  typ: Unterlagentyp;
+  standardAufgabenarten: { typ: BlockTyp; punkteAnteil: number }[]; // Summe ~ 1.0
+  rasterErzeugen: boolean;
+  notenschluesselErzeugen: boolean;
+  defaultDauerMinuten: number;
+  defaultGesamtpunkte: number;
+  strukturhinweis: string; // fuer den Prompt, z. B. Maturastruktur bei Schularbeit
+}
+
+export const PROFILE: Record<Unterlagentyp, TypProfil> = {
+  hausuebung: {
+    typ: 'hausuebung',
+    standardAufgabenarten: [
+      { typ: 'lueckentext', punkteAnteil: 0.5 },
+      { typ: 'offeneVerstaendnisfrage', punkteAnteil: 0.5 },
+    ],
+    rasterErzeugen: false,
+    notenschluesselErzeugen: false,
+    defaultDauerMinuten: 15,
+    defaultGesamtpunkte: 12,
+    strukturhinweis: 'Kurze Hausuebung, eine Lueckentext- und eine Verstaendnisaufgabe.',
+  },
+  test: {
+    typ: 'test',
+    standardAufgabenarten: [
+      { typ: 'multipleChoice', punkteAnteil: 0.25 },
+      { typ: 'offeneVerstaendnisfrage', punkteAnteil: 0.35 },
+      { typ: 'offeneSchreibaufgabe', punkteAnteil: 0.4 },
+    ],
+    rasterErzeugen: true,
+    notenschluesselErzeugen: true,
+    defaultDauerMinuten: 25,
+    defaultGesamtpunkte: 24,
+    strukturhinweis: 'Test mit Multiple Choice, Verstaendnisfrage und kurzer Schreibaufgabe.',
+  },
+  schuluebung: {
+    typ: 'schuluebung',
+    standardAufgabenarten: [
+      { typ: 'lueckentext', punkteAnteil: 0.3 },
+      { typ: 'matching', punkteAnteil: 0.3 },
+      { typ: 'multipleChoice', punkteAnteil: 0.4 },
+    ],
+    rasterErzeugen: false,
+    notenschluesselErzeugen: false,
+    defaultDauerMinuten: 20,
+    defaultGesamtpunkte: 0,
+    strukturhinweis: 'Schuluebung ohne Notenvergabe: Uebungsaufgaben wie Lueckentext, Matching und Multiple Choice. Keine Punkte, keine Noten.',
+  },
+  schularbeit: {
+    typ: 'schularbeit',
+    standardAufgabenarten: [
+      { typ: 'offeneVerstaendnisfrage', punkteAnteil: 0.3 },
+      { typ: 'offeneSchreibaufgabe', punkteAnteil: 0.7 },
+    ],
+    rasterErzeugen: true,
+    notenschluesselErzeugen: true,
+    defaultDauerMinuten: 50,
+    defaultGesamtpunkte: 48,
+    strukturhinweis: 'Schularbeit nach oesterreichischer Maturastruktur: Leseverstaendnis und offene Schreibaufgabe mit Situation, Textsorte, Umfang und Aspekten.',
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Skelett-Builder — deterministisch, ohne LLM
+// ---------------------------------------------------------------------------
+
+export function buildSkelett(auftrag: Auftrag): Block[] {
+  const profil = PROFILE[auftrag.typ];
+  const aufgabenarten = auftrag.gewuenschteAufgabenarten ?? profil.standardAufgabenarten.map((a) => a.typ);
+  const gesamtpunkte = auftrag.gesamtpunkteZiel ?? profil.defaultGesamtpunkte;
+
+  // Normalisiere Anteile auf die tatsaechlich gewaehlten Aufgabenarten
+  const gewaehlteAnteile = profil.standardAufgabenarten.filter((a) => aufgabenarten.includes(a.typ));
+  const anteilSum = gewaehlteAnteile.reduce((sum, a) => sum + a.punkteAnteil, 0);
+
+  const blocks: Block[] = aufgabenarten.map((typ, index) => {
+    const anteil = gewaehlteAnteile.find((a) => a.typ === typ)?.punkteAnteil ?? (1 / aufgabenarten.length);
+    const normierterAnteil = anteilSum > 0 ? anteil / anteilSum : 1 / aufgabenarten.length;
+    const punkte = gesamtpunkte > 0 ? Math.max(1, Math.round(normierterAnteil * gesamtpunkte)) : 0;
+
+    const base = {
+      id: `b${index + 1}`,
+      typ,
+      punkte,
+      arbeitsanweisung: '[Arbeitsanweisung]',
+    };
+
+    switch (typ) {
+      case 'lueckentext':
+        return {
+          ...base,
+          typ: 'lueckentext',
+          config: { anzahlLuecken: Math.max(3, Math.round(punkte)), wortbank: auftrag.stufe === 'unterstufe', distraktoren: auftrag.stufe === 'unterstufe' ? 3 : 0 },
+          loesung: { luecken: [] },
+        };
+      case 'matching':
+        return {
+          ...base,
+          typ: 'matching',
+          config: { items: [{ nr: 1, prompt: '[Item]' }], optionen: [{ key: 'A', text: '[Option A]' }, { key: 'B', text: '[Option B]' }] },
+          loesung: { zuordnung: {} },
+        };
+      case 'multipleChoice':
+        return {
+          ...base,
+          typ: 'multipleChoice',
+          config: {
+            fragen: [{
+              nr: 1,
+              frage: '[Frage]',
+              optionen: [
+                { key: 'A', text: '[Option A]' },
+                { key: 'B', text: '[Option B]' },
+                { key: 'C', text: '[Option C]' },
+                { key: 'D', text: '[Option D]' },
+              ],
+              mehrfach: false,
+            }],
+          },
+          loesung: { antworten: {} },
+        };
+      case 'offeneVerstaendnisfrage':
+        return {
+          ...base,
+          typ: 'offeneVerstaendnisfrage',
+          config: { fragen: [{ nr: 1, frage: '[Frage]', zeilen: Math.max(3, Math.round(punkte / 2)) }] },
+          loesung: { antworten: {} },
+        };
+      case 'offeneSchreibaufgabe': {
+        const schwierigkeit = auftrag.schwierigkeit ?? 'mittel';
+        const umfang = auftrag.stufe === 'oberstufe' ? { min: 270, max: 330 } : { min: 120, max: 180 };
+        return {
+          ...base,
+          typ: 'offeneSchreibaufgabe',
+          config: {
+            situation: '[Situation]',
+            textsorte: '[Textsorte]',
+            umfangWorte: umfang,
+            aspekte: schwierigkeit === 'leicht' ? ['Aspekt 1'] : ['Aspekt 1', 'Aspekt 2'],
+          },
+          loesung: { musterloesung: '[Musterloesung]', erwartungshorizont: { inhalt: '[Erwartung Inhalt]', struktur: '[Erwartung Struktur]', ausdruck: '[Erwartung Ausdruck]', sprachrichtigkeit: '[Erwartung Sprachrichtigkeit]' } },
+        };
+      }
+      case 'markieraufgabe':
+        return {
+          ...base,
+          typ: 'markieraufgabe',
+          config: { quelleId: auftrag.quelltexte[0]?.id ?? 'q1', anweisung: '[Anweisung]' },
+          loesung: { stellen: ['[Textstelle]'] },
+        };
+      case 'wordScramble':
+        return {
+          ...base,
+          typ: 'wordScramble',
+          config: { wort: '[Satz]', anzahlWoerter: 5, loesungsreihenfolge: [1, 2, 3, 4, 5] },
+          loesung: { korrektAnordnung: ['[1]', '[2]', '[3]', '[4]', '[5]'] },
+        };
+      case 'kategorisierung':
+        return {
+          ...base,
+          typ: 'kategorisierung',
+          config: {
+            items: [
+              { nr: 1, text: '[Item 1]', optionen: ['[Kategorie A]', '[Kategorie B]'] },
+              { nr: 2, text: '[Item 2]', optionen: ['[Kategorie A]', '[Kategorie B]'] },
+            ],
+            kategorien: [
+              { name: '[Kategorie A]', anzahlItems: 1 },
+              { name: '[Kategorie B]', anzahlItems: 1 },
+            ],
+          },
+          loesung: { zuordnung: { '1': ['[Kategorie A]'], '2': ['[Kategorie B]'] } },
+        };
+      case 'tabelle':
+        return {
+          ...base,
+          typ: 'tabelle',
+          config: {
+            spalten: [
+              { titel: '[Spalte 1]', breiteProzent: 50 },
+              { titel: '[Spalte 2]', breiteProzent: 50 },
+            ],
+            zeilen: [{ nr: 1, zellen: [{ text: '[Zelle]' }, { luecke: true }] }],
+          },
+          loesung: { zellen: { '1,1': '[Loesung]' } },
+        };
+      case 'stiluebung':
+        return {
+          ...base,
+          typ: 'stiluebung',
+          config: { ausgangstext: '[Ausgangstext]', zielniveau: 'standard', transformation: 'variieren' },
+          loesung: { umformulierung: '[Umformulierung]', begruendung: '[Begruendung]' },
+        };
+      case 'songanalyse':
+        return {
+          ...base,
+          typ: 'songanalyse',
+          config: { interpret: '[Interpret]', titel: '[Titel]', medium: 'song', lyrics: '[Lyrics]', aufgabe: 'inhaltsangabe' },
+          loesung: { ergebnis: '[Ergebnis]', zitate: [], analysepunkte: [{ aspekt: '[Aspekt]', befund: '[Befund]' }] },
+        };
+      case 'kreuzwortraetsel':
+        return {
+          ...base,
+          typ: 'kreuzwortraetsel',
+          config: {
+            eintraege: [
+              { wort: '[WORT1]', hinweis: '[Hinweis 1]' },
+              { wort: '[WORT2]', hinweis: '[Hinweis 2]' },
+            ],
+          },
+        };
+      case 'wortgitter':
+        return {
+          ...base,
+          typ: 'wortgitter',
+          config: { woerter: ['[WORT1]', '[WORT2]', '[WORT3]'] },
+        };
+      default:
+        throw new Error(`Unbekannter Blocktyp: ${typ}`);
+    }
+  });
+
+  // Punkte auf Gesamtpunkte normieren (Rundungsfehler ausgleichen) — nur wenn Gesamtpunkte > 0
+  if (gesamtpunkte > 0) {
+    const currentSum = blocks.reduce((sum, b) => sum + b.punkte, 0);
+    const diff = gesamtpunkte - currentSum;
+    const lastBlock = blocks[blocks.length - 1];
+    if (diff !== 0 && lastBlock) {
+      lastBlock.punkte = Math.max(1, lastBlock.punkte + diff);
+    }
+  }
+
+  return blocks;
+}
+
+// ---------------------------------------------------------------------------
+// Deterministische Layout-Utils
+// ---------------------------------------------------------------------------
+
+/** Einfacher seed-basierter PRNG (Mulberry32). */
+function mulberry32(seed: string): () => number {
+  let a = 0;
+  for (let i = 0; i < seed.length; i++) {
+    a = (a + seed.charCodeAt(i)) | 0;
+  }
+  a = a >>> 0;
+  return function () {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) | 0;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** Seed-stabiles Shuffle (Fisher-Yates). */
+export function shuffle<T>(array: T[], seed: string): T[] {
+  const rng = mulberry32(seed);
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    const tmp = arr[i]!;
+    arr[i] = arr[j]!;
+    arr[j] = tmp;
+  }
+  return arr;
+}
+
+/**
+ * Baut eine Wortbank aus Lösungswörtern + Distraktoren.
+ * Seed-stabil: gleicher Seed ergibt gleiche Reihenfolge.
+ */
+export function baueWortbank(
+  loesungen: string[],
+  distraktoren: string[],
+  seed: string,
+): string[] {
+  const alle = [...loesungen, ...distraktoren];
+  return shuffle(alle, seed);
+}
+
+/**
+ * Verwürfelt einen Text deterministisch (seed-stabil).
+ * modus 'satz' = Wörter mischen, modus 'wort' = Buchstaben mischen.
+ * Garantiert eine vom Original abweichende Reihenfolge (sofern überhaupt möglich).
+ */
+export function verwuerfle(text: string, modus: 'wort' | 'satz', seed: string): string {
+  const teile = modus === 'satz' ? text.split(/\s+/).filter((w) => w.length > 0) : [...text];
+  const sep = modus === 'satz' ? ' ' : '';
+  if (teile.length < 2) return teile.join(sep);
+  const original = teile.join(sep);
+  // Bei Kollision mit dem Original Seed variieren, damit die Aufgabe lösbar bleibt.
+  for (let versuch = 0; versuch < 5; versuch++) {
+    const gemischt = shuffle(teile, `${seed}#${versuch}`).join(sep);
+    if (gemischt !== original) return gemischt;
+  }
+  return shuffle(teile, seed).join(sep);
+}
+
+// ---------------------------------------------------------------------------
+// Korrektur-Namespace (vorausschauend reserviert, noch nicht verdrahtet)
+// ---------------------------------------------------------------------------
+
+export interface Abgabe {
+  dokumentId: string;
+  schuelerRef: string; // lokales Pseudonym, kein Klarname im Datenfluss
+}
+
+export interface Bewertung {
+  dokumentId: string;
+  proBlock: { blockId: string; erreichtePunkte: number; anmerkung: string }[];
+  gesamtPunkte: number;
+  note: 1 | 2 | 3 | 4 | 5;
+}

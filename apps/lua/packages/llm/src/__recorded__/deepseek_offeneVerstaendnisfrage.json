@@ -1,0 +1,35 @@
+{
+  "provider": "deepseek",
+  "model": "deepseek-chat",
+  "blockType": "offeneVerstaendnisfrage",
+  "timestamp": "2026-06-01T23:20:44.280Z",
+  "rawResponse": "{\n  \"blockTyp\": \"offeneVerstaendnisfrage\",\n  \"punkte\": 8,\n  \"anzahlFragen\": 2,\n  \"fragen\": [\n    {\n      \"frage\": \"Erkläre, warum Algorithmen auf Social-Media-Plattformen oft dazu führen, dass Nutzer immer ähnlichere Inhalte sehen. Welche Auswirkung hat das auf die Meinungsbildung?\",\n      \"musterantwort\": \"Algorithmen zeigen vor allem Inhalte, die zu deinen bisherigen Klicks und Likes passen, um dich länger auf der Plattform zu halten. Das kann zu einer sogenannten Filterblase führen, in der du nur noch Bestätigung für deine eigene Meinung bekommst und andere Perspektiven kaum noch wahrnimmst.\"\n    },\n    {\n      \"frage\": \"Vergleiche die Begriffe 'aktiver' und 'passiver' Medienkonsum an einem konkreten Beispiel aus dem Alltag. Welche Form fördert kritisches Denken mehr?\",\n      \"musterantwort\": \"Passiver Konsum ist zum Beispiel stundenlanges Scrollen durch TikTok-Videos, ohne selbst zu kommentieren oder zu hinterfragen. Aktiver Konsum wäre dagegen, einen Zeitungsartikel zu einem Thema zu lesen, die Quellen zu prüfen und eigene Gedanken dazu zu notieren. Aktiver Konsum fördert kritisches Denken, weil du dich bewusst mit Inhalten auseinandersetzt.\"\n    }\n  ]\n}",
+  "fullApiResponse": {
+    "id": "be57d6b1-2ff0-425d-90af-060bc140f19c",
+    "object": "chat.completion",
+    "created": 1780356040,
+    "model": "deepseek-v4-flash",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\n  \"blockTyp\": \"offeneVerstaendnisfrage\",\n  \"punkte\": 8,\n  \"anzahlFragen\": 2,\n  \"fragen\": [\n    {\n      \"frage\": \"Erkläre, warum Algorithmen auf Social-Media-Plattformen oft dazu führen, dass Nutzer immer ähnlichere Inhalte sehen. Welche Auswirkung hat das auf die Meinungsbildung?\",\n      \"musterantwort\": \"Algorithmen zeigen vor allem Inhalte, die zu deinen bisherigen Klicks und Likes passen, um dich länger auf der Plattform zu halten. Das kann zu einer sogenannten Filterblase führen, in der du nur noch Bestätigung für deine eigene Meinung bekommst und andere Perspektiven kaum noch wahrnimmst.\"\n    },\n    {\n      \"frage\": \"Vergleiche die Begriffe 'aktiver' und 'passiver' Medienkonsum an einem konkreten Beispiel aus dem Alltag. Welche Form fördert kritisches Denken mehr?\",\n      \"musterantwort\": \"Passiver Konsum ist zum Beispiel stundenlanges Scrollen durch TikTok-Videos, ohne selbst zu kommentieren oder zu hinterfragen. Aktiver Konsum wäre dagegen, einen Zeitungsartikel zu einem Thema zu lesen, die Quellen zu prüfen und eigene Gedanken dazu zu notieren. Aktiver Konsum fördert kritisches Denken, weil du dich bewusst mit Inhalten auseinandersetzt.\"\n    }\n  ]\n}"
+        },
+        "logprobs": null,
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 132,
+      "completion_tokens": 334,
+      "total_tokens": 466,
+      "prompt_tokens_details": {
+        "cached_tokens": 128
+      },
+      "prompt_cache_hit_tokens": 128,
+      "prompt_cache_miss_tokens": 4
+    },
+    "system_fingerprint": "fp_8b330d02d0_prod0820_fp8_kvcache_20260402"
+  }
+}

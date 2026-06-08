@@ -1,0 +1,34 @@
+{
+  "provider": "deepseek",
+  "model": "deepseek-chat",
+  "timestamp": "2026-06-01T15:10:09.184Z",
+  "rawResponse": "{\n  \"blockTyp\": \"multipleChoice\",\n  \"punkte\": 4,\n  \"anzahlFragen\": 2,\n  \"fragen\": [\n    {\n      \"frage\": \"Welcher Begriff beschreibt die Tendenz von Algorithmen sozialer Medien, Nutzern vorrangig Inhalte zu zeigen, die ihre bestehenden Meinungen verstärken?\",\n      \"optionen\": [\n        \"A: Filterblase\",\n        \"B: Echokammer\",\n        \"C: Digital Divide\",\n        \"D: Clickbait\"\n      ],\n      \"richtigeAntwort\": \"B\"\n    },\n    {\n      \"frage\": \"Laut Studien der Medienwirkungsforschung wird unter 'Second Screen' vor allem verstanden:\",\n      \"optionen\": [\n        \"A: Die gleichzeitige Nutzung eines zweiten Bildschirms, z. B. eines Smartphones, während des Fernsehens.\",\n        \"B: Die Nutzung eines Bildschirms in einem sekundären Raum, etwa im Schlafzimmer.\",\n        \"C: Das Umschalten zwischen verschiedenen Streaming-Diensten auf demselben Gerät.\",\n        \"D: Die Korrektur von Falschinformationen durch einen zweiten, unabhängigen Bildschirm.\"\n      ],\n      \"richtigeAntwort\": \"A\"\n    }\n  ]\n}",
+  "fullApiResponse": {
+    "id": "aa5b5959-aed8-4c6c-8a86-0e64a8c0ffc2",
+    "object": "chat.completion",
+    "created": 1780326605,
+    "model": "deepseek-v4-flash",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\n  \"blockTyp\": \"multipleChoice\",\n  \"punkte\": 4,\n  \"anzahlFragen\": 2,\n  \"fragen\": [\n    {\n      \"frage\": \"Welcher Begriff beschreibt die Tendenz von Algorithmen sozialer Medien, Nutzern vorrangig Inhalte zu zeigen, die ihre bestehenden Meinungen verstärken?\",\n      \"optionen\": [\n        \"A: Filterblase\",\n        \"B: Echokammer\",\n        \"C: Digital Divide\",\n        \"D: Clickbait\"\n      ],\n      \"richtigeAntwort\": \"B\"\n    },\n    {\n      \"frage\": \"Laut Studien der Medienwirkungsforschung wird unter 'Second Screen' vor allem verstanden:\",\n      \"optionen\": [\n        \"A: Die gleichzeitige Nutzung eines zweiten Bildschirms, z. B. eines Smartphones, während des Fernsehens.\",\n        \"B: Die Nutzung eines Bildschirms in einem sekundären Raum, etwa im Schlafzimmer.\",\n        \"C: Das Umschalten zwischen verschiedenen Streaming-Diensten auf demselben Gerät.\",\n        \"D: Die Korrektur von Falschinformationen durch einen zweiten, unabhängigen Bildschirm.\"\n      ],\n      \"richtigeAntwort\": \"A\"\n    }\n  ]\n}"
+        },
+        "logprobs": null,
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 121,
+      "completion_tokens": 282,
+      "total_tokens": 403,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "prompt_cache_hit_tokens": 0,
+      "prompt_cache_miss_tokens": 121
+    },
+    "system_fingerprint": "fp_8b330d02d0_prod0820_fp8_kvcache_20260402"
+  }
+}

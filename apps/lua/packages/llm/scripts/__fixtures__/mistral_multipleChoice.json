@@ -1,0 +1,31 @@
+{
+  "provider": "mistral",
+  "model": "mistral-large-latest",
+  "timestamp": "2026-06-01T15:10:20.041Z",
+  "rawResponse": "```json\n{\n  \"schularbeit\": {\n    \"thema\": \"Medienkonsum\",\n    \"klasse\": \"7. Klasse (Oberstufe)\",\n    \"block\": {\n      \"typ\": \"multipleChoice\",\n      \"punkte\": 4,\n      \"fragen\": [\n        {\n          \"frage\": \"Welcher Begriff beschreibt die gezielte Auswahl und Verbreitung von Informationen durch Medien, um die öffentliche Meinung zu beeinflussen?\",\n          \"optionen\": {\n            \"A\": \"Algorithmus\",\n            \"B\": \"Agenda-Setting\",\n            \"C\": \"Clickbait\",\n            \"D\": \"Netiquette\"\n          },\n          \"richtigeAntwort\": \"B\"\n        },\n        {\n          \"frage\": \"Welche Aussage trifft auf den Begriff 'Digital Detox' zu?\",\n          \"optionen\": {\n            \"A\": \"Eine Methode, um die Akkulaufzeit von Geräten zu verlängern.\",\n            \"B\": \"Ein bewusster Verzicht auf digitale Medien für einen bestimmten Zeitraum.\",\n            \"C\": \"Ein Programm zur Steigerung der Social-Media-Nutzung.\",\n            \"D\": \"Eine Technik zur schnelleren Datenübertragung.\"\n          },\n          \"richtigeAntwort\": \"B\"\n        }\n      ]\n    }\n  }\n}\n```",
+  "fullApiResponse": {
+    "id": "fcc17ef6395d4efe9b2b763d4f49aa84",
+    "created": 1780326608,
+    "model": "mistral-large-latest",
+    "usage": {
+      "prompt_tokens": 116,
+      "total_tokens": 390,
+      "completion_tokens": 274,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "object": "chat.completion",
+    "choices": [
+      {
+        "index": 0,
+        "finish_reason": "stop",
+        "message": {
+          "role": "assistant",
+          "tool_calls": null,
+          "content": "```json\n{\n  \"schularbeit\": {\n    \"thema\": \"Medienkonsum\",\n    \"klasse\": \"7. Klasse (Oberstufe)\",\n    \"block\": {\n      \"typ\": \"multipleChoice\",\n      \"punkte\": 4,\n      \"fragen\": [\n        {\n          \"frage\": \"Welcher Begriff beschreibt die gezielte Auswahl und Verbreitung von Informationen durch Medien, um die öffentliche Meinung zu beeinflussen?\",\n          \"optionen\": {\n            \"A\": \"Algorithmus\",\n            \"B\": \"Agenda-Setting\",\n            \"C\": \"Clickbait\",\n            \"D\": \"Netiquette\"\n          },\n          \"richtigeAntwort\": \"B\"\n        },\n        {\n          \"frage\": \"Welche Aussage trifft auf den Begriff 'Digital Detox' zu?\",\n          \"optionen\": {\n            \"A\": \"Eine Methode, um die Akkulaufzeit von Geräten zu verlängern.\",\n            \"B\": \"Ein bewusster Verzicht auf digitale Medien für einen bestimmten Zeitraum.\",\n            \"C\": \"Ein Programm zur Steigerung der Social-Media-Nutzung.\",\n            \"D\": \"Eine Technik zur schnelleren Datenübertragung.\"\n          },\n          \"richtigeAntwort\": \"B\"\n        }\n      ]\n    }\n  }\n}\n```"
+        }
+      }
+    ]
+  }
+}

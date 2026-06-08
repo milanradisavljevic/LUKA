@@ -1,0 +1,35 @@
+{
+  "provider": "deepseek",
+  "model": "deepseek-chat",
+  "blockType": "multipleChoice",
+  "timestamp": "2026-06-01T23:20:40.795Z",
+  "rawResponse": "{\n  \"blockTyp\": \"multipleChoice\",\n  \"punkte\": 4,\n  \"anzahlFragen\": 2,\n  \"fragen\": [\n    {\n      \"frage\": \"Welcher Begriff beschreibt das Phänomen, dass Nutzer in sozialen Medien hauptsächlich Inhalte sehen, die ihre eigene Meinung bestätigen?\",\n      \"optionen\": [\n        { \"buchstabe\": \"A\", \"text\": \"Filterblase\" },\n        { \"buchstabe\": \"B\", \"text\": \"Echokammer\" },\n        { \"buchstabe\": \"C\", \"text\": \"Digital Divide\" },\n        { \"buchstabe\": \"D\", \"text\": \"Viralität\" }\n      ],\n      \"richtigeAntwort\": \"B\"\n    },\n    {\n      \"frage\": \"Laut Studien zur Mediennutzung Jugendlicher wird der Großteil der täglichen Bildschirmzeit in der Freizeit für welche Aktivität aufgewendet?\",\n      \"optionen\": [\n        { \"buchstabe\": \"A\", \"text\": \"Recherche für Schularbeiten\" },\n        { \"buchstabe\": \"B\", \"text\": \"Streaming von Serien und Filmen\" },\n        { \"buchstabe\": \"C\", \"text\": \"Nutzung von Messengern und sozialen Netzwerken\" },\n        { \"buchstabe\": \"D\", \"text\": \"Spielen von Computerspielen\" }\n      ],\n      \"richtigeAntwort\": \"C\"\n    }\n  ]\n}",
+  "fullApiResponse": {
+    "id": "4f8a874b-aa0f-48cf-a912-3f4d896df84a",
+    "object": "chat.completion",
+    "created": 1780356037,
+    "model": "deepseek-v4-flash",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\n  \"blockTyp\": \"multipleChoice\",\n  \"punkte\": 4,\n  \"anzahlFragen\": 2,\n  \"fragen\": [\n    {\n      \"frage\": \"Welcher Begriff beschreibt das Phänomen, dass Nutzer in sozialen Medien hauptsächlich Inhalte sehen, die ihre eigene Meinung bestätigen?\",\n      \"optionen\": [\n        { \"buchstabe\": \"A\", \"text\": \"Filterblase\" },\n        { \"buchstabe\": \"B\", \"text\": \"Echokammer\" },\n        { \"buchstabe\": \"C\", \"text\": \"Digital Divide\" },\n        { \"buchstabe\": \"D\", \"text\": \"Viralität\" }\n      ],\n      \"richtigeAntwort\": \"B\"\n    },\n    {\n      \"frage\": \"Laut Studien zur Mediennutzung Jugendlicher wird der Großteil der täglichen Bildschirmzeit in der Freizeit für welche Aktivität aufgewendet?\",\n      \"optionen\": [\n        { \"buchstabe\": \"A\", \"text\": \"Recherche für Schularbeiten\" },\n        { \"buchstabe\": \"B\", \"text\": \"Streaming von Serien und Filmen\" },\n        { \"buchstabe\": \"C\", \"text\": \"Nutzung von Messengern und sozialen Netzwerken\" },\n        { \"buchstabe\": \"D\", \"text\": \"Spielen von Computerspielen\" }\n      ],\n      \"richtigeAntwort\": \"C\"\n    }\n  ]\n}"
+        },
+        "logprobs": null,
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 121,
+      "completion_tokens": 336,
+      "total_tokens": 457,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "prompt_cache_hit_tokens": 0,
+      "prompt_cache_miss_tokens": 121
+    },
+    "system_fingerprint": "fp_8b330d02d0_prod0820_fp8_kvcache_20260402"
+  }
+}

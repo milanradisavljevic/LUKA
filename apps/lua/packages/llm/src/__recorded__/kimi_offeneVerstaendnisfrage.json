@@ -1,0 +1,28 @@
+{
+  "provider": "kimi",
+  "model": "moonshot-v1-8k",
+  "blockType": "offeneVerstaendnisfrage",
+  "timestamp": "2026-06-01T23:22:11.777Z",
+  "rawResponse": "{\n  \"Block\": {\n    \"Typ\": \"offeneVerstaendnisfrage\",\n    \"Punkte\": 8,\n    \"AnzahlFragen\": 2,\n    \"Fragen\": [\n      {\n        \"Frage\": \"Wie hat sich dein Medienkonsum in den letzten Jahren verändert und warum?\",\n        \"Musterantwort\": \"In den letzten Jahren habe ich mehr Zeit mit digitalen Medien verbracht, weil sie bequem und schnell sind.\"\n      },\n      {\n        \"Frage\": \"Welche Auswirkungen hat der Medienkonsum auf deine Zeitverwendung und persönliche Beziehungen?\",\n        \"Musterantwort\": \"Der Medienkonsum nimmt viel Zeit in Anspruch und kann manchmal zu weniger direkten Interaktionen mit Freunden führen.\"\n      }\n    ]\n  }\n}",
+  "fullApiResponse": {
+    "id": "chatcmpl-6a1e141f334a63f06bf1fec6",
+    "object": "chat.completion",
+    "created": 1780356128,
+    "model": "moonshot-v1-8k",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\n  \"Block\": {\n    \"Typ\": \"offeneVerstaendnisfrage\",\n    \"Punkte\": 8,\n    \"AnzahlFragen\": 2,\n    \"Fragen\": [\n      {\n        \"Frage\": \"Wie hat sich dein Medienkonsum in den letzten Jahren verändert und warum?\",\n        \"Musterantwort\": \"In den letzten Jahren habe ich mehr Zeit mit digitalen Medien verbracht, weil sie bequem und schnell sind.\"\n      },\n      {\n        \"Frage\": \"Welche Auswirkungen hat der Medienkonsum auf deine Zeitverwendung und persönliche Beziehungen?\",\n        \"Musterantwort\": \"Der Medienkonsum nimmt viel Zeit in Anspruch und kann manchmal zu weniger direkten Interaktionen mit Freunden führen.\"\n      }\n    ]\n  }\n}"
+        },
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 132,
+      "completion_tokens": 186,
+      "total_tokens": 318
+    }
+  }
+}

@@ -1,0 +1,41 @@
+# Python-Artefakte
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Laufzeit / OS
+.env
+*.Zone.Identifier
+*.save
+*.save.*
+Thumbs.db
+.DS_Store
+
+# Schülerdaten (groß, nicht für LLM-Kontext)
+input/
+output/
+abgegebene Arbeiten/
+
+# Binärdateien
+assets/
+*.png
+*.jpg
+*.jpeg
+*.docx
+*.odt
+*.pdf
+
+# Editor / Tools
+.vscode/
+.idea/
+.claude/
+.qwen/
+.codex/
+
+# Veraltete Dateien
+natascha_wizard.py
+prompts/legacy/
+rubrics/legacy/

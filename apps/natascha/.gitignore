@@ -1,0 +1,62 @@
+# Secrets — niemals committen!
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+
+# Output und lokale Schülerdaten
+output/
+input/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Windows alternate data streams (Zone.Identifier etc.)
+*:Zone.Identifier
+
+# Config-Backups
+*.save
+*.save.*
+
+# Generierte Feedback-Dateien (kein Quellcode)
+feedback.json
+
+# Schülerdaten / Abgaben
+abgegebene Arbeiten/
+
+# Schüler-Datenbank (personenbezogene Daten — niemals committen!)
+*.db
+*.sqlite
+*.sqlite3
+
+# Lose Schüler-Dokumente im Repo-Root (Abgaben/Arbeitsblätter)
+*.docx
+*.odt
+*.pdf
+
+# Lokale Laufzeitdateien
+.natascha_first_run_done
+.codex
+.claude/
+.qwen/
+
+# Bilddateien / Screenshots (keine Quellcode-Relevanz)
+*.png
+*.jpg
+*.jpeg

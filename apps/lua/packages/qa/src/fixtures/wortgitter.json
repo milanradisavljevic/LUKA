@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "0.1.0",
+  "meta": {
+    "stufe": "unterstufe",
+    "fach": "deutsch",
+    "thema": "Wortschatz Natur",
+    "datum": "2026-05-30",
+    "klasse": "3B",
+    "notizen": ""
+  },
+  "quelltexte": [
+    {
+      "id": "q1",
+      "titel": "Natur",
+      "inhalt": "Im Garten wachsen Blumen und Bäume. Die Sonne scheint und die Vögel singen.",
+      "herkunft": { "typ": "upload", "ref": "natur.txt" }
+    }
+  ],
+  "bloecke": [
+    {
+      "id": "b1",
+      "typ": "wortgitter",
+      "punkte": 5,
+      "quelleId": "q1",
+      "arbeitsanweisung": "Finde die versteckten Wörter im Buchstabengitter und markiere sie.",
+      "config": {
+        "woerter": ["GARTEN", "BLUME", "BAUM", "SONNE", "VOGEL"]
+      }
+    }
+  ]
+}

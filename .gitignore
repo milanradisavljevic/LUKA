@@ -1,0 +1,38 @@
+# --- Node / LUA ---
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+
+# --- Rust / Tauri ---
+target/
+apps/lua/src-tauri/target/
+
+# --- Python / NATASCHA ---
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# --- Secrets ---
+.env
+*.env
+!*.env.example
+
+# --- Schüler-Echtdaten: NIEMALS ins Repo ---
+*.db
+apps/natascha/output/
+apps/natascha/input/
+apps/natascha/abgegebene Arbeiten/
+apps/natascha/Screenshots/
+
+# --- Bridge: Austauschdateien enthalten Echtdaten ---
+bridge/inbox/*.json
+!bridge/inbox/.gitkeep
+
+# --- OS / Editor ---
+.DS_Store
+Thumbs.db

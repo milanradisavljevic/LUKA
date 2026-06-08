@@ -1,0 +1,28 @@
+{
+  "provider": "kimi",
+  "model": "moonshot-v1-8k",
+  "blockType": "matching",
+  "timestamp": "2026-06-01T23:22:02.455Z",
+  "rawResponse": "{\n  \"Typ\": \"matching\",\n  \"Punkte\": 6,\n  \"Anzahl_Items\": 3,\n  \"Items\": [\n    {\n      \"Ausdruck\": \"Metapher\"\n    },\n    {\n      \"Ausdruck\": \"Ironie\"\n    },\n    {\n      \"Ausdruck\": \"Antithese\"\n    }\n  ],\n  \"Optionen\": [\n    {\n      \"Erklärung\": \"Ein rhetorisches Mittel, bei dem eine Sache mit einer anderen verglichen wird, um eine bestimmte Bedeutung hervorzuheben.\"\n    },\n    {\n      \"Erklärung\": \"Ein rhetorisches Mittel, das sich durch die Absicht zeigt, mehr auszudrücken als gesagt wird, oft mit dem Ziel, den Leser oder Hörer über die622fassungsfähigkeit des Sprechers oder Autors hinweg zu täuschen.\"\n    },\n    {\n      \"Erklärung\": \"Ein rhetorisches Mittel, bei dem zwei entgegengesetzte oder widersprüchliche Ideen oder Worte nebeneinander gesetzt werden, um einen Kontrast hervorzuheben.\"\n    },\n    {\n      \"Erklärung\": \"Ein rhetorisches Mittel, das darauf abzielt, einen Gedanken oder eine Situation in einem umgekehrten oder unerwarteten Licht erscheinen zu lassen, um die Aufmerksamkeit des Publikums zu wecken.\"\n    }\n  ]\n}",
+  "fullApiResponse": {
+    "id": "chatcmpl-6a1e141405fea989df95f46e",
+    "object": "chat.completion",
+    "created": 1780356116,
+    "model": "moonshot-v1-8k",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\n  \"Typ\": \"matching\",\n  \"Punkte\": 6,\n  \"Anzahl_Items\": 3,\n  \"Items\": [\n    {\n      \"Ausdruck\": \"Metapher\"\n    },\n    {\n      \"Ausdruck\": \"Ironie\"\n    },\n    {\n      \"Ausdruck\": \"Antithese\"\n    }\n  ],\n  \"Optionen\": [\n    {\n      \"Erklärung\": \"Ein rhetorisches Mittel, bei dem eine Sache mit einer anderen verglichen wird, um eine bestimmte Bedeutung hervorzuheben.\"\n    },\n    {\n      \"Erklärung\": \"Ein rhetorisches Mittel, das sich durch die Absicht zeigt, mehr auszudrücken als gesagt wird, oft mit dem Ziel, den Leser oder Hörer über die622fassungsfähigkeit des Sprechers oder Autors hinweg zu täuschen.\"\n    },\n    {\n      \"Erklärung\": \"Ein rhetorisches Mittel, bei dem zwei entgegengesetzte oder widersprüchliche Ideen oder Worte nebeneinander gesetzt werden, um einen Kontrast hervorzuheben.\"\n    },\n    {\n      \"Erklärung\": \"Ein rhetorisches Mittel, das darauf abzielt, einen Gedanken oder eine Situation in einem umgekehrten oder unerwarteten Licht erscheinen zu lassen, um die Aufmerksamkeit des Publikums zu wecken.\"\n    }\n  ]\n}"
+        },
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 137,
+      "completion_tokens": 321,
+      "total_tokens": 458
+    }
+  }
+}

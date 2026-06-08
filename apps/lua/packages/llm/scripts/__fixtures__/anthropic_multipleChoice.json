@@ -1,0 +1,33 @@
+{
+  "provider": "anthropic",
+  "model": "claude-sonnet-4-6",
+  "timestamp": "2026-06-01T15:09:58.382Z",
+  "rawResponse": "{\"title\":\"Deutsch Schularbeit – Medienkonsum\",\"subject\":\"Deutsch\",\"grade\":\"7. Klasse (Oberstufe)\",\"topic\":\"Medienkonsum\",\"blocks\":[{\"blockType\":\"multipleChoice\",\"points\":4,\"questions\":[{\"questionNumber\":1,\"questionText\":\"Welche der folgenden Aussagen beschreibt den Begriff 'Medienkompetenz' am treffendsten?\",\"options\":[{\"label\":\"A\",\"text\":\"Die Fähigkeit, möglichst viele verschiedene Medien gleichzeitig zu nutzen.\"},{\"label\":\"B\",\"text\":\"Die Fähigkeit, Medien kritisch zu analysieren, zu bewerten und verantwortungsvoll zu nutzen.\"},{\"label\":\"C\",\"text\":\"Die technische Fertigkeit, elektronische Geräte zu reparieren.\"},{\"label\":\"D\",\"text\":\"Das auswendige Kennen aller Mediengattungen und ihrer Entstehungsjahre.\"}],\"correctAnswer\":\"B\",\"explanation\":\"Medienkompetenz umfasst die kritische Auseinandersetzung mit Medieninhalten sowie den verantwortungsvollen und reflektierten Umgang mit verschiedenen Medien.\"},{\"questionNumber\":2,\"questionText\":\"Ein Jugendlicher verbringt täglich sechs Stunden mit passivem Social-Media-Konsum. Welche Folge wird in der medienpädagogischen Forschung am häufigsten mit exzessivem, passivem Social-Media-Konsum in Verbindung gebracht?\",\"options\":[{\"label\":\"A\",\"text\":\"Eine nachweislich verbesserte Konzentrationsfähigkeit beim Lesen langer Texte.\"},{\"label\":\"B\",\"text\":\"Ein gesteigertes kritisches Denkvermögen durch ständige Informationsflut.\"},{\"label\":\"C\",\"text\":\"Ein erhöhtes Risiko für Vergleichsdruck, geringes Selbstwertgefühl und soziale Isolation.\"},{\"label\":\"D\",\"text\":\"Eine signifikante Verbesserung der schulischen Leistungen durch informelles Lernen.\"}],\"correctAnswer\":\"C\",\"explanation\":\"Studien zeigen, dass übermäßiger passiver Social-Media-Konsum häufig mit sozialem Vergleichsdruck, einem geschwächten Selbstwertgefühl und dem Rückzug aus realen sozialen Kontakten einhergeht.\"}]}]}",
+  "fullApiResponse": {
+    "model": "claude-sonnet-4-6",
+    "id": "msg_013iHrNHASRhnEibjGW1mPfx",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"title\":\"Deutsch Schularbeit – Medienkonsum\",\"subject\":\"Deutsch\",\"grade\":\"7. Klasse (Oberstufe)\",\"topic\":\"Medienkonsum\",\"blocks\":[{\"blockType\":\"multipleChoice\",\"points\":4,\"questions\":[{\"questionNumber\":1,\"questionText\":\"Welche der folgenden Aussagen beschreibt den Begriff 'Medienkompetenz' am treffendsten?\",\"options\":[{\"label\":\"A\",\"text\":\"Die Fähigkeit, möglichst viele verschiedene Medien gleichzeitig zu nutzen.\"},{\"label\":\"B\",\"text\":\"Die Fähigkeit, Medien kritisch zu analysieren, zu bewerten und verantwortungsvoll zu nutzen.\"},{\"label\":\"C\",\"text\":\"Die technische Fertigkeit, elektronische Geräte zu reparieren.\"},{\"label\":\"D\",\"text\":\"Das auswendige Kennen aller Mediengattungen und ihrer Entstehungsjahre.\"}],\"correctAnswer\":\"B\",\"explanation\":\"Medienkompetenz umfasst die kritische Auseinandersetzung mit Medieninhalten sowie den verantwortungsvollen und reflektierten Umgang mit verschiedenen Medien.\"},{\"questionNumber\":2,\"questionText\":\"Ein Jugendlicher verbringt täglich sechs Stunden mit passivem Social-Media-Konsum. Welche Folge wird in der medienpädagogischen Forschung am häufigsten mit exzessivem, passivem Social-Media-Konsum in Verbindung gebracht?\",\"options\":[{\"label\":\"A\",\"text\":\"Eine nachweislich verbesserte Konzentrationsfähigkeit beim Lesen langer Texte.\"},{\"label\":\"B\",\"text\":\"Ein gesteigertes kritisches Denkvermögen durch ständige Informationsflut.\"},{\"label\":\"C\",\"text\":\"Ein erhöhtes Risiko für Vergleichsdruck, geringes Selbstwertgefühl und soziale Isolation.\"},{\"label\":\"D\",\"text\":\"Eine signifikante Verbesserung der schulischen Leistungen durch informelles Lernen.\"}],\"correctAnswer\":\"C\",\"explanation\":\"Studien zeigen, dass übermäßiger passiver Social-Media-Konsum häufig mit sozialem Vergleichsdruck, einem geschwächten Selbstwertgefühl und dem Rückzug aus realen sozialen Kontakten einhergeht.\"}]}]}"
+      }
+    ],
+    "stop_reason": "end_turn",
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+      "input_tokens": 163,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 606,
+      "service_tier": "standard",
+      "inference_geo": "global"
+    }
+  }
+}

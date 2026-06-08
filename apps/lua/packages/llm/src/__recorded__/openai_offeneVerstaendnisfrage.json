@@ -1,0 +1,43 @@
+{
+  "provider": "openai",
+  "model": "gpt-4o-mini",
+  "blockType": "offeneVerstaendnisfrage",
+  "timestamp": "2026-06-01T23:20:19.237Z",
+  "rawResponse": "{\n  \"blockTyp\": \"offeneVerstaendnisfrage\",\n  \"punkte\": 8,\n  \"fragen\": [\n    {\n      \"frage\": \"Welche Auswirkungen hat übermäßiger Medienkonsum auf die Gesundheit von Jugendlichen?\",\n      \"musterantwort\": \"Übermäßiger Medienkonsum kann zu Schlafproblemen, Konzentrationsschwierigkeiten und einer erhöhten Gefahr von Depressionen führen. Zudem kann er die körperliche Aktivität verringern und somit das allgemeine Wohlbefinden beeinträchtigen.\"\n    },\n    {\n      \"frage\": \"Wie beeinflusst Medienkonsum die sozialen Beziehungen von Jugendlichen?\",\n      \"musterantwort\": \"Medienkonsum kann sowohl positive als auch negative Auswirkungen auf soziale Beziehungen haben. Einerseits können Jugendliche durch soziale Medien in Kontakt bleiben, andererseits kann exzessives Spielen oder Surfen zu Isolation und weniger persönlichen Interaktionen führen.\"\n    }\n  ]\n}",
+  "fullApiResponse": {
+    "id": "chatcmpl-Dm6DXIkIlrRIgPOrfDLXZkFuliTC3",
+    "object": "chat.completion",
+    "created": 1780356015,
+    "model": "gpt-4o-mini-2024-07-18",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\n  \"blockTyp\": \"offeneVerstaendnisfrage\",\n  \"punkte\": 8,\n  \"fragen\": [\n    {\n      \"frage\": \"Welche Auswirkungen hat übermäßiger Medienkonsum auf die Gesundheit von Jugendlichen?\",\n      \"musterantwort\": \"Übermäßiger Medienkonsum kann zu Schlafproblemen, Konzentrationsschwierigkeiten und einer erhöhten Gefahr von Depressionen führen. Zudem kann er die körperliche Aktivität verringern und somit das allgemeine Wohlbefinden beeinträchtigen.\"\n    },\n    {\n      \"frage\": \"Wie beeinflusst Medienkonsum die sozialen Beziehungen von Jugendlichen?\",\n      \"musterantwort\": \"Medienkonsum kann sowohl positive als auch negative Auswirkungen auf soziale Beziehungen haben. Einerseits können Jugendliche durch soziale Medien in Kontakt bleiben, andererseits kann exzessives Spielen oder Surfen zu Isolation und weniger persönlichen Interaktionen führen.\"\n    }\n  ]\n}",
+          "refusal": null,
+          "annotations": []
+        },
+        "logprobs": null,
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 118,
+      "completion_tokens": 184,
+      "total_tokens": 302,
+      "prompt_tokens_details": {
+        "cached_tokens": 0,
+        "audio_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0,
+        "audio_tokens": 0,
+        "accepted_prediction_tokens": 0,
+        "rejected_prediction_tokens": 0
+      }
+    },
+    "service_tier": "default",
+    "system_fingerprint": "fp_df8c8d3b43"
+  }
+}

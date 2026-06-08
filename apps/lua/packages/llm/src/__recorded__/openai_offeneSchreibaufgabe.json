@@ -1,0 +1,43 @@
+{
+  "provider": "openai",
+  "model": "gpt-4o-mini",
+  "blockType": "offeneSchreibaufgabe",
+  "timestamp": "2026-06-01T23:20:28.744Z",
+  "rawResponse": "{\n  \"blockTyp\": \"offeneSchreibaufgabe\",\n  \"punkte\": 20,\n  \"textsorte\": \"Kommentar\",\n  \"umfang\": \"250-300 Wörter\",\n  \"aufgabenstellung\": {\n    \"situation\": \"In der heutigen Zeit ist der Medienkonsum allgegenwärtig. Viele Jugendliche verbringen täglich Stunden mit Fernsehen, Videospielen oder Social Media. In der Schule wird oft darüber diskutiert, wie sich dieser Konsum auf das Lernen und die persönliche Entwicklung auswirkt.\",\n    \"text\": \"Schreibe einen Kommentar, in dem du deine Meinung zum Medienkonsum von Jugendlichen darlegst. Berücksichtige dabei folgende Aspekte:\",\n    \"aspekte\": [\n      \"Die positiven Seiten des Medienkonsums, wie zum Beispiel die Möglichkeit, sich über aktuelle Themen zu informieren oder mit Freunden in Kontakt zu treten.\",\n      \"Die negativen Auswirkungen, die exzessiver Medienkonsum auf das Lernen und die persönliche Entwicklung haben kann.\",\n      \"Deine persönlichen Erfahrungen und wie du selbst mit Medienkonsum umgehst.\"\n    ]\n  },\n  \"musterloesung\": {\n    \"text\": \"Medienkonsum ist ein allgegenwärtiges Thema in unserer Gesellschaft. Immer mehr Jugendliche verbringen täglich unzählige Stunden vor Bildschirmen, sei es beim Fernsehen, Videospielen oder durch soziale Medien. In meinem Kommentar möchte ich die Vor- und Nachteile des Medienkonsums beleuchten.\\n\\nZunächst einmal gibt es viele positive Aspekte. So ermöglicht uns das Internet, uns über aktuelle Nachrichten und Themen zu informieren, die uns interessieren. Auch soziale Medien bieten die Möglichkeit, mit Freunden in Kontakt zu bleiben, egal wo sie sich befinden. Diese Vernetzung ist besonders in Zeiten von Distanz und Isolation wichtig, wie wir sie während der Corona-Pandemie erlebt haben.\\n\\nAllerdings gibt es auch gravierende Nachteile. Viele Jugendliche vernachlässigen durch übermäßigen Medienkonsum ihre schulischen Pflichten und verlieren den Bezug zur Realität. Exzessives Spielen von Videospielen oder das ständige Scrollen durch soziale Netzwerke kann zu einer verminderten Konzentrationsfähigkeit führen und sich negativ auf die schulischen Leistungen auswirken. Zudem leidet oft die körperliche Gesundheit, da Bewegung und Sport in den Hintergrund geraten.\\n\\nIch persönlich versuche, ein gesundes Gleichgewicht zu finden. Ich nutze Medien, um mich zu informieren und in Kontakt mit Freunden zu bleiben, achte jedoch darauf, nicht zu viel Zeit vor dem Bildschirm zu verbringen. Ich finde es wichtig, auch Zeit für andere Aktivitäten zu haben, wie Lesen oder Sport treiben. Zusammenfassend lässt sich sagen, dass ein bewusster Medienkonsum entscheidend ist, um die Vorteile zu nutzen und die negativen Auswirkungen zu minimieren.\"\n  }\n}",
+  "fullApiResponse": {
+    "id": "chatcmpl-Dm6DcKIyX25I4M7DKzi3Y4PxKt9xi",
+    "object": "chat.completion",
+    "created": 1780356020,
+    "model": "gpt-4o-mini-2024-07-18",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\n  \"blockTyp\": \"offeneSchreibaufgabe\",\n  \"punkte\": 20,\n  \"textsorte\": \"Kommentar\",\n  \"umfang\": \"250-300 Wörter\",\n  \"aufgabenstellung\": {\n    \"situation\": \"In der heutigen Zeit ist der Medienkonsum allgegenwärtig. Viele Jugendliche verbringen täglich Stunden mit Fernsehen, Videospielen oder Social Media. In der Schule wird oft darüber diskutiert, wie sich dieser Konsum auf das Lernen und die persönliche Entwicklung auswirkt.\",\n    \"text\": \"Schreibe einen Kommentar, in dem du deine Meinung zum Medienkonsum von Jugendlichen darlegst. Berücksichtige dabei folgende Aspekte:\",\n    \"aspekte\": [\n      \"Die positiven Seiten des Medienkonsums, wie zum Beispiel die Möglichkeit, sich über aktuelle Themen zu informieren oder mit Freunden in Kontakt zu treten.\",\n      \"Die negativen Auswirkungen, die exzessiver Medienkonsum auf das Lernen und die persönliche Entwicklung haben kann.\",\n      \"Deine persönlichen Erfahrungen und wie du selbst mit Medienkonsum umgehst.\"\n    ]\n  },\n  \"musterloesung\": {\n    \"text\": \"Medienkonsum ist ein allgegenwärtiges Thema in unserer Gesellschaft. Immer mehr Jugendliche verbringen täglich unzählige Stunden vor Bildschirmen, sei es beim Fernsehen, Videospielen oder durch soziale Medien. In meinem Kommentar möchte ich die Vor- und Nachteile des Medienkonsums beleuchten.\\n\\nZunächst einmal gibt es viele positive Aspekte. So ermöglicht uns das Internet, uns über aktuelle Nachrichten und Themen zu informieren, die uns interessieren. Auch soziale Medien bieten die Möglichkeit, mit Freunden in Kontakt zu bleiben, egal wo sie sich befinden. Diese Vernetzung ist besonders in Zeiten von Distanz und Isolation wichtig, wie wir sie während der Corona-Pandemie erlebt haben.\\n\\nAllerdings gibt es auch gravierende Nachteile. Viele Jugendliche vernachlässigen durch übermäßigen Medienkonsum ihre schulischen Pflichten und verlieren den Bezug zur Realität. Exzessives Spielen von Videospielen oder das ständige Scrollen durch soziale Netzwerke kann zu einer verminderten Konzentrationsfähigkeit führen und sich negativ auf die schulischen Leistungen auswirken. Zudem leidet oft die körperliche Gesundheit, da Bewegung und Sport in den Hintergrund geraten.\\n\\nIch persönlich versuche, ein gesundes Gleichgewicht zu finden. Ich nutze Medien, um mich zu informieren und in Kontakt mit Freunden zu bleiben, achte jedoch darauf, nicht zu viel Zeit vor dem Bildschirm zu verbringen. Ich finde es wichtig, auch Zeit für andere Aktivitäten zu haben, wie Lesen oder Sport treiben. Zusammenfassend lässt sich sagen, dass ein bewusster Medienkonsum entscheidend ist, um die Vorteile zu nutzen und die negativen Auswirkungen zu minimieren.\"\n  }\n}",
+          "refusal": null,
+          "annotations": []
+        },
+        "logprobs": null,
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 139,
+      "completion_tokens": 567,
+      "total_tokens": 706,
+      "prompt_tokens_details": {
+        "cached_tokens": 0,
+        "audio_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0,
+        "audio_tokens": 0,
+        "accepted_prediction_tokens": 0,
+        "rejected_prediction_tokens": 0
+      }
+    },
+    "service_tier": "default",
+    "system_fingerprint": "fp_53ee395669"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "provider": "kimi",
+  "model": "moonshot-v1-8k",
+  "timestamp": "2026-06-01T15:10:26.593Z",
+  "rawResponse": "{\n  \"Block-Typ\": \"multipleChoice\",\n  \"Punkte\": 4,\n  \"Anzahl Fragen\": 2,\n  \"Fragen\": [\n    {\n      \"Frage\": \"Welche der folgenden Medien wird hauptsächlich für die Informationsbeschaffung genutzt?\",\n      \"Antworten\": [\n        {\"A\": \"Fernsehen\"},\n        {\"B\": \"Musik-CD\"},\n        {\"C\": \"Zeitung\"},\n        {\"D\": \"Bildgeschichtenbuch\"}\n      ],\n      \"RichtigeAntwort\": \"C\"\n    },\n    {\n      \"Frage\": \"Wie bezeichnen Sie die Tendenz, dass Jugendliche immer weniger Zeit mit dem Lesen von gedruckten Medien verbringen?\",\n      \"Antworten\": [\n        {\"A\": \"Analoge Mediennutzung\"},\n        {\"B\": \"Digitale Mediennutzung\"},\n        {\"C\": \"Verdrängung von gedruckten Medien\"},\n        {\"D\": \"Erweiterung der gedruckten Medien\"}\n      ],\n      \"RichtigeAntwort\": \"C\"\n    }\n  ]\n}",
+  "fullApiResponse": {
+    "id": "chatcmpl-6a1da0dbe4211020f76be40b",
+    "object": "chat.completion",
+    "created": 1780326619,
+    "model": "moonshot-v1-8k",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\n  \"Block-Typ\": \"multipleChoice\",\n  \"Punkte\": 4,\n  \"Anzahl Fragen\": 2,\n  \"Fragen\": [\n    {\n      \"Frage\": \"Welche der folgenden Medien wird hauptsächlich für die Informationsbeschaffung genutzt?\",\n      \"Antworten\": [\n        {\"A\": \"Fernsehen\"},\n        {\"B\": \"Musik-CD\"},\n        {\"C\": \"Zeitung\"},\n        {\"D\": \"Bildgeschichtenbuch\"}\n      ],\n      \"RichtigeAntwort\": \"C\"\n    },\n    {\n      \"Frage\": \"Wie bezeichnen Sie die Tendenz, dass Jugendliche immer weniger Zeit mit dem Lesen von gedruckten Medien verbringen?\",\n      \"Antworten\": [\n        {\"A\": \"Analoge Mediennutzung\"},\n        {\"B\": \"Digitale Mediennutzung\"},\n        {\"C\": \"Verdrängung von gedruckten Medien\"},\n        {\"D\": \"Erweiterung der gedruckten Medien\"}\n      ],\n      \"RichtigeAntwort\": \"C\"\n    }\n  ]\n}"
+        },
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 126,
+      "completion_tokens": 268,
+      "total_tokens": 394
+    }
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "provider": "anthropic",
+  "model": "claude-sonnet-4-6",
+  "blockType": "offeneVerstaendnisfrage",
+  "timestamp": "2026-06-01T23:19:30.164Z",
+  "rawResponse": "```json\n{\n  \"title\": \"Deutsch-Schularbeit: Medienkonsum\",\n  \"level\": \"Oberstufe, 7. Klasse\",\n  \"blocks\": [\n    {\n      \"type\": \"offeneVerstaendnisfrage\",\n      \"punkte\": 8,\n      \"fragen\": [\n        {\n          \"frage\": \"Welche Auswirkungen kann übermäßiger Social-Media-Konsum auf das Wohlbefinden von Jugendlichen haben? Nenne und erläutere zwei konkrete Auswirkungen.\",\n          \"punkte\": 4,\n          \"musterantwort\": \"Übermäßiger Social-Media-Konsum kann zu Schlafmangel führen, da Jugendliche oft bis spät in die Nacht auf ihren Geräten aktiv sind. Außerdem kann der ständige Vergleich mit idealisierten Bildern anderer das Selbstwertgefühl negativ beeinflussen und zu Unzufriedenheit mit dem eigenen Leben führen.\"\n        },\n        {\n          \"frage\": \"Inwiefern unterscheidet sich die passive Mediennutzung (z. B. Fernsehen, Videos schauen) von der aktiven Mediennutzung (z. B. Inhalte erstellen, kommentieren)? Erkläre den Unterschied und bewerte, welche Form sinnvoller ist.\",\n          \"punkte\": 4,\n          \"musterantwort\": \"Bei der passiven Mediennutzung konsumiert man Inhalte, ohne selbst aktiv zu werden, während man bei der aktiven Nutzung eigene Beiträge erstellt oder sich kritisch mit Inhalten auseinandersetzt. Die aktive Nutzung ist in der Regel sinnvoller, da sie Kreativität, Medienkompetenz und kritisches Denken fördert.\"\n        }\n      ]\n    }\n  ]\n}\n```",
+  "fullApiResponse": {
+    "model": "claude-sonnet-4-6",
+    "id": "msg_01Q9UdvD5Ugi3YCXCR83NKpS",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+      {
+        "type": "text",
+        "text": "```json\n{\n  \"title\": \"Deutsch-Schularbeit: Medienkonsum\",\n  \"level\": \"Oberstufe, 7. Klasse\",\n  \"blocks\": [\n    {\n      \"type\": \"offeneVerstaendnisfrage\",\n      \"punkte\": 8,\n      \"fragen\": [\n        {\n          \"frage\": \"Welche Auswirkungen kann übermäßiger Social-Media-Konsum auf das Wohlbefinden von Jugendlichen haben? Nenne und erläutere zwei konkrete Auswirkungen.\",\n          \"punkte\": 4,\n          \"musterantwort\": \"Übermäßiger Social-Media-Konsum kann zu Schlafmangel führen, da Jugendliche oft bis spät in die Nacht auf ihren Geräten aktiv sind. Außerdem kann der ständige Vergleich mit idealisierten Bildern anderer das Selbstwertgefühl negativ beeinflussen und zu Unzufriedenheit mit dem eigenen Leben führen.\"\n        },\n        {\n          \"frage\": \"Inwiefern unterscheidet sich die passive Mediennutzung (z. B. Fernsehen, Videos schauen) von der aktiven Mediennutzung (z. B. Inhalte erstellen, kommentieren)? Erkläre den Unterschied und bewerte, welche Form sinnvoller ist.\",\n          \"punkte\": 4,\n          \"musterantwort\": \"Bei der passiven Mediennutzung konsumiert man Inhalte, ohne selbst aktiv zu werden, während man bei der aktiven Nutzung eigene Beiträge erstellt oder sich kritisch mit Inhalten auseinandersetzt. Die aktive Nutzung ist in der Regel sinnvoller, da sie Kreativität, Medienkompetenz und kritisches Denken fördert.\"\n        }\n      ]\n    }\n  ]\n}\n```"
+      }
+    ],
+    "stop_reason": "end_turn",
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+      "input_tokens": 168,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 500,
+      "service_tier": "standard",
+      "inference_geo": "global"
+    }
+  }
+}

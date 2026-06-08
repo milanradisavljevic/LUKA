@@ -1,0 +1,737 @@
+/* NATASCHA Dashboard – Textual CSS */
+
+Screen {
+    background: $surface;
+}
+
+/* Header – styling handled by NataschaHeader.DEFAULT_CSS */
+
+/* Main 3-column layout */
+#main-container {
+    layout: horizontal;
+    height: 1fr;
+}
+
+/* Files panel (left, 25%) */
+#files-panel {
+    width: 25%;
+    height: 1fr;
+    border: solid $primary;
+    padding: 0;
+    margin: 0;
+}
+
+#files-panel:focus-within {
+    border: round #00ffaa;
+}
+
+#files-panel .panel-title {
+    text-style: bold;
+    background: $primary-darken-2;
+    color: $text;
+    padding: 0 1;
+    height: 1;
+}
+
+#search-input {
+    margin: 0 1;
+    height: 3;
+}
+
+#file-list {
+    height: 1fr;
+    margin: 0;
+    padding: 0;
+}
+
+#file-counter {
+    height: 1;
+    padding: 0 1;
+    color: $text-muted;
+}
+
+#add-file-btn {
+    margin: 0 1;
+    height: 3;
+}
+
+#class-select {
+    margin: 0 1;
+    height: 3;
+}
+
+#aufgabe-select {
+    margin: 0 1;
+    height: 3;
+}
+
+.add-class-btn {
+    margin: 0 1 0 1;
+    height: 3;
+}
+
+#action-row-aufgabe {
+    height: 6;
+    margin: 0 1;
+    padding: 0;
+}
+
+.action-sub-row {
+    height: 3;
+    padding: 0;
+    margin: 0;
+}
+
+.action-row-btn {
+    width: 1fr;
+    height: 3;
+    margin: 0;
+}
+
+#output-list {
+    height: 1fr;
+    margin: 0;
+    padding: 0;
+}
+
+#output-list > ListItem {
+    padding: 0 1;
+    height: 1;
+}
+
+/* Middle panel (40%) */
+#middle-panel {
+    width: 40%;
+    height: 1fr;
+    border: solid $primary;
+    padding: 0;
+    margin: 0;
+}
+
+#middle-panel:focus-within {
+    border: round #00ffaa;
+}
+
+#middle-panel .panel-title {
+    text-style: bold;
+    background: $primary-darken-2;
+    color: $text;
+    padding: 0 1;
+    height: 1;
+}
+
+#middle-scroll {
+    height: 1fr;
+    overflow-y: auto;
+}
+
+#middle-content {
+    padding: 0 1;
+}
+
+/* Action bar – Buttons im Middle Panel (entfernt, Footer übernimmt) */
+#action-bar {
+    display: none;
+}
+
+/* Collapsible "Echte Note eintragen" – begrenzte Höhe, damit Speichern nicht abgeschnitten wird */
+#lehrer-feedback-collapsible {
+    max-height: 24;
+}
+
+#lf-content {
+    max-height: 22;
+    overflow-y: auto;
+}
+
+.assignment-field {
+    height: 3;
+    margin: 0;
+}
+
+/* Preview panel (right, 35%) */
+#preview-panel {
+    width: 35%;
+    height: 1fr;
+    border: solid $primary;
+    padding: 0;
+    margin: 0;
+    overflow-y: auto;
+}
+
+#preview-panel:focus-within {
+    border: round #00ffaa;
+}
+
+#preview-panel .panel-title {
+    text-style: bold;
+    background: $primary-darken-2;
+    color: $text;
+    padding: 0 1;
+    height: 1;
+}
+
+#preview-content {
+    padding: 0 1;
+    height: 1fr;
+    overflow-y: auto;
+}
+
+/* Status indicators */
+.status-done {
+    color: $success;
+}
+
+.status-analyzed {
+    color: $warning;
+}
+
+.status-progress {
+    color: $accent;
+}
+
+.status-pending {
+    color: $text-muted;
+}
+
+.status-error {
+    color: $error;
+}
+
+/* File list items */
+.file-item {
+    padding: 0 1;
+    height: 1;
+}
+
+.file-item.selected {
+    background: $primary-darken-1;
+    text-style: bold;
+}
+
+.file-item.marked {
+    background: $primary-darken-2;
+}
+
+/* Criteria bar */
+.criteria-panel {
+    border: solid $primary;
+    margin: 1 0;
+    padding: 1;
+}
+
+.criterion-row {
+    height: 1;
+    padding: 0 1;
+}
+
+/* Review modal */
+ReviewScreen {
+    align: center middle;
+}
+
+.review-container {
+    width: 90%;
+    height: 85%;
+    background: $surface;
+    border: thick $primary;
+    padding: 1 2;
+    overflow-y: auto;
+}
+
+.review-note {
+    text-style: bold;
+    margin-bottom: 1;
+}
+
+.criterion-box {
+    border: solid $primary;
+    margin: 1 0;
+    padding: 0 1;
+}
+
+.criterion-header {
+    text-style: bold;
+    background: $primary-darken-2;
+    color: $text;
+    padding: 0 1;
+    height: 1;
+}
+
+.criterion-body {
+    padding: 0 1;
+}
+
+/* Progress modal */
+ProgressScreen {
+    align: center middle;
+}
+
+.progress-container {
+    width: 86%;
+    height: auto;
+    max-height: 82%;
+    background: $surface;
+    border: thick $primary;
+    padding: 1 2;
+}
+
+#progress-summary {
+    text-style: bold;
+    color: $accent;
+    margin-bottom: 1;
+}
+
+#batch-progress {
+    height: 3;
+    margin-bottom: 1;
+}
+
+#progress-current {
+    margin-bottom: 1;
+}
+
+#progress-queue {
+    margin-bottom: 1;
+    color: $text-muted;
+}
+
+#progress-help {
+    text-style: bold;
+    color: $warning;
+}
+
+/* Settings modal */
+SettingsScreen,
+EditAssignmentScreen,
+SchuelerVerwaltungScreen,
+SchuelerDetailScreen,
+FehlerHeatmapScreen,
+KlassenFeedbackScreen,
+RetroImportScreen {
+    align: center middle;
+    height: 100%;
+}
+
+.settings-container {
+    width: 90%;
+    height: 92%;
+    background: $surface;
+    border: thick $primary;
+    padding: 1 2;
+    overflow-y: auto;
+}
+
+.settings-section {
+    border: solid $primary;
+    margin: 1 0;
+    padding: 1;
+    height: auto;
+}
+
+.settings-section-title {
+    text-style: bold;
+    background: $primary-darken-2;
+    color: $text;
+    padding: 0 1;
+    height: 1;
+}
+
+.settings-row {
+    height: 1;
+    padding: 0 1;
+}
+
+/* Help modal */
+HelpScreen {
+    align: center middle;
+}
+
+.help-container {
+    width: 70%;
+    height: auto;
+    max-height: 84%;
+    background: $surface;
+    border: thick $primary;
+    padding: 1 2;
+    overflow-y: auto;
+}
+
+.help-buttons {
+    height: 3;
+    margin-top: 1;
+}
+
+.help-buttons Button {
+    margin-right: 1;
+}
+
+/* Schüler-Detail modal */
+SchuelerDetailScreen {
+    align: center middle;
+}
+
+.stats-container {
+    width: 80%;
+    height: 88%;
+    background: $surface;
+    border: thick $primary;
+    padding: 1 2;
+    layout: vertical;
+}
+
+.stats-scroll {
+    height: 1fr;
+    overflow-y: auto;
+}
+
+.stats-buttons {
+    margin-top: 1;
+    height: 3;
+}
+
+.stats-buttons Button {
+    margin-right: 1;
+}
+
+/* Confirm modal */
+ConfirmScreen {
+    align: center middle;
+}
+
+.confirm-container {
+    width: 60%;
+    height: auto;
+    background: $surface;
+    border: thick $warning;
+    padding: 1 2;
+}
+
+/* Strengths, weaknesses, suggestions */
+.strength {
+    color: $success;
+}
+
+.weakness {
+    color: $error;
+}
+
+.suggestion {
+    color: $accent;
+}
+
+/* Panel focus highlight */
+.panel-focused {
+    border: solid #00e0e0;
+}
+
+.panel-focused .panel-title {
+    background: #004444;
+    color: #00e0e0;
+}
+
+/* Panel focus-within glow effect */
+#files-panel:focus-within .panel-title,
+#middle-panel:focus-within .panel-title,
+#preview-panel:focus-within .panel-title {
+    background: #004444;
+    color: #00ffaa;
+}
+
+/* Native ListView highlight (replaces manual .selected class) */
+ListView > ListItem.--highlight {
+    background: $primary-darken-1;
+    text-style: bold;
+}
+
+ListView > ListItem:hover {
+    background: $primary-darken-2;
+}
+
+/* Preview tab bar */
+#preview-tabs {
+    height: 3;
+    padding: 0;
+    background: $surface-darken-1;
+}
+
+.tab-btn {
+    width: 1fr;
+    height: 3;
+    background: $surface-darken-1;
+    color: $text-muted;
+    border: none;
+    text-style: none;
+}
+
+.tab-btn:hover {
+    background: $primary-darken-2;
+    color: $text;
+}
+
+.tab-btn.tab-active {
+    background: $primary-darken-1;
+    color: $text;
+    text-style: bold;
+}
+
+/* ─── Bottom Dock ──────────────────────────────────────────────────────────── */
+NataschaFooter {
+    dock: bottom;
+    height: auto;
+    background: $surface-darken-2;
+    border-top: solid $accent;
+    padding: 0 1;
+}
+
+#footer-action-bar {
+    height: 3;
+    align: center middle;
+    padding: 0;
+}
+
+#footer-action-bar > .footer-btn {
+    width: 1fr;
+    height: 3;
+    text-align: center;
+    content-align: center middle;
+    border: none;
+    background: $panel;
+    color: $text;
+    margin: 0 1;
+    text-style: bold;
+    padding: 0 1;
+}
+
+#footer-action-bar > .footer-btn:hover {
+    background: $primary;
+    color: $background;
+    text-style: bold italic;
+}
+
+#footer-action-bar > #footer-analyze {
+    color: $success;
+}
+
+#footer-action-bar > #footer-analyze:hover {
+    background: $success;
+    color: $background;
+}
+
+#footer-action-bar > #footer-docx {
+    color: $accent;
+}
+
+#footer-action-bar > #footer-docx:hover {
+    background: $accent;
+    color: $background;
+}
+
+#footer-action-bar > .footer-btn-quit {
+    color: $error;
+}
+
+#footer-action-bar > .footer-btn-quit:hover {
+    background: $error;
+    color: $background;
+}
+
+/* ── Modale Screens zentrieren (sonst oben-links verankert) ──── */
+SchuelerVerwaltungScreen, FehlerHeatmapScreen, RetroImportScreen {
+    align: center middle;
+}
+
+/* ── Schueler-Verwaltung Screen ─────────────────────────────── */
+.schueler-container {
+    width: 80%;
+    height: 80%;
+    border: solid $primary;
+    padding: 1 2;
+    background: $surface;
+}
+
+.schueler-container .panel-title {
+    text-style: bold;
+    background: $primary-darken-2;
+    color: $text;
+    padding: 0 1;
+    height: 1;
+    margin-bottom: 1;
+}
+
+#schueler-table {
+    height: 1fr;
+    margin: 1 0;
+}
+
+.schueler-input-row {
+    height: 3;
+    margin: 1 0;
+}
+
+.schueler-input-row Input {
+    width: 1fr;
+    margin: 0 1;
+}
+
+.schueler-buttons {
+    height: 3;
+    align: center middle;
+    margin-top: 1;
+}
+
+.schueler-buttons Button {
+    margin: 0 1;
+}
+
+.btn-destructive {
+    margin-right: 4;
+}
+
+/* ── Fehler-Heatmap Screen ──────────────────────────────────── */
+.heatmap-container {
+    width: 80%;
+    height: 80%;
+    border: solid $primary;
+    padding: 1 2;
+    background: $surface;
+}
+
+.heatmap-container .panel-title {
+    text-style: bold;
+    background: $primary-darken-2;
+    color: $text;
+    padding: 0 1;
+    height: 1;
+    margin-bottom: 1;
+}
+
+.heatmap-controls {
+    height: 3;
+    margin: 1 0;
+}
+
+.heatmap-controls Select {
+    width: 30%;
+    margin: 0 1;
+}
+
+.heatmap-controls Button {
+    margin: 0 1;
+}
+
+#heatmap-table {
+    height: 1fr;
+    margin: 1 0;
+}
+
+#heatmap-detail {
+    height: 3;
+    color: $text-muted;
+    content-align: center middle;
+}
+
+/* ── Klassen-Feedback Screen (inkl. Tabs) ──────────────────── */
+.feedback-container {
+    width: 90%;
+    height: 90%;
+    border: solid $primary;
+    padding: 1 2;
+    background: $surface;
+    layout: vertical;
+}
+
+.feedback-container > Button {
+    height: 3;
+    margin-bottom: 1;
+}
+
+.feedback-container TabbedContent {
+    height: 1fr;
+}
+
+.feedback-container TabPane {
+    height: 1fr;
+    padding: 0;
+    overflow-y: auto;
+}
+
+.feedback-container .panel-title {
+    text-style: bold;
+    background: $primary-darken-2;
+    color: $text;
+    padding: 0 1;
+    height: 1;
+    margin-bottom: 1;
+}
+
+.feedback-controls {
+    height: 3;
+    margin: 1 0;
+}
+
+.feedback-controls Button {
+    margin: 0 1;
+}
+
+#feedback-body {
+    height: 1fr;
+    margin: 1 0;
+    padding: 0 1;
+    border: solid $primary-darken-2;
+}
+
+#feedback-llm-result {
+    height: auto;
+    max-height: 30%;
+    margin: 1 0;
+    padding: 0 1;
+    border: solid $success-darken-2;
+    color: $text;
+}
+
+/* ── Retro-Import Screen ────────────────────────────────────── */
+.retro-container {
+    width: 70%;
+    height: 60%;
+    border: solid $primary;
+    padding: 1 2;
+    background: $surface;
+}
+
+.retro-container .panel-title {
+    text-style: bold;
+    background: $primary-darken-2;
+    color: $text;
+    padding: 0 1;
+    height: 1;
+    margin-bottom: 1;
+}
+
+#retro-info {
+    height: 3;
+    color: $text-muted;
+    margin-bottom: 1;
+}
+
+#retro-progress {
+    height: 2;
+    margin: 1 0;
+}
+
+#retro-log {
+    height: 1fr;
+    margin: 1 0;
+    color: $text;
+    border: solid $primary-darken-2;
+    padding: 0 1;
+}
+
+.retro-buttons {
+    height: 3;
+    align: center middle;
+}
+
+.retro-buttons Button {
+    margin: 0 1;
+}

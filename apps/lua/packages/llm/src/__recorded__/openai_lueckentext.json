@@ -1,0 +1,43 @@
+{
+  "provider": "openai",
+  "model": "gpt-4o-mini",
+  "blockType": "lueckentext",
+  "timestamp": "2026-06-01T23:20:05.029Z",
+  "rawResponse": "{\n  \"block\": {\n    \"typ\": \"lueckentext\",\n    \"punkte\": 8,\n    \"luecken\": [\n      {\n        \"nummer\": 1,\n        \"text\": \"Der _____ (1) von sozialen Medien hat in den letzten Jahren stark zugenommen.\"\n      },\n      {\n        \"nummer\": 2,\n        \"text\": \"Viele Jugendliche verbringen täglich mehrere Stunden mit _____ (2) und Spielen.\"\n      },\n      {\n        \"nummer\": 3,\n        \"text\": \"Ein übermäßiger Medienkonsum kann zu _____ (3) führen, wie zum Beispiel Schlafmangel.\"\n      },\n      {\n        \"nummer\": 4,\n        \"text\": \"Es ist wichtig, ein gesundes _____ (4) im Umgang mit digitalen Medien zu finden.\"\n      }\n    ]\n  }\n}",
+  "fullApiResponse": {
+    "id": "chatcmpl-Dm6DJMHOXRS8i11cQ3uTDle0WpTqa",
+    "object": "chat.completion",
+    "created": 1780356001,
+    "model": "gpt-4o-mini-2024-07-18",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\n  \"block\": {\n    \"typ\": \"lueckentext\",\n    \"punkte\": 8,\n    \"luecken\": [\n      {\n        \"nummer\": 1,\n        \"text\": \"Der _____ (1) von sozialen Medien hat in den letzten Jahren stark zugenommen.\"\n      },\n      {\n        \"nummer\": 2,\n        \"text\": \"Viele Jugendliche verbringen täglich mehrere Stunden mit _____ (2) und Spielen.\"\n      },\n      {\n        \"nummer\": 3,\n        \"text\": \"Ein übermäßiger Medienkonsum kann zu _____ (3) führen, wie zum Beispiel Schlafmangel.\"\n      },\n      {\n        \"nummer\": 4,\n        \"text\": \"Es ist wichtig, ein gesundes _____ (4) im Umgang mit digitalen Medien zu finden.\"\n      }\n    ]\n  }\n}",
+          "refusal": null,
+          "annotations": []
+        },
+        "logprobs": null,
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 130,
+      "completion_tokens": 173,
+      "total_tokens": 303,
+      "prompt_tokens_details": {
+        "cached_tokens": 0,
+        "audio_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0,
+        "audio_tokens": 0,
+        "accepted_prediction_tokens": 0,
+        "rejected_prediction_tokens": 0
+      }
+    },
+    "service_tier": "default",
+    "system_fingerprint": "fp_5334d4fbca"
+  }
+}
