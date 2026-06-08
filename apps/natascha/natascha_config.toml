@@ -34,6 +34,12 @@ schulstufe = "Oberstufe"
 # Ein Schuljahr = eine Datei. Beispiel: "natascha_2025_26.db"
 path = "natascha_schuljahr.db"
 
+[bridge]
+# Datei-Bruecke zum Lehrunterlagen-Tool (LUA). Der Heatmap-Tab schreibt hier
+# pro Aufgabe ein JSON, das LUA in Step0 zu gezielten Uebungen verarbeitet.
+# Leer/auskommentiert = Default ~/lehr-suite-bridge/inbox (von beiden Apps geteilt).
+# inbox_dir = ""
+
 [rubric_mapping]
 "Deutsch+Oberstufe" = "srdp_deutsch_oberstufe.md"
 "Deutsch+Unterstufe" = "deutsch_unterstufe.md"

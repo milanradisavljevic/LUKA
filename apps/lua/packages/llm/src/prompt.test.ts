@@ -109,6 +109,22 @@ describe('buildMessages — Notizen der Lehrkraft (A)', () => {
   });
 });
 
+describe('buildMessages — NATASCHA-Fehlerschwerpunkte (fokusThemen)', () => {
+  it('User-Message enthaelt den Fokus-Hinweis mit allen Fehlerschwerpunkten', () => {
+    const messages = buildMessages(input({ fokusThemen: ['Zeichensetzung', 'Grammatik'] }));
+    const user = messages.find((m) => m.role === 'user');
+    expect(user!.content).toContain('Fehlerschwerpunkte der Klasse');
+    expect(user!.content).toContain('"Zeichensetzung"');
+    expect(user!.content).toContain('"Grammatik"');
+  });
+
+  it('Ohne fokusThemen erscheint kein Fokus-Hinweis', () => {
+    const messages = buildMessages(input());
+    const user = messages.find((m) => m.role === 'user');
+    expect(user!.content).not.toContain('Fehlerschwerpunkte der Klasse');
+  });
+});
+
 describe('buildMessages — Didaktik Runde 1 Regeln', () => {
   it('System-Prompt enthaelt Terminologie-Konservierungs-Regel (Didaktik #5a)', () => {
     const messages = buildMessages(input());

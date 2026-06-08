@@ -1,6 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use lehrunterlagen_tool::commands::{llm, keys, pdf, web};
+use lehrunterlagen_tool::commands::{llm, keys, pdf, web, bridge};
 
 fn main() {
     tauri::Builder::default()
@@ -11,6 +11,8 @@ fn main() {
             keys::delete_api_key,
             pdf::convert_pdf,
             web::fetch_url,
+            bridge::list_bridge_exports,
+            bridge::read_bridge_export,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
