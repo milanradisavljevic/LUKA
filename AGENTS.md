@@ -79,6 +79,11 @@ cd apps/natascha && python3 seed_testdaten.py && python3 natascha_bridge.py TEST
   (`apps/web/src/lib/storage.ts`) auf SQLite via Tauri-Rust-Command umstellen
   ohne API-Bruch (sync→async: Hydrate-Cache). Schema-Eigentümer: NATASCHA; LUA
   migriert additiv dagegen. Backup-Pflicht vor erstem LUA-Schreibzugriff.
-- **Phase 3 — Unified Tauri-Frontend (geplant).** Ein UI, zwei Module; NATASCHAs
-  Pipeline headless via `Command::new("python")` aus Tauri. Erst nach Phase 2
-  sinnvoll.
+- **Phase 3 — Korrektur-UI integrieren.** Design + Wege A/B/C:
+  **`docs/phase3-correction-ui.md`**. **Phase 3a erledigt:** Sidebar „Korrektur
+  (NATASCHA)" startet die TUI in einem Terminal (`commands/natascha.rs`,
+  `launch_natascha`; Windows-Spawn noch ungetestet).
+- **Phase 3c — voller Port (freigegeben).** NATASCHA komplett nativ in die LUA-UX:
+  Python-Core als headless Sidecar, alle ~15 Screens in React. Bauplan +
+  Wellen 0–4: **`docs/phase3c-natascha-port-plan.md`**. Erster Bau-Schritt =
+  Welle 0 = Phase 2 (gemeinsame DB).

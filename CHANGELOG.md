@@ -7,6 +7,12 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Phase 3c Bauplan (voller Port, freigegeben)
+- `docs/phase3c-natascha-port-plan.md` — verbindlicher Bauplan: NATASCHA komplett
+  nativ in die LUA-UX (Python-Core als headless Sidecar, alle ~15 Screens in
+  React), inkrementell in Wellen 0–4. Erster Bau-Schritt = Welle 0 = Phase 2
+  (gemeinsame DB). Verlinkt aus `AGENTS.md`.
+
 ### Added — Phase 3a: NATASCHA-Korrektur aus der App starten
 - Sidebar-Eintrag **„Korrektur (NATASCHA)"** + neue `KorrekturView` mit Button
   „NATASCHA-Korrektur öffnen" (startet die TUI in einem Terminalfenster) und
