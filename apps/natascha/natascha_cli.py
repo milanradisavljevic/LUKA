@@ -62,6 +62,13 @@ def cmd_analyze(args):
     rubric = nc.load_rubric_for_aufgabe(config, args.klasse, args.aufgabe)
     docx_text = nc.read_docx_text(file_path)
 
+    # Fehlt fach/schulstufe/textsorte, aus der Aufgaben-Config ableiten — so wirkt
+    # eine in der App angelegte Aufgabe (inkl. Rubrik) direkt bei der Korrektur.
+    auf_cfg = nc.get_aufgabe_cfg(config, args.klasse, args.aufgabe) or {}
+    fach = args.fach or auf_cfg.get("fach", "")
+    schulstufe = args.schulstufe or auf_cfg.get("schulstufe", "")
+    textsorte = args.textsorte or auf_cfg.get("textsorte", "")
+
     ausgangstext_path = None
     if args.ausgangstext:
         ausgangstext_path = Path(args.ausgangstext).resolve()
@@ -74,9 +81,9 @@ def cmd_analyze(args):
     data, errors = nc.run_llm_analysis(
         docx_text=docx_text,
         rubric_content=rubric,
-        fach=args.fach or "",
-        schulstufe=args.schulstufe or "",
-        textsorte=args.textsorte or "",
+        fach=fach,
+        schulstufe=schulstufe,
+        textsorte=textsorte,
         config=config,
         schueler=args.schueler or "",
         cancel_event=cancel_event,
