@@ -57,7 +57,10 @@ pub struct KriteriumDurchschnitt {
 #[tauri::command]
 pub async fn db_list_aufgaben(state: tauri::State<'_, DbState>, klasse: String) -> Result<Vec<String>, String> {
     let guard = state.conn()?;
-    let conn = &*guard;
+    list_aufgaben_impl(&guard, &klasse)
+}
+
+pub(crate) fn list_aufgaben_impl(conn: &rusqlite::Connection, klasse: &str) -> Result<Vec<String>, String> {
     let mut stmt = conn.prepare("SELECT DISTINCT aufgabe FROM abgabe WHERE klasse=?1 ORDER BY aufgabe")
         .map_err(|e| format!("prepare: {}", e))?;
     let rows: Vec<String> = stmt.query_map(rusqlite::params![klasse], |row| row.get(0))
@@ -112,8 +115,10 @@ pub async fn db_get_abgaben(state: tauri::State<'_, DbState>, klasse: String, au
 #[tauri::command]
 pub async fn db_get_fehler_heatmap(state: tauri::State<'_, DbState>, klasse: String, aufgabe: Option<String>) -> Result<Vec<HeatmapEntry>, String> {
     let guard = state.conn()?;
-    let conn = &*guard;
+    fehler_heatmap_impl(&guard, klasse, aufgabe)
+}
 
+pub(crate) fn fehler_heatmap_impl(conn: &rusqlite::Connection, klasse: String, aufgabe: Option<String>) -> Result<Vec<HeatmapEntry>, String> {
     let data_sql = if aufgabe.is_some() {
         "SELECT f.typ, COUNT(*) as cnt FROM fehler_historie f JOIN abgabe a ON f.abgabe_id=a.id WHERE a.klasse=?1 AND a.aufgabe=?2 GROUP BY f.typ ORDER BY cnt DESC"
     } else {
@@ -383,7 +388,10 @@ pub struct SchuelerInfo {
 #[tauri::command]
 pub async fn db_list_schueler(state: tauri::State<'_, DbState>, klasse: String) -> Result<Vec<SchuelerInfo>, String> {
     let guard = state.conn()?;
-    let conn = &*guard;
+    list_schueler_impl(&guard, &klasse)
+}
+
+pub(crate) fn list_schueler_impl(conn: &rusqlite::Connection, klasse: &str) -> Result<Vec<SchuelerInfo>, String> {
     let mut stmt = conn.prepare("SELECT id, klasse, vorname, nachname, created_at FROM schueler WHERE klasse=?1 ORDER BY vorname, nachname")
         .map_err(|e| format!("prepare schueler: {}", e))?;
     let rows = stmt.query_map(rusqlite::params![klasse], |row| {
@@ -406,17 +414,22 @@ pub async fn db_insert_schueler(
     vorname: String,
     nachname: Option<String>,
 ) -> Result<i64, String> {
+    let guard = state.conn()?;
+    insert_schueler_impl(&guard, &klasse, &vorname, nachname.as_deref())
+}
+
+pub(crate) fn insert_schueler_impl(
+    conn: &rusqlite::Connection,
+    klasse: &str,
+    vorname: &str,
+    nachname: Option<&str>,
+) -> Result<i64, String> {
     let klasse = klasse.trim();
     let vorname = vorname.trim();
     if klasse.is_empty() || vorname.is_empty() {
         return Err("Klasse und Vorname dürfen nicht leer sein.".to_string());
     }
-    let nachname = nachname
-        .as_deref()
-        .map(str::trim)
-        .filter(|s| !s.is_empty());
-    let guard = state.conn()?;
-    let conn = &*guard;
+    let nachname = nachname.map(str::trim).filter(|s| !s.is_empty());
     conn.execute(
         "INSERT INTO schueler (klasse, vorname, nachname) VALUES (?1, ?2, ?3)",
         rusqlite::params![klasse, vorname, nachname],
@@ -429,7 +442,10 @@ pub async fn db_insert_schueler(
 #[tauri::command]
 pub async fn db_delete_schueler(state: tauri::State<'_, DbState>, schueler_id: i64) -> Result<(), String> {
     let guard = state.conn()?;
-    let conn = &*guard;
+    delete_schueler_impl(&guard, schueler_id)
+}
+
+pub(crate) fn delete_schueler_impl(conn: &rusqlite::Connection, schueler_id: i64) -> Result<(), String> {
     conn.execute("DELETE FROM schueler WHERE id=?1", rusqlite::params![schueler_id])
         .map_err(|e| format!("delete schueler: {}", e))?;
     Ok(())
@@ -868,4 +884,73 @@ pub async fn db_export_noten_csv(state: tauri::State<'_, DbState>, klasse: Strin
         }
     }
     Ok(csv)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rusqlite::Connection;
+
+    fn setup() -> Connection {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(crate::db::NATASCHA_SCHEMA_SQL).unwrap();
+        conn
+    }
+
+    /// Seedet 2 Schüler (7a), 1 Abgabe (SA1) + 4 Fehler (3×Z, 1×G).
+    fn seed(conn: &Connection) {
+        let s1 = insert_schueler_impl(conn, "7a", "Mona", Some("Muster")).unwrap();
+        insert_schueler_impl(conn, "7a", "Max", None).unwrap();
+        conn.execute(
+            "INSERT INTO abgabe (schueler_id, klasse, aufgabe, dateiname, datei_hash, note) \
+             VALUES (?1,'7a','SA1','mona.docx','h1',2.0)",
+            rusqlite::params![s1],
+        ).unwrap();
+        let abgabe_id = conn.last_insert_rowid();
+        for typ in ["Z", "Z", "Z", "G"] {
+            conn.execute(
+                "INSERT INTO fehler_historie (abgabe_id, typ) VALUES (?1, ?2)",
+                rusqlite::params![abgabe_id, typ],
+            ).unwrap();
+        }
+    }
+
+    #[test]
+    fn schueler_crud() {
+        let conn = setup();
+        seed(&conn);
+        let list = list_schueler_impl(&conn, "7a").unwrap();
+        assert_eq!(list.len(), 2);
+        // leerer Vorname wird abgelehnt
+        assert!(insert_schueler_impl(&conn, "7a", "   ", None).is_err());
+        // löschen reduziert die Liste
+        delete_schueler_impl(&conn, list[0].id).unwrap();
+        assert_eq!(list_schueler_impl(&conn, "7a").unwrap().len(), 1);
+        // andere Klasse ist leer
+        assert!(list_schueler_impl(&conn, "9z").unwrap().is_empty());
+    }
+
+    #[test]
+    fn list_aufgaben_distinct() {
+        let conn = setup();
+        seed(&conn);
+        assert_eq!(list_aufgaben_impl(&conn, "7a").unwrap(), vec!["SA1".to_string()]);
+        assert!(list_aufgaben_impl(&conn, "9z").unwrap().is_empty());
+    }
+
+    #[test]
+    fn heatmap_counts_and_percent() {
+        let conn = setup();
+        seed(&conn);
+        let hm = fehler_heatmap_impl(&conn, "7a".to_string(), None).unwrap();
+        // Z=3, G=1, total=4 → sortiert nach Häufigkeit
+        assert_eq!(hm.len(), 2);
+        assert_eq!(hm[0].typ, "Z");
+        assert_eq!(hm[0].anzahl, 3);
+        assert!((hm[0].prozent - 75.0).abs() < 0.001);
+        assert_eq!(hm[1].typ, "G");
+        assert!((hm[1].prozent - 25.0).abs() < 0.001);
+        // leere Klasse → keine Einträge
+        assert!(fehler_heatmap_impl(&conn, "9z".to_string(), None).unwrap().is_empty());
+    }
 }
