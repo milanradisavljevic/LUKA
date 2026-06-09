@@ -1,11 +1,21 @@
 import { useState } from 'react';
-import { Check } from 'lucide-react';
+import { Check, Database } from 'lucide-react';
 import type { AppSettings, LlmProvider } from '../lib/types';
 import { LLM_PROVIDERS } from '../lib/constants';
 import { CREATIVITY_PRESETS } from '../lib/creativity';
-import { loadSettings, saveSettings } from '../lib/storage';
+import { loadSettings, saveSettings, getDbPath } from '../lib/storage';
 import { SettingsPanel } from '../components/SettingsPanel';
 import { ViewShell } from './_ViewShell';
+
+function DbPath() {
+  const path = getDbPath();
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+      <Database size={16} style={{ color: 'var(--color-accent)', flexShrink: 0 }} />
+      <code style={{ fontSize: '0.8125rem', wordBreak: 'break-all' }}>{path || '—'}</code>
+    </div>
+  );
+}
 
 const LANGUAGES: { value: string; label: string }[] = [
   { value: 'de', label: 'Deutsch' },
@@ -29,6 +39,22 @@ export function SettingsView() {
     const models = def?.models ?? [];
     const model = models.includes(settings.defaultModel) ? settings.defaultModel : (models[0] ?? '');
     update({ defaultProvider: provider, defaultModel: model });
+  };
+
+  const [seedBusy, setSeedBusy] = useState(false);
+  const [seedMsg, setSeedMsg] = useState<string | null>(null);
+
+  const handleSeed = async () => {
+    setSeedBusy(true); setSeedMsg(null);
+    try {
+      const { invoke } = await import('@tauri-apps/api/core');
+      await invoke<string>('natascha_seed_testdaten', {
+        dir: settings.nataschaDir ?? '', python: settings.pythonCommand ?? '',
+      });
+      setSeedMsg('✓ Testdaten geladen. „Meine Klassen"/„Schüler" erneut öffnen.');
+    } catch (e) {
+      setSeedMsg(typeof e === 'string' ? e : e instanceof Error ? e.message : 'Seed fehlgeschlagen.');
+    } finally { setSeedBusy(false); }
   };
 
   const currentProvider = LLM_PROVIDERS.find((p) => p.id === settings.defaultProvider);
@@ -194,12 +220,44 @@ export function SettingsView() {
           onChange={(e) => update({ pythonCommand: e.target.value })}
           style={{ width: '100%', boxSizing: 'border-box' }}
         />
-        <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', marginBottom: 0 }}>
+        <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', marginBottom: '1rem' }}>
           Steuert den Start über <strong>Korrektur (NATASCHA)</strong> in der Seitenleiste.
         </p>
+
+        <div style={{ paddingTop: '1rem', borderTop: '1px solid var(--color-border)' }}>
+          <label style={labelStyle}>Gemeinsame Datenbank</label>
+          <DbPath />
+          <button
+            onClick={handleSeed}
+            disabled={seedBusy}
+            style={{
+              marginTop: '0.75rem', fontSize: '0.8125rem', padding: '0.4rem 0.75rem',
+              border: '1px solid var(--color-border)', borderRadius: 'var(--radius)',
+              background: 'var(--color-bg-base)', cursor: seedBusy ? 'wait' : 'pointer',
+            }}
+          >
+            {seedBusy ? 'Lädt …' : 'Testdaten laden (Dev)'}
+          </button>
+          {seedMsg && (
+            <p style={{ fontSize: '0.75rem', marginTop: '0.5rem', marginBottom: 0, color: 'var(--color-text-secondary)' }}>{seedMsg}</p>
+          )}
+        </div>
       </section>
 
-      {/* Abschnitt 3: API-Schlüssel */}
+      {/* Abschnitt 3: Datenbank */}
+      <section style={{
+        padding: '1.25rem', border: '1px solid var(--color-border)',
+        borderRadius: 'var(--radius)', background: 'var(--color-bg-surface)', marginBottom: '1.5rem',
+      }}>
+        <h3 style={{ fontSize: '1rem', margin: '0 0 0.75rem' }}>Datenbank</h3>
+        <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', marginTop: 0, marginBottom: '0.75rem' }}>
+          Die gemeinsame SQLite-Datenbank speichert Dokumente, Verlauf und Einstellungen.
+          Wenn NATASCHA korrigiert hat, liest LUA die Klassen und Abgaben aus derselben Datei.
+        </p>
+        <DbPath />
+      </section>
+
+      {/* Abschnitt 4: API-Schluessel */}
       <section style={{
         padding: '1.25rem', border: '1px solid var(--color-border)',
         borderRadius: 'var(--radius)', background: 'var(--color-bg-surface)',

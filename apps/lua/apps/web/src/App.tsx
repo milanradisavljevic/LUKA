@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Save, Command, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Save, Command, ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
 import type { AppAction, ActiveView, SavedDocument } from './lib/types';
 import type { Meta, Block } from '@lehrunterlagen/schema';
 import { useWizard } from './hooks/useWizard';
@@ -15,6 +15,7 @@ import { TemplateManager } from './components/TemplateManager';
 import { CommandPalette } from './components/CommandPalette';
 import { Sidebar } from './components/Sidebar';
 import { ThemeToggle } from './components/ThemeToggle';
+import { KlassenView } from './views/KlassenView';
 import { DocumentsView } from './views/DocumentsView';
 import { FavoritesView } from './views/FavoritesView';
 import { TrashView } from './views/TrashView';
@@ -23,10 +24,19 @@ import { TemplatesView } from './views/TemplatesView';
 import { HelpView } from './views/HelpView';
 import { SettingsView } from './views/SettingsView';
 import { KorrekturView } from './views/KorrekturView';
-import { loadDocuments, upsertDocument, snapshotFromState } from './lib/storage';
+import { SchuelerView } from './views/SchuelerView';
+import { loadDocuments, upsertDocument, snapshotFromState, saveTemplate, deleteTemplate, loadTemplates, hydrateCache, isHydrated } from './lib/storage';
 import './App.css';
 
 export default function App() {
+  const [hydrating, setHydrating] = useState(!isHydrated());
+
+  useEffect(() => {
+    if (!isHydrated()) {
+      hydrateCache().then(() => setHydrating(false));
+    }
+  }, []);
+
   const { state, dispatch, goNext, goBack, goToStep, currentIndex } = useWizard();
   const { resolved: theme, toggle: toggleTheme } = useTheme();
   const { zoom, reset: resetZoom } = useZoom();
@@ -73,9 +83,8 @@ export default function App() {
         if (parts[0] === '__TEMPLATE_SAVE' && parts[1]) {
           const name = parts.slice(1).join(':');
           try {
-            const raw = localStorage.getItem('lehrunterlagen-templates');
-            const templates = raw ? JSON.parse(raw) : [];
             const tpl = {
+              id: `tpl_${name.replace(/ /g, '_')}`,
               name, meta: state.meta,
               bloecke: state.bloecke.map((b) => ({
                 typ: b.typ, punkte: b.punkte,
@@ -83,8 +92,7 @@ export default function App() {
               })),
               savedAt: new Date().toISOString(),
             };
-            const merged = [...templates.filter((t: { name: string }) => t.name !== name), tpl];
-            localStorage.setItem('lehrunterlagen-templates', JSON.stringify(merged));
+            saveTemplate(tpl);
           } catch { /* ignore */ }
         }
       } else {
@@ -164,7 +172,16 @@ export default function App() {
   const renderView = () => {
     switch (activeView) {
       case 'wizard':
-        return (
+if (hydrating) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
+        <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', color: 'var(--color-accent)' }} />
+        <span style={{ marginLeft: '0.75rem', fontSize: '0.9375rem' }}>Datenbank wird geladen …</span>
+      </div>
+    );
+  }
+
+  return (
           <div style={{ maxWidth: 960, margin: '0 auto' }}>
             <WizardStepper currentStep={state.step} onStepClick={goToStep} />
             <div style={{ marginTop: '1.25rem' }}>{renderStep()}</div>
@@ -182,6 +199,10 @@ export default function App() {
         return <TemplatesView meta={state.meta} bloecke={state.bloecke} onLoad={handleLoadTemplate} />;
       case 'korrektur':
         return <KorrekturView />;
+      case 'schueler':
+        return <SchuelerView />;
+      case 'klassen':
+        return <KlassenView />;
       case 'settings':
         return <SettingsView />;
       case 'help':

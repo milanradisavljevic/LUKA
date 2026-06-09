@@ -278,3 +278,12 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 :root[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
   background: var(--color-text-muted);
 }
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}

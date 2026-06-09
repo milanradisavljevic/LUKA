@@ -1,0 +1,120 @@
+use std::path::PathBuf;
+use std::sync::Mutex;
+
+use once_cell::sync::Lazy;
+use rusqlite::Connection;
+
+pub const NATASCHA_SCHEMA_SQL: &str = include_str!("natascha_schema.sql");
+pub const LUA_SCHEMA_SQL: &str = include_str!("lua_schema.sql");
+
+static DB_PATH_OVERRIDE: Lazy<Mutex<Option<PathBuf>>> = Lazy::new(|| Mutex::new(None));
+
+pub fn set_db_path(path: Option<PathBuf>) {
+    let mut guard = DB_PATH_OVERRIDE.lock().unwrap();
+    *guard = path;
+}
+
+pub fn resolve_db_path() -> PathBuf {
+    let guard = DB_PATH_OVERRIDE.lock().unwrap();
+    if let Some(ref p) = *guard {
+        return p.clone();
+    }
+    drop(guard);
+
+    if let Some(home) = home_dir() {
+        let bridge_dir = home.join("lehr-suite-bridge");
+        let _ = std::fs::create_dir_all(&bridge_dir);
+        return bridge_dir.join("lehr-suite.db");
+    }
+    PathBuf::from("lehr-suite.db")
+}
+
+pub fn open_db() -> Result<Connection, String> {
+    let path = resolve_db_path();
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| format!("DB-Verzeichnis konnte nicht erstellt werden: {}", e))?;
+    }
+    let conn = Connection::open(&path).map_err(|e| format!("DB konnte nicht geöffnet werden ({}): {}", path.display(), e))?;
+    conn.execute_batch("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;").map_err(|e| format!("PRAGMA fehlgeschlagen: {}", e))?;
+    init_schema(&conn)?;
+    Ok(conn)
+}
+
+pub fn init_schema(conn: &Connection) -> Result<(), String> {
+    conn.execute_batch(NATASCHA_SCHEMA_SQL).map_err(|e| format!("NATASCHA-Schema fehlgeschlagen: {}", e))?;
+    conn.execute_batch(LUA_SCHEMA_SQL).map_err(|e| format!("LUA-Schema fehlgeschlagen: {}", e))?;
+    Ok(())
+}
+
+fn home_dir() -> Option<PathBuf> {
+    std::env::var("USERPROFILE")
+        .or_else(|_| std::env::var("HOME"))
+        .ok()
+        .map(PathBuf::from)
+}
+
+pub fn migrate_from_localstorage(conn: &Connection, payload: &serde_json::Value) -> Result<usize, String> {
+    let mut count = 0;
+    if let Some(docs) = payload.get("documents").and_then(|v| v.as_array()) {
+        for doc in docs {
+            let id = doc["id"].as_str().unwrap_or("");
+            let title = doc["title"].as_str().unwrap_or("Unbenannt");
+            let saved_at = doc["savedAt"].as_str().unwrap_or("");
+            let updated_at = doc["updatedAt"].as_str().unwrap_or("");
+            let is_favorite = doc["isFavorite"].as_bool().unwrap_or(false);
+            let is_deleted = doc["isDeleted"].as_bool().unwrap_or(false);
+            let deleted_at: Option<String> = doc.get("deletedAt").and_then(|v| v.as_str()).map(|s| s.to_string());
+            let snapshot_json = serde_json::to_string(doc.get("snapshot").unwrap_or(&serde_json::Value::Null)).unwrap_or_else(|_| "{}".to_string());
+            let klasse = doc.get("klasse").and_then(|v| v.as_str()).unwrap_or("");
+            let aufgabe = doc.get("aufgabe").and_then(|v| v.as_str()).unwrap_or("");
+            conn.execute(
+                "INSERT OR IGNORE INTO generated_materials (id, title, klasse, aufgabe, snapshot_json, created_at, updated_at, is_favorite, is_deleted, deleted_at) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)",
+                rusqlite::params![id, title, klasse, aufgabe, snapshot_json, saved_at, updated_at, is_favorite, is_deleted, deleted_at],
+            ).map_err(|e| format!("Migrate doc {}: {}", id, e))?;
+            count += 1;
+        }
+    }
+    if let Some(history) = payload.get("history").and_then(|v| v.as_array()) {
+        for entry in history {
+            let id = entry["id"].as_str().unwrap_or("");
+            let timestamp = entry["timestamp"].as_str().unwrap_or("");
+            let thema = entry["thema"].as_str().unwrap_or("");
+            let fach = entry["fach"].as_str().unwrap_or("");
+            let stufe = entry["stufe"].as_str().unwrap_or("");
+            let llm_provider: Option<&str> = entry.get("llmProvider").and_then(|v| v.as_str());
+            let model_name: Option<&str> = entry.get("modelName").and_then(|v| v.as_str());
+            let block_count: i64 = entry["blockCount"].as_i64().unwrap_or(0);
+            let total_punkte: i64 = entry["totalPunkte"].as_i64().unwrap_or(0);
+            let exported_json = serde_json::to_string(entry.get("exportedFiles").unwrap_or(&serde_json::Value::Null)).unwrap_or_else(|_| "[]".to_string());
+            let saved_document_id = entry.get("savedDocumentId").and_then(|v| v.as_str());
+            conn.execute(
+                "INSERT OR IGNORE INTO lua_history (id, timestamp, thema, fach, stufe, llm_provider, model_name, block_count, total_punkte, exported_files_json, saved_document_id) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11)",
+                rusqlite::params![id, timestamp, thema, fach, stufe, llm_provider, model_name, block_count, total_punkte, exported_json, saved_document_id],
+            ).map_err(|e| format!("Migrate history {}: {}", id, e))?;
+            count += 1;
+        }
+    }
+    if let Some(settings) = payload.get("settings") {
+        let settings_json = serde_json::to_string(settings).unwrap_or_else(|_| "{}".to_string());
+        conn.execute(
+            "INSERT OR REPLACE INTO lua_settings (key, value_json) VALUES ('app', ?1)",
+            rusqlite::params![settings_json],
+        ).map_err(|e| format!("Migrate settings: {}", e))?;
+        count += 1;
+    }
+    if let Some(templates) = payload.get("templates").and_then(|v| v.as_array()) {
+        for tpl in templates {
+            let name = tpl["name"].as_str().unwrap_or("");
+            let id = format!("tpl_{}", name.replace(' ', "_"));
+            let meta_json = serde_json::to_string(tpl.get("meta").unwrap_or(&serde_json::Value::Null)).unwrap_or_else(|_| "{}".to_string());
+            let bloecke_json = serde_json::to_string(tpl.get("bloecke").unwrap_or(&serde_json::Value::Null)).unwrap_or_else(|_| "[]".to_string());
+            let saved_at = tpl["savedAt"].as_str().unwrap_or("");
+            conn.execute(
+                "INSERT OR IGNORE INTO lua_templates (id, name, meta_json, bloecke_json, saved_at) VALUES (?1,?2,?3,?4,?5)",
+                rusqlite::params![id, name, meta_json, bloecke_json, saved_at],
+            ).map_err(|e| format!("Migrate template '{}': {}", name, e))?;
+            count += 1;
+        }
+    }
+    Ok(count)
+}

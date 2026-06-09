@@ -14,6 +14,8 @@ export type ActiveView =
   | 'favorites'
   | 'trash'
   | 'korrektur'
+  | 'klassen'
+  | 'schueler'
   | 'settings'
   | 'help';
 
