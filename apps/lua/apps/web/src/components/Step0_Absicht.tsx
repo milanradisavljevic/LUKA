@@ -1,10 +1,11 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { ArrowRight, Clock, FolderOpen, BookOpen, ClipboardCheck } from 'lucide-react';
 import type { AppState, AppAction } from '../lib/types';
 import { BLOCK_TYPE_DEFS, SCHWIERIGKEIT_RULES } from '../lib/constants';
 import { buildSkelett, type Auftrag } from '@lehrunterlagen/schema';
 import { EXAMPLE_ABSICHTEN } from '../lib/exampleAbsichten';
 import { loadDocuments, loadSettings } from '../lib/storage';
+import { consumePendingUebung } from '../lib/korrekturBridge';
 import { getDefaultTemplate } from '@lehrunterlagen/renderer';
 import {
   parseBridgeExport,
@@ -66,6 +67,21 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates }: Props)
   const [nataschaInfo, setNataschaInfo] = useState<string | null>(null);
   const [nataschaInboxPfad, setNataschaInboxPfad] = useState<string | null>(null);
   const nataschaInboxDir = useMemo(() => loadSettings().nataschaInboxDir ?? '', []);
+
+  // Closed Loop: Übungs-Vorbefüllung aus der Korrektur-Heatmap übernehmen (einmalig beim Mounten).
+  useEffect(() => {
+    const p = consumePendingUebung();
+    if (!p) return;
+    setTyp('schuluebung');
+    setFach(p.fach);
+    setStufe(p.stufe);
+    dispatch({ type: 'SET_RENDER_TEMPLATE', template: getDefaultTemplate(p.stufe).id });
+    setThema(p.thema);
+    setNotizen(p.notizen);
+    setFokusThemen(p.fokusThemen);
+    setGewuenschteAufgabenarten(p.gewuenschteAufgabenarten);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleContinueLast = useCallback(() => {
     if (!lastDoc) return;

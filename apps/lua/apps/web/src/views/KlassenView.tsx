@@ -1,9 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
-import { GraduationCap, Users, BarChart3, AlertTriangle, TrendingUp, Download } from 'lucide-react';
+import { GraduationCap, Users, BarChart3, AlertTriangle, TrendingUp, Download, Wand2 } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from 'recharts';
 import type { KlasseInfo } from '../lib/storage';
 import { useNatascha } from '../hooks/useNatascha';
+import { KATEGORIE_TO_BLOCKTYPEN, type NataschaPrefill } from '../lib/nataschaBridge';
+import type { BlockTyp } from '@lehrunterlagen/schema';
 import { ViewShell } from './_ViewShell';
+
+interface Props {
+  /** Closed Loop: aus der Heatmap ein Übungsblatt im LUA-Generator starten. */
+  onGenerateUebung?: (prefill: NataschaPrefill) => void;
+}
 
 interface AbgabeInfo {
   id: number;
@@ -73,7 +80,7 @@ const FEHLER_COLORS: Record<string, string> = { R: '#e74c3c', G: '#27ae60', Z: '
 
 type Tab = 'uebersicht' | 'statistik';
 
-export function KlassenView() {
+export function KlassenView({ onGenerateUebung }: Props) {
   const { listKlassen, listAufgaben, getAbgaben, getHeatmap, getKlassenStatistik, getKlassenTrend, getKlassenKalibrierung, getFehlerDetail, exportNotenCsv } = useNatascha();
 
   const [tab, setTab] = useState<Tab>('uebersicht');
@@ -145,6 +152,27 @@ export function KlassenView() {
     const rows = await getFehlerDetail(selectedKlasse, typ, selectedAufgabe ?? undefined, 30);
     setFehlerDetail({ typ, rows: rows as FehlerDetailRow[] });
   }, [selectedKlasse, selectedAufgabe, getFehlerDetail]);
+
+  const handleGenerateUebung = useCallback(() => {
+    if (!selectedKlasse || heatmap.length === 0) return;
+    const top = [...heatmap].filter((h) => h.anzahl > 0).sort((a, b) => b.anzahl - a.anzahl).slice(0, 3);
+    const fokusThemen = top.map((h) => HEATMAP_LABELS[h.typ] ?? h.typ);
+    const arten: BlockTyp[] = [];
+    for (const h of top) {
+      for (const t of (KATEGORIE_TO_BLOCKTYPEN[h.typ as 'R' | 'G' | 'Z' | 'A'] ?? [])) {
+        if (!arten.includes(t)) arten.push(t);
+      }
+    }
+    const prefill: NataschaPrefill = {
+      thema: `Übung zu Fehlerschwerpunkten – ${selectedKlasse}${selectedAufgabe ? ' · ' + selectedAufgabe : ''}`,
+      fach: 'deutsch',
+      stufe: 'oberstufe',
+      fokusThemen,
+      gewuenschteAufgabenarten: arten,
+      notizen: `Automatisch aus der Korrektur-Heatmap der Klasse ${selectedKlasse} erzeugt. Schwerpunkte: ${fokusThemen.join(', ')}.`,
+    };
+    onGenerateUebung?.(prefill);
+  }, [selectedKlasse, selectedAufgabe, heatmap, onGenerateUebung]);
 
   const handleExportCsv = useCallback(async () => {
     if (!selectedKlasse) return;
@@ -273,6 +301,16 @@ export function KlassenView() {
                         </div>
                       </div>
                     ))
+                  )}
+                  {heatmap.length > 0 && onGenerateUebung && (
+                    <button
+                      className="btn-primary"
+                      onClick={handleGenerateUebung}
+                      style={{ marginTop: '0.75rem', width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', fontSize: '0.8125rem' }}
+                      title="Erzeugt ein Übungsblatt zu den häufigsten Fehlern dieser Klasse"
+                    >
+                      <Wand2 size={15} /> Übungsblatt zu Top-Fehlern generieren
+                    </button>
                   )}
                 </div>
               </div>
