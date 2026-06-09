@@ -216,6 +216,34 @@ export function useNatascha() {
     return invoke<number>('db_insert_schueler', { klasse, vorname, nachname });
   }, []);
 
+  // --- Welle 4: Setup (Klasse/Aufgabe/Rubrik via Sidecar) ---
+  const addKlasse = useCallback(async (name: string): Promise<void> => {
+    const s = loadSettings();
+    await invoke('natascha_add_klasse', { dir: s.nataschaDir ?? '', python: s.pythonCommand ?? '', name });
+  }, []);
+
+  const addAufgabe = useCallback(async (
+    klasse: string, label: string,
+    opts?: { fach?: string; schulstufe?: string; textsorte?: string; rubric?: string },
+  ): Promise<{ klasse: string; aufgabe: string; rubric: string }> => {
+    const s = loadSettings();
+    const result = await invoke<string>('natascha_add_aufgabe', {
+      dir: s.nataschaDir ?? '', python: s.pythonCommand ?? '',
+      klasse, label, fach: opts?.fach, schulstufe: opts?.schulstufe, textsorte: opts?.textsorte, rubric: opts?.rubric,
+    });
+    return JSON.parse(result);
+  }, []);
+
+  const listRubrics = useCallback(async (fach?: string, schulstufe?: string): Promise<string[]> => {
+    const s = loadSettings();
+    try {
+      const result = await invoke<string>('natascha_list_rubrics', {
+        dir: s.nataschaDir ?? '', python: s.pythonCommand ?? '', fach, schulstufe,
+      });
+      return JSON.parse(result);
+    } catch { return []; }
+  }, []);
+
   const deleteSchueler = useCallback(async (schuelerId: number): Promise<void> => {
     await invoke('db_delete_schueler', { schuelerId });
   }, []);
@@ -277,6 +305,9 @@ export function useNatascha() {
     listSchueler,
     insertSchueler,
     deleteSchueler,
+    addKlasse,
+    addAufgabe,
+    listRubrics,
     getSchuelerLaengsschnitt,
     getKlassenTrend,
     getKlassenKalibrierung,

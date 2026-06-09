@@ -7,6 +7,18 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Welle 4: Aufgabe/Klasse/Rubrik nativ anlegen
+- **CLI** (`natascha_cli.py`): `add-klasse`, `add-aufgabe` (mit `--fach/--schulstufe/
+  --textsorte/--rubric`), `list-rubrics` — nutzen NATASCHAs vorhandene, kommentar-
+  erhaltende Config-Schreiber (`nc.add_class_to_config`/`add_aufgabe_to_config`/
+  `rubric_options_for`/`default_rubric_for`). Smoke-getestet (Config-Roundtrip).
+- **Rust** (`natascha.rs`): `natascha_add_klasse`/`natascha_add_aufgabe`/
+  `natascha_list_rubrics` (Sidecar) + Registrierung.
+- **UI** (`SchuelerView`): „Aufgabe anlegen (Rubrik)"-Formular (Bezeichnung, Fach,
+  Schulstufe, Rubrik-Dropdown). `useNatascha` um `addKlasse`/`addAufgabe`/
+  `listRubrics` erweitert. (Schüler-Anlegen war bereits da; Klassen entstehen
+  automatisch.)
+
 ### Added — M1 Polish (Fehler + Dev-Seed)
 - **Strukturierte Analyse-Fehler:** `natascha.rs` kategorisiert CLI-Fehler jetzt
   (API-Key fehlt / Netzwerk / Ratenlimit / fehlende Python-Deps / Python nicht

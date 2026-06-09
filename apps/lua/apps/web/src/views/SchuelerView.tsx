@@ -8,7 +8,7 @@ import { ViewShell } from './_ViewShell';
 const FEHLER_LABELS: Record<string, string> = { R: 'Rechtschreibung', G: 'Grammatik', Z: 'Zeichensetzung', A: 'Ausdruck' };
 
 export function SchuelerView() {
-  const { listKlassen, listSchueler, insertSchueler, deleteSchueler, getSchuelerLaengsschnitt } = useNatascha();
+  const { listKlassen, listSchueler, insertSchueler, deleteSchueler, addKlasse, addAufgabe, listRubrics, getSchuelerLaengsschnitt } = useNatascha();
 
   const [klassen, setKlassen] = useState<KlasseInfo[]>([]);
   const [selectedKlasse, setSelectedKlasse] = useState<string | null>(null);
@@ -21,8 +21,35 @@ export function SchuelerView() {
   const [neuVorname, setNeuVorname] = useState('');
   const [neuNachname, setNeuNachname] = useState('');
   const [adding, setAdding] = useState(false);
+  // Aufgabe-anlegen (Welle 4)
+  const [aufLabel, setAufLabel] = useState('');
+  const [aufFach, setAufFach] = useState('Deutsch');
+  const [aufStufe, setAufStufe] = useState('Oberstufe');
+  const [aufRubric, setAufRubric] = useState('');
+  const [rubrics, setRubrics] = useState<string[]>([]);
+  const [aufBusy, setAufBusy] = useState(false);
+  const [aufMsg, setAufMsg] = useState<string | null>(null);
 
   useEffect(() => { listKlassen().then(setKlassen); }, [listKlassen]);
+
+  useEffect(() => {
+    listRubrics(aufFach, aufStufe).then((r) => { setRubrics(r); setAufRubric(r[0] ?? ''); });
+  }, [listRubrics, aufFach, aufStufe]);
+
+  const handleAddAufgabe = useCallback(async () => {
+    const klasse = (neuKlasse || selectedKlasse || '').trim();
+    if (!klasse || !aufLabel.trim()) { setAufMsg('Klasse und Bezeichnung erforderlich.'); return; }
+    setAufBusy(true); setAufMsg(null);
+    try {
+      try { await addKlasse(klasse); } catch { /* Klasse existiert evtl. schon — ok */ }
+      const res = await addAufgabe(klasse, aufLabel.trim(), { fach: aufFach, schulstufe: aufStufe, rubric: aufRubric });
+      setAufMsg(`✓ Aufgabe „${res.aufgabe}" in ${klasse} angelegt (Rubrik: ${res.rubric || '—'}).`);
+      setAufLabel('');
+      await listKlassen().then(setKlassen);
+    } catch (e) {
+      setAufMsg(typeof e === 'string' ? e : e instanceof Error ? e.message : 'Anlegen fehlgeschlagen.');
+    } finally { setAufBusy(false); }
+  }, [neuKlasse, selectedKlasse, aufLabel, aufFach, aufStufe, aufRubric, addKlasse, addAufgabe, listKlassen]);
 
   const loadSchueler = useCallback(async (klasse: string) => {
     setSelectedKlasse(klasse);
@@ -154,6 +181,30 @@ export function SchuelerView() {
               style={{ width: '100%', fontSize: '0.75rem', padding: '0.35rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
               <UserPlus size={13} /> {adding ? 'Anlegen …' : 'Hinzufügen'}
             </button>
+          </div>
+
+          <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--color-border)' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, marginBottom: '0.5rem' }}>Aufgabe anlegen (Rubrik)</div>
+            <input value={aufLabel} onChange={(e) => setAufLabel(e.target.value)} placeholder="Bezeichnung (z.B. Schularbeit 2)"
+              style={{ width: '100%', boxSizing: 'border-box', marginBottom: 4, fontSize: '0.75rem', padding: '0.25rem 0.4rem' }} />
+            <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
+              <select value={aufFach} onChange={(e) => setAufFach(e.target.value)} style={{ flex: 1, fontSize: '0.7rem' }}>
+                <option>Deutsch</option><option>Englisch</option>
+              </select>
+              <select value={aufStufe} onChange={(e) => setAufStufe(e.target.value)} style={{ flex: 1, fontSize: '0.7rem' }}>
+                <option>Oberstufe</option><option>Unterstufe</option>
+              </select>
+            </div>
+            <select value={aufRubric} onChange={(e) => setAufRubric(e.target.value)}
+              style={{ width: '100%', boxSizing: 'border-box', marginBottom: 6, fontSize: '0.7rem' }}>
+              {rubrics.length === 0 && <option value="">(keine Rubriken gefunden)</option>}
+              {rubrics.map((r) => <option key={r} value={r}>{r}</option>)}
+            </select>
+            <button className="btn-primary" disabled={aufBusy} onClick={handleAddAufgabe}
+              style={{ width: '100%', fontSize: '0.75rem', padding: '0.35rem' }}>
+              {aufBusy ? 'Anlegen …' : 'Aufgabe + Rubrik anlegen'}
+            </button>
+            {aufMsg && <p style={{ fontSize: '0.7rem', marginTop: 4, marginBottom: 0, color: 'var(--color-text-secondary)' }}>{aufMsg}</p>}
           </div>
         </div>
 
