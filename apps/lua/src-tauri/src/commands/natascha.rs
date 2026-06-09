@@ -263,3 +263,52 @@ pub async fn natascha_seed_testdaten(dir: String, python: String) -> Result<Stri
     }
     Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
 }
+
+// --- Welle 4: Setup (Klasse/Aufgabe/Rubrik) ---
+
+/// Legt eine neue Klasse in der NATASCHA-Config an.
+#[tauri::command]
+pub async fn natascha_add_klasse(dir: String, python: String, name: String) -> Result<String, String> {
+    let nat_dir = resolve_dir(&dir)?;
+    let mut cmd = build_cli_command(&nat_dir, &python);
+    cmd.arg("add-klasse").arg(&name);
+    run_cli_and_capture(cmd)
+}
+
+/// Legt eine neue Aufgabe (mit Rubrik-Zuordnung) an.
+#[tauri::command]
+pub async fn natascha_add_aufgabe(
+    dir: String,
+    python: String,
+    klasse: String,
+    label: String,
+    fach: Option<String>,
+    schulstufe: Option<String>,
+    textsorte: Option<String>,
+    rubric: Option<String>,
+) -> Result<String, String> {
+    let nat_dir = resolve_dir(&dir)?;
+    let mut cmd = build_cli_command(&nat_dir, &python);
+    cmd.arg("add-aufgabe").arg(&klasse).arg(&label);
+    if let Some(ref v) = fach { cmd.arg("--fach").arg(v); }
+    if let Some(ref v) = schulstufe { cmd.arg("--schulstufe").arg(v); }
+    if let Some(ref v) = textsorte { cmd.arg("--textsorte").arg(v); }
+    if let Some(ref v) = rubric { cmd.arg("--rubric").arg(v); }
+    run_cli_and_capture(cmd)
+}
+
+/// Listet verfügbare Rubriken (gefiltert nach Fach/Schulstufe).
+#[tauri::command]
+pub async fn natascha_list_rubrics(
+    dir: String,
+    python: String,
+    fach: Option<String>,
+    schulstufe: Option<String>,
+) -> Result<String, String> {
+    let nat_dir = resolve_dir(&dir)?;
+    let mut cmd = build_cli_command(&nat_dir, &python);
+    cmd.arg("list-rubrics");
+    if let Some(ref v) = fach { cmd.arg("--fach").arg(v); }
+    if let Some(ref v) = schulstufe { cmd.arg("--schulstufe").arg(v); }
+    run_cli_and_capture(cmd)
+}

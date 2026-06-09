@@ -211,6 +211,52 @@ def cmd_erwartungshorizont(args):
     return 0
 
 
+def _slugify(text):
+    import re
+    s = re.sub(r"[^a-zA-Z0-9]+", "_", (text or "").strip()).strip("_")
+    return s or "aufgabe"
+
+
+def cmd_add_klasse(args):
+    nc, ndb, config, db_path = _load_env_and_config()
+    name = (args.name or "").strip()
+    if not name:
+        print("Klassenname darf nicht leer sein", file=sys.stderr)
+        return 1
+    if name in config.get("classes", {}):
+        print(f"Klasse '{name}' existiert bereits", file=sys.stderr)
+        return 1
+    nc.add_class_to_config(name, f"input/{name}", f"output/{name}")
+    _json_out({"klasse": name})
+    return 0
+
+
+def cmd_add_aufgabe(args):
+    nc, ndb, config, db_path = _load_env_and_config()
+    klasse = (args.klasse or "").strip()
+    label = (args.label or "").strip()
+    if not klasse or not label:
+        print("Klasse und Aufgaben-Bezeichnung sind erforderlich", file=sys.stderr)
+        return 1
+    if klasse not in config.get("classes", {}):
+        print(f"Klasse '{klasse}' existiert nicht — zuerst anlegen", file=sys.stderr)
+        return 1
+    slug = (args.slug or "").strip() or _slugify(label)
+    fach = args.fach or ""
+    schulstufe = args.schulstufe or ""
+    rubric = args.rubric or nc.default_rubric_for(fach, schulstufe, config)
+    nc.add_aufgabe_to_config(klasse, slug, label, fach, schulstufe, args.textsorte or "", rubric)
+    _json_out({"klasse": klasse, "aufgabe": slug, "label": label, "rubric": rubric})
+    return 0
+
+
+def cmd_list_rubrics(args):
+    nc, ndb, config, db_path = _load_env_and_config()
+    rubrics = nc.rubric_options_for(args.fach or "", args.schulstufe or "", config)
+    _json_out(rubrics)
+    return 0
+
+
 # Hinweis: Reine Lese-Befehle (klassen-liste/aufgaben/abgaben/heatmap/
 # notenverteilung/statistik) wurden entfernt — LUA liest direkt über den
 # Rust-Read-Layer (natascha_read.rs, db_*). Eine Read-Quelle statt zwei.
@@ -272,6 +318,21 @@ def main():
     p_eh.add_argument("--provider", default="")
     p_eh.add_argument("--model", default="")
 
+    # Welle 4: Setup (Klasse/Aufgabe/Rubrik)
+    p_addk = sub.add_parser("add-klasse", help="Neue Klasse in der Config anlegen")
+    p_addk.add_argument("name")
+    p_adda = sub.add_parser("add-aufgabe", help="Neue Aufgabe (mit Rubrik) anlegen")
+    p_adda.add_argument("klasse")
+    p_adda.add_argument("label")
+    p_adda.add_argument("--slug", default="")
+    p_adda.add_argument("--fach", default="")
+    p_adda.add_argument("--schulstufe", default="")
+    p_adda.add_argument("--textsorte", default="")
+    p_adda.add_argument("--rubric", default="")
+    p_lr = sub.add_parser("list-rubrics", help="Verfuegbare Rubriken auflisten")
+    p_lr.add_argument("--fach", default="")
+    p_lr.add_argument("--schulstufe", default="")
+
 
     args = parser.parse_args()
     _DB_PATH_OVERRIDE = args.db_path
@@ -286,6 +347,9 @@ def main():
         "klassen-briefing": cmd_klassen_briefing,
         "feedback-docx": cmd_feedback_docx,
         "erwartungshorizont": cmd_erwartungshorizont,
+        "add-klasse": cmd_add_klasse,
+        "add-aufgabe": cmd_add_aufgabe,
+        "list-rubrics": cmd_list_rubrics,
     }
 
     handler = commands.get(args.command)
