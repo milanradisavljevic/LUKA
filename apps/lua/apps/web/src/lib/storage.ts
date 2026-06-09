@@ -51,6 +51,19 @@ async function invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T
   return tauriInvoke<T>(cmd, args);
 }
 
+/** Fire-and-forget DB-Write. Schlägt er fehl, wird der Fehler geloggt (statt dass
+ *  Cache und DB still auseinanderlaufen). Optionaler Hook für UI-Toasts. */
+let onPersistError: ((cmd: string, error: unknown) => void) | null = null;
+export function setPersistErrorHandler(fn: ((cmd: string, error: unknown) => void) | null): void {
+  onPersistError = fn;
+}
+function persist(cmd: string, args?: Record<string, unknown>): void {
+  void invoke(cmd, args).catch((e) => {
+    console.error(`[storage] DB-Write '${cmd}' fehlgeschlagen:`, e);
+    onPersistError?.(cmd, e);
+  });
+}
+
 /** Hydratisiert den Cache aus der SQLite-Datenbank. Beim ersten Start wird
  *  ggf. localStorage in die DB migriert (einmalig). */
 export async function hydrateCache(): Promise<void> {
@@ -156,19 +169,19 @@ export function loadHistory(): HistoryEntry[] {
 
 export function saveHistory(entries: HistoryEntry[]): void {
   if (cache) cache.history = entries;
-  void invoke('db_clear_history');
+  persist('db_clear_history');
 }
 
 export function appendHistoryEntry(entry: HistoryEntry): HistoryEntry[] {
   const entries = [entry, ...(cache?.history ?? loadHistoryFromLS())];
   if (cache) cache.history = entries;
-  void invoke('db_append_history', { entryJson: JSON.stringify(entry) });
+  persist('db_append_history', { entryJson: JSON.stringify(entry) });
   return entries;
 }
 
 export function clearHistory(): void {
   if (cache) cache.history = [];
-  void invoke('db_clear_history');
+  persist('db_clear_history');
 }
 
 // --- Standard-Vorgaben (sync reads, async writes) ---
@@ -179,7 +192,7 @@ export function loadSettings(): AppSettings {
 
 export function saveSettings(settings: AppSettings): void {
   if (cache) cache.settings = settings;
-  void invoke('db_save_settings', { settingsJson: JSON.stringify(settings) });
+  persist('db_save_settings', { settingsJson: JSON.stringify(settings) });
 }
 
 // --- Templates ---
@@ -194,12 +207,12 @@ export function saveTemplate(tpl: TemplateEntry): void {
     if (idx >= 0) cache.templates[idx] = tpl;
     else cache.templates.push(tpl);
   }
-  void invoke('db_save_template', { templateJson: JSON.stringify(tpl) });
+  persist('db_save_template', { templateJson: JSON.stringify(tpl) });
 }
 
 export function deleteTemplate(name: string): void {
   if (cache) cache.templates = cache.templates.filter((t) => t.name !== name);
-  void invoke('db_delete_template', { name });
+  persist('db_delete_template', { name });
 }
 
 // --- Helfer ----------------------------------------------------------------
@@ -223,7 +236,7 @@ export function snapshotFromState(state: AppState): DocumentSnapshot {
 
 function persistUpsertDocuments(docs: SavedDocument[]): void {
   for (const doc of docs) {
-    void invoke('db_upsert_document', {
+    persist('db_upsert_document', {
       docJson: JSON.stringify({
         ...doc,
         klasse: (doc as any).klasse ?? '',

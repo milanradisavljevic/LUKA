@@ -7,6 +7,15 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Härtung (Tests + Fehler-Sichtbarkeit)
+- **Rust-Unit-Tests** für `natascha_read.rs`: Read-Logik in testbare
+  `*_impl(conn, …)`-Helfer extrahiert (list_aufgaben, fehler_heatmap, schueler-
+  CRUD); Tests gegen In-Memory-`rusqlite` (Schema laden → seeden → Aggregat/CRUD
+  prüfen). `cargo test` 27 grün.
+- **P1-4:** Fire-and-forget-DB-Writes in `storage.ts` laufen über `persist()` —
+  Fehler werden geloggt (+ optionaler `setPersistErrorHandler` für UI-Toasts),
+  statt dass Cache und DB still auseinanderlaufen.
+
 ### Added — Welle 4: Aufgabe/Klasse/Rubrik nativ anlegen
 - **CLI** (`natascha_cli.py`): `add-klasse`, `add-aufgabe` (mit `--fach/--schulstufe/
   --textsorte/--rubric`), `list-rubrics` — nutzen NATASCHAs vorhandene, kommentar-
