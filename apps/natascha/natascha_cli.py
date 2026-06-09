@@ -218,6 +218,35 @@ def cmd_erwartungshorizont(args):
     return 0
 
 
+def cmd_erwartungshorizont_save(args):
+    """Speichert den (ggf. bearbeiteten) Erwartungshorizont-Text (von stdin) als
+    rubrics/erwartungshorizont_<klasse>_<aufgabe>.md und verlinkt ihn in der Config,
+    sodass ihn die Korrektur automatisch nutzt."""
+    nc, ndb, config, db_path = _load_env_and_config()
+    text = sys.stdin.read()
+    if not text.strip():
+        print("Kein Erwartungshorizont-Text übergeben (stdin leer)", file=sys.stderr)
+        return 1
+    auf = (
+        config.get("classes", {}).get(args.klasse, {})
+        .get("aufgaben", {}).get(args.aufgabe)
+    )
+    if auf is None:
+        print(
+            f"Aufgabe '{args.aufgabe}' in Klasse '{args.klasse}' nicht in der Config — "
+            "bitte zuerst die Aufgabe anlegen.",
+            file=sys.stderr,
+        )
+        return 1
+    rubrics_dir = nc.resolve_path(config, "rubrics")
+    rubrics_dir.mkdir(parents=True, exist_ok=True)
+    fname = f"erwartungshorizont_{_slugify(args.klasse)}_{_slugify(args.aufgabe)}.md"
+    (rubrics_dir / fname).write_text(text, encoding="utf-8")
+    nc.save_erwartungshorizont_to_config(args.klasse, args.aufgabe, fname)
+    _json_out({"klasse": args.klasse, "aufgabe": args.aufgabe, "datei": fname})
+    return 0
+
+
 def _slugify(text):
     import re
     s = re.sub(r"[^a-zA-Z0-9]+", "_", (text or "").strip()).strip("_")
@@ -324,6 +353,9 @@ def main():
     p_eh.add_argument("--aufgabe", required=True)
     p_eh.add_argument("--provider", default="")
     p_eh.add_argument("--model", default="")
+    p_ehs = sub.add_parser("erwartungshorizont-save", help="Erwartungshorizont (stdin) speichern + verlinken")
+    p_ehs.add_argument("--klasse", required=True)
+    p_ehs.add_argument("--aufgabe", required=True)
 
     # Welle 4: Setup (Klasse/Aufgabe/Rubrik)
     p_addk = sub.add_parser("add-klasse", help="Neue Klasse in der Config anlegen")
@@ -354,6 +386,7 @@ def main():
         "klassen-briefing": cmd_klassen_briefing,
         "feedback-docx": cmd_feedback_docx,
         "erwartungshorizont": cmd_erwartungshorizont,
+        "erwartungshorizont-save": cmd_erwartungshorizont_save,
         "add-klasse": cmd_add_klasse,
         "add-aufgabe": cmd_add_aufgabe,
         "list-rubrics": cmd_list_rubrics,

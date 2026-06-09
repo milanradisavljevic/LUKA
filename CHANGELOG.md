@@ -7,6 +7,14 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Erwartungshorizont speichern + in der Korrektur nutzen
+- `ErwartungshorizontView`: Ergebnis ist jetzt **bearbeitbar** (Textarea) +
+  Button **„Akzeptieren & speichern"** → schreibt `rubrics/erwartungshorizont_*.md`
+  und verlinkt ihn in der Config (CLI `erwartungshorizont-save`, Text via stdin;
+  nutzt NATASCHAs `save_erwartungshorizont_to_config`). Die Korrektur lädt ihn dann
+  automatisch (`load_erwartungshorizont`). Rust-Command `natascha_save_erwartungshorizont`
+  (stdin-Piping), Hook `saveErwartungshorizont`. CLI-Roundtrip smoke-getestet.
+
 ### Added — Closed Loop: Heatmap → Übungsblatt (1 Klick)
 - `KlassenView` (Fehler-Heatmap): Button **„Übungsblatt zu Top-Fehlern generieren"**
   springt direkt in LUAs Generator (Step0) — Top-3-Fehlerkategorien werden zu

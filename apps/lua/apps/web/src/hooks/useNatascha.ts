@@ -169,6 +169,15 @@ export function useNatascha() {
     });
   }, []);
 
+  // Speichert den (bearbeiteten) Erwartungshorizont + verlinkt ihn in der Config (→ Korrektur nutzt ihn).
+  const saveErwartungshorizont = useCallback(async (klasse: string, aufgabe: string, text: string): Promise<{ klasse: string; aufgabe: string; datei: string }> => {
+    const s = loadSettings();
+    const result = await invoke<string>('natascha_save_erwartungshorizont', {
+      dir: s.nataschaDir ?? '', python: s.pythonCommand ?? '', klasse, aufgabe, text,
+    });
+    return JSON.parse(result);
+  }, []);
+
   const getAbgabeDetail = useCallback(async (abgabeId: number): Promise<AbgabeDetail | null> => {
     try {
       return await invoke<AbgabeDetail>('db_get_abgabe_detail', { abgabeId });
@@ -296,6 +305,7 @@ export function useNatascha() {
     getKlassenStatistik,
     generateFeedbackDocx,
     generateErwartungshorizont,
+    saveErwartungshorizont,
     getAbgabeDetail,
     upsertLehrerFeedback,
     listSchueler,
