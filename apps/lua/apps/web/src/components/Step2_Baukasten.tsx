@@ -11,6 +11,7 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
+import { X } from 'lucide-react';
 import type { Block } from '@lehrunterlagen/schema';
 import type { AppState, AppAction } from '../lib/types';
 import { BLOCK_TYPE_DEFS, STUFE_RULES, SCHWIERIGKEIT_RULES } from '../lib/constants';
@@ -25,7 +26,7 @@ interface Props {
 }
 
 export function Step2_Baukasten({ state, dispatch }: Props) {
-  const { addBlock, reorderBlocks } = useBlocks(dispatch);
+  const { addBlock, removeBlocksByType, reorderBlocks } = useBlocks(dispatch);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const sensors = useSensors(
@@ -81,9 +82,14 @@ export function Step2_Baukasten({ state, dispatch }: Props) {
             const hasAny = count > 0;
             const isDiscouraged = discouragedSet.has(bt.id);
             return (
-              <button
+              <div
                 key={bt.id}
+                role="button"
+                tabIndex={0}
                 onClick={() => handleAddBlock(bt.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleAddBlock(bt.id); }
+                }}
                 className="btn-secondary"
                 title={isDiscouraged ? schwierigkeitHinweis : undefined}
                 style={{
@@ -105,20 +111,20 @@ export function Step2_Baukasten({ state, dispatch }: Props) {
                   filter: isDiscouraged ? 'grayscale(0.4)' : 'none',
                 }}
                 onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-2px)';
-                  (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 4px 12px var(--color-shadow)';
+                  (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-2px)';
+                  (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 12px var(--color-shadow)';
                 }}
                 onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)';
-                  (e.currentTarget as HTMLButtonElement).style.boxShadow = 'none';
+                  (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)';
+                  (e.currentTarget as HTMLDivElement).style.boxShadow = 'none';
                 }}
               >
-                {/* Counter-Badge */}
+                {/* Counter-Badge (links) */}
                 {hasAny && (
                   <div style={{
                     position: 'absolute',
                     top: -8,
-                    right: -8,
+                    left: -8,
                     background: `linear-gradient(135deg, ${bt.color}, ${bt.color}dd)`,
                     color: 'var(--color-bg-surface)',
                     fontSize: '0.75rem',
@@ -136,6 +142,36 @@ export function Step2_Baukasten({ state, dispatch }: Props) {
                   }}>
                     {count}
                   </div>
+                )}
+
+                {/* X: ganzen Blocktyp entfernen (rechts) */}
+                {hasAny && (
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); removeBlocksByType(bt.id); }}
+                    aria-label={`Alle ${bt.label}-Blöcke entfernen`}
+                    title="Alle entfernen"
+                    style={{
+                      position: 'absolute', top: -8, right: -8, zIndex: 3,
+                      width: 24, height: 24, borderRadius: '50%', padding: 0,
+                      border: '2px solid white', background: 'var(--color-bg-surface)',
+                      color: 'var(--color-text-secondary)', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      boxShadow: '0 2px 6px var(--color-shadow)',
+                    }}
+                    onMouseEnter={(e) => {
+                      const t = e.currentTarget;
+                      t.style.background = 'var(--color-error, #e53935)';
+                      t.style.color = 'white';
+                    }}
+                    onMouseLeave={(e) => {
+                      const t = e.currentTarget;
+                      t.style.background = 'var(--color-bg-surface)';
+                      t.style.color = 'var(--color-text-secondary)';
+                    }}
+                  >
+                    <X size={13} />
+                  </button>
                 )}
 
                 <bt.Icon size={28} style={{ color: bt.color }} />
@@ -164,7 +200,7 @@ export function Step2_Baukasten({ state, dispatch }: Props) {
                     {count}x im Baukasten
                   </span>
                 )}
-              </button>
+              </div>
             );
           })}
         </div>

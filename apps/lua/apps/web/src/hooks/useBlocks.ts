@@ -18,10 +18,15 @@ export function useBlocks(dispatch: React.Dispatch<AppAction>) {
     [dispatch],
   );
 
+  const removeBlocksByType = useCallback(
+    (typ: string) => dispatch({ type: 'REMOVE_BLOCKS_BY_TYPE', typ }),
+    [dispatch],
+  );
+
   const reorderBlocks = useCallback(
     (bloecke: Block[]) => dispatch({ type: 'REORDER_BLOCKS', bloecke }),
     [dispatch],
   );
 
-  return { addBlock, updateBlock, removeBlock, reorderBlocks };
+  return { addBlock, updateBlock, removeBlock, removeBlocksByType, reorderBlocks };
 }
