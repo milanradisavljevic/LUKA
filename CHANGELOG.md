@@ -7,6 +7,13 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — UX: Baukasten-Blocktyp komplett entfernen
+- In `Step2_Baukasten` lässt sich ein ganzer Blocktyp per **X** (oben rechts)
+  entfernen; der Zähler wandert nach oben links (Design-Konsistenz). Karte von
+  `<button>` auf `<div role="button">` umgestellt (valides HTML für den inneren
+  X-Button) inkl. Tastatur-Support. Neue Reducer-Action `REMOVE_BLOCKS_BY_TYPE`
+  + `removeBlocksByType` in `useBlocks`.
+
 ### Added — Welle 4b: Erwartungshorizont-Generator (UI)
 - Neue `ErwartungshorizontView` + Sidebar-Eintrag „Erwartungshorizont": Klasse
   wählen, Aufgabe (mit Vorschlägen aus vorhandenen Aufgaben) → „Generieren" ruft

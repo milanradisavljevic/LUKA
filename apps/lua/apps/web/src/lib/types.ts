@@ -112,6 +112,7 @@ export type AppAction =
   | { type: 'ADD_BLOCK'; block: Block }
   | { type: 'UPDATE_BLOCK'; id: string; block: Partial<Block> }
   | { type: 'REMOVE_BLOCK'; id: string }
+  | { type: 'REMOVE_BLOCKS_BY_TYPE'; typ: string }
   | { type: 'REORDER_BLOCKS'; bloecke: Block[] }
   | { type: 'SET_LLM_PROVIDER'; provider: LlmProvider | null }
   | { type: 'SET_MODEL_NAME'; name: string }

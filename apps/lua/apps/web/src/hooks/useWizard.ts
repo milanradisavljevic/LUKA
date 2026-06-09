@@ -42,6 +42,8 @@ function wizardReducer(state: AppState, action: AppAction): AppState {
       };
     case 'REMOVE_BLOCK':
       return { ...state, bloecke: state.bloecke.filter((b) => b.id !== action.id) };
+    case 'REMOVE_BLOCKS_BY_TYPE':
+      return { ...state, bloecke: state.bloecke.filter((b) => b.typ !== action.typ) };
     case 'REORDER_BLOCKS':
       return { ...state, bloecke: action.bloecke };
     case 'SET_LLM_PROVIDER':
