@@ -26,6 +26,8 @@ import { SettingsView } from './views/SettingsView';
 import { KorrekturView } from './views/KorrekturView';
 import { SchuelerView } from './views/SchuelerView';
 import { ErwartungshorizontView } from './views/ErwartungshorizontView';
+import { setPendingUebung } from './lib/korrekturBridge';
+import type { NataschaPrefill } from './lib/nataschaBridge';
 import { loadDocuments, upsertDocument, snapshotFromState, saveTemplate, deleteTemplate, loadTemplates, hydrateCache, isHydrated } from './lib/storage';
 import './App.css';
 
@@ -155,6 +157,17 @@ export default function App() {
     setActiveView('wizard');
   }, [state.bloecke.length, state.generiertesDokument, dispatch]);
 
+  // Closed Loop: aus der Korrektur-Heatmap ein Übungsblatt im Generator starten.
+  const handleGenerateUebung = useCallback((prefill: NataschaPrefill) => {
+    const hasWork = state.bloecke.length > 0 || state.generiertesDokument !== null;
+    if (hasWork && !window.confirm('Aktuellen Stand verwerfen und ein Übungsblatt zu den Fehlerschwerpunkten beginnen?')) {
+      return;
+    }
+    setPendingUebung(prefill);
+    dispatch({ type: 'RESET_STATE' });
+    setActiveView('wizard');
+  }, [state.bloecke.length, state.generiertesDokument, dispatch]);
+
   const renderStep = () => {
     switch (state.step) {
       case 'absicht':
@@ -203,7 +216,7 @@ if (hydrating) {
       case 'schueler':
         return <SchuelerView />;
       case 'klassen':
-        return <KlassenView />;
+        return <KlassenView onGenerateUebung={handleGenerateUebung} />;
       case 'erwartungshorizont':
         return <ErwartungshorizontView />;
       case 'settings':

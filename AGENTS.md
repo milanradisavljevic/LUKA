@@ -38,6 +38,14 @@ cd src-tauri && cargo check   # Rust-Backend
 pnpm tauri:dev        # Desktop-App (braucht Display; real auf Windows)
 ```
 
+> **WSL-Stolperstein:** Auf `/mnt/c` (WSL→Windows-FS) materialisiert pnpm die
+> rollup-Optional-Plattform-Binary `@rollup/rollup-linux-x64-gnu` oft nicht →
+> `vite build`/`vitest` brechen mit „Cannot find module @rollup/rollup-linux-x64-gnu".
+> Das ist ein Umgebungs-/Optional-Deps-Flake (npm-Bug #4828), **nicht** der Code, und
+> betrifft den Windows-Build nicht (anderes Binary). Workaround: `CI=true pnpm install`
+> (hilft mal, mal nicht). `tsc --noEmit` und `tauri:dev` funktionieren unabhängig davon;
+> `vite build`/`vitest` zuverlässig auf Windows oder echtem Linux prüfen.
+
 **NATASCHA** (in `apps/natascha/`):
 ```bash
 python3 seed_testdaten.py     # Test-DB (Klasse TEST-7a), braucht keine venv

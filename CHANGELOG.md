@@ -7,6 +7,14 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Closed Loop: Heatmap → Übungsblatt (1 Klick)
+- `KlassenView` (Fehler-Heatmap): Button **„Übungsblatt zu Top-Fehlern generieren"**
+  springt direkt in LUAs Generator (Step0) — Top-3-Fehlerkategorien werden zu
+  `meta.fokusThemen` + passenden Aufgabentypen (`KATEGORIE_TO_BLOCKTYPEN`),
+  Thema/Notizen vorbefüllt. **Keine Datei-Brücke mehr nötig** (eine App, gemeinsame
+  DB): transiente In-Memory-Übergabe `lib/korrekturBridge.ts`, Step0 konsumiert sie
+  beim Mounten. Schließt den Loop Korrigieren→Üben in einem Klick.
+
 ### Added — UX: Baukasten-Blocktyp komplett entfernen
 - In `Step2_Baukasten` lässt sich ein ganzer Blocktyp per **X** (oben rechts)
   entfernen; der Zähler wandert nach oben links (Design-Konsistenz). Karte von
