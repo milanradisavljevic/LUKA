@@ -28,6 +28,7 @@ fn main() {
             commands::natascha::natascha_add_klasse,
             commands::natascha::natascha_add_aufgabe,
             commands::natascha::natascha_list_rubrics,
+            commands::natascha::natascha_save_erwartungshorizont,
             commands::db::db_load_all,
             commands::db::db_upsert_document,
             commands::db::db_delete_document,

@@ -312,3 +312,35 @@ pub async fn natascha_list_rubrics(
     if let Some(ref v) = schulstufe { cmd.arg("--schulstufe").arg(v); }
     run_cli_and_capture(cmd)
 }
+
+/// Speichert den (bearbeiteten) Erwartungshorizont (Text via stdin) als
+/// rubrics/erwartungshorizont_*.md und verlinkt ihn in der Config.
+#[tauri::command]
+pub async fn natascha_save_erwartungshorizont(
+    dir: String,
+    python: String,
+    klasse: String,
+    aufgabe: String,
+    text: String,
+) -> Result<String, String> {
+    use std::io::Write;
+    let nat_dir = resolve_dir(&dir)?;
+    let mut cmd = build_cli_command(&nat_dir, &python);
+    cmd.arg("erwartungshorizont-save")
+        .arg("--klasse").arg(&klasse)
+        .arg("--aufgabe").arg(&aufgabe)
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
+    let mut child = cmd.spawn().map_err(|e| {
+        format!("Python konnte nicht gestartet werden: {e}. Python-Befehl ggf. in den Einstellungen setzen.")
+    })?;
+    if let Some(mut stdin) = child.stdin.take() {
+        stdin.write_all(text.as_bytes()).map_err(|e| format!("stdin-Schreibfehler: {e}"))?;
+    }
+    let output = child.wait_with_output().map_err(|e| format!("CLI-Aufruf fehlgeschlagen: {e}"))?;
+    if !output.status.success() {
+        return Err(categorize_cli_error(&String::from_utf8_lossy(&output.stderr)));
+    }
+    Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+}

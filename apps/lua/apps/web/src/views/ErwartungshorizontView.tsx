@@ -5,7 +5,7 @@ import type { KlasseInfo } from '../lib/storage';
 import { ViewShell } from './_ViewShell';
 
 export function ErwartungshorizontView() {
-  const { listKlassen, listAufgaben, generateErwartungshorizont } = useNatascha();
+  const { listKlassen, listAufgaben, generateErwartungshorizont, saveErwartungshorizont } = useNatascha();
 
   const [klassen, setKlassen] = useState<KlasseInfo[]>([]);
   const [klasse, setKlasse] = useState('');
@@ -15,6 +15,21 @@ export function ErwartungshorizontView() {
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState<string | null>(null);
+
+  const handleSave = useCallback(async () => {
+    if (!result) return;
+    setSaving(true); setSaveMsg(null);
+    try {
+      const r = await saveErwartungshorizont(klasse.trim(), aufgabe.trim(), result);
+      setSaveMsg(`✓ Gespeichert (${r.datei}) — wird bei der Korrektur von ${r.klasse} · ${r.aufgabe} automatisch genutzt.`);
+    } catch (e) {
+      setSaveMsg(typeof e === 'string' ? e : e instanceof Error ? e.message : 'Speichern fehlgeschlagen.');
+    } finally {
+      setSaving(false);
+    }
+  }, [result, klasse, aufgabe, saveErwartungshorizont]);
 
   useEffect(() => { listKlassen().then(setKlassen); }, [listKlassen]);
   useEffect(() => {
@@ -98,21 +113,41 @@ export function ErwartungshorizontView() {
 
       {result && (
         <section style={cardStyle}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-            <h3 style={{ fontSize: '1rem', margin: 0 }}>Ergebnis — {klasse} · {aufgabe}</h3>
-            <button
-              onClick={copy}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', padding: '0.3rem 0.6rem',
-                border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', background: 'var(--color-bg-base)', cursor: 'pointer' }}
-            >
-              {copied ? <><Check size={13} /> Kopiert</> : <><Copy size={13} /> Kopieren</>}
-            </button>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <h3 style={{ fontSize: '1rem', margin: 0 }}>Ergebnis — {klasse} · {aufgabe} <span style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--color-text-secondary)' }}>(bearbeitbar)</span></h3>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button
+                onClick={copy}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', padding: '0.3rem 0.6rem',
+                  border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', background: 'var(--color-bg-base)', cursor: 'pointer' }}
+              >
+                {copied ? <><Check size={13} /> Kopiert</> : <><Copy size={13} /> Kopieren</>}
+              </button>
+              <button
+                className="btn-primary"
+                onClick={handleSave}
+                disabled={saving}
+                title="Speichert den Erwartungshorizont und verknüpft ihn mit der Aufgabe (wird bei der Korrektur genutzt)"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', padding: '0.3rem 0.7rem' }}
+              >
+                <Check size={13} /> {saving ? 'Speichere …' : 'Akzeptieren & speichern'}
+              </button>
+            </div>
           </div>
-          <pre style={{
-            whiteSpace: 'pre-wrap', wordBreak: 'break-word', margin: 0, fontFamily: 'inherit',
-            fontSize: '0.8125rem', lineHeight: 1.5, maxHeight: '60vh', overflowY: 'auto',
-            background: 'var(--color-bg-base)', padding: '1rem', borderRadius: 'var(--radius)',
-          }}>{result}</pre>
+          <textarea
+            value={result}
+            onChange={(e) => setResult(e.target.value)}
+            spellCheck={false}
+            style={{
+              width: '100%', boxSizing: 'border-box', minHeight: '40vh', maxHeight: '60vh',
+              fontFamily: 'inherit', fontSize: '0.8125rem', lineHeight: 1.5, resize: 'vertical',
+              background: 'var(--color-bg-base)', padding: '1rem', borderRadius: 'var(--radius)',
+              border: '1px solid var(--color-border)', color: 'var(--color-text-primary)',
+            }}
+          />
+          {saveMsg && (
+            <p style={{ fontSize: '0.75rem', marginTop: '0.5rem', marginBottom: 0, color: 'var(--color-text-secondary)', whiteSpace: 'pre-wrap' }}>{saveMsg}</p>
+          )}
         </section>
       )}
     </ViewShell>
