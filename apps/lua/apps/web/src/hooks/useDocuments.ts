@@ -2,11 +2,6 @@ import { useCallback, useState } from 'react';
 import type { SavedDocument } from '../lib/types';
 import { loadDocuments, saveDocuments } from '../lib/storage';
 
-/**
- * Verwaltet die gespeicherten Dokumente (localStorage) für die Sidebar-Ansichten
- * „Meine Unterlagen", „Favoriten" und „Papierkorb". Jede Mutation schreibt sofort
- * zurück in den Storage und aktualisiert den lokalen State.
- */
 export function useDocuments() {
   const [documents, setDocuments] = useState<SavedDocument[]>(() => loadDocuments());
 

@@ -1,20 +1,59 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use lehrunterlagen_tool::commands::{llm, keys, pdf, web, bridge, natascha};
+use std::sync::Mutex;
+
+use lehrunterlagen_tool::commands;
+use lehrunterlagen_tool::db as db_core;
 
 fn main() {
+    let conn = db_core::open_db().expect("Datenbank konnte nicht geöffnet werden");
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
+        .manage(commands::db::DbState(Mutex::new(conn)))
         .invoke_handler(tauri::generate_handler![
-            llm::llm_complete,
-            keys::save_api_key,
-            keys::load_api_key,
-            keys::delete_api_key,
-            pdf::convert_pdf,
-            web::fetch_url,
-            bridge::list_bridge_exports,
-            bridge::read_bridge_export,
-            bridge::resolve_bridge_inbox,
-            natascha::launch_natascha,
+            commands::llm::llm_complete,
+            commands::keys::save_api_key,
+            commands::keys::load_api_key,
+            commands::keys::delete_api_key,
+            commands::pdf::convert_pdf,
+            commands::web::fetch_url,
+            commands::bridge::list_bridge_exports,
+            commands::bridge::read_bridge_export,
+            commands::bridge::resolve_bridge_inbox,
+            commands::natascha::launch_natascha,
+            commands::natascha::natascha_analyze,
+            commands::natascha::natascha_feedback_docx,
+            commands::natascha::natascha_erwartungshorizont,
+            commands::natascha::natascha_seed_testdaten,
+            commands::db::db_load_all,
+            commands::db::db_upsert_document,
+            commands::db::db_delete_document,
+            commands::db::db_restore_document,
+            commands::db::db_purge_deleted,
+            commands::db::db_toggle_favorite,
+            commands::db::db_append_history,
+            commands::db::db_clear_history,
+            commands::db::db_save_settings,
+            commands::db::db_save_template,
+            commands::db::db_delete_template,
+            commands::db::db_migrate_from_localstorage,
+            commands::db::db_resolve_path,
+            commands::db::db_set_path,
+            commands::natascha_read::db_list_aufgaben,
+            commands::natascha_read::db_get_abgaben,
+            commands::natascha_read::db_get_fehler_heatmap,
+            commands::natascha_read::db_get_notenverteilung,
+            commands::natascha_read::db_get_klassen_statistik,
+            commands::natascha_read::db_upsert_lehrer_feedback,
+            commands::natascha_read::db_get_abgabe_detail,
+            commands::natascha_read::db_list_schueler,
+            commands::natascha_read::db_insert_schueler,
+            commands::natascha_read::db_delete_schueler,
+            commands::natascha_read::db_get_schueler_laengsschnitt,
+            commands::natascha_read::db_get_klassen_trend,
+            commands::natascha_read::db_get_klassen_kalibrierung,
+            commands::natascha_read::db_get_fehler_detail,
+            commands::natascha_read::db_export_noten_csv,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

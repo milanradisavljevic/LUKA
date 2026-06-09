@@ -122,15 +122,20 @@ CREATE INDEX IF NOT EXISTS idx_briefing_klasse_aufgabe ON klassen_briefing(klass
 
 
 def get_db_path(config: dict[str, Any]) -> Path:
-    """Ermittelt den DB-Pfad aus der Config oder nutzt Default."""
+    """Ermittelt den DB-Pfad aus der Config oder nutzt Default.
+    Unterstuetzt jetzt ~/-Pfade (expanduser) fuer den gemeinsamen Bridge-Ordner."""
     db_cfg = config.get("database", {})
     raw = db_cfg.get("path", "natascha_schuljahr.db")
-    return Path(raw) if Path(raw).is_absolute() else Path(__file__).resolve().parent / raw
+    p = Path(raw).expanduser()
+    return p if p.is_absolute() else Path(__file__).resolve().parent / raw
 
 
 def init_db(db_path: Path | str) -> None:
-    """Erstellt alle Tabellen und Indizes, falls sie nicht existieren."""
+    """Erstellt alle Tabellen und Indizes, falls sie nicht existieren.
+    Aktiviert WAL-Modus und Foreign Keys fuer gleichzeitigen Zugriff mit LUA."""
     with sqlite3.connect(str(db_path)) as conn:
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA foreign_keys=ON")
         conn.executescript(SCHEMA_SQL)
 
 
@@ -685,6 +690,8 @@ def save_analysis_to_db(
     Bequemlichkeits-Funktion: Nimmt das validierte JSON-Dict nach der Analyse
     und speichert alles in die DB (inkl. Kriterien und Fehler).
 
+    Verwendet eine einzelne Transaktion fuer atomaren Save.
+
     Gibt die Abgabe-ID zurueck oder -1 bei Fehler.
     """
     dateiname = data.get("datei", file_path.name)
@@ -710,48 +717,59 @@ def save_analysis_to_db(
     note = note_data.get("note")
     gesamtstufe = note_data.get("durchschnitt")
 
-    abgabe_id = insert_abgabe(
-        db_path=db_path,
-        schueler_id=schueler_id,
-        klasse=klasse,
-        aufgabe=aufgabe,
-        dateiname=dateiname,
-        datei_hash=datei_hash,
-        rohtext=rohtext,
-        note=float(note) if note is not None else None,
-        gesamtstufe=float(gesamtstufe) if gesamtstufe is not None else None,
-        feedback_json_path="",
-        wortanzahl=wortanzahl,
-        fach=data.get("fach", ""),
-        schulstufe=data.get("schulstufe", ""),
-        textsorte=data.get("textsorte", ""),
-        rubrik=data.get("rubrik", ""),
-    )
-
-    # Kriterien
-    bewertung = data.get("bewertung", {})
-    for kriterium_name, k_data in bewertung.items():
-        if isinstance(k_data, dict):
-            stufe_raw = k_data.get("stufe") or k_data.get("punkte")
-            gewicht_raw = k_data.get("gewicht")
-            insert_kriterium(
-                db_path,
-                abgabe_id,
-                kriterium_name,
-                float(stufe_raw) if stufe_raw is not None else None,
-                float(gewicht_raw) / 100 if isinstance(gewicht_raw, (int, float)) else None,
-            )
-
-    # Fehler
-    for fehler in data.get("fehler", []):
-        insert_fehler(
-            db_path,
-            abgabe_id,
-            fehler.get("zitat", ""),
-            fehler.get("korrektur", ""),
-            fehler.get("typ", ""),
-            fehler.get("erklaerung", ""),
+    # Atomare Transaktion: alles in einer Connection
+    db_path_str = str(db_path)
+    with sqlite3.connect(db_path_str) as conn:
+        conn.execute("PRAGMA foreign_keys=ON")
+        cur = conn.execute(
+            "INSERT INTO abgabe (schueler_id, klasse, aufgabe, dateiname, datei_hash, rohtext, note, gesamtstufe, feedback_json_path, wortanzahl, fach, schulstufe, textsorte, rubrik) VALUES (?, ?, ?, ?, ?, ?, ?, ?, '', ?, ?, ?, ?, ?)",
+            (
+                schueler_id,
+                klasse,
+                aufgabe,
+                dateiname,
+                datei_hash,
+                rohtext,
+                float(note) if note is not None else None,
+                float(gesamtstufe) if gesamtstufe is not None else None,
+                wortanzahl,
+                data.get("fach", ""),
+                data.get("schulstufe", ""),
+                data.get("textsorte", ""),
+                data.get("rubrik", ""),
+            ),
         )
+        abgabe_id = cur.lastrowid
+
+        # Kriterien
+        bewertung = data.get("bewertung", {})
+        for kriterium_name, k_data in bewertung.items():
+            if isinstance(k_data, dict):
+                stufe_raw = k_data.get("stufe") or k_data.get("punkte")
+                gewicht_raw = k_data.get("gewicht")
+                conn.execute(
+                    "INSERT INTO kriterium_historie (abgabe_id, kriterium_name, stufe, gewichtung) VALUES (?, ?, ?, ?)",
+                    (
+                        abgabe_id,
+                        kriterium_name,
+                        float(stufe_raw) if stufe_raw is not None else None,
+                        float(gewicht_raw) / 100 if isinstance(gewicht_raw, (int, float)) else None,
+                    ),
+                )
+
+        # Fehler
+        for fehler in data.get("fehler", []):
+            conn.execute(
+                "INSERT INTO fehler_historie (abgabe_id, zitat, korrektur, typ, erklaerung) VALUES (?, ?, ?, ?, ?)",
+                (
+                    abgabe_id,
+                    fehler.get("zitat", ""),
+                    fehler.get("korrektur", ""),
+                    fehler.get("typ", ""),
+                    fehler.get("erklaerung", ""),
+                ),
+            )
+        conn.commit()
 
     return abgabe_id
 

@@ -32,7 +32,11 @@ schulstufe = "Oberstufe"
 [database]
 # SQLite-Datenbank fuer Schueler-Tracking und Historie.
 # Ein Schuljahr = eine Datei. Beispiel: "natascha_2025_26.db"
-path = "natascha_schuljahr.db"
+#
+# Gemeinsamer Pfad mit LUA (beide Apps nutzen dieselbe DB):
+path = "~/lehr-suite-bridge/lehr-suite.db"
+# Lokaler Pfad (Nur-NATASCHA):
+# path = "natascha_schuljahr.db"
 
 [bridge]
 # Datei-Bruecke zum Lehrunterlagen-Tool (LUA). Der Heatmap-Tab schreibt hier

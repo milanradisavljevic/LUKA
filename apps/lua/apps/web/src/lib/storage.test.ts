@@ -11,9 +11,9 @@ import {
   saveSettings,
   snapshotFromState,
   upsertDocument,
+  hydrateCache,
 } from './storage';
 
-// Minimaler In-Memory-localStorage-Mock (vitest läuft im node-Env ohne DOM).
 function installLocalStorage() {
   const store = new Map<string, string>();
   globalThis.localStorage = {
@@ -52,7 +52,10 @@ function makeDoc(id: string, overrides: Partial<SavedDocument> = {}): SavedDocum
 }
 
 describe('storage — Dokumente', () => {
-  beforeEach(installLocalStorage);
+  beforeEach(() => {
+    installLocalStorage();
+    hydrateCache();
+  });
 
   it('liefert [] bei leerem Storage und bei kaputtem JSON', () => {
     expect(loadDocuments()).toEqual([]);
@@ -75,7 +78,10 @@ describe('storage — Dokumente', () => {
 });
 
 describe('storage — Verlauf', () => {
-  beforeEach(installLocalStorage);
+  beforeEach(() => {
+    installLocalStorage();
+    hydrateCache();
+  });
 
   const entry = (id: string): HistoryEntry => ({
     id,
@@ -105,7 +111,10 @@ describe('storage — Verlauf', () => {
 });
 
 describe('storage — Standard-Vorgaben', () => {
-  beforeEach(installLocalStorage);
+  beforeEach(() => {
+    installLocalStorage();
+    hydrateCache();
+  });
 
   it('liefert DEFAULT_SETTINGS bei leerem/kaputtem Storage', () => {
     expect(loadSettings()).toEqual(DEFAULT_SETTINGS);
@@ -115,19 +124,20 @@ describe('storage — Standard-Vorgaben', () => {
 
   it('mergt Teil-Settings über die Defaults', () => {
     localStorage.setItem('lehrunterlagen-settings', JSON.stringify({ defaultKreativitaet: 0.9 }));
+    hydrateCache();
     const s = loadSettings();
     expect(s.defaultKreativitaet).toBe(0.9);
     expect(s.defaultProvider).toBe(DEFAULT_SETTINGS.defaultProvider);
   });
 
   it('saveSettings + loadSettings sind roundtrip-fähig', () => {
-    saveSettings({ defaultProvider: 'deepseek', defaultModel: 'DeepSeek V4 Pro', defaultKreativitaet: 0.2, defaultAusgabeSprache: 'en', judgeEnabled: false });
+    saveSettings({ defaultProvider: 'deepseek', defaultModel: 'DeepSeek V4 Pro', defaultKreativitaet: 0.2, defaultAusgabeSprache: 'en', judgeEnabled: false, nataschaInboxDir: '', nataschaDir: '', pythonCommand: '' });
     expect(loadSettings()).toEqual({ defaultProvider: 'deepseek', defaultModel: 'DeepSeek V4 Pro', defaultKreativitaet: 0.2, defaultAusgabeSprache: 'en', judgeEnabled: false, nataschaInboxDir: '', nataschaDir: '', pythonCommand: '' });
   });
 });
 
 describe('storage — snapshotFromState', () => {
-  it('übernimmt nur die persistierbaren Felder (ohne step / aktuelleDokumentId)', () => {
+  it('uebernimmt nur die persistierbaren Felder (ohne step / aktuelleDokumentId)', () => {
     const state = {
       step: 'generate',
       aktuelleDokumentId: 'x',

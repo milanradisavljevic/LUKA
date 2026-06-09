@@ -36,3 +36,6 @@ bridge/inbox/*.json
 # --- OS / Editor ---
 .DS_Store
 Thumbs.db
+
+# --- Versehentlich angelegte Leerdateien ---
+docs/Textdokument (neu).txt
