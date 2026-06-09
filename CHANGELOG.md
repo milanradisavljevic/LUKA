@@ -7,6 +7,14 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Welle 4b: Erwartungshorizont-Generator (UI)
+- Neue `ErwartungshorizontView` + Sidebar-Eintrag „Erwartungshorizont": Klasse
+  wählen, Aufgabe (mit Vorschlägen aus vorhandenen Aufgaben) → „Generieren" ruft
+  NATASCHAs LLM-Erwartungshorizont (Backend war bereits da) → Markdown-Ergebnis
+  mit Kopieren-Button.
+- `useNatascha.generateErwartungshorizont` wirft den (kategorisierten) Fehler jetzt
+  durch, statt ihn zu schlucken — die View zeigt „API-Key fehlt" etc.
+
 ### Added — Härtung (Tests + Fehler-Sichtbarkeit)
 - **Rust-Unit-Tests** für `natascha_read.rs`: Read-Logik in testbare
   `*_impl(conn, …)`-Helfer extrahiert (list_aufgaben, fehler_heatmap, schueler-

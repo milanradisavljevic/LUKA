@@ -16,6 +16,7 @@ export type ActiveView =
   | 'korrektur'
   | 'klassen'
   | 'schueler'
+  | 'erwartungshorizont'
   | 'settings'
   | 'help';
 

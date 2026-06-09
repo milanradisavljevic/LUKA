@@ -156,21 +156,17 @@ export function useNatascha() {
     }
   }, []);
 
-  const generateErwartungshorizont = useCallback(async (klasse: string, aufgabe: string, provider?: string, model?: string): Promise<string | null> => {
-    try {
-      const settings = loadSettings();
-      const result = await invoke<string>('natascha_erwartungshorizont', {
-        dir: settings.nataschaDir ?? '',
-        python: settings.pythonCommand ?? '',
-        klasse,
-        aufgabe,
-        provider: provider ?? null,
-        model: model ?? null,
-      });
-      return result;
-    } catch (e) {
-      return null;
-    }
+  // Wirft bei Fehler (z. B. API-Key/Netzwerk) — die View zeigt die kategorisierte Meldung.
+  const generateErwartungshorizont = useCallback(async (klasse: string, aufgabe: string, provider?: string, model?: string): Promise<string> => {
+    const settings = loadSettings();
+    return invoke<string>('natascha_erwartungshorizont', {
+      dir: settings.nataschaDir ?? '',
+      python: settings.pythonCommand ?? '',
+      klasse,
+      aufgabe,
+      provider: provider ?? null,
+      model: model ?? null,
+    });
   }, []);
 
   const getAbgabeDetail = useCallback(async (abgabeId: number): Promise<AbgabeDetail | null> => {
