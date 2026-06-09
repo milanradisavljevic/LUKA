@@ -25,6 +25,7 @@ import { HelpView } from './views/HelpView';
 import { SettingsView } from './views/SettingsView';
 import { KorrekturView } from './views/KorrekturView';
 import { SchuelerView } from './views/SchuelerView';
+import { ErwartungshorizontView } from './views/ErwartungshorizontView';
 import { loadDocuments, upsertDocument, snapshotFromState, saveTemplate, deleteTemplate, loadTemplates, hydrateCache, isHydrated } from './lib/storage';
 import './App.css';
 
@@ -203,6 +204,8 @@ if (hydrating) {
         return <SchuelerView />;
       case 'klassen':
         return <KlassenView />;
+      case 'erwartungshorizont':
+        return <ErwartungshorizontView />;
       case 'settings':
         return <SettingsView />;
       case 'help':
