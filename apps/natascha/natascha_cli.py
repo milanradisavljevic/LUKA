@@ -215,6 +215,87 @@ def _apply_provider_override(config: dict, args) -> dict:
     return cfg
 
 
+def _reconstruct_feedback_from_db(db_path, abgabe_id, abgabe):
+    """Baut FeedbackData direkt aus DB-Tabellen, wenn kein JSON auf Platte liegt.
+    Kriterien-Texte (Staerken/Schwaachen/Vorschlaege) sind leer — nur Struktur."""
+    import sqlite3
+    import generate_feedback as gf
+
+    conn = sqlite3.connect(str(db_path))
+    conn.row_factory = sqlite3.Row
+
+    krit_rows = conn.execute(
+        "SELECT kriterium_name, stufe, gewichtung FROM kriterium_historie WHERE abgabe_id = ?",
+        (abgabe_id,),
+    ).fetchall()
+    fehler_rows = conn.execute(
+        "SELECT zitat, korrektur, typ, erklaerung FROM fehler_historie WHERE abgabe_id = ?",
+        (abgabe_id,),
+    ).fetchall()
+
+    schueler_name = None
+    if abgabe.get("schueler_id"):
+        s = conn.execute(
+            "SELECT vorname, nachname FROM schueler WHERE id = ?",
+            (abgabe["schueler_id"],),
+        ).fetchone()
+        if s:
+            schueler_name = f"{s['vorname']} {s['nachname'] or ''}".strip()
+
+    conn.close()
+
+    if not krit_rows:
+        return None
+
+    bewertung = [
+        gf.CriterionFeedback(
+            key=gf.canonical_key(k["kriterium_name"]),
+            stufe=str(k["stufe"] or 0),
+            punkte=float(k["stufe"] or 0),
+            gewicht=float(k["gewichtung"]) if k["gewichtung"] is not None else None,
+            staerken=[],
+            schwaechen=[],
+            vorschlaege=[],
+        )
+        for k in krit_rows
+    ]
+
+    fehler = [
+        gf.SprachFehler(
+            zitat=str(f["zitat"] or ""),
+            korrektur=str(f["korrektur"] or ""),
+            typ=str(f["typ"] or "G"),
+            erklaerung=str(f["erklaerung"] or ""),
+        )
+        for f in fehler_rows
+    ]
+
+    note = abgabe.get("note")
+    gesamtstufe = abgabe.get("gesamtstufe")
+    notenempfehlung = None
+    if note is not None:
+        notenempfehlung = gf.GradeRecommendation(
+            durchschnitt=float(gesamtstufe or note),
+            note=int(note),
+            bezeichnung="",
+            begruendung="",
+        )
+
+    return gf.FeedbackData(
+        datei=abgabe.get("dateiname", ""),
+        schueler=schueler_name,
+        klasse=abgabe.get("klasse", ""),
+        textsorte=abgabe.get("textsorte", ""),
+        fach=abgabe.get("fach", "Deutsch"),
+        schulstufe=abgabe.get("schulstufe", "Oberstufe"),
+        rubrik=abgabe.get("rubrik", ""),
+        bewertung=bewertung,
+        notenempfehlung=notenempfehlung,
+        hinweise=[],
+        fehler=fehler or None,
+    )
+
+
 def cmd_feedback_docx(args):
     nc, ndb, config, db_path = _load_env_and_config()
     import generate_feedback as gf
@@ -234,8 +315,10 @@ def cmd_feedback_docx(args):
     if feedback_json_path and Path(feedback_json_path).is_file():
         data = gf.load_feedback_json(Path(feedback_json_path))
     else:
-        print("Kein Feedback-JSON fuer diese Abgabe", file=sys.stderr)
-        return 1
+        data = _reconstruct_feedback_from_db(db_path, abgabe_id, abgabe)
+        if data is None:
+            print("Kein Feedback-JSON und keine Kriterien in der DB fuer diese Abgabe", file=sys.stderr)
+            return 1
 
     doc = gf.build_feedback_document(data, config=config, bewertungsmodus=args.bewertungsmodus)
     output = args.output or str(Path.cwd() / f"feedback_{abgabe_id}.docx")
