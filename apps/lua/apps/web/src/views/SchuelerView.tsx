@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Users, TrendingUp, AlertTriangle, Loader2, BarChart3, ChevronRight, Trash2, UserPlus, Sparkles, Wand2 } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Users, TrendingUp, AlertTriangle, Loader2, BarChart3, ChevronRight, Trash2, UserPlus, Sparkles, Wand2, FileUp } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, Legend, CartesianGrid } from 'recharts';
 import { useNatascha } from '../hooks/useNatascha';
 import type { KlasseInfo } from '../lib/storage';
@@ -44,6 +44,8 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
   const [profil, setProfil] = useState<SchuelerProfilRow | null>(null);
   const [profilBusy, setProfilBusy] = useState(false);
   const [profilError, setProfilError] = useState<string | null>(null);
+  const [importMsg, setImportMsg] = useState<string | null>(null);
+  const csvInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { listKlassen().then(setKlassen); }, [listKlassen]);
 
@@ -157,6 +159,37 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
     } finally { setAdding(false); }
   }, [neuKlasse, selectedKlasse, neuVorname, neuNachname, insertSchueler, listKlassen, loadSchueler]);
 
+  // CSV-Import: eine Zeile pro Schüler. Unterstützt "Vorname,Nachname",
+  // "Nachname;Vorname"-artige Trenner (, ; Tab) oder eine einzelne "Vorname Nachname"-Spalte.
+  const handleCsvImport = useCallback(async (file: File) => {
+    const klasse = (neuKlasse || selectedKlasse || '').trim();
+    if (!klasse) { setImportMsg('Bitte zuerst eine Klasse wählen oder eingeben.'); return; }
+    setImportMsg('Importiere …');
+    try {
+      const text = await file.text();
+      const rows = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      let ok = 0, skip = 0;
+      for (const [i, line] of rows.entries()) {
+        const parts = line.split(/[,;\t]/).map((p) => p.trim()).filter(Boolean);
+        let vn = '', nn = '';
+        if (parts.length >= 2) { vn = parts[0]!; nn = parts[1]!; }
+        else if (parts.length === 1) {
+          const sp = parts[0]!.split(/\s+/);
+          vn = sp[0]!; nn = sp.slice(1).join(' ');
+        }
+        // Kopfzeile überspringen
+        if (i === 0 && /vorname|nachname|name/i.test(line)) { skip++; continue; }
+        if (!vn) { skip++; continue; }
+        try { await insertSchueler(klasse, vn, nn || null); ok++; } catch { skip++; }
+      }
+      setImportMsg(`${ok} Schüler importiert${skip ? `, ${skip} übersprungen` : ''}.`);
+      await listKlassen().then(setKlassen);
+      await loadSchueler(klasse);
+    } catch (e) {
+      setImportMsg(typeof e === 'string' ? e : e instanceof Error ? e.message : 'Import fehlgeschlagen.');
+    }
+  }, [neuKlasse, selectedKlasse, insertSchueler, listKlassen, loadSchueler]);
+
   const handleDeleteSchueler = useCallback(async (id: number, name: string) => {
     if (!window.confirm(`Schüler „${name}" löschen? (Abgaben bleiben erhalten.)`)) return;
     setError(null);
@@ -251,6 +284,19 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
               style={{ width: '100%', fontSize: '0.75rem', padding: '0.35rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
               <UserPlus size={13} /> {adding ? 'Anlegen …' : 'Hinzufügen'}
             </button>
+            <input
+              ref={csvInputRef}
+              type="file"
+              accept=".csv,.txt"
+              style={{ display: 'none' }}
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleCsvImport(f); e.target.value = ''; }}
+            />
+            <button className="btn-secondary" onClick={() => csvInputRef.current?.click()}
+              title="CSV: eine Zeile pro Schüler (Vorname,Nachname)"
+              style={{ width: '100%', marginTop: 4, fontSize: '0.7rem', padding: '0.3rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+              <FileUp size={12} /> CSV importieren
+            </button>
+            {importMsg && <p style={{ fontSize: '0.6875rem', marginTop: 4, marginBottom: 0, color: 'var(--color-text-secondary)' }}>{importMsg}</p>}
           </div>
 
           <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--color-border)' }}>
