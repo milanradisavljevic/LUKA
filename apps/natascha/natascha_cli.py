@@ -149,7 +149,20 @@ def cmd_schueler_profil(args):
         print(f"Kein Laengsschnitt fuer Schueler-ID {args.schueler_id}", file=sys.stderr)
         return 1
     prompt = nc.build_schueler_profil_prompt(laengsschnitt)
-    _json_out({"prompt": prompt, "laengsschnitt": laengsschnitt})
+    effective_config = _apply_provider_override(config, args)
+    try:
+        result_text = nc.run_llm_api(prompt, effective_config)
+    except Exception as e:
+        print(str(e), file=sys.stderr)
+        return 1
+    modell = effective_config.get("api", {}).get("model", "")
+    profil_id = ndb.save_schueler_profil(
+        db_path, args.schueler_id,
+        {"text": result_text},
+        basis_anzahl_abgaben=laengsschnitt.get("anzahl_abgaben", 0),
+        modell=modell,
+    )
+    _json_out({"id": profil_id, "schueler_id": args.schueler_id, "text": result_text, "modell": modell})
     return 0
 
 
@@ -168,8 +181,38 @@ def cmd_klassen_briefing(args):
         "trend": trend,
     }
     prompt = nc.build_klassen_briefing_prompt(aggregat)
-    _json_out({"prompt": prompt, "aggregat": aggregat})
+    effective_config = _apply_provider_override(config, args)
+    try:
+        result_text = nc.run_llm_api(prompt, effective_config)
+    except Exception as e:
+        print(str(e), file=sys.stderr)
+        return 1
+    modell = effective_config.get("api", {}).get("model", "")
+    briefing_id = ndb.save_klassen_briefing(
+        db_path, args.klasse, args.aufgabe or None,
+        {"text": result_text},
+        basis_anzahl_abgaben=feedback.get("anzahl_abgaben", 0),
+        basis_anzahl_fehler=feedback.get("anzahl_fehler", 0),
+        modell=modell,
+    )
+    _json_out({"id": briefing_id, "klasse": args.klasse, "aufgabe": args.aufgabe or None,
+               "text": result_text, "modell": modell})
     return 0
+
+
+def _apply_provider_override(config: dict, args) -> dict:
+    """Gibt config mit überschriebenem provider/model zurück (falls --provider/--model gesetzt)."""
+    provider = getattr(args, "provider", "") or ""
+    model = getattr(args, "model", "") or ""
+    if not provider and not model:
+        return config
+    cfg = dict(config)
+    cfg["api"] = dict(config.get("api", {}))
+    if provider:
+        cfg["api"]["provider"] = provider
+    if model:
+        cfg["api"]["model"] = model
+    return cfg
 
 
 def cmd_feedback_docx(args):
@@ -333,13 +376,17 @@ def main():
     p_srdp.add_argument("abgabe_id", type=int)
 
     # schueler-profil
-    p_profil = sub.add_parser("schueler-profil", help="Schuelerprofil-Prompt")
+    p_profil = sub.add_parser("schueler-profil", help="KI-Schuelerprofil generieren + speichern")
     p_profil.add_argument("--schueler-id", type=int, required=True)
+    p_profil.add_argument("--provider", default="")
+    p_profil.add_argument("--model", default="")
 
     # klassen-briefing
-    p_briefing = sub.add_parser("klassen-briefing", help="Klassenbriefing-Prompt")
+    p_briefing = sub.add_parser("klassen-briefing", help="KI-Klassenbriefing generieren + speichern")
     p_briefing.add_argument("--klasse", required=True)
     p_briefing.add_argument("--aufgabe", default=None)
+    p_briefing.add_argument("--provider", default="")
+    p_briefing.add_argument("--model", default="")
 
     # feedback-docx
     p_docx = sub.add_parser("feedback-docx", help="Feedback-DOCX generieren")

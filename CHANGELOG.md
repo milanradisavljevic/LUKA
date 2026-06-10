@@ -7,6 +7,22 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Stage 4: LLM-Klassen-Briefing + Schüler-Profil
+- **KI-Klassen-Briefing** (Statistik-Tab in `KlassenView`): Button „Briefing generieren" ruft
+  `klassen-briefing`-CLI auf (aggregiert Fehlerheatmap, Notenverteilung, Trend, Kalibrierung → LLM
+  → speichert in `klassen_briefing`-Tabelle). Letztes Briefing wird beim Klassen-Wechsel automatisch
+  geladen. Rust-Command `natascha_klassen_briefing`, Rust-Read `db_get_klassen_briefing`.
+- **KI-Schüler-Profil** (`SchuelerView`): Button „Profil generieren" ruft `schueler-profil`-CLI
+  auf (Längsschnitt → LLM → speichert in `schueler_profil`-Tabelle). Profil wird beim
+  Schüler-Wechsel automatisch geladen. Rust-Command `natascha_schueler_profil`,
+  Rust-Read `db_get_schueler_profil`.
+- **Python CLI** (`natascha_cli.py`): `cmd_klassen_briefing` + `cmd_schueler_profil` rufen jetzt
+  `nc.run_llm_api()` auf + speichern via `ndb.save_klassen_briefing/save_schueler_profil`.
+  `--provider`/`--model` Override-Args ergänzt. `_apply_provider_override()` als Helper.
+- TS-Hooks `generateKlassenBriefing`, `generateSchuelerProfil`, `getKlassenBriefing`,
+  `getSchuelerProfil` in `useNatascha.ts` + Interfaces `KlassenBriefingRow`, `SchuelerProfilRow`.
+- Verifikation: 41 Web-Tests, 27 Rust-Tests, `tsc`, `cargo check` alle grün.
+
 ### Added — Stage 3b: Korrektur-Feedback-Vorschau (Schülertext annotiert)
 - `KorrekturView`: neues **„Schülertext mit Markierungen"**-Panel nach der Fehler-Liste.
   Klappt per Toggle auf (Eye/EyeOff). Rendert `rohtext` mit farbigen Inline-Markierungen

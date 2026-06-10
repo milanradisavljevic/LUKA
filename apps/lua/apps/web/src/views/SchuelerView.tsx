@@ -1,14 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Users, TrendingUp, AlertTriangle, Loader2, BarChart3, ChevronRight, Trash2, UserPlus } from 'lucide-react';
+import { Users, TrendingUp, AlertTriangle, Loader2, BarChart3, ChevronRight, Trash2, UserPlus, Sparkles } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, Legend, CartesianGrid } from 'recharts';
 import { useNatascha } from '../hooks/useNatascha';
 import type { KlasseInfo } from '../lib/storage';
+import type { SchuelerProfilRow } from '../hooks/useNatascha';
 import { ViewShell } from './_ViewShell';
 
 const FEHLER_LABELS: Record<string, string> = { R: 'Rechtschreibung', G: 'Grammatik', Z: 'Zeichensetzung', A: 'Ausdruck' };
 
 export function SchuelerView() {
-  const { listKlassen, listSchueler, insertSchueler, deleteSchueler, addKlasse, addAufgabe, listRubrics, getSchuelerLaengsschnitt } = useNatascha();
+  const { listKlassen, listSchueler, insertSchueler, deleteSchueler, addKlasse, addAufgabe, listRubrics, getSchuelerLaengsschnitt, generateSchuelerProfil, getSchuelerProfil } = useNatascha();
 
   const [klassen, setKlassen] = useState<KlasseInfo[]>([]);
   const [selectedKlasse, setSelectedKlasse] = useState<string | null>(null);
@@ -29,6 +30,9 @@ export function SchuelerView() {
   const [rubrics, setRubrics] = useState<string[]>([]);
   const [aufBusy, setAufBusy] = useState(false);
   const [aufMsg, setAufMsg] = useState<string | null>(null);
+  const [profil, setProfil] = useState<SchuelerProfilRow | null>(null);
+  const [profilBusy, setProfilBusy] = useState(false);
+  const [profilError, setProfilError] = useState<string | null>(null);
 
   useEffect(() => { listKlassen().then(setKlassen); }, [listKlassen]);
 
@@ -65,13 +69,27 @@ export function SchuelerView() {
 
   const loadLaengsschnitt = useCallback(async (schuelerId: number) => {
     setSelectedSchuelerId(schuelerId);
+    setProfil(null);
+    setProfilError(null);
     setLoading(true);
+    getSchuelerProfil(schuelerId).then(setProfil);
     try {
       const result = await getSchuelerLaengsschnitt(schuelerId);
       setLaengsschnitt(result);
     } catch (e) { setError(String(e)); }
     finally { setLoading(false); }
-  }, [getSchuelerLaengsschnitt]);
+  }, [getSchuelerLaengsschnitt, getSchuelerProfil]);
+
+  const handleGenerateProfil = useCallback(async () => {
+    if (!selectedSchuelerId) return;
+    setProfilBusy(true); setProfilError(null);
+    try {
+      const result = await generateSchuelerProfil(selectedSchuelerId);
+      setProfil({ id: result.id, schuelerId: result.schueler_id, text: result.text, modell: result.modell, erstelltAm: '' });
+    } catch (e) {
+      setProfilError(typeof e === 'string' ? e : e instanceof Error ? e.message : 'Profil-Generierung fehlgeschlagen');
+    } finally { setProfilBusy(false); }
+  }, [selectedSchuelerId, generateSchuelerProfil]);
 
   const handleAddSchueler = useCallback(async () => {
     const klasse = (neuKlasse || selectedKlasse || '').trim();
@@ -326,6 +344,39 @@ export function SchuelerView() {
                 </div>
               </div>
             </>
+          )}
+
+          {!loading && selectedSchuelerId && (
+            <div style={{ ...cardStyle, marginTop: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <h4 style={{ fontSize: '0.875rem', margin: 0 }}>
+                  <Sparkles size={15} style={{ verticalAlign: -2, marginRight: 6, color: 'var(--color-accent)' }} />
+                  KI-Schüler-Profil
+                </h4>
+                <button
+                  className="btn-primary"
+                  onClick={handleGenerateProfil}
+                  disabled={profilBusy}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', padding: '0.3rem 0.7rem' }}
+                  title="Generiert ein KI-Profil auf Basis des Längsschnitts (Fehlerschwerpunkte, Trend, Kalibrierung)"
+                >
+                  {profilBusy ? <><Loader2 size={13} className="spin" /> Generiere …</> : <><Sparkles size={13} /> Profil generieren</>}
+                </button>
+              </div>
+              {profilError && <p style={{ fontSize: '0.8125rem', color: 'var(--color-danger, #c0392b)', margin: '0.25rem 0' }}>{profilError}</p>}
+              {profil ? (
+                <>
+                  <p style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)', margin: '0 0 0.5rem' }}>
+                    {profil.erstelltAm && `${profil.erstelltAm} · `}{profil.modell || 'Modell unbekannt'}
+                  </p>
+                  <div style={{ maxHeight: '40vh', overflowY: 'auto', fontSize: '0.8125rem', lineHeight: 1.6, whiteSpace: 'pre-wrap', background: 'var(--color-bg-base)', padding: '0.75rem', borderRadius: 'var(--radius)' }}>
+                    {profil.text}
+                  </div>
+                </>
+              ) : (
+                !profilBusy && <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: '0.25rem 0 0' }}>Noch kein Profil — Button klicken zum Generieren.</p>
+              )}
+            </div>
           )}
 
           {!loading && selectedKlasse && schueler.length === 0 && (

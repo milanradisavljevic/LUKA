@@ -104,7 +104,7 @@ output = "output/3b/Zusammenfassung_Elektrom_ll"
 [classes.6i]
 input = "input/6i"
 output = "output/6i"
-active_aufgabe = "SA2_Thema_Booktok"
+active_aufgabe = "Schularbeit_5"
 
 [classes.6i.aufgaben.Jugendsprache_Kommentar]
 label = "Jugendsprache Kommentar"
@@ -178,6 +178,15 @@ textsorte = "Kommentar"
 rubric = "kommentar.md"
 input = "input/6i/SA_Thema_Genderneutrale_Mode"
 output = "output/6i/SA_Thema_Genderneutrale_Mode"
+
+[classes.6i.aufgaben.Schularbeit_5]
+label = "Schularbeit_5"
+fach = "Deutsch"
+schulstufe = "Oberstufe"
+textsorte = ""
+rubric = "eroerterung.md"
+input = "input/6i/Schularbeit_5"
+output = "output/6i/Schularbeit_5"
 [classes.8T]
 input = "input/8t"
 output = "output/8t"

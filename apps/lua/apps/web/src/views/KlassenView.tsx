@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { GraduationCap, Users, BarChart3, AlertTriangle, TrendingUp, Download, Wand2 } from 'lucide-react';
+import { GraduationCap, Users, BarChart3, AlertTriangle, TrendingUp, Download, Wand2, Sparkles, Loader2 } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from 'recharts';
 import type { KlasseInfo } from '../lib/storage';
 import { useNatascha } from '../hooks/useNatascha';
+import type { KlassenBriefingRow } from '../hooks/useNatascha';
 import { KATEGORIE_TO_BLOCKTYPEN, type NataschaPrefill } from '../lib/nataschaBridge';
 import type { BlockTyp } from '@lehrunterlagen/schema';
 import { ViewShell } from './_ViewShell';
@@ -81,7 +82,7 @@ const FEHLER_COLORS: Record<string, string> = { R: '#e74c3c', G: '#27ae60', Z: '
 type Tab = 'uebersicht' | 'statistik';
 
 export function KlassenView({ onGenerateUebung }: Props) {
-  const { listKlassen, listAufgaben, getAbgaben, getHeatmap, getKlassenStatistik, getKlassenTrend, getKlassenKalibrierung, getFehlerDetail, exportNotenCsv } = useNatascha();
+  const { listKlassen, listAufgaben, getAbgaben, getHeatmap, getKlassenStatistik, getKlassenTrend, getKlassenKalibrierung, getFehlerDetail, exportNotenCsv, generateKlassenBriefing, getKlassenBriefing } = useNatascha();
 
   const [tab, setTab] = useState<Tab>('uebersicht');
   const [klassen, setKlassen] = useState<KlasseInfo[]>([]);
@@ -96,6 +97,9 @@ export function KlassenView({ onGenerateUebung }: Props) {
   const [fehlerDetail, setFehlerDetail] = useState<{ typ: string; rows: FehlerDetailRow[] } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [briefing, setBriefing] = useState<KlassenBriefingRow | null>(null);
+  const [briefingBusy, setBriefingBusy] = useState(false);
+  const [briefingError, setBriefingError] = useState<string | null>(null);
 
   useEffect(() => {
     listKlassen().then(setKlassen).catch(() => {
@@ -107,8 +111,11 @@ export function KlassenView({ onGenerateUebung }: Props) {
     setSelectedKlasse(klasse);
     setSelectedAufgabe(null);
     setFehlerDetail(null);
+    setBriefing(null);
+    setBriefingError(null);
     setLoading(true);
     setError(null);
+    getKlassenBriefing(klasse).then(setBriefing);
     try {
       const af = await listAufgaben(klasse);
       setAufgaben(af);
@@ -173,6 +180,20 @@ export function KlassenView({ onGenerateUebung }: Props) {
     };
     onGenerateUebung?.(prefill);
   }, [selectedKlasse, selectedAufgabe, heatmap, onGenerateUebung]);
+
+  const handleGenerateBriefing = useCallback(async () => {
+    if (!selectedKlasse) return;
+    setBriefingBusy(true);
+    setBriefingError(null);
+    try {
+      const result = await generateKlassenBriefing(selectedKlasse, selectedAufgabe ?? undefined);
+      setBriefing({ id: result.id, klasse: result.klasse, aufgabe: result.aufgabe ?? '', text: result.text, modell: result.modell, erstelltAm: '' });
+    } catch (e) {
+      setBriefingError(typeof e === 'string' ? e : e instanceof Error ? e.message : 'Briefing fehlgeschlagen');
+    } finally {
+      setBriefingBusy(false);
+    }
+  }, [selectedKlasse, selectedAufgabe, generateKlassenBriefing]);
 
   const handleExportCsv = useCallback(async () => {
     if (!selectedKlasse) return;
@@ -429,6 +450,37 @@ export function KlassenView({ onGenerateUebung }: Props) {
                   </p>
                 </div>
               )}
+
+              <div style={cardStyle}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <h4 style={{ fontSize: '0.875rem', margin: 0 }}>
+                    <Sparkles size={15} style={{ verticalAlign: -2, marginRight: 6, color: 'var(--color-accent)' }} />
+                    KI-Klassen-Briefing
+                  </h4>
+                  <button
+                    className="btn-primary"
+                    onClick={handleGenerateBriefing}
+                    disabled={briefingBusy}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', padding: '0.3rem 0.7rem' }}
+                    title="Generiert ein KI-Briefing zur aktuellen Klassensituation (Fehlerschwerpunkte, Notenverteilung, Trend)"
+                  >
+                    {briefingBusy ? <><Loader2 size={13} className="spin" /> Generiere …</> : <><Sparkles size={13} /> Briefing generieren</>}
+                  </button>
+                </div>
+                {briefingError && <p style={{ fontSize: '0.8125rem', color: 'var(--color-danger, #c0392b)', margin: '0.25rem 0' }}>{briefingError}</p>}
+                {briefing ? (
+                  <>
+                    <p style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)', margin: '0 0 0.5rem' }}>
+                      {briefing.erstelltAm && `${briefing.erstelltAm} · `}{briefing.modell || 'Modell unbekannt'}
+                    </p>
+                    <div style={{ maxHeight: '40vh', overflowY: 'auto', fontSize: '0.8125rem', lineHeight: 1.6, whiteSpace: 'pre-wrap', background: 'var(--color-bg-base)', padding: '0.75rem', borderRadius: 'var(--radius)' }}>
+                      {briefing.text}
+                    </div>
+                  </>
+                ) : (
+                  !briefingBusy && <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: '0.25rem 0 0' }}>Noch kein Briefing — Button klicken zum Generieren.</p>
+                )}
+              </div>
             </>
           )}
 

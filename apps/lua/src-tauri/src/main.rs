@@ -29,6 +29,8 @@ fn main() {
             commands::natascha::natascha_add_aufgabe,
             commands::natascha::natascha_list_rubrics,
             commands::natascha::natascha_save_erwartungshorizont,
+            commands::natascha::natascha_klassen_briefing,
+            commands::natascha::natascha_schueler_profil,
             commands::db::db_load_all,
             commands::db::db_upsert_document,
             commands::db::db_delete_document,
@@ -58,6 +60,8 @@ fn main() {
             commands::natascha_read::db_get_klassen_kalibrierung,
             commands::natascha_read::db_get_fehler_detail,
             commands::natascha_read::db_export_noten_csv,
+            commands::natascha_read::db_get_klassen_briefing,
+            commands::natascha_read::db_get_schueler_profil,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
