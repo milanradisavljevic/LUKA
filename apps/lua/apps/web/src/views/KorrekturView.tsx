@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { SpellCheck, FileText, GraduationCap, Save, AlertTriangle, Loader2, Upload, FileDown, ChevronRight, Eye, EyeOff } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { SpellCheck, FileText, GraduationCap, Save, AlertTriangle, Loader2, Upload, FileDown, ChevronRight, Eye, EyeOff, Files, XCircle, CheckCircle2 } from 'lucide-react';
 import { loadSettings } from '../lib/storage';
 import { useNatascha } from '../hooks/useNatascha';
 import { ViewShell } from './_ViewShell';
@@ -93,6 +93,13 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
   const [analyzeAufgabe, setAnalyzeAufgabe] = useState('');
   const [analyzeFile, setAnalyzeFile] = useState('');
   const [analyzeSuccess, setAnalyzeSuccess] = useState<string | null>(null);
+
+  // Batch-Korrektur (mehrere Dateien sequenziell)
+  const [batchFiles, setBatchFiles] = useState<string[]>([]);
+  const [batchRunning, setBatchRunning] = useState(false);
+  const [batchCurrent, setBatchCurrent] = useState(0);
+  const [batchResults, setBatchResults] = useState<{ file: string; ok: boolean; msg: string }[]>([]);
+  const batchCancelRef = useRef(false);
 
   useEffect(() => {
     listKlassen().then(setKlassen);
@@ -224,6 +231,59 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
       setAnalyzeFile(prompt('Dateipfad zur Schülerarbeit:') ?? '');
     }
   }, []);
+
+  const pickFiles = useCallback(async () => {
+    try {
+      const { open } = await import('@tauri-apps/plugin-dialog');
+      const selected = await open({ multiple: true, filters: [{ name: 'Dokumente', extensions: ['docx', 'pdf', 'txt', 'odt'] }] });
+      if (Array.isArray(selected)) {
+        setBatchFiles(selected);
+      } else if (typeof selected === 'string') {
+        setBatchFiles([selected]);
+      }
+      setBatchResults([]);
+    } catch {
+      /* Dialog nicht verfügbar (z. B. Web-Dev) — Batch braucht den nativen Picker. */
+    }
+  }, []);
+
+  const baseName = (p: string) => p.split(/[/\\]/).pop() || p;
+
+  const handleBatchAnalyze = useCallback(async () => {
+    if (batchFiles.length === 0 || !analyzeKlasse || !analyzeAufgabe) return;
+    setError(null);
+    setAnalyzeSuccess(null);
+    setBatchRunning(true);
+    setBatchResults([]);
+    setBatchCurrent(0);
+    batchCancelRef.current = false;
+
+    const results: { file: string; ok: boolean; msg: string }[] = [];
+    for (let i = 0; i < batchFiles.length; i++) {
+      if (batchCancelRef.current) break;
+      const file = batchFiles[i]!;
+      setBatchCurrent(i + 1);
+      try {
+        const result = await analyze(file, analyzeKlasse, analyzeAufgabe);
+        if (result) {
+          const note = result?.analysis?.notenempfehlung?.note;
+          results.push({ file, ok: true, msg: note != null ? `Note ${note}` : 'OK' });
+        } else {
+          results.push({ file, ok: false, msg: analyzeError ?? 'fehlgeschlagen' });
+        }
+      } catch (e) {
+        results.push({ file, ok: false, msg: e instanceof Error ? e.message : String(e) });
+      }
+      setBatchResults([...results]);
+    }
+
+    setBatchRunning(false);
+    const okCount = results.filter((r) => r.ok).length;
+    setAnalyzeSuccess(`Stapel fertig: ${okCount}/${batchFiles.length} erfolgreich${batchCancelRef.current ? ' (abgebrochen)' : ''}.`);
+    const refreshed = await listKlassen();
+    setKlassen(refreshed);
+    if (analyzeKlasse) await loadAufgaben(analyzeKlasse);
+  }, [batchFiles, analyzeKlasse, analyzeAufgabe, analyze, analyzeError, listKlassen, loadAufgaben]);
 
   const cardStyle = {
     padding: '1.25rem', border: '1px solid var(--color-border)',
@@ -533,7 +593,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
       )}
 
       {analyzeOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'var(--color-overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }} onClick={() => setAnalyzeOpen(false)}>
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--color-overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }} onClick={() => { if (!batchRunning) setAnalyzeOpen(false); }}>
           <div style={{ ...cardStyle, width: 480, maxHeight: '90vh', overflow: 'auto' }} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ fontSize: '1rem', margin: '0 0 1rem' }}>Neue Analyse starten</h3>
 
@@ -553,6 +613,42 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
               </div>
             </div>
 
+            {/* Batch: mehrere Dateien sequenziell */}
+            <div style={{ marginBottom: '0.75rem', padding: '0.625rem 0.75rem', background: 'var(--color-bg-base)', borderRadius: 'var(--radius)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                <span style={{ fontSize: '0.8125rem', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <Files size={14} /> {batchFiles.length > 0 ? `${batchFiles.length} Dateien für Stapel gewählt` : 'oder ganze Klasse (mehrere Dateien)'}
+                </span>
+                <button className="btn-secondary" onClick={pickFiles} disabled={batchRunning} style={{ whiteSpace: 'nowrap', fontSize: '0.75rem', padding: '0.3rem 0.6rem' }}>
+                  Mehrere wählen …
+                </button>
+              </div>
+              {batchFiles.length > 0 && !batchRunning && (
+                <button onClick={() => { setBatchFiles([]); setBatchResults([]); }} style={{ marginTop: 6, fontSize: '0.6875rem', border: 'none', background: 'none', color: 'var(--color-text-secondary)', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>
+                  Auswahl verwerfen
+                </button>
+              )}
+              {batchRunning && (
+                <div style={{ marginTop: 8 }}>
+                  <div style={{ fontSize: '0.75rem', marginBottom: 4 }}>Analysiere {batchCurrent}/{batchFiles.length} …</div>
+                  <div style={{ height: 6, background: 'var(--color-border)', borderRadius: 3, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${(batchCurrent / batchFiles.length) * 100}%`, background: 'var(--color-accent)', transition: 'width 0.2s' }} />
+                  </div>
+                </div>
+              )}
+              {batchResults.length > 0 && (
+                <div style={{ marginTop: 8, maxHeight: '22vh', overflowY: 'auto', fontSize: '0.6875rem' }}>
+                  {batchResults.map((r, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '1px 0' }}>
+                      {r.ok ? <CheckCircle2 size={12} style={{ color: 'var(--color-success)', flexShrink: 0 }} /> : <XCircle size={12} style={{ color: 'var(--color-danger, #c0392b)', flexShrink: 0 }} />}
+                      <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.file}>{baseName(r.file)}</span>
+                      <span style={{ color: 'var(--color-text-secondary)', flexShrink: 0 }}>{r.msg}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <div style={{ marginBottom: '0.75rem' }}>
               <label>Klasse</label>
               <input type="text" value={analyzeKlasse} onChange={(e) => setAnalyzeKlasse(e.target.value)} placeholder="z.B. 7a" />
@@ -566,11 +662,25 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
             {analyzeError && <p style={{ color: 'var(--color-error)', fontSize: '0.8125rem' }}>{analyzeError}</p>}
 
             <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-              <button className="btn-secondary" onClick={() => setAnalyzeOpen(false)}>Abbrechen</button>
-              <button className="btn-primary" onClick={handleAnalyze} disabled={analyzing || !analyzeFile || !analyzeKlasse || !analyzeAufgabe} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
-                {analyzing ? <Loader2 size={14} className="spin" /> : <Upload size={14} />}
-                {analyzing ? 'Analysiere …' : 'Analyse starten'}
-              </button>
+              {batchRunning ? (
+                <button className="btn-secondary" onClick={() => { batchCancelRef.current = true; }} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                  <XCircle size={14} /> Abbrechen (nach laufender Datei)
+                </button>
+              ) : (
+                <>
+                  <button className="btn-secondary" onClick={() => setAnalyzeOpen(false)}>Schließen</button>
+                  {batchFiles.length > 0 ? (
+                    <button className="btn-primary" onClick={handleBatchAnalyze} disabled={!analyzeKlasse || !analyzeAufgabe} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                      <Files size={14} /> Stapel analysieren ({batchFiles.length})
+                    </button>
+                  ) : (
+                    <button className="btn-primary" onClick={handleAnalyze} disabled={analyzing || !analyzeFile || !analyzeKlasse || !analyzeAufgabe} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                      {analyzing ? <Loader2 size={14} className="spin" /> : <Upload size={14} />}
+                      {analyzing ? 'Analysiere …' : 'Analyse starten'}
+                    </button>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </div>
