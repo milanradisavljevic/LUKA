@@ -419,6 +419,53 @@ def cmd_list_rubrics(args):
     return 0
 
 
+def _is_safe_rubric_name(name: str) -> bool:
+    """Verhindert Pfad-Traversal: nur einfacher Dateiname, Endung .md."""
+    if not name or "/" in name or "\\" in name or ".." in name:
+        return False
+    return name.endswith(".md")
+
+
+def cmd_list_rubric_files(args):
+    """Listet alle Rubrik-Markdown-Dateien (roh) für den Editor."""
+    nc, ndb, config, db_path = _load_env_and_config()
+    rubrics_dir = nc.resolve_path(config, "rubrics")
+    files = sorted(p.name for p in rubrics_dir.glob("*.md")) if rubrics_dir.is_dir() else []
+    _json_out(files)
+    return 0
+
+
+def cmd_read_rubric(args):
+    """Liest den Roh-Markdown einer Rubrik."""
+    nc, ndb, config, db_path = _load_env_and_config()
+    if not _is_safe_rubric_name(args.name):
+        print("Ungültiger Rubrik-Name", file=sys.stderr)
+        return 1
+    path = nc.resolve_path(config, "rubrics") / args.name
+    if not path.is_file():
+        print(f"Rubrik nicht gefunden: {args.name}", file=sys.stderr)
+        return 1
+    _json_out({"name": args.name, "content": path.read_text(encoding="utf-8")})
+    return 0
+
+
+def cmd_save_rubric(args):
+    """Speichert (überschreibt/legt an) eine Rubrik aus stdin."""
+    nc, ndb, config, db_path = _load_env_and_config()
+    if not _is_safe_rubric_name(args.name):
+        print("Ungültiger Rubrik-Name (muss auf .md enden, kein Pfad)", file=sys.stderr)
+        return 1
+    text = sys.stdin.read()
+    if not text.strip():
+        print("Kein Rubrik-Inhalt übergeben (stdin leer)", file=sys.stderr)
+        return 1
+    rubrics_dir = nc.resolve_path(config, "rubrics")
+    rubrics_dir.mkdir(parents=True, exist_ok=True)
+    (rubrics_dir / args.name).write_text(text, encoding="utf-8")
+    _json_out({"name": args.name, "bytes": len(text.encode("utf-8"))})
+    return 0
+
+
 # Hinweis: Reine Lese-Befehle (klassen-liste/aufgaben/abgaben/heatmap/
 # notenverteilung/statistik) wurden entfernt — LUA liest direkt über den
 # Rust-Read-Layer (natascha_read.rs, db_*). Eine Read-Quelle statt zwei.
@@ -502,6 +549,13 @@ def main():
     p_lr.add_argument("--fach", default="")
     p_lr.add_argument("--schulstufe", default="")
 
+    # Rubrik-Editor
+    sub.add_parser("list-rubric-files", help="Alle Rubrik-Markdown-Dateien (roh) auflisten")
+    p_rr = sub.add_parser("read-rubric", help="Roh-Markdown einer Rubrik lesen")
+    p_rr.add_argument("--name", required=True)
+    p_sr = sub.add_parser("save-rubric", help="Rubrik (stdin) speichern/überschreiben")
+    p_sr.add_argument("--name", required=True)
+
 
     args = parser.parse_args()
     _DB_PATH_OVERRIDE = args.db_path
@@ -520,6 +574,9 @@ def main():
         "add-klasse": cmd_add_klasse,
         "add-aufgabe": cmd_add_aufgabe,
         "list-rubrics": cmd_list_rubrics,
+        "list-rubric-files": cmd_list_rubric_files,
+        "read-rubric": cmd_read_rubric,
+        "save-rubric": cmd_save_rubric,
     }
 
     handler = commands.get(args.command)

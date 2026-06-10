@@ -254,6 +254,33 @@ export function useNatascha() {
     await invoke('db_delete_schueler', { schuelerId });
   }, []);
 
+  // --- Rubrik-Editor ---
+  const listRubricFiles = useCallback(async (): Promise<string[]> => {
+    const s = loadSettings();
+    try {
+      const result = await invoke<string>('natascha_list_rubric_files', {
+        dir: s.nataschaDir ?? '', python: s.pythonCommand ?? '',
+      });
+      return JSON.parse(result);
+    } catch { return []; }
+  }, []);
+
+  const readRubric = useCallback(async (name: string): Promise<string> => {
+    const s = loadSettings();
+    const result = await invoke<string>('natascha_read_rubric', {
+      dir: s.nataschaDir ?? '', python: s.pythonCommand ?? '', name,
+    });
+    return (JSON.parse(result) as { name: string; content: string }).content;
+  }, []);
+
+  const saveRubric = useCallback(async (name: string, content: string): Promise<{ name: string; bytes: number }> => {
+    const s = loadSettings();
+    const result = await invoke<string>('natascha_save_rubric', {
+      dir: s.nataschaDir ?? '', python: s.pythonCommand ?? '', name, content,
+    });
+    return JSON.parse(result);
+  }, []);
+
   const getSchuelerLaengsschnitt = useCallback(async (schuelerId: number): Promise<SchuelerLaengsschnitt | null> => {
     try {
       return await invoke<SchuelerLaengsschnitt>('db_get_schueler_laengsschnitt', { schuelerId });
@@ -358,6 +385,9 @@ export function useNatascha() {
     generateSchuelerProfil,
     getKlassenBriefing,
     getSchuelerProfil,
+    listRubricFiles,
+    readRubric,
+    saveRubric,
   };
 }
 
