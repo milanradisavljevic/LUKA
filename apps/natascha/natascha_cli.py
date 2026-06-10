@@ -466,6 +466,57 @@ def cmd_save_rubric(args):
     return 0
 
 
+def cmd_retro_import(args):
+    """Importiert bestehende *_analysis.json (aus output/.../feedback_data) in die DB,
+    damit alte Korrekturen in Heatmap/Statistik/Längsschnitt erscheinen.
+
+    Ohne --aufgabe werden alle Aufgaben der Klasse durchlaufen. Duplikate (gleicher
+    Datei-Hash der JSON) werden übersprungen. rohtext bleibt leer (kein DOCX vorhanden).
+    """
+    nc, ndb, config, db_path = _load_env_and_config()
+    klasse = args.klasse
+    slugs = [args.aufgabe] if args.aufgabe else nc.list_aufgaben(config, klasse)
+
+    imported = 0
+    skipped = 0
+    results: list[dict] = []
+    for slug in slugs:
+        paths = nc.build_project_paths(config, klasse, slug)
+        fb_dir = paths.feedback_data_dir
+        if not fb_dir.is_dir():
+            continue
+        for json_path in sorted(fb_dir.glob("*.json")):
+            try:
+                data = json.loads(json_path.read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, OSError):
+                skipped += 1
+                continue
+            if not (isinstance(data, dict) and "notenempfehlung" in data and "bewertung" in data):
+                skipped += 1
+                continue
+            try:
+                abgabe_id = ndb.save_analysis_to_db(
+                    db_path=db_path,
+                    data=data,
+                    file_path=json_path,  # Hash/Dateiname-Quelle (DOCX evtl. nicht mehr da)
+                    klasse=klasse,
+                    aufgabe=slug,
+                    rohtext="",
+                    feedback_json_path=str(json_path),
+                )
+                if abgabe_id and abgabe_id > 0:
+                    imported += 1
+                    results.append({"datei": data.get("datei", json_path.name), "aufgabe": slug, "id": abgabe_id})
+                else:
+                    skipped += 1  # Duplikat
+            except Exception as e:  # noqa: BLE001 — Import darf nie ganz abbrechen
+                skipped += 1
+                print(f"Übersprungen ({json_path.name}): {e}", file=sys.stderr)
+
+    _json_out({"klasse": klasse, "imported": imported, "skipped": skipped, "results": results})
+    return 0
+
+
 # Hinweis: Reine Lese-Befehle (klassen-liste/aufgaben/abgaben/heatmap/
 # notenverteilung/statistik) wurden entfernt — LUA liest direkt über den
 # Rust-Read-Layer (natascha_read.rs, db_*). Eine Read-Quelle statt zwei.
@@ -556,6 +607,11 @@ def main():
     p_sr = sub.add_parser("save-rubric", help="Rubrik (stdin) speichern/überschreiben")
     p_sr.add_argument("--name", required=True)
 
+    # Retro-Import bestehender Analyse-JSONs
+    p_ri = sub.add_parser("retro-import", help="Bestehende *_analysis.json in die DB importieren")
+    p_ri.add_argument("--klasse", required=True)
+    p_ri.add_argument("--aufgabe", default=None)
+
 
     args = parser.parse_args()
     _DB_PATH_OVERRIDE = args.db_path
@@ -577,6 +633,7 @@ def main():
         "list-rubric-files": cmd_list_rubric_files,
         "read-rubric": cmd_read_rubric,
         "save-rubric": cmd_save_rubric,
+        "retro-import": cmd_retro_import,
     }
 
     handler = commands.get(args.command)
