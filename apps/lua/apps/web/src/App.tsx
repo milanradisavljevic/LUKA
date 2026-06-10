@@ -25,6 +25,7 @@ import { HelpView } from './views/HelpView';
 import { SettingsView } from './views/SettingsView';
 import { KorrekturView } from './views/KorrekturView';
 import { SchuelerView } from './views/SchuelerView';
+import { DashboardView } from './views/DashboardView';
 import { ErwartungshorizontView } from './views/ErwartungshorizontView';
 import { setPendingUebung } from './lib/korrekturBridge';
 import type { NataschaPrefill } from './lib/nataschaBridge';
@@ -219,6 +220,8 @@ if (hydrating) {
             <div style={{ marginTop: '1.25rem' }}>{renderStep()}</div>
           </div>
         );
+      case 'dashboard':
+        return <DashboardView onNavigate={(v) => setActiveView(v)} />;
       case 'documents':
         return <DocumentsView onOpenDocument={handleOpenDocument} />;
       case 'favorites':

@@ -8,6 +8,7 @@ export type LlmProvider = 'claude' | 'chatgpt' | 'kimi' | 'deepseek' | 'mistral'
 /** Welche Hauptansicht in der Sidebar gerade aktiv ist. */
 export type ActiveView =
   | 'wizard'
+  | 'dashboard'
   | 'documents'
   | 'templates'
   | 'history'
