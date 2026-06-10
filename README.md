@@ -1,46 +1,147 @@
-# lehr-suite
+<div align="center">
 
-Zwei Lehrer-Desktop-Tools, zusammengeführt zu einem **Closed-Loop-System**:
-**Erstellen → Korrigieren → gezielt Üben**.
+# LUKA
+
+**L**ehr**U**nterlagen &amp; **K**orrektur-**A**ssistent
+
+*Eine Desktop-App, die den ganzen Kreislauf des Unterrichtens schließt:*
+**Unterlagen erstellen → Abgaben korrigieren → gezielt üben lassen.**
+
+![Tauri](https://img.shields.io/badge/Tauri-2-24C8DB?logo=tauri&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+![Rust](https://img.shields.io/badge/Rust-stable-000000?logo=rust&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite-lokal-003B57?logo=sqlite&logoColor=white)
+![Status](https://img.shields.io/badge/Status-Beta%20%C2%B7%20im%20Test-orange)
+
+<!-- Screenshot bitte ergänzen (siehe docs/screenshots/README.md) -->
+![Übersicht](docs/screenshots/01-dashboard.png)
+
+</div>
+
+---
+
+## Was ist LUKA?
+
+LUKA vereint zwei Lehrer-Werkzeuge in **einer** App mit **gemeinsamer Datenbank**:
+
+- **Unterlagen-Generator** (vormals *Lehrunterlagen-Tool*) — erzeugt Arbeitsblätter,
+  Übungen und Schularbeiten mit KI, exportiert sauber formatierte DOCX (Schülerfassung,
+  Lösung, Korrekturraster).
+- **Korrektur-Assistent** (vormals *NATASCHA*) — analysiert Schülerabgaben anhand von
+  Rubriken, erzeugt Noten­empfehlung, Fehler-Heatmaps und Lern-Längsschnitte.
+
+Der eigentliche Mehrwert ist die **Verbindung** beider Seiten: Aus den Korrekturen weiß
+die App, **woran** eine Klasse oder einzelne Schüler:innen scheitern — und erstellt mit
+einem Klick **passgenaue Übungsblätter** dazu.
+
+```mermaid
+flowchart LR
+  A[Unterlagen erstellen] --> B[Abgaben korrigieren]
+  B --> C[Fehler-Heatmap &amp; Längsschnitt]
+  C --> D[gezieltes Übungsblatt]
+  D -. übt .-> B
+```
+
+---
+
+## Highlights
+
+| Bereich | Was es kann |
+|---|---|
+| **Generator** | Wizard von der Absicht zum DOCX; Baukasten aus Aufgabentypen; Quelltexte per Datei/URL/Direkteingabe |
+| **Korrektur** | KI-Analyse einzelner Abgaben **und Batch** (ganze Klasse); Fehler nach **R/G/Z/A**; markierter Schülertext als A4-Vorschau; Lehrernote + Feedback-DOCX |
+| **Klassen** | Fehler-Heatmap, Notenverteilung, Trend, Kalibrierung (KI vs. Lehrer), KI-Klassen-Briefing, Noten-CSV-Export |
+| **Schüler** | Längsschnitt über mehrere Aufgaben, KI-Schüler-Profil, CSV-Import |
+| **Erwartungshorizont &amp; Rubrik-Editor** | Musterlösungen generieren/speichern, Bewertungsraster in-app bearbeiten |
+| **Übersicht** | Dashboard mit Kennzahlen und Klassen mit Handlungsbedarf |
+| **Closed Loop** | Aus Heatmap **oder** Schüler-Schwächen → Übungsblatt im Generator (Fokus vorbefüllt) |
+
+<!-- Weitere Screenshots: siehe docs/screenshots/README.md -->
+| ![Korrektur](docs/screenshots/02-korrektur.png) | ![Klassen](docs/screenshots/03-klassen-heatmap.png) |
+|:--:|:--:|
+| *Korrektur: Analyse links, markierter Text rechts* | *Klassen: Fehler-Heatmap &amp; Trend* |
+
+---
+
+## Architektur
 
 ```
-lehr-suite/
+LUKA/  (Repo: LUKA)
   apps/
-    lua/        Lehrunterlagen-Tool — TypeScript + React + Vite + Tauri (pnpm-Monorepo)
-                Generiert Unterrichtsmaterialien & Übungen.
-    natascha/   NATASCHA — Python 3.11+ / Textual-TUI
-                Korrigiert Schülerabgaben, erzeugt Fehler-Heatmaps (SQLite).
-  bridge/       Datei-Brücke zwischen beiden Apps (siehe bridge/README.md)
+    lua/        Generator + native Korrektur-/Klassen-/Schüler-Oberfläche
+                TypeScript · React · Vite · Tauri (pnpm-Monorepo)
+    natascha/   Korrektur-Kern als headless Python-Sidecar (natascha_cli.py)
+                + eigenständige Textual-TUI (optional)
+  bridge/       (intern) Datei-Brücke-Vertrag aus der Frühphase
+  docs/         Testplan, Datenschutz, Screenshot-Liste
+  samples/      synthetische Beispiel-Abgaben zum Testen
 ```
 
-Beide Apps wurden als **Snapshot** aus ihren ursprünglichen, eigenständigen Repos
-hierher kopiert (sauberer Schnitt, keine Alt-Historie). Die Original-Repos bleiben
-unverändert als Backup erhalten.
+```mermaid
+flowchart LR
+  UI["React-UI · Vite"] <--> Tauri["Rust / Tauri-Befehle"]
+  Tauri <--> CLI["Python-Sidecar · natascha_cli.py"]
+  Tauri <--> DB[("SQLite · lehr-suite.db")]
+  CLI <--> DB
+  CLI <--> LLM["KI-Anbieter · API"]
+```
 
-## Apps starten
+Die React-UI ruft Rust/Tauri-Befehle auf; Rust ist die **alleinige Quelle** für den
+DB-Pfad und reicht ihn an den Python-Sidecar weiter. Beide Seiten teilen **eine**
+SQLite-Datei (`~/lehr-suite-bridge/lehr-suite.db`).
 
-**LUA** (in `apps/lua/`):
+---
+
+## Aus dem Quellcode starten
+
+> Die Test-Version läuft aus dem Quellcode (kein Installer). Für den späteren
+> Windows-Build / Installer siehe Roadmap unten.
+
+**Voraussetzungen:** Node ≥ 20, [pnpm](https://pnpm.io), Rust-Toolchain (stable),
+Python ≥ 3.11. Unter Windows zusätzlich die
+[Tauri-Voraussetzungen](https://tauri.app/start/prerequisites/) (WebView2, MSVC Build Tools).
+
+**1 · App (LUA):**
 ```bash
+cd apps/lua
 pnpm install
-pnpm tauri:dev      # Desktop-App
-pnpm smoke          # End-to-End LLM→DOCX Smoke-Test (billiges Haiku-Modell)
+pnpm tauri:dev        # startet die Desktop-App
 ```
 
-**NATASCHA** (in `apps/natascha/`):
+**2 · Korrektur-Sidecar (Python):**
 ```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements_tui.txt
-python seed_testdaten.py     # Test-DB mit synthetischen Daten anlegen
-python natascha.py           # Textual-TUI
+cd apps/natascha
+python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -r requirements_cli.txt
+python seed_testdaten.py          # optionale Test-DB (Klasse TEST-7a)
 ```
 
-## Integration
+**3 · In der App einrichten** (*Einstellungen*):
+- **API-Schlüssel** des KI-Anbieters hinterlegen (sicher im OS-Schlüsselspeicher).
+- **Python-Befehl** und **NATASCHA-Ordner** setzen, damit die App den Sidecar findet.
 
-Phase 1 (Datei-Brücke) ist der erste Integrationsschritt. NATASCHA exportiert nach
-einer Korrektur ein JSON nach `bridge/inbox/`, LUA bietet in Step0
-„Aus NATASCHA-Korrektur generieren". Details: `bridge/README.md`.
+**4 · Loslegen:** In *Korrektur* eine Datei aus `samples/` hochladen → analysieren →
+in *Klassen* die Heatmap ansehen → „Übungsblatt zu Top-Fehlern". Fertig ist der Closed Loop.
+
+> Komplette Schritt-für-Schritt-Anleitung: **In-App-Hilfe** (Sidebar → *Hilfe*) sowie
+> [`docs/TESTPLAN.md`](docs/TESTPLAN.md).
+
+---
 
 ## Datenschutz
 
-Schüler-Echtdaten (DBs, Abgaben, Output, Bridge-Inbox) sind per `.gitignore`
-ausgeschlossen und gehören **nicht** ins Repo.
+Bei Korrektur, Erwartungshorizont und Schüler-Profil wird der jeweilige **Text an den
+gewählten KI-Anbieter übertragen**. Daher: möglichst **pseudonymisierte** Abgaben
+verwenden (keine Klarnamen). Alles andere bleibt **lokal** — Datenbank und Exporte
+liegen auf dem Rechner, echte Schülerdaten sind per `.gitignore` ausgeschlossen.
+Details: [`docs/DATENSCHUTZ.md`](docs/DATENSCHUTZ.md).
+
+## Lizenz
+
+© 2026 Milan Radisavljević — Alle Rechte vorbehalten. Siehe [`LICENSE`](LICENSE).
+
+## Roadmap (nach der Testphase)
+
+Windows-Build/Installer · Python-Bündelung (PyInstaller-Sidecar, ohne Python-Installation
+nutzbar) · automatisches Öffnen erzeugter DOCX · robustere Anbieter-Auswahl/Fallback.
