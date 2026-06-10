@@ -294,3 +294,15 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
     grid-template-columns: 1fr !important;
   }
 }
+
+/* Hilfe/Handbuch: auf schmalen Fenstern Inhaltsverzeichnis über den Inhalt legen */
+@media (max-width: 900px) {
+  .help-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .help-toc {
+    position: static !important;
+    flex-direction: row !important;
+    flex-wrap: wrap;
+  }
+}
