@@ -313,6 +313,21 @@ pub async fn natascha_list_rubrics(
     run_cli_and_capture(cmd)
 }
 
+/// Importiert bestehende Analyse-JSONs (output/.../feedback_data) in die DB.
+#[tauri::command]
+pub async fn natascha_retro_import(
+    dir: String,
+    python: String,
+    klasse: String,
+    aufgabe: Option<String>,
+) -> Result<String, String> {
+    let nat_dir = resolve_dir(&dir)?;
+    let mut cmd = build_cli_command(&nat_dir, &python);
+    cmd.arg("retro-import").arg("--klasse").arg(&klasse);
+    if let Some(ref v) = aufgabe { cmd.arg("--aufgabe").arg(v); }
+    run_cli_and_capture(cmd)
+}
+
 /// Listet alle Rubrik-Markdown-Dateien (roh) für den Editor.
 #[tauri::command]
 pub async fn natascha_list_rubric_files(

@@ -254,6 +254,16 @@ export function useNatascha() {
     await invoke('db_delete_schueler', { schuelerId });
   }, []);
 
+  const retroImport = useCallback(async (klasse: string, aufgabe?: string): Promise<{ klasse: string; imported: number; skipped: number } | null> => {
+    const s = loadSettings();
+    try {
+      const result = await invoke<string>('natascha_retro_import', {
+        dir: s.nataschaDir ?? '', python: s.pythonCommand ?? '', klasse, aufgabe: aufgabe ?? null,
+      });
+      return JSON.parse(result);
+    } catch { return null; }
+  }, []);
+
   // --- Rubrik-Editor ---
   const listRubricFiles = useCallback(async (): Promise<string[]> => {
     const s = loadSettings();
@@ -388,6 +398,7 @@ export function useNatascha() {
     listRubricFiles,
     readRubric,
     saveRubric,
+    retroImport,
   };
 }
 

@@ -70,7 +70,7 @@ interface KorrekturViewProps {
 }
 
 export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
-  const { analyze, analyzing, analyzeError, listKlassen, listAufgaben, getAbgaben, getAbgabeDetail, upsertLehrerFeedback, generateFeedbackDocx } = useNatascha();
+  const { analyze, analyzing, analyzeError, listKlassen, listAufgaben, getAbgaben, getAbgabeDetail, upsertLehrerFeedback, generateFeedbackDocx, retroImport } = useNatascha();
 
   const [mode, setMode] = useState<'tui' | 'native'>('native');
   const [klassen, setKlassen] = useState<KlasseInfo[]>([]);
@@ -168,6 +168,24 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     }
     setSaving(false);
   }, [selectedAbgabe, teacherNote, teacherComment, upsertLehrerFeedback, loadDetail]);
+
+  const [retroBusy, setRetroBusy] = useState(false);
+  const handleRetroImport = useCallback(async () => {
+    if (!selectedKlasse) return;
+    setRetroBusy(true);
+    setError(null);
+    setAnalyzeSuccess(null);
+    const r = await retroImport(selectedKlasse, selectedAufgabe ?? undefined);
+    setRetroBusy(false);
+    if (r) {
+      setAnalyzeSuccess(`Retro-Import: ${r.imported} importiert, ${r.skipped} übersprungen.`);
+      const refreshed = await listKlassen();
+      setKlassen(refreshed);
+      if (selectedAufgabe) await loadAbgaben(selectedKlasse, selectedAufgabe);
+    } else {
+      setError('Retro-Import fehlgeschlagen (siehe Einstellungen/Python).');
+    }
+  }, [selectedKlasse, selectedAufgabe, retroImport, listKlassen, loadAbgaben]);
 
   const handleGenerateDocx = useCallback(async () => {
     if (!selectedAbgabe) return;
@@ -395,7 +413,18 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
 
             {!loading && selectedKlasse && abgaben.length > 0 && (
               <div style={cardStyle}>
-                <h4 style={{ fontSize: '0.875rem', margin: '0 0 0.75rem' }}>Abgaben ({abgaben.length})</h4>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                  <h4 style={{ fontSize: '0.875rem', margin: 0 }}>Abgaben ({abgaben.length})</h4>
+                  <button
+                    className="btn-secondary"
+                    onClick={handleRetroImport}
+                    disabled={retroBusy || !selectedKlasse}
+                    title="Bestehende Analyse-JSONs (output/…/feedback_data) in die Datenbank importieren"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.7rem', padding: '0.25rem 0.6rem' }}
+                  >
+                    {retroBusy ? <Loader2 size={12} className="spin" /> : <FileDown size={12} style={{ transform: 'rotate(180deg)' }} />} Retro-Import
+                  </button>
+                </div>
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8125rem' }}>
                     <thead>
