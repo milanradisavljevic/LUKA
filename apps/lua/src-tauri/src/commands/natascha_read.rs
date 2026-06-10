@@ -21,6 +21,7 @@ pub struct AbgabeInfo {
     pub nachname: Option<String>,
     pub hat_lehrer_feedback: bool,
     pub note_final: Option<f64>,
+    pub rohtext: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -107,6 +108,7 @@ pub async fn db_get_abgaben(state: tauri::State<'_, DbState>, klasse: String, au
             nachname: row.get(13)?,
             hat_lehrer_feedback: row.get::<_, i64>(14)? != 0,
             note_final: row.get(15)?,
+            rohtext: None,
         })
     }).map_err(|e| format!("query: {}", e))?;
     Ok(rows.filter_map(|r| r.ok()).collect())
@@ -306,7 +308,7 @@ pub async fn db_get_abgabe_detail(state: tauri::State<'_, DbState>, abgabe_id: i
     let conn = &*guard;
 
     let abgabe = conn.query_row(
-        "SELECT a.id, a.schueler_id, a.klasse, a.aufgabe, a.dateiname, a.datum, a.note, a.gesamtstufe, a.wortanzahl, a.fach, a.schulstufe, a.textsorte, s.vorname, s.nachname, CASE WHEN lf.id IS NOT NULL THEN 1 ELSE 0 END, lf.note_final FROM abgabe a LEFT JOIN schueler s ON a.schueler_id=s.id LEFT JOIN lehrer_feedback lf ON a.id=lf.abgabe_id WHERE a.id=?1",
+        "SELECT a.id, a.schueler_id, a.klasse, a.aufgabe, a.dateiname, a.datum, a.note, a.gesamtstufe, a.wortanzahl, a.fach, a.schulstufe, a.textsorte, s.vorname, s.nachname, CASE WHEN lf.id IS NOT NULL THEN 1 ELSE 0 END, lf.note_final, a.rohtext FROM abgabe a LEFT JOIN schueler s ON a.schueler_id=s.id LEFT JOIN lehrer_feedback lf ON a.id=lf.abgabe_id WHERE a.id=?1",
         rusqlite::params![abgabe_id], |row| {
             Ok(AbgabeInfo {
                 id: row.get(0)?,
@@ -325,6 +327,7 @@ pub async fn db_get_abgabe_detail(state: tauri::State<'_, DbState>, abgabe_id: i
                 nachname: row.get(13)?,
                 hat_lehrer_feedback: row.get::<_, i64>(14)? != 0,
                 note_final: row.get(15)?,
+                rohtext: row.get(16)?,
             })
         }
     ).map_err(|e| format!("query abgabe: {}", e))?;

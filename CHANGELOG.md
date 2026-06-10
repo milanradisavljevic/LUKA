@@ -7,6 +7,18 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Stage 3b: Korrektur-Feedback-Vorschau (Schülertext annotiert)
+- `KorrekturView`: neues **„Schülertext mit Markierungen"**-Panel nach der Fehler-Liste.
+  Klappt per Toggle auf (Eye/EyeOff). Rendert `rohtext` mit farbigen Inline-Markierungen
+  für jedes `fehler_historie.zitat` (R=rot, G=grün, Z=blau, A=orange). Legende unten.
+  `annotateText()`-Funktion findet Zitatpositionen, löst Überlappungen auf (first-wins),
+  rendert React-Nodes. Keine DOCX-Erstellung mehr nötig für die Schnell-Übersicht.
+- `AbgabeInfo` (Rust struct + SQL): `rohtext: Option<String>` hinzugefügt. `db_get_abgabe_detail`
+  selektiert jetzt `a.rohtext` (Spalte 16). `db_get_abgaben` (Listen-View) setzt `rohtext: None`
+  (kein unnötiger Datentransfer). TypeScript-Interfaces in `useNatascha.ts` +
+  `KorrekturView.tsx` entsprechend ergänzt (`rohtext: string | null`).
+- Verifikation: 41 Web-Tests, 27 Rust-Tests, `tsc --noEmit`, `cargo check` alle grün.
+
 ### Added — Erwartungshorizont speichern + in der Korrektur nutzen
 - `ErwartungshorizontView`: Ergebnis ist jetzt **bearbeitbar** (Textarea) +
   Button **„Akzeptieren & speichern"** → schreibt `rubrics/erwartungshorizont_*.md`
