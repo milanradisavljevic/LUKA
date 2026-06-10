@@ -18,6 +18,7 @@ interface AbgabeInfo {
   textsorte: string | null;
   hatLehrerFeedback: boolean;
   noteFinal: number | null;
+  rohtext: string | null;
 }
 
 interface KriteriumRow {

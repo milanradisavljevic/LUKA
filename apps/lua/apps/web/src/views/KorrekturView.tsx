@@ -1,8 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
-import { SpellCheck, FileText, GraduationCap, Save, AlertTriangle, Loader2, Upload, FileDown, ChevronRight } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { SpellCheck, FileText, GraduationCap, Save, AlertTriangle, Loader2, Upload, FileDown, ChevronRight, Eye, EyeOff } from 'lucide-react';
 import { loadSettings } from '../lib/storage';
 import { useNatascha } from '../hooks/useNatascha';
 import { ViewShell } from './_ViewShell';
+
+interface FehlerRow { id: number; zitat: string | null; korrektur: string | null; typ: string; erklaerung: string | null }
 
 interface AbgabeDetail {
   abgabe: {
@@ -21,9 +23,10 @@ interface AbgabeDetail {
     textsorte: string | null;
     hatLehrerFeedback: boolean;
     noteFinal: number | null;
+    rohtext: string | null;
   };
   kriterien: { id: number; kriteriumName: string; stufe: number | null; gewichtung: number | null }[];
-  fehler: { id: number; zitat: string | null; korrektur: string | null; typ: string; erklaerung: string | null }[];
+  fehler: FehlerRow[];
   lehrerFeedback: { id: number; noteFinal: number | null; noteAppSnapshot: number | null; lehrerKommentar: string | null; erstelltAm: string | null; geaendertAm: string | null } | null;
 }
 
@@ -31,6 +34,35 @@ interface KlasseInfo { klasse: string; anzahlAbgaben: number; }
 
 const FEHLER_COLORS: Record<string, string> = { R: '#e74c3c', G: '#27ae60', Z: '#3498db', A: '#f39c12' };
 const FEHLER_LABELS: Record<string, string> = { R: 'Rechtschreibung', G: 'Grammatik', Z: 'Zeichensetzung', A: 'Ausdruck' };
+
+/** Annotiert rohtext: findet jedes fehler.zitat und wraps es in ein farbiges <mark>. */
+function annotateText(text: string, fehler: FehlerRow[]): React.ReactNode[] {
+  type Seg = { start: number; end: number; typ: string };
+  const segs: Seg[] = [];
+  for (const f of fehler) {
+    if (!f.zitat) continue;
+    const idx = text.indexOf(f.zitat);
+    if (idx === -1) continue;
+    segs.push({ start: idx, end: idx + f.zitat.length, typ: f.typ });
+  }
+  segs.sort((a, b) => a.start - b.start);
+
+  const nodes: React.ReactNode[] = [];
+  let pos = 0;
+  for (const seg of segs) {
+    if (seg.start < pos) continue;
+    if (seg.start > pos) nodes.push(text.slice(pos, seg.start));
+    const col = FEHLER_COLORS[seg.typ] ?? '#999';
+    nodes.push(
+      <mark key={seg.start} title={`${FEHLER_LABELS[seg.typ] ?? seg.typ}`} style={{ background: col + '28', borderBottom: `2px solid ${col}`, borderRadius: 2, padding: '0 1px' }}>
+        {text.slice(seg.start, seg.end)}
+      </mark>
+    );
+    pos = seg.end;
+  }
+  if (pos < text.length) nodes.push(text.slice(pos));
+  return nodes;
+}
 
 export function KorrekturView() {
   const { analyze, analyzing, analyzeError, listKlassen, listAufgaben, getAbgaben, getAbgabeDetail, upsertLehrerFeedback, generateFeedbackDocx } = useNatascha();
@@ -48,6 +80,8 @@ export function KorrekturView() {
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [showPreview, setShowPreview] = useState(false);
 
   const [analyzeOpen, setAnalyzeOpen] = useState(false);
   const [analyzeKlasse, setAnalyzeKlasse] = useState('');
@@ -165,6 +199,12 @@ export function KorrekturView() {
       setError(analyzeError ?? 'Analyse fehlgeschlagen');
     }
   }, [analyze, analyzeFile, analyzeKlasse, analyzeAufgabe, analyzeError, listKlassen, loadAufgaben]);
+
+  const annotatedNodes = useMemo(() => {
+    const rohtext = selectedAbgabe?.abgabe.rohtext;
+    if (!rohtext || !selectedAbgabe) return null;
+    return annotateText(rohtext, selectedAbgabe.fehler);
+  }, [selectedAbgabe]);
 
   const pickFile = useCallback(async () => {
     try {
@@ -385,6 +425,46 @@ export function KorrekturView() {
                         {f.erklaerung && <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)', marginTop: '0.25rem' }}>{f.erklaerung}</div>}
                       </div>
                     ))}
+                  </div>
+                )}
+
+                {annotatedNodes && (
+                  <div style={{ marginBottom: '1.25rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                      <h5 style={{ fontSize: '0.8125rem', margin: 0 }}>Schülertext mit Markierungen</h5>
+                      <button
+                        onClick={() => setShowPreview((v) => !v)}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', padding: '0.2rem 0.5rem',
+                          border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', background: 'var(--color-bg-base)', cursor: 'pointer' }}
+                      >
+                        {showPreview ? <><EyeOff size={12} /> Verbergen</> : <><Eye size={12} /> Anzeigen</>}
+                      </button>
+                      {!showPreview && (
+                        <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)' }}>
+                          {selectedAbgabe!.fehler.filter(f => f.zitat).length} Markierungen
+                        </span>
+                      )}
+                    </div>
+                    {showPreview && (
+                      <div style={{
+                        maxHeight: '55vh', overflowY: 'auto', padding: '2rem', lineHeight: 1.8,
+                        fontSize: '0.9rem', fontFamily: 'Georgia, serif',
+                        background: '#fff', color: '#222',
+                        border: '1px solid var(--color-border)', borderRadius: 'var(--radius)',
+                        boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+                        whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                      }}>
+                        {annotatedNodes}
+                        <div style={{ marginTop: '1.5rem', borderTop: '1px solid #ddd', paddingTop: '0.75rem', display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+                          {Object.entries(FEHLER_LABELS).map(([typ, label]) => (
+                            <span key={typ} style={{ fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                              <span style={{ width: 10, height: 10, borderRadius: 2, background: (FEHLER_COLORS[typ] ?? '#999') + '44', border: `2px solid ${FEHLER_COLORS[typ] ?? '#999'}`, display: 'inline-block' }} />
+                              {label}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
