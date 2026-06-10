@@ -81,7 +81,7 @@ export function KorrekturView() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [showPreview, setShowPreview] = useState(false);
+  const [showPreview, setShowPreview] = useState(true);
 
   const [analyzeOpen, setAnalyzeOpen] = useState(false);
   const [analyzeKlasse, setAnalyzeKlasse] = useState('');
@@ -231,6 +231,7 @@ export function KorrekturView() {
     <ViewShell
       title="Korrektur"
       description="Schülerabgaben analysieren und bewerten."
+      maxWidth={mode === 'native' ? 1400 : 860}
       action={mode === 'native' ? <button className="btn-secondary" onClick={() => setAnalyzeOpen(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.8125rem', padding: '0.375rem 0.75rem' }}><Upload size={14} /> Neue Analyse</button> : undefined}
     >
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
@@ -372,82 +373,118 @@ export function KorrekturView() {
                   </button>
                 </div>
 
-                <div style={{ display: 'flex', gap: '2rem', marginBottom: '1.25rem' }}>
+                <div className="korrektur-detail-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(340px, 440px) 1fr', gap: '1.25rem', alignItems: 'start' }}>
+                  {/* Linke Spalte: Analyse-Rail */}
                   <div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>KI-Note</div>
-                    <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--color-accent)' }}>
-                      {selectedAbgabe.abgabe.note !== null ? selectedAbgabe.abgabe.note.toFixed(1) : '—'}
-                    </div>
-                  </div>
-                  {selectedAbgabe.lehrerFeedback && (
-                    <div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>Lehrernote</div>
-                      <div style={{ fontSize: '2rem', fontWeight: 700 }}>
-                        {selectedAbgabe.lehrerFeedback.noteFinal?.toFixed(1) ?? '—'}
-                      </div>
-                    </div>
-                  )}
-                  <div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>Gesamtstufe</div>
-                    <div style={{ fontSize: '1.25rem' }}>
-                      {selectedAbgabe.abgabe.gesamtstufe !== null ? selectedAbgabe.abgabe.gesamtstufe.toFixed(2) : '—'}
-                    </div>
-                  </div>
-                </div>
-
-                {selectedAbgabe.kriterien.length > 0 && (
-                  <div style={{ marginBottom: '1.25rem' }}>
-                    <h5 style={{ fontSize: '0.8125rem', margin: '0 0 0.5rem' }}>Kriterien</h5>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-                      {selectedAbgabe.kriterien.map((k) => (
-                        <div key={k.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.25rem 0.5rem', background: 'var(--color-bg-base)', borderRadius: 'var(--radius)' }}>
-                          <span style={{ fontSize: '0.8125rem' }}>{k.kriteriumName}</span>
-                          <span style={{ fontSize: '0.8125rem', fontWeight: 600 }}>
-                            {k.stufe !== null ? `${k.stufe.toFixed(1)}` : '—'}
-                            {k.gewichtung !== null ? ` (${(k.gewichtung * 100).toFixed(0)}%)` : ''}
-                          </span>
+                    <div style={{ display: 'flex', gap: '1.25rem', marginBottom: '1.25rem' }}>
+                      <div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>KI-Note</div>
+                        <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-accent)' }}>
+                          {selectedAbgabe.abgabe.note !== null ? selectedAbgabe.abgabe.note.toFixed(1) : '—'}
                         </div>
-                      ))}
+                      </div>
+                      {selectedAbgabe.lehrerFeedback && (
+                        <div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>Lehrernote</div>
+                          <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>
+                            {selectedAbgabe.lehrerFeedback.noteFinal?.toFixed(1) ?? '—'}
+                          </div>
+                        </div>
+                      )}
+                      <div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>Gesamtstufe</div>
+                        <div style={{ fontSize: '1.125rem', fontWeight: 600 }}>
+                          {selectedAbgabe.abgabe.gesamtstufe !== null ? selectedAbgabe.abgabe.gesamtstufe.toFixed(2) : '—'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {selectedAbgabe.kriterien.length > 0 && (
+                      <div style={{ marginBottom: '1.25rem' }}>
+                        <h5 style={{ fontSize: '0.8125rem', margin: '0 0 0.5rem' }}>Kriterien</h5>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.375rem' }}>
+                          {selectedAbgabe.kriterien.map((k) => (
+                            <div key={k.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.25rem 0.5rem', background: 'var(--color-bg-base)', borderRadius: 'var(--radius)' }}>
+                              <span style={{ fontSize: '0.8125rem' }}>{k.kriteriumName}</span>
+                              <span style={{ fontSize: '0.8125rem', fontWeight: 600 }}>
+                                {k.stufe !== null ? `${k.stufe.toFixed(1)}` : '—'}
+                                {k.gewichtung !== null ? ` (${(k.gewichtung * 100).toFixed(0)}%)` : ''}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedAbgabe.fehler.length > 0 && (
+                      <div style={{ marginBottom: '1.25rem' }}>
+                        <h5 style={{ fontSize: '0.8125rem', margin: '0 0 0.5rem' }}>Fehler ({selectedAbgabe.fehler.length})</h5>
+                        <div style={{ maxHeight: '48vh', overflowY: 'auto', paddingRight: '0.25rem' }}>
+                          {selectedAbgabe.fehler.map((f) => (
+                            <div key={f.id} style={{ padding: '0.5rem 0.75rem', marginBottom: '0.375rem', background: 'var(--color-bg-base)', borderRadius: 'var(--radius)', borderLeft: `3px solid ${FEHLER_COLORS[f.typ] ?? '#999'}` }}>
+                              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: FEHLER_COLORS[f.typ] ?? '#999' }}>
+                                {FEHLER_LABELS[f.typ] ?? f.typ}
+                              </span>
+                              {f.zitat && <div style={{ fontSize: '0.75rem', fontStyle: 'italic', color: 'var(--color-text-secondary)', marginTop: '0.125rem' }}>"{f.zitat}"</div>}
+                              {f.korrektur && <div style={{ fontSize: '0.75rem', marginTop: '0.125rem' }}>→ {f.korrektur}</div>}
+                              {f.erklaerung && <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)', marginTop: '0.25rem' }}>{f.erklaerung}</div>}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '1rem' }}>
+                      <h5 style={{ fontSize: '0.875rem', margin: '0 0 0.75rem' }}>Lehrer-Feedback</h5>
+                      <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '0.75rem', alignItems: 'start' }}>
+                        <label style={{ fontSize: '0.8125rem', fontWeight: 600, lineHeight: '2' }}>Note</label>
+                        <input
+                          type="number" min="1" max="5" step="0.25"
+                          value={teacherNote}
+                          onChange={(e) => setTeacherNote(e.target.value)}
+                          placeholder="1 – 5"
+                          style={{ width: '100%', boxSizing: 'border-box' }}
+                        />
+                        <label style={{ fontSize: '0.8125rem', fontWeight: 600, lineHeight: '2' }}>Kommentar</label>
+                        <textarea
+                          value={teacherComment}
+                          onChange={(e) => setTeacherComment(e.target.value)}
+                          placeholder="Optional: Bemerkung zum Aufsatz"
+                          rows={3}
+                          style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical' }}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.75rem' }}>
+                        <button className="btn-primary" onClick={handleSaveFeedback} disabled={saving} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                          <Save size={14} /> {saving ? 'Speichern …' : 'Speichern'}
+                        </button>
+                        {saveMsg && <span style={{ fontSize: '0.75rem', color: 'var(--color-success)' }}>{saveMsg}</span>}
+                      </div>
                     </div>
                   </div>
-                )}
 
-                {selectedAbgabe.fehler.length > 0 && (
-                  <div style={{ marginBottom: '1.25rem' }}>
-                    <h5 style={{ fontSize: '0.8125rem', margin: '0 0 0.5rem' }}>Fehler ({selectedAbgabe.fehler.length})</h5>
-                    {selectedAbgabe.fehler.map((f) => (
-                      <div key={f.id} style={{ padding: '0.5rem 0.75rem', marginBottom: '0.375rem', background: 'var(--color-bg-base)', borderRadius: 'var(--radius)', borderLeft: `3px solid ${FEHLER_COLORS[f.typ] ?? '#999'}` }}>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: FEHLER_COLORS[f.typ] ?? '#999' }}>
-                          {FEHLER_LABELS[f.typ] ?? f.typ}
-                        </span>
-                        {f.zitat && <div style={{ fontSize: '0.75rem', fontStyle: 'italic', color: 'var(--color-text-secondary)', marginTop: '0.125rem' }}>"{f.zitat}"</div>}
-                        {f.korrektur && <div style={{ fontSize: '0.75rem', marginTop: '0.125rem' }}>→ {f.korrektur}</div>}
-                        {f.erklaerung && <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)', marginTop: '0.25rem' }}>{f.erklaerung}</div>}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {annotatedNodes && (
-                  <div style={{ marginBottom: '1.25rem' }}>
+                  {/* Rechte Spalte: A4-Vorschau (sticky) */}
+                  <div style={{ position: 'sticky', top: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
                       <h5 style={{ fontSize: '0.8125rem', margin: 0 }}>Schülertext mit Markierungen</h5>
-                      <button
-                        onClick={() => setShowPreview((v) => !v)}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', padding: '0.2rem 0.5rem',
-                          border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', background: 'var(--color-bg-base)', cursor: 'pointer' }}
-                      >
-                        {showPreview ? <><EyeOff size={12} /> Verbergen</> : <><Eye size={12} /> Anzeigen</>}
-                      </button>
-                      {!showPreview && (
-                        <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)' }}>
-                          {selectedAbgabe!.fehler.filter(f => f.zitat).length} Markierungen
-                        </span>
+                      {annotatedNodes && (
+                        <button
+                          onClick={() => setShowPreview((v) => !v)}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', padding: '0.2rem 0.5rem',
+                            border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', background: 'var(--color-bg-base)', cursor: 'pointer' }}
+                        >
+                          {showPreview ? <><EyeOff size={12} /> Verbergen</> : <><Eye size={12} /> Anzeigen</>}
+                        </button>
                       )}
                     </div>
-                    {showPreview && (
+                    {!annotatedNodes ? (
+                      <div style={{ padding: '1.5rem', fontSize: '0.8125rem', color: 'var(--color-text-secondary)', textAlign: 'center', border: '1px dashed var(--color-border)', borderRadius: 'var(--radius)' }}>
+                        Für diese Abgabe ist kein Schülertext gespeichert (Alt-Datensatz).
+                        Neu analysieren, um die markierte Vorschau zu sehen.
+                      </div>
+                    ) : showPreview && (
                       <div style={{
-                        maxHeight: '55vh', overflowY: 'auto', padding: '2rem', lineHeight: 1.8,
+                        maxHeight: 'calc(100vh - 160px)', overflowY: 'auto', padding: '2rem', lineHeight: 1.8,
                         fontSize: '0.9rem', fontFamily: 'Georgia, serif',
                         background: '#fff', color: '#222',
                         border: '1px solid var(--color-border)', borderRadius: 'var(--radius)',
@@ -465,34 +502,6 @@ export function KorrekturView() {
                         </div>
                       </div>
                     )}
-                  </div>
-                )}
-
-                <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '1rem' }}>
-                  <h5 style={{ fontSize: '0.875rem', margin: '0 0 0.75rem' }}>Lehrer-Feedback</h5>
-                  <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '0.75rem', alignItems: 'start' }}>
-                    <label style={{ fontSize: '0.8125rem', fontWeight: 600, lineHeight: '2' }}>Note</label>
-                    <input
-                      type="number" min="1" max="5" step="0.25"
-                      value={teacherNote}
-                      onChange={(e) => setTeacherNote(e.target.value)}
-                      placeholder="1 – 5"
-                      style={{ width: '100%', boxSizing: 'border-box' }}
-                    />
-                    <label style={{ fontSize: '0.8125rem', fontWeight: 600, lineHeight: '2' }}>Kommentar</label>
-                    <textarea
-                      value={teacherComment}
-                      onChange={(e) => setTeacherComment(e.target.value)}
-                      placeholder="Optional: Bemerkung zum Aufsatz"
-                      rows={3}
-                      style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical' }}
-                    />
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.75rem' }}>
-                    <button className="btn-primary" onClick={handleSaveFeedback} disabled={saving} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
-                      <Save size={14} /> {saving ? 'Speichern …' : 'Speichern'}
-                    </button>
-                    {saveMsg && <span style={{ fontSize: '0.75rem', color: 'var(--color-success)' }}>{saveMsg}</span>}
                   </div>
                 </div>
               </div>

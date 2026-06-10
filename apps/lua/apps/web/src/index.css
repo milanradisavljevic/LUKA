@@ -287,3 +287,10 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .spin {
   animation: spin 1s linear infinite;
 }
+
+/* Korrektur-Detailansicht: auf schmalen Fenstern Analyse/Vorschau stapeln */
+@media (max-width: 900px) {
+  .korrektur-detail-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
