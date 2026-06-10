@@ -685,6 +685,7 @@ def save_analysis_to_db(
     aufgabe: str,
     rohtext: str = "",
     wortanzahl: int | None = None,
+    feedback_json_path: str = "",
 ) -> int:
     """
     Bequemlichkeits-Funktion: Nimmt das validierte JSON-Dict nach der Analyse
@@ -722,7 +723,7 @@ def save_analysis_to_db(
     with sqlite3.connect(db_path_str) as conn:
         conn.execute("PRAGMA foreign_keys=ON")
         cur = conn.execute(
-            "INSERT INTO abgabe (schueler_id, klasse, aufgabe, dateiname, datei_hash, rohtext, note, gesamtstufe, feedback_json_path, wortanzahl, fach, schulstufe, textsorte, rubrik) VALUES (?, ?, ?, ?, ?, ?, ?, ?, '', ?, ?, ?, ?, ?)",
+            "INSERT INTO abgabe (schueler_id, klasse, aufgabe, dateiname, datei_hash, rohtext, note, gesamtstufe, feedback_json_path, wortanzahl, fach, schulstufe, textsorte, rubrik) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 schueler_id,
                 klasse,
@@ -732,6 +733,7 @@ def save_analysis_to_db(
                 rohtext,
                 float(note) if note is not None else None,
                 float(gesamtstufe) if gesamtstufe is not None else None,
+                feedback_json_path,
                 wortanzahl,
                 data.get("fach", ""),
                 data.get("schulstufe", ""),

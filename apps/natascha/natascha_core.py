@@ -1050,6 +1050,30 @@ def run_llm_analysis(
                 db_path = ndb.get_db_path(config)
                 ndb.init_db(db_path)
                 wortanzahl = count_words(file_path)
+
+                # Analyse-JSON auf Platte schreiben, damit feedback-docx
+                # darauf zugreifen kann (feedback_json_path in abgabe-Tabelle)
+                json_path_str = ""
+                if klasse and aufgabe:
+                    auf_cfg = get_aufgabe_cfg(config, klasse, aufgabe)
+                    auf_out = auf_cfg.get("output", "")
+                    fb_dir = (
+                        PROJECT_ROOT / auf_out / "feedback_data"
+                        if auf_out
+                        else resolve_path(config, "output") / "feedback_data"
+                    )
+                    try:
+                        import json as _json_mod
+                        fb_dir.mkdir(parents=True, exist_ok=True)
+                        json_file = fb_dir / f"{file_path.stem}_analysis.json"
+                        json_file.write_text(
+                            _json_mod.dumps(data, ensure_ascii=False, indent=2, default=str),
+                            encoding="utf-8",
+                        )
+                        json_path_str = str(json_file)
+                    except Exception:
+                        pass
+
                 abgabe_id = ndb.save_analysis_to_db(
                     db_path=db_path,
                     data=data,
@@ -1058,6 +1082,7 @@ def run_llm_analysis(
                     aufgabe=aufgabe,
                     rohtext=docx_text,
                     wortanzahl=wortanzahl,
+                    feedback_json_path=json_path_str,
                 )
                 if abgabe_id and abgabe_id > 0:
                     data["_abgabe_id"] = abgabe_id
