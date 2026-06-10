@@ -139,7 +139,8 @@ Details: [`docs/DATENSCHUTZ.md`](docs/DATENSCHUTZ.md).
 
 ## Lizenz
 
-© 2026 Milan Radisavljević — Alle Rechte vorbehalten. Siehe [`LICENSE`](LICENSE).
+Veröffentlicht unter der **MIT-Lizenz** — siehe [`LICENSE`](LICENSE).
+© 2026 Milan Radisavljević.
 
 ## Roadmap (nach der Testphase)
 
