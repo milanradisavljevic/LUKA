@@ -1,3 +1,4 @@
+use rusqlite::OptionalExtension;
 use serde::Serialize;
 
 use crate::commands::db::DbState;
@@ -887,6 +888,88 @@ pub async fn db_export_noten_csv(state: tauri::State<'_, DbState>, klasse: Strin
         }
     }
     Ok(csv)
+}
+
+// ─── Stage 4: LLM-Briefing/Profil lesen ──────────────────────────────────────
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct KlassenBriefingRow {
+    pub id: i64,
+    pub klasse: String,
+    pub aufgabe: String,
+    pub text: String,
+    pub modell: String,
+    pub erstellt_am: String,
+}
+
+/// Holt das jüngste KI-Klassen-Briefing aus der DB (oder None, wenn noch keins existiert).
+#[tauri::command]
+pub async fn db_get_klassen_briefing(
+    state: tauri::State<'_, DbState>,
+    klasse: String,
+    aufgabe: Option<String>,
+) -> Result<Option<KlassenBriefingRow>, String> {
+    let guard = state.conn()?;
+    let conn = &*guard;
+    let sql = if aufgabe.is_some() {
+        "SELECT id, klasse, aufgabe, json_extract(briefing_json,'$.text'), modell, erstellt_am \
+         FROM klassen_briefing WHERE klasse=?1 AND aufgabe=?2 ORDER BY erstellt_am DESC, id DESC LIMIT 1"
+    } else {
+        "SELECT id, klasse, aufgabe, json_extract(briefing_json,'$.text'), modell, erstellt_am \
+         FROM klassen_briefing WHERE klasse=?1 AND (aufgabe IS NULL OR aufgabe='') ORDER BY erstellt_am DESC, id DESC LIMIT 1"
+    };
+    let params: Vec<Box<dyn rusqlite::types::ToSql>> = if let Some(ref af) = aufgabe {
+        vec![Box::new(klasse), Box::new(af.clone())]
+    } else {
+        vec![Box::new(klasse)]
+    };
+    let param_refs: Vec<&dyn rusqlite::types::ToSql> = params.iter().map(|p| p.as_ref()).collect();
+    let mut stmt = conn.prepare(sql).map_err(|e| format!("prepare klassen_briefing: {e}"))?;
+    let row = stmt.query_row(param_refs.as_slice(), |row| {
+        Ok(KlassenBriefingRow {
+            id: row.get(0)?,
+            klasse: row.get(1)?,
+            aufgabe: row.get(2)?,
+            text: row.get::<_, Option<String>>(3)?.unwrap_or_default(),
+            modell: row.get::<_, Option<String>>(4)?.unwrap_or_default(),
+            erstellt_am: row.get::<_, Option<String>>(5)?.unwrap_or_default(),
+        })
+    }).optional().map_err(|e| format!("query klassen_briefing: {e}"))?;
+    Ok(row)
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SchuelerProfilRow {
+    pub id: i64,
+    pub schueler_id: i64,
+    pub text: String,
+    pub modell: String,
+    pub erstellt_am: String,
+}
+
+/// Holt das jüngste KI-Schüler-Profil aus der DB (oder None).
+#[tauri::command]
+pub async fn db_get_schueler_profil(
+    state: tauri::State<'_, DbState>,
+    schueler_id: i64,
+) -> Result<Option<SchuelerProfilRow>, String> {
+    let guard = state.conn()?;
+    let conn = &*guard;
+    let row = conn.query_row(
+        "SELECT id, schueler_id, json_extract(profil_json,'$.text'), modell, erstellt_am \
+         FROM schueler_profil WHERE schueler_id=?1 ORDER BY erstellt_am DESC, id DESC LIMIT 1",
+        rusqlite::params![schueler_id],
+        |row| Ok(SchuelerProfilRow {
+            id: row.get(0)?,
+            schueler_id: row.get(1)?,
+            text: row.get::<_, Option<String>>(2)?.unwrap_or_default(),
+            modell: row.get::<_, Option<String>>(3)?.unwrap_or_default(),
+            erstellt_am: row.get::<_, Option<String>>(4)?.unwrap_or_default(),
+        }),
+    ).optional().map_err(|e| format!("query schueler_profil: {e}"))?;
+    Ok(row)
 }
 
 #[cfg(test)]

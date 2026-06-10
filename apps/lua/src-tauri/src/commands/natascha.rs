@@ -344,3 +344,39 @@ pub async fn natascha_save_erwartungshorizont(
     }
     Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
 }
+
+/// Generiert ein KI-Klassen-Briefing via CLI und speichert es in der DB.
+#[tauri::command]
+pub async fn natascha_klassen_briefing(
+    dir: String,
+    python: String,
+    klasse: String,
+    aufgabe: Option<String>,
+    provider: Option<String>,
+    model: Option<String>,
+) -> Result<String, String> {
+    let nat_dir = resolve_dir(&dir)?;
+    let mut cmd = build_cli_command(&nat_dir, &python);
+    cmd.arg("klassen-briefing").arg("--klasse").arg(&klasse);
+    if let Some(ref v) = aufgabe { cmd.arg("--aufgabe").arg(v); }
+    if let Some(ref v) = provider { cmd.arg("--provider").arg(v); }
+    if let Some(ref v) = model { cmd.arg("--model").arg(v); }
+    run_cli_and_capture(cmd)
+}
+
+/// Generiert ein KI-Schüler-Profil via CLI und speichert es in der DB.
+#[tauri::command]
+pub async fn natascha_schueler_profil(
+    dir: String,
+    python: String,
+    schueler_id: i64,
+    provider: Option<String>,
+    model: Option<String>,
+) -> Result<String, String> {
+    let nat_dir = resolve_dir(&dir)?;
+    let mut cmd = build_cli_command(&nat_dir, &python);
+    cmd.arg("schueler-profil").arg("--schueler-id").arg(schueler_id.to_string());
+    if let Some(ref v) = provider { cmd.arg("--provider").arg(v); }
+    if let Some(ref v) = model { cmd.arg("--model").arg(v); }
+    run_cli_and_capture(cmd)
+}

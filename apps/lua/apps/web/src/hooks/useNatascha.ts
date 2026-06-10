@@ -294,6 +294,40 @@ export function useNatascha() {
     }
   }, []);
 
+  const generateKlassenBriefing = useCallback(async (
+    klasse: string, aufgabe?: string, provider?: string, model?: string,
+  ): Promise<KlassenBriefingResult> => {
+    const s = loadSettings();
+    const result = await invoke<string>('natascha_klassen_briefing', {
+      dir: s.nataschaDir ?? '', python: s.pythonCommand ?? '',
+      klasse, aufgabe: aufgabe ?? null, provider: provider ?? null, model: model ?? null,
+    });
+    return JSON.parse(result);
+  }, []);
+
+  const generateSchuelerProfil = useCallback(async (
+    schuelerId: number, provider?: string, model?: string,
+  ): Promise<SchuelerProfilResult> => {
+    const s = loadSettings();
+    const result = await invoke<string>('natascha_schueler_profil', {
+      dir: s.nataschaDir ?? '', python: s.pythonCommand ?? '',
+      schuelerId, provider: provider ?? null, model: model ?? null,
+    });
+    return JSON.parse(result);
+  }, []);
+
+  const getKlassenBriefing = useCallback(async (klasse: string, aufgabe?: string): Promise<KlassenBriefingRow | null> => {
+    try {
+      return await invoke<KlassenBriefingRow | null>('db_get_klassen_briefing', { klasse, aufgabe: aufgabe ?? null });
+    } catch { return null; }
+  }, []);
+
+  const getSchuelerProfil = useCallback(async (schuelerId: number): Promise<SchuelerProfilRow | null> => {
+    try {
+      return await invoke<SchuelerProfilRow | null>('db_get_schueler_profil', { schuelerId });
+    } catch { return null; }
+  }, []);
+
   return {
     analyzing,
     analyzeError,
@@ -320,6 +354,10 @@ export function useNatascha() {
     getKlassenKalibrierung,
     getFehlerDetail,
     exportNotenCsv,
+    generateKlassenBriefing,
+    generateSchuelerProfil,
+    getKlassenBriefing,
+    getSchuelerProfil,
   };
 }
 
@@ -404,3 +442,23 @@ interface FehlerDetailRow {
   vorname: string | null;
   dateiname: string;
 }
+
+export interface KlassenBriefingRow {
+  id: number;
+  klasse: string;
+  aufgabe: string;
+  text: string;
+  modell: string;
+  erstelltAm: string;
+}
+
+export interface SchuelerProfilRow {
+  id: number;
+  schuelerId: number;
+  text: string;
+  modell: string;
+  erstelltAm: string;
+}
+
+interface KlassenBriefingResult { id: number; klasse: string; aufgabe: string | null; text: string; modell: string }
+interface SchuelerProfilResult { id: number; schueler_id: number; text: string; modell: string }
