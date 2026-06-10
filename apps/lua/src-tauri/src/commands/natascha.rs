@@ -313,6 +313,59 @@ pub async fn natascha_list_rubrics(
     run_cli_and_capture(cmd)
 }
 
+/// Listet alle Rubrik-Markdown-Dateien (roh) für den Editor.
+#[tauri::command]
+pub async fn natascha_list_rubric_files(
+    dir: String,
+    python: String,
+) -> Result<String, String> {
+    let nat_dir = resolve_dir(&dir)?;
+    let mut cmd = build_cli_command(&nat_dir, &python);
+    cmd.arg("list-rubric-files");
+    run_cli_and_capture(cmd)
+}
+
+/// Liest den Roh-Markdown einer Rubrik.
+#[tauri::command]
+pub async fn natascha_read_rubric(
+    dir: String,
+    python: String,
+    name: String,
+) -> Result<String, String> {
+    let nat_dir = resolve_dir(&dir)?;
+    let mut cmd = build_cli_command(&nat_dir, &python);
+    cmd.arg("read-rubric").arg("--name").arg(&name);
+    run_cli_and_capture(cmd)
+}
+
+/// Speichert (überschreibt/legt an) eine Rubrik (Markdown via stdin).
+#[tauri::command]
+pub async fn natascha_save_rubric(
+    dir: String,
+    python: String,
+    name: String,
+    content: String,
+) -> Result<String, String> {
+    use std::io::Write;
+    let nat_dir = resolve_dir(&dir)?;
+    let mut cmd = build_cli_command(&nat_dir, &python);
+    cmd.arg("save-rubric").arg("--name").arg(&name)
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
+    let mut child = cmd.spawn().map_err(|e| {
+        format!("Python konnte nicht gestartet werden: {e}. Python-Befehl ggf. in den Einstellungen setzen.")
+    })?;
+    if let Some(mut stdin) = child.stdin.take() {
+        stdin.write_all(content.as_bytes()).map_err(|e| format!("stdin-Schreibfehler: {e}"))?;
+    }
+    let output = child.wait_with_output().map_err(|e| format!("CLI-Aufruf fehlgeschlagen: {e}"))?;
+    if !output.status.success() {
+        return Err(categorize_cli_error(&String::from_utf8_lossy(&output.stderr)));
+    }
+    Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+}
+
 /// Speichert den (bearbeiteten) Erwartungshorizont (Text via stdin) als
 /// rubrics/erwartungshorizont_*.md und verlinkt ihn in der Config.
 #[tauri::command]
