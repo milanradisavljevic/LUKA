@@ -64,7 +64,12 @@ function annotateText(text: string, fehler: FehlerRow[]): React.ReactNode[] {
   return nodes;
 }
 
-export function KorrekturView() {
+interface KorrekturViewProps {
+  /** Cross-Nav: Klick auf einen Schülernamen → Schüler-Ansicht. */
+  onOpenSchueler?: (klasse: string, schuelerId: number) => void;
+}
+
+export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
   const { analyze, analyzing, analyzeError, listKlassen, listAufgaben, getAbgaben, getAbgabeDetail, upsertLehrerFeedback, generateFeedbackDocx } = useNatascha();
 
   const [mode, setMode] = useState<'tui' | 'native'>('native');
@@ -366,7 +371,16 @@ export function KorrekturView() {
               <div style={{ ...cardStyle, marginTop: '1rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                   <h4 style={{ fontSize: '0.9375rem', margin: 0 }}>
-                    {schuelerName(selectedAbgabe.abgabe)} — {selectedAbgabe.abgabe.aufgabe}
+                    {onOpenSchueler && selectedAbgabe.abgabe.schuelerId ? (
+                      <button
+                        onClick={() => onOpenSchueler(selectedAbgabe.abgabe.klasse, selectedAbgabe.abgabe.schuelerId!)}
+                        title="Zum Schülerprofil (Längsschnitt)"
+                        style={{ border: 'none', background: 'none', padding: 0, font: 'inherit', color: 'var(--color-accent)', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 2 }}
+                      >
+                        {schuelerName(selectedAbgabe.abgabe)}
+                      </button>
+                    ) : schuelerName(selectedAbgabe.abgabe)}
+                    {' '}— {selectedAbgabe.abgabe.aufgabe}
                   </h4>
                   <button className="btn-secondary" onClick={handleGenerateDocx} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.75rem', padding: '0.25rem 0.625rem' }}>
                     <FileDown size={14} /> Feedback-DOCX
