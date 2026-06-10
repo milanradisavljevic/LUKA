@@ -28,7 +28,8 @@ import { SchuelerView } from './views/SchuelerView';
 import { ErwartungshorizontView } from './views/ErwartungshorizontView';
 import { setPendingUebung } from './lib/korrekturBridge';
 import type { NataschaPrefill } from './lib/nataschaBridge';
-import { loadDocuments, upsertDocument, snapshotFromState, saveTemplate, deleteTemplate, loadTemplates, hydrateCache, isHydrated } from './lib/storage';
+import { loadDocuments, upsertDocument, snapshotFromState, saveTemplate, deleteTemplate, loadTemplates, hydrateCache, isHydrated, setPersistErrorHandler } from './lib/storage';
+import { Toast, type ToastMessage } from './components/Toast';
 import './App.css';
 
 export default function App() {
@@ -47,6 +48,17 @@ export default function App() {
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+  const [toast, setToast] = useState<ToastMessage | null>(null);
+  // Cross-Nav: aus der Korrektur zu einem bestimmten Schüler springen.
+  const [pendingSchueler, setPendingSchueler] = useState<{ klasse: string; id: number } | null>(null);
+
+  // Stille DB-Write-Fehler sichtbar machen (vorher nur console.error).
+  useEffect(() => {
+    setPersistErrorHandler((cmd) => {
+      setToast({ id: Date.now(), text: `Speichern fehlgeschlagen (${cmd}). Änderung evtl. nicht gesichert.`, kind: 'error' });
+    });
+    return () => setPersistErrorHandler(null);
+  }, []);
 
   useEffect(() => {
     const handler = () => setIsMobile(window.innerWidth < 1024);
@@ -168,6 +180,12 @@ export default function App() {
     setActiveView('wizard');
   }, [state.bloecke.length, state.generiertesDokument, dispatch]);
 
+  // Cross-Nav: Klick auf einen Schülernamen in der Korrektur → Schüler-Ansicht.
+  const handleOpenSchueler = useCallback((klasse: string, id: number) => {
+    setPendingSchueler({ klasse, id });
+    setActiveView('schueler');
+  }, []);
+
   const renderStep = () => {
     switch (state.step) {
       case 'absicht':
@@ -212,9 +230,9 @@ if (hydrating) {
       case 'templates':
         return <TemplatesView meta={state.meta} bloecke={state.bloecke} onLoad={handleLoadTemplate} />;
       case 'korrektur':
-        return <KorrekturView />;
+        return <KorrekturView onOpenSchueler={handleOpenSchueler} />;
       case 'schueler':
-        return <SchuelerView />;
+        return <SchuelerView preselect={pendingSchueler} onConsumePreselect={() => setPendingSchueler(null)} onGenerateUebung={handleGenerateUebung} />;
       case 'klassen':
         return <KlassenView onGenerateUebung={handleGenerateUebung} />;
       case 'erwartungshorizont':
@@ -313,6 +331,8 @@ if (hydrating) {
         onExport={handlePaletteExport}
         blockCount={state.bloecke.length}
       />
+
+      <Toast toast={toast} onClose={() => setToast(null)} />
 
       {/* Zoom-Anzeige */}
       {zoom !== 1.0 && (

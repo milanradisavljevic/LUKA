@@ -1,14 +1,25 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Users, TrendingUp, AlertTriangle, Loader2, BarChart3, ChevronRight, Trash2, UserPlus, Sparkles } from 'lucide-react';
+import { Users, TrendingUp, AlertTriangle, Loader2, BarChart3, ChevronRight, Trash2, UserPlus, Sparkles, Wand2 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, Legend, CartesianGrid } from 'recharts';
 import { useNatascha } from '../hooks/useNatascha';
 import type { KlasseInfo } from '../lib/storage';
 import type { SchuelerProfilRow } from '../hooks/useNatascha';
+import { KATEGORIE_TO_BLOCKTYPEN, type NataschaPrefill } from '../lib/nataschaBridge';
+import type { BlockTyp } from '@lehrunterlagen/schema';
 import { ViewShell } from './_ViewShell';
 
 const FEHLER_LABELS: Record<string, string> = { R: 'Rechtschreibung', G: 'Grammatik', Z: 'Zeichensetzung', A: 'Ausdruck' };
 
-export function SchuelerView() {
+interface SchuelerViewProps {
+  /** Cross-Nav-Vorauswahl (aus der Korrektur). */
+  preselect?: { klasse: string; id: number } | null;
+  /** Wird aufgerufen, sobald die Vorauswahl konsumiert wurde. */
+  onConsumePreselect?: () => void;
+  /** Closed Loop pro Schüler: Übungsblatt zu seinen Schwächen im Generator starten. */
+  onGenerateUebung?: (prefill: NataschaPrefill) => void;
+}
+
+export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }: SchuelerViewProps = {}) {
   const { listKlassen, listSchueler, insertSchueler, deleteSchueler, addKlasse, addAufgabe, listRubrics, getSchuelerLaengsschnitt, generateSchuelerProfil, getSchuelerProfil } = useNatascha();
 
   const [klassen, setKlassen] = useState<KlasseInfo[]>([]);
@@ -79,6 +90,47 @@ export function SchuelerView() {
     } catch (e) { setError(String(e)); }
     finally { setLoading(false); }
   }, [getSchuelerLaengsschnitt, getSchuelerProfil]);
+
+  // Cross-Nav: Vorauswahl aus der Korrektur einmalig anwenden.
+  useEffect(() => {
+    if (!preselect) return;
+    let cancelled = false;
+    (async () => {
+      await loadSchueler(preselect.klasse);
+      if (cancelled) return;
+      await loadLaengsschnitt(preselect.id);
+      onConsumePreselect?.();
+    })();
+    return () => { cancelled = true; };
+  }, [preselect, loadSchueler, loadLaengsschnitt, onConsumePreselect]);
+
+  // Closed Loop pro Schüler: aus den Fehlerschwerpunkten ein Übungsblatt erzeugen.
+  const handleGenerateUebung = useCallback(() => {
+    if (!laengsschnitt || !onGenerateUebung) return;
+    const top = [...(laengsschnitt.fehlerschwerpunkte ?? [])]
+      .filter((f: any) => f.anzahl > 0)
+      .sort((a: any, b: any) => b.anzahl - a.anzahl)
+      .slice(0, 3);
+    if (top.length === 0) return;
+    const fokusThemen = top.map((f: any) => FEHLER_LABELS[f.typ] ?? f.typ);
+    const arten: BlockTyp[] = [];
+    for (const f of top) {
+      for (const t of (KATEGORIE_TO_BLOCKTYPEN[f.typ as 'R' | 'G' | 'Z' | 'A'] ?? [])) {
+        if (!arten.includes(t)) arten.push(t);
+      }
+    }
+    const s = laengsschnitt.schueler;
+    const name = [s.vorname, s.nachname].filter(Boolean).join(' ') || 'Schüler';
+    const prefill: NataschaPrefill = {
+      thema: `Übung zu Schwächen – ${name}`,
+      fach: 'deutsch',
+      stufe: 'oberstufe',
+      fokusThemen,
+      gewuenschteAufgabenarten: arten,
+      notizen: `Automatisch aus dem Längsschnitt von ${name} (${laengsschnitt.schueler.klasse}) erzeugt. Schwerpunkte: ${fokusThemen.join(', ')}.`,
+    };
+    onGenerateUebung(prefill);
+  }, [laengsschnitt, onGenerateUebung]);
 
   const handleGenerateProfil = useCallback(async () => {
     if (!selectedSchuelerId) return;
@@ -295,9 +347,21 @@ export function SchuelerView() {
               {/* Fehlerschwerpunkte */}
               {laengsschnitt.fehlerschwerpunkte.length > 0 && (
                 <div style={{ ...cardStyle, marginBottom: '1rem' }}>
-                  <h5 style={{ fontSize: '0.875rem', margin: '0 0 0.75rem' }}>
-                    <AlertTriangle size={16} style={{ verticalAlign: -2, marginRight: 6 }} /> Fehlerschwerpunkte
-                  </h5>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                    <h5 style={{ fontSize: '0.875rem', margin: 0 }}>
+                      <AlertTriangle size={16} style={{ verticalAlign: -2, marginRight: 6 }} /> Fehlerschwerpunkte
+                    </h5>
+                    {onGenerateUebung && (
+                      <button
+                        className="btn-primary"
+                        onClick={handleGenerateUebung}
+                        title="Erzeugt ein Übungsblatt zu den häufigsten Fehlern dieses Schülers"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', padding: '0.3rem 0.7rem' }}
+                      >
+                        <Wand2 size={14} /> Übungsblatt zu Schwächen
+                      </button>
+                    )}
+                  </div>
                   {laengsschnitt.fehlerschwerpunkte.map((f: any) => (
                     <div key={f.typ} style={{ marginBottom: '0.75rem' }}>
                       <div style={{ fontSize: '0.875rem', fontWeight: 600 }}>
