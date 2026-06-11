@@ -215,3 +215,45 @@ describe('nummeriereAbsaetze (Coverage-Prävention)', () => {
     expect(user.content).toContain('[Absatz 2]');
   });
 });
+
+describe('buildMessages — Kompetenz-Modus', () => {
+  const stoffItems = [{
+    id: 's1', rahmenwerk: 'at-lehrplan' as const, titel: 'Konjunktiv II',
+    fach: 'deutsch' as const, stufe: 'oberstufe' as const, kategorie: 'grammatik' as const,
+    deskriptorIds: ['d1'],
+  }];
+
+  it('waehlt den Kompetenz-System-Prompt und serialisiert stoffItems statt Quelltexte', () => {
+    const messages = buildMessages({
+      meta: { ...baseMeta, modus: 'kompetenz' },
+      quelltexte: [],
+      bloecke: [{ typ: 'umformung' as const, punkte: 6, anzahlAufgaben: 3 }],
+      stoffItems,
+    });
+    const system = messages.find((m) => m.role === 'system')!;
+    const user = messages.find((m) => m.role === 'user')!;
+    expect(system.content).toContain('KOMPETENZ-MODUS');
+    expect(system.content).not.toContain('Leite alle Inhalte strikt aus den gegebenen Quelltexten ab');
+    expect(system.content).toContain('umformung');           // gemeinsame Block-Regeln
+    expect(user.content).toContain('"titel": "Konjunktiv II"');
+    expect(user.content).toContain('KOMPETENZ-MODUS');
+  });
+
+  it('haengt IB-Command-Terms an, wenn rahmenwerk === ib-dp', () => {
+    const messages = buildMessages({
+      meta: { ...baseMeta, modus: 'kompetenz', rahmenwerk: 'ib-dp' },
+      quelltexte: [],
+      bloecke: [{ typ: 'fehlerkorrektur' as const, punkte: 4, anzahlSaetze: 2 }],
+      stoffItems,
+    });
+    const system = messages.find((m) => m.role === 'system')!;
+    expect(system.content).toContain('IB-RAHMENWERK');
+    expect(system.content).toContain('Command Terms');
+  });
+
+  it('Text-Modus bleibt unveraendert (Default ohne modus)', () => {
+    const system = buildMessages(input()).find((m) => m.role === 'system')!;
+    expect(system.content).toContain('Leite alle Inhalte strikt aus den gegebenen Quelltexten ab');
+    expect(system.content).toContain('KOGNITIVES NIVEAU (Bloom-Steuerung)');
+  });
+});
