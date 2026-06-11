@@ -399,10 +399,22 @@ export interface QualityCheckResult {
 export async function runQualityChecks(
   doc: DocumentV1,
   quelltexte: QuellText[],
-  meta?: { lernziele?: string[] },
+  meta?: { lernziele?: string[]; modus?: 'text' | 'kompetenz' },
   judgeCfg?: { provider: string; model?: string; apiKey?: string; enabled?: boolean },
   complete?: (messages: ChatMessage[]) => Promise<string>,
 ): Promise<QualityCheckResult> {
+  // Kompetenz-Modus: kein Quelltext vorhanden → Quelltext-Grounding/Schreibaufgaben-
+  // Check und der quelltext-bezogene Judge entfallen. (Grammatik-bewusster Judge:
+  // Phase 2b.)
+  if ((meta?.modus ?? 'text') === 'kompetenz') {
+    const issues = [
+      ...checkDuplicates(doc),
+      ...checkDuplicateQuestions(doc),
+      ...checkLernzielCoverage(doc, meta ?? {}),
+    ];
+    return { issues, judge: { score: 1, issues: [] } };
+  }
+
   const issues = [
     ...checkGrounding(doc, quelltexte),
     ...checkDuplicates(doc),

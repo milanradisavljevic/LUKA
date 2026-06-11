@@ -4,7 +4,7 @@ import type { ChatMessage, GenerateInput } from './types.js';
 // gehoeren NICHT hierher, die macht der Renderer. Das LLM liefert nur Inhalt.
 // WICHTIG: Das LLM liefert AUSSCHLIESSLICH das bloecke-Array als JSON.
 // Meta und Quelltexte werden von der App deterministisch ergaenzt.
-const SYSTEM = `Du bist ein Assistent, der Pruefungsinhalte fuer das oesterreichische AHS-Gymnasium erstellt (Faecher Deutsch und Englisch, Unter- und Oberstufe).
+const SYSTEM_HEAD_TEXT = `Du bist ein Assistent, der Pruefungsinhalte fuer das oesterreichische AHS-Gymnasium erstellt (Faecher Deutsch und Englisch, Unter- und Oberstufe).
 
 Du lieferst AUSSCHLIESSLICH ein JSON-Array von Aufgabenbloecken. Kein Layout, keine Markdown-Zaeune, keine Erklaerung, kein Text vor oder nach dem JSON.
 
@@ -59,9 +59,10 @@ Inhaltliche Regeln:
   explizit eine Paraphrasierung verlangt (Stiluebung, "Schreibe in eigenen Worten"),
   gilt die Umformulierung NUR fuer den Schueleroutput, nicht fuer Loesungen oder Optionen.
 - Ein vorhandener clue darf den Loesungsweg nicht vorwegnehmen.
-- BEREINIGE Quelltexte vor der Verarbeitung: Entferne Cookie-Banner, Adblocker-Hinweise, Login-Aufforderungen, Leerzeilen, Seitenzahlen und Redaktions-Metadaten (z. B. "Willkommen bei DER STANDARD", "Sie entscheiden darüber..."). Extrahiere nur den inhaltlichen Fließtext.
+- BEREINIGE Quelltexte vor der Verarbeitung: Entferne Cookie-Banner, Adblocker-Hinweise, Login-Aufforderungen, Leerzeilen, Seitenzahlen und Redaktions-Metadaten (z. B. "Willkommen bei DER STANDARD", "Sie entscheiden darüber..."). Extrahiere nur den inhaltlichen Fließtext.`;
 
-WICHTIG — wohin die Loesungen gehoeren (HAENGT VOM BLOCKTYP AB):
+// Gemeinsame Block-Regeln + Beispiele — identisch für Text- UND Kompetenz-Modus.
+const BLOCK_REGELN = `WICHTIG — wohin die Loesungen gehoeren (HAENGT VOM BLOCKTYP AB):
 - multipleChoice, matching, offeneVerstaendnisfrage: Loesung steht DIREKT beim Item (Feld "korrekt" bzw. "musterantwort"), NICHT in einem separaten "loesung"-Objekt.
 - lueckentext, offeneSchreibaufgabe, markieraufgabe, wordScramble, kategorisierung, tabelle, stiluebung, songanalyse, vokabeluebung: Loesung steht in einem "loesung"-Objekt am Block (siehe Beispiele). OHNE dieses "loesung"-Objekt ist die Antwort UNGUELTIG.
 
@@ -167,6 +168,21 @@ vokabeluebung (Vokabeln uebersetzen):
 - Die Vokabeln muessen thematisch zum Quelltext passen, aber "deutsch" und "fremdsprache" duerfen NIEMALS identisch sein.
 - Waehle schwierige, lernenswerte Begriffe aus dem Quelltext — keine trivialen Woerter.
 - loesung.antworten = { "1": "korrekte Fremdsprache", "2": "...", ... } — die korrekten Uebersetzungen in Zielrichtung.
+
+umformung (Grammatik-Transformation; Loesung im "loesung"-Objekt!):
+- config.aufgaben = Array aus { nr, ausgangssatz, anweisung, zielstruktur }.
+- ausgangssatz = ein vollstaendiger, sprachlich korrekter Satz, der die Zielstruktur noch NICHT enthaelt.
+- anweisung = die konkrete Umformungsaufgabe im Imperativ (z. B. "Setze den Satz in den Konjunktiv II.").
+- zielstruktur = die grammatische Zielform (z. B. "Konjunktiv II", "Passiv", "Past Perfect").
+- loesung.loesungen = Array aus { nr, umformulierung, erklaerung(optional) } — eine Loesung je Aufgabe, gleiche nr; umformulierung ist der korrekt umgeformte Satz.
+- ALLE Saetze (Ausgangssatz UND Loesung) muessen sprachlich korrekt und stufengerecht sein.
+
+fehlerkorrektur (Fehler finden + korrigieren; Loesung im "loesung"-Objekt!):
+- config.saetze = Array aus { nr, satz, anzahlFehler }.
+- satz = ein Satz mit GENAU anzahlFehler bewusst eingebauten Fehlern (Rechtschreibung/Grammatik/Zeichensetzung/Ausdruck). Der Rest des Satzes ist korrekt.
+- loesung.korrekturen = Array aus { nr, korrigierterSatz, fehler: [ { stelle, art, erklaerung(optional) } ] } — eine je Satz, gleiche nr.
+- art = "R" (Rechtschreibung), "G" (Grammatik), "Z" (Zeichensetzung) oder "A" (Ausdruck).
+- stelle = das fehlerhafte Wort/Zeichen wortwoertlich aus dem Ausgangssatz. Die Anzahl der fehler-Eintraege MUSS exakt anzahlFehler entsprechen.
 
 Ausgabe-Vertrag (ein einziges JSON-Array):
 
@@ -433,6 +449,30 @@ BEISPIEL fuer vokabeluebung (Loesung im "loesung"-Objekt!):
   }
 ]
 
+BEISPIEL fuer umformung (Loesung im "loesung"-Objekt!):
+[
+  {
+    "id": "b1",
+    "typ": "umformung",
+    "punkte": 6,
+    "arbeitsanweisung": "Setze die folgenden Saetze in den Konjunktiv II.",
+    "config": { "aufgaben": [ { "nr": 1, "ausgangssatz": "Wenn ich Zeit habe, komme ich mit.", "anweisung": "Setze in den Konjunktiv II.", "zielstruktur": "Konjunktiv II" } ] },
+    "loesung": { "loesungen": [ { "nr": 1, "umformulierung": "Wenn ich Zeit hätte, käme ich mit.", "erklaerung": "Konjunktiv II von haben (hätte) und kommen (käme)." } ] }
+  }
+]
+
+BEISPIEL fuer fehlerkorrektur (Loesung im "loesung"-Objekt!):
+[
+  {
+    "id": "b1",
+    "typ": "fehlerkorrektur",
+    "punkte": 4,
+    "arbeitsanweisung": "Finde und korrigiere die Fehler in den folgenden Saetzen.",
+    "config": { "saetze": [ { "nr": 1, "satz": "Ich habe gestern ein neues Buch gekaufd.", "anzahlFehler": 1 } ] },
+    "loesung": { "korrekturen": [ { "nr": 1, "korrigierterSatz": "Ich habe gestern ein neues Buch gekauft.", "fehler": [ { "stelle": "gekaufd", "art": "R", "erklaerung": "Das Partizip II von kaufen lautet gekauft." } ] } ] }
+  }
+]
+
 Jeder Block traegt: id (fortlaufend "b1", "b2", ...), typ, punkte und quelleId aus der Anforderung, arbeitsanweisung (Imperativ, Du), config (vollstaendig).
 
 WICHTIGE REGELN:
@@ -443,6 +483,40 @@ WICHTIGE REGELN:
 - Wenn du keinen echten Inhalt fuer ein Feld hast, lasse es WEG. Die Validierung wird dann scheitern und du bekommst eine zweite Chance.
 - Erfinde KEINE Platzhalter wie "Option A", "Frage 1", "Musterantwort" etc.
 - Antworte AUSSCHLIESSLICH mit dem JSON-Array. Keine Einleitung, keine Erklaerung, kein Markdown.`;
+
+// Kopf für den KOMPETENZ-MODUS: erfindet Beispiele zur Kompetenz statt aus Quelltexten
+// abzuleiten. Reicht denselben BLOCK_REGELN-Block nach wie der Text-Modus.
+const SYSTEM_HEAD_KOMPETENZ = `Du bist ein Assistent, der Pruefungsinhalte fuer das oesterreichische AHS-Gymnasium erstellt (Faecher Deutsch und Englisch, Unter- und Oberstufe).
+
+Du lieferst AUSSCHLIESSLICH ein JSON-Array von Aufgabenbloecken. Kein Layout, keine Markdown-Zaeune, keine Erklaerung, kein Text vor oder nach dem JSON.
+
+KOMPETENZ-MODUS: Es gibt KEINE Quelltexte. Du ERFINDEST die Inhalte selbst — didaktisch sinnvolle, sprachlich KORREKTE Beispiele (Saetze, Woerter), die GENAU die angegebene(n) Kompetenz(en) trainieren. Die angeforderten Kompetenzen stehen im User-Objekt unter "stoffItems" (Titel, Kategorie, ggf. Deskriptoren). Ein optionales "thema" dient nur als inhaltlicher Rahmen/Kontext der Beispiele und ist NICHT das Lernziel — das Lernziel ist die Kompetenz.
+
+QUALITAET (nicht verhandelbar): Jeder erfundene Satz und jeder Loesungsschluessel MUSS sprachlich korrekt und stufengerecht sein. Erfinde keine fehlerhaften Musterloesungen. Bei Fehlerkorrektur-Aufgaben sind die Fehler ABSICHTLICH in "satz" eingebaut und im "loesung"-Objekt korrekt aufgeloest.
+
+KOGNITIVES NIVEAU (Bloom-Steuerung): Das Feld "schwierigkeit" steuert das kognitive Niveau INNERHALB des angeforderten Aufgabentyps (leicht = Erinnern/Verstehen, mittel = Anwenden/Analysieren, schwer = Bewerten/Erschaffen).
+
+NIVEAU-STEUERUNG (Feld "kompetenzNiveau" im Meta-Objekt, falls gesetzt):
+- "basis": einfache, kurze Saetze; mehr Scaffolding (z. B. Wortbank/Beispielsatz vorgeben); weniger Items; klare, eindeutige Faelle.
+- "standard": durchschnittliche Komplexitaet und Item-Zahl.
+- "erweitert": komplexere Saetze und Strukturen; keine Hilfen; auch Sonderfaelle/Ausnahmen.
+
+VERBOT DES STILLEN TYP-TAUSCHS: Du darfst den in "angeforderteBloecke" vorgegebenen Blocktyp NICHT eigenmaechtig ersetzen. Steuere die kognitive Tiefe INNERHALB des angeforderten Typs.
+
+ENGLISCH-SPEZIFISCH (nur bei meta.fach === "englisch"): Die Schwierigkeitsstufen entsprechen den CEFR-Niveaus (leicht ≈ A2, mittel ≈ B1, schwer ≈ B2) und steuern Wortschatz und Satzkomplexitaet.
+
+Inhaltliche Regeln:
+- Durchgehend Du-Anrede. Arbeitsanweisungen im Imperativ ("Setze ... ein.", "Forme ... um.").
+- Ein vorhandener clue darf den Loesungsweg nicht vorwegnehmen.`;
+
+// Text-Modus-System (unveraendert) und Kompetenz-Modus-System teilen sich BLOCK_REGELN.
+const SYSTEM = SYSTEM_HEAD_TEXT + '\n\n' + BLOCK_REGELN;
+const SYSTEM_KOMPETENZ = SYSTEM_HEAD_KOMPETENZ + '\n\n' + BLOCK_REGELN;
+
+// Zusatzhinweis für IB (International Baccalaureate), angehaengt bei rahmenwerk === 'ib-dp'.
+const IB_HINWEIS = `
+
+IB-RAHMENWERK (International Baccalaureate Diploma): Formuliere Arbeitsanweisungen mit IB Command Terms (z. B. analyse, evaluate, discuss, compare, comment, to what extent) und im Stil der IB-Sprachpruefungen (Language A / Language B). Halte das Anspruchsniveau der gewaehlten IB-Stufe (HL/SL) ein.`;
 
 // Längenkappung gegen Prompt-Stuffing (Quelltexte werden ohnehin vorher gekürzt).
 const MAX_QUELLTEXT_LEN = 20000;
@@ -486,14 +560,7 @@ export function nummeriereAbsaetze(inhalt: string): string {
 }
 
 export function buildMessages(input: GenerateInput): ChatMessage[] {
-  const user = {
-    meta: input.meta,
-    quelltexte: input.quelltexte.map((q) => ({
-      ...q,
-      inhalt: nummeriereAbsaetze(sanitizeQuelltext(q.inhalt)),
-    })),
-    angeforderteBloecke: input.bloecke,
-  };
+  const modus = input.meta.modus ?? 'text';
   const schwierigkeit = input.meta.schwierigkeit ?? 'mittel';
   const lernziele = input.meta.lernziele ?? [];
   const lernzielHinweis =
@@ -514,6 +581,46 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
           .map((t) => `"${t}"`)
           .join(', ')}. Waehle Aufgabentypen und Inhalte, die genau diese Schwaechen adressieren. `
       : '';
+  // --- KOMPETENZ-MODUS: erfindet Beispiele zur Kompetenz, kein Quelltext ---
+  if (modus === 'kompetenz') {
+    const niveau = input.meta.kompetenzNiveau;
+    const niveauHinweis = niveau
+      ? `Niveau: "${niveau}" — passe Satzkomplexitaet, Scaffolding und Item-Anzahl entsprechend an (siehe NIVEAU-STEUERUNG im System-Prompt). `
+      : '';
+    const systemContent = SYSTEM_KOMPETENZ + (input.meta.rahmenwerk === 'ib-dp' ? IB_HINWEIS : '');
+    const kompetenzUser = {
+      meta: input.meta,
+      stoffItems: input.stoffItems ?? [],
+      angeforderteBloecke: input.bloecke,
+    };
+    return [
+      { role: 'system', content: systemContent },
+      {
+        role: 'user',
+        content:
+          `Erzeuge das bloecke-JSON-Array fuer die folgende Anforderung im KOMPETENZ-MODUS (keine Quelltexte). ` +
+          `Trainiere gezielt die unter "stoffItems" angegebenen Kompetenzen und erfinde dafuer korrekte, stufengerechte Beispiele. ` +
+          `Schwierigkeitsniveau: "${schwierigkeit}" — passe das kognitive Niveau entsprechend an. ` +
+          niveauHinweis +
+          lernzielHinweis +
+          notizenHinweis +
+          fokusThemenHinweis +
+          'Jeder Block muss ein vollstaendiges Objekt mit id, typ, punkte, arbeitsanweisung und config sein (quelleId entfaellt im Kompetenz-Modus). ' +
+          'Loesungen gehoeren je nach Blocktyp direkt ans Item oder in ein "loesung"-Objekt (siehe Beispiele).\n\n' +
+          JSON.stringify(kompetenzUser, null, 2),
+      },
+    ];
+  }
+
+  // --- TEXT-MODUS (unveraendert) ---
+  const user = {
+    meta: input.meta,
+    quelltexte: input.quelltexte.map((q) => ({
+      ...q,
+      inhalt: nummeriereAbsaetze(sanitizeQuelltext(q.inhalt)),
+    })),
+    angeforderteBloecke: input.bloecke,
+  };
   return [
     { role: 'system', content: SYSTEM },
     {
