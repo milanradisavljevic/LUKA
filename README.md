@@ -14,8 +14,7 @@
 ![SQLite](https://img.shields.io/badge/SQLite-lokal-003B57?logo=sqlite&logoColor=white)
 ![Status](https://img.shields.io/badge/Status-Beta%20%C2%B7%20im%20Test-orange)
 
-<!-- Screenshot bitte ergänzen (siehe docs/screenshots/README.md) -->
-![Übersicht](docs/screenshots/01-dashboard.png)
+![LUKA — Klassenauswertung mit Fehler-Heatmap und Closed-Loop](screenshots/Klassenauswertung.png)
 
 </div>
 
@@ -57,10 +56,17 @@ flowchart LR
 | **Übersicht** | Dashboard mit Kennzahlen und Klassen mit Handlungsbedarf |
 | **Closed Loop** | Aus Heatmap **oder** Schüler-Schwächen → Übungsblatt im Generator (Fokus vorbefüllt) |
 
-<!-- Weitere Screenshots: siehe docs/screenshots/README.md -->
-| ![Korrektur](docs/screenshots/02-korrektur.png) | ![Klassen](docs/screenshots/03-klassen-heatmap.png) |
+### Einblicke
+
+| | |
 |:--:|:--:|
-| *Korrektur: Analyse links, markierter Text rechts* | *Klassen: Fehler-Heatmap &amp; Trend* |
+| ![Neue Unterlage: Absicht](screenshots/Übersicht.png) | ![KI-Modell wählen](screenshots/LLM-Auswahl.png) |
+| *Generator: Absicht festlegen (Stufe, Fach, Aufgabentypen)* | *KI-Modell &amp; Kreativität wählen — inkl. Datenschutz-Hinweis* |
+| ![Vorschau &amp; Export](screenshots/Vorschau.png) | ![Schüler verwalten](screenshots/Schülermenü.png) |
+| *DIN-A4-Vorschau &amp; DOCX-Export (Schüler-/Lösungsfassung)* | *Schüler &amp; Aufgaben anlegen, CSV-Import* |
+
+> Weitere Aufnahmen (Korrektur-Zwei-Spalten, Dashboard, Rubrik-Editor) sind in
+> [`screenshots/README.md`](screenshots/README.md) als To-do vermerkt.
 
 ---
 
