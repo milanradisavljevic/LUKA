@@ -65,7 +65,7 @@ export async function generateDocument(
   let rohText = '';
   for (let versuch = 1; versuch <= 2; versuch++) {
     rohText = await provider.complete(messages, cfg, input);
-    const validiert = await parseAndValidate(rohText, input.meta, input.quelltexte, judgeCfg, judgeComplete);
+    const validiert = await parseAndValidate(rohText, input.meta, input.quelltexte, judgeCfg, judgeComplete, input.stoffItems);
 
     if (validiert.ok && validiert.document) {
       return { ok: true, document: validiert.document, rohText, versuche: versuch };
