@@ -1,6 +1,6 @@
 import type { DocumentV1, QuellText, Block } from '@lehrunterlagen/schema';
 import type { ChatMessage } from './types.js';
-import { runJudge } from './judge.js';
+import { runJudge, runKompetenzJudge } from './judge.js';
 
 export interface QualityIssue {
   blockId: string;
@@ -399,20 +399,41 @@ export interface QualityCheckResult {
 export async function runQualityChecks(
   doc: DocumentV1,
   quelltexte: QuellText[],
-  meta?: { lernziele?: string[]; modus?: 'text' | 'kompetenz' },
+  meta?: {
+    lernziele?: string[];
+    modus?: 'text' | 'kompetenz';
+    kompetenzNiveau?: string;
+    fach?: string;
+    /** Aufgeloeste Stoff-Items (für den Kompetenz-Judge-Kontext). */
+    stoffItems?: { titel: string }[];
+  },
   judgeCfg?: { provider: string; model?: string; apiKey?: string; enabled?: boolean },
   complete?: (messages: ChatMessage[]) => Promise<string>,
 ): Promise<QualityCheckResult> {
-  // Kompetenz-Modus: kein Quelltext vorhanden → Quelltext-Grounding/Schreibaufgaben-
-  // Check und der quelltext-bezogene Judge entfallen. (Grammatik-bewusster Judge:
-  // Phase 2b.)
+  // Kompetenz-Modus: kein Quelltext → Quelltext-Grounding/Schreibaufgaben-Check und der
+  // quelltext-bezogene Judge entfallen. Stattdessen grammatik-/inhaltsbewusster Judge.
   if ((meta?.modus ?? 'text') === 'kompetenz') {
-    const issues = [
+    const issues: QualityIssue[] = [
       ...checkDuplicates(doc),
       ...checkDuplicateQuestions(doc),
       ...checkLernzielCoverage(doc, meta ?? {}),
     ];
-    return { issues, judge: { score: 1, issues: [] } };
+    let judge: LlmJudgeResult = { score: 1, issues: [] };
+    if (judgeCfg?.enabled !== false && complete) {
+      const ctx = {
+        stoffItemTitel: (meta?.stoffItems ?? []).map((s) => s.titel).join(', ') || undefined,
+        niveau: meta?.kompetenzNiveau,
+        fach: meta?.fach,
+      };
+      const judgeIssues = await runKompetenzJudge(doc, ctx, complete);
+      issues.push(...judgeIssues);
+      const harte = judgeIssues.filter((i) => i.severity === 'error').length;
+      judge = {
+        score: harte === 0 ? 1 : Math.max(0, 1 - harte * 0.25),
+        issues: judgeIssues.map((i) => i.message),
+      };
+    }
+    return { issues, judge };
   }
 
   const issues = [

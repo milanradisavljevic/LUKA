@@ -4,6 +4,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   Pencil, ArrowLeftRight, CircleDot, HelpCircle, PenLine, Highlighter,
   Shuffle, FolderTree, Table, Feather, Music, Puzzle, Grid3x3,
+  RefreshCw, FileSearch,
 } from 'lucide-react';
 
 export const BLOCK_TYPE_DEFS: {
@@ -23,6 +24,8 @@ export const BLOCK_TYPE_DEFS: {
   { id: 'kreuzwortraetsel', label: 'Kreuzworträtsel', description: 'Wörter über Hinweise ins Gitter eintragen', Icon: Puzzle, color: '#a1887f' },
   { id: 'wortgitter', label: 'Wortgitter', description: 'Versteckte Wörter im Buchstabengitter finden', Icon: Grid3x3, color: '#90a4ae' },
   { id: 'vokabeluebung', label: 'Vokabelübung', description: 'Vokabeln übersetzen oder zuordnen', Icon: Pencil, color: '#4caf50' },
+  { id: 'umformung', label: 'Umformung', description: 'Sätze in eine Zielstruktur transformieren', Icon: RefreshCw, color: '#ff8a65' },
+  { id: 'fehlerkorrektur', label: 'Fehlerkorrektur', description: 'Fehler in Sätzen finden und korrigieren', Icon: FileSearch, color: '#ba68c8' },
 ];
 
 export const STUFE_RULES = {
@@ -32,6 +35,7 @@ export const STUFE_RULES = {
       'offeneVerstaendnisfrage', 'offeneSchreibaufgabe', 'markieraufgabe',
       'wordScramble', 'kategorisierung', 'tabelle', 'stiluebung', 'songanalyse',
       'kreuzwortraetsel', 'wortgitter', 'vokabeluebung',
+      'umformung', 'fehlerkorrektur',
     ] as const,
     wortbankAllowed: true,
   },
@@ -41,6 +45,7 @@ export const STUFE_RULES = {
       'offeneVerstaendnisfrage', 'markieraufgabe',
       'wordScramble', 'kategorisierung', 'tabelle',
       'kreuzwortraetsel', 'wortgitter', 'vokabeluebung',
+      'umformung', 'fehlerkorrektur',
     ] as const,
     wortbankAllowed: true,
   },

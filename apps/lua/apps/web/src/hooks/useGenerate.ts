@@ -5,6 +5,7 @@ import { buildMessages, buildRepairMessage, parseAndValidate } from '@lehrunterl
 import { invoke } from '@tauri-apps/api/core';
 import type { AppState, AppAction } from '../lib/types';
 import { loadSettings } from '../lib/storage';
+import { getStoffItems } from '../lib/stoffkatalog';
 
 // Phasen der Generierung — die UI (Kimi) zeigt daraus eine Fortschrittsanzeige.
 export type GenerateStage = 'idle' | 'sende' | 'validiere' | 'korrigiere' | 'fertig' | 'fehler';
@@ -98,6 +99,12 @@ function blockToRequest(block: Block): BlockRequest {
     case 'vokabeluebung':
       return { typ: 'vokabeluebung', punkte: block.punkte, quelleId: block.quelleId,
         anzahlVokabeln: block.config.anzahlVokabeln ?? block.config.vokabeln?.length ?? 6, richtung: block.config.richtung };
+    case 'umformung':
+      return { typ: 'umformung', punkte: block.punkte, quelleId: block.quelleId,
+        anzahlAufgaben: block.config.aufgaben.length };
+    case 'fehlerkorrektur':
+      return { typ: 'fehlerkorrektur', punkte: block.punkte, quelleId: block.quelleId,
+        anzahlSaetze: block.config.saetze.length };
   }
 }
 
@@ -181,8 +188,18 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
   const guards = (state: AppState): string | null => {
     if (!isTauri()) return 'LLM-Generierung ist nur in der Desktop-App verfügbar. Bitte `pnpm run tauri dev` verwenden.';
     if (!state.meta.thema?.trim()) return 'Bitte gib ein Thema ein (Schritt 1: Absicht).';
-    if (state.quelltexte.length === 0) return 'Mindestens ein Quelltext ist erforderlich (Schritt 2: Quelltexte).';
     if (state.bloecke.length === 0) return 'Keine Aufgabenblöcke vorhanden (Schritt 3: Baukasten).';
+
+    const modus = state.meta.modus ?? 'text';
+    if (modus === 'kompetenz') {
+      if ((state.meta.stoffItemIds?.length ?? 0) === 0) {
+        return 'Bitte mindestens eine Kompetenz wählen.';
+      }
+      return null;
+    }
+
+    // Text-Modus: Quelltext-Pflicht
+    if (state.quelltexte.length === 0) return 'Mindestens ein Quelltext ist erforderlich (Schritt 2: Quelltexte).';
     const MIN_WOERTER = 80;
     const woerter = state.quelltexte.reduce(
       (sum, q) => sum + (q.inhalt?.trim() ? q.inhalt.trim().split(/\s+/).length : 0), 0,
@@ -214,9 +231,12 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
     try {
       const { providerId, apiModel } = resolveProvider(state);
       const settings = loadSettings();
+      const modus = state.meta.modus ?? 'text';
       const input: GenerateInput = {
-        meta: state.meta, quelltexte: state.quelltexte,
+        meta: state.meta,
+        quelltexte: modus === 'kompetenz' ? [] : state.quelltexte,
         bloecke: state.bloecke.map(blockToRequest),
+        stoffItems: modus === 'kompetenz' ? getStoffItems(state.meta.stoffItemIds ?? []) : undefined,
       };
       const judgeCfg = settings.judgeEnabled !== false ? {
         provider: 'anthropic',
@@ -284,10 +304,14 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
     try {
       const { providerId, apiModel } = resolveProvider(state);
       setAktiverProvider(providerId);
+      const modus = doc.meta.modus ?? 'text';
       const input: GenerateInput = {
-        meta: doc.meta, quelltexte: doc.quelltexte, bloecke: [blockToRequest(ziel)],
+        meta: doc.meta,
+        quelltexte: modus === 'kompetenz' ? [] : doc.quelltexte,
+        bloecke: [blockToRequest(ziel)],
+        stoffItems: modus === 'kompetenz' ? getStoffItems(doc.meta.stoffItemIds ?? []) : undefined,
       };
-      const ergebnis = await runAttempts(providerId, apiModel, input, { ...state, meta: doc.meta, quelltexte: doc.quelltexte }, hinweis);
+      const ergebnis = await runAttempts(providerId, apiModel, input, { ...state, meta: doc.meta, quelltexte: modus === 'kompetenz' ? [] : doc.quelltexte }, hinweis);
       const neu = ergebnis.bloecke[0];
       if (!neu) throw new Error('Kein Block in der Antwort.');
       // id des Originalblocks beibehalten, restliche Felder ersetzen.

@@ -18,6 +18,7 @@ export type ActiveView =
   | 'klassen'
   | 'schueler'
   | 'erwartungshorizont'
+  | 'kompetenz'
   | 'settings'
   | 'help';
 

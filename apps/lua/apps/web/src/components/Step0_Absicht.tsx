@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
-import { ArrowRight, Clock, FolderOpen, BookOpen, ClipboardCheck } from 'lucide-react';
+import { ArrowRight, Clock, FolderOpen, BookOpen, ClipboardCheck, Target } from 'lucide-react';
 import type { AppState, AppAction } from '../lib/types';
 import { BLOCK_TYPE_DEFS, SCHWIERIGKEIT_RULES } from '../lib/constants';
 import { buildSkelett, type Auftrag } from '@lehrunterlagen/schema';
@@ -18,6 +18,7 @@ interface Props {
   state: AppState;
   dispatch: React.Dispatch<AppAction>;
   onNavigateToTemplates?: () => void;
+  onNavigateToKompetenz?: () => void;
 }
 
 const UNTERLAGENTYPEN = [
@@ -42,7 +43,7 @@ function getLastDocumentDefaults() {
   return last;
 }
 
-export function Step0_Absicht({ state, dispatch, onNavigateToTemplates }: Props) {
+export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNavigateToKompetenz }: Props) {
   const lastDoc = useMemo(() => getLastDocumentDefaults(), []);
   const lastMeta = lastDoc?.snapshot.meta;
 
@@ -223,8 +224,8 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates }: Props)
         Beschreibe, was du brauchst. Die App baut daraus automatisch das passende Skelett.
       </p>
 
-      {/* Kontinuität — Weitermachen & Vorlagen */}
-      {(lastDoc || onNavigateToTemplates) && (
+      {/* Kontinuität — Weitermachen, Vorlagen & Kompetenz */}
+      {(lastDoc || onNavigateToTemplates || onNavigateToKompetenz) && (
         <section style={{ marginBottom: '1.25rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.5rem' }}>
           {lastDoc && (
             <button
@@ -295,6 +296,44 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates }: Props)
               <span style={{ fontWeight: 600 }}>Gespeicherte Vorlagen</span>
               <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
                 Wähle aus deinen gespeicherten Konfigurationen.
+              </span>
+            </button>
+          )}
+          {onNavigateToKompetenz && (
+            <button
+              onClick={onNavigateToKompetenz}
+              style={{
+                textAlign: 'left',
+                padding: '0.75rem 1rem',
+                borderRadius: 'var(--radius)',
+                border: '1px solid var(--color-border)',
+                background: 'var(--color-bg-surface)',
+                cursor: 'pointer',
+                fontSize: '0.8125rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.25rem',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-accent)';
+                (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-highlight-bg)';
+                (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-2px)';
+                (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 4px 12px var(--color-shadow)';
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-border)';
+                (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg-surface)';
+                (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)';
+                (e.currentTarget as HTMLButtonElement).style.boxShadow = 'none';
+              }}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: 'var(--color-accent)', fontWeight: 600 }}>
+                <Target size={16} /> Aus Kompetenz erstellen
+              </span>
+              <span style={{ fontWeight: 600 }}>Kompetenz-Übung</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+                Ohne Quelltext: Lehrplan-Kompetenz auswählen und üben.
               </span>
             </button>
           )}

@@ -178,6 +178,80 @@ function bewerteBlock(block: Block, raw: string): string | null {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Kompetenz-Modus: grammatik-/inhaltsbewusster Judge (kein Quelltext)
+// ---------------------------------------------------------------------------
+
+// Blocktypen, deren erfundene Inhalte im Kompetenz-Modus geprueft werden.
+const KOMPETENZ_JUDGE_TYPEN = new Set<string>(['umformung', 'fehlerkorrektur']);
+
+export interface KompetenzJudgeContext {
+  /** Titel der gewaehlten Stoff-Items (z. B. "Past Perfect"), falls bekannt. */
+  stoffItemTitel?: string | undefined;
+  /** Niveau (basis/standard/erweitert), falls gesetzt. */
+  niveau?: string | undefined;
+  /** Fach (deutsch/englisch). */
+  fach?: string | undefined;
+}
+
+function buildKompetenzJudgePrompt(block: Block, ctx: KompetenzJudgeContext): string {
+  const kontext: string[] = [];
+  if (ctx.stoffItemTitel) kontext.push(`Trainierte Kompetenz: "${ctx.stoffItemTitel}"`);
+  if (ctx.niveau) kontext.push(`Niveau: "${ctx.niveau}"`);
+  if (ctx.fach) kontext.push(`Fach: "${ctx.fach}"`);
+  const kontextBlock = kontext.length > 0 ? kontext.join(' · ') + '\n\n' : '';
+
+  const aufgabe = JSON.stringify(
+    { typ: block.typ, arbeitsanweisung: block.arbeitsanweisung, config: (block as any).config, loesung: (block as any).loesung },
+    null,
+    2,
+  );
+
+  return (
+    `Du bist eine erfahrene Sprachlehrkraft und unabhaengige Pruefer:in. Pruefe die folgende AUTOMATISCH ERZEUGTE Uebungsaufgabe streng.\n\n` +
+    kontextBlock +
+    `Pruefe:\n` +
+    `1) SPRACHLICHE KORREKTHEIT: Sind ALLE Saetze und vor allem die MUSTERLOESUNG grammatisch und orthografisch korrekt? Ist die geforderte Zielstruktur tatsaechlich korrekt umgesetzt?\n` +
+    `2) KONSISTENZ: Passt die Loesung exakt zur Aufgabe (gleiche Nummerierung, keine Widersprueche)? Bei Fehlerkorrektur: Enthaelt der Aufgabensatz wirklich die angegebene Anzahl Fehler, und korrigiert die Loesung genau diese?\n` +
+    `3) PASSUNG: Trainiert die Aufgabe die angegebene Kompetenz und das Niveau (falls oben genannt)?\n\n` +
+    `AUFGABE (JSON):\n${aufgabe}\n\n` +
+    `Antworte AUSSCHLIESSLICH mit JSON: { "fehler": [ { "schwere": "hart" | "weich", "grund": "..." } ] }. ` +
+    `"hart" = inhaltlich falsch (z. B. falsche Musterloesung, grammatisch falscher Satz, falsche Fehleranzahl). ` +
+    `"weich" = Niveau-Drift, unklare Formulierung oder thematische Abweichung. ` +
+    `Leeres "fehler"-Array, wenn alles korrekt ist.`
+  );
+}
+
+export async function runKompetenzJudge(
+  doc: DocumentV1,
+  ctx: KompetenzJudgeContext,
+  complete: (messages: ChatMessage[]) => Promise<string>,
+): Promise<QualityIssue[]> {
+  const issues: QualityIssue[] = [];
+  for (const block of doc.bloecke.filter((b) => KOMPETENZ_JUDGE_TYPEN.has(b.typ))) {
+    const prompt = buildKompetenzJudgePrompt(block, ctx);
+    try {
+      const raw = await complete([{ role: 'user', content: prompt }]);
+      const parsed = extractJson(raw) as { fehler?: Array<{ schwere?: string; grund?: string }> } | null;
+      for (const f of parsed?.fehler ?? []) {
+        issues.push({
+          blockId: block.id,
+          severity: f.schwere === 'hart' ? 'error' : 'warning',
+          message: `Kompetenz-Judge: ${f.grund ?? 'inhaltliche Beanstandung'}`,
+        });
+      }
+    } catch {
+      // Judge-Fehler duerfen die Generierung nicht blockieren.
+      issues.push({
+        blockId: block.id,
+        severity: 'warning',
+        message: 'Kompetenz-Judge konnte nicht durchgefuehrt werden (API-Fehler).',
+      });
+    }
+  }
+  return issues;
+}
+
 export async function runJudge(
   doc: DocumentV1,
   quelltexte: QuellText[],

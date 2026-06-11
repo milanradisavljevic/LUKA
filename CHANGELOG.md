@@ -7,6 +7,59 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Kompetenz-Modus: Phase 2b (grammatik-bewusster Judge)
+- `packages/llm/src/judge.ts`: `runKompetenzJudge` + `buildKompetenzJudgePrompt` —
+  LLM-as-Judge für erfundene Übungsinhalte (umformung/fehlerkorrektur) ohne Quelltext:
+  prüft sprachliche Korrektheit der Musterlösung, Aufgabe↔Lösung-Konsistenz und
+  Passung zu Stoff-Item/Niveau. „hart" → error (löst Reparaturrunde aus), „weich" → Warnung.
+- `packages/llm/src/quality.ts`: `runQualityChecks` ruft im Kompetenz-Modus den
+  Kompetenz-Judge auf (wenn `complete` verfügbar), inkl. Stoff-Item-/Niveau-Kontext.
+- `packages/llm/src/validate.ts`: `parseAndValidate` nimmt optional aufgelöste
+  `stoffItems` für den Judge-Kontext entgegen.
+- `packages/llm/src/judge.test.ts`: 6 Tests (korrekt/hart/weich/Kontext/Typ-Filter/API-Fehler).
+
+### Added — Kompetenz-Modus: Phase 2 (Prompt-Dualität + Validierung)
+- `packages/llm/src/prompt.ts`: `SYSTEM` in gemeinsame `BLOCK_REGELN` + Text-/Kompetenz-Kopf
+  gesplittet (Text-Modus unverändert); Block-Regeln + Beispiele für `umformung`/`fehlerkorrektur`;
+  `buildMessages` schaltet auf `meta.modus`; IB-Command-Terms bei `rahmenwerk === 'ib-dp'`.
+- `packages/llm/src/quality.ts`: Quelltext-Grounding/Schreibaufgaben-Check im Kompetenz-Modus
+  übersprungen.
+
+### Added — Kompetenz-Modus: Phase 0 + 1b (App-Wiring + Stoffkatalog + UI)
+- `apps/web/src/views/KompetenzView.tsx`: Neue 1-Screen-Ansicht für Kompetenz-Übungen.
+  Wahl von Rahmenwerk, Fach, Stufe, Stoff-Item, Thema/Kontext, Niveau und Aufgabentypen.
+  Setzt `modus: 'kompetenz'`, baut deterministisches Skelett (`buildSkelett`) und ruft
+  `useGenerate().generate()` direkt auf.
+- `apps/web/src/lib/stoffkatalog.ts`: Proof-Slice mit 8 englischen Grammatik-Stoff-Items
+  (Oberstufe, at-lehrplan) + zugehörigen Deskriptoren; Lookup-Funktionen
+  `listStoffItems`, `getStoffItems`, `getDeskriptoren`, `getAllDeskriptoren`.
+- `apps/web/src/hooks/useGenerate.ts`: Modus-abhängige Guards (Kompetenz: keine
+  Quelltextpflicht, aber `stoffItemIds` erforderlich); `GenerateInput` bekommt leere
+  `quelltexte` und `stoffItems` im Kompetenz-Modus; `regenerateBlock` ebenfalls modus-aware.
+- `apps/web/src/lib/types.ts`: `ActiveView` um `'kompetenz'` erweitert.
+- `apps/web/src/components/Sidebar.tsx`: Neuer Navigationspunkt „Kompetenz-Übung"
+  mit `Target`-Icon.
+- `apps/web/src/components/Step0_Absicht.tsx` + `apps/web/src/App.tsx`: Link
+  „Aus Kompetenz erstellen" im Absicht-Schritt; `KompetenzView` in `renderView` eingebunden.
+- Verifikation: `pnpm -r build` und `pnpm -r test` alle grün (Schema, LLM, Renderer,
+  Input, QA, Web).
+
+### Added — Kompetenz-Modus: Phase 0 + 1 (Schema + 2 neue Blocktypen)
+- `packages/schema/src/index.ts`: Neuer `Modus` (`text` | `kompetenz`), `Rahmenwerk`
+  (`at-lehrplan` | `ib-dp`), `Bewertungsschema` (`at-1-5` | `ib-1-7`), `Deskriptor`,
+  `StoffItem`. `MetaSchema` und `AuftragSchema` um Kompetenz-Felder erweitert.
+- `DocumentSchema`: Quelltext-Pflicht ist jetzt modus-abhängig (`refine`); Kompetenz-Modus
+  darf leere `quelltexte` haben.
+- Zwei neue Blocktypen: `umformung` (Satztransformation) und `fehlerkorrektur`
+  (Fehler finden + korrigieren) — Schema, Skelett, Renderer, Web-Config, Web-Preview,
+  Korrekturraster-Logik und Block-Typ-Definitionen.
+- `packages/llm/src/types.ts`: `GenerateInput` um `stoffItems` erweitert; `BlockRequest`
+  um `umformung` und `fehlerkorrektur` erweitert.
+- Tests erweitert: Schema-Tests für neue Typen, Kompetenz-Modus-Document, Refinement,
+  BlockTyp-Enum.
+- Verifikation: `pnpm -r build` und `pnpm -r test` alle grün (Schema, LLM, Renderer,
+  Input, QA, Web).
+
 ### Added — Stage 4: LLM-Klassen-Briefing + Schüler-Profil
 - **KI-Klassen-Briefing** (Statistik-Tab in `KlassenView`): Button „Briefing generieren" ruft
   `klassen-briefing`-CLI auf (aggregiert Fehlerheatmap, Notenverteilung, Trend, Kalibrierung → LLM

@@ -27,6 +27,7 @@ import { KorrekturView } from './views/KorrekturView';
 import { SchuelerView } from './views/SchuelerView';
 import { DashboardView } from './views/DashboardView';
 import { ErwartungshorizontView } from './views/ErwartungshorizontView';
+import { KompetenzView } from './views/KompetenzView';
 import { setPendingUebung } from './lib/korrekturBridge';
 import type { NataschaPrefill } from './lib/nataschaBridge';
 import { loadDocuments, upsertDocument, snapshotFromState, saveTemplate, deleteTemplate, loadTemplates, hydrateCache, isHydrated, setPersistErrorHandler } from './lib/storage';
@@ -190,7 +191,7 @@ export default function App() {
   const renderStep = () => {
     switch (state.step) {
       case 'absicht':
-        return <Step0_Absicht state={state} dispatch={dispatch} onNavigateToTemplates={() => setActiveView('templates')} />;
+        return <Step0_Absicht state={state} dispatch={dispatch} onNavigateToTemplates={() => setActiveView('templates')} onNavigateToKompetenz={() => setActiveView('kompetenz')} />;
       case 'input':
         return <Step1_Input state={state} dispatch={dispatch} />;
       case 'baukasten':
@@ -238,6 +239,14 @@ if (hydrating) {
         return <SchuelerView preselect={pendingSchueler} onConsumePreselect={() => setPendingSchueler(null)} onGenerateUebung={handleGenerateUebung} />;
       case 'klassen':
         return <KlassenView onGenerateUebung={handleGenerateUebung} />;
+      case 'kompetenz':
+        return (
+          <KompetenzView
+            state={state}
+            dispatch={dispatch}
+            onNavigateToWizard={() => setActiveView('wizard')}
+          />
+        );
       case 'erwartungshorizont':
         return <ErwartungshorizontView />;
       case 'settings':
