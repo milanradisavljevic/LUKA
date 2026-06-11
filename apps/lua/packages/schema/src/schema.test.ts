@@ -16,6 +16,8 @@ import {
   TabelleBlockSchema,
   StiluebungBlockSchema,
   SonganalyseBlockSchema,
+  UmformungBlockSchema,
+  FehlerkorrekturBlockSchema,
   BlockSchema,
   UnterlagentypSchema,
   BlockTypSchema,
@@ -37,6 +39,8 @@ import {
   type TabelleBlock,
   type StiluebungBlock,
   type SonganalyseBlock,
+  type UmformungBlock,
+  type FehlerkorrekturBlock,
   type Block,
   type Auftrag,
   type TypProfil,
@@ -148,6 +152,36 @@ describe('MetaSchema', () => {
   it('accepts empty klasse (optional — nicht jedes Arbeitsblatt hat eine Klasse)', () => {
     const result = MetaSchema.safeParse({ stufe: 'oberstufe', fach: 'deutsch', thema: 'Thema', datum: '2026-01-01', klasse: '', notizen: '' });
     expect(result.success).toBe(true);
+  });
+
+  it('treats modus as optional (default text is assumed by code)', () => {
+    const result = MetaSchema.safeParse({ stufe: 'oberstufe', fach: 'deutsch', thema: 'Thema', datum: '2026-01-01', klasse: '7A', notizen: '' });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.modus).toBeUndefined();
+    }
+  });
+
+  it('accepts kompetenz modus with rahmenwerk and stoffItemIds', () => {
+    const meta: Meta = {
+      stufe: 'oberstufe',
+      fach: 'englisch',
+      thema: 'Tenses',
+      datum: '2026-06-01',
+      klasse: '7A',
+      notizen: '',
+      modus: 'kompetenz',
+      rahmenwerk: 'at-lehrplan',
+      stoffItemIds: ['en-tenses-present-perfect'],
+      kompetenzNiveau: 'standard',
+      bewertungsschema: 'at-1-5',
+    };
+    expect(MetaSchema.safeParse(meta).success).toBe(true);
+  });
+
+  it('rejects invalid modus', () => {
+    const result = MetaSchema.safeParse({ stufe: 'oberstufe', fach: 'deutsch', thema: 'x', datum: '2026-01-01', klasse: '7A', notizen: '', modus: 'thema' });
+    expect(result.success).toBe(false);
   });
 });
 
@@ -805,6 +839,112 @@ describe('SonganalyseBlockSchema', () => {
 });
 
 // ---------------------------------------------------------------------------
+// umformung
+// ---------------------------------------------------------------------------
+
+describe('UmformungBlockSchema', () => {
+  it('accepts valid umformung block', () => {
+    const block: UmformungBlock = {
+      id: 'b12',
+      typ: 'umformung',
+      punkte: 6,
+      arbeitsanweisung: 'Forme die Sätze um.',
+      config: {
+        aufgaben: [
+          { nr: 1, ausgangssatz: 'Ich gehe zur Schule.', anweisung: 'Setze in den Konjunktiv II.', zielstruktur: 'Konjunktiv II' },
+          { nr: 2, ausgangssatz: 'Er hat Zeit.', anweisung: 'Bilde einen Konditionalsatz.', zielstruktur: 'Konditional' },
+        ],
+      },
+      loesung: {
+        loesungen: [
+          { nr: 1, umformulierung: 'Ich ginge zur Schule.', erklaerung: 'Konjunktiv II der Gegenwart.' },
+          { nr: 2, umformulierung: 'Wenn er Zeit hätte, ...' },
+        ],
+      },
+    };
+    expect(UmformungBlockSchema.safeParse(block).success).toBe(true);
+  });
+
+  it('rejects empty aufgaben', () => {
+    const result = UmformungBlockSchema.safeParse({
+      id: 'b12',
+      typ: 'umformung',
+      punkte: 4,
+      arbeitsanweisung: 'Forme um.',
+      config: { aufgaben: [] },
+      loesung: { loesungen: [] },
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// fehlerkorrektur
+// ---------------------------------------------------------------------------
+
+describe('FehlerkorrekturBlockSchema', () => {
+  it('accepts valid fehlerkorrektur block', () => {
+    const block: FehlerkorrekturBlock = {
+      id: 'b13',
+      typ: 'fehlerkorrektur',
+      punkte: 8,
+      arbeitsanweisung: 'Finde und korrigiere die Fehler.',
+      config: {
+        saetze: [
+          { nr: 1, satz: 'Der Hund bellt laut.', anzahlFehler: 1 },
+          { nr: 2, satz: 'Sie geht schnell.', anzahlFehler: 1 },
+        ],
+      },
+      loesung: {
+        korrekturen: [
+          {
+            nr: 1,
+            korrigierterSatz: 'Die Hunde bellen laut.',
+            fehler: [{ stelle: 'Der Hund', art: 'G', erklaerung: 'Kongruenz Subjekt/Prädikat' }],
+          },
+          {
+            nr: 2,
+            korrigierterSatz: 'Sie gehen schnell.',
+            fehler: [{ stelle: 'geht', art: 'G', erklaerung: 'Kongruenz' }],
+          },
+        ],
+      },
+    };
+    expect(FehlerkorrekturBlockSchema.safeParse(block).success).toBe(true);
+  });
+
+  it('rejects invalid fehler art', () => {
+    const result = FehlerkorrekturBlockSchema.safeParse({
+      id: 'b13',
+      typ: 'fehlerkorrektur',
+      punkte: 4,
+      arbeitsanweisung: 'Korrigiere.',
+      config: { saetze: [{ nr: 1, satz: 'X', anzahlFehler: 1 }] },
+      loesung: {
+        korrekturen: [{
+          nr: 1,
+          korrigierterSatz: 'Y',
+          fehler: [{ stelle: 'X', art: 'Q', erklaerung: '?' }],
+        }],
+      },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects empty saetze', () => {
+    const result = FehlerkorrekturBlockSchema.safeParse({
+      id: 'b13',
+      typ: 'fehlerkorrektur',
+      punkte: 4,
+      arbeitsanweisung: 'Korrigiere.',
+      config: { saetze: [] },
+      loesung: { korrekturen: [] },
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // DocumentSchema — full document validation
 // ---------------------------------------------------------------------------
 
@@ -818,6 +958,7 @@ describe('DocumentSchema', () => {
       datum: '2026-05-30',
       klasse: '7A',
       notizen: '',
+      modus: 'text',
     },
     quelltexte: [
       {
@@ -849,9 +990,18 @@ describe('DocumentSchema', () => {
     expect(result.success).toBe(false);
   });
 
-  it('rejects document with empty quelltexte', () => {
+  it('rejects document with empty quelltexte in text mode', () => {
     const result = DocumentSchema.safeParse({ ...validDoc, quelltexte: [] });
     expect(result.success).toBe(false);
+  });
+
+  it('accepts kompetenz modus with empty quelltexte', () => {
+    const doc: DocumentV1 = {
+      ...validDoc,
+      meta: { ...validDoc.meta, modus: 'kompetenz', rahmenwerk: 'at-lehrplan', stoffItemIds: ['de-konjunktiv-ii'] },
+      quelltexte: [],
+    };
+    expect(DocumentSchema.safeParse(doc).success).toBe(true);
   });
 
   it('rejects document with empty bloecke', () => {
@@ -950,8 +1100,13 @@ describe('UnterlagentypSchema', () => {
 // ---------------------------------------------------------------------------
 
 describe('BlockTypSchema', () => {
-  it('accepts all six block types', () => {
-    const types = ['lueckentext', 'matching', 'multipleChoice', 'offeneVerstaendnisfrage', 'offeneSchreibaufgabe', 'markieraufgabe'];
+  it('accepts all block types', () => {
+    const types = [
+      'lueckentext', 'matching', 'multipleChoice', 'offeneVerstaendnisfrage',
+      'offeneSchreibaufgabe', 'markieraufgabe', 'wordScramble', 'kategorisierung',
+      'tabelle', 'stiluebung', 'songanalyse', 'kreuzwortraetsel', 'wortgitter',
+      'vokabeluebung', 'umformung', 'fehlerkorrektur',
+    ];
     for (const t of types) {
       expect(BlockTypSchema.safeParse(t).success).toBe(true);
     }
@@ -1032,6 +1187,23 @@ describe('AuftragSchema', () => {
       quelltexte: [],
     });
     expect(result.success).toBe(false);
+  });
+
+  it('accepts kompetenz modus auftrag', () => {
+    const auftrag: Auftrag = {
+      typ: 'schuluebung',
+      fach: 'englisch',
+      stufe: 'unterstufe',
+      thema: 'Tenses',
+      datum: '2026-06-01',
+      quelltexte: [],
+      modus: 'kompetenz',
+      rahmenwerk: 'at-lehrplan',
+      stoffItemIds: ['en-present-perfect'],
+      kompetenzNiveau: 'basis',
+      gewuenschteAufgabenarten: ['umformung', 'fehlerkorrektur'],
+    };
+    expect(AuftragSchema.safeParse(auftrag).success).toBe(true);
   });
 });
 

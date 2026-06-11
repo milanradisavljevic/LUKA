@@ -13,6 +13,8 @@ import { BlockPreviewSonganalyse } from './BlockPreviewSonganalyse';
 import { BlockPreviewKreuzwortraetsel } from './BlockPreviewKreuzwortraetsel';
 import { BlockPreviewWortgitter } from './BlockPreviewWortgitter';
 import { BlockPreviewVokabeluebung } from './BlockPreviewVokabeluebung';
+import { BlockPreviewUmformung } from './BlockPreviewUmformung';
+import { BlockPreviewFehlerkorrektur } from './BlockPreviewFehlerkorrektur';
 
 interface Props {
   block: Block;
@@ -58,5 +60,9 @@ export function BlockPreview({ block, showSolution, onUpdate }: Props) {
       return pass(BlockPreviewWortgitter);
     case 'vokabeluebung':
       return pass(BlockPreviewVokabeluebung);
+    case 'umformung':
+      return pass(BlockPreviewUmformung);
+    case 'fehlerkorrektur':
+      return pass(BlockPreviewFehlerkorrektur);
   }
 }

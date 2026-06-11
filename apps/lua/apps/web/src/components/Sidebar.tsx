@@ -3,6 +3,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   Plus, FolderOpen, Files, Clock, Star, Trash2, Settings, HelpCircle,
   ChevronLeft, ChevronRight, SpellCheck, GraduationCap, Users, ClipboardCheck, LayoutDashboard,
+  Target,
 } from 'lucide-react';
 import type { ActiveView } from '../lib/types';
 import { LogoChip, WORDMARK_STYLE } from './BrandLogo';
@@ -25,6 +26,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { id: 'new', label: 'Neue erstellen', Icon: Plus, action: 'new' },
+  { id: 'kompetenz', label: 'Kompetenz-Übung', Icon: Target, view: 'kompetenz' },
   { id: 'dashboard', label: 'Übersicht', Icon: LayoutDashboard, view: 'dashboard' },
   { id: 'documents', label: 'Meine Unterlagen', Icon: FolderOpen, view: 'documents' },
   { id: 'klassen', label: 'Meine Klassen', Icon: GraduationCap, view: 'klassen' },

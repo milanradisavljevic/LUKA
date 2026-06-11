@@ -57,6 +57,8 @@ export async function parseAndValidate(
   quelltexte?: any[],
   judgeCfg?: { provider: string; model?: string; apiKey?: string; enabled?: boolean },
   complete?: (messages: ChatMessage[]) => Promise<string>,
+  // Aufgeloeste Stoff-Items (Kompetenz-Modus) — Kontext für den Kompetenz-Judge.
+  stoffItems?: { titel: string }[],
 ): Promise<ValidationResult> {
   let parsed: unknown;
   try {
@@ -107,7 +109,13 @@ export async function parseAndValidate(
     return { ok: true, document, qualityIssues: [], judge: { score: 1, issues: [] } };
   }
 
-  const { issues: qualityIssues, judge } = await runQualityChecks(document, quelltexte as QuellText[], meta, judgeCfg, complete);
+  const { issues: qualityIssues, judge } = await runQualityChecks(
+    document,
+    quelltexte as QuellText[],
+    stoffItems ? { ...meta, stoffItems } : meta,
+    judgeCfg,
+    complete,
+  );
   const errors = qualityIssues.filter((i) => i.severity === 'error');
   if (errors.length > 0) {
     const fehler = errors.map((i) => `- ${i.blockId}: ${i.message}`).join('\n');

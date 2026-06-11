@@ -705,6 +705,8 @@ const BLOCK_LABELS: Record<Block['typ'], string> = {
   kreuzwortraetsel: 'Kreuzworträtsel',
   wortgitter: 'Wortgitter',
   vokabeluebung: 'Vokabelübung',
+  umformung: 'Umformung',
+  fehlerkorrektur: 'Fehlerkorrektur',
 };
 
 function buildBlock(
@@ -801,8 +803,90 @@ function buildBlock(
     case 'vokabeluebung':
       result.push(...buildVokabeluebung(block, mode, template));
       break;
+    case 'umformung':
+      result.push(...buildUmformung(block, mode, template));
+      break;
+    case 'fehlerkorrektur':
+      result.push(...buildFehlerkorrektur(block, mode, template));
+      break;
   }
 
+  return result;
+}
+
+// ---------------------------------------------------------------------------
+// Block: umformung
+// ---------------------------------------------------------------------------
+
+function buildUmformung(
+  block: Extract<Block, { typ: 'umformung' }>,
+  mode: Mode,
+  template: RenderTemplate,
+): (Paragraph | Table)[] {
+  const result: (Paragraph | Table)[] = [];
+  result.push(new Paragraph({
+    children: [run(BLOCK_LABELS.umformung, { font: template.font, size: template.fontSize.body, bold: true })],
+    spacing: { after: 120 },
+  }));
+  result.push(new Paragraph({
+    children: [run(block.arbeitsanweisung, { font: template.font, size: template.fontSize.body })],
+    spacing: { after: 120 },
+  }));
+  for (const aufgabe of block.config.aufgaben) {
+    result.push(new Paragraph({
+      indent: { left: 360 },
+      children: [run(`${aufgabe.nr}. ${aufgabe.ausgangssatz}`, { font: template.font, size: template.fontSize.body })],
+      spacing: { after: 80 },
+    }));
+    if (mode === 'loesung') {
+      const loesung = block.loesung.loesungen.find((l) => l.nr === aufgabe.nr);
+      if (loesung) {
+        result.push(new Paragraph({
+          indent: { left: 720 },
+          children: [run(`Lösung: ${loesung.umformulierung}`, { font: template.font, size: template.fontSize.body, italics: true })],
+          spacing: { after: 80 },
+        }));
+      }
+    }
+  }
+  return result;
+}
+
+// ---------------------------------------------------------------------------
+// Block: fehlerkorrektur
+// ---------------------------------------------------------------------------
+
+function buildFehlerkorrektur(
+  block: Extract<Block, { typ: 'fehlerkorrektur' }>,
+  mode: Mode,
+  template: RenderTemplate,
+): (Paragraph | Table)[] {
+  const result: (Paragraph | Table)[] = [];
+  result.push(new Paragraph({
+    children: [run(BLOCK_LABELS.fehlerkorrektur, { font: template.font, size: template.fontSize.body, bold: true })],
+    spacing: { after: 120 },
+  }));
+  result.push(new Paragraph({
+    children: [run(block.arbeitsanweisung, { font: template.font, size: template.fontSize.body })],
+    spacing: { after: 120 },
+  }));
+  for (const satz of block.config.saetze) {
+    result.push(new Paragraph({
+      indent: { left: 360 },
+      children: [run(`${satz.nr}. ${satz.satz}`, { font: template.font, size: template.fontSize.body })],
+      spacing: { after: 80 },
+    }));
+    if (mode === 'loesung') {
+      const korrektur = block.loesung.korrekturen.find((k) => k.nr === satz.nr);
+      if (korrektur) {
+        result.push(new Paragraph({
+          indent: { left: 720 },
+          children: [run(`Korrektur: ${korrektur.korrigierterSatz}`, { font: template.font, size: template.fontSize.body, italics: true })],
+          spacing: { after: 80 },
+        }));
+      }
+    }
+  }
   return result;
 }
 

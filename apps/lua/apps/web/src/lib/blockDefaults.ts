@@ -169,6 +169,24 @@ export function createDefaultBlock(typ: Block['typ'], meta?: Meta): Block {
           vokabeln: Array.from({ length: 6 }, () => ({ deutsch: '', fremdsprache: '' })),
         },
       } as Block;
+    case 'umformung':
+      return {
+        ...base,
+        typ: 'umformung',
+        config: {
+          aufgaben: [{ nr: 1, ausgangssatz: '', anweisung: '', zielstruktur: '' }],
+        },
+        loesung: { loesungen: [] },
+      } as Block;
+    case 'fehlerkorrektur':
+      return {
+        ...base,
+        typ: 'fehlerkorrektur',
+        config: {
+          saetze: [{ nr: 1, satz: '', anzahlFehler: 1 }],
+        },
+        loesung: { korrekturen: [] },
+      } as Block;
   }
 }
 
@@ -187,6 +205,8 @@ export const BLOCK_ARBEITSANWEISUNG_PLACEHOLDER: Record<Block['typ'], string> = 
   kreuzwortraetsel: 'Löse das Kreuzworträtsel mithilfe der Hinweise.',
   wortgitter: 'Finde die versteckten Wörter im Buchstabengitter und markiere sie.',
   vokabeluebung: 'Übersetze die Vokabeln.',
+  umformung: 'Forme die Sätze nach der Anweisung um.',
+  fehlerkorrektur: 'Finde und korrigiere die Fehler in den Sätzen.',
 };
 
 const BLOCK_LABELS: Record<Block['typ'], string> = {
@@ -204,6 +224,8 @@ const BLOCK_LABELS: Record<Block['typ'], string> = {
   kreuzwortraetsel: 'Kreuzworträtsel',
   wortgitter: 'Wortgitter',
   vokabeluebung: 'Vokabelübung',
+  umformung: 'Umformung',
+  fehlerkorrektur: 'Fehlerkorrektur',
 };
 
 export function getBlockLabel(typ: Block['typ']): string {

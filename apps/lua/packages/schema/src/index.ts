@@ -19,6 +19,43 @@ export type Stufe = z.infer<typeof StufeSchema>;
 export const FachSchema = z.enum(['deutsch', 'englisch']);
 export type Fach = z.infer<typeof FachSchema>;
 
+export const ModusSchema = z.enum(['text', 'kompetenz']);
+export type Modus = z.infer<typeof ModusSchema>;
+
+export const RahmenwerkSchema = z.enum(['at-lehrplan', 'ib-dp']);
+export type Rahmenwerk = z.infer<typeof RahmenwerkSchema>;
+
+export const BewertungsschemaSchema = z.enum(['at-1-5', 'ib-1-7']);
+export type Bewertungsschema = z.infer<typeof BewertungsschemaSchema>;
+
+// Lehrplan-Deskriptor (Ebene 1: Nachweis/Coverage)
+export const DeskriptorSchema = z.object({
+  id: z.string().min(1),
+  rahmenwerk: RahmenwerkSchema,
+  fach: FachSchema,
+  stufe: StufeSchema,
+  bereich: z.string().min(1),
+  code: z.string(),
+  text: z.string().min(1),
+  quelle: z.string(),
+});
+export type Deskriptor = z.infer<typeof DeskriptorSchema>;
+
+// Stoff-Item (Ebene 2: konkrete Drill-Einheit, z. B. "Konjunktiv II")
+// Hinweis: defaultAufgabentypen sind semantisch BlockTyp-Werte. Sie werden als
+// string[] modelliert, um einen Vorwärtsverweis auf BlockTypSchema zu vermeiden.
+export const StoffItemSchema = z.object({
+  id: z.string().min(1),
+  rahmenwerk: RahmenwerkSchema,
+  titel: z.string().min(1),
+  fach: FachSchema,
+  stufe: StufeSchema,
+  kategorie: z.enum(['grammatik', 'wortschatz', 'rechtschreibung', 'schreiben', 'sprachreflexion']),
+  deskriptorIds: z.array(z.string().min(1)),
+  defaultAufgabentypen: z.array(z.string()).optional(),
+});
+export type StoffItem = z.infer<typeof StoffItemSchema>;
+
 export const MetaSchema = z.object({
   stufe: StufeSchema,
   fach: FachSchema,
@@ -33,6 +70,12 @@ export const MetaSchema = z.object({
   // Fehlerschwerpunkte aus einer NATASCHA-Korrektur (z. B. ["Zeichensetzung", "Grammatik"]).
   // Speist einen gezielten Hinweis in den Generierungs-Prompt (siehe packages/llm buildMessages).
   fokusThemen: z.array(z.string().min(1)).optional(),
+  // Kompetenz-Modus (opt-in; Default 'text' wird im Code angenommen).
+  modus: ModusSchema.optional(),
+  rahmenwerk: RahmenwerkSchema.optional(),
+  stoffItemIds: z.array(z.string().min(1)).optional(),
+  kompetenzNiveau: z.enum(['basis', 'standard', 'erweitert']).optional(),
+  bewertungsschema: BewertungsschemaSchema.optional(),
 });
 
 export type Meta = z.infer<typeof MetaSchema>;
@@ -417,6 +460,59 @@ export const VokabeluebungBlockSchema = BlockBaseSchema.extend({
 export type VokabeluebungBlock = z.infer<typeof VokabeluebungBlockSchema>;
 
 // ---------------------------------------------------------------------------
+// Block: umformung (Satztransformation)
+// ---------------------------------------------------------------------------
+
+export const UmformungBlockSchema = BlockBaseSchema.extend({
+  typ: z.literal('umformung'),
+  config: z.object({
+    aufgaben: z.array(z.object({
+      nr: z.number().int().positive(),
+      ausgangssatz: z.string().min(1),
+      anweisung: z.string().min(1),
+      zielstruktur: z.string().min(1),
+    })).min(1),
+  }),
+  loesung: z.object({
+    loesungen: z.array(z.object({
+      nr: z.number().int().positive(),
+      umformulierung: z.string().min(1),
+      erklaerung: z.string().optional(),
+    })),
+  }),
+});
+
+export type UmformungBlock = z.infer<typeof UmformungBlockSchema>;
+
+// ---------------------------------------------------------------------------
+// Block: fehlerkorrektur
+// ---------------------------------------------------------------------------
+
+export const FehlerkorrekturBlockSchema = BlockBaseSchema.extend({
+  typ: z.literal('fehlerkorrektur'),
+  config: z.object({
+    saetze: z.array(z.object({
+      nr: z.number().int().positive(),
+      satz: z.string().min(1),
+      anzahlFehler: z.number().int().positive(),
+    })).min(1),
+  }),
+  loesung: z.object({
+    korrekturen: z.array(z.object({
+      nr: z.number().int().positive(),
+      korrigierterSatz: z.string().min(1),
+      fehler: z.array(z.object({
+        stelle: z.string().min(1),
+        art: z.enum(['R', 'G', 'Z', 'A']),
+        erklaerung: z.string().optional(),
+      })),
+    })),
+  }),
+});
+
+export type FehlerkorrekturBlock = z.infer<typeof FehlerkorrekturBlockSchema>;
+
+// ---------------------------------------------------------------------------
 // Discriminated union of all block types
 // ---------------------------------------------------------------------------
 
@@ -435,6 +531,8 @@ export const BlockSchema = z.discriminatedUnion('typ', [
   KreuzwortraetselBlockSchema,
   WortgitterBlockSchema,
   VokabeluebungBlockSchema,
+  UmformungBlockSchema,
+  FehlerkorrekturBlockSchema,
 ]);
 
 export type Block = z.infer<typeof BlockSchema>;
@@ -447,9 +545,13 @@ export const DocumentSchema = z
   .object({
     schemaVersion: z.literal('0.1.0'),
     meta: MetaSchema,
-    quelltexte: z.array(QuellTextSchema).min(1),
+    quelltexte: z.array(QuellTextSchema).default([]),
     bloecke: z.array(BlockSchema).min(1),
   })
+  .refine(
+    (d) => d.meta.modus === 'kompetenz' || d.quelltexte.length >= 1,
+    { message: 'Im Text-Modus ist mindestens ein Quelltext erforderlich.', path: ['quelltexte'] },
+  )
 ;
 
 export type DocumentV1 = z.infer<typeof DocumentSchema>;
@@ -512,6 +614,8 @@ export const BlockTypSchema = z.enum([
   'kreuzwortraetsel',
   'wortgitter',
   'vokabeluebung',
+  'umformung',
+  'fehlerkorrektur',
 ]);
 export type BlockTyp = z.infer<typeof BlockTypSchema>;
 
@@ -577,6 +681,12 @@ export const AuftragSchema = z.object({
   lernziele: z.array(z.string().min(1)).optional(),
   // Fehlerschwerpunkte aus einer NATASCHA-Korrektur — wird in die Meta übernommen.
   fokusThemen: z.array(z.string().min(1)).optional(),
+  // Kompetenz-Modus (opt-in; Default 'text' wird im Code angenommen).
+  modus: ModusSchema.optional(),
+  rahmenwerk: RahmenwerkSchema.optional(),
+  stoffItemIds: z.array(z.string().min(1)).optional(),
+  kompetenzNiveau: z.enum(['basis', 'standard', 'erweitert']).optional(),
+  bewertungsschema: BewertungsschemaSchema.optional(),
 });
 export type Auftrag = z.infer<typeof AuftragSchema>;
 
@@ -732,7 +842,7 @@ export function buildSkelett(auftrag: Auftrag): Block[] {
         return {
           ...base,
           typ: 'markieraufgabe',
-          config: { quelleId: auftrag.quelltexte[0]?.id ?? 'q1', anweisung: '[Anweisung]' },
+          config: { quelleId: (auftrag.quelltexte ?? [])[0]?.id ?? 'q1', anweisung: '[Anweisung]' },
           loesung: { stellen: ['[Textstelle]'] },
         };
       case 'wordScramble':
@@ -801,6 +911,26 @@ export function buildSkelett(auftrag: Auftrag): Block[] {
           ...base,
           typ: 'wortgitter',
           config: { woerter: ['[WORT1]', '[WORT2]', '[WORT3]'] },
+        };
+      case 'umformung':
+        return {
+          ...base,
+          typ: 'umformung',
+          config: {
+            aufgaben: [
+              { nr: 1, ausgangssatz: '[Satz]', anweisung: '[Anweisung]', zielstruktur: '[Zielstruktur]' },
+            ],
+          },
+          loesung: { loesungen: [] },
+        };
+      case 'fehlerkorrektur':
+        return {
+          ...base,
+          typ: 'fehlerkorrektur',
+          config: {
+            saetze: [{ nr: 1, satz: '[Satz mit Fehlern]', anzahlFehler: 1 }],
+          },
+          loesung: { korrekturen: [] },
         };
       default:
         throw new Error(`Unbekannter Blocktyp: ${typ}`);

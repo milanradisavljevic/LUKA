@@ -1,4 +1,4 @@
-import type { DocumentV1, Meta, QuellText, Block } from '@lehrunterlagen/schema';
+import type { DocumentV1, Meta, QuellText, Block, StoffItem } from '@lehrunterlagen/schema';
 
 // Anbieter-Kennung. anthropic + OpenAI-kompatible (openai, deepseek, mistral, qwen, kimi).
 export type ProviderId = 'anthropic' | 'openai' | 'deepseek' | 'mistral' | 'qwen' | 'kimi';
@@ -37,7 +37,9 @@ export type BlockRequest =
   | { typ: 'songanalyse'; punkte: number; quelleId?: string; aufgabe: string }
   | { typ: 'kreuzwortraetsel'; punkte: number; quelleId?: string; anzahlWoerter: number }
   | { typ: 'wortgitter'; punkte: number; quelleId?: string; anzahlWoerter: number }
-  | { typ: 'vokabeluebung'; punkte: number; quelleId?: string; anzahlVokabeln: number; richtung: 'de_fremd' | 'fremd_de' };
+  | { typ: 'vokabeluebung'; punkte: number; quelleId?: string; anzahlVokabeln: number; richtung: 'de_fremd' | 'fremd_de' }
+  | { typ: 'umformung'; punkte: number; quelleId?: string; anzahlAufgaben: number }
+  | { typ: 'fehlerkorrektur'; punkte: number; quelleId?: string; anzahlSaetze: number };
 
 export type BlockTyp = Block['typ'];
 
@@ -45,6 +47,7 @@ export interface GenerateInput {
   meta: Meta;
   quelltexte: QuellText[];
   bloecke: BlockRequest[];
+  stoffItems?: StoffItem[];
 }
 
 export interface GenerateOk {
