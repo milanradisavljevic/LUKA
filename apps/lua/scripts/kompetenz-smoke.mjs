@@ -6,7 +6,7 @@ import { writeFileSync, mkdirSync, readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { generateDocument } from '../packages/llm/dist/index.js';
-import { renderDocument } from '../packages/renderer/dist/index.js';
+import { renderDocument, renderCoverage } from '../packages/renderer/dist/index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT = join(__dirname, 'out');
@@ -78,3 +78,19 @@ const { schueler, loesung } = await renderDocument(doc);
 writeFileSync(join(OUT, 'kompetenz_schueler.docx'), schueler);
 writeFileSync(join(OUT, 'kompetenz_loesung.docx'), loesung);
 console.log(`\n✓ DOCX geschrieben (${schueler.length} B / ${loesung.length} B)\n`);
+
+// Kompetenznachweis (Coverage) — Renderer-Pfad end-to-end (A.3). Beispiel-Deskriptoren
+// (die Mengenlogik selbst ist in coverage.test.ts unit-getestet).
+const abgedeckt = [
+  { bereich: 'Grammatik', code: 'EN-OB-2', text: 'Past Perfect: Vorzeitigkeit und Handlungsabfolge korrekt bilden.' },
+];
+const fehlend = [
+  { bereich: 'Grammatik', code: 'EN-OB-3', text: 'Konditionalsätze (Type 1–3) bilden.' },
+  { bereich: 'Grammatik', code: 'EN-OB-4', text: 'Passivkonstruktionen in verschiedenen Zeiten umformen.' },
+];
+const nachweis = await renderCoverage(
+  { fach: meta.fach, stufe: meta.stufe, thema: meta.thema, datum: meta.datum, klasse: meta.klasse },
+  abgedeckt, fehlend,
+);
+writeFileSync(join(OUT, 'kompetenz_nachweis.docx'), nachweis);
+console.log(`✓ Kompetenznachweis-DOCX geschrieben (${nachweis.length} B): ${abgedeckt.length} abgedeckt / ${fehlend.length} offen\n`);
