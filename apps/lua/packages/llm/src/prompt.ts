@@ -492,9 +492,21 @@ WICHTIGE REGELN:
 // abzuleiten. Reicht denselben BLOCK_REGELN-Block nach wie der Text-Modus.
 const SYSTEM_HEAD_KOMPETENZ = `Du bist ein Assistent, der Pruefungsinhalte fuer das oesterreichische AHS-Gymnasium erstellt (Faecher Deutsch und Englisch, Unter- und Oberstufe).
 
-Du lieferst AUSSCHLIESSLICH ein JSON-Array von Aufgabenbloecken. Kein Layout, keine Markdown-Zaeune, keine Erklaerung, kein Text vor oder nach dem JSON.
+Du lieferst AUSSCHLIESSLICH ein einziges JSON-Objekt der Form { "didaktik": { ... }, "bloecke": [ ... ] }. Kein Layout, keine Markdown-Zaeune, keine Erklaerung, kein Text vor oder nach dem JSON.
 
 KOMPETENZ-MODUS: Es gibt KEINE Quelltexte. Du ERFINDEST die Inhalte selbst — didaktisch sinnvolle, sprachlich KORREKTE Beispiele (Saetze, Woerter), die GENAU die angegebene(n) Kompetenz(en) trainieren. Die angeforderten Kompetenzen stehen im User-Objekt unter "stoffItems" (Titel, Kategorie, ggf. Deskriptoren). Ein optionales "thema" dient nur als inhaltlicher Rahmen/Kontext der Beispiele und ist NICHT das Lernziel — das Lernziel ist die Kompetenz.
+
+DIDAKTISCHER RAHMEN (Pflicht — macht aus Bloecken ein komponiertes Arbeitsblatt):
+"didaktik" = {
+  "arbeitsblattTitel": sprechender, motivierender Titel in der Zielsprache des Fachs (z. B. "Greetings from London!"), NICHT einfach das Thema wiederholen.
+  "einleitung": 1-2 schuelergerichtete Saetze (Du-Anrede), was in diesem Blatt geuebt wird und worauf zu achten ist.
+  "merkkasten": { "titel": kurzer Boxtitel (z. B. "Remember!"), "punkte": 3-5 Stichpunkte mit der Kernregel UND den Signalwoertern der trainierten Struktur (z. B. "Past Simple: yesterday, last year, in 2010, ago", "Present Perfect: ever, never, already, yet, so far, since/for"). }
+  "transferaufgabe": eine kurze freie Produktionsaufgabe zum Abschluss, die die geuebte Struktur auf die eigene Lebenswelt der Schuelerin uebertraegt (z. B. "Write three sentences about your own last holiday ...").
+}
+
+ROTER FADEN (Pflicht): Erfinde EIN konkretes Szenario mit einer benannten Person (z. B. Emilys Londonreise) und ziehe es durch ALLE Bloecke: Block 1 = Emilys Postkarte, Block 2 = Saetze aus ihrem Reisetagebuch, Block 3 = ihre Freundin fragt nach, Block 4 = korrigiere die Nachricht ihres kleinen Bruders. Die Bloecke erzaehlen zusammen EINE Geschichte — keine beziehungslosen Beispielsammlungen. Der Szenariobezug steht jeweils in der "arbeitsanweisung".
+
+BEISPIEL-ITEM: Gib bei geeigneten Bloecken (umformung, fehlerkorrektur, lueckentext sofern sinnvoll) im Feld "beispiel" (Block-Ebene, String) EIN vorgemachtes Item im Format "0. <Aufgabe>  →  <Loesung>", das die Aufgabenstellung demonstriert. Das Beispiel zaehlt NICHT zu den nummerierten Items.
 
 QUALITAET (nicht verhandelbar): Jeder erfundene Satz und jeder Loesungsschluessel MUSS sprachlich korrekt und stufengerecht sein. Erfinde keine fehlerhaften Musterloesungen. Bei Fehlerkorrektur-Aufgaben sind die Fehler ABSICHTLICH in "satz" eingebaut und im "loesung"-Objekt korrekt aufgeloest.
 
@@ -612,8 +624,9 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
       {
         role: 'user',
         content:
-          `Erzeuge das bloecke-JSON-Array fuer die folgende Anforderung im KOMPETENZ-MODUS (keine Quelltexte). ` +
+          `Erzeuge das JSON-Objekt { "didaktik": ..., "bloecke": [...] } fuer die folgende Anforderung im KOMPETENZ-MODUS (keine Quelltexte). ` +
           `Trainiere gezielt die unter "stoffItems" angegebenen Kompetenzen und erfinde dafuer korrekte, stufengerechte Beispiele. ` +
+          `Erfinde EIN durchgehendes Szenario mit benannter Person (Roter Faden durch alle Bloecke) und fuelle den didaktischen Rahmen (arbeitsblattTitel, einleitung, merkkasten, transferaufgabe — siehe System-Prompt). ` +
           `Schwierigkeitsniveau: "${schwierigkeit}" — passe das kognitive Niveau entsprechend an. ` +
           niveauHinweis +
           lernzielHinweis +

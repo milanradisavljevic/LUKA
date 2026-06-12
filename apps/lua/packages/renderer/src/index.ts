@@ -546,10 +546,14 @@ async function buildDocxPacked<T>(
     ...buildDocumentHeader(doc, mode, template),
     buildSchuelerkopf(doc.meta, template),
     ...(hidePunkte ? [] : buildPunkteUebersicht(doc.bloecke, template)),
+    ...buildMerkkasten(doc.didaktik?.merkkasten, template),
     ...buildQuelltexte(doc.quelltexte, template),
     ...doc.bloecke.flatMap((block, i) =>
       buildBlock(block, i + 1, mode, quelltextMap, template, hidePunkte),
     ),
+    ...(doc.didaktik?.transferaufgabe?.trim()
+      ? buildTransferaufgabe(doc.didaktik.transferaufgabe.trim(), mode, template)
+      : []),
   ];
 
   const document = new Document({
@@ -610,28 +614,108 @@ function buildDocumentHeader(doc: DocumentV1, mode: Mode, template: RenderTempla
   const stufeLabel = meta.stufe === 'oberstufe' ? 'Oberstufe' : 'Unterstufe';
   const modeLabel = mode === 'loesung' ? ' – Lösungsfassung' : '';
 
-  return [
+  // Sprechender Arbeitsblatt-Titel (didaktischer Rahmen) hat Vorrang; Fach/Thema
+  // rutschen dann in die Unterzeile.
+  const sprechenderTitel = doc.didaktik?.arbeitsblattTitel?.trim();
+  const titel = sprechenderTitel ? `${sprechenderTitel}${modeLabel}` : `${fachLabel} – ${meta.thema}${modeLabel}`;
+  const subParts = [
+    ...(sprechenderTitel ? [`${fachLabel} · ${meta.thema}`] : []),
+    stufeLabel + (meta.klasse ? ` · Klasse ${meta.klasse}` : '') + ` · ${formatDatum(meta.datum)}`,
+    ...(meta.notizen ? [meta.notizen] : []),
+  ];
+
+  const result = [
     new Paragraph({
       heading: HeadingLevel.HEADING_1,
       children: [
-        run(`${fachLabel} – ${meta.thema}${modeLabel}`, {
-          font: template.font, size: template.fontSize.h1, ...headingProps(template),
-        }),
+        run(titel, { font: template.font, size: template.fontSize.h1, ...headingProps(template) }),
       ],
     }),
     new Paragraph({
       children: [
-        run(
-          `${stufeLabel}` +
-            (meta.klasse ? ` · Klasse ${meta.klasse}` : '') +
-            ` · ${formatDatum(meta.datum)}` +
-            (meta.notizen ? `  |  ${meta.notizen}` : ''),
-          { font: template.font, size: template.fontSize.body, color: template.color.gray },
-        ),
+        run(subParts.join('  |  '), { font: template.font, size: template.fontSize.body, color: template.color.gray }),
       ],
-      spacing: { after: 200 },
+      spacing: { after: doc.didaktik?.einleitung ? 120 : 200 },
     }),
   ];
+
+  // Schülergerichtete Einleitung (1-2 Sätze, kursiv) direkt unter dem Kopf.
+  if (doc.didaktik?.einleitung?.trim()) {
+    result.push(new Paragraph({
+      children: [run(doc.didaktik.einleitung.trim(), { font: template.font, size: template.fontSize.body, italics: true })],
+      spacing: { after: 200 },
+    }));
+  }
+
+  return result;
+}
+
+// ---------------------------------------------------------------------------
+// Didaktischer Rahmen: Merkkasten + Transferaufgabe (primär Kompetenz-Modus)
+// ---------------------------------------------------------------------------
+
+/** Gerahmte Merkbox (Regel + Signalwörter) — das Kernstück eines komponierten Arbeitsblatts. */
+function buildMerkkasten(merkkasten: NonNullable<DocumentV1['didaktik']>['merkkasten'], template: RenderTemplate): (Paragraph | Table)[] {
+  if (!merkkasten || merkkasten.punkte.length === 0) return [];
+  const border = { style: BorderStyle.SINGLE, size: 12, color: template.color.text } as const;
+  const inhalt: Paragraph[] = [
+    new Paragraph({
+      children: [run(merkkasten.titel, { font: template.font, size: template.fontSize.body, bold: true })],
+      spacing: { after: 60 },
+    }),
+    ...merkkasten.punkte.map((p, i) => new Paragraph({
+      children: [
+        run('•  ', { font: template.font, size: template.fontSize.body }),
+        run(p, { font: template.font, size: template.fontSize.body }),
+      ],
+      spacing: { after: i === merkkasten.punkte.length - 1 ? 0 : 40 },
+    })),
+  ];
+  return [
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [
+        new TableRow({
+          children: [
+            new TableCell({
+              borders: { top: border, bottom: border, left: border, right: border },
+              shading: { fill: 'F2F2F2' },
+              margins: { top: 120, bottom: 120, left: 160, right: 160 },
+              children: inhalt,
+            }),
+          ],
+        }),
+      ],
+    }),
+    new Paragraph({ children: [], spacing: { after: 120 } }),
+  ];
+}
+
+/** Freie Produktionsaufgabe zum Abschluss (Transfer auf die eigene Lebenswelt). */
+function buildTransferaufgabe(text: string, mode: Mode, template: RenderTemplate): (Paragraph | Table)[] {
+  const result: (Paragraph | Table)[] = [
+    new Paragraph({
+      heading: HeadingLevel.HEADING_2,
+      keepNext: true,
+      border: {
+        top:    { style: BorderStyle.SINGLE, size: 6, color: template.color.text },
+        bottom: { style: BorderStyle.SINGLE, size: 6, color: template.color.text },
+      },
+      spacing: { before: 280, after: 120 },
+      children: [run('Zum Schluss – jetzt du!', { font: template.font, size: template.fontSize.h2, ...headingProps(template) })],
+    }),
+    new Paragraph({
+      keepNext: true,
+      children: [run(text, { font: template.font, size: template.fontSize.body, bold: true })],
+      spacing: { after: 120 },
+    }),
+  ];
+  if (mode === 'schueler') {
+    for (let i = 0; i < 4; i++) {
+      result.push(new Paragraph({ children: [blankLine(95, template)], spacing: { after: 200 } }));
+    }
+  }
+  return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -914,6 +998,21 @@ function buildBlock(
           run(`(${block.clue})`, { font: template.font, size: template.fontSize.body, italics: true, color: template.color.gray }),
         ],
         spacing: { after: 80 },
+      }),
+    );
+  }
+
+  // Vorgemachtes Beispiel-Item ("0. ... → ...") — demonstriert die Aufgabenstellung.
+  if (block.beispiel?.trim()) {
+    result.push(
+      new Paragraph({
+        keepNext: true,
+        indent: { left: 360 },
+        children: [
+          run('Beispiel:  ', { font: template.font, size: template.fontSize.body, bold: true, italics: true }),
+          run(block.beispiel.trim(), { font: template.font, size: template.fontSize.body, italics: true, color: template.color.gray }),
+        ],
+        spacing: { after: 120 },
       }),
     );
   }
