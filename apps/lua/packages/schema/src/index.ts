@@ -797,14 +797,17 @@ export function buildSkelett(auftrag: Auftrag): Block[] {
         return {
           ...base,
           typ: 'lueckentext',
-          config: { anzahlLuecken: Math.max(3, Math.round(punkte)), wortbank: auftrag.stufe === 'unterstufe', distraktoren: auftrag.stufe === 'unterstufe' ? 3 : 0 },
+          config: { anzahlLuecken: Math.max(5, Math.round(punkte)), wortbank: auftrag.stufe === 'unterstufe', distraktoren: auftrag.stufe === 'unterstufe' ? 3 : 0 },
           loesung: { luecken: [] },
         };
       case 'matching':
         return {
           ...base,
           typ: 'matching',
-          config: { items: [{ nr: 1, prompt: '[Item]' }], optionen: [{ key: 'A', text: '[Option A]' }, { key: 'B', text: '[Option B]' }] },
+          config: {
+            items: Array.from({ length: 4 }, (_, i) => ({ nr: i + 1, prompt: `[Item ${i + 1}]` })),
+            optionen: ['A', 'B', 'C', 'D', 'E'].map((key) => ({ key, text: `[Option ${key}]` })),
+          },
           loesung: { zuordnung: {} },
         };
       case 'multipleChoice':
@@ -812,9 +815,9 @@ export function buildSkelett(auftrag: Auftrag): Block[] {
           ...base,
           typ: 'multipleChoice',
           config: {
-            fragen: [{
-              nr: 1,
-              frage: '[Frage]',
+            fragen: Array.from({ length: 4 }, (_, i) => ({
+              nr: i + 1,
+              frage: `[Frage ${i + 1}]`,
               optionen: [
                 { key: 'A', text: '[Option A]' },
                 { key: 'B', text: '[Option B]' },
@@ -822,7 +825,7 @@ export function buildSkelett(auftrag: Auftrag): Block[] {
                 { key: 'D', text: '[Option D]' },
               ],
               mehrfach: false,
-            }],
+            })),
           },
           loesung: { antworten: {} },
         };
@@ -830,7 +833,7 @@ export function buildSkelett(auftrag: Auftrag): Block[] {
         return {
           ...base,
           typ: 'offeneVerstaendnisfrage',
-          config: { fragen: [{ nr: 1, frage: '[Frage]', zeilen: Math.max(3, Math.round(punkte / 2)) }] },
+          config: { fragen: Array.from({ length: 3 }, (_, i) => ({ nr: i + 1, frage: `[Frage ${i + 1}]`, zeilen: Math.max(3, Math.round(punkte / 2)) })) },
           loesung: { antworten: {} },
         };
       case 'offeneSchreibaufgabe': {
@@ -867,16 +870,13 @@ export function buildSkelett(auftrag: Auftrag): Block[] {
           ...base,
           typ: 'kategorisierung',
           config: {
-            items: [
-              { nr: 1, text: '[Item 1]', optionen: ['[Kategorie A]', '[Kategorie B]'] },
-              { nr: 2, text: '[Item 2]', optionen: ['[Kategorie A]', '[Kategorie B]'] },
-            ],
+            items: Array.from({ length: 6 }, (_, i) => ({ nr: i + 1, text: `[Item ${i + 1}]`, optionen: ['[Kategorie A]', '[Kategorie B]'] })),
             kategorien: [
-              { name: '[Kategorie A]', anzahlItems: 1 },
-              { name: '[Kategorie B]', anzahlItems: 1 },
+              { name: '[Kategorie A]', anzahlItems: 3 },
+              { name: '[Kategorie B]', anzahlItems: 3 },
             ],
           },
-          loesung: { zuordnung: { '1': ['[Kategorie A]'], '2': ['[Kategorie B]'] } },
+          loesung: { zuordnung: Object.fromEntries(Array.from({ length: 6 }, (_, i) => [String(i + 1), [i % 2 === 0 ? '[Kategorie A]' : '[Kategorie B]']])) },
         };
       case 'tabelle':
         return {
@@ -927,9 +927,7 @@ export function buildSkelett(auftrag: Auftrag): Block[] {
           ...base,
           typ: 'umformung',
           config: {
-            aufgaben: [
-              { nr: 1, ausgangssatz: '[Satz]', anweisung: '[Anweisung]', zielstruktur: '[Zielstruktur]' },
-            ],
+            aufgaben: Array.from({ length: 5 }, (_, i) => ({ nr: i + 1, ausgangssatz: '[Satz]', anweisung: '[Anweisung]', zielstruktur: '[Zielstruktur]' })),
           },
           loesung: { loesungen: [] },
         };
@@ -938,7 +936,7 @@ export function buildSkelett(auftrag: Auftrag): Block[] {
           ...base,
           typ: 'fehlerkorrektur',
           config: {
-            saetze: [{ nr: 1, satz: '[Satz mit Fehlern]', anzahlFehler: 1 }],
+            saetze: Array.from({ length: 5 }, (_, i) => ({ nr: i + 1, satz: '[Satz mit Fehlern]', anzahlFehler: 1 })),
           },
           loesung: { korrekturen: [] },
         };
