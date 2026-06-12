@@ -40,6 +40,7 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
   const [fach, setFach] = useState<'deutsch' | 'englisch'>('englisch');
   const [stufe, setStufe] = useState<'oberstufe' | 'unterstufe'>('oberstufe');
   const [stoffItem, setStoffItem] = useState<StoffItem | null>(null);
+  const [freieKompetenz, setFreieKompetenz] = useState('');
   const [thema, setThema] = useState('');
   const [niveau, setNiveau] = useState<'basis' | 'standard' | 'erweitert'>('standard');
   const [gewuenschteTypen, setGewuenschteTypen] = useState<BlockTyp[]>([]);
@@ -77,15 +78,21 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
   const handleErstellen = async () => {
     setFehler(null);
 
-    if (!stoffItem) {
-      setFehler('Bitte ein Stoff-Item wählen.');
+    const freitext = freieKompetenz.trim();
+    const hatFreitext = freitext.length > 0;
+    const hatKatalog = stoffItem !== null;
+
+    if (!hatFreitext && !hatKatalog) {
+      setFehler('Bitte eine Kompetenz oder ein Thema eingeben — oder ein Stoff-Item aus dem Katalog wählen.');
       return;
     }
     if (gewuenschteTypen.length === 0) {
       setFehler('Bitte mindestens einen Aufgabentyp wählen.');
       return;
     }
-    if (!thema.trim()) {
+
+    const themaFinal = thema.trim() || freitext || (stoffItem?.titel ?? '');
+    if (!themaFinal) {
       setFehler('Bitte ein Thema eingeben.');
       return;
     }
@@ -97,8 +104,9 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
       rahmenwerk,
       fach,
       stufe,
-      thema: thema.trim(),
-      stoffItemIds: [stoffItem.id],
+      thema: themaFinal,
+      stoffItemIds: hatKatalog ? [stoffItem.id] : [],
+      freieKompetenz: hatFreitext ? freitext : undefined,
       kompetenzNiveau: niveau,
       datum: heute,
     };
@@ -109,12 +117,13 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
       typ: 'schuluebung' as const,
       fach,
       stufe,
-      thema: thema.trim(),
+      thema: themaFinal,
       datum: heute,
       quelltexte: [],
       modus: 'kompetenz' as const,
       rahmenwerk,
-      stoffItemIds: [stoffItem.id],
+      stoffItemIds: hatKatalog ? [stoffItem.id] : [],
+      freieKompetenz: hatFreitext ? freitext : undefined,
       kompetenzNiveau: niveau,
       gewuenschteAufgabenarten: gewuenschteTypen,
     };
@@ -165,8 +174,8 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
 
   return (
     <ViewShell
-      title="Kompetenz-Übung"
-      description="Übung aus einer Lehrplan-Kompetenz erstellen — ohne Quelltext."
+      title="Übung ohne Quelltext"
+      description="Gib eine Kompetenz oder ein Thema frei ein — oder wähle aus dem Lehrplan-Katalog."
       maxWidth={720}
     >
       {fehler && (
@@ -244,9 +253,34 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
         </div>
       </section>
 
-      {/* Stoff-Item */}
+      {/* Freitext Kompetenz / Thema */}
       <section style={{ marginBottom: '1.25rem' }}>
-        <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.875rem' }}>Kompetenz / Stoff-Item</label>
+        <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.875rem' }}>
+          Kompetenz oder Thema <span style={{ color: 'var(--color-text-secondary)', fontWeight: 400 }}>(frei eingeben)</span>
+        </label>
+        <input
+          type="text"
+          value={freieKompetenz}
+          onChange={(e) => setFreieKompetenz(e.target.value)}
+          placeholder="z. B. Present Perfect vs Past Simple, questions &amp; negation — oder Urlaub beschreiben"
+          style={{
+            width: '100%',
+            padding: '0.625rem 0.875rem',
+            borderRadius: 'var(--radius)',
+            border: '1px solid var(--color-border)',
+            fontSize: '0.875rem',
+          }}
+        />
+        <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', margin: '0.375rem 0 0' }}>
+          Freitext genügt — der Katalog darunter ist optional und nur für den formalen Lehrplan-Nachweis nötig.
+        </p>
+      </section>
+
+      {/* Stoff-Item (optional) */}
+      <section style={{ marginBottom: '1.25rem' }}>
+        <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.875rem' }}>
+          …oder aus Lehrplan-Katalog wählen <span style={{ color: 'var(--color-text-secondary)', fontWeight: 400 }}>(optional)</span>
+        </label>
         <select
           value={stoffItem?.id ?? ''}
           onChange={(e) => handleStoffItemChange(e.target.value)}
@@ -259,21 +293,21 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
             background: 'var(--color-bg-surface)',
           }}
         >
-          <option value="">Bitte wählen …</option>
+          <option value="">Kein Katalog-Item — Freitext verwenden</option>
           {stoffItems.map((item) => (
             <option key={item.id} value={item.id}>{item.titel}</option>
           ))}
         </select>
         {stoffItems.length === 0 && (
           <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem' }}>
-            Für diese Kombination gibt es noch keine Stoff-Items. Proof-Slice: Englisch · Oberstufe.
+            Für diese Kombination gibt es noch keine Stoff-Items. Du kannst trotzdem oben eine Kompetenz frei eingeben.
           </p>
         )}
       </section>
 
       {/* Thema */}
       <section style={{ marginBottom: '1.25rem' }}>
-        <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.875rem' }}>Thema / Kontext (optional, aber empfohlen)</label>
+        <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.875rem' }}>Thema / Kontext <span style={{ color: 'var(--color-text-secondary)', fontWeight: 400 }}>(optional — wird sonst aus Freitext oder Katalog übernommen)</span></label>
         <input
           type="text"
           value={thema}

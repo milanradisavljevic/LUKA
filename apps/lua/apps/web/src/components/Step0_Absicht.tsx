@@ -329,11 +329,11 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
               }}
             >
               <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: 'var(--color-accent)', fontWeight: 600 }}>
-                <Target size={16} /> Aus Kompetenz erstellen
+                <Target size={16} /> Übung ohne Quelltext
               </span>
-              <span style={{ fontWeight: 600 }}>Kompetenz-Übung</span>
+              <span style={{ fontWeight: 600 }}>Kompetenz oder Thema</span>
               <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
-                Ohne Quelltext: Lehrplan-Kompetenz auswählen und üben.
+                Frei eingeben oder Lehrplan-Kompetenz wählen — ohne Quelltext.
               </span>
             </button>
           )}

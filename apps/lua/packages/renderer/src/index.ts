@@ -541,13 +541,14 @@ async function buildDocxPacked<T>(
     doc.quelltexte.map((q) => [q.id, q]),
   );
 
+  const hidePunkte = doc.meta.punkteAusblenden === true;
   const children: (Paragraph | Table)[] = [
     ...buildDocumentHeader(doc, mode, template),
     buildSchuelerkopf(doc.meta, template),
-    ...buildPunkteUebersicht(doc.bloecke, template),
+    ...(hidePunkte ? [] : buildPunkteUebersicht(doc.bloecke, template)),
     ...buildQuelltexte(doc.quelltexte, template),
     ...doc.bloecke.flatMap((block, i) =>
-      buildBlock(block, i + 1, mode, quelltextMap, template),
+      buildBlock(block, i + 1, mode, quelltextMap, template, hidePunkte),
     ),
   ];
 
@@ -867,13 +868,20 @@ function buildBlock(
   mode: Mode,
   quelltextMap: Map<string, QuellText>,
   template: RenderTemplate,
+  hidePunkte = false,
 ): (Paragraph | Table)[] {
   const label = BLOCK_LABELS[block.typ];
   // Kreuzworträtsel und Wortgitter sollen auf einer eigenen Seite beginnen,
   // damit sie nicht durch Seitenumbrüche zerrissen werden.
   const needsPageBreak = block.typ === 'kreuzwortraetsel' || block.typ === 'wortgitter';
+  // Punkte-Eintragefeld rechtsbündig (___ / X) — entfällt bei punkteAusblenden.
+  const punkteRun = hidePunkte ? [] : [
+    new TextRun({ children: [new Tab()], font: template.font, size: template.fontSize.body }),
+    blankLine(5, template),
+    run(` / ${block.punkte}`, { font: template.font, size: template.fontSize.body }),
+  ];
   const result: (Paragraph | Table)[] = [
-    // Gerahmtes Abschnitts-Banner: Titel links, Punkte-Eintragefeld rechtsbündig (___ / X).
+    // Gerahmtes Abschnitts-Banner: Titel links, optional Punkte-Eintragefeld rechtsbündig.
     new Paragraph({
       heading: HeadingLevel.HEADING_2,
       keepNext: true,
@@ -888,9 +896,7 @@ function buildBlock(
         run(`Aufgabe ${index}  –  ${label}`, {
           font: template.font, size: template.fontSize.h2, ...headingProps(template),
         }),
-        new TextRun({ children: [new Tab()], font: template.font, size: template.fontSize.body }),
-        blankLine(5, template),
-        run(` / ${block.punkte}`, { font: template.font, size: template.fontSize.body }),
+        ...punkteRun,
       ],
     }),
     new Paragraph({
@@ -975,28 +981,27 @@ function buildUmformung(
   mode: Mode,
   template: RenderTemplate,
 ): (Paragraph | Table)[] {
+  // Kein eigener Titel/keine Arbeitsanweisung hier — buildBlock liefert beides bereits.
   const result: (Paragraph | Table)[] = [];
-  result.push(new Paragraph({
-    children: [run(BLOCK_LABELS.umformung, { font: template.font, size: template.fontSize.body, bold: true })],
-    spacing: { after: 120 },
-  }));
-  result.push(new Paragraph({
-    children: [run(block.arbeitsanweisung, { font: template.font, size: template.fontSize.body })],
-    spacing: { after: 120 },
-  }));
   for (const aufgabe of block.config.aufgaben) {
+    const ziel = (aufgabe.anweisung?.trim() || aufgabe.zielstruktur?.trim()) ?? '';
     result.push(new Paragraph({
       indent: { left: 360 },
-      children: [run(`${aufgabe.nr}. ${aufgabe.ausgangssatz}`, { font: template.font, size: template.fontSize.body })],
-      spacing: { after: 80 },
+      children: [
+        run(`${aufgabe.nr}. ${aufgabe.ausgangssatz}`, { font: template.font, size: template.fontSize.body }),
+        ...(ziel ? [run(`   →  (${ziel})`, { font: template.font, size: template.fontSize.body, italics: true, color: template.color.gray })] : []),
+      ],
+      spacing: { after: mode === 'loesung' ? 40 : 60 },
     }));
-    if (mode === 'loesung') {
+    if (mode === 'schueler') {
+      result.push(new Paragraph({ indent: { left: 720 }, children: [blankLine(60, template)], spacing: { after: 140 } }));
+    } else {
       const loesung = block.loesung.loesungen.find((l) => l.nr === aufgabe.nr);
       if (loesung) {
         result.push(new Paragraph({
           indent: { left: 720 },
           children: [run(`Lösung: ${loesung.umformulierung}`, { font: template.font, size: template.fontSize.body, italics: true })],
-          spacing: { after: 80 },
+          spacing: { after: 100 },
         }));
       }
     }
@@ -1013,28 +1018,23 @@ function buildFehlerkorrektur(
   mode: Mode,
   template: RenderTemplate,
 ): (Paragraph | Table)[] {
+  // Kein eigener Titel/keine Arbeitsanweisung hier — buildBlock liefert beides bereits.
   const result: (Paragraph | Table)[] = [];
-  result.push(new Paragraph({
-    children: [run(BLOCK_LABELS.fehlerkorrektur, { font: template.font, size: template.fontSize.body, bold: true })],
-    spacing: { after: 120 },
-  }));
-  result.push(new Paragraph({
-    children: [run(block.arbeitsanweisung, { font: template.font, size: template.fontSize.body })],
-    spacing: { after: 120 },
-  }));
   for (const satz of block.config.saetze) {
     result.push(new Paragraph({
       indent: { left: 360 },
       children: [run(`${satz.nr}. ${satz.satz}`, { font: template.font, size: template.fontSize.body })],
-      spacing: { after: 80 },
+      spacing: { after: mode === 'loesung' ? 40 : 60 },
     }));
-    if (mode === 'loesung') {
+    if (mode === 'schueler') {
+      result.push(new Paragraph({ indent: { left: 720 }, children: [blankLine(60, template)], spacing: { after: 140 } }));
+    } else {
       const korrektur = block.loesung.korrekturen.find((k) => k.nr === satz.nr);
       if (korrektur) {
         result.push(new Paragraph({
           indent: { left: 720 },
           children: [run(`Korrektur: ${korrektur.korrigierterSatz}`, { font: template.font, size: template.fontSize.body, italics: true })],
-          spacing: { after: 80 },
+          spacing: { after: 100 },
         }));
       }
     }
@@ -1053,23 +1053,24 @@ function buildLueckentext(
 ): (Paragraph | Table)[] {
   const result: (Paragraph | Table)[] = [];
 
-  // Wenn der LLM einen Text mit Luecken geliefert hat, zeige diesen an.
-  // Ansonsten Fallback auf nummerierte Luecken.
+  // Wenn der LLM einen Cloze-Text mit Luecken geliefert hat, zeigen wir NUR diesen
+  // (keine zusaetzliche Nummern-Tabelle — das ist das schultypische Format).
   const hasText = block.text && block.text.length > 0;
 
   if (hasText) {
-    // Text mit Luecken anzeigen — die Luecken sind als (1), (2) im Text
-    const text = block.text!;
     if (mode === 'schueler') {
+      // Inline-Marker (1),(2)… in eine sichtbare Schreiblinie verwandeln, falls der
+      // Text nicht ohnehin schon Unterstriche enthaelt.
+      const text = block.text!.replace(/\((\d+)\)(?!\s*_)/g, '($1) __________');
       result.push(
         new Paragraph({
           children: [run(text, { font: template.font, size: template.fontSize.body })],
-          spacing: { after: 120 },
+          spacing: { line: 360, lineRule: LineRuleType.AUTO, after: 160 },
         }),
       );
     } else {
-      // Loesungs-Modus: Ersetze (1), (2) durch die tatsaechlichen Woerter
-      let solutionText = text;
+      // Loesung: (1),(2)… durch die tatsaechlichen Woerter ersetzen.
+      let solutionText = block.text!;
       for (const l of block.loesung.luecken) {
         solutionText = solutionText.replace(`(${l.nr})`, `(${l.nr}) ${l.wort}`);
       }
@@ -1081,10 +1082,8 @@ function buildLueckentext(
         }),
       );
     }
-  }
-
-  if (mode === 'schueler') {
-    // Numbered blanks in rows (Fallback wenn kein text vorhanden, oder zusaetzlich)
+  } else if (mode === 'schueler') {
+    // Fallback OHNE Cloze-Text: nummerierte Lueckenzeilen.
     const blanks = Array.from({ length: block.config.anzahlLuecken }, (_, i) => i + 1);
     const rows: TableRow[] = chunkArray(blanks, 4).map(
       (rowNums) =>
@@ -1094,10 +1093,7 @@ function buildLueckentext(
               borders: { top: NO_BORDER, bottom: NO_BORDER, left: NO_BORDER, right: NO_BORDER },
               children: [
                 new Paragraph({
-                  children: [
-                    run(`(${nr})  `, { font: template.font, size: template.fontSize.body }),
-                    blankLine(80, template),
-                  ],
+                  children: [run(`(${nr})  `, { font: template.font, size: template.fontSize.body }), blankLine(80, template)],
                   spacing: { after: 120 },
                 }),
               ],
@@ -1105,50 +1101,67 @@ function buildLueckentext(
           ),
         }),
     );
+    result.push(new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: { top: NO_BORDER, bottom: NO_BORDER, left: NO_BORDER, right: NO_BORDER, insideHorizontal: NO_BORDER, insideVertical: NO_BORDER },
+      rows,
+    }));
+  } else {
+    // Loesung ohne Cloze-Text: nummerierte Antworten.
+    const pairs = block.loesung.luecken.map((l) => `(${l.nr}) ${l.wort}`).join('     ');
+    result.push(new Paragraph({
+      indent: { left: 360 },
+      children: [run(pairs, { font: template.font, size: template.fontSize.body, italics: true })],
+      spacing: { after: 120 },
+    }));
+  }
 
-    result.push(
-      new Table({
-        width: { size: 100, type: WidthType.PERCENTAGE },
-        borders: {
-          top: NO_BORDER, bottom: NO_BORDER, left: NO_BORDER, right: NO_BORDER,
-          insideHorizontal: NO_BORDER, insideVertical: NO_BORDER,
-        },
-        rows,
-      }),
-    );
-
-    // Word bank for Unterstufe
-    if (block.config.wortbank) {
-      const loesungsWoerter = block.loesung.luecken.map((l) => l.wort);
-      const distraktoren = block.config.distraktorWoerter ?? [];
-      const bank = distraktoren.length > 0
-        ? baueWortbank(loesungsWoerter, distraktoren, block.id)
-        : loesungsWoerter;
-      result.push(
-        new Paragraph({
-          children: [
-            run('Wortbank:  ', { font: template.font, size: template.fontSize.body, bold: true }),
-            run(bank.join('  |  '), { font: template.font, size: template.fontSize.body }),
-          ],
-          spacing: { before: 80, after: 80 },
-        }),
-      );
-    }
-  } else if (!hasText) {
-    // Solution mode without text: numbered answers in italics
-    const pairs = block.loesung.luecken
-      .map((l) => `(${l.nr}) ${l.wort}`)
-      .join('     ');
-    result.push(
-      new Paragraph({
-        indent: { left: 360 },
-        children: [run(pairs, { font: template.font, size: template.fontSize.body, italics: true })],
-        spacing: { after: 120 },
-      }),
-    );
+  // Wortbank als gerahmte Kaestchen (nur Schuelerblatt, wenn aktiviert).
+  if (mode === 'schueler' && block.config.wortbank) {
+    const loesungsWoerter = block.loesung.luecken.map((l) => l.wort);
+    const distraktoren = block.config.distraktorWoerter ?? [];
+    const bank = distraktoren.length > 0
+      ? baueWortbank(loesungsWoerter, distraktoren, block.id)
+      : loesungsWoerter;
+    result.push(...buildWortbankBoxen(bank, template));
   }
 
   return result;
+}
+
+/** Wortbank als Reihe gerahmter Kaestchen (schultypisch), 4 pro Zeile. */
+function buildWortbankBoxen(woerter: string[], template: RenderTemplate): (Paragraph | Table)[] {
+  if (woerter.length === 0) return [];
+  const border = thinBorder(template);
+  const perRow = 4;
+  const rows: TableRow[] = chunkArray(woerter, perRow).map((group) => {
+    const cells = group.map((w) =>
+      new TableCell({
+        borders: { top: border, bottom: border, left: border, right: border },
+        margins: { top: 60, bottom: 60, left: 100, right: 100 },
+        width: { size: Math.floor(100 / perRow), type: WidthType.PERCENTAGE },
+        children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [run(w, { font: template.font, size: template.fontSize.body })] })],
+      }),
+    );
+    // Restzellen ohne Rahmen auffuellen, damit die Tabelle gleichmaessig bleibt.
+    while (cells.length < perRow) {
+      cells.push(new TableCell({
+        borders: { top: NO_BORDER, bottom: NO_BORDER, left: NO_BORDER, right: NO_BORDER },
+        width: { size: Math.floor(100 / perRow), type: WidthType.PERCENTAGE },
+        children: [new Paragraph({ children: [] })],
+      }));
+    }
+    return new TableRow({ children: cells });
+  });
+  return [
+    new Paragraph({ children: [run('Wortbank', { font: template.font, size: template.fontSize.body, bold: true })], spacing: { before: 160, after: 60 } }),
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      layout: TableLayoutType.FIXED,
+      borders: { top: NO_BORDER, bottom: NO_BORDER, left: NO_BORDER, right: NO_BORDER, insideHorizontal: NO_BORDER, insideVertical: NO_BORDER },
+      rows,
+    }),
+  ];
 }
 
 // ---------------------------------------------------------------------------
@@ -1605,6 +1618,8 @@ function buildKategorisierung(
   };
   const cellMargins = { top: 100, bottom: 100, left: 80, right: 80 };
 
+  const titelBegriff = block.config.spaltentitelBegriff?.trim() || 'Begriff';
+  const titelKategorie = block.config.spaltentitelKategorie?.trim() || 'Kategorie';
   const headerRow = new TableRow({
     tableHeader: true,
     children: [
@@ -1613,14 +1628,14 @@ function buildKategorisierung(
         margins: cellMargins,
         width: { size: 50, type: WidthType.PERCENTAGE },
         shading: { fill: 'D9D9D9' },
-        children: [new Paragraph({ children: [run('Begriff', { font: template.font, size: template.fontSize.body, bold: true })] })],
+        children: [new Paragraph({ children: [run(titelBegriff, { font: template.font, size: template.fontSize.body, bold: true })] })],
       }),
       new TableCell({
         borders: cellBorder,
         margins: cellMargins,
         width: { size: 50, type: WidthType.PERCENTAGE },
         shading: { fill: 'D9D9D9' },
-        children: [new Paragraph({ children: [run('Kategorie', { font: template.font, size: template.fontSize.body, bold: true })] })],
+        children: [new Paragraph({ children: [run(titelKategorie, { font: template.font, size: template.fontSize.body, bold: true })] })],
       }),
     ],
   });
