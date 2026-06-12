@@ -215,10 +215,13 @@ function buildKompetenzJudgePrompt(block: Block, ctx: KompetenzJudgeContext): st
     `2) KONSISTENZ: Passt die Loesung exakt zur Aufgabe (gleiche Nummerierung, keine Widersprueche)? Bei Fehlerkorrektur: Enthaelt der Aufgabensatz wirklich die angegebene Anzahl Fehler, und korrigiert die Loesung genau diese?\n` +
     `3) PASSUNG: Trainiert die Aufgabe die angegebene Kompetenz und das Niveau (falls oben genannt)?\n\n` +
     `AUFGABE (JSON):\n${aufgabe}\n\n` +
-    `Antworte AUSSCHLIESSLICH mit JSON: { "fehler": [ { "schwere": "hart" | "weich", "grund": "..." } ] }. ` +
-    `"hart" = inhaltlich falsch (z. B. falsche Musterloesung, grammatisch falscher Satz, falsche Fehleranzahl). ` +
-    `"weich" = Niveau-Drift, unklare Formulierung oder thematische Abweichung. ` +
-    `Leeres "fehler"-Array, wenn alles korrekt ist.`
+    `Antworte AUSSCHLIESSLICH mit JSON: { "fehler": [ { "schwere": "hart" | "weich", "grund": "<ein kurzer Satz>" } ] }.\n` +
+    `STRIKT: Liste NUR tatsaechliche Maengel. Wenn eine Pruefung BESTANDEN ist, fuege KEINEN Eintrag hinzu. ` +
+    `Schreibe KEINE Begruendungen fuer korrekte Stellen, KEINE Gedankengaenge, KEIN "koennte als ... betrachtet werden", KEIN "Kein Fehler". ` +
+    `"grund" benennt knapp den konkreten Defekt (nicht deine Analyse). ` +
+    `"hart" = eindeutig sprachlich/inhaltlich falsch (falsche Musterloesung, grammatisch falscher Satz, falsche Fehleranzahl). ` +
+    `"weich" = klare Niveau-Drift oder thematische Abweichung. ` +
+    `Im Zweifel ist es KEIN Fehler. Wenn alles korrekt ist, antworte exakt mit { "fehler": [] }.`
   );
 }
 
@@ -234,10 +237,16 @@ export async function runKompetenzJudge(
       const raw = await complete([{ role: 'user', content: prompt }]);
       const parsed = extractJson(raw) as { fehler?: Array<{ schwere?: string; grund?: string }> } | null;
       for (const f of parsed?.fehler ?? []) {
+        const grund = (f.grund ?? '').trim();
+        // Defensiv: manche Modelle schreiben ihre Analyse-Prosa (inkl. "Kein Fehler")
+        // in den fehler-Array. Solche Nicht-Befunde verwerfen.
+        if (!grund || /kein\s+fehler|kein\s+problem|no\s+error|ist\s+(grammatikalisch\s+)?korrekt|akzeptabel/i.test(grund)) {
+          continue;
+        }
         issues.push({
           blockId: block.id,
           severity: f.schwere === 'hart' ? 'error' : 'warning',
-          message: `Kompetenz-Judge: ${f.grund ?? 'inhaltliche Beanstandung'}`,
+          message: `Kompetenz-Judge: ${grund}`,
         });
       }
     } catch {
