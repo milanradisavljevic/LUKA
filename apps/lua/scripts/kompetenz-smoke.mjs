@@ -35,11 +35,14 @@ const meta = {
   datum: '2026-06-11', klasse: '', notizen: '', schwierigkeit: 'mittel',
   modus: 'kompetenz', rahmenwerk: 'at-lehrplan',
   stoffItemIds: [stoffItem.id], kompetenzNiveau: 'standard',
+  punkteAusblenden: true,
 };
 
 const bloecke = [
   { typ: 'umformung', punkte: 6, anzahlAufgaben: 3 },
   { typ: 'fehlerkorrektur', punkte: 4, anzahlSaetze: 3 },
+  { typ: 'lueckentext', punkte: 5, anzahlLuecken: 5, wortbank: true, distraktoren: 2 },
+  { typ: 'kategorisierung', punkte: 6, anzahlItems: 6, kategorien: ['Past Simple', 'Present Perfect'] },
 ];
 
 console.log(`\n▶ KOMPETENZ-Smoke  provider=${provider}  model=${model ?? '(Default)'}`);

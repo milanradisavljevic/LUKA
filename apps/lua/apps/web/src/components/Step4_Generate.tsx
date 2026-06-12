@@ -27,7 +27,9 @@ export function Step4_Generate({ state, dispatch }: Props) {
   const { exportDocx, exportKorrekturraster, exportKompetenzraster, exporting, error: exportError, warnung: exportWarnung, lastSavedPaths } = useExport();
   const pdfExport = usePdfExport();
   const isKompetenz = state.meta.modus === 'kompetenz';
-  const coverage = isKompetenz && state.generiertesDokument
+  const isFrei = isKompetenz && !!state.generiertesDokument?.meta.freieKompetenz?.trim()
+    && (state.generiertesDokument?.meta.stoffItemIds?.length ?? 0) === 0;
+  const coverage = isKompetenz && state.generiertesDokument && !isFrei
     ? computeCoverage(state.generiertesDokument.meta)
     : null;
   const [showPdfHint, setShowPdfHint] = useState(false);
@@ -52,7 +54,8 @@ export function Step4_Generate({ state, dispatch }: Props) {
     return `${m}:${sec.toString().padStart(2, '0')}`;
   };
 
-  const canGenerate = state.quelltexte.length > 0 && state.bloecke.length > 0 && !!state.llmProvider;
+  const canGenerate = state.bloecke.length > 0 && !!state.llmProvider
+    && (isKompetenz || state.quelltexte.length > 0);
   const canExport = !!state.generiertesDokument;
   const error = generateError ?? exportError ?? pdfExport.error;
 
@@ -181,8 +184,8 @@ export function Step4_Generate({ state, dispatch }: Props) {
             <ClipboardList size={16} /> Korrekturraster exportieren
           </button>
 
-          {/* Schritt 4: Kompetenznachweis (nur Kompetenz-Modus) */}
-          {isKompetenz && (
+          {/* Schritt 4: Kompetenznachweis (nur Kompetenz-Modus mit Katalog-Item) */}
+          {isKompetenz && !isFrei && (
             <button
               className="btn-secondary"
               onClick={() => exportKompetenzraster(state)}
@@ -259,12 +262,35 @@ export function Step4_Generate({ state, dispatch }: Props) {
 
           {!canGenerate && (
             <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.75rem', textAlign: 'center', margin: 0 }}>
-              Quelltexte, Aufgabenblöcke und KI-Modell erforderlich.
+              {isKompetenz
+                ? 'Aufgabenblöcke und KI-Modell erforderlich (kein Quelltext nötig).'
+                : 'Quelltexte, Aufgabenblöcke und KI-Modell erforderlich.'}
             </p>
           )}
 
         </div>
       </div>
+
+      {/* Frei definierte Kompetenz/Thema (kein formaler Nachweis) */}
+      {isFrei && state.generiertesDokument && (
+        <div style={{
+          marginBottom: '1.5rem',
+          padding: '1rem',
+          border: '1px solid var(--color-border)',
+          borderRadius: 'var(--radius)',
+          background: 'var(--color-bg-surface)',
+        }}>
+          <h3 style={{ fontSize: '0.9375rem', marginBottom: '0.5rem', display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+            <BookOpen size={16} /> Frei definierte Kompetenz / Thema
+          </h3>
+          <p style={{ fontSize: '0.8125rem', margin: 0, color: 'var(--color-text-secondary)' }}>
+            „{state.generiertesDokument.meta.freieKompetenz}"
+          </p>
+          <p style={{ fontSize: '0.75rem', margin: '0.5rem 0 0', color: 'var(--color-text-secondary)' }}>
+            Ohne Katalog-Item ist kein formaler Lehrplan-Nachweis verfügbar.
+          </p>
+        </div>
+      )}
 
       {/* Kompetenzabdeckung (nur Kompetenz-Modus nach Generierung) */}
       {coverage && (

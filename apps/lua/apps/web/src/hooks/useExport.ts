@@ -109,6 +109,10 @@ export function useExport() {
       setError('Kompetenznachweis ist nur im Kompetenz-Modus verfügbar.');
       return false;
     }
+    if ((state.generiertesDokument.meta.stoffItemIds?.length ?? 0) === 0) {
+      setError('Kompetenznachweis erfordert ein Katalog-Stoff-Item.');
+      return false;
+    }
     setExporting(true);
     setError(null);
     setWarnung(null);

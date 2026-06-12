@@ -76,6 +76,11 @@ export const MetaSchema = z.object({
   stoffItemIds: z.array(z.string().min(1)).optional(),
   kompetenzNiveau: z.enum(['basis', 'standard', 'erweitert']).optional(),
   bewertungsschema: BewertungsschemaSchema.optional(),
+  // Frei formulierte Kompetenz oder Thema (z. B. "Present Perfect vs Past Simple").
+  // Ermöglicht Generierung ohne Pflicht-Katalog-Item; Lehrplan-Nachweis nur bei Katalog-Auswahl.
+  freieKompetenz: z.string().optional(),
+  // Punkte komplett ausblenden (kein "/ X", keine Punkte-Spalte) — für einfache Übungen.
+  punkteAusblenden: z.boolean().optional(),
 });
 
 export type Meta = z.infer<typeof MetaSchema>;
@@ -303,6 +308,10 @@ export const KategorisierungBlockSchema = BlockBaseSchema.extend({
         anzahlItems: z.number().int().positive(),
       }),
     ).min(2),
+    // Kontextuelle Spaltentitel (vom LLM gefüllt), z. B. "Satz" / "Zeitform".
+    // Renderer fällt auf "Begriff"/"Kategorie" zurück, wenn leer.
+    spaltentitelBegriff: z.string().optional(),
+    spaltentitelKategorie: z.string().optional(),
   }),
   loesung: z.object({
     // nr -> Kategorie(n). Array erlaubt Mehrfachzuordnung ("beide" / "Jack and Diane").
@@ -687,6 +696,7 @@ export const AuftragSchema = z.object({
   stoffItemIds: z.array(z.string().min(1)).optional(),
   kompetenzNiveau: z.enum(['basis', 'standard', 'erweitert']).optional(),
   bewertungsschema: BewertungsschemaSchema.optional(),
+  freieKompetenz: z.string().optional(),
 });
 export type Auftrag = z.infer<typeof AuftragSchema>;
 

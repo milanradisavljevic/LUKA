@@ -70,7 +70,9 @@ Blocktyp-spezifische Regeln:
 
 lueckentext:
 - Schreibe den Text mit nummerierten Luecken als "text" (z.B. "Die (1) spielen eine wichtige Rolle.").
-- Die Loesungswoerter stammen wortwoertlich aus dem Quelltext.
+- Setze NUR die Marker (1),(2),… an die Lueckenstellen — KEINE eigenen Unterstriche/Linien ("____") und KEINE Verbform-Hinweise in Klammern in den Text. Die Schreiblinie ergaenzt die App.
+- Die Loesungswoerter stammen wortwoertlich aus dem Quelltext. (Im Kompetenz-Modus gibt es keinen Quelltext: erfinde stufengerechte, eindeutige Loesungswoerter.)
+- Wenn wortbank=true, sind die Wortbank-Eintraege genau die Loesungswoerter (+ ggf. Distraktoren); vermische den Wortbank-Typ NICHT mit einer Verbform-Aufgabe.
 - Luecke nur sinntragende Fachbegriffe, keine Funktionswoerter (Artikel, Praepositionen).
 - Jede Luecke muss eindeutig loesbar sein: genau ein Wort passt inhaltlich UND grammatisch.
 - Die Loesungen gehoeren in "loesung": { "luecken": [ { "nr": 1, "wort": "..." }, ... ] } — genau so viele Eintraege wie anzahlLuecken.
@@ -125,7 +127,9 @@ wordScramble (Satz in richtige Reihenfolge bringen):
 
 kategorisierung (Aussagen Kategorien zuordnen):
 - config.kategorien = Array aus { "name": "...", "anzahlItems": <Zahl> }.
-- config.items = Array aus { "nr": 1, "text": "Aussage", "optionen": [<alle Kategorienamen>] }.
+- config.items = Array aus { "nr": 1, "text": "Aussage", "optionen": [<alle Kategorienamen>] }. Mindestens 6 items, gleichmaessig auf die Kategorien verteilt (nicht nur 2-3).
+- config.spaltentitelBegriff = KONKRETER Titel der linken Spalte, passend zum Inhalt (z. B. "Satz", "Wort", "Beispiel") statt generisch "Begriff".
+- config.spaltentitelKategorie = KONKRETER Titel der rechten Spalte (z. B. "Zeitform", "Wortart") statt generisch "Kategorie".
 - loesung.zuordnung = { "1": ["Kategoriename"], ... } — Array, weil eine Aussage zu MEHREREN Kategorien gehoeren kann ("beide").
 
 tabelle (Tabelle mit Luecken ausfuellen):
@@ -493,6 +497,8 @@ Du lieferst AUSSCHLIESSLICH ein JSON-Array von Aufgabenbloecken. Kein Layout, ke
 KOMPETENZ-MODUS: Es gibt KEINE Quelltexte. Du ERFINDEST die Inhalte selbst — didaktisch sinnvolle, sprachlich KORREKTE Beispiele (Saetze, Woerter), die GENAU die angegebene(n) Kompetenz(en) trainieren. Die angeforderten Kompetenzen stehen im User-Objekt unter "stoffItems" (Titel, Kategorie, ggf. Deskriptoren). Ein optionales "thema" dient nur als inhaltlicher Rahmen/Kontext der Beispiele und ist NICHT das Lernziel — das Lernziel ist die Kompetenz.
 
 QUALITAET (nicht verhandelbar): Jeder erfundene Satz und jeder Loesungsschluessel MUSS sprachlich korrekt und stufengerecht sein. Erfinde keine fehlerhaften Musterloesungen. Bei Fehlerkorrektur-Aufgaben sind die Fehler ABSICHTLICH in "satz" eingebaut und im "loesung"-Objekt korrekt aufgeloest.
+
+KONKRETE, NACHVOLLZIEHBARE ANWEISUNGEN: Jede "arbeitsanweisung" muss eigenstaendig verstaendlich sein — KEINE Leerformeln wie "forme wie angegeben um" oder "rewrite as instructed". Bei umformung MUSS jede Aufgabe in "anweisung" die konkrete Zieloperation und in "zielstruktur" die Zielform nennen (z. B. "Setze in das Present Perfect."), damit die Schuelerin ohne Zusatzerklaerung weiss, was zu tun ist.
 
 KOGNITIVES NIVEAU (Bloom-Steuerung): Das Feld "schwierigkeit" steuert das kognitive Niveau INNERHALB des angeforderten Aufgabentyps (leicht = Erinnern/Verstehen, mittel = Anwenden/Analysieren, schwer = Bewerten/Erschaffen).
 

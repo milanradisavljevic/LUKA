@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import type { Block, DocumentV1 } from '@lehrunterlagen/schema';
+import type { Block, DocumentV1, StoffItem } from '@lehrunterlagen/schema';
 import type { GenerateInput, BlockRequest, ChatMessage } from '@lehrunterlagen/llm';
 import { buildMessages, buildRepairMessage, parseAndValidate } from '@lehrunterlagen/llm';
 import { invoke } from '@tauri-apps/api/core';
@@ -7,16 +7,36 @@ import type { AppState, AppAction } from '../lib/types';
 import { loadSettings } from '../lib/storage';
 import { getStoffItems } from '../lib/stoffkatalog';
 
+/** Baut die Stoff-Items für den Generator: Katalog-Items + optional ein synthetisches Item für Freitext. */
+function buildStoffItems(meta: AppState['meta']): StoffItem[] | undefined {
+  if (meta.modus !== 'kompetenz') return undefined;
+  const items = getStoffItems(meta.stoffItemIds ?? []);
+  const freitext = meta.freieKompetenz?.trim();
+  if (freitext) {
+    items.push({
+      id: 'frei-kompetenz',
+      rahmenwerk: meta.rahmenwerk ?? 'at-lehrplan',
+      titel: freitext,
+      fach: meta.fach,
+      stufe: meta.stufe,
+      kategorie: 'grammatik',
+      deskriptorIds: [],
+      defaultAufgabentypen: [],
+    });
+  }
+  return items.length > 0 ? items : undefined;
+}
+
 // Phasen der Generierung — die UI (Kimi) zeigt daraus eine Fortschrittsanzeige.
 export type GenerateStage = 'idle' | 'sende' | 'validiere' | 'korrigiere' | 'fertig' | 'fehler';
 
 // Ersatz-Anbieter nur bei Transport-/API-Fehlern (nicht bei ungültigem Output).
-// Bewusst nur westliche, zuverlässige Anbieter — kein stiller Wechsel zu kimi/qwen (Datenschutz).
+// Standardmäßig DeepSeek bevorzugt (User-Setting), Anthropic als Fallback.
 const FALLBACK_MODEL: Record<string, string> = {
   anthropic: 'claude-haiku-4-5-20251001',
   deepseek: 'deepseek-chat',
 };
-const FALLBACK_ORDER = ['anthropic', 'deepseek'];
+const FALLBACK_ORDER = ['deepseek', 'anthropic'];
 
 const PROVIDER_MAP = {
   claude: 'anthropic',
@@ -212,8 +232,10 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
 
     const modus = state.meta.modus ?? 'text';
     if (modus === 'kompetenz') {
-      if ((state.meta.stoffItemIds?.length ?? 0) === 0) {
-        return 'Bitte mindestens eine Kompetenz wählen.';
+      const hatKatalog = (state.meta.stoffItemIds?.length ?? 0) > 0;
+      const hatFreitext = !!state.meta.freieKompetenz?.trim();
+      if (!hatKatalog && !hatFreitext) {
+        return 'Bitte eine Kompetenz aus dem Katalog wählen oder eine Kompetenz/Thema frei eingeben.';
       }
       return null;
     }
@@ -256,13 +278,13 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
         meta: state.meta,
         quelltexte: modus === 'kompetenz' ? [] : state.quelltexte,
         bloecke: state.bloecke.map(blockToRequest),
-        stoffItems: modus === 'kompetenz' ? getStoffItems(state.meta.stoffItemIds ?? []) : undefined,
+        stoffItems: buildStoffItems(state.meta),
       };
       const judgeCfg = settings.judgeEnabled !== false ? {
-        provider: 'anthropic',
-        model: 'claude-haiku-4-5-20251001',
+        provider: 'deepseek',
+        model: 'deepseek-chat',
         enabled: true,
-      } : { provider: 'anthropic', model: 'claude-haiku-4-5-20251001', enabled: false as const };
+      } : { provider: 'deepseek', model: 'deepseek-chat', enabled: false as const };
 
       // Anbieter-Kette: gewählter Anbieter, dann bei TRANSPORTfehler ein westlicher Ersatz.
       const chain: Array<{ providerId: string; apiModel: string }> = [{ providerId, apiModel }];
@@ -329,7 +351,7 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
         meta: doc.meta,
         quelltexte: modus === 'kompetenz' ? [] : doc.quelltexte,
         bloecke: [blockToRequest(ziel)],
-        stoffItems: modus === 'kompetenz' ? getStoffItems(doc.meta.stoffItemIds ?? []) : undefined,
+        stoffItems: buildStoffItems(doc.meta),
       };
       const ergebnis = await runAttempts(providerId, apiModel, input, { ...state, meta: doc.meta, quelltexte: modus === 'kompetenz' ? [] : doc.quelltexte }, hinweis);
       const neu = ergebnis.bloecke[0];

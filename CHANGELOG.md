@@ -7,6 +7,30 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Kompetenz-Modus: Freitext-Kompetenz + „ohne Quelltext"-Tür
+- `packages/schema/src/index.ts`: Neues optionales Feld `freieKompetenz` in `MetaSchema` und
+  `AuftragSchema` — additiv, kein Breaking Change.
+- `apps/web/src/views/KompetenzView.tsx`: Prominentes Freitextfeld für Kompetenz oder Thema;
+  Katalog-Dropdown ist jetzt optional. Generierung möglich mit Freitext, Katalog-Item oder beiden.
+- `apps/web/src/hooks/useGenerate.ts`: Guard akzeptiert `stoffItemIds` ODER `freieKompetenz`;
+  bei Freitext wird ein synthetisches `StoffItem` erzeugt, das Prompt + Judge kontextualisiert.
+  Judge-Anbieter auf DeepSeek (`deepseek-chat`) umgestellt; Fallback-Reihenfolge DeepSeek zuerst.
+- `apps/web/src/components/Step4_Generate.tsx` + `apps/web/src/hooks/useExport.ts`: Bei rein
+  freier Kompetenz (kein Katalog-Item) wird kein Coverage-Panel und kein
+  „Kompetenznachweis exportieren" angeboten — stattdessen Hinweis „frei definiert, kein
+  formaler Lehrplan-Nachweis".
+- `apps/web/src/components/Step4_Generate.tsx`: `canGenerate` ist jetzt modus-bewusst:
+  Im Kompetenz-Modus wird kein Quelltext für den „Inhalt generieren"-Button verlangt;
+  Hinweistext passt sich entsprechend an.
+- `apps/web/src/components/Step0_Absicht.tsx`: Link-Text angepasst auf „Übung ohne Quelltext".
+
+### Added — Kompetenz-Modus: Stoffkatalog-Erweiterung Unterstufe Englisch
+- `apps/web/src/lib/stoffkatalog.ts`: Neue Deskriptoren + Stoff-Items für Unterstufe Englisch:
+  `Present Perfect Simple`, `Past Simple vs. Present Perfect`, `Questions, Negation, Short Answers`.
+  Deckt Nataschas erste Anfrage ab; Integritätstest (`coverage.test.ts`) bleibt grün.
+- Verifikation: `pnpm -r build` + `pnpm -r test` grün (Schema 118, LLM 123, Renderer 31,
+  Input 17, QA 96, Web 52).
+
 ### Added — Kompetenz-Modus: Phase 4 (Coverage-Export + UI + Stoffkatalog-Erweiterung)
 - `apps/web/src/hooks/useExport.ts`: `exportKompetenzraster(state)` berechnet über
   `lib/coverage.computeCoverage` die abgedeckten/fehlenden Deskriptoren und exportiert
