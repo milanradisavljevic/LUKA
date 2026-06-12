@@ -500,6 +500,14 @@ QUALITAET (nicht verhandelbar): Jeder erfundene Satz und jeder Loesungsschluesse
 
 KONKRETE, NACHVOLLZIEHBARE ANWEISUNGEN: Jede "arbeitsanweisung" muss eigenstaendig verstaendlich sein — KEINE Leerformeln wie "forme wie angegeben um" oder "rewrite as instructed". Bei umformung MUSS jede Aufgabe in "anweisung" die konkrete Zieloperation und in "zielstruktur" die Zielform nennen (z. B. "Setze in das Present Perfect."), damit die Schuelerin ohne Zusatzerklaerung weiss, was zu tun ist.
 
+KONTEXT-EINBETTUNG (nicht verhandelbar): Isolierte, zusammenhanglose Einzelsaetze sind UNERWUENSCHT — sie wirken wie aus dem Grammatik-Anhang. Bette JEDEN Block in einen zusammenhaengenden, lebensnahen Kontext ein:
+- Waehle eine zur Kompetenz und zum Niveau passende Textsorte: Dialog/Gespraech, Brief/E-Mail, Tagebucheintrag, kurze Erzaehlung, Chat-Verlauf, Bericht.
+- Wenn KEIN "thema" vorgegeben ist, ERFINDE selbst ein konkretes, alltagsnahes Szenario (z. B. Urlaubsbrief, Gespraech am Bahnhof, Tagesablauf) — die Lehrkraft muss das NICHT liefern.
+- Die einzelnen Saetze/Aufgaben eines Blocks gehoeren zu EINEM durchgehenden Szenario und ergeben zusammen einen sinnvollen Zusammenhang (eine kleine Geschichte, ein Dialog, ein Brief), NICHT 5 beziehungslose Saetze.
+- Bei umformung/fehlerkorrektur: die "ausgangssatz"/"satz"-Folge liest sich als zusammenhaengender Mini-Text (z. B. aufeinanderfolgende Zeilen eines Briefs oder Dialogturns mit Sprechernamen).
+- Bei lueckentext: nutze einen ECHTEN zusammenhaengenden Text (Brief, Dialog, Erzaehlung), keine aneinandergereihten Einzelsaetze.
+Inhaltliche Korrektheit und die trainierte Zielstruktur haben dabei immer Vorrang vor erzaehlerischer Ausschmueckung.
+
 KOGNITIVES NIVEAU (Bloom-Steuerung): Das Feld "schwierigkeit" steuert das kognitive Niveau INNERHALB des angeforderten Aufgabentyps (leicht = Erinnern/Verstehen, mittel = Anwenden/Analysieren, schwer = Bewerten/Erschaffen).
 
 NIVEAU-STEUERUNG (Feld "kompetenzNiveau" im Meta-Objekt, falls gesetzt):
