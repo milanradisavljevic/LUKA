@@ -3,6 +3,7 @@ import type { AppState } from '../lib/types';
 
 import { getBlockLabel } from '../lib/blockDefaults';
 import { appendHistoryEntry } from '../lib/storage';
+import { computeCoverage } from '../lib/coverage';
 import { RENDER_TEMPLATES } from '@lehrunterlagen/renderer';
 
 export function useExport() {
@@ -99,7 +100,74 @@ export function useExport() {
     }
   }, []);
 
-  return { exportDocx, exportKorrekturraster, exporting, error, warnung, lastSavedPaths };
+  const exportKompetenzraster = useCallback(async (state: AppState) => {
+    if (!state.generiertesDokument) {
+      setError('Bitte zuerst Inhalt generieren.');
+      return false;
+    }
+    if (state.generiertesDokument.meta.modus !== 'kompetenz') {
+      setError('Kompetenznachweis ist nur im Kompetenz-Modus verfügbar.');
+      return false;
+    }
+    setExporting(true);
+    setError(null);
+    setWarnung(null);
+    setLastSavedPaths(null);
+
+    try {
+      const { renderCoverageToBlob } = await import('@lehrunterlagen/renderer');
+      const template = RENDER_TEMPLATES[state.renderTemplate];
+      const { abgedeckt, fehlend } = computeCoverage(state.generiertesDokument.meta);
+
+      const coverageDeskriptoren = (list: typeof abgedeckt) =>
+        list.map((d) => ({ bereich: d.bereich, code: d.code || undefined, text: d.text }));
+
+      const blob = await renderCoverageToBlob(
+        {
+          fach: state.generiertesDokument.meta.fach,
+          stufe: state.generiertesDokument.meta.stufe,
+          thema: state.generiertesDokument.meta.thema,
+          datum: state.generiertesDokument.meta.datum,
+          klasse: state.generiertesDokument.meta.klasse,
+        },
+        coverageDeskriptoren(abgedeckt),
+        coverageDeskriptoren(fehlend),
+        template,
+      );
+
+      const thema = sanitizeFilename(state.generiertesDokument.meta.thema).slice(0, 40);
+      const datum = state.generiertesDokument.meta.datum;
+      const fileName = `${datum}_${thema}_Kompetenznachweis.docx`;
+
+      downloadBlob(blob, fileName);
+      setLastSavedPaths([fileName]);
+
+      const dok = state.generiertesDokument;
+      appendHistoryEntry({
+        id: crypto.randomUUID(),
+        timestamp: new Date().toISOString(),
+        thema: dok.meta.thema,
+        fach: dok.meta.fach,
+        stufe: dok.meta.stufe,
+        llmProvider: state.llmProvider,
+        modelName: state.modelName,
+        blockCount: dok.bloecke.length,
+        totalPunkte: dok.bloecke.reduce((sum, b) => sum + (b.punkte ?? 0), 0),
+        exportedFiles: [fileName],
+        savedDocumentId: state.aktuelleDokumentId,
+      });
+
+      return true;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unbekannter Fehler beim Kompetenznachweis-Export';
+      setError(msg);
+      return false;
+    } finally {
+      setExporting(false);
+    }
+  }, []);
+
+  return { exportDocx, exportKorrekturraster, exportKompetenzraster, exporting, error, warnung, lastSavedPaths };
 }
 
 function downloadBlob(blob: Blob, filename: string) {

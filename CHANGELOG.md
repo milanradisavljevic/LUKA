@@ -7,6 +7,20 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Kompetenz-Modus: Phase 4 (Coverage-Export + UI + Stoffkatalog-Erweiterung)
+- `apps/web/src/hooks/useExport.ts`: `exportKompetenzraster(state)` berechnet über
+  `lib/coverage.computeCoverage` die abgedeckten/fehlenden Deskriptoren und exportiert
+  sie als `<datum>_<thema>_Kompetenznachweis.docx` via `renderer.renderCoverageToBlob`.
+- `apps/web/src/components/Step4_Generate.tsx`: Coverage-Panel (abgedeckt grün /
+  fehlend grau) + Button „Kompetenznachweis exportieren", strikt nur wenn
+  `meta.modus === 'kompetenz'`.
+- `apps/web/src/lib/stoffkatalog.ts`: Katalog erweitert auf Englisch Unterstufe
+  (6 Items) sowie Deutsch Unterstufe (5 Items) und Oberstufe (5 Items). Alle
+  Stoff-Items verweisen referentiell korrekt auf Deskriptoren desselben Fachs/Stufe;
+  Coverage-Integritätstest bleibt grün.
+- Verifikation: `pnpm -r build` + `pnpm -r test` grün (Web 52 Tests inkl.
+  `coverage.test.ts`).
+
 ### Added — Kompetenz-Modus: Phase 2b (grammatik-bewusster Judge)
 - `packages/llm/src/judge.ts`: `runKompetenzJudge` + `buildKompetenzJudgePrompt` —
   LLM-as-Judge für erfundene Übungsinhalte (umformung/fehlerkorrektur) ohne Quelltext:
