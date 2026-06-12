@@ -117,6 +117,9 @@ const BlockBaseSchema = z.object({
   // Welche meta.lernziele dieser Block abdeckt (vom LLM getaggt, exakte Strings
   // aus meta.lernziele). Optional + abwärtskompatibel; speist die Coverage-Ansicht.
   lernziele: z.array(z.string().min(1)).optional(),
+  // Vorgemachtes Beispiel-Item ("0. ..."), das die Aufgabenstellung demonstriert.
+  // Optional, primär im Kompetenz-Modus vom LLM geliefert.
+  beispiel: z.string().optional(),
 });
 
 // ---------------------------------------------------------------------------
@@ -547,6 +550,28 @@ export const BlockSchema = z.discriminatedUnion('typ', [
 export type Block = z.infer<typeof BlockSchema>;
 
 // ---------------------------------------------------------------------------
+// Didaktischer Rahmen (optional, primär Kompetenz-Modus)
+// ---------------------------------------------------------------------------
+// Macht aus generierten Blöcken ein komponiertes Arbeitsblatt: sprechender Titel,
+// Einleitung, Merkkasten (Regel + Signalwörter), Transfer-Schlussaufgabe.
+
+export const DidaktikSchema = z.object({
+  // Sprechender Arbeitsblatt-Titel (z. B. "Greetings from London!").
+  arbeitsblattTitel: z.string().optional(),
+  // 1-2 schülergerichtete Sätze, was in diesem Blatt geübt wird.
+  einleitung: z.string().optional(),
+  // Gerahmte Grammatik-/Merkbox: Regel + Signalwörter als Stichpunkte.
+  merkkasten: z.object({
+    titel: z.string(),
+    punkte: z.array(z.string().min(1)).min(1),
+  }).optional(),
+  // Kurze freie Produktionsaufgabe zum Abschluss (Transfer).
+  transferaufgabe: z.string().optional(),
+});
+
+export type Didaktik = z.infer<typeof DidaktikSchema>;
+
+// ---------------------------------------------------------------------------
 // Full Document
 // ---------------------------------------------------------------------------
 
@@ -556,6 +581,7 @@ export const DocumentSchema = z
     meta: MetaSchema,
     quelltexte: z.array(QuellTextSchema).default([]),
     bloecke: z.array(BlockSchema).min(1),
+    didaktik: DidaktikSchema.optional(),
   })
   .refine(
     (d) => d.meta.modus === 'kompetenz' || d.quelltexte.length >= 1,

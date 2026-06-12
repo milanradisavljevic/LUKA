@@ -82,9 +82,14 @@ export async function parseAndValidate(
     return { ok: false, fehler: 'Ungueltiges Format: weder bloecke-Array noch Objekt mit bloecke erhalten.' };
   }
 
+  // Optionaler didaktischer Rahmen (Kompetenz-Modus): liefert das Modell zusaetzlich
+  // zu bloecke ein "didaktik"-Objekt (Titel, Einleitung, Merkkasten, Transferaufgabe),
+  // wird es uebernommen — meta bleibt unveraendert Hoheit des Aufrufers.
+  const didaktik = isObject(parsed) && isObject(parsed.didaktik) ? parsed.didaktik : undefined;
+
   let docCandidate: unknown;
   if (meta && quelltexte) {
-    docCandidate = { schemaVersion: '0.1.0', meta, quelltexte, bloecke };
+    docCandidate = { schemaVersion: '0.1.0', meta, quelltexte, bloecke, ...(didaktik ? { didaktik } : {}) };
   } else if (isObject(parsed)) {
     // Kein meta/quelltexte vom Aufrufer (z.B. Tests): vorhandenes Dokument nutzen,
     // aber schemaVersion erzwingen, falls das Modell sie ausgelassen hat.
