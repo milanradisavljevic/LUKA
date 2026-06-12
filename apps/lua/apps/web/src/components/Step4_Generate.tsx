@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   Loader2, Sparkles, FileDown, ClipboardList, FileType, CheckCircle2,
-  AlertTriangle, Timer, Bot, X, Palette,
+  AlertTriangle, Timer, Bot, X, Palette, BookOpen, Target,
 } from 'lucide-react';
 import type { AppState, AppAction } from '../lib/types';
 import { getBlockLabel } from '../lib/blockDefaults';
@@ -9,6 +9,7 @@ import { PreviewTwoColumn } from './PreviewTwoColumn';
 import { useGenerate } from '../hooks/useGenerate';
 import { useExport } from '../hooks/useExport';
 import { usePdfExport } from '../hooks/usePdfExport';
+import { computeCoverage } from '../lib/coverage';
 import { RENDER_TEMPLATES } from '@lehrunterlagen/renderer';
 
 
@@ -23,8 +24,12 @@ interface Props {
 
 export function Step4_Generate({ state, dispatch }: Props) {
   const { generate, cancel, generating, stage, elapsedMs, aktiverProvider, error: generateError } = useGenerate(dispatch);
-  const { exportDocx, exportKorrekturraster, exporting, error: exportError, warnung: exportWarnung, lastSavedPaths } = useExport();
+  const { exportDocx, exportKorrekturraster, exportKompetenzraster, exporting, error: exportError, warnung: exportWarnung, lastSavedPaths } = useExport();
   const pdfExport = usePdfExport();
+  const isKompetenz = state.meta.modus === 'kompetenz';
+  const coverage = isKompetenz && state.generiertesDokument
+    ? computeCoverage(state.generiertesDokument.meta)
+    : null;
   const [showPdfHint, setShowPdfHint] = useState(false);
 
   // Fortschritts-Anzeige je Stage
@@ -176,6 +181,20 @@ export function Step4_Generate({ state, dispatch }: Props) {
             <ClipboardList size={16} /> Korrekturraster exportieren
           </button>
 
+          {/* Schritt 4: Kompetenznachweis (nur Kompetenz-Modus) */}
+          {isKompetenz && (
+            <button
+              className="btn-secondary"
+              onClick={() => exportKompetenzraster(state)}
+              disabled={!canExport || exporting || generating}
+              style={{ padding: '0.65rem 1.25rem', fontSize: '0.9375rem',
+                opacity: canExport ? 1 : 0.45, borderStyle: 'dashed',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+            >
+              <Target size={16} /> Kompetenznachweis exportieren
+            </button>
+          )}
+
           {/* PDF-Export */}
           <button
             className="btn-secondary"
@@ -246,6 +265,53 @@ export function Step4_Generate({ state, dispatch }: Props) {
 
         </div>
       </div>
+
+      {/* Kompetenzabdeckung (nur Kompetenz-Modus nach Generierung) */}
+      {coverage && (
+        <div style={{
+          marginBottom: '1.5rem',
+          padding: '1rem',
+          border: '1px solid var(--color-border)',
+          borderRadius: 'var(--radius)',
+          background: 'var(--color-bg-surface)',
+        }}>
+          <h3 style={{ fontSize: '0.9375rem', marginBottom: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+            <BookOpen size={16} /> Kompetenzabdeckung
+          </h3>
+
+          <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.75rem', fontSize: '0.8125rem' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: 'var(--color-success)' }}>
+              <CheckCircle2 size={14} /> {coverage.abgedeckt.length} abgedeckt
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: 'var(--color-text-secondary)' }}>
+              <X size={14} /> {coverage.fehlend.length} fehlend
+            </span>
+          </div>
+
+          <div style={{ maxHeight: 240, overflow: 'auto', fontSize: '0.75rem' }}>
+            {coverage.items.map((item) => (
+              <div key={item.id} style={{ marginBottom: '0.75rem' }}>
+                <strong style={{ fontSize: '0.8125rem' }}>{item.titel}</strong>
+                <ul style={{ margin: '0.25rem 0 0 1.25rem', padding: 0, color: 'var(--color-success)' }}>
+                  {item.deskriptoren.map((d) => (
+                    <li key={d.id}>{d.code ? `${d.code} — ` : ''}{d.text}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+            {coverage.fehlend.length > 0 && (
+              <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--color-border)' }}>
+                <strong style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>Noch nicht abgedeckte Deskriptoren</strong>
+                <ul style={{ margin: '0.25rem 0 0 1.25rem', padding: 0, color: 'var(--color-text-secondary)' }}>
+                  {coverage.fehlend.map((d) => (
+                    <li key={d.id}>{d.code ? `${d.code} — ` : ''}{d.text}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Wartebildschirm */}
       {generating && (
