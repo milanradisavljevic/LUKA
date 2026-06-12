@@ -426,8 +426,11 @@ export async function runQualityChecks(
         fach: meta?.fach,
       };
       const judgeIssues = await runKompetenzJudge(doc, ctx, complete);
-      issues.push(...judgeIssues);
+      // Judge ist ADVISORY: seine Befunde werden als WARNUNGEN gefuehrt und blockieren die
+      // Generierung NIE (ein Judge-Fehlalarm darf keine Uebung verwerfen). Der "harte"-Anteil
+      // fliesst nur in den informativen Score; die Lehrkraft sieht die Hinweise in der Vorschau.
       const harte = judgeIssues.filter((i) => i.severity === 'error').length;
+      issues.push(...judgeIssues.map((i) => ({ ...i, severity: 'warning' as const })));
       judge = {
         score: harte === 0 ? 1 : Math.max(0, 1 - harte * 0.25),
         issues: judgeIssues.map((i) => i.message),
