@@ -43,6 +43,7 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
   const [freieKompetenz, setFreieKompetenz] = useState('');
   const [thema, setThema] = useState('');
   const [niveau, setNiveau] = useState<'basis' | 'standard' | 'erweitert'>('standard');
+  const [punkteVergeben, setPunkteVergeben] = useState(true);
   const [gewuenschteTypen, setGewuenschteTypen] = useState<BlockTyp[]>([]);
   const [fehler, setFehler] = useState<string | null>(null);
 
@@ -108,6 +109,7 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
       stoffItemIds: hatKatalog ? [stoffItem.id] : [],
       freieKompetenz: hatFreitext ? freitext : undefined,
       kompetenzNiveau: niveau,
+      punkteAusblenden: !punkteVergeben,
       datum: heute,
     };
 
@@ -125,6 +127,7 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
       stoffItemIds: hatKatalog ? [stoffItem.id] : [],
       freieKompetenz: hatFreitext ? freitext : undefined,
       kompetenzNiveau: niveau,
+      punkteAusblenden: !punkteVergeben,
       gewuenschteAufgabenarten: gewuenschteTypen,
     };
 
@@ -337,6 +340,50 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
             </button>
           ))}
         </div>
+      </section>
+
+      {/* Punkte */}
+      <section style={{ marginBottom: '1.25rem' }}>
+        <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.875rem' }}>Bewertung</label>
+        <button
+          onClick={() => setPunkteVergeben((v) => !v)}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0.5rem 0.875rem',
+            borderRadius: 'var(--radius)',
+            border: '1px solid var(--color-border)',
+            background: 'var(--color-bg-surface)',
+            cursor: 'pointer',
+            fontSize: '0.875rem',
+          }}
+          aria-pressed={punkteVergeben}
+        >
+          <span style={{
+            width: '2rem',
+            height: '1.125rem',
+            borderRadius: '999px',
+            background: punkteVergeben ? 'var(--color-accent)' : 'var(--color-border)',
+            position: 'relative',
+            transition: 'background 0.15s ease',
+          }}>
+            <span style={{
+              position: 'absolute',
+              top: 2,
+              left: punkteVergeben ? 'calc(100% - 1rem - 2px)' : 2,
+              width: '0.875rem',
+              height: '0.875rem',
+              borderRadius: '50%',
+              background: 'white',
+              transition: 'left 0.15s ease',
+            }} />
+          </span>
+          {punkteVergeben ? 'Punkte vergeben' : 'Ohne Punkte'}
+        </button>
+        <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', margin: '0.375rem 0 0' }}>
+          Aus = einfache Übung ohne Punkteangaben, wie aus dem Schulbuch.
+        </p>
       </section>
 
       {/* Aufgabentypen */}

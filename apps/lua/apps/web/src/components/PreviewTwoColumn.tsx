@@ -118,6 +118,66 @@ export function PreviewTwoColumn({ state, dispatch }: Props) {
     </>
   );
 
+  const didaktik = doc?.didaktik;
+  const sprechenderTitel = didaktik?.arbeitsblattTitel?.trim();
+
+  const renderDidaktischerRahmen = (mode: 'schueler' | 'loesung') => (
+    <>
+      <h2 style={{ fontSize: '14pt', fontWeight: 700, marginBottom: '0.25rem', color: PAPER_TEXT }}>
+        {sprechenderTitel ? `${sprechenderTitel}${mode === 'loesung' ? ' – Lösungsfassung' : ''}` : `${meta.thema || '(Thema)'}${mode === 'loesung' ? ' – Lösungsfassung' : ''}`}
+      </h2>
+      <p style={{ fontSize: '9pt', color: PAPER_SECONDARY, marginBottom: didaktik?.einleitung?.trim() ? '0.5rem' : '0.75rem' }}>
+        {sprechenderTitel && <span>{meta.fach === 'deutsch' ? 'Deutsch' : 'Englisch'} · {meta.thema || '(Thema)'} · </span>}
+        {meta.stufe === 'oberstufe' ? 'Oberstufe' : 'Unterstufe'}
+        {meta.schwierigkeit ? ` · ${meta.schwierigkeit.charAt(0).toUpperCase() + meta.schwierigkeit.slice(1)}` : ''}
+      </p>
+      {didaktik?.einleitung?.trim() && (
+        <p style={{ fontSize: '10pt', fontStyle: 'italic', color: PAPER_TEXT, marginBottom: '0.75rem', lineHeight: 1.5 }}>
+          {didaktik.einleitung.trim()}
+        </p>
+      )}
+    </>
+  );
+
+  const renderMerkkasten = () => {
+    if (!didaktik?.merkkasten || didaktik.merkkasten.punkte.length === 0) return null;
+    return (
+      <div style={{
+        marginBottom: '1rem',
+        border: `1px solid ${PAPER_BORDER}`,
+        background: '#f2f2f2',
+        padding: '0.6rem 0.8rem',
+        borderRadius: 2,
+      }}>
+        <p style={{ fontWeight: 700, fontSize: '10pt', margin: '0 0 0.4rem', color: PAPER_TEXT }}>
+          {didaktik.merkkasten.titel}
+        </p>
+        <ul style={{ margin: 0, paddingLeft: '1.1rem', fontSize: '10pt', color: PAPER_TEXT, lineHeight: 1.5 }}>
+          {didaktik.merkkasten.punkte.map((p, i) => (
+            <li key={i}>{p}</li>
+          ))}
+        </ul>
+      </div>
+    );
+  };
+
+  const renderTransferaufgabe = () => {
+    if (!didaktik?.transferaufgabe?.trim()) return null;
+    return (
+      <div style={{ marginTop: '1.5rem', paddingTop: '0.75rem', borderTop: `1px solid ${PAPER_BORDER}` }}>
+        <h3 style={{ fontSize: '12pt', fontWeight: 700, marginBottom: '0.5rem', color: PAPER_TEXT }}>
+          Zum Schluss – jetzt du!
+        </h3>
+        <p style={{ fontSize: '10pt', color: PAPER_TEXT, marginBottom: '0.75rem', lineHeight: 1.5 }}>
+          {didaktik.transferaufgabe.trim()}
+        </p>
+        <div style={{ borderBottom: `1px solid ${PAPER_BORDER}`, height: '1.5rem', marginBottom: '0.4rem' }} />
+        <div style={{ borderBottom: `1px solid ${PAPER_BORDER}`, height: '1.5rem', marginBottom: '0.4rem' }} />
+        <div style={{ borderBottom: `1px solid ${PAPER_BORDER}`, height: '1.5rem' }} />
+      </div>
+    );
+  };
+
   const renderQuelltexte = () =>
     quelltexte.length > 0 ? (
       <div style={{ marginBottom: '1.5rem' }}>
@@ -163,14 +223,7 @@ export function PreviewTwoColumn({ state, dispatch }: Props) {
   // ── Schülerfassung ──
   const renderSchuelerFassung = () => (
     <div style={{ fontFamily: 'var(--font)', fontSize: '11pt', color: PAPER_TEXT }}>
-      <h2 style={{ fontSize: '14pt', fontWeight: 700, marginBottom: '0.5rem', color: PAPER_TEXT }}>
-        {meta.thema || '(Thema)'}
-      </h2>
-      <p style={{ fontSize: '9pt', color: PAPER_SECONDARY, marginBottom: '0.5rem' }}>
-        {meta.fach === 'deutsch' ? 'Deutsch' : 'Englisch'} ·{' '}
-        {meta.stufe === 'oberstufe' ? 'Oberstufe' : 'Unterstufe'}
-        {meta.schwierigkeit ? ` · ${meta.schwierigkeit.charAt(0).toUpperCase() + meta.schwierigkeit.slice(1)}` : ''}
-      </p>
+      {renderDidaktischerRahmen('schueler')}
       {meta.lernziele && meta.lernziele.length > 0 && (
         <div style={{ marginBottom: '1rem', display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
           {meta.lernziele.map((lz) => (
@@ -189,6 +242,7 @@ export function PreviewTwoColumn({ state, dispatch }: Props) {
       )}
       {renderKopf()}
       {renderQuelltexte()}
+      {renderMerkkasten()}
       {bloecke.map((block) => (
         <div key={block.id}
           style={{ marginBottom: '1.25rem', paddingBottom: '1rem', borderBottom: '1px solid #cccccc', cursor: 'pointer' }}
@@ -199,6 +253,11 @@ export function PreviewTwoColumn({ state, dispatch }: Props) {
             {block.quelleId && <span>Quelle: {resolveQuelleTitel(block.quelleId)}</span>}
             {editingId === block.id && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: '#6a1b9a' }}><Pencil size={12} /> Bearbeitung</span>}
           </div>
+          {block.beispiel?.trim() && (
+            <p style={{ fontSize: '10pt', fontStyle: 'italic', color: PAPER_SECONDARY, margin: '0 0 0.5rem', paddingLeft: '0.5rem', borderLeft: '2px solid #cccccc' }}>
+              <strong>Beispiel:</strong> {block.beispiel.trim()}
+            </p>
+          )}
           <BlockPreview block={block} showSolution={false}
             onUpdate={editingId === block.id ? handleUpdate : undefined} />
           {/* Block-Regenerieren — nur bei generiertem Dokument */}
@@ -272,15 +331,14 @@ export function PreviewTwoColumn({ state, dispatch }: Props) {
           )}
         </div>
       ))}
+      {renderTransferaufgabe()}
     </div>
   );
 
   // ── Lösungsfassung ──
   const renderLoesungsFassung = () => (
     <div style={{ fontFamily: 'var(--font)', fontSize: '11pt', color: PAPER_TEXT }}>
-      <h2 style={{ fontSize: '14pt', fontWeight: 700, marginBottom: '0.5rem', color: PAPER_TEXT }}>
-        {meta.thema || '(Thema)'}
-      </h2>
+      {renderDidaktischerRahmen('loesung')}
       <p style={{ fontSize: '9pt', color: PAPER_SECONDARY, marginBottom: '0.5rem' }}>
         {meta.fach === 'deutsch' ? 'Deutsch' : 'Englisch'} ·{' '}
         {meta.stufe === 'oberstufe' ? 'Oberstufe' : 'Unterstufe'} · Lösung
@@ -304,6 +362,7 @@ export function PreviewTwoColumn({ state, dispatch }: Props) {
       )}
       {renderKopf()}
       {renderQuelltexte()}
+      {renderMerkkasten()}
       {bloecke.map((block) => (
         <div key={block.id}
           style={{ marginBottom: '1.25rem', paddingBottom: '1rem', borderBottom: '1px solid #cccccc' }}>
@@ -311,9 +370,15 @@ export function PreviewTwoColumn({ state, dispatch }: Props) {
             {gesamtPunkte > 0 && <span>{block.punkte} Punkte</span>}
             {block.quelleId && <span>Quelle: {resolveQuelleTitel(block.quelleId)}</span>}
           </div>
+          {block.beispiel?.trim() && (
+            <p style={{ fontSize: '10pt', fontStyle: 'italic', color: PAPER_SECONDARY, margin: '0 0 0.5rem', paddingLeft: '0.5rem', borderLeft: '2px solid #cccccc' }}>
+              <strong>Beispiel:</strong> {block.beispiel.trim()}
+            </p>
+          )}
           <BlockPreview block={block} showSolution={true} />
         </div>
       ))}
+      {renderTransferaufgabe()}
     </div>
   );
 

@@ -22,6 +22,12 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 - `apps/web/src/components/Step4_Generate.tsx`: `canGenerate` ist jetzt modus-bewusst:
   Im Kompetenz-Modus wird kein Quelltext für den „Inhalt generieren"-Button verlangt;
   Hinweistext passt sich entsprechend an.
+- `apps/web/src/views/KompetenzView.tsx`: Neuer Schalter „Punkte vergeben" (Default an).
+  Aus → `meta.punkteAusblenden = true` für einfache Übungen ohne Punkteangaben.
+- `apps/web/src/components/PreviewTwoColumn.tsx`: A4-Vorschau spiegelt den didaktischen
+  Rahmen 1:1 — sprechender Titel als H1, Fach/Thema in Unterzeile, Einleitung kursiv,
+  Merkkasten als gerahmte Box, `block.beispiel` pro Block, Transferaufgabe „Zum Schluss –
+  jetzt du!" mit Schreiblinien am Ende.
 - `apps/web/src/components/Step0_Absicht.tsx`: Link-Text angepasst auf „Übung ohne Quelltext".
 
 ### Added — Kompetenz-Modus: Stoffkatalog-Erweiterung Unterstufe Englisch
