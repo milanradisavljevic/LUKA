@@ -174,3 +174,24 @@ export function getDeskriptoren(ids: string[]): Deskriptor[] {
 export function getAllDeskriptoren(): Deskriptor[] {
   return [...DESKRIPTOREN];
 }
+
+export function getAllStoffItems(): StoffItem[] {
+  return [...STOFF_ITEMS];
+}
+
+/**
+ * Alle Deskriptoren ("Universum") für eine Fach/Stufe(/Rahmenwerk)-Kombination.
+ * Basis für die Coverage-Berechnung: fehlend = Universum − abgedeckt.
+ */
+export function listDeskriptoren(
+  fach: Deskriptor['fach'],
+  stufe: Deskriptor['stufe'],
+  rahmenwerk?: Deskriptor['rahmenwerk'],
+): Deskriptor[] {
+  return DESKRIPTOREN.filter(
+    (d) =>
+      d.fach === fach &&
+      d.stufe === stufe &&
+      (rahmenwerk === undefined || d.rahmenwerk === rahmenwerk),
+  );
+}

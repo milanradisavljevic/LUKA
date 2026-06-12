@@ -114,6 +114,158 @@ export async function renderDocumentToBlobs(doc: DocumentV1, template: RenderTem
 }
 
 // ---------------------------------------------------------------------------
+// Kompetenznachweis (Coverage) — welche Lehrplan-Deskriptoren deckt die Uebung ab?
+// Renderer bleibt datenquellen-agnostisch: bekommt fertige Deskriptor-Arrays
+// (kein Import des Web-Stoffkatalogs).
+// ---------------------------------------------------------------------------
+
+export interface CoverageDeskriptor {
+  bereich: string;
+  code?: string;
+  text: string;
+}
+
+export interface CoverageMeta {
+  fach: string;
+  stufe: string;
+  thema: string;
+  datum: string;
+  klasse?: string;
+}
+
+function buildCoverageDoc(
+  meta: CoverageMeta,
+  abgedeckt: CoverageDeskriptor[],
+  fehlend: CoverageDeskriptor[],
+  template: RenderTemplate,
+): Document {
+  const children: (Paragraph | Table)[] = [
+    ...buildCoverageHeader(meta, abgedeckt.length, fehlend.length, template),
+    buildCoverageTabelle(abgedeckt, fehlend, template),
+  ];
+  return new Document({
+    sections: [
+      {
+        properties: { page: { margin: template.margin } },
+        headers: { default: buildPageHeader(template) },
+        footers: { default: buildPageFooter(template) },
+        children,
+      },
+    ],
+  });
+}
+
+/** Kompetenznachweis als DOCX-Buffer (Node, z. B. Smoke-Skript). */
+export async function renderCoverage(
+  meta: CoverageMeta,
+  abgedeckt: CoverageDeskriptor[],
+  fehlend: CoverageDeskriptor[],
+  template: RenderTemplate = DEFAULT_TEMPLATE,
+): Promise<Buffer> {
+  return Packer.toBuffer(buildCoverageDoc(meta, abgedeckt, fehlend, template));
+}
+
+/** Kompetenznachweis als Blob (Browser-Export). */
+export async function renderCoverageToBlob(
+  meta: CoverageMeta,
+  abgedeckt: CoverageDeskriptor[],
+  fehlend: CoverageDeskriptor[],
+  template: RenderTemplate = DEFAULT_TEMPLATE,
+): Promise<Blob> {
+  return Packer.toBlob(buildCoverageDoc(meta, abgedeckt, fehlend, template));
+}
+
+function buildCoverageHeader(
+  meta: CoverageMeta,
+  anzahlAbgedeckt: number,
+  anzahlFehlend: number,
+  template: RenderTemplate,
+): (Paragraph | Table)[] {
+  const fachLabel = meta.fach.charAt(0).toUpperCase() + meta.fach.slice(1);
+  const stufeLabel = meta.stufe === 'oberstufe' ? 'Oberstufe' : 'Unterstufe';
+  const gesamt = anzahlAbgedeckt + anzahlFehlend;
+
+  return [
+    new Paragraph({
+      heading: HeadingLevel.HEADING_1,
+      children: [
+        run(`Kompetenznachweis — ${fachLabel} — ${meta.thema}`, {
+          font: template.font, size: template.fontSize.h1, ...headingProps(template),
+        }),
+      ],
+    }),
+    new Paragraph({
+      children: [
+        run(
+          `${stufeLabel}${meta.klasse ? ` · Klasse ${meta.klasse}` : ''} · ${formatDatum(meta.datum)}`,
+          { font: template.font, size: template.fontSize.body, color: template.color.gray },
+        ),
+      ],
+      spacing: { after: 120 },
+    }),
+    new Paragraph({
+      children: [
+        run(
+          `Diese Übung deckt ${anzahlAbgedeckt} von ${gesamt} Lehrplan-Deskriptoren des Bereichs ab` +
+            (anzahlFehlend > 0 ? ` — ${anzahlFehlend} noch offen.` : '.'),
+          { font: template.font, size: template.fontSize.body, bold: true },
+        ),
+      ],
+      spacing: { after: 200 },
+    }),
+  ];
+}
+
+function buildCoverageTabelle(
+  abgedeckt: CoverageDeskriptor[],
+  fehlend: CoverageDeskriptor[],
+  template: RenderTemplate,
+): Table {
+  const border = thinBorder(template);
+  const cell = (text: string, widthPct: number, opts?: { bold?: boolean; center?: boolean; color?: string }) => {
+    const runOpts: Parameters<typeof run>[1] = { font: template.font, size: template.fontSize.body };
+    if (opts?.bold) runOpts.bold = true;
+    if (opts?.color) runOpts.color = opts.color;
+    return new TableCell({
+      borders: { top: border, bottom: border, left: border, right: border },
+      width: { size: widthPct, type: WidthType.PERCENTAGE },
+      children: [
+        new Paragraph({
+          alignment: opts?.center ? AlignmentType.CENTER : AlignmentType.LEFT,
+          children: [run(text, runOpts)],
+        }),
+      ],
+    });
+  };
+
+  const headerRow = new TableRow({
+    children: [cell('Bereich', 22, { bold: true }), cell('Deskriptor', 63, { bold: true }), cell('Status', 15, { bold: true, center: true })],
+  });
+
+  const datenRow = (d: CoverageDeskriptor, status: 'ab' | 'off') => {
+    const text = d.code ? `${d.code} — ${d.text}` : d.text;
+    return new TableRow({
+      children: [
+        cell(d.bereich, 22),
+        cell(text, 63),
+        cell(status === 'ab' ? '✓ abgedeckt' : '— offen', 15, { center: true, color: status === 'ab' ? template.color.accent : template.color.gray }),
+      ],
+    });
+  };
+
+  const rows = [
+    headerRow,
+    ...abgedeckt.map((d) => datenRow(d, 'ab')),
+    ...fehlend.map((d) => datenRow(d, 'off')),
+  ];
+
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows,
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Korrekturraster: Drittes Dokument (Lehrerinstrument)
 // ---------------------------------------------------------------------------
 

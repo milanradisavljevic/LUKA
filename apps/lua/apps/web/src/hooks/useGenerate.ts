@@ -154,6 +154,26 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
       chatMessages.push({ role: 'user', content: `Zusätzliche Anweisung für diesen Block: ${extraHinweis.trim()}` });
     }
 
+    // Judge nur im Kompetenz-Modus aktiv (Kosten-Guard): erfundene Übungen ohne
+    // Quelltext brauchen die grammatik-/inhaltsbewusste Prüfung. Text-Modus bleibt
+    // unverändert (kein zusätzlicher Judge-Call pro Schularbeit).
+    const modus = input.meta.modus ?? 'text';
+    const judgeAktiv = modus === 'kompetenz' && judgeCfg?.enabled !== false;
+    const judgeComplete: ((msgs: ChatMessage[]) => Promise<string>) | undefined = judgeAktiv
+      ? async (msgs) => {
+          const sys = msgs.find((m) => m.role === 'system');
+          const rest = msgs.filter((m) => m.role !== 'system') as ChatMessage[];
+          return invoke<string>('llm_complete', {
+            provider: judgeCfg!.provider,
+            model: judgeCfg!.model ?? '',
+            system: sys?.content ?? '',
+            messages: rest,
+            kreativitaet: 0.1,
+          });
+        }
+      : undefined;
+    const judgeStoffItems = judgeAktiv ? input.stoffItems?.map((s) => ({ titel: s.titel })) : undefined;
+
     for (let versuch = 1; versuch <= 2; versuch++) {
       setStage(versuch === 1 ? 'sende' : 'korrigiere');
       let rohText: string;
@@ -169,7 +189,7 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
       if (cancelRef.current) throw new Error('__CANCELLED__');
 
       setStage('validiere');
-      const validiert = await parseAndValidate(rohText, state.meta, state.quelltexte, judgeCfg);
+      const validiert = await parseAndValidate(rohText, state.meta, state.quelltexte, judgeCfg, judgeComplete, judgeStoffItems);
       if (validiert.ok && validiert.document) return validiert.document;
       if (cancelRef.current) throw new Error('__CANCELLED__');
 
