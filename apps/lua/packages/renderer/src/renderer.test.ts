@@ -483,4 +483,62 @@ describe('renderDocument: Dokument-Qualität (Layout)', () => {
     expect(xml).toContain('Ubuntu');
     expect(xml).toContain('6366f1');
   });
+
+  it('Englische Dokumente verwenden "Exercise" statt "Aufgabe"', async () => {
+    const doc = makeDoc([{
+      id: 'b1', typ: 'lueckentext', punkte: 4, arbeitsanweisung: 'Fill in the gaps.',
+      config: { anzahlLuecken: 2, wortbank: false, distraktoren: 0 },
+      loesung: { luecken: [{ nr: 1, wort: 'A' }, { nr: 2, wort: 'B' }] },
+    }]);
+    doc.meta.fach = 'englisch';
+    const { schueler } = await renderDocument(doc);
+    const xml = extractDocumentXml(schueler);
+    expect(xml).toContain('Exercise 1');
+    expect(xml).not.toContain('Aufgabe 1');
+    expect(xml).toContain('Points');
+    expect(xml).toContain('TOTAL');
+  });
+
+  it('Merkkasten mit strukturierten items wird als Tabelle gerendert', async () => {
+    const doc = makeDoc([{
+      id: 'b1', typ: 'lueckentext', punkte: 4, arbeitsanweisung: 'Setze ein.',
+      config: { anzahlLuecken: 2, wortbank: false, distraktoren: 0 },
+      loesung: { luecken: [{ nr: 1, wort: 'A' }, { nr: 2, wort: 'B' }] },
+    }]);
+    doc.meta.fach = 'englisch';
+    doc.didaktik = {
+      arbeitsblattTitel: 'Past Simple vs. Present Perfect',
+      einleitung: 'Practise the two tenses.',
+      merkkasten: {
+        titel: 'Remember!',
+        items: [
+          {
+            notion: 'Past simple',
+            form: 'verb + -ed',
+            use: ['Finished actions at a specific time in the past.'],
+            signalWords: ['yesterday', 'last week', 'ago'],
+            example: 'I visited the museum yesterday.',
+          },
+          {
+            notion: 'Present perfect',
+            form: 'have/has + past participle',
+            use: ['Life experiences without a specific time.', 'Past actions relevant now.'],
+            signalWords: ['ever', 'never', 'already'],
+            example: 'I have never seen such big dinosaurs.',
+          },
+        ],
+      },
+      transferaufgabe: 'Your turn: Write three sentences about your last school trip.',
+    };
+    const { schueler } = await renderDocument(doc);
+    const xml = extractDocumentXml(schueler);
+    expect(xml).toContain('Remember!');
+    expect(xml).toContain('Structure');
+    expect(xml).toContain('How to use it');
+    expect(xml).toContain('Past simple');
+    expect(xml).toContain('Present perfect');
+    expect(xml).toContain('Signal words');
+    expect(xml).toContain('yesterday');
+    expect(xml).toContain('Your turn:');
+  });
 });

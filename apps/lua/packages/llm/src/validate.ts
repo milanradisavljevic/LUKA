@@ -110,6 +110,11 @@ export async function parseAndValidate(
   }
 
   const document = result.data;
+
+  // Umformung ist im Kompetenz-Modus nicht mehr erlaubt (sinnentleerte Transformationen).
+  if (document.meta.modus === 'kompetenz' && document.bloecke.some((b) => b.typ === 'umformung')) {
+    return { ok: false, fehler: 'Blocktyp "umformung" ist im Kompetenz-Modus nicht mehr erlaubt.' };
+  }
   if (!quelltexte) {
     return { ok: true, document, qualityIssues: [], judge: { score: 1, issues: [] } };
   }

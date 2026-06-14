@@ -65,13 +65,24 @@ describe('mapBridgeToPrefill', () => {
     ]);
   });
 
-  it('übernimmt Fach/Stufe und baut Thema + Notizen mit echten Fehlern', () => {
+  it('übernimmt Fach/Stufe und baut Thema; Notizen tragen den Kontext-Satz', () => {
     const p = mapBridgeToPrefill(validExport);
     expect(p.fach).toBe('deutsch');
     expect(p.stufe).toBe('oberstufe');
     expect(p.thema).toBe('Fehlerschwerpunkte – SA2 (6i)');
-    expect(p.notizen).toContain('Schüler die keine');
-    expect(p.notizen).toContain('Kommasetzung bei Relativsätzen');
+    // v2: Fehler-Blob nicht mehr in notizen, nur noch der Kontext-Satz.
+    expect(p.notizen).toContain('Gezielte Übung zu den Fehlerschwerpunkten');
+  });
+
+  it('reicht echte Fehler strukturiert durch (für die Kuration in Step0)', () => {
+    const p = mapBridgeToPrefill(validExport);
+    expect(p.fehler).toBeDefined();
+    expect(p.fehler?.some((f) => f.zitat.includes('Schüler die keine'))).toBe(true);
+  });
+
+  it('reicht den Ausgangstext durch (v2)', () => {
+    const p = mapBridgeToPrefill({ ...validExport, ausgangstext: '  Der Originaltext.  ' });
+    expect(p.ausgangstext).toBe('Der Originaltext.');
   });
 
   it('nutzt Defaults, wenn Fach/Stufe fehlen', () => {

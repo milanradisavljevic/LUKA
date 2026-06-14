@@ -104,6 +104,15 @@ export const STEPS: { id: StepId; label: string }[] = [
   { id: 'generate', label: 'Generieren' },
 ];
 
+/** Beschreibende Untertitel pro Wizard-Schritt (unter dem Stepper). */
+export const STEP_DESCRIPTIONS: Record<StepId, string> = {
+  absicht: 'Was soll entstehen — und für wen?',
+  input: 'Textquelle hochladen oder einfügen',
+  baukasten: 'Aufgaben zusammenstellen und dosieren',
+  llm: 'KI-Modell und Kreativität wählen',
+  generate: 'Erstellen, prüfen, exportieren',
+};
+
 export type AppAction =
   | { type: 'SET_STEP'; step: StepId }
   | { type: 'SET_AUFTRAG'; auftrag: Auftrag | null }

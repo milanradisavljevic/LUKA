@@ -119,12 +119,11 @@ function blockToRequest(block: Block): BlockRequest {
     case 'vokabeluebung':
       return { typ: 'vokabeluebung', punkte: block.punkte, quelleId: block.quelleId,
         anzahlVokabeln: block.config.anzahlVokabeln ?? block.config.vokabeln?.length ?? 6, richtung: block.config.richtung };
-    case 'umformung':
-      return { typ: 'umformung', punkte: block.punkte, quelleId: block.quelleId,
-        anzahlAufgaben: block.config.aufgaben.length };
     case 'fehlerkorrektur':
       return { typ: 'fehlerkorrektur', punkte: block.punkte, quelleId: block.quelleId,
         anzahlSaetze: block.config.saetze.length };
+    case 'umformung':
+      throw new Error('Blocktyp "umformung" wird nicht mehr unterstützt.');
   }
 }
 

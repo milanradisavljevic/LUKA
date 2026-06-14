@@ -1,12 +1,15 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { ArrowRight, Clock, FolderOpen, BookOpen, ClipboardCheck, Target } from 'lucide-react';
 import type { AppState, AppAction } from '../lib/types';
-import { BLOCK_TYPE_DEFS, SCHWIERIGKEIT_RULES } from '../lib/constants';
+import { BLOCK_TYPE_DEFS, SCHWIERIGKEIT_RULES, UNTERLAGENTYP_MINUTEN } from '../lib/constants';
 import { buildSkelett, type Auftrag } from '@lehrunterlagen/schema';
 import { EXAMPLE_ABSICHTEN } from '../lib/exampleAbsichten';
 import { loadDocuments, loadSettings } from '../lib/storage';
 import { consumePendingUebung } from '../lib/korrekturBridge';
 import { getDefaultTemplate } from '@lehrunterlagen/renderer';
+import { Tile } from './ui/Tile';
+import { SectionLabel } from './ui/SectionLabel';
+import { FehlerKuration, fehlerNotiz, type KurierterFehler } from './FehlerKuration';
 import {
   parseBridgeExport,
   mapBridgeToPrefill,
@@ -69,6 +72,28 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
   const [nataschaInboxPfad, setNataschaInboxPfad] = useState<string | null>(null);
   const nataschaInboxDir = useMemo(() => loadSettings().nataschaInboxDir ?? '', []);
 
+  // Aus der Korrektur übernommene, kuratierbare Schülerfehler (Brücke v2).
+  const [nataschaFehler, setNataschaFehler] = useState<KurierterFehler[]>([]);
+
+  /** Übernimmt Ausgangstext (→ Quelltext) + Fehler (→ Kuration) aus einer Brücken-Vorbefüllung. */
+  const uebernehmeAusgangstextUndFehler = useCallback(
+    (ausgangstext?: string, fehlerListe?: { typ: 'R' | 'G' | 'Z' | 'A'; zitat: string; korrektur: string; erklaerung?: string }[]) => {
+      if (ausgangstext?.trim()) {
+        dispatch({
+          type: 'ADD_QUELLTEXT',
+          quelltext: {
+            id: `q-natascha-${Date.now()}`,
+            titel: 'Ausgangstext (aus Korrektur)',
+            inhalt: ausgangstext.trim(),
+            herkunft: { typ: 'eingabe', ref: '' },
+          },
+        });
+      }
+      setNataschaFehler((fehlerListe ?? []).map((f) => ({ ...f, aktiv: true })));
+    },
+    [dispatch],
+  );
+
   // Closed Loop: Übungs-Vorbefüllung aus der Korrektur-Heatmap übernehmen (einmalig beim Mounten).
   useEffect(() => {
     const p = consumePendingUebung();
@@ -81,6 +106,7 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
     setNotizen(p.notizen);
     setFokusThemen(p.fokusThemen);
     setGewuenschteAufgabenarten(p.gewuenschteAufgabenarten);
+    uebernehmeAusgangstextUndFehler(p.ausgangstext, p.fehler);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -142,9 +168,12 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
         setNotizen(p.notizen);
         setFokusThemen(p.fokusThemen);
         setGewuenschteAufgabenarten(p.gewuenschteAufgabenarten);
+        uebernehmeAusgangstextUndFehler(p.ausgangstext, p.fehler);
         setNataschaExports(null);
         setNataschaInfo(
-          `Übernommen: ${ex.klasse} · ${ex.aufgabe}. Du kannst alles unten anpassen, dann „Erstellen".`,
+          p.ausgangstext
+            ? `Übernommen: ${ex.klasse} · ${ex.aufgabe}. Ausgangstext als Quelltext vorbefüllt, Fehler unten kuratierbar.`
+            : `Übernommen: ${ex.klasse} · ${ex.aufgabe}. Du kannst alles unten anpassen, dann „Erstellen".`,
         );
       } catch (err) {
         setNataschaInfo(
@@ -154,7 +183,7 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
         setNataschaBusy(false);
       }
     },
-    [dispatch],
+    [dispatch, uebernehmeAusgangstextUndFehler],
   );
 
   const handleErstellen = useCallback(() => {
@@ -164,6 +193,9 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
       setFehler('Bitte gib ein Thema ein.');
       return;
     }
+
+    // Kuratierte Korrektur-Fehler in die Notizen einweben (steuert den Prompt).
+    const notizenFinal = [notizen.trim(), fehlerNotiz(nataschaFehler)].filter(Boolean).join(' ');
 
     const auftrag: Auftrag = {
       typ,
@@ -177,7 +209,7 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
       schwierigkeit,
       gewuenschteAufgabenarten: gewuenschteAufgabenarten.length > 0 ? gewuenschteAufgabenarten as Auftrag['gewuenschteAufgabenarten'] : undefined,
       gesamtpunkteZiel: gesamtpunkteZiel !== '' ? Number(gesamtpunkteZiel) : undefined,
-      notizen: notizen.trim() || undefined,
+      notizen: notizenFinal || undefined,
       lernziele: lernzieleRaw.split(',').map((s) => s.trim()).filter(Boolean) || undefined,
       fokusThemen: fokusThemen.length > 0 ? fokusThemen : undefined,
     };
@@ -201,7 +233,7 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
           thema: thema.trim(),
           datum,
           klasse: klasse.trim(),
-          notizen: notizen.trim(),
+          notizen: notizenFinal,
           typ,
           schwierigkeit,
           lernziele: lernzieleRaw.split(',').map((s) => s.trim()).filter(Boolean) || undefined,
@@ -212,7 +244,7 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
     } catch (err) {
       setFehler(err instanceof Error ? err.message : 'Fehler beim Erstellen des Skeletts.');
     }
-  }, [typ, fach, stufe, thema, datum, klasse, dauerMinuten, schwierigkeit, gewuenschteAufgabenarten, gesamtpunkteZiel, notizen, lernzieleRaw, fokusThemen, state.quelltexte, state.bloecke, dispatch]);
+  }, [typ, fach, stufe, thema, datum, klasse, dauerMinuten, schwierigkeit, gewuenschteAufgabenarten, gesamtpunkteZiel, notizen, lernzieleRaw, fokusThemen, nataschaFehler, state.quelltexte, state.bloecke, dispatch]);
 
   const fachLabel = fach === 'deutsch' ? 'Deutsch' : 'Englisch';
   const stufeLabel = stufe === 'oberstufe' ? 'Oberstufe' : 'Unterstufe';
@@ -228,150 +260,50 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
       {(lastDoc || onNavigateToTemplates || onNavigateToKompetenz) && (
         <section style={{ marginBottom: '1.25rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.5rem' }}>
           {lastDoc && (
-            <button
+            <Tile
+              selected
               onClick={handleContinueLast}
-              style={{
-                textAlign: 'left',
-                padding: '0.75rem 1rem',
-                borderRadius: 'var(--radius)',
-                border: '2px solid var(--color-accent)',
-                background: 'var(--color-highlight-bg)',
-                cursor: 'pointer',
-                fontSize: '0.8125rem',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.25rem',
-                transition: 'all 0.15s ease',
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-2px)';
-                (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 4px 12px var(--color-shadow)';
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)';
-                (e.currentTarget as HTMLButtonElement).style.boxShadow = 'none';
-              }}
+              icon={<Clock size={16} />}
+              title="Weitermachen"
+              ariaLabel={`Weitermachen an ${lastDoc.title}`}
             >
-              <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: 'var(--color-accent)', fontWeight: 600 }}>
-                <Clock size={16} /> Weitermachen
-              </span>
               <span style={{ fontWeight: 600 }}>{lastDoc.title}</span>
               <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
                 {lastDoc.snapshot.meta.fach === 'deutsch' ? 'Deutsch' : 'Englisch'} · {lastDoc.snapshot.meta.stufe === 'oberstufe' ? 'Oberstufe' : 'Unterstufe'} · zuletzt {new Date(lastDoc.updatedAt).toLocaleDateString('de-AT')}
               </span>
-            </button>
+            </Tile>
           )}
           {onNavigateToTemplates && (
-            <button
+            <Tile
               onClick={onNavigateToTemplates}
-              style={{
-                textAlign: 'left',
-                padding: '0.75rem 1rem',
-                borderRadius: 'var(--radius)',
-                border: '1px solid var(--color-border)',
-                background: 'var(--color-bg-surface)',
-                cursor: 'pointer',
-                fontSize: '0.8125rem',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.25rem',
-                transition: 'all 0.15s ease',
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-accent)';
-                (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-highlight-bg)';
-                (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-2px)';
-                (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 4px 12px var(--color-shadow)';
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-border)';
-                (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg-surface)';
-                (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)';
-                (e.currentTarget as HTMLButtonElement).style.boxShadow = 'none';
-              }}
-            >
-              <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: 'var(--color-accent)', fontWeight: 600 }}>
-                <FolderOpen size={16} /> Aus Vorlage starten
-              </span>
-              <span style={{ fontWeight: 600 }}>Gespeicherte Vorlagen</span>
-              <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
-                Wähle aus deinen gespeicherten Konfigurationen.
-              </span>
-            </button>
+              icon={<FolderOpen size={16} />}
+              title="Aus Vorlage starten"
+              subtitle="Wähle aus deinen gespeicherten Konfigurationen."
+            />
           )}
           {onNavigateToKompetenz && (
-            <button
+            <Tile
               onClick={onNavigateToKompetenz}
-              style={{
-                textAlign: 'left',
-                padding: '0.75rem 1rem',
-                borderRadius: 'var(--radius)',
-                border: '1px solid var(--color-border)',
-                background: 'var(--color-bg-surface)',
-                cursor: 'pointer',
-                fontSize: '0.8125rem',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.25rem',
-                transition: 'all 0.15s ease',
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-accent)';
-                (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-highlight-bg)';
-                (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-2px)';
-                (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 4px 12px var(--color-shadow)';
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-border)';
-                (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg-surface)';
-                (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)';
-                (e.currentTarget as HTMLButtonElement).style.boxShadow = 'none';
-              }}
-            >
-              <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: 'var(--color-accent)', fontWeight: 600 }}>
-                <Target size={16} /> Übung ohne Quelltext
-              </span>
-              <span style={{ fontWeight: 600 }}>Kompetenz oder Thema</span>
-              <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
-                Frei eingeben oder Lehrplan-Kompetenz wählen — ohne Quelltext.
-              </span>
-            </button>
+              icon={<Target size={16} />}
+              title="Übung ohne Quelltext"
+              subtitle="Frei eingeben oder Lehrplan-Kompetenz wählen — ohne Quelltext."
+            />
           )}
         </section>
       )}
 
       {/* NATASCHA-Korrektur → gezielte Übungen (Datei-Brücke Phase 1) */}
       <section style={{ marginBottom: '1.25rem' }}>
-        <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.875rem' }}>
-          Aus NATASCHA-Korrektur
-        </label>
+        <SectionLabel>Aus NATASCHA-Korrektur</SectionLabel>
         {nataschaExports && nataschaExports.length > 0 ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.5rem' }}>
             {nataschaExports.map((ex) => (
               <button
                 key={ex.pfad}
+                className="tile"
                 disabled={nataschaBusy}
                 onClick={() => uebernehmeNataschaExport(ex)}
-                style={{
-                  textAlign: 'left',
-                  padding: '0.75rem 1rem',
-                  borderRadius: 'var(--radius)',
-                  border: '1px solid var(--color-border)',
-                  background: 'var(--color-bg-surface)',
-                  cursor: nataschaBusy ? 'wait' : 'pointer',
-                  fontSize: '0.8125rem',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '0.25rem',
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-accent)';
-                  (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-highlight-bg)';
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-border)';
-                  (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg-surface)';
-                }}
+                style={{ fontSize: '0.8125rem', cursor: nataschaBusy ? 'wait' : 'pointer' }}
               >
                 <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: 'var(--color-accent)', fontWeight: 600 }}>
                   <ClipboardCheck size={16} /> {ex.klasse} · {ex.aufgabe}
@@ -403,31 +335,10 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
         ) : (
           <button
             type="button"
+            className="tile"
             disabled={nataschaBusy}
             onClick={ladeNataschaExporte}
-            style={{
-              textAlign: 'left',
-              padding: '0.75rem 1rem',
-              borderRadius: 'var(--radius)',
-              border: '1px solid var(--color-border)',
-              background: 'var(--color-bg-surface)',
-              cursor: nataschaBusy ? 'wait' : 'pointer',
-              fontSize: '0.8125rem',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.25rem',
-              width: '100%',
-              maxWidth: '420px',
-            }}
-            onMouseEnter={(e) => {
-              if (nataschaBusy) return;
-              (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-accent)';
-              (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-highlight-bg)';
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-border)';
-              (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg-surface)';
-            }}
+            style={{ fontSize: '0.8125rem', cursor: nataschaBusy ? 'wait' : 'pointer', maxWidth: '420px' }}
           >
             <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: 'var(--color-accent)', fontWeight: 600 }}>
               <ClipboardCheck size={16} /> {nataschaBusy ? 'Lädt …' : 'Aus NATASCHA-Korrektur generieren'}
@@ -443,6 +354,9 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
           </p>
         )}
       </section>
+
+      {/* Kuratierbare Fehler aus der NATASCHA-Korrektur (Brücke v2) */}
+      <FehlerKuration fehler={nataschaFehler} onChange={setNataschaFehler} />
 
       {/* Schnellstart — Beispiel-Absichten */}
       <section style={{ marginBottom: '1.25rem' }}>
@@ -466,24 +380,8 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
                 // Optional: gleich Skelett erstellen
                 // handleErstellen();
               }}
-              style={{
-                textAlign: 'left',
-                padding: '0.75rem',
-                borderRadius: 'var(--radius)',
-                border: '1px solid var(--color-border)',
-                background: 'var(--color-bg-surface)',
-                cursor: 'pointer',
-                fontSize: '0.8125rem',
-                transition: 'all 0.15s ease',
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-accent)';
-                (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-highlight-bg)';
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-border)';
-                (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg-surface)';
-              }}
+              className="tile"
+              style={{ fontSize: '0.8125rem' }}
             >
               <span style={{ display: 'block', marginBottom: '0.25rem', color: 'var(--color-accent)' }}>
                 <ex.Icon size={22} />
@@ -512,51 +410,47 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
 
       {/* Typ */}
       <section style={{ marginBottom: '1.25rem' }}>
-        <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.875rem' }}>
-          Unterlagentyp
-        </label>
+        <SectionLabel>Unterlagentyp</SectionLabel>
         <div style={{ display: 'grid', gap: '0.5rem' }}>
-          {UNTERLAGENTYPEN.map((u) => (
-            <button
-              key={u.id}
-              onClick={() => setTyp(u.id)}
-              style={{
-                textAlign: 'left',
-                padding: '0.75rem 1rem',
-                borderRadius: 'var(--radius)',
-                border: typ === u.id ? '2px solid var(--color-accent)' : '1px solid var(--color-border)',
-                background: typ === u.id ? 'var(--color-highlight-bg)' : 'var(--color-bg-surface)',
-                cursor: 'pointer',
-                fontSize: '0.875rem',
-              }}
-            >
-              <strong>{u.label}</strong>
-              <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.125rem' }}>
-                {u.beschreibung}
-              </span>
-            </button>
-          ))}
+          {UNTERLAGENTYPEN.map((u) => {
+            const min = UNTERLAGENTYP_MINUTEN[u.id];
+            return (
+              <button
+                key={u.id}
+                className="tile"
+                aria-pressed={typ === u.id}
+                onClick={() => setTyp(u.id)}
+                style={{ fontSize: '0.875rem' }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%' }}>
+                  <strong>{u.label}</strong>
+                  {min && (
+                    <span className="badge badge-info" style={{ flexShrink: 0, marginLeft: '0.5rem' }}>
+                      <Clock size={11} /> ~{min[0]}–{min[1]} Min
+                    </span>
+                  )}
+                </div>
+                <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.125rem' }}>
+                  {u.beschreibung}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </section>
 
       {/* Fach & Stufe */}
       <section style={{ marginBottom: '1.25rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
         <div>
-          <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.875rem' }}>Fach</label>
+          <SectionLabel>Fach</SectionLabel>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             {(['deutsch', 'englisch'] as const).map((f) => (
               <button
                 key={f}
+                className="tile"
+                aria-pressed={fach === f}
                 onClick={() => setFach(f)}
-                style={{
-                  flex: 1,
-                  padding: '0.5rem',
-                  borderRadius: 'var(--radius)',
-                  border: fach === f ? '2px solid var(--color-accent)' : '1px solid var(--color-border)',
-                  background: fach === f ? 'var(--color-highlight-bg)' : 'var(--color-bg-surface)',
-                  cursor: 'pointer',
-                  fontSize: '0.875rem',
-                }}
+                style={{ flex: 1, padding: '0.5rem', alignItems: 'center', justifyContent: 'center', fontSize: '0.875rem' }}
               >
                 {f === 'deutsch' ? 'Deutsch' : 'Englisch'}
               </button>
@@ -564,24 +458,18 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
           </div>
         </div>
         <div>
-          <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.875rem' }}>Stufe</label>
+          <SectionLabel>Stufe</SectionLabel>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             {(['unterstufe', 'oberstufe'] as const).map((s) => (
               <button
                 key={s}
+                className="tile"
+                aria-pressed={stufe === s}
                 onClick={() => {
                   setStufe(s);
                   dispatch({ type: 'SET_RENDER_TEMPLATE', template: getDefaultTemplate(s).id });
                 }}
-                style={{
-                  flex: 1,
-                  padding: '0.5rem',
-                  borderRadius: 'var(--radius)',
-                  border: stufe === s ? '2px solid var(--color-accent)' : '1px solid var(--color-border)',
-                  background: stufe === s ? 'var(--color-highlight-bg)' : 'var(--color-bg-surface)',
-                  cursor: 'pointer',
-                  fontSize: '0.875rem',
-                }}
+                style={{ flex: 1, padding: '0.5rem', alignItems: 'center', justifyContent: 'center', fontSize: '0.875rem' }}
               >
                 {s === 'oberstufe' ? 'Oberstufe' : 'Unterstufe'}
               </button>
@@ -704,12 +592,9 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
 
       {/* Optionale Aufgabenarten */}
       <section style={{ marginBottom: '1.25rem' }}>
-        <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.875rem' }}>
+        <SectionLabel hint="Wenn du nichts auswählst, entscheidet die App anhand des Typ-Profils.">
           Gewünschte Aufgabenarten (optional)
-        </label>
-        <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', margin: '0 0 0.5rem' }}>
-          Wenn du nichts auswählst, entscheidet die App anhand des Typ-Profils.
-        </p>
+        </SectionLabel>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
           {BLOCK_TYPE_DEFS.map((bt) => {
             const aktiv = gewuenschteAufgabenarten.includes(bt.id);
@@ -717,19 +602,19 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
             return (
               <button
                 key={bt.id}
+                className="tile"
+                aria-pressed={aktiv}
                 onClick={() => toggleAufgabenart(bt.id)}
                 title={isDiscouraged ? SCHWIERIGKEIT_RULES[schwierigkeit].hinweis : undefined}
                 style={{
+                  width: 'auto',
                   padding: '0.375rem 0.75rem',
-                  borderRadius: 'var(--radius)',
-                  border: aktiv ? '2px solid var(--color-accent)' : isDiscouraged ? '1px dashed var(--color-text-secondary)' : '1px solid var(--color-border)',
-                  background: aktiv ? 'var(--color-highlight-bg)' : 'var(--color-bg-surface)',
-                  cursor: 'pointer',
-                  fontSize: '0.8125rem',
-                  display: 'flex',
+                  flexDirection: 'row',
                   alignItems: 'center',
                   gap: '0.25rem',
+                  fontSize: '0.8125rem',
                   opacity: isDiscouraged && !aktiv ? 0.6 : 1,
+                  ...(isDiscouraged && !aktiv ? { borderStyle: 'dashed', borderColor: 'var(--color-text-secondary)' } : {}),
                 }}
               >
                 <bt.Icon size={15} style={{ color: bt.color, opacity: isDiscouraged && !aktiv ? 0.5 : 1 }} />

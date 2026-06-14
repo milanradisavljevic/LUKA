@@ -114,6 +114,16 @@ CREATE TABLE IF NOT EXISTS klassen_briefing (
 
 CREATE INDEX IF NOT EXISTS idx_briefing_klasse ON klassen_briefing(klasse);
 CREATE INDEX IF NOT EXISTS idx_briefing_klasse_aufgabe ON klassen_briefing(klasse, aufgabe);
+
+CREATE TABLE IF NOT EXISTS aufgabe_quelltext (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    klasse TEXT NOT NULL,
+    aufgabe TEXT NOT NULL,
+    ausgangstext TEXT NOT NULL,
+    erstellt_am TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    geaendert_am TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(klasse, aufgabe)
+);
 """
 
 # ---------------------------------------------------------------------------
@@ -484,6 +494,48 @@ def get_fehler_heatmap_detail(
 # ---------------------------------------------------------------------------
 
 
+def upsert_aufgabe_quelltext(
+    db_path: Path | str, klasse: str, aufgabe: str, ausgangstext: str
+) -> None:
+    """Speichert den Ausgangstext einer Aufgabe (eine Zeile je klasse/aufgabe).
+
+    Für die LUA-Brücke: LUA befüllt damit den Quelltext der Übung vor.
+    Leere Texte werden ignoriert.
+    """
+    text = (ausgangstext or "").strip()
+    if not text or not klasse or not aufgabe:
+        return
+    with sqlite3.connect(str(db_path)) as conn:
+        conn.execute(
+            """
+            INSERT INTO aufgabe_quelltext (klasse, aufgabe, ausgangstext)
+            VALUES (?, ?, ?)
+            ON CONFLICT(klasse, aufgabe) DO UPDATE SET
+                ausgangstext = excluded.ausgangstext,
+                geaendert_am = CURRENT_TIMESTAMP
+            """,
+            (klasse, aufgabe, text),
+        )
+
+
+def get_aufgabe_quelltext(
+    db_path: Path | str, klasse: str, aufgabe: str
+) -> str | None:
+    """Liest den gespeicherten Ausgangstext einer Aufgabe (oder None).
+
+    Defensiv: fehlende DB/Tabelle → None (Export darf nie daran scheitern).
+    """
+    try:
+        with sqlite3.connect(str(db_path)) as conn:
+            row = conn.execute(
+                "SELECT ausgangstext FROM aufgabe_quelltext WHERE klasse = ? AND aufgabe = ?",
+                (klasse, aufgabe),
+            ).fetchone()
+        return row[0] if row else None
+    except sqlite3.Error:
+        return None
+
+
 def import_json_to_db(
     db_path: Path | str,
     json_path: Path,
@@ -574,6 +626,9 @@ def import_json_to_db(
             fehler.get("typ", ""),
             fehler.get("erklaerung", ""),
         )
+
+    if data.get("ausgangstext"):
+        upsert_aufgabe_quelltext(db_path, klasse, aufgabe, data["ausgangstext"])
 
     return abgabe_id
 
@@ -772,6 +827,9 @@ def save_analysis_to_db(
                 ),
             )
         conn.commit()
+
+    if data.get("ausgangstext"):
+        upsert_aufgabe_quelltext(db_path, klasse, aufgabe, data["ausgangstext"])
 
     return abgabe_id
 

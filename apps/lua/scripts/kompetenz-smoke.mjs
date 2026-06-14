@@ -26,23 +26,22 @@ const provider = process.env.LLM_PROVIDER ?? 'deepseek';
 const model = process.env.LLM_MODEL;
 
 const stoffItem = {
-  id: 's-pastperfect', rahmenwerk: 'at-lehrplan', titel: 'Past Perfect',
-  fach: 'englisch', stufe: 'oberstufe', kategorie: 'grammatik', deskriptorIds: [],
+  id: 's-past-simple-vs-present-perfect', rahmenwerk: 'at-lehrplan', titel: 'Past Simple vs. Present Perfect',
+  fach: 'englisch', stufe: 'unterstufe', kategorie: 'grammatik', deskriptorIds: [],
 };
 
 const meta = {
-  stufe: 'oberstufe', fach: 'englisch', thema: 'Travelling',
-  datum: '2026-06-11', klasse: '', notizen: '', schwierigkeit: 'mittel',
+  stufe: 'unterstufe', fach: 'englisch', thema: 'A school excursion',
+  datum: '2026-06-14', klasse: '', notizen: '', schwierigkeit: 'mittel',
   modus: 'kompetenz', rahmenwerk: 'at-lehrplan',
   stoffItemIds: [stoffItem.id], kompetenzNiveau: 'standard',
   punkteAusblenden: true,
 };
 
 const bloecke = [
-  { typ: 'umformung', punkte: 6, anzahlAufgaben: 3 },
-  { typ: 'fehlerkorrektur', punkte: 4, anzahlSaetze: 3 },
-  { typ: 'lueckentext', punkte: 5, anzahlLuecken: 5, wortbank: true, distraktoren: 2 },
+  { typ: 'lueckentext', punkte: 6, anzahlLuecken: 6, wortbank: true, distraktoren: 2 },
   { typ: 'kategorisierung', punkte: 6, anzahlItems: 6, kategorien: ['Past Simple', 'Present Perfect'] },
+  { typ: 'fehlerkorrektur', punkte: 4, anzahlSaetze: 4 },
 ];
 
 console.log(`\n▶ KOMPETENZ-Smoke  provider=${provider}  model=${model ?? '(Default)'}`);
@@ -66,11 +65,7 @@ if (!res.ok) {
 const doc = res.document;
 console.log(`✓ Generierung OK  (${res.versuche} Versuch(e), ${dauer}s, ${doc.bloecke.length} Blöcke)\n`);
 for (const b of doc.bloecke) {
-  if (b.typ === 'umformung') {
-    console.log(`  ── UMFORMUNG (${b.punkte}P): ${b.arbeitsanweisung}`);
-    for (const a of b.config.aufgaben) console.log(`     ${a.nr}. „${a.ausgangssatz}"  → [${a.zielstruktur}]`);
-    for (const l of b.loesung.loesungen) console.log(`     ✓ ${l.nr}. „${l.umformulierung}"`);
-  } else if (b.typ === 'fehlerkorrektur') {
+  if (b.typ === 'fehlerkorrektur') {
     console.log(`\n  ── FEHLERKORREKTUR (${b.punkte}P): ${b.arbeitsanweisung}`);
     for (const s of b.config.saetze) console.log(`     ${s.nr}. „${s.satz}"  (${s.anzahlFehler} Fehler)`);
     for (const k of b.loesung.korrekturen) console.log(`     ✓ ${k.nr}. „${k.korrigierterSatz}"  [${k.fehler.map((f) => f.art).join(',')}]`);

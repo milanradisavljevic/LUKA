@@ -15,11 +15,15 @@ LUA Step0 --liest-->     Liste der neuesten Korrekturen → [Übungen generieren
 `schema.json` (JSON Schema draft-07) ist die **Single Source of Truth** für das
 Austauschformat. Beide Seiten müssen sich daran halten.
 
-- **Versionierung:** `schemaVersion` (aktuell `1`). LUA lehnt unbekannte Versionen
-  freundlich ab, statt zu raten.
+- **Versionierung:** `schemaVersion` (aktuell `2`). LUA akzeptiert `1` **und** `2`
+  (abwärtskompatibel) und lehnt unbekannte Versionen freundlich ab, statt zu raten.
 - **`heatmap`** — grobe Fehlerkategorien (R/G/Z/A), das ist alles, was NATASCHA kennt.
 - **`beispiele`** — echte, anonymisierte Schülerfehler (`zitat`/`korrektur`). Diese
-  liefern dem LUA-Prompt die didaktische Zielgenauigkeit.
+  liefern dem LUA-Prompt die didaktische Zielgenauigkeit und erscheinen in LUA als
+  editierbare, kuratierbare Fehler-Liste.
+- **`ausgangstext`** *(v2, optional)* — Ausgangstext/Arbeitsauftrag der Originalarbeit.
+  LUA befüllt damit den Quelltext der Übung vor (kein erneutes Einfügen nötig). Export
+  per `python natascha_bridge.py <klasse> <aufgabe> --ausgangstext-file angabe.txt`.
 - **`empfehlungen`** — optionale LLM-Klassenempfehlungen aus `klassen_briefing`.
 
 ## Datenschutz

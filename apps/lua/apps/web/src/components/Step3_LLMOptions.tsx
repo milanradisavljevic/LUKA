@@ -27,8 +27,11 @@ export function Step3_LLMOptions({ state, dispatch }: Props) {
         {LLM_PROVIDERS.map((provider) => {
           const isSelected = state.llmProvider === provider.id;
           return (
-            <div
+            <button
               key={provider.id}
+              type="button"
+              className="tile"
+              aria-pressed={isSelected}
               onClick={() => {
                 dispatch({ type: 'SET_LLM_PROVIDER', provider: provider.id });
                 if (!provider.models.includes(state.modelName)) {
@@ -37,12 +40,7 @@ export function Step3_LLMOptions({ state, dispatch }: Props) {
               }}
               style={{
                 padding: '1rem',
-                border: `2px solid ${isSelected ? 'var(--color-accent)' : 'var(--color-border)'}`,
-                borderRadius: 'var(--radius)',
-                cursor: 'pointer',
-                background: isSelected ? 'rgba(91,91,214,0.08)' : 'var(--color-bg-surface)',
-                transition: 'all 0.15s',
-                display: 'flex',
+                flexDirection: 'row',
                 alignItems: 'center',
                 gap: '0.75rem',
               }}
@@ -56,7 +54,7 @@ export function Step3_LLMOptions({ state, dispatch }: Props) {
                   {provider.models.join(', ')}
                 </div>
               </div>
-            </div>
+            </button>
           );
         })}
       </div>

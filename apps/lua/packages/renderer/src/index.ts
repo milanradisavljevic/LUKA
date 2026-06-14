@@ -545,14 +545,14 @@ async function buildDocxPacked<T>(
   const children: (Paragraph | Table)[] = [
     ...buildDocumentHeader(doc, mode, template),
     buildSchuelerkopf(doc.meta, template),
-    ...(hidePunkte ? [] : buildPunkteUebersicht(doc.bloecke, template)),
+    ...(hidePunkte ? [] : buildPunkteUebersicht(doc.bloecke, template, doc.meta.fach)),
     ...buildMerkkasten(doc.didaktik?.merkkasten, template),
     ...buildQuelltexte(doc.quelltexte, template),
     ...doc.bloecke.flatMap((block, i) =>
-      buildBlock(block, i + 1, mode, quelltextMap, template, hidePunkte),
+      buildBlock(block, i + 1, mode, quelltextMap, template, hidePunkte, doc.meta.fach),
     ),
     ...(doc.didaktik?.transferaufgabe?.trim()
-      ? buildTransferaufgabe(doc.didaktik.transferaufgabe.trim(), mode, template)
+      ? buildTransferaufgabe(doc.didaktik.transferaufgabe.trim(), mode, template, doc.meta.fach)
       : []),
   ];
 
@@ -610,9 +610,10 @@ function buildPageFooter(template: RenderTemplate): Footer {
 
 function buildDocumentHeader(doc: DocumentV1, mode: Mode, template: RenderTemplate): Paragraph[] {
   const { meta } = doc;
-  const fachLabel = meta.fach.charAt(0).toUpperCase() + meta.fach.slice(1);
-  const stufeLabel = meta.stufe === 'oberstufe' ? 'Oberstufe' : 'Unterstufe';
-  const modeLabel = mode === 'loesung' ? ' – Lösungsfassung' : '';
+  const isEnglish = meta.fach === 'englisch';
+  const fachLabel = isEnglish ? 'English' : 'Deutsch';
+  const stufeLabel = meta.stufe === 'oberstufe' ? (isEnglish ? 'Upper level' : 'Oberstufe') : (isEnglish ? 'Lower level' : 'Unterstufe');
+  const modeLabel = mode === 'loesung' ? (isEnglish ? ' – Solution' : ' – Lösungsfassung') : '';
 
   // Sprechender Arbeitsblatt-Titel (didaktischer Rahmen) hat Vorrang; Fach/Thema
   // rutschen dann in die Unterzeile.
@@ -654,23 +655,118 @@ function buildDocumentHeader(doc: DocumentV1, mode: Mode, template: RenderTempla
 // Didaktischer Rahmen: Merkkasten + Transferaufgabe (primär Kompetenz-Modus)
 // ---------------------------------------------------------------------------
 
-/** Gerahmte Merkbox (Regel + Signalwörter) — das Kernstück eines komponierten Arbeitsblatts. */
+/** Hilfs-Run mit kursiver Objektsprache: Wörter in *Sternchen* werden kursiv gerendert. */
+function runWithItalics(text: string, opts: Omit<RunOpts, 'font' | 'size'> & { baseItalics?: boolean }, template: RenderTemplate): TextRun[] {
+  const { baseItalics = false, ...runOpts } = opts;
+  const parts = text.split(/(\*[^*]+\*)/g);
+  return parts.map((part) => {
+    if (part.startsWith('*') && part.endsWith('*')) {
+      return run(part.slice(1, -1), { ...runOpts, italics: true, font: template.font, size: template.fontSize.body });
+    }
+    return run(part, { ...runOpts, italics: baseItalics, font: template.font, size: template.fontSize.body });
+  });
+}
+
+/** Gerahmte Merkbox — neu als strukturierte 2-Spalten-Grammatik-Box. */
 function buildMerkkasten(merkkasten: NonNullable<DocumentV1['didaktik']>['merkkasten'], template: RenderTemplate): (Paragraph | Table)[] {
-  if (!merkkasten || merkkasten.punkte.length === 0) return [];
+  if (!merkkasten) return [];
   const border = { style: BorderStyle.SINGLE, size: 12, color: template.color.text } as const;
-  const inhalt: Paragraph[] = [
-    new Paragraph({
-      children: [run(merkkasten.titel, { font: template.font, size: template.fontSize.body, bold: true })],
-      spacing: { after: 60 },
-    }),
-    ...merkkasten.punkte.map((p, i) => new Paragraph({
-      children: [
-        run('•  ', { font: template.font, size: template.fontSize.body }),
-        run(p, { font: template.font, size: template.fontSize.body }),
-      ],
-      spacing: { after: i === merkkasten.punkte.length - 1 ? 0 : 40 },
-    })),
+  const title = new Paragraph({
+    children: [run(merkkasten.titel, { font: template.font, size: template.fontSize.body, bold: true })],
+    spacing: { after: 80 },
+  });
+
+  // Legacy-Modus: einfache Punkte (Abwärtskompatibilität).
+  if (!merkkasten.items || merkkasten.items.length === 0) {
+    if (!merkkasten.punkte || merkkasten.punkte.length === 0) return [];
+    const inhalt: Paragraph[] = [
+      title,
+      ...merkkasten.punkte.map((p, i) => new Paragraph({
+        children: [
+          run('•  ', { font: template.font, size: template.fontSize.body }),
+          ...runWithItalics(p, {}, template),
+        ],
+        spacing: { after: i === (merkkasten.punkte?.length ?? 0) - 1 ? 0 : 40 },
+      })),
+    ];
+    return [
+      new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows: [
+          new TableRow({
+            children: [
+              new TableCell({
+                borders: { top: border, bottom: border, left: border, right: border },
+                shading: { fill: 'F2F2F2' },
+                margins: { top: 120, bottom: 120, left: 160, right: 160 },
+                children: inhalt,
+              }),
+            ],
+          }),
+        ],
+      }),
+      new Paragraph({ children: [], spacing: { after: 120 } }),
+    ];
+  }
+
+  // Neu: strukturierte Items als 2-Spalten-Tabelle (Notion | Form/Use/Signal words/Example).
+  const headerBorder = { style: BorderStyle.SINGLE, size: 8, color: template.color.text } as const;
+  const headerCell = (text: string, width: number) => new TableCell({
+    borders: { top: headerBorder, bottom: headerBorder, left: headerBorder, right: headerBorder },
+    shading: { fill: 'E7E7E7' },
+    width: { size: width, type: WidthType.PERCENTAGE },
+    margins: { top: 80, bottom: 80, left: 100, right: 100 },
+    children: [new Paragraph({ children: [run(text, { font: template.font, size: template.fontSize.body, bold: true })] })],
+  });
+
+  const bodyCell = (children: TextRun[], width: number) => new TableCell({
+    borders: { top: headerBorder, bottom: headerBorder, left: headerBorder, right: headerBorder },
+    width: { size: width, type: WidthType.PERCENTAGE },
+    margins: { top: 80, bottom: 80, left: 100, right: 100 },
+    children: [new Paragraph({ children })],
+  });
+
+  const rows: TableRow[] = [
+    new TableRow({ children: [headerCell('Structure', 25), headerCell('How to use it', 75)] }),
   ];
+
+  for (const item of merkkasten.items) {
+    const left: TextRun[] = [run(item.notion, { font: template.font, size: template.fontSize.body, bold: true })];
+    if (item.form) {
+      left.push(run('\n', { font: template.font, size: template.fontSize.body }));
+      left.push(...runWithItalics(item.form, { baseItalics: true }, template));
+    }
+
+    const right: TextRun[] = [];
+    if (item.use && item.use.length > 0) {
+      right.push(run(item.use.join(' '), { font: template.font, size: template.fontSize.body }));
+      right.push(run(' ', { font: template.font, size: template.fontSize.body }));
+    }
+    if (item.signalWords && item.signalWords.length > 0) {
+      right.push(run('Signal words: ', { font: template.font, size: template.fontSize.body, bold: true }));
+      right.push(...item.signalWords.join(', ').split(/(\*[^*]+\*)/g).map((part) => {
+        if (part.startsWith('*') && part.endsWith('*')) {
+          return run(part.slice(1, -1), { font: template.font, size: template.fontSize.body, italics: true });
+        }
+        return run(part, { font: template.font, size: template.fontSize.body, italics: true });
+      }));
+      right.push(run(' ', { font: template.font, size: template.fontSize.body }));
+    }
+    if (item.example) {
+      right.push(run('Example: ', { font: template.font, size: template.fontSize.body, bold: true }));
+      right.push(run(item.example, { font: template.font, size: template.fontSize.body, italics: true }));
+    }
+    if (item.tip) {
+      right.push(run(' ', { font: template.font, size: template.fontSize.body }));
+      right.push(run('💡 Tip: ', { font: template.font, size: template.fontSize.body, bold: true }));
+      right.push(...runWithItalics(item.tip, {}, template));
+    }
+
+    rows.push(new TableRow({
+      children: [bodyCell(left, 25), bodyCell(right.length > 0 ? right : [run('–', { font: template.font, size: template.fontSize.body })], 75)],
+    }));
+  }
+
   return [
     new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
@@ -679,9 +775,9 @@ function buildMerkkasten(merkkasten: NonNullable<DocumentV1['didaktik']>['merkka
           children: [
             new TableCell({
               borders: { top: border, bottom: border, left: border, right: border },
-              shading: { fill: 'F2F2F2' },
+              shading: { fill: 'F8F8F8' },
               margins: { top: 120, bottom: 120, left: 160, right: 160 },
-              children: inhalt,
+              children: [title, new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows })],
             }),
           ],
         }),
@@ -692,7 +788,11 @@ function buildMerkkasten(merkkasten: NonNullable<DocumentV1['didaktik']>['merkka
 }
 
 /** Freie Produktionsaufgabe zum Abschluss (Transfer auf die eigene Lebenswelt). */
-function buildTransferaufgabe(text: string, mode: Mode, template: RenderTemplate): (Paragraph | Table)[] {
+function buildTransferaufgabe(text: string, mode: Mode, template: RenderTemplate, fach: DocumentV1['meta']['fach'] = 'deutsch'): (Paragraph | Table)[] {
+  const isEnglish = fach === 'englisch';
+  const title = isEnglish ? 'Your turn:' : 'Zum Schluss – jetzt du!';
+  // Verhindere doppelte "Your turn:"-Überschriften, wenn der LLM sie bereits in den Text geschrieben hat.
+  const cleanedText = text.replace(/^Your turn:\s*/i, '').replace(/^Zum Schluss – jetzt du!\s*/i, '');
   const result: (Paragraph | Table)[] = [
     new Paragraph({
       heading: HeadingLevel.HEADING_2,
@@ -702,11 +802,11 @@ function buildTransferaufgabe(text: string, mode: Mode, template: RenderTemplate
         bottom: { style: BorderStyle.SINGLE, size: 6, color: template.color.text },
       },
       spacing: { before: 280, after: 120 },
-      children: [run('Zum Schluss – jetzt du!', { font: template.font, size: template.fontSize.h2, ...headingProps(template) })],
+      children: [run(title, { font: template.font, size: template.fontSize.h2, ...headingProps(template) })],
     }),
     new Paragraph({
       keepNext: true,
-      children: [run(text, { font: template.font, size: template.fontSize.body, bold: true })],
+      children: [run(cleanedText, { font: template.font, size: template.fontSize.body, bold: true })],
       spacing: { after: 120 },
     }),
   ];
@@ -723,6 +823,7 @@ function buildTransferaufgabe(text: string, mode: Mode, template: RenderTemplate
 // ---------------------------------------------------------------------------
 
 function buildSchuelerkopf(meta: DocumentV1['meta'], template: RenderTemplate): Table {
+  const isEnglish = meta.fach === 'englisch';
   const cellBorder = {
     top: thinBorder(template), bottom: thinBorder(template), left: thinBorder(template), right: thinBorder(template),
   };
@@ -737,12 +838,12 @@ function buildSchuelerkopf(meta: DocumentV1['meta'], template: RenderTemplate): 
             children: [
               new Paragraph({
                 children: [
-                  run('Name: ', { font: template.font, size: template.fontSize.body, bold: true }),
+                  run(isEnglish ? 'Name: ' : 'Name: ', { font: template.font, size: template.fontSize.body, bold: true }),
                   blankLine(28, template),
-                  run('     Klasse: ', { font: template.font, size: template.fontSize.body, bold: true }),
+                  run(isEnglish ? '     Class: ' : '     Klasse: ', { font: template.font, size: template.fontSize.body, bold: true }),
                   // Leere Klasse → Linie zum Eintragen, sonst der Wert.
                   meta.klasse ? run(meta.klasse, { font: template.font, size: template.fontSize.body }) : blankLine(8, template),
-                  run('     Datum: ', { font: template.font, size: template.fontSize.body, bold: true }),
+                  run(isEnglish ? '     Date: ' : '     Datum: ', { font: template.font, size: template.fontSize.body, bold: true }),
                   run(formatDatum(meta.datum), { font: template.font, size: template.fontSize.body }),
                 ],
               }),
@@ -758,9 +859,10 @@ function buildSchuelerkopf(meta: DocumentV1['meta'], template: RenderTemplate): 
 // Aufgabenübersicht (Punkte je Aufgabe, Gesamtsumme, Note/Unterschrift)
 // ---------------------------------------------------------------------------
 
-function buildPunkteUebersicht(bloecke: Block[], template: RenderTemplate): (Paragraph | Table)[] {
+function buildPunkteUebersicht(bloecke: Block[], template: RenderTemplate, fach: DocumentV1['meta']['fach'] = 'deutsch'): (Paragraph | Table)[] {
   if (bloecke.length === 0) return [];
 
+  const isEnglish = fach === 'englisch';
   const cellBorder = {
     top: thinBorder(template), bottom: thinBorder(template), left: thinBorder(template), right: thinBorder(template),
   };
@@ -789,8 +891,8 @@ function buildPunkteUebersicht(bloecke: Block[], template: RenderTemplate): (Par
       tableHeader: true,
       children: [
         headerCell('Nr.', 10),
-        headerCell('Aufgabe', 65),
-        headerCell('Punkte', 25, AlignmentType.RIGHT),
+        headerCell(isEnglish ? 'Exercise' : 'Aufgabe', 65),
+        headerCell(isEnglish ? 'Points' : 'Punkte', 25, AlignmentType.RIGHT),
       ],
     }),
   ];
@@ -800,7 +902,7 @@ function buildPunkteUebersicht(bloecke: Block[], template: RenderTemplate): (Par
       new TableRow({
         children: [
           cell([run(String(i + 1), { font: template.font, size: template.fontSize.body })], 10),
-          cell([run(BLOCK_LABELS[b.typ], { font: template.font, size: template.fontSize.body })], 65),
+          cell([run(blockLabels(fach)[b.typ], { font: template.font, size: template.fontSize.body })], 65),
           cell([blankLine(6, template), run(` / ${b.punkte}`, { font: template.font, size: template.fontSize.body })], 25, AlignmentType.RIGHT),
         ],
       }),
@@ -811,7 +913,7 @@ function buildPunkteUebersicht(bloecke: Block[], template: RenderTemplate): (Par
     new TableRow({
       children: [
         cell([run('', { font: template.font, size: template.fontSize.body })], 10, undefined, true),
-        cell([run('GESAMT', { font: template.font, size: template.fontSize.body, bold: true })], 65, undefined, true),
+        cell([run(isEnglish ? 'TOTAL' : 'GESAMT', { font: template.font, size: template.fontSize.body, bold: true })], 65, undefined, true),
         cell([blankLine(6, template), run(` / ${gesamt}`, { font: template.font, size: template.fontSize.body, bold: true })], 25, AlignmentType.RIGHT, true),
       ],
     }),
@@ -821,15 +923,15 @@ function buildPunkteUebersicht(bloecke: Block[], template: RenderTemplate): (Par
     new Paragraph({
       heading: HeadingLevel.HEADING_3,
       keepNext: true,
-      children: [run('Aufgabenübersicht', { font: template.font, size: template.fontSize.h3, ...headingProps(template) })],
+      children: [run(isEnglish ? 'Overview' : 'Aufgabenübersicht', { font: template.font, size: template.fontSize.h3, ...headingProps(template) })],
       spacing: { before: 160, after: 80 },
     }),
     new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows }),
     new Paragraph({
       children: [
-        run('Note: ', { font: template.font, size: template.fontSize.body, bold: true }),
+        run(isEnglish ? 'Grade: ' : 'Note: ', { font: template.font, size: template.fontSize.body, bold: true }),
         blankLine(20, template),
-        run('     Unterschrift: ', { font: template.font, size: template.fontSize.body, bold: true }),
+        run(isEnglish ? '     Signature: ' : '     Unterschrift: ', { font: template.font, size: template.fontSize.body, bold: true }),
         blankLine(24, template),
       ],
       spacing: { before: 120, after: 80 },
@@ -927,7 +1029,7 @@ function buildQuelltexte(quelltexte: QuellText[], template: RenderTemplate): (Pa
 // Block dispatcher
 // ---------------------------------------------------------------------------
 
-const BLOCK_LABELS: Record<Block['typ'], string> = {
+const BLOCK_LABELS_DE: Record<Block['typ'], string> = {
   lueckentext: 'Lückentext',
   matching: 'Zuordnung',
   multipleChoice: 'Multiple Choice',
@@ -946,6 +1048,29 @@ const BLOCK_LABELS: Record<Block['typ'], string> = {
   fehlerkorrektur: 'Fehlerkorrektur',
 };
 
+const BLOCK_LABELS_EN: Record<Block['typ'], string> = {
+  lueckentext: 'Gap-fill',
+  matching: 'Matching',
+  multipleChoice: 'Multiple Choice',
+  offeneVerstaendnisfrage: 'Reading questions',
+  offeneSchreibaufgabe: 'Writing task',
+  markieraufgabe: 'Highlighting',
+  wordScramble: 'Word order',
+  kategorisierung: 'Categorisation',
+  tabelle: 'Table',
+  stiluebung: 'Style exercise',
+  songanalyse: 'Song analysis',
+  kreuzwortraetsel: 'Crossword',
+  wortgitter: 'Word search',
+  vokabeluebung: 'Vocabulary',
+  umformung: 'Transformation',
+  fehlerkorrektur: 'Error correction',
+};
+
+function blockLabels(fach: DocumentV1['meta']['fach']): Record<Block['typ'], string> {
+  return fach === 'englisch' ? BLOCK_LABELS_EN : BLOCK_LABELS_DE;
+}
+
 function buildBlock(
   block: Block,
   index: number,
@@ -953,8 +1078,11 @@ function buildBlock(
   quelltextMap: Map<string, QuellText>,
   template: RenderTemplate,
   hidePunkte = false,
+  fach: DocumentV1['meta']['fach'] = 'deutsch',
 ): (Paragraph | Table)[] {
-  const label = BLOCK_LABELS[block.typ];
+  const label = blockLabels(fach)[block.typ];
+  const isEnglish = fach === 'englisch';
+  const taskLabel = isEnglish ? 'Exercise' : 'Aufgabe';
   // Kreuzworträtsel und Wortgitter sollen auf einer eigenen Seite beginnen,
   // damit sie nicht durch Seitenumbrüche zerrissen werden.
   const needsPageBreak = block.typ === 'kreuzwortraetsel' || block.typ === 'wortgitter';
@@ -977,7 +1105,7 @@ function buildBlock(
       },
       spacing: { before: needsPageBreak ? 0 : 280, after: 120 },
       children: [
-        run(`Aufgabe ${index}  –  ${label}`, {
+        run(`${taskLabel} ${index}  –  ${label}`, {
           font: template.font, size: template.fontSize.h2, ...headingProps(template),
         }),
         ...punkteRun,
@@ -1019,10 +1147,10 @@ function buildBlock(
 
   switch (block.typ) {
     case 'lueckentext':
-      result.push(...buildLueckentext(block, mode, template));
+      result.push(...buildLueckentext(block, mode, template, fach));
       break;
     case 'matching':
-      result.push(...buildMatching(block, mode, template));
+      result.push(...buildMatching(block, mode, template, fach));
       break;
     case 'multipleChoice':
       result.push(...buildMultipleChoice(block, mode, template));
@@ -1040,7 +1168,7 @@ function buildBlock(
       result.push(...buildWordScramble(block, mode, template));
       break;
     case 'kategorisierung':
-      result.push(...buildKategorisierung(block, mode, template));
+      result.push(...buildKategorisierung(block, mode, template, fach));
       break;
     case 'tabelle':
       result.push(...buildTabelle(block, mode, template));
@@ -1064,7 +1192,7 @@ function buildBlock(
       result.push(...buildUmformung(block, mode, template));
       break;
     case 'fehlerkorrektur':
-      result.push(...buildFehlerkorrektur(block, mode, template));
+      result.push(...buildFehlerkorrektur(block, mode, template, fach));
       break;
   }
 
@@ -1116,9 +1244,12 @@ function buildFehlerkorrektur(
   block: Extract<Block, { typ: 'fehlerkorrektur' }>,
   mode: Mode,
   template: RenderTemplate,
+  fach: DocumentV1['meta']['fach'] = 'deutsch',
 ): (Paragraph | Table)[] {
   // Kein eigener Titel/keine Arbeitsanweisung hier — buildBlock liefert beides bereits.
   const result: (Paragraph | Table)[] = [];
+  const isEnglish = fach === 'englisch';
+  const correctionLabel = isEnglish ? 'Correction' : 'Korrektur';
   for (const satz of block.config.saetze) {
     result.push(new Paragraph({
       indent: { left: 360 },
@@ -1132,7 +1263,7 @@ function buildFehlerkorrektur(
       if (korrektur) {
         result.push(new Paragraph({
           indent: { left: 720 },
-          children: [run(`Korrektur: ${korrektur.korrigierterSatz}`, { font: template.font, size: template.fontSize.body, italics: true })],
+          children: [run(`${correctionLabel}: ${korrektur.korrigierterSatz}`, { font: template.font, size: template.fontSize.body, italics: true })],
           spacing: { after: 100 },
         }));
       }
@@ -1149,8 +1280,10 @@ function buildLueckentext(
   block: Extract<Block, { typ: 'lueckentext' }>,
   mode: Mode,
   template: RenderTemplate,
+  fach: DocumentV1['meta']['fach'] = 'deutsch',
 ): (Paragraph | Table)[] {
   const result: (Paragraph | Table)[] = [];
+  const isEnglish = fach === 'englisch';
 
   // Wenn der LLM einen Cloze-Text mit Luecken geliefert hat, zeigen wir NUR diesen
   // (keine zusaetzliche Nummern-Tabelle — das ist das schultypische Format).
@@ -1222,14 +1355,14 @@ function buildLueckentext(
     const bank = distraktoren.length > 0
       ? baueWortbank(loesungsWoerter, distraktoren, block.id)
       : loesungsWoerter;
-    result.push(...buildWortbankBoxen(bank, template));
+    result.push(...buildWortbankBoxen(bank, template, isEnglish ? 'Word bank' : 'Wortbank'));
   }
 
   return result;
 }
 
 /** Wortbank als Reihe gerahmter Kaestchen (schultypisch), 4 pro Zeile. */
-function buildWortbankBoxen(woerter: string[], template: RenderTemplate): (Paragraph | Table)[] {
+function buildWortbankBoxen(woerter: string[], template: RenderTemplate, title: string): (Paragraph | Table)[] {
   if (woerter.length === 0) return [];
   const border = thinBorder(template);
   const perRow = 4;
@@ -1253,7 +1386,7 @@ function buildWortbankBoxen(woerter: string[], template: RenderTemplate): (Parag
     return new TableRow({ children: cells });
   });
   return [
-    new Paragraph({ children: [run('Wortbank', { font: template.font, size: template.fontSize.body, bold: true })], spacing: { before: 160, after: 60 } }),
+    new Paragraph({ children: [run(title, { font: template.font, size: template.fontSize.body, bold: true })], spacing: { before: 160, after: 60 } }),
     new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
       layout: TableLayoutType.FIXED,
@@ -1271,8 +1404,10 @@ function buildMatching(
   block: Extract<Block, { typ: 'matching' }>,
   mode: Mode,
   template: RenderTemplate,
+  fach: DocumentV1['meta']['fach'] = 'deutsch',
 ): (Paragraph | Table)[] {
   const result: (Paragraph | Table)[] = [];
+  const isEnglish = fach === 'englisch';
 
   // Items table + options table side by side
   const optionsTable = new Table({
@@ -1342,13 +1477,13 @@ function buildMatching(
   result.push(
     new Paragraph({
       keepNext: true,
-      children: [run('Optionen:', { font: template.font, size: template.fontSize.body, bold: true })],
+      children: [run(isEnglish ? 'Options:' : 'Optionen:', { font: template.font, size: template.fontSize.body, bold: true })],
       spacing: { after: 80 },
     }),
     optionsTable,
     new Paragraph({
       keepNext: true,
-      children: [run('Deine Zuordnung:', { font: template.font, size: template.fontSize.body, bold: true })],
+      children: [run(isEnglish ? 'Your matches:' : 'Deine Zuordnung:', { font: template.font, size: template.fontSize.body, bold: true })],
       spacing: { before: 160, after: 80 },
     }),
     new Table({
@@ -1708,8 +1843,10 @@ function buildKategorisierung(
   block: Extract<Block, { typ: 'kategorisierung' }>,
   mode: Mode,
   template: RenderTemplate,
+  fach: DocumentV1['meta']['fach'] = 'deutsch',
 ): (Paragraph | Table)[] {
   const result: (Paragraph | Table)[] = [];
+  const isEnglish = fach === 'englisch';
 
   const cellBorder = {
     top: thinBorder(template), bottom: thinBorder(template),
@@ -1717,8 +1854,10 @@ function buildKategorisierung(
   };
   const cellMargins = { top: 100, bottom: 100, left: 80, right: 80 };
 
-  const titelBegriff = block.config.spaltentitelBegriff?.trim() || 'Begriff';
-  const titelKategorie = block.config.spaltentitelKategorie?.trim() || 'Kategorie';
+  const defaultBegriff = isEnglish ? 'Sentence' : 'Begriff';
+  const defaultKategorie = isEnglish ? 'Category' : 'Kategorie';
+  const titelBegriff = block.config.spaltentitelBegriff?.trim() || defaultBegriff;
+  const titelKategorie = block.config.spaltentitelKategorie?.trim() || defaultKategorie;
   const headerRow = new TableRow({
     tableHeader: true,
     children: [
@@ -1770,7 +1909,7 @@ function buildKategorisierung(
   if (mode === 'schueler') {
     result.push(
       new Paragraph({
-        children: [run('Verfügbare Kategorien:  ' + block.config.kategorien.map((k) => k.name).join(', '), { font: template.font, size: template.fontSize.body, italics: true, color: template.color.gray })],
+        children: [run((isEnglish ? 'Available categories:  ' : 'Verfügbare Kategorien:  ') + block.config.kategorien.map((k) => k.name).join(', '), { font: template.font, size: template.fontSize.body, italics: true, color: template.color.gray })],
         spacing: { before: 80, after: 40 },
       }),
     );

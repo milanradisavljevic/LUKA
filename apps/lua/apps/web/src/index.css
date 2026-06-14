@@ -56,6 +56,22 @@
   font-display: swap;
 }
 
+/* Playwrite Österreich — sparsames Schrift-Element (Variable Font, 100–400) */
+@font-face {
+  font-family: 'Playwrite AT';
+  src: url('./assets/fonts/PlaywriteAT-Variable.ttf') format('truetype-variations');
+  font-weight: 100 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Playwrite AT';
+  src: url('./assets/fonts/PlaywriteAT-Italic-Variable.ttf') format('truetype-variations');
+  font-weight: 100 400;
+  font-style: italic;
+  font-display: swap;
+}
+
 *,
 *::before,
 *::after {
@@ -64,29 +80,30 @@
   padding: 0;
 }
 
-/* === LIGHT (default) === */
+/* === LIGHT (default) — Tinte & Papier === */
 :root {
   color-scheme: light;
   --html-font-size: 16px;
   --font: 'Ubuntu', Arial, Helvetica, sans-serif, 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  --font-script: 'Playwrite AT', 'Ubuntu', cursive;
 
-  /* Semantische Token */
-  --color-bg-base: #F0F0F0;
+  /* Tinte & Papier */
+  --color-bg-base: #F5F4EF;
   --color-bg-surface: #FFFFFF;
   --color-bg-elevated: #FFFFFF;
   --color-bg-input: #FFFFFF;
-  --color-bg-hover: #F5F5F5;
-  --color-bg-selected: rgba(91,91,214,0.12);
+  --color-bg-hover: #EFEDE6;
+  --color-bg-selected: rgba(44,74,110,0.10);
   --color-bg-backdrop: rgba(255,255,255,0.96);
 
-  --color-text-primary: #000000;
-  --color-text-secondary: #595959;
-  --color-text-muted: #8a8a8a;
+  --color-text-primary: #1A1A1A;
+  --color-text-secondary: #5A5A52;
+  --color-text-muted: #8C8A80;
 
-  --color-border: #BFBFBF;
-  --color-border-focus: #5b5bd6;
-  --color-accent: #5b5bd6;
-  --color-accent-hover: #4a4ac4;
+  --color-border: #C9C6BC;
+  --color-border-focus: #2C4A6E;
+  --color-accent: #2C4A6E;
+  --color-accent-hover: #1F3A5A;
 
   --color-error: #d93025;
   --color-error-bg: #fce8e6;
@@ -95,17 +112,27 @@
   --color-warning: #b06000;
   --color-warning-bg: #fff3cd;
 
-  --color-shadow: rgba(0,0,0,0.12);
+  /* Info / didaktischer Hinweis */
+  --color-info: #2C6E5A;
+  --color-info-bg: rgba(44,110,90,0.08);
+
+  --color-shadow: rgba(0,0,0,0.10);
   --color-overlay: rgba(0,0,0,0.4);
-  --color-highlight: #6a1b9a;
-  --color-highlight-bg: rgba(106, 27, 154, 0.08);
+  --color-highlight: #6E2C4A;
+  --color-highlight-bg: rgba(110,44,74,0.08);
 
   /* Sidebar */
-  --sidebar-bg: #f5f5fa;
-  --sidebar-text: #595959;
-  --sidebar-text-active: #1a1a2e;
-  --sidebar-border: rgba(0,0,0,0.08);
-  --sidebar-accent: #5b5bd6;
+  --sidebar-bg: #EFEDE6;
+  --sidebar-text: #5A5A52;
+  --sidebar-text-active: #1F3A5A;
+  --sidebar-border: rgba(0,0,0,0.06);
+  --sidebar-accent: #2C4A6E;
+
+  /* Tür-Füllfarben (eigene Tokens, NIE bg-base — sonst hohl) */
+  --door-quelltext: #2C4A6E;   /* gestrichene Tintenblau-Tür */
+  --door-quelltext-edge: #1F3A5A;
+  --door-kompetenz: #E7DBBE;   /* warmes Pergament */
+  --door-kompetenz-edge: #6E2C4A;
 
   /* Legacy-Aliase (Temporär) */
   --color-text: var(--color-text-primary);
@@ -118,45 +145,56 @@
   --shadow: 0 1px 3px var(--color-shadow);
 }
 
-/* === DARK === */
+/* === DARK — Papier-Nacht (warm, nicht kalter Schiefer) === */
 :root[data-theme="dark"] {
   color-scheme: dark;
 
-  --color-bg-base: #0f0f1a;
-  --color-bg-surface: #1a1a2e;
-  --color-bg-elevated: #252540;
-  --color-bg-input: #1e1e32;
-  --color-bg-hover: #2a2a48;
-  --color-bg-selected: rgba(124,124,224,0.20);
-  --color-bg-backdrop: rgba(15,15,26,0.96);
+  /* warmes dunkles Papier statt blaugrauem Schiefer */
+  --color-bg-base: #1B1713;
+  --color-bg-surface: #241F19;
+  --color-bg-elevated: #2C261E;
+  --color-bg-input: #201B15;
+  --color-bg-hover: #2F2820;
+  --color-bg-selected: rgba(143,176,204,0.16);
+  --color-bg-backdrop: rgba(27,23,19,0.96);
 
-  --color-text-primary: #e8e8f0;
-  --color-text-secondary: #a0a0b8;
-  --color-text-muted: #6e6e8a;
+  --color-text-primary: #ECE6DC;   /* warmes Papierweiß */
+  --color-text-secondary: #B4AB99;
+  --color-text-muted: #847A6A;
 
-  --color-border: #3a3a55;
-  --color-border-focus: #7c7ce0;
-  --color-accent: #7c7ce0;
-  --color-accent-hover: #9a9af0;
+  --color-border: #423A30;          /* warmes Dunkelbraun */
+  --color-border-focus: #8FB0CC;
+  --color-accent: #8FB0CC;          /* Tinte bei Nacht */
+  --color-accent-hover: #A9C5DC;
 
   --color-error: #ff6b6b;
-  --color-error-bg: #3d1f1f;
+  --color-error-bg: #3d2420;
   --color-success: #5cdb95;
-  --color-success-bg: #1f3d2a;
+  --color-success-bg: #21351f;
   --color-warning: #ffc107;
   --color-warning-bg: #3d3318;
 
-  --color-shadow: rgba(0,0,0,0.40);
-  --color-overlay: rgba(0,0,0,0.6);
-  --color-highlight: #ce93d8;
-  --color-highlight-bg: rgba(206, 147, 216, 0.15);
+  /* Info / didaktischer Hinweis */
+  --color-info: #8FCCB2;
+  --color-info-bg: rgba(143,204,178,0.12);
 
-  /* Sidebar: im Dark Mode identisch zur aktuellen dunklen Darstellung */
-  --sidebar-bg: #1a1a2e;
-  --sidebar-text: rgba(255,255,255,0.75);
+  --color-shadow: rgba(0,0,0,0.45);
+  --color-overlay: rgba(0,0,0,0.6);
+  --color-highlight: #CC9AAC;       /* Bordeaux-Rosé, warm */
+  --color-highlight-bg: rgba(204,154,172,0.14);
+
+  /* Tür-Füllfarben (Nacht): sichtbar gefüllt, nie bg-base */
+  --door-quelltext: #3B5878;
+  --door-quelltext-edge: #547295;
+  --door-kompetenz: #463C2C;        /* dunkles, gealtertes Pergament */
+  --door-kompetenz-edge: #CC9AAC;
+
+  /* Sidebar */
+  --sidebar-bg: #201B15;
+  --sidebar-text: rgba(236,230,220,0.78);
   --sidebar-text-active: #ffffff;
-  --sidebar-border: rgba(255,255,255,0.08);
-  --sidebar-accent: #7c7ce0;
+  --sidebar-border: rgba(255,255,255,0.07);
+  --sidebar-accent: #8FB0CC;
 }
 
 html {
@@ -171,8 +209,8 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-h1 { font-size: 1.25rem; font-weight: 700; }
-h2 { font-size: 1.125rem; font-weight: 700; }
+h1 { font-size: 1.375rem; font-weight: 700; }
+h2 { font-size: 1.25rem; font-weight: 700; }
 h3 { font-size: 1rem; font-weight: 700; }
 
 input, textarea, select {
@@ -189,7 +227,7 @@ input, textarea, select {
 input:focus, textarea:focus, select:focus {
   outline: none;
   border-color: var(--color-border-focus);
-  box-shadow: 0 0 0 2px rgba(91,91,214,0.15);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 18%, transparent);
 }
 
 textarea {
@@ -228,7 +266,7 @@ input[type="range"]::-moz-range-thumb {
 label {
   display: block;
   font-size: 0.8125rem;
-  font-weight: 600;
+  font-weight: 500;
   margin-bottom: 0.25rem;
   color: var(--color-text-secondary);
 }
@@ -240,8 +278,8 @@ button {
   border: none;
   border-radius: var(--radius);
   padding: 0.5rem 1rem;
-  font-weight: 600;
-  transition: opacity 0.15s;
+  font-weight: 500;
+  transition: background 0.15s, opacity 0.15s;
 }
 
 button:hover { opacity: 0.85; }
@@ -251,6 +289,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   background: var(--color-accent);
   color: white;
 }
+.btn-primary:hover { background: var(--color-accent-hover); }
 
 .btn-secondary {
   background: var(--color-bg-hover);
@@ -261,6 +300,172 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .btn-danger {
   background: var(--color-error);
   color: white;
+}
+
+/* === A11y: sichtbarer Tastatur-Fokus überall === */
+:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+/* === Badges === */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.badge-info {
+  background: var(--color-info-bg);
+  color: var(--color-info);
+}
+
+.badge-context {
+  background: var(--color-bg-selected);
+  color: var(--color-accent);
+}
+
+/* === Karten (Dashboard-Türen, Vorlagen) === */
+.card {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.card-clickable {
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.card-clickable:hover {
+  border-color: var(--color-accent);
+  box-shadow: 0 2px 8px var(--color-shadow);
+}
+
+/* === Notenzeilen-Motiv (dezentes Linienschema) === */
+.notenzeilen {
+  background-image: repeating-linear-gradient(
+    transparent,
+    transparent 23px,
+    color-mix(in srgb, var(--color-border) 25%, transparent) 23px,
+    color-mix(in srgb, var(--color-border) 25%, transparent) 24px
+  );
+}
+
+/* === Hilfsklasse für Playwrite Schreibschrift === */
+.font-script {
+  font-family: var(--font-script);
+}
+
+/* === Auswahl-Kachel (Tile) — geteiltes Vokabular statt Inline-Hover === */
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  text-align: left;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  /* 2px Innen-Schatten ahmt den dickeren Selected-Rand nach → kein Layout-Sprung */
+  box-shadow: inset 0 0 0 1px transparent;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s, transform 0.15s;
+}
+.tile:hover {
+  border-color: var(--color-accent);
+  background: var(--color-highlight-bg);
+  transform: translateY(-1px);
+}
+.tile:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+.tile[aria-pressed="true"],
+.tile-selected {
+  border-color: var(--color-accent);
+  background: var(--color-highlight-bg);
+  box-shadow: inset 0 0 0 1px var(--color-accent);
+}
+
+/* === Lift-Hover (Karten, die beim Hover leicht steigen) === */
+.lift-hover {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s, background 0.15s;
+}
+.lift-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px var(--color-shadow);
+}
+
+/* === Entfernen-Knopf (X) — wird beim Hover rot === */
+.x-remove { transition: background 0.15s, color 0.15s; }
+.x-remove:hover { background: var(--color-error) !important; color: #fff !important; }
+
+/* === Türen (Dashboard-Einstiege) === */
+.door-card {
+  /* setzt die Bühne für das perspektivische Öffnen des Türblatts */
+  perspective: 900px;
+}
+.door-leaf {
+  transform-origin: left center;
+  transition: transform 0.35s ease;
+}
+.door-card:hover .door-leaf,
+.door-card:focus-visible .door-leaf {
+  transform: rotateY(-22deg);
+}
+.door-icon {
+  transition: opacity 0.25s ease 0.1s;
+}
+.door-card:hover .door-icon,
+.door-card:focus-visible .door-icon {
+  opacity: 0;
+}
+/* „Lichtschein" hinter der sich öffnenden Tür */
+.door-glow { opacity: 0; transition: opacity 0.35s ease; }
+.door-card:hover .door-glow,
+.door-card:focus-visible .door-glow { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .door-leaf, .door-icon, .door-glow { transition: none; }
+  .door-card:hover .door-leaf, .door-card:focus-visible .door-leaf { transform: none; }
+}
+
+/* === Papier-Anmutung: feine, sehr dezente Faserung === */
+.paper {
+  background-color: var(--color-bg-surface);
+  background-image:
+    repeating-linear-gradient(90deg,
+      color-mix(in srgb, var(--color-border) 7%, transparent) 0,
+      color-mix(in srgb, var(--color-border) 7%, transparent) 1px,
+      transparent 1px, transparent 3px),
+    repeating-linear-gradient(0deg,
+      color-mix(in srgb, var(--color-border) 5%, transparent) 0,
+      color-mix(in srgb, var(--color-border) 5%, transparent) 1px,
+      transparent 1px, transparent 4px);
+}
+
+/* === Tinten-Unterstreichung für Überschriften (handgezogener Strich) === */
+.ink-underline {
+  display: inline-block;
+  padding-bottom: 0.35rem;
+  background-image: linear-gradient(
+    to right,
+    transparent 0,
+    var(--color-accent) 6%,
+    var(--color-accent) 94%,
+    transparent 100%
+  );
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  /* leicht keilförmiger Strich: links dünner, Mitte dicker */
+  background-size: 100% 2px;
 }
 
 /* Scrollbars im Dark Mode */
