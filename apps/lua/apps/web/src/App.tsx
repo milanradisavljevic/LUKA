@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Save, Command, ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
+import { Save, Command, ArrowLeft, ArrowRight, Loader2, BookOpen } from 'lucide-react';
 import type { AppAction, ActiveView, SavedDocument } from './lib/types';
+import { STEP_DESCRIPTIONS } from './lib/types';
 import type { Meta, Block } from '@lehrunterlagen/schema';
 import { useWizard } from './hooks/useWizard';
 import { useTheme } from './hooks/useTheme';
@@ -34,6 +35,24 @@ import { loadDocuments, upsertDocument, snapshotFromState, saveTemplate, deleteT
 import { Toast, type ToastMessage } from './components/Toast';
 import './App.css';
 
+/** Seitentitel je Ansicht — ersetzt die Marken-Dopplung im Header. */
+const VIEW_TITLES: Record<ActiveView, string> = {
+  dashboard: 'Übersicht',
+  wizard: 'Neue Unterlage',
+  kompetenz: 'Kompetenz-Übung',
+  documents: 'Meine Unterlagen',
+  klassen: 'Meine Klassen',
+  korrektur: 'Korrektur',
+  schueler: 'Schüler',
+  erwartungshorizont: 'Erwartungshorizont',
+  templates: 'Vorlagen',
+  history: 'Verlauf',
+  favorites: 'Favoriten',
+  trash: 'Papierkorb',
+  settings: 'Einstellungen',
+  help: 'Hilfe',
+};
+
 export default function App() {
   const [hydrating, setHydrating] = useState(!isHydrated());
 
@@ -46,7 +65,7 @@ export default function App() {
   const { state, dispatch, goNext, goBack, goToStep, currentIndex } = useWizard();
   const { resolved: theme, toggle: toggleTheme } = useTheme();
   const { zoom, reset: resetZoom } = useZoom();
-  const [activeView, setActiveView] = useState<ActiveView>('wizard');
+  const [activeView, setActiveView] = useState<ActiveView>('dashboard');
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
@@ -216,8 +235,11 @@ if (hydrating) {
   }
 
   return (
-          <div style={{ maxWidth: 960, margin: '0 auto' }}>
+          <div style={{ maxWidth: 1080, margin: '0 auto' }}>
             <WizardStepper currentStep={state.step} onStepClick={goToStep} />
+            <p style={{ textAlign: 'center', fontSize: '0.8125rem', color: 'var(--color-text-muted)', marginTop: '0.5rem' }}>
+              Schritt {currentIndex + 1}/5 — {STEP_DESCRIPTIONS[state.step]}
+            </p>
             <div style={{ marginTop: '1.25rem' }}>{renderStep()}</div>
           </div>
         );
@@ -270,44 +292,57 @@ if (hydrating) {
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {/* Kopfleiste */}
-        <header style={{
+        <header className="paper" style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          padding: '0.75rem 1.25rem',
-          background: 'var(--color-bg-surface)',
+          padding: '1rem 1.5rem',
           borderBottom: '1px solid var(--color-border)',
         }}>
-          <div>
-            <h1 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: 'var(--color-text-primary)' }}>
-              Lehrunterlagen-Applikation
-            </h1>
-            <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', margin: 0 }}>
-              AHS Deutsch &amp; Englisch · Unter- und Oberstufe
-            </p>
-          </div>
-          {isWizard && (
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              {saveMsg && (
-                <span style={{ fontSize: '0.75rem', color: 'var(--color-success)' }}>{saveMsg}</span>
-              )}
-              <button className="btn-secondary" onClick={() => setPaletteOpen(true)}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.75rem', padding: '0.375rem 0.625rem' }}
-                title="Befehl eingeben (Ctrl+K)">
-                <Command size={14} /> Befehle
-              </button>
-              <button className="btn-secondary" onClick={handleSaveDocument}
-                disabled={state.bloecke.length === 0}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.75rem', padding: '0.375rem 0.625rem' }}
-                title={state.bloecke.length === 0 ? 'Erst Blöcke anlegen' : 'Dokument speichern'}>
-                <Save size={14} /> Speichern
-              </button>
-              <TemplateManager meta={state.meta} bloecke={state.bloecke} onLoad={handleLoadTemplate} />
-              <ThemeToggle theme={theme} onToggle={toggleTheme} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div>
+              <h1 style={{ fontSize: '1.125rem', fontWeight: 700, margin: 0, color: 'var(--color-text-primary)' }}>
+                {VIEW_TITLES[activeView]}
+              </h1>
             </div>
-          )}
+            <button
+              className="badge badge-context"
+              onClick={() => { setActiveView('wizard'); goToStep('absicht'); }}
+              title="Zur Absicht (Fach, Stufe, Klasse \u00E4ndern)"
+              style={{ border: 'none', cursor: 'pointer' }}
+            >
+              <BookOpen size={12} />
+              {state.meta.fach === 'deutsch' ? 'Deutsch' : state.meta.fach === 'englisch' ? 'Englisch' : state.meta.fach}
+              {' '}&middot;{' '}
+              {state.meta.stufe === 'oberstufe' ? 'Oberstufe' : 'Unterstufe'}
+              {state.meta.klasse ? ` \u00B7 ${state.meta.klasse}` : ''}
+              {state.meta.modus === 'kompetenz' ? ' \u00B7 Kompetenz' : ''}
+            </button>
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            {saveMsg && (
+              <span style={{ fontSize: '0.75rem', color: 'var(--color-success)' }}>{saveMsg}</span>
+            )}
+            <button className="btn-secondary" onClick={() => setPaletteOpen(true)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.75rem', padding: '0.375rem 0.625rem' }}
+              title="Befehl eingeben (Ctrl+K)">
+              <Command size={14} /> Befehle
+            </button>
+            {isWizard && (
+              <>
+                <button className="btn-secondary" onClick={handleSaveDocument}
+                  disabled={state.bloecke.length === 0}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.75rem', padding: '0.375rem 0.625rem' }}
+                  title={state.bloecke.length === 0 ? 'Erst Blöcke anlegen' : 'Dokument speichern'}>
+                  <Save size={14} /> Speichern
+                </button>
+                <TemplateManager meta={state.meta} bloecke={state.bloecke} onLoad={handleLoadTemplate} />
+              </>
+            )}
+            <ThemeToggle theme={theme} onToggle={toggleTheme} />
+          </div>
         </header>
 
         {/* Hauptbereich */}
-        <main style={{ flex: 1, overflow: 'auto', padding: '1.25rem', background: 'var(--color-bg-base)' }}>
+        <main style={{ flex: 1, overflow: 'auto', padding: '1.5rem', background: 'var(--color-bg-base)' }}>
           {renderView()}
         </main>
 

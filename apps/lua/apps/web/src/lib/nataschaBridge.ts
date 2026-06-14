@@ -24,6 +24,8 @@ export interface BridgeExport {
   fach: Fach;
   schulstufe?: Stufe;
   textsorte?: string;
+  /** v2, optional: Ausgangstext der Originalarbeit → Quelltext-Vorbefüllung. */
+  ausgangstext?: string;
   datum: string;
   anzahlAbgaben?: number;
   heatmap: BridgeHeatmapEintrag[];
@@ -54,7 +56,10 @@ export const TYP_FARBE: Record<BridgeHeatmapEintrag['typ'], string> = {
   A: '#ba68c8',
 };
 
-export const SUPPORTED_BRIDGE_VERSION = 1;
+/** Aktuelle Schreib-Version. */
+export const SUPPORTED_BRIDGE_VERSION = 2;
+/** Lesbare Versionen (abwärtskompatibel). */
+export const SUPPORTED_BRIDGE_VERSIONS = [1, 2] as const;
 
 /** Fehlerkategorie → passende LUA-Aufgabentypen (Heuristik, siehe bridge/README.md). */
 export const KATEGORIE_TO_BLOCKTYPEN: Record<BridgeHeatmapEintrag['typ'], BlockTyp[]> = {
@@ -71,6 +76,10 @@ export interface NataschaPrefill {
   fokusThemen: string[];
   gewuenschteAufgabenarten: BlockTyp[];
   notizen: string;
+  /** v2: Ausgangstext der Originalarbeit → Step0 befüllt damit den Quelltext vor. */
+  ausgangstext?: string;
+  /** v2: Strukturierte Schülerfehler → editierbare Kurations-Liste in Step0. */
+  fehler?: BridgeBeispiel[];
 }
 
 /**
@@ -88,9 +97,9 @@ export function parseBridgeExport(raw: string): BridgeExport {
   if (typeof d?.schemaVersion !== 'number') {
     throw new Error('Unbekanntes NATASCHA-Format (schemaVersion fehlt).');
   }
-  if (d.schemaVersion !== SUPPORTED_BRIDGE_VERSION) {
+  if (!(SUPPORTED_BRIDGE_VERSIONS as readonly number[]).includes(d.schemaVersion)) {
     throw new Error(
-      `NATASCHA-Export hat Version ${d.schemaVersion}, unterstützt wird ${SUPPORTED_BRIDGE_VERSION}.`,
+      `NATASCHA-Export hat Version ${d.schemaVersion}, unterstützt werden ${SUPPORTED_BRIDGE_VERSIONS.join(', ')}.`,
     );
   }
   if (!d.klasse || !d.aufgabe || !Array.isArray(d.heatmap)) {
@@ -116,15 +125,13 @@ export function mapBridgeToPrefill(ex: BridgeExport): NataschaPrefill {
     }
   }
 
-  const beispielText = (ex.beispiele ?? [])
-    .slice(0, 6)
-    .map((b) => `„${b.zitat}" → „${b.korrektur}" (${b.typ})`)
-    .join('; ');
+  // Fehler bleiben strukturiert (für die editierbare Kuration in Step0); notizen
+  // tragen nur noch einen knappen Kontext-Satz, nicht mehr den ganzen Fehler-Blob.
+  const fehler = (ex.beispiele ?? []).slice(0, 12);
   const empfehlungText = (ex.empfehlungen ?? []).slice(0, 3).join(' ');
 
   const notizenTeile = [
     `Gezielte Übung zu den Fehlerschwerpunkten der Klasse ${ex.klasse} (Aufgabe ${ex.aufgabe}).`,
-    beispielText ? `Typische Schülerfehler: ${beispielText}.` : '',
     empfehlungText,
   ].filter(Boolean);
 
@@ -135,5 +142,7 @@ export function mapBridgeToPrefill(ex: BridgeExport): NataschaPrefill {
     fokusThemen,
     gewuenschteAufgabenarten,
     notizen: notizenTeile.join(' '),
+    ausgangstext: ex.ausgangstext?.trim() || undefined,
+    fehler: fehler.length > 0 ? fehler : undefined,
   };
 }

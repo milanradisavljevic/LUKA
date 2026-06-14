@@ -63,6 +63,16 @@ export function Step2_Baukasten({ state, dispatch }: Props) {
 
   const totalPoints = state.bloecke.reduce((sum, b) => sum + b.punkte, 0);
 
+  // Minuten-Spanne aus Blocktyp-Schätzwerten
+  const totalMinutes: [number, number] = state.bloecke.reduce(
+    (acc, b) => {
+      const def = BLOCK_TYPE_DEFS.find((d) => d.id === b.typ);
+      if (!def) return acc;
+      return [acc[0] + def.minuten[0], acc[1] + def.minuten[1]];
+    },
+    [0, 0] as [number, number],
+  );
+
   // Zähle Blöcke pro Typ für die Counter-Badges
   const countByType = new Map<string, number>();
   for (const b of state.bloecke) {
@@ -86,11 +96,12 @@ export function Step2_Baukasten({ state, dispatch }: Props) {
                 key={bt.id}
                 role="button"
                 tabIndex={0}
+                aria-pressed={hasAny}
                 onClick={() => handleAddBlock(bt.id)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleAddBlock(bt.id); }
                 }}
-                className="btn-secondary"
+                className="btn-secondary lift-hover"
                 title={isDiscouraged ? schwierigkeitHinweis : undefined}
                 style={{
                   display: 'flex',
@@ -105,18 +116,9 @@ export function Step2_Baukasten({ state, dispatch }: Props) {
                   borderColor: hasAny ? bt.color : 'var(--color-border)',
                   borderWidth: hasAny ? '2px' : '1px',
                   position: 'relative',
-                  transition: 'all 0.2s ease',
                   cursor: 'pointer',
                   opacity: isDiscouraged ? 0.5 : 1,
                   filter: isDiscouraged ? 'grayscale(0.4)' : 'none',
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-2px)';
-                  (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 12px var(--color-shadow)';
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)';
-                  (e.currentTarget as HTMLDivElement).style.boxShadow = 'none';
                 }}
               >
                 {/* Counter-Badge (links) */}
@@ -151,6 +153,7 @@ export function Step2_Baukasten({ state, dispatch }: Props) {
                     onClick={(e) => { e.stopPropagation(); removeBlocksByType(bt.id); }}
                     aria-label={`Alle ${bt.label}-Blöcke entfernen`}
                     title="Alle entfernen"
+                    className="x-remove"
                     style={{
                       position: 'absolute', top: -8, right: -8, zIndex: 3,
                       width: 24, height: 24, borderRadius: '50%', padding: 0,
@@ -158,16 +161,6 @@ export function Step2_Baukasten({ state, dispatch }: Props) {
                       color: 'var(--color-text-secondary)', cursor: 'pointer',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       boxShadow: '0 2px 6px var(--color-shadow)',
-                    }}
-                    onMouseEnter={(e) => {
-                      const t = e.currentTarget;
-                      t.style.background = 'var(--color-error, #e53935)';
-                      t.style.color = 'white';
-                    }}
-                    onMouseLeave={(e) => {
-                      const t = e.currentTarget;
-                      t.style.background = 'var(--color-bg-surface)';
-                      t.style.color = 'var(--color-text-secondary)';
                     }}
                   >
                     <X size={13} />
@@ -213,7 +206,7 @@ export function Step2_Baukasten({ state, dispatch }: Props) {
         `}</style>
       </div>
 
-      <PointSummary totalPoints={totalPoints} blockCount={state.bloecke.length} />
+      <PointSummary totalPoints={totalPoints} blockCount={state.bloecke.length} totalMinutes={state.bloecke.length > 0 ? totalMinutes : undefined} />
 
       {state.bloecke.length === 0 ? (
         <p style={{ color: 'var(--color-text-secondary)', textAlign: 'center', padding: '3rem 0' }}>

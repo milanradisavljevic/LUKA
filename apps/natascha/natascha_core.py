@@ -997,6 +997,9 @@ def run_llm_analysis(
             data["rubrik"] = rubric_name
         if schueler:
             data["schueler"] = schueler
+        # Ausgangstext für die LUA-Brücke mitführen (Quelltext-Vorbefüllung der Übung).
+        if ausgangstext_text:
+            data["ausgangstext"] = ausgangstext_text
 
         # Halluzinationsfilter: Fehler-Zitate gegen Originaltext prüfen
         if data.get("fehler") and docx_text and not vision_mode:

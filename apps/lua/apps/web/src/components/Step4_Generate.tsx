@@ -37,9 +37,9 @@ export function Step4_Generate({ state, dispatch }: Props) {
   // Fortschritts-Anzeige je Stage
   const stageMeta: Record<string, { label: string; step: number }> = {
     idle:    { label: 'Bereit', step: 0 },
-    sende:   { label: 'KI generiert Inhalte…', step: 1 },
-    validiere: { label: 'Antwort wird geprüft…', step: 2 },
-    korrigiere: { label: 'Reparaturversuch…', step: 3 },
+    sende:   { label: 'KI formuliert Aufgaben …', step: 1 },
+    validiere: { label: 'Struktur und Lösungen werden geprüft …', step: 2 },
+    korrigiere: { label: 'KI bessert Beanstandungen nach …', step: 3 },
     fertig:  { label: 'Fertig!', step: 4 },
     fehler:  { label: 'Fehler', step: 0 },
   };
@@ -77,25 +77,10 @@ export function Step4_Generate({ state, dispatch }: Props) {
             return (
               <button
                 key={tpl.id}
+                className="tile"
+                aria-pressed={aktiv}
                 onClick={() => dispatch({ type: 'SET_RENDER_TEMPLATE', template: tpl.id })}
-                style={{
-                  textAlign: 'left',
-                  padding: '0.75rem 1rem',
-                  borderRadius: 'var(--radius)',
-                  border: aktiv ? '2px solid var(--color-accent)' : '1px solid var(--color-border)',
-                  background: aktiv ? 'var(--color-highlight-bg)' : 'var(--color-bg-surface)',
-                  cursor: 'pointer',
-                  fontSize: '0.8125rem',
-                  transition: 'all 0.15s ease',
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-accent)';
-                  (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-highlight-bg)';
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.borderColor = aktiv ? 'var(--color-accent)' : 'var(--color-border)';
-                  (e.currentTarget as HTMLButtonElement).style.background = aktiv ? 'var(--color-highlight-bg)' : 'var(--color-bg-surface)';
-                }}
+                style={{ fontSize: '0.8125rem' }}
               >
                 <strong style={{ fontSize: '0.875rem' }}>{tpl.label}</strong>
                 <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.125rem' }}>
@@ -108,6 +93,20 @@ export function Step4_Generate({ state, dispatch }: Props) {
             );
           })}
         </div>
+      </div>
+
+      {/* Export-Transparenz */}
+      <div className="card" style={{ padding: '0.875rem 1rem', marginBottom: '1.5rem' }}>
+        <p style={{ fontSize: '0.8125rem', margin: 0, color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
+          Beim Export entstehen:{' '}
+          <span className="badge badge-info">Schülerfassung (DOCX)</span>{' '}
+          <span className="badge badge-info">Lösung (DOCX)</span>{' '}
+          <span className="badge badge-info">Korrekturraster</span>
+          {isKompetenz && !isFrei && (
+            <>{' '}<span className="badge badge-info">Kompetenznachweis</span></>
+          )}{' '}
+          <span className="badge badge-info">optional PDF</span>
+        </p>
       </div>
 
       {/* Zusammenfassung + Aktionen */}
@@ -150,6 +149,7 @@ export function Step4_Generate({ state, dispatch }: Props) {
             className="btn-primary"
             onClick={() => generate(state)}
             disabled={!canGenerate || generating || exporting}
+            aria-label={generating ? 'Inhalt wird generiert' : 'Inhalt generieren'}
             style={{ padding: '0.65rem 1.25rem', fontSize: '0.9375rem',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
           >
@@ -163,6 +163,7 @@ export function Step4_Generate({ state, dispatch }: Props) {
             className="btn-secondary"
             onClick={() => exportDocx(state)}
             disabled={!canExport || exporting || generating}
+            aria-label="Schülerfassung und Lösung als DOCX exportieren"
             style={{ padding: '0.65rem 1.25rem', fontSize: '0.9375rem',
               opacity: canExport ? 1 : 0.45,
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
@@ -177,6 +178,7 @@ export function Step4_Generate({ state, dispatch }: Props) {
             className="btn-secondary"
             onClick={() => exportKorrekturraster(state)}
             disabled={!canExport || exporting || generating}
+            aria-label="Korrekturraster als DOCX exportieren"
             style={{ padding: '0.65rem 1.25rem', fontSize: '0.9375rem',
               opacity: canExport ? 1 : 0.45, borderStyle: 'dashed',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
@@ -190,6 +192,7 @@ export function Step4_Generate({ state, dispatch }: Props) {
               className="btn-secondary"
               onClick={() => exportKompetenzraster(state)}
               disabled={!canExport || exporting || generating}
+              aria-label="Kompetenznachweis als DOCX exportieren"
               style={{ padding: '0.65rem 1.25rem', fontSize: '0.9375rem',
                 opacity: canExport ? 1 : 0.45, borderStyle: 'dashed',
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
@@ -209,6 +212,7 @@ export function Step4_Generate({ state, dispatch }: Props) {
               }
             }}
             disabled={!canExport || pdfExport.converting}
+            aria-label="Dokument als PDF speichern"
             style={{ padding: '0.5rem 1rem', fontSize: '0.8125rem',
               opacity: canExport ? 1 : 0.45, borderStyle: 'dotted',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}

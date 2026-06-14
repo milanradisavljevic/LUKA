@@ -6,7 +6,7 @@ import {
   Target,
 } from 'lucide-react';
 import type { ActiveView } from '../lib/types';
-import { LogoChip, WORDMARK_STYLE } from './BrandLogo';
+import { NibMark, BrandSignature } from './BrandLogo';
 
 interface Props {
   currentView: ActiveView;
@@ -22,26 +22,27 @@ interface NavItem {
   /** view = navigiert zu einer Ansicht; 'new' = neues Dokument starten. */
   view?: ActiveView;
   action?: 'new';
+  tooltip?: string;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { id: 'new', label: 'Neue erstellen', Icon: Plus, action: 'new' },
-  { id: 'kompetenz', label: 'Kompetenz-Übung', Icon: Target, view: 'kompetenz' },
-  { id: 'dashboard', label: 'Übersicht', Icon: LayoutDashboard, view: 'dashboard' },
-  { id: 'documents', label: 'Meine Unterlagen', Icon: FolderOpen, view: 'documents' },
-  { id: 'klassen', label: 'Meine Klassen', Icon: GraduationCap, view: 'klassen' },
-  { id: 'korrektur', label: 'Korrektur (NATASCHA)', Icon: SpellCheck, view: 'korrektur' },
-  { id: 'schueler', label: 'Schüler', Icon: Users, view: 'schueler' },
-  { id: 'erwartungshorizont', label: 'Erwartungshorizont', Icon: ClipboardCheck, view: 'erwartungshorizont' },
-  { id: 'templates', label: 'Vorlagen', Icon: Files, view: 'templates' },
-  { id: 'history', label: 'Verlauf', Icon: Clock, view: 'history' },
-  { id: 'favorites', label: 'Favoriten', Icon: Star, view: 'favorites' },
-  { id: 'trash', label: 'Papierkorb', Icon: Trash2, view: 'trash' },
+  { id: 'dashboard', label: 'Übersicht', Icon: LayoutDashboard, view: 'dashboard', tooltip: 'Klassen, Korrekturstand und Weiterarbeiten' },
+  { id: 'new', label: 'Neue erstellen', Icon: Plus, action: 'new', tooltip: 'Neues Arbeitsblatt erstellen' },
+  { id: 'kompetenz', label: 'Kompetenz-Übung', Icon: Target, view: 'kompetenz', tooltip: 'Übung ohne Quelltext aus Lehrplan-Kompetenzen' },
+  { id: 'documents', label: 'Meine Unterlagen', Icon: FolderOpen, view: 'documents', tooltip: 'Gespeicherte Dokumente durchsuchen' },
+  { id: 'klassen', label: 'Meine Klassen', Icon: GraduationCap, view: 'klassen', tooltip: 'Klassenübersicht mit Notenverteilung' },
+  { id: 'korrektur', label: 'Korrektur (NATASCHA)', Icon: SpellCheck, view: 'korrektur', tooltip: 'Korrektur-Exporte aus NATASCHA einsehen' },
+  { id: 'schueler', label: 'Schüler', Icon: Users, view: 'schueler', tooltip: 'Einzelne Schüler/innen und deren Ergebnisse' },
+  { id: 'erwartungshorizont', label: 'Erwartungshorizont', Icon: ClipboardCheck, view: 'erwartungshorizont', tooltip: 'Lösungserwartungen und Bewertungsraster' },
+  { id: 'templates', label: 'Vorlagen', Icon: Files, view: 'templates', tooltip: 'Gespeicherte Aufgaben-Vorlagen laden' },
+  { id: 'history', label: 'Verlauf', Icon: Clock, view: 'history', tooltip: 'Bisherige Generierungen und Exporte' },
+  { id: 'favorites', label: 'Favoriten', Icon: Star, view: 'favorites', tooltip: 'Markierte Dokumente' },
+  { id: 'trash', label: 'Papierkorb', Icon: Trash2, view: 'trash', tooltip: 'Gelöschte Dokumente wiederherstellen' },
 ];
 
 const SETTINGS_ITEMS: NavItem[] = [
-  { id: 'settings', label: 'Einstellungen', Icon: Settings, view: 'settings' },
-  { id: 'help', label: 'Hilfe', Icon: HelpCircle, view: 'help' },
+  { id: 'settings', label: 'Einstellungen', Icon: Settings, view: 'settings', tooltip: 'API-Keys, Provider und App-Einstellungen' },
+  { id: 'help', label: 'Hilfe', Icon: HelpCircle, view: 'help', tooltip: 'Handbuch und Kurzanleitung' },
 ];
 
 export function Sidebar({ currentView, onViewChange, onNewDocument }: Props) {
@@ -64,7 +65,7 @@ export function Sidebar({ currentView, onViewChange, onNewDocument }: Props) {
         onClick={() => handleItemClick(item)}
         aria-current={isCurrent ? 'page' : undefined}
         aria-label={item.label}
-        title={item.label}
+        title={item.tooltip ?? item.label}
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -111,15 +112,7 @@ export function Sidebar({ currentView, onViewChange, onNewDocument }: Props) {
         display: 'flex', alignItems: 'center', gap: collapsed ? 0 : '0.625rem',
         justifyContent: collapsed ? 'center' : 'flex-start',
       }}>
-        <LogoChip size={collapsed ? 34 : 38} />
-        {!collapsed && (
-          <div style={{ minWidth: 0 }}>
-            <div style={{ ...WORDMARK_STYLE, fontSize: '1.125rem' }}>LUA</div>
-            <div style={{ fontSize: '0.6875rem', color: 'var(--sidebar-text)', whiteSpace: 'nowrap' }}>
-              Lehrunterlagen-Applikation
-            </div>
-          </div>
-        )}
+        {collapsed ? <NibMark size={34} /> : <BrandSignature size={38} />}
       </div>
 
       {/* Navigation */}

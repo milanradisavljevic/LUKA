@@ -563,13 +563,28 @@ export const DidaktikSchema = z.object({
   // Gerahmte Grammatik-/Merkbox: Regel + Signalwörter als Stichpunkte.
   merkkasten: z.object({
     titel: z.string(),
-    punkte: z.array(z.string().min(1)).min(1),
-  }).optional(),
+    // Legacy: Fließtext-Punkte (wird ignoriert, wenn items vorhanden ist).
+    punkte: z.array(z.string().min(1)).optional(),
+    // Neu: Strukturierte Grammatik-Items mit Form, Use, Signalwörtern und Beispiel.
+    items: z.array(z.object({
+      notion: z.string().min(1),
+      form: z.string().optional(),
+      use: z.array(z.string().min(1)).optional(),
+      signalWords: z.array(z.string().min(1)).optional(),
+      example: z.string().optional(),
+      tip: z.string().optional(),
+    })).min(1).optional(),
+  }).refine(
+    (m) => (m.punkte && m.punkte.length >= 1) || (m.items && m.items.length >= 1),
+    { message: 'Merkkasten braucht entweder punkte oder items.' },
+  ).optional(),
   // Kurze freie Produktionsaufgabe zum Abschluss (Transfer).
   transferaufgabe: z.string().optional(),
 });
 
 export type Didaktik = z.infer<typeof DidaktikSchema>;
+export type Merkkasten = NonNullable<Didaktik['merkkasten']>;
+export type MerkkastenItem = NonNullable<Merkkasten['items']>[number];
 
 // ---------------------------------------------------------------------------
 // Full Document

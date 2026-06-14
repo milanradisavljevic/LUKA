@@ -8,6 +8,7 @@
     "typecheck": "pnpm -r typecheck",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
+    "tauri:dev:wsl": "WEBKIT_DISABLE_DMABUF_RENDERER=1 WEBKIT_DISABLE_COMPOSITING_MODE=1 GDK_BACKEND=x11 tauri dev",
     "tauri:build": "tauri build"
   },
   "engines": {

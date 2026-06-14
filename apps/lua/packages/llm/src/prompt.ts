@@ -453,18 +453,6 @@ BEISPIEL fuer vokabeluebung (Loesung im "loesung"-Objekt!):
   }
 ]
 
-BEISPIEL fuer umformung (Loesung im "loesung"-Objekt!):
-[
-  {
-    "id": "b1",
-    "typ": "umformung",
-    "punkte": 6,
-    "arbeitsanweisung": "Setze die folgenden Saetze in den Konjunktiv II.",
-    "config": { "aufgaben": [ { "nr": 1, "ausgangssatz": "Wenn ich Zeit habe, komme ich mit.", "anweisung": "Setze in den Konjunktiv II.", "zielstruktur": "Konjunktiv II" } ] },
-    "loesung": { "loesungen": [ { "nr": 1, "umformulierung": "Wenn ich Zeit hätte, käme ich mit.", "erklaerung": "Konjunktiv II von haben (hätte) und kommen (käme)." } ] }
-  }
-]
-
 BEISPIEL fuer fehlerkorrektur (Loesung im "loesung"-Objekt!):
 [
   {
@@ -500,8 +488,18 @@ DIDAKTISCHER RAHMEN (Pflicht — macht aus Bloecken ein komponiertes Arbeitsblat
 "didaktik" = {
   "arbeitsblattTitel": sprechender, motivierender Titel in der Zielsprache des Fachs (z. B. "Greetings from London!"), NICHT einfach das Thema wiederholen.
   "einleitung": 1-2 schuelergerichtete Saetze (Du-Anrede), was in diesem Blatt geuebt wird und worauf zu achten ist.
-  "merkkasten": { "titel": kurzer Boxtitel (z. B. "Remember!"), "punkte": 3-5 Stichpunkte mit der Kernregel UND den Signalwoertern der trainierten Struktur (z. B. "Past Simple: yesterday, last year, in 2010, ago", "Present Perfect: ever, never, already, yet, so far, since/for"). }
-  "transferaufgabe": eine kurze freie Produktionsaufgabe zum Abschluss, die die geuebte Struktur auf die eigene Lebenswelt der Schuelerin uebertraegt (z. B. "Write three sentences about your own last holiday ...").
+  "merkkasten": {
+    "titel": kurzer Boxtitel (z. B. "Remember!"),
+    "items": 2-4 strukturierte Items, eine fuer jede trainierte Notion/Zeitform/Struktur. Jedes Item hat:
+      - "notion": Name der Struktur (z. B. "Past simple"),
+      - "form": kurze Formel (z. B. "verb + -ed"),
+      - "use": 2-3 kurze Bullet Points, wann man die Struktur verwendet,
+      - "signalWords": wichtige Signalwoerter als Array (z. B. ["yesterday", "last week", "ago", "in 2010"]),
+      - "example": ein authentischer, stufengerechter Beispielsatz,
+      - "tip": optional ein praegnanter Merksatz.
+    Das Layout wird automatisch als uebersichtliche 2-Spalten-Box gerendert; Signalwoerter werden kursiv gedruckt.
+  }
+  "transferaufgabe": Eine kurze freie Produktionsaufgabe zum Abschluss, die die geuebte Struktur auf die eigene Lebenswelt der Schuelerin uebertraegt. Beginne mit "Your turn:". Gib 3-5 konkrete Bullet Points als Scaffolding vor. Forder explizit: mindestens einen Satz pro trainierter Zeitform/Struktur, je eine verneinte Form und mindestens einen Zeitmarker pro Zeitform.
 }
 
 ROTER FADEN (Pflicht): Erfinde EIN konkretes Szenario mit einer benannten Person (z. B. Emilys Londonreise) und ziehe es durch ALLE Bloecke: Block 1 = Emilys Postkarte, Block 2 = Saetze aus ihrem Reisetagebuch, Block 3 = ihre Freundin fragt nach, Block 4 = korrigiere die Nachricht ihres kleinen Bruders. Die Bloecke erzaehlen zusammen EINE Geschichte — keine beziehungslosen Beispielsammlungen. Der Szenariobezug steht jeweils in der "arbeitsanweisung".
@@ -510,7 +508,13 @@ BEISPIEL-ITEM: Gib bei geeigneten Bloecken (umformung, fehlerkorrektur, lueckent
 
 QUALITAET (nicht verhandelbar): Jeder erfundene Satz und jeder Loesungsschluessel MUSS sprachlich korrekt und stufengerecht sein. Erfinde keine fehlerhaften Musterloesungen. Bei Fehlerkorrektur-Aufgaben sind die Fehler ABSICHTLICH in "satz" eingebaut und im "loesung"-Objekt korrekt aufgeloest.
 
-KONKRETE, NACHVOLLZIEHBARE ANWEISUNGEN: Jede "arbeitsanweisung" muss eigenstaendig verstaendlich sein — KEINE Leerformeln wie "forme wie angegeben um" oder "rewrite as instructed". Bei umformung MUSS jede Aufgabe in "anweisung" die konkrete Zieloperation und in "zielstruktur" die Zielform nennen (z. B. "Setze in das Present Perfect."), damit die Schuelerin ohne Zusatzerklaerung weiss, was zu tun ist.
+KONKRETE, NACHVOLLZIEHBARE ANWEISUNGEN: Jede "arbeitsanweisung" muss eigenstaendig verstaendlich sein — KEINE Leerformeln wie "forme wie angegeben um" oder "rewrite as instructed".
+
+LUECKENTEXT-KOHAERENZ (nicht verhandelbar): Der Lueckentext muss eine inhaltlich stimmige, zusammenhaengende Mini-Erzaehlung sein. Zeitliche Angaben (z. B. *yesterday*, *just*, *already*, *last week*) muessen zur gewaehlten Zeitform passen. Vermeide Widersprueche (z. B. „She has just come home“ + „The museum visit was yesterday“). Die Geschichte soll authentisch und fuer die Zielstufe nachvollziehbar sein.
+
+PRINT-ANGEMESSENE KATEGORISIERUNG/MATCHING: Kategorisierung und Matching muessen auf Papier funktionieren. Verwende Anweisungen wie „Decide and write the correct category.“ oder „Match the sentences. Draw lines.“ — niemals Hinweise auf Drag & Drop, Klicken oder digitale Interaktion.
+
+UMFORMUNG VERBOTEN: Der Blocktyp "umformung" ist im Kompetenz-Modus nicht erlaubt. Verwende stattdessen "fehlerkorrektur", "lueckentext", "kategorisierung" oder "matching", um die Zielstruktur zu trainieren.
 
 KONTEXT-EINBETTUNG (nicht verhandelbar): Isolierte, zusammenhanglose Einzelsaetze sind UNERWUENSCHT — sie wirken wie aus dem Grammatik-Anhang. Bette JEDEN Block in einen zusammenhaengenden, lebensnahen Kontext ein:
 - Waehle eine zur Kompetenz und zum Niveau passende Textsorte: Dialog/Gespraech, Brief/E-Mail, Tagebucheintrag, kurze Erzaehlung, Chat-Verlauf, Bericht.

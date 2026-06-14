@@ -23,7 +23,7 @@ from typing import Any
 
 import natascha_db as ndb
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 # NATASCHA kennt nur diese vier groben Fehlerkategorien (fehler_historie.typ).
 _TYP_KATEGORIE = {
@@ -80,9 +80,19 @@ def _read_abgabe_meta(db_path: Path | str, klasse: str, aufgabe: str) -> dict[st
 
 
 def build_bridge_payload(
-    db_path: Path | str, klasse: str, aufgabe: str, *, max_beispiele: int = 12
+    db_path: Path | str,
+    klasse: str,
+    aufgabe: str,
+    *,
+    max_beispiele: int = 12,
+    ausgangstext: str | None = None,
 ) -> dict[str, Any]:
-    """Baut das Bridge-Payload gemäß bridge/schema.json (schemaVersion 1)."""
+    """Baut das Bridge-Payload gemäß bridge/schema.json (schemaVersion 2).
+
+    `ausgangstext` (optional): Ausgangstext/Arbeitsauftrag der Originalarbeit. Wird
+    mitgeschrieben, damit LUA den Quelltext der Übung vorbefüllen kann. Fällt zurück
+    auf ein evtl. in der Abgabe gespeichertes Feld.
+    """
     feedback = ndb.get_klassen_feedback(db_path, klasse, aufgabe)
     abgabe_meta = _read_abgabe_meta(db_path, klasse, aufgabe)
 
@@ -133,6 +143,14 @@ def build_bridge_payload(
         payload["schulstufe"] = stufe
     if abgabe_meta.get("textsorte"):
         payload["textsorte"] = abgabe_meta["textsorte"]
+    quelle = (
+        ausgangstext
+        or ndb.get_aufgabe_quelltext(db_path, klasse, aufgabe)
+        or abgabe_meta.get("ausgangstext")
+        or ""
+    ).strip()
+    if quelle:
+        payload["ausgangstext"] = quelle
     return payload
 
 
@@ -148,13 +166,14 @@ def export_klassen_bridge(
     *,
     inbox_dir: str | os.PathLike | None = None,
     config: dict[str, Any] | None = None,
+    ausgangstext: str | None = None,
 ) -> Path:
     """Schreibt den Bridge-Export atomar in die Inbox und gibt den Zielpfad zurück."""
     config = config or {}
     inbox = _resolve_inbox_dir(config, inbox_dir)
     inbox.mkdir(parents=True, exist_ok=True)
 
-    payload = build_bridge_payload(db_path, klasse, aufgabe)
+    payload = build_bridge_payload(db_path, klasse, aufgabe, ausgangstext=ausgangstext)
     fname = f"{_safe_segment(klasse)}_{_safe_segment(aufgabe)}_{payload['datum']}.json"
     target = inbox / fname
 
@@ -193,6 +212,12 @@ def _main(argv: list[str]) -> int:
     parser.add_argument("klasse")
     parser.add_argument("aufgabe")
     parser.add_argument("--inbox", default=None, help="Inbox-Ordner (Default: ~/lehr-suite-bridge/inbox)")
+    parser.add_argument(
+        "--ausgangstext-file",
+        default=None,
+        help="Textdatei mit dem Ausgangstext/Arbeitsauftrag der Originalarbeit. "
+             "Wird in den Export (v2) übernommen, damit LUA den Quelltext vorbefüllt.",
+    )
     args = parser.parse_args(argv)
 
     config = _load_config()
@@ -202,8 +227,13 @@ def _main(argv: list[str]) -> int:
               f"Tipp: zuerst 'python seed_testdaten.py' ausführen.")
         return 1
 
+    ausgangstext = None
+    if args.ausgangstext_file:
+        ausgangstext = Path(args.ausgangstext_file).read_text(encoding="utf-8")
+
     target = export_klassen_bridge(
-        db_path, args.klasse, args.aufgabe, inbox_dir=args.inbox, config=config
+        db_path, args.klasse, args.aufgabe, inbox_dir=args.inbox, config=config,
+        ausgangstext=ausgangstext,
     )
     print(f"Bridge-Export geschrieben: {target}")
     return 0

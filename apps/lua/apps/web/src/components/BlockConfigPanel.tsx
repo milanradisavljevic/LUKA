@@ -796,35 +796,6 @@ export function BlockConfigPanel({ block, stufe, onConfigChange }: Props) {
     );
   }
 
-  if (block.typ === 'umformung') {
-    const anzahl = (config.anzahlAufgaben as number) ?? 1;
-    const syncArray = (n: number) => {
-      const current = (config.aufgaben as Array<{ nr: number; ausgangssatz: string; anweisung: string; zielstruktur: string }> | undefined) ?? [];
-      if (n > current.length) {
-        set('aufgaben', [...current, ...Array.from({ length: n - current.length }, (_, i) => ({ nr: current.length + i + 1, ausgangssatz: '', anweisung: '', zielstruktur: '' }))]);
-      } else if (n < current.length) {
-        set('aufgaben', current.slice(0, n).map((a, i) => ({ ...a, nr: i + 1 })));
-      }
-    };
-
-    return (
-      <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
-        <h3 style={{ marginBottom: '0.75rem', fontSize: '0.8125rem' }}>Umformung</h3>
-        <ConfigField label="Anzahl Aufgaben">
-          <input type="number" min={1} max={12} value={anzahl}
-            onChange={(e) => {
-              const n = Math.max(1, Math.min(12, parseInt(e.target.value) || 1));
-              set('anzahlAufgaben', n);
-              syncArray(n);
-            }} />
-        </ConfigField>
-        <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.25rem' }}>
-          Beim Generieren erstellt die KI {anzahl} Umformungsaufgaben.
-        </p>
-      </div>
-    );
-  }
-
   if (block.typ === 'fehlerkorrektur') {
     const anzahl = (config.anzahlSaetze as number) ?? 1;
     const syncArray = (n: number) => {

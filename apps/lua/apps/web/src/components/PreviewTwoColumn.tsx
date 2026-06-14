@@ -140,7 +140,8 @@ export function PreviewTwoColumn({ state, dispatch }: Props) {
   );
 
   const renderMerkkasten = () => {
-    if (!didaktik?.merkkasten || didaktik.merkkasten.punkte.length === 0) return null;
+    if (!didaktik?.merkkasten) return null;
+    const { merkkasten } = didaktik;
     return (
       <div style={{
         marginBottom: '1rem',
@@ -150,26 +151,54 @@ export function PreviewTwoColumn({ state, dispatch }: Props) {
         borderRadius: 2,
       }}>
         <p style={{ fontWeight: 700, fontSize: '10pt', margin: '0 0 0.4rem', color: PAPER_TEXT }}>
-          {didaktik.merkkasten.titel}
+          {merkkasten.titel}
         </p>
-        <ul style={{ margin: 0, paddingLeft: '1.1rem', fontSize: '10pt', color: PAPER_TEXT, lineHeight: 1.5 }}>
-          {didaktik.merkkasten.punkte.map((p, i) => (
-            <li key={i}>{p}</li>
-          ))}
-        </ul>
+        {merkkasten.items && merkkasten.items.length > 0 ? (
+          <table style={{ width: '100%', fontSize: '10pt', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: 'left', padding: '0.2rem', borderBottom: `1px solid ${PAPER_BORDER}` }}>Structure</th>
+                <th style={{ textAlign: 'left', padding: '0.2rem', borderBottom: `1px solid ${PAPER_BORDER}` }}>How to use it</th>
+              </tr>
+            </thead>
+            <tbody>
+              {merkkasten.items.map((item, i) => (
+                <tr key={i}>
+                  <td style={{ padding: '0.2rem', verticalAlign: 'top', fontWeight: 700 }}>{item.notion}</td>
+                  <td style={{ padding: '0.2rem', verticalAlign: 'top' }}>
+                    {item.form && <div><em>{item.form}</em></div>}
+                    {item.use && item.use.map((u, j) => <div key={j}>{u}</div>)}
+                    {item.signalWords && item.signalWords.length > 0 && <div><strong>Signal words:</strong> <em>{item.signalWords.join(', ')}</em></div>}
+                    {item.example && <div><strong>Example:</strong> <em>{item.example}</em></div>}
+                    {item.tip && <div>💡 <strong>Tip:</strong> {item.tip}</div>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <ul style={{ margin: 0, paddingLeft: '1.1rem', fontSize: '10pt', color: PAPER_TEXT, lineHeight: 1.5 }}>
+            {(merkkasten.punkte ?? []).map((p, i) => (
+              <li key={i}>{p}</li>
+            ))}
+          </ul>
+        )}
       </div>
     );
   };
 
   const renderTransferaufgabe = () => {
     if (!didaktik?.transferaufgabe?.trim()) return null;
+    const isEnglish = meta.fach === 'englisch';
+    const title = isEnglish ? 'Your turn:' : 'Zum Schluss – jetzt du!';
+    const text = didaktik.transferaufgabe.trim().replace(/^Your turn:\s*/i, '').replace(/^Zum Schluss – jetzt du!\s*/i, '');
     return (
       <div style={{ marginTop: '1.5rem', paddingTop: '0.75rem', borderTop: `1px solid ${PAPER_BORDER}` }}>
         <h3 style={{ fontSize: '12pt', fontWeight: 700, marginBottom: '0.5rem', color: PAPER_TEXT }}>
-          Zum Schluss – jetzt du!
+          {title}
         </h3>
         <p style={{ fontSize: '10pt', color: PAPER_TEXT, marginBottom: '0.75rem', lineHeight: 1.5 }}>
-          {didaktik.transferaufgabe.trim()}
+          {text}
         </p>
         <div style={{ borderBottom: `1px solid ${PAPER_BORDER}`, height: '1.5rem', marginBottom: '0.4rem' }} />
         <div style={{ borderBottom: `1px solid ${PAPER_BORDER}`, height: '1.5rem', marginBottom: '0.4rem' }} />
@@ -264,7 +293,7 @@ export function PreviewTwoColumn({ state, dispatch }: Props) {
           {doc && (
             <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               {generating && regenId === block.id ? (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.75rem', color: '#5b5bd6' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.75rem', color: 'var(--color-accent)' }}>
                   <RefreshCw size={13} className="spin" /> Wird regeneriert… {stage}
                 </span>
               ) : (
@@ -297,10 +326,10 @@ export function PreviewTwoColumn({ state, dispatch }: Props) {
                             fontSize: '0.6875rem',
                             padding: '0.15rem 0.4rem',
                             borderRadius: 'var(--radius)',
-                            border: '1px solid #5b5bd6',
-                            background: '#f3e5f5',
+                            border: '1px solid var(--color-accent)',
+                            background: 'var(--color-bg-selected)',
                             cursor: 'pointer',
-                            color: '#5b5bd6',
+                            color: 'var(--color-accent)',
                           }}
                         >
                           {hint}

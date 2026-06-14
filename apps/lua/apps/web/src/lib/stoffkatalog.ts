@@ -264,7 +264,7 @@ const STOFF_ITEMS: StoffItem[] = [
     stufe: 'oberstufe',
     kategorie: 'grammatik',
     deskriptorIds: ['at-en-ob-gramm-1', 'at-en-ob-gramm-2'],
-    defaultAufgabentypen: ['umformung', 'fehlerkorrektur', 'multipleChoice'],
+    defaultAufgabentypen: ['fehlerkorrektur', 'multipleChoice'],
   },
   {
     id: 'en-past-perfect',
@@ -274,7 +274,7 @@ const STOFF_ITEMS: StoffItem[] = [
     stufe: 'oberstufe',
     kategorie: 'grammatik',
     deskriptorIds: ['at-en-ob-gramm-2'],
-    defaultAufgabentypen: ['umformung', 'fehlerkorrektur'],
+    defaultAufgabentypen: ['fehlerkorrektur'],
   },
   {
     id: 'en-future-forms',
@@ -284,7 +284,7 @@ const STOFF_ITEMS: StoffItem[] = [
     stufe: 'oberstufe',
     kategorie: 'grammatik',
     deskriptorIds: ['at-en-ob-gramm-1'],
-    defaultAufgabentypen: ['umformung', 'multipleChoice', 'kategorisierung'],
+    defaultAufgabentypen: ['multipleChoice', 'kategorisierung'],
   },
   {
     id: 'en-conditionals',
@@ -294,7 +294,7 @@ const STOFF_ITEMS: StoffItem[] = [
     stufe: 'oberstufe',
     kategorie: 'grammatik',
     deskriptorIds: ['at-en-ob-gramm-3'],
-    defaultAufgabentypen: ['umformung', 'fehlerkorrektur', 'lueckentext'],
+    defaultAufgabentypen: ['fehlerkorrektur', 'lueckentext'],
   },
   {
     id: 'en-passive-voice',
@@ -304,7 +304,7 @@ const STOFF_ITEMS: StoffItem[] = [
     stufe: 'oberstufe',
     kategorie: 'grammatik',
     deskriptorIds: ['at-en-ob-gramm-4'],
-    defaultAufgabentypen: ['umformung', 'fehlerkorrektur'],
+    defaultAufgabentypen: ['fehlerkorrektur'],
   },
   {
     id: 'en-reported-speech',
@@ -314,7 +314,7 @@ const STOFF_ITEMS: StoffItem[] = [
     stufe: 'oberstufe',
     kategorie: 'grammatik',
     deskriptorIds: ['at-en-ob-gramm-5'],
-    defaultAufgabentypen: ['umformung', 'fehlerkorrektur'],
+    defaultAufgabentypen: ['fehlerkorrektur'],
   },
   {
     id: 'en-gerund-vs-infinitive',
@@ -334,7 +334,7 @@ const STOFF_ITEMS: StoffItem[] = [
     stufe: 'oberstufe',
     kategorie: 'grammatik',
     deskriptorIds: ['at-en-ob-gramm-1', 'at-en-ob-gramm-2'],
-    defaultAufgabentypen: ['fehlerkorrektur', 'umformung', 'multipleChoice'],
+    defaultAufgabentypen: ['fehlerkorrektur', 'multipleChoice'],
   },
   // -------------------------------------------------------------------------
   // Englisch Unterstufe
@@ -347,7 +347,7 @@ const STOFF_ITEMS: StoffItem[] = [
     stufe: 'unterstufe',
     kategorie: 'grammatik',
     deskriptorIds: ['at-en-un-gramm-1'],
-    defaultAufgabentypen: ['multipleChoice', 'umformung', 'kategorisierung'],
+    defaultAufgabentypen: ['multipleChoice', 'kategorisierung'],
   },
   {
     id: 'en-past-simple-un',
@@ -357,7 +357,7 @@ const STOFF_ITEMS: StoffItem[] = [
     stufe: 'unterstufe',
     kategorie: 'grammatik',
     deskriptorIds: ['at-en-un-gramm-2'],
-    defaultAufgabentypen: ['umformung', 'fehlerkorrektur', 'lueckentext'],
+    defaultAufgabentypen: ['fehlerkorrektur', 'lueckentext'],
   },
   {
     id: 'en-will-vs-going-to-un',
@@ -367,7 +367,7 @@ const STOFF_ITEMS: StoffItem[] = [
     stufe: 'unterstufe',
     kategorie: 'grammatik',
     deskriptorIds: ['at-en-un-gramm-3'],
-    defaultAufgabentypen: ['multipleChoice', 'umformung', 'kategorisierung'],
+    defaultAufgabentypen: ['multipleChoice', 'kategorisierung'],
   },
   {
     id: 'en-comparison-un',
@@ -377,7 +377,7 @@ const STOFF_ITEMS: StoffItem[] = [
     stufe: 'unterstufe',
     kategorie: 'grammatik',
     deskriptorIds: ['at-en-un-gramm-4'],
-    defaultAufgabentypen: ['umformung', 'fehlerkorrektur', 'multipleChoice'],
+    defaultAufgabentypen: ['fehlerkorrektur', 'multipleChoice'],
   },
   {
     id: 'en-some-any-much-many-un',
@@ -397,7 +397,7 @@ const STOFF_ITEMS: StoffItem[] = [
     stufe: 'unterstufe',
     kategorie: 'grammatik',
     deskriptorIds: ['at-en-un-gramm-1', 'at-en-un-gramm-2', 'at-en-un-gramm-3'],
-    defaultAufgabentypen: ['fehlerkorrektur', 'umformung', 'multipleChoice'],
+    defaultAufgabentypen: ['fehlerkorrektur', 'multipleChoice'],
   },
   {
     id: 'en-present-perfect-un',
@@ -407,7 +407,7 @@ const STOFF_ITEMS: StoffItem[] = [
     stufe: 'unterstufe',
     kategorie: 'grammatik',
     deskriptorIds: ['at-en-un-gramm-6'],
-    defaultAufgabentypen: ['umformung', 'fehlerkorrektur', 'multipleChoice'],
+    defaultAufgabentypen: ['fehlerkorrektur', 'multipleChoice'],
   },
   {
     id: 'en-past-simple-vs-present-perfect-un',
@@ -417,7 +417,7 @@ const STOFF_ITEMS: StoffItem[] = [
     stufe: 'unterstufe',
     kategorie: 'grammatik',
     deskriptorIds: ['at-en-un-gramm-6', 'at-en-un-gramm-7'],
-    defaultAufgabentypen: ['umformung', 'fehlerkorrektur', 'multipleChoice'],
+    defaultAufgabentypen: ['fehlerkorrektur', 'multipleChoice'],
   },
   {
     id: 'en-questions-negation-short-answers-un',
@@ -427,7 +427,7 @@ const STOFF_ITEMS: StoffItem[] = [
     stufe: 'unterstufe',
     kategorie: 'grammatik',
     deskriptorIds: ['at-en-un-gramm-8'],
-    defaultAufgabentypen: ['umformung', 'fehlerkorrektur', 'lueckentext'],
+    defaultAufgabentypen: ['fehlerkorrektur', 'lueckentext'],
   },
   // -------------------------------------------------------------------------
   // Deutsch Unterstufe
@@ -440,7 +440,7 @@ const STOFF_ITEMS: StoffItem[] = [
     stufe: 'unterstufe',
     kategorie: 'grammatik',
     deskriptorIds: ['at-de-un-gramm-1'],
-    defaultAufgabentypen: ['umformung', 'fehlerkorrektur', 'multipleChoice'],
+    defaultAufgabentypen: ['fehlerkorrektur', 'multipleChoice'],
   },
   {
     id: 'de-satzglieder-un',
@@ -480,7 +480,7 @@ const STOFF_ITEMS: StoffItem[] = [
     stufe: 'unterstufe',
     kategorie: 'grammatik',
     deskriptorIds: ['at-de-un-gramm-5'],
-    defaultAufgabentypen: ['umformung', 'fehlerkorrektur'],
+    defaultAufgabentypen: ['fehlerkorrektur'],
   },
   // -------------------------------------------------------------------------
   // Deutsch Oberstufe
@@ -493,7 +493,7 @@ const STOFF_ITEMS: StoffItem[] = [
     stufe: 'oberstufe',
     kategorie: 'grammatik',
     deskriptorIds: ['at-de-ob-gramm-1', 'at-de-ob-gramm-2'],
-    defaultAufgabentypen: ['umformung', 'fehlerkorrektur', 'lueckentext'],
+    defaultAufgabentypen: ['fehlerkorrektur', 'lueckentext'],
   },
   {
     id: 'de-kommasetzung-ob',
@@ -503,7 +503,7 @@ const STOFF_ITEMS: StoffItem[] = [
     stufe: 'oberstufe',
     kategorie: 'grammatik',
     deskriptorIds: ['at-de-ob-gramm-3'],
-    defaultAufgabentypen: ['fehlerkorrektur', 'umformung'],
+    defaultAufgabentypen: ['fehlerkorrektur'],
   },
   {
     id: 'de-satzgefüge-ob',
@@ -533,7 +533,7 @@ const STOFF_ITEMS: StoffItem[] = [
     stufe: 'oberstufe',
     kategorie: 'grammatik',
     deskriptorIds: ['at-de-ob-gramm-1', 'at-de-ob-gramm-3', 'at-de-ob-gramm-4'],
-    defaultAufgabentypen: ['fehlerkorrektur', 'umformung', 'multipleChoice'],
+    defaultAufgabentypen: ['fehlerkorrektur', 'multipleChoice'],
   },
 ];
 
