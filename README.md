@@ -14,7 +14,7 @@
 ![SQLite](https://img.shields.io/badge/SQLite-lokal-003B57?logo=sqlite&logoColor=white)
 ![Status](https://img.shields.io/badge/Status-Beta%20%C2%B7%20im%20Test-orange)
 
-![LUKA — Klassenauswertung mit Fehler-Heatmap und Closed-Loop](screenshots/Klassenauswertung.png)
+![LUKA — Übersicht im „Tinte &amp; Papier"-Design: zwei Türen, Klassen-Status, Handlungsbedarf](screenshots/uebersicht-hell.png)
 
 </div>
 
@@ -60,13 +60,14 @@ flowchart LR
 
 | | |
 |:--:|:--:|
-| ![Neue Unterlage: Absicht](screenshots/Übersicht.png) | ![KI-Modell wählen](screenshots/LLM-Auswahl.png) |
-| *Generator: Absicht festlegen (Stufe, Fach, Aufgabentypen)* | *KI-Modell &amp; Kreativität wählen — inkl. Datenschutz-Hinweis* |
-| ![Vorschau &amp; Export](screenshots/Vorschau.png) | ![Schüler verwalten](screenshots/Schülermenü.png) |
-| *DIN-A4-Vorschau &amp; DOCX-Export (Schüler-/Lösungsfassung)* | *Schüler &amp; Aufgaben anlegen, CSV-Import* |
+| ![Generator: Absicht erfassen](screenshots/mit%20Quelltext.png) | ![Übung ohne Quelltext aus Kompetenzen](screenshots/Kompetenzaufgabe.png) |
+| *Generator „Aus Quelltext": Absicht erfassen — Unterlagentyp, Stufe/Fach, Aufgabentypen* | *„Ohne Quelltext": Übung aus Lehrplan-Kompetenz oder freiem Thema* |
+| ![Übersicht im Dark-Mode](screenshots/Darkmode.png) | |
+| *Dieselbe Übersicht im warmen Dark-Mode (Papier bei Nacht)* | |
 
-> Weitere Aufnahmen (Korrektur-Zwei-Spalten, Dashboard, Rubrik-Editor) sind in
-> [`screenshots/README.md`](screenshots/README.md) als To-do vermerkt.
+> Design „Tinte &amp; Papier": warmer Papiergrund, Tinten-Akzent, handschriftliche Wortmarke;
+> Light **und** Dark gleichwertig. Weitere Aufnahmen siehe
+> [`screenshots/README.md`](screenshots/README.md).
 
 ---
 
