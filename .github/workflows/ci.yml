@@ -23,6 +23,9 @@ jobs:
           cache: pnpm
           cache-dependency-path: apps/lua/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
+      # Workspace-Pakete bauen → liefert dist/*.d.ts (gitignored), das die
+      # Cross-Paket-Typen für typecheck/test in frischer CI-Umgebung auflöst.
+      - run: pnpm --filter "./packages/*" build
       - run: pnpm -r typecheck
       - run: pnpm -r test
 
@@ -38,5 +41,6 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
-      - run: pip install -r requirements_cli.txt pytest
+      # cli + tui Requirements: test_tui.py importiert das TUI-Modul (textual).
+      - run: pip install -r requirements_cli.txt -r requirements_tui.txt pytest
       - run: pytest -q
