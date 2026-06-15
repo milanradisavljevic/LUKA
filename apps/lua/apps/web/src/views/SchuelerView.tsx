@@ -4,7 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, L
 import { useNatascha } from '../hooks/useNatascha';
 import type { KlasseInfo } from '../lib/storage';
 import type { SchuelerProfilRow } from '../hooks/useNatascha';
-import { KATEGORIE_TO_BLOCKTYPEN, type NataschaPrefill } from '../lib/nataschaBridge';
+import { KATEGORIE_TO_BLOCKTYPEN, type NataschaPrefill, type BridgeBeispiel } from '../lib/nataschaBridge';
 import type { BlockTyp } from '@lehrunterlagen/schema';
 import { ViewShell } from './_ViewShell';
 
@@ -123,6 +123,15 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
     }
     const s = laengsschnitt.schueler;
     const name = [s.vorname, s.nachname].filter(Boolean).join(' ') || 'Schüler';
+    // Echte Schülerfehler (zitat/korrektur) der Schwerpunkte mitgeben → kuratierbar in Step0.
+    const fehler: BridgeBeispiel[] = [];
+    for (const f of top) {
+      for (const b of (f.beispiele ?? [])) {
+        if (b.zitat && b.zitat.trim()) {
+          fehler.push({ typ: f.typ as BridgeBeispiel['typ'], zitat: b.zitat.trim(), korrektur: (b.korrektur ?? '').trim() });
+        }
+      }
+    }
     const prefill: NataschaPrefill = {
       thema: `Übung zu Schwächen – ${name}`,
       fach: 'deutsch',
@@ -130,6 +139,7 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
       fokusThemen,
       gewuenschteAufgabenarten: arten,
       notizen: `Automatisch aus dem Längsschnitt von ${name} (${laengsschnitt.schueler.klasse}) erzeugt. Schwerpunkte: ${fokusThemen.join(', ')}.`,
+      fehler: fehler.length > 0 ? fehler.slice(0, 12) : undefined,
     };
     onGenerateUebung(prefill);
   }, [laengsschnitt, onGenerateUebung]);
@@ -355,6 +365,9 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
                 </div>
 
                 {/* Trend summary */}
+                <div style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-muted)', marginBottom: '0.375rem' }}>
+                  Entwicklung über {laengsschnitt.anzahlAbgaben} {laengsschnitt.anzahlAbgaben === 1 ? 'Arbeit' : 'Arbeiten'}
+                </div>
                 <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                   {Object.entries(laengsschnitt.trend as Record<string, { start: number | null; ende: number | null; richtung: string }>).map(([key, t]) => (
                     <div key={key} style={{ padding: '0.375rem 0.75rem', background: 'var(--color-bg-base)', borderRadius: 'var(--radius)', fontSize: '0.8125rem' }}>
