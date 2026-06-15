@@ -49,6 +49,7 @@ fn main() {
             commands::db::db_migrate_from_localstorage,
             commands::db::db_resolve_path,
             commands::db::db_set_path,
+            commands::db::db_backup,
             commands::natascha_read::db_list_aufgaben,
             commands::natascha_read::db_get_abgaben,
             commands::natascha_read::db_get_fehler_heatmap,

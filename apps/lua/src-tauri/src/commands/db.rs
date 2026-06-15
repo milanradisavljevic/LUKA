@@ -342,6 +342,24 @@ pub async fn db_set_path(state: tauri::State<'_, DbState>, custom_path: String) 
     Ok(())
 }
 
+/// Schreibt eine konsistente Sicherungskopie der DB an `target_path`.
+/// Nutzt `VACUUM INTO` → kompakter, transaktions-sicherer Snapshot ohne WAL-Reste.
+/// `target_path` darf noch nicht existieren (SQLite-Vorgabe).
+#[tauri::command]
+pub async fn db_backup(state: tauri::State<'_, DbState>, target_path: String) -> Result<(), String> {
+    let target = target_path.trim();
+    if target.is_empty() {
+        return Err("Kein Zielpfad angegeben.".into());
+    }
+    if std::path::Path::new(target).exists() {
+        return Err("Zieldatei existiert bereits — bitte einen neuen Dateinamen wählen.".into());
+    }
+    let conn = state.conn()?;
+    conn.execute("VACUUM INTO ?1", rusqlite::params![target])
+        .map_err(|e| format!("Backup fehlgeschlagen: {}", e))?;
+    Ok(())
+}
+
 fn chrono_now() -> String {
     let now = std::time::SystemTime::now();
     let dur = now.duration_since(std::time::UNIX_EPOCH).unwrap_or_default();

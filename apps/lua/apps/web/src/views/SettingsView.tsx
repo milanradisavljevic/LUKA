@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, Database } from 'lucide-react';
+import { Check, Database, Download } from 'lucide-react';
 import type { AppSettings, LlmProvider } from '../lib/types';
 import { LLM_PROVIDERS } from '../lib/constants';
 import { CREATIVITY_PRESETS } from '../lib/creativity';
@@ -55,6 +55,26 @@ export function SettingsView() {
     } catch (e) {
       setSeedMsg(typeof e === 'string' ? e : e instanceof Error ? e.message : 'Seed fehlgeschlagen.');
     } finally { setSeedBusy(false); }
+  };
+
+  const [backupMsg, setBackupMsg] = useState<string | null>(null);
+  const handleBackup = async () => {
+    setBackupMsg(null);
+    try {
+      const { save } = await import('@tauri-apps/plugin-dialog');
+      const { invoke } = await import('@tauri-apps/api/core');
+      const stamp = new Date().toISOString().slice(0, 10);
+      const target = await save({
+        title: 'Datensicherung speichern',
+        defaultPath: `lehr-suite-backup-${stamp}.db`,
+        filters: [{ name: 'SQLite-Datenbank', extensions: ['db'] }],
+      });
+      if (!target) return;
+      await invoke('db_backup', { targetPath: target });
+      setBackupMsg(`✓ Sicherung gespeichert: ${target}`);
+    } catch (e) {
+      setBackupMsg(typeof e === 'string' ? e : e instanceof Error ? e.message : 'Backup fehlgeschlagen.');
+    }
   };
 
   const currentProvider = LLM_PROVIDERS.find((p) => p.id === settings.defaultProvider);
@@ -255,6 +275,18 @@ export function SettingsView() {
           Wenn NATASCHA korrigiert hat, liest LUA die Klassen und Abgaben aus derselben Datei.
         </p>
         <DbPath />
+        <div style={{ marginTop: '0.875rem' }}>
+          <button
+            className="btn-secondary"
+            onClick={handleBackup}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}
+          >
+            <Download size={14} /> Datensicherung exportieren
+          </button>
+          <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', margin: '0.5rem 0 0' }}>
+            {backupMsg ?? 'Schreibt eine kompakte Kopie der Datenbank an einen Ort deiner Wahl.'}
+          </p>
+        </div>
       </section>
 
       {/* Abschnitt 4: API-Schluessel */}
