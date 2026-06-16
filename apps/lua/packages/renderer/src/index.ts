@@ -269,7 +269,7 @@ function buildCoverageTabelle(
 // Korrekturraster: Drittes Dokument (Lehrerinstrument)
 // ---------------------------------------------------------------------------
 
-export async function renderRaster(raster: KorrekturrasterDokument, template: RenderTemplate = DEFAULT_TEMPLATE): Promise<Buffer> {
+function buildRasterDoc(raster: KorrekturrasterDokument, template: RenderTemplate): Document {
   const children: (Paragraph | Table)[] = [
     ...buildRasterHeader(raster, template),
     ...raster.bloecke.flatMap((block) => buildRasterBlock(block, template)),
@@ -278,7 +278,7 @@ export async function renderRaster(raster: KorrekturrasterDokument, template: Re
     ...buildFreitextfeld(template),
   ];
 
-  const document = new Document({
+  return new Document({
     sections: [
       {
         properties: { page: { margin: template.margin } },
@@ -288,8 +288,16 @@ export async function renderRaster(raster: KorrekturrasterDokument, template: Re
       },
     ],
   });
+}
 
-  return Packer.toBuffer(document);
+/** Node/Tests: Buffer. */
+export async function renderRaster(raster: KorrekturrasterDokument, template: RenderTemplate = DEFAULT_TEMPLATE): Promise<Buffer> {
+  return Packer.toBuffer(buildRasterDoc(raster, template));
+}
+
+/** Browser/Webview: Blob (toBuffer wird im WebView nicht unterstützt → "nodebuffer"). */
+export async function renderRasterToBlob(raster: KorrekturrasterDokument, template: RenderTemplate = DEFAULT_TEMPLATE): Promise<Blob> {
+  return Packer.toBlob(buildRasterDoc(raster, template));
 }
 
 function buildRasterHeader(raster: Pick<KorrekturrasterDokument, 'meta'>, template: RenderTemplate): (Paragraph | Table)[] {
@@ -954,21 +962,36 @@ function quelltextAbsaetze(inhalt: string, template: RenderTemplate): Paragraph[
     return [new Paragraph({ children: [run('', { font: template.font, size: template.fontSize.body })] })];
   }
 
-  return zeilen.map((zeile, i) => {
-    const text = zeile.replace(/\s+$/g, '');
-    const nr = i + 1;
-    if (text.trim().length === 0) {
-      return new Paragraph({ children: [run('', { font: template.font, size: template.fontSize.body })], spacing: { after: 60 } });
+  const getrimmt = zeilen.map((z) => z.replace(/\s+$/g, ''));
+  const out: Paragraph[] = [];
+  let nr = 0; // laufende Nummer NUR für Inhaltszeilen → keine Lücken durch Leerzeilen.
+  for (let i = 0; i < getrimmt.length; i++) {
+    const text = getrimmt[i] ?? '';
+    const t = text.trim();
+    if (t.length === 0) {
+      out.push(new Paragraph({ children: [run('', { font: template.font, size: template.fontSize.body })], spacing: { after: 60 } }));
+      continue;
     }
-    return new Paragraph({
+    // Zwischenüberschrift-Heuristik (konservativ): die Zeile steht ALLEIN (Leerzeile/Rand
+    // davor UND danach), ist kurz, ohne Satz-Endzeichen und beginnt groß. So werden echte
+    // Abschnittsüberschriften fett gesetzt, Fließ-/Songzeilen aber nie fälschlich erkannt.
+    const prevBlank = i === 0 || (getrimmt[i - 1] ?? '').trim().length === 0;
+    const nextBlank = i === getrimmt.length - 1 || (getrimmt[i + 1] ?? '').trim().length === 0;
+    const istUeberschrift =
+      prevBlank && nextBlank && t.length <= 55 && t.split(/\s+/).length <= 8
+      && !/[.!?:;,]$/.test(t) && !/^[a-zäöüß]/.test(t);
+    if (istUeberschrift) {
+      out.push(new Paragraph({
+        children: [new TextRun({ text: t, font: template.font, size: template.fontSize.body, bold: true })],
+        spacing: { before: 160, after: 40 },
+        keepNext: true,
+      }));
+      continue;
+    }
+    nr++;
+    out.push(new Paragraph({
       children: [
-        new TextRun({
-          text: `${nr}.`,
-          font: template.font,
-          size: template.fontSize.small,
-          color: template.color.gray,
-          bold: false,
-        }),
+        new TextRun({ text: `${nr}.`, font: template.font, size: template.fontSize.small, color: template.color.gray, bold: false }),
         new TextRun({ text: '  ', font: template.font, size: template.fontSize.body }),
         new TextRun({ text, font: template.font, size: template.fontSize.body }),
       ],
@@ -977,8 +1000,9 @@ function quelltextAbsaetze(inhalt: string, template: RenderTemplate): Paragraph[
       border: {
         left: { style: BorderStyle.SINGLE, size: 8, color: template.color.lightGray },
       },
-    });
-  });
+    }));
+  }
+  return out;
 }
 
 function buildQuelltexte(quelltexte: QuellText[], template: RenderTemplate): (Paragraph | Table)[] {

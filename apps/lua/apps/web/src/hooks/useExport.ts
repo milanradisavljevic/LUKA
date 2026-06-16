@@ -82,14 +82,12 @@ export function useExport() {
 
     try {
       const { buildRaster } = await import('@lehrunterlagen/qa');
-      const { renderRaster } = await import('@lehrunterlagen/renderer');
+      const { renderRasterToBlob } = await import('@lehrunterlagen/renderer');
 
       const raster = buildRaster(state.generiertesDokument);
       const template = RENDER_TEMPLATES[state.renderTemplate];
-      const buffer = await renderRaster(raster, template);
-      const blob = new Blob([new Uint8Array(buffer)], {
-        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      });
+      // toBlob statt toBuffer — toBuffer wirft im WebView "nodebuffer is not supported".
+      const blob = await renderRasterToBlob(raster, template);
 
       const thema = state.generiertesDokument.meta.thema.replace(/\s+/g, '_').slice(0, 40);
       const datum = state.generiertesDokument.meta.datum;
