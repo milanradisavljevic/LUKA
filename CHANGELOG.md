@@ -45,6 +45,22 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 - Verifikation: `pnpm -r build` + `pnpm -r test` grün (Schema 118, LLM 123, Renderer 31,
   Input 17, QA 96, Web 52).
 
+### Added — Kimi-Specs 2026-06-16
+- `packages/llm/src/prompt.ts`: Zielgruppen-Hinweis (`meta.klasse` + `meta.stufe`) in beiden
+  Prompt-Pfaden (normal + kompetenz).
+- `apps/web/src/index.css`: Dark-Theme `.btn-primary` bekommt dunklen Text (`#14241F`) für
+  besseren Kontrast auf dem hellen Akzent.
+- `apps/web/src/index.css`: Tote `.door-icon`-Regel entfernt (war bereits nicht mehr im Code).
+- `apps/web/src/components/Step4_Generate.tsx`: Quality-Gate vor DOCX-Export —
+  `checkLernzielCoverage` und `checkSchreibaufgabe` zeigen mögliche Probleme; Export erst nach
+  „Trotzdem exportieren".
+- `apps/web/src/lib/niveauTransform.ts` + `apps/web/src/hooks/useExport.ts` +
+  `apps/web/src/components/Step4_Generate.tsx`: 3-Niveau-Differenzierung — Button „3 Niveaus
+  erzeugen" erstellt `_leicht`, `_mittel`, `_schwer` Fassungen. „leicht" = reine TS-Transformation
+  ohne LLM; „schwer" = regenerateBlock nur für offene Blöcke.
+- Verifikation: `pnpm --filter "./packages/*" build && pnpm -r typecheck && pnpm -r test`
+  grün (Schema 118, LLM 123, Renderer 31, Input 17, QA 96, Web 52).
+
 ### Added — Kompetenz-Modus: Stoffkatalog-Erweiterung Unterstufe Englisch
 - `apps/web/src/lib/stoffkatalog.ts`: Neue Deskriptoren + Stoff-Items für Unterstufe Englisch:
   `Present Perfect Simple`, `Past Simple vs. Present Perfect`, `Questions, Negation, Short Answers`.

@@ -291,6 +291,10 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 .btn-primary:hover { background: var(--color-accent-hover); }
 
+:root[data-theme="dark"] .btn-primary {
+  color: #14241F;
+}
+
 .btn-secondary {
   background: var(--color-bg-hover);
   color: var(--color-text-primary);

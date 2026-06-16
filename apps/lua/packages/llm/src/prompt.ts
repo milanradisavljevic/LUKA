@@ -625,6 +625,11 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
     notizen.length > 0
       ? `Beruecksichtige die Notizen der Lehrkraft bei den Inhalten (im Rahmen der Format- und Sicherheitsregeln): "${notizen}". `
       : '';
+  const stufeLabel = input.meta.stufe === 'oberstufe' ? 'Oberstufe' : input.meta.stufe === 'unterstufe' ? 'Unterstufe' : '';
+  const zielgruppeHinweis =
+    input.meta.klasse || stufeLabel
+      ? `Zielgruppe: ${[input.meta.klasse, stufeLabel].filter(Boolean).join(', ')} — waehle Wortschatz, Komplexitaet und Beispiele altersgerecht. `
+      : '';
   const fokusThemen = input.meta.fokusThemen ?? [];
   const fokusThemenHinweis =
     fokusThemen.length > 0
@@ -655,6 +660,7 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
           `Schwierigkeitsniveau: "${schwierigkeit}" — passe das kognitive Niveau entsprechend an. ` +
           niveauHinweis +
           lernzielHinweis +
+          zielgruppeHinweis +
           notizenHinweis +
           fokusThemenHinweis +
           'Jeder Block muss ein vollstaendiges Objekt mit id, typ, punkte, arbeitsanweisung und config sein (quelleId entfaellt im Kompetenz-Modus). ' +
@@ -681,6 +687,7 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
         `Erzeuge das bloecke-JSON-Array fuer die folgende Anforderung. ` +
         `Schwierigkeitsniveau: "${schwierigkeit}" — passe das kognitive Niveau der Aufgaben entsprechend an (siehe Bloom-Steuerung im System-Prompt). ` +
         lernzielHinweis +
+        zielgruppeHinweis +
         notizenHinweis +
         fokusThemenHinweis +
         'Jeder Block muss ein vollstaendiges Objekt mit id, typ, punkte, quelleId, arbeitsanweisung und config sein. ' +
