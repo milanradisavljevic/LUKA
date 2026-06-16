@@ -3,7 +3,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   Workflow, Rocket, FilePlus2, SpellCheck, GraduationCap, Users,
   ClipboardCheck, LayoutDashboard, Keyboard, ShieldCheck, LifeBuoy,
-  Lightbulb, CheckCircle2,
+  Lightbulb, CheckCircle2, Target, FolderOpen, Shapes,
 } from 'lucide-react';
 import { ViewShell } from './_ViewShell';
 
@@ -110,7 +110,64 @@ const SECTIONS: Section[] = [
           <><strong>KI-Modell</strong> — Anbieter, Modell und Kreativitätsgrad (präzise bis kreativ) wählen.</>,
           <><strong>Generieren</strong> — Inhalte erzeugen und Schülerfassung, Lösung und optional das Korrekturraster als DOCX exportieren. Jeder Export landet im Verlauf.</>,
         ]} />
-        <Tip>Einen ganzen Blocktyp wieder entfernen: im Baukasten oben rechts am Block auf das <strong>X</strong> klicken.</Tip>
+        <P><strong>Bewertung (Punkte an/aus):</strong> In Schritt „Absicht" legst du fest, ob die Unterlage Punkte trägt. Schulübungen sind standardmäßig <em>ohne</em> Punkte; mit dem Schalter „Punkte vergeben / Ohne Punkte" überschreibst du das pro Dokument. „Ohne Punkte" blendet Punktespalte und Gesamtpunkte überall aus — in Vorschau <em>und</em> Export gleich.</P>
+        <P><strong>Einzelne Aufgabe neu generieren:</strong> In der Vorschau bei einem Block auf „Neu generieren" — mit optionalem Hinweis (kürzer, schwieriger, andere Formulierung). Nur dieser Block wird ersetzt.</P>
+        <P><strong>Export-Varianten:</strong> „Beide Dokumente" (Schülerfassung + Lösung), „Korrekturraster", im Kompetenz-Modus zusätzlich „Kompetenznachweis", sowie „Als PDF". Vor dem Export prüft ein <strong>Quality-Gate</strong> Lernziel-Abdeckung und Wortzahl der Schreibaufgaben — bei Auffälligkeiten kannst du „Nochmal prüfen" oder „Trotzdem exportieren".</P>
+        <P><strong>3 Niveaus auf einmal:</strong> Der Knopf „3 Niveaus erzeugen" (nach dem Generieren) exportiert dasselbe Blatt in drei Fassungen — <em>leicht</em> (offene Aufgaben vereinfacht, ohne KI-Kosten), <em>mittel</em> (unverändert) und <em>schwer</em> (offene Aufgaben anspruchsvoller neu generiert). Dateinamen tragen <code>_leicht/_mittel/_schwer</code>.</P>
+        <Tip>Einen ganzen Blocktyp wieder entfernen: im Baukasten oben rechts am Block auf das <strong>X</strong> klicken. Mehr Zuordnungs-Paare/MC-Antworten: im Block-Editor auf „+ Item" / „+ Option" / „+ Frage".</Tip>
+      </>
+    ),
+  },
+  {
+    id: 'kompetenz',
+    title: 'Übung ohne Quelltext (Kompetenz)',
+    Icon: Target,
+    body: (
+      <>
+        <P>
+          Die zweite Tür auf der Startseite — <strong>„Ohne Quelltext"</strong> — erzeugt Übungen <em>ohne</em>
+          eigene Textgrundlage. Statt eines Quelltexts gibst du vor, <strong>woran</strong> geübt werden soll:
+        </P>
+        <Steps items={[
+          <><strong>Freies Thema / Kompetenz</strong> — z. B. „Present Perfect vs. Past Simple" oder „Kommasetzung bei Relativsätzen" frei eintippen.</>,
+          <><strong>Oder Lehrplan-Kompetenz</strong> aus dem Katalog (Deutsch/Englisch, Unter-/Oberstufe) wählen — dann entsteht zusätzlich ein <strong>Kompetenznachweis</strong> beim Export.</>,
+          <>Aufgabentypen wählen, optional Punkte an/aus, generieren — wie beim Quelltext-Pfad, nur dass die KI die Inhalte stufengerecht selbst erfindet.</>,
+        ]} />
+        <Tip>Faustregel: <strong>Aus Quelltext</strong> = Schularbeit/Test zu einem konkreten Text. <strong>Ohne Quelltext</strong> = schnelle Grammatik-/Kompetenz-Übung.</Tip>
+      </>
+    ),
+  },
+  {
+    id: 'aufgabentypen',
+    title: 'Aufgabentypen',
+    Icon: Shapes,
+    body: (
+      <>
+        <P>Diese Blocktypen kannst du im Baukasten kombinieren (je nach Fach/Stufe sinnvoll vorausgewählt):</P>
+        <Steps items={[
+          <><strong>Geschlossen:</strong> Multiple Choice, Matching (Zuordnung), Lückentext (mit/ohne Wortbank), Kategorisierung, Wörter ordnen, Kreuzworträtsel, Wortgitter, Vokabelübung.</>,
+          <><strong>Offen:</strong> Verständnisfrage, Schreibaufgabe, Markieraufgabe, Stilübung, Songanalyse.</>,
+          <><strong>Sprachrichtigkeit:</strong> Fehlerkorrektur.</>,
+        ]} />
+        <P>Die <strong>Schwierigkeit</strong> (leicht/mittel/schwer) steuert das kognitive Niveau <em>innerhalb</em> des Typs (Bloom; bei Englisch zusätzlich CEFR A2/B1/B2) — der Typ selbst bleibt erhalten.</P>
+        <Tip>Ein Matching-Block = eine Aufgabe mit <em>mehreren</em> Paaren. Für mehr Paare „+ Item"/„+ Option" nutzen, nicht mehrere Matching-Blöcke anlegen.</Tip>
+      </>
+    ),
+  },
+  {
+    id: 'dokumente',
+    title: 'Dokumente, Vorlagen & Verlauf',
+    Icon: FolderOpen,
+    body: (
+      <>
+        <P>Erstellte Unterlagen und Konfigurationen verwaltest du über die Seitenleiste:</P>
+        <Steps items={[
+          <><strong>Speichern</strong> (Kopf oben) sichert die aktuelle Unterlage unter <strong>Meine Unterlagen</strong>.</>,
+          <><strong>Vorlagen</strong> — gespeicherte Baukasten-Konfigurationen, die du als Startpunkt für neue Unterlagen lädst.</>,
+          <><strong>Verlauf</strong> — jede Generierung/jeder Export wird protokolliert.</>,
+          <><strong>Favoriten</strong> — häufig genutzte Dokumente markieren; <strong>Papierkorb</strong> — Gelöschtes wiederherstellen.</>,
+        ]} />
+        <Tip>Datensicherung: in <strong>Einstellungen → Datenbank → „Datensicherung exportieren"</strong> schreibst du eine Kopie der gesamten lokalen Datenbank an einen Ort deiner Wahl.</Tip>
       </>
     ),
   },
