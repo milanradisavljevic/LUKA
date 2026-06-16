@@ -30,6 +30,21 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
   jetzt du!" mit Schreiblinien am Ende.
 - `apps/web/src/components/Step0_Absicht.tsx`: Link-Text angepasst auf „Übung ohne Quelltext".
 
+### Fixed — Welle 6: Natascha-Testfeedback (Bugs + Didaktik)
+- `apps/web/src/lib/commands.ts`: Ctrl+K-/Command-Pfad für `multipleChoice` erzeugt jetzt
+  4 Optionen (A–D), statt 2 — konsistent mit `createDefaultBlock` und Schema-Minimum.
+- `apps/web/src/lib/blockDefaults.ts`: `createDefaultBlock` setzt bei `meta.punkteAusblenden === true`
+  neue Blöcke auf `punkte: 0` (punktlose Schulübungen bleiben punktefrei).
+- `packages/llm/src/normalize.ts`: Leere/whitespace Strings werden gefiltert in
+  `config.aspekte`, MC-`optionen` und `distraktorWoerter`. Offene Schreibaufgabe bekommt
+  bei ausschließlich leeren Aspekten einen sinnvollen Fallback (`['Inhalt', 'Struktur']`).
+- `packages/llm/src/prompt.ts`: Didaktik-Härtung — Distraktoren an Stufe gekoppelt
+  (Oberstufe = konzeptuell nahe, fein nuanciert; Unterstufe = klare Begriffsverwechslungen);
+  `offeneSchreibaufgabe` mit ausführlicherer Schreibsituation, Adressat, Anlass, Medium;
+  Beispiel angereichert.
+- Verifikation: `pnpm -r build` + `pnpm -r test` grün (Schema 118, LLM 123, Renderer 31,
+  Input 17, QA 96, Web 52).
+
 ### Added — Kompetenz-Modus: Stoffkatalog-Erweiterung Unterstufe Englisch
 - `apps/web/src/lib/stoffkatalog.ts`: Neue Deskriptoren + Stoff-Items für Unterstufe Englisch:
   `Present Perfect Simple`, `Past Simple vs. Present Perfect`, `Questions, Negation, Short Answers`.
