@@ -64,6 +64,10 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
   const [lernzieleRaw, setLernzieleRaw] = useState(lastMeta?.lernziele?.join(', ') ?? '');
   const [fokusThemen, setFokusThemen] = useState<string[]>(lastMeta?.fokusThemen ?? []);
   const [fehler, setFehler] = useState<string | null>(null);
+  // Punkte vergeben? Schulübung standardmäßig ohne Punkte, sonst mit.
+  const [punkteVergeben, setPunkteVergeben] = useState<boolean>((lastMeta?.typ ?? 'schularbeit') !== 'schuluebung');
+  // Sinnvoller Default je Unterlagentyp; manuell überschreibbar.
+  useEffect(() => { setPunkteVergeben(typ !== 'schuluebung'); }, [typ]);
 
   // NATASCHA-Datei-Brücke (Phase 1)
   const [nataschaExports, setNataschaExports] = useState<BridgeExportMeta[] | null>(null);
@@ -208,7 +212,9 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
       dauerMinuten: dauerMinuten !== '' ? Number(dauerMinuten) : undefined,
       schwierigkeit,
       gewuenschteAufgabenarten: gewuenschteAufgabenarten.length > 0 ? gewuenschteAufgabenarten as Auftrag['gewuenschteAufgabenarten'] : undefined,
-      gesamtpunkteZiel: gesamtpunkteZiel !== '' ? Number(gesamtpunkteZiel) : undefined,
+      // „Ohne Punkte": 0 (nicht undefined) erzwingt punktlose Blöcke; sonst würde
+      // buildSkelett auf den Profil-Default (z. B. Schularbeit 48) zurückfallen.
+      gesamtpunkteZiel: !punkteVergeben ? 0 : (gesamtpunkteZiel !== '' ? Number(gesamtpunkteZiel) : undefined),
       notizen: notizenFinal || undefined,
       lernziele: lernzieleRaw.split(',').map((s) => s.trim()).filter(Boolean) || undefined,
       fokusThemen: fokusThemen.length > 0 ? fokusThemen : undefined,
@@ -235,6 +241,9 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
           klasse: klasse.trim(),
           notizen: notizenFinal,
           typ,
+          // Schulübung ist per Definition punktlos ("keine Punkte, keine Noten") →
+          // app-weit Punkte ausblenden; neue Baukasten-Blöcke kommen dann mit punkte:0.
+          punkteAusblenden: !punkteVergeben,
           schwierigkeit,
           lernziele: lernzieleRaw.split(',').map((s) => s.trim()).filter(Boolean) || undefined,
           fokusThemen: fokusThemen.length > 0 ? fokusThemen : undefined,
@@ -244,7 +253,7 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
     } catch (err) {
       setFehler(err instanceof Error ? err.message : 'Fehler beim Erstellen des Skeletts.');
     }
-  }, [typ, fach, stufe, thema, datum, klasse, dauerMinuten, schwierigkeit, gewuenschteAufgabenarten, gesamtpunkteZiel, notizen, lernzieleRaw, fokusThemen, nataschaFehler, state.quelltexte, state.bloecke, dispatch]);
+  }, [typ, fach, stufe, thema, datum, klasse, dauerMinuten, schwierigkeit, gewuenschteAufgabenarten, gesamtpunkteZiel, punkteVergeben, notizen, lernzieleRaw, fokusThemen, nataschaFehler, state.quelltexte, state.bloecke, dispatch]);
 
   const fachLabel = fach === 'deutsch' ? 'Deutsch' : 'Englisch';
   const stufeLabel = stufe === 'oberstufe' ? 'Oberstufe' : 'Unterstufe';
@@ -533,6 +542,39 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
         </div>
       </section>
 
+      {/* Bewertung — Punkte an/aus */}
+      <section style={{ marginBottom: '1.25rem' }}>
+        <SectionLabel>Bewertung</SectionLabel>
+        <button
+          type="button"
+          onClick={() => setPunkteVergeben((v) => !v)}
+          aria-pressed={punkteVergeben}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+            padding: '0.5rem 0.875rem', borderRadius: 'var(--radius)',
+            border: '1px solid var(--color-border)', background: 'var(--color-bg-surface)',
+            cursor: 'pointer', fontSize: '0.875rem',
+          }}
+        >
+          <span style={{
+            width: '2rem', height: '1.125rem', borderRadius: '999px',
+            background: punkteVergeben ? 'var(--color-accent)' : 'var(--color-border)',
+            position: 'relative', transition: 'background 0.15s ease',
+          }}>
+            <span style={{
+              position: 'absolute', top: 2,
+              left: punkteVergeben ? 'calc(100% - 1rem - 2px)' : 2,
+              width: '0.875rem', height: '0.875rem', borderRadius: '50%',
+              background: 'white', transition: 'left 0.15s ease',
+            }} />
+          </span>
+          {punkteVergeben ? 'Punkte vergeben' : 'Ohne Punkte'}
+        </button>
+        <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', margin: '0.375rem 0 0' }}>
+          Aus = einfache Übung ohne Punkteangaben (z. B. Schulübung), wie aus dem Schulbuch.
+        </p>
+      </section>
+
       {/* Dauer & Schwierigkeit & Punkte */}
       <section style={{ marginBottom: '1.25rem', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
         <div>
@@ -571,14 +613,15 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
             ))}
           </select>
         </div>
-        <div>
+        <div style={{ opacity: punkteVergeben ? 1 : 0.45 }}>
           <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.875rem' }}>Punkte (opt.)</label>
           <input
             type="number"
             min={1}
-            value={gesamtpunkteZiel}
+            value={punkteVergeben ? gesamtpunkteZiel : ''}
+            disabled={!punkteVergeben}
             onChange={(e) => setGesamtpunkteZiel(e.target.value === '' ? '' : Number(e.target.value))}
-            placeholder="~48"
+            placeholder={punkteVergeben ? '~48' : 'ohne Punkte'}
             style={{
               width: '100%',
               padding: '0.625rem 0.875rem',

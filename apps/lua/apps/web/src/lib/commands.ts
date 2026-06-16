@@ -153,7 +153,7 @@ function getDefaultConfig(typ: string): Record<string, unknown> {
   switch (typ) {
     case 'lueckentext': return { anzahlLuecken: 6, wortbank: false, distraktoren: 0 };
     case 'matching': return { items: [{ nr: 1, prompt: '' }, { nr: 2, prompt: '' }], optionen: [{ key: 'A', text: '' }, { key: 'B', text: '' }, { key: 'C', text: '' }] };
-    case 'multipleChoice': return { fragen: [{ nr: 1, frage: '', optionen: [{ key: 'A', text: '' }, { key: 'B', text: '' }], mehrfach: false }] };
+    case 'multipleChoice': return { fragen: [{ nr: 1, frage: '', optionen: [{ key: 'A', text: '' }, { key: 'B', text: '' }, { key: 'C', text: '' }, { key: 'D', text: '' }], mehrfach: false }] };
     case 'offeneVerstaendnisfrage': return { fragen: [{ nr: 1, frage: '', zeilen: 4 }] };
     case 'offeneSchreibaufgabe': return { situation: '', textsorte: '', umfangWorte: { min: 200, max: 300 }, aspekte: [''] };
     case 'markieraufgabe': return { quelleId: '', anweisung: '' };
