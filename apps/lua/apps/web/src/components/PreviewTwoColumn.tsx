@@ -67,6 +67,9 @@ export function PreviewTwoColumn({ state, dispatch }: Props) {
   };
 
   const gesamtPunkte = bloecke.reduce((sum, b) => sum + b.punkte, 0);
+  // Punkte in der Vorschau nur zeigen, wenn nicht ausgeblendet — deckungsgleich mit
+  // dem Export (Renderer: meta.punkteAusblenden). Sonst verwirrt Vorschau ≠ DOCX.
+  const zeigePunkte = meta.punkteAusblenden !== true && gesamtPunkte > 0;
 
   // Schülerkopf (Name/Klasse/Datum) + Aufgabenübersicht — spiegelt das DOCX-Layout.
   const renderKopf = () => (
@@ -88,7 +91,7 @@ export function PreviewTwoColumn({ state, dispatch }: Props) {
               <tr style={{ background: '#e8e8e8' }}>
                 <th style={{ border: `1px solid ${PAPER_BORDER}`, padding: '2px 6px', textAlign: 'left', width: '10%' }}>Nr.</th>
                 <th style={{ border: `1px solid ${PAPER_BORDER}`, padding: '2px 6px', textAlign: 'left' }}>Aufgabe</th>
-                {gesamtPunkte > 0 && <th style={{ border: `1px solid ${PAPER_BORDER}`, padding: '2px 6px', textAlign: 'right', width: '22%' }}>Punkte</th>}
+                {zeigePunkte && <th style={{ border: `1px solid ${PAPER_BORDER}`, padding: '2px 6px', textAlign: 'right', width: '22%' }}>Punkte</th>}
               </tr>
             </thead>
             <tbody>
@@ -96,10 +99,10 @@ export function PreviewTwoColumn({ state, dispatch }: Props) {
                 <tr key={b.id}>
                   <td style={{ border: `1px solid ${PAPER_BORDER}`, padding: '2px 6px' }}>{i + 1}</td>
                   <td style={{ border: `1px solid ${PAPER_BORDER}`, padding: '2px 6px' }}>{BLOCK_LABELS[b.typ] ?? b.typ}</td>
-                  {gesamtPunkte > 0 && <td style={{ border: `1px solid ${PAPER_BORDER}`, padding: '2px 6px', textAlign: 'right' }}>____ / {b.punkte}</td>}
+                  {zeigePunkte && <td style={{ border: `1px solid ${PAPER_BORDER}`, padding: '2px 6px', textAlign: 'right' }}>____ / {b.punkte}</td>}
                 </tr>
               ))}
-              {gesamtPunkte > 0 && (
+              {zeigePunkte && (
                 <tr style={{ background: '#f0f0f0', fontWeight: 700 }}>
                   <td style={{ border: `1px solid ${PAPER_BORDER}`, padding: '2px 6px' }}></td>
                   <td style={{ border: `1px solid ${PAPER_BORDER}`, padding: '2px 6px' }}>GESAMT</td>
@@ -108,7 +111,7 @@ export function PreviewTwoColumn({ state, dispatch }: Props) {
               )}
             </tbody>
           </table>
-          {gesamtPunkte > 0 && (
+          {zeigePunkte && (
             <p style={{ fontSize: '10pt', marginTop: '0.4rem', color: PAPER_TEXT }}>
               <strong>Note:</strong> ________   <strong>Unterschrift:</strong> ____________
             </p>
@@ -278,7 +281,7 @@ export function PreviewTwoColumn({ state, dispatch }: Props) {
           onClick={() => setEditingId(editingId === block.id ? null : block.id)}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.375rem', fontSize: '9pt', color: PAPER_SECONDARY }}>
-            {gesamtPunkte > 0 && <span>{block.punkte} Punkte</span>}
+            {zeigePunkte && <span>{block.punkte} Punkte</span>}
             {block.quelleId && <span>Quelle: {resolveQuelleTitel(block.quelleId)}</span>}
             {editingId === block.id && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: '#6a1b9a' }}><Pencil size={12} /> Bearbeitung</span>}
           </div>
@@ -396,7 +399,7 @@ export function PreviewTwoColumn({ state, dispatch }: Props) {
         <div key={block.id}
           style={{ marginBottom: '1.25rem', paddingBottom: '1rem', borderBottom: '1px solid #cccccc' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.375rem', fontSize: '9pt', color: PAPER_SECONDARY }}>
-            {gesamtPunkte > 0 && <span>{block.punkte} Punkte</span>}
+            {zeigePunkte && <span>{block.punkte} Punkte</span>}
             {block.quelleId && <span>Quelle: {resolveQuelleTitel(block.quelleId)}</span>}
           </div>
           {block.beispiel?.trim() && (

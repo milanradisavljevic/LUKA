@@ -200,7 +200,7 @@ export function BlockConfigPanel({ block, stufe, onConfigChange }: Props) {
           </div>
         ))}
         <button className="btn-secondary" style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
-          onClick={() => set('fragen', [...fragen, { nr: fragen.length + 1, frage: '', optionen: [{ key: 'A', text: '' }, { key: 'B', text: '' }], mehrfach: false }])}>
+          onClick={() => set('fragen', [...fragen, { nr: fragen.length + 1, frage: '', optionen: [{ key: 'A', text: '' }, { key: 'B', text: '' }, { key: 'C', text: '' }, { key: 'D', text: '' }], mehrfach: false }])}>
           + Frage
         </button>
       </div>
