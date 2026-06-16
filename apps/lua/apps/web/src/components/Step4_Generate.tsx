@@ -4,6 +4,7 @@ import {
   AlertTriangle, Timer, Bot, X, Palette, BookOpen, Target,
 } from 'lucide-react';
 import type { AppState, AppAction } from '../lib/types';
+import type { Block } from '@lehrunterlagen/schema';
 import { getBlockLabel } from '../lib/blockDefaults';
 import { PreviewTwoColumn } from './PreviewTwoColumn';
 import { useGenerate } from '../hooks/useGenerate';
@@ -84,23 +85,25 @@ export function Step4_Generate({ state, dispatch }: Props) {
   };
 
   const exportDreiNiveaus = async () => {
-    if (!state.generiertesDokument) return;
+    const basis = state.generiertesDokument;
+    if (!basis) return;
     setNiveauExportLabel('Mittel exportieren …');
-    await exportDocxOverride(state, state.generiertesDokument, 'mittel');
+    await exportDocxOverride(state, basis, 'mittel');
 
     setNiveauExportLabel('Leicht transformieren …');
-    const leicht = transformiereLeicht(state.generiertesDokument);
-    await exportDocxOverride(state, leicht, 'leicht');
+    await exportDocxOverride(state, transformiereLeicht(basis), 'leicht');
 
+    // Schwer: nur offene Blöcke neu generieren. regenerateBlock liefert den neuen
+    // Block zurück; die schwere Fassung wird daraus zusammengesetzt (NICHT aus dem
+    // async aktualisierten globalen State, der in diesem Closure stale wäre).
     setNiveauExportLabel('Schwer regenerieren …');
-    const offeneIds = findeOffeneBlockIds(state.generiertesDokument);
-    for (const id of offeneIds) {
-      await regenerateBlock(state, id, 'Anspruchsvoller, höheres Bloom-Niveau — präzisere Analyse, komplexere Verknüpfungen, weniger Hilfestellung.');
+    const regeneriert = new Map<string, Block>();
+    for (const id of findeOffeneBlockIds(basis)) {
+      const neu = await regenerateBlock(state, id, 'Anspruchsvoller, höheres Bloom-Niveau — präzisere Analyse, komplexere Verknüpfungen, weniger Hilfestellung.');
+      if (neu) regeneriert.set(id, neu);
     }
-    // Nach den Regenerierungen ist state.generiertesDokument die schwere Fassung.
-    if (state.generiertesDokument) {
-      await exportDocxOverride(state, state.generiertesDokument, 'schwer');
-    }
+    const schwer = { ...basis, bloecke: basis.bloecke.map((b) => regeneriert.get(b.id) ?? b) };
+    await exportDocxOverride(state, schwer, 'schwer');
     setNiveauExportLabel(null);
   };
 
