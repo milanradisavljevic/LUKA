@@ -330,12 +330,12 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
 
   // Einen einzelnen Block neu generieren (optional mit Hinweis wie „kürzer", „schwieriger").
   // Ersetzt den Block im bereits generierten Dokument. Kein Anbieter-Fallback (günstig halten).
-  const regenerateBlock = useCallback(async (state: AppState, blockId: string, hinweis?: string) => {
+  const regenerateBlock = useCallback(async (state: AppState, blockId: string, hinweis?: string): Promise<Block | null> => {
     const doc = state.generiertesDokument;
-    if (!doc) { setError('Kein generiertes Dokument vorhanden.'); return false; }
+    if (!doc) { setError('Kein generiertes Dokument vorhanden.'); return null; }
     const ziel = doc.bloecke.find((b) => b.id === blockId);
-    if (!ziel) { setError('Block nicht gefunden.'); return false; }
-    if (!isTauri()) { setError('Nur in der Desktop-App verfügbar.'); return false; }
+    if (!ziel) { setError('Block nicht gefunden.'); return null; }
+    if (!isTauri()) { setError('Nur in der Desktop-App verfügbar.'); return null; }
 
     cancelRef.current = false;
     setGenerating(true);
@@ -356,15 +356,16 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
       const neu = ergebnis.bloecke[0];
       if (!neu) throw new Error('Kein Block in der Antwort.');
       // id des Originalblocks beibehalten, restliche Felder ersetzen.
-      dispatch({ type: 'UPDATE_GENERIERTER_BLOCK', id: blockId, block: { ...neu, id: blockId } as Partial<Block> });
+      const neuMitId = { ...neu, id: blockId } as Block;
+      dispatch({ type: 'UPDATE_GENERIERTER_BLOCK', id: blockId, block: neuMitId as Partial<Block> });
       setStage('fertig');
-      return true;
+      return neuMitId;
     } catch (err) {
       const msg = errToMessage(err);
-      if (msg === '__CANCELLED__') { setStage('idle'); return false; }
+      if (msg === '__CANCELLED__') { setStage('idle'); return null; }
       setError(msg.replace(TRANSPORT, 'Anbieter nicht erreichbar:'));
       setStage('fehler');
-      return false;
+      return null;
     } finally {
       stopTimer();
       setGenerating(false);
