@@ -10,7 +10,9 @@ import { useGenerate } from '../hooks/useGenerate';
 import { useExport } from '../hooks/useExport';
 import { usePdfExport } from '../hooks/usePdfExport';
 import { computeCoverage } from '../lib/coverage';
+import { checkLernzielCoverage, checkSchreibaufgabe } from '@lehrunterlagen/llm';
 import { RENDER_TEMPLATES } from '@lehrunterlagen/renderer';
+import { transformiereLeicht, findeOffeneBlockIds } from '../lib/niveauTransform';
 
 
 function isTauri(): boolean {
@@ -24,7 +26,8 @@ interface Props {
 
 export function Step4_Generate({ state, dispatch }: Props) {
   const { generate, cancel, generating, stage, elapsedMs, aktiverProvider, error: generateError } = useGenerate(dispatch);
-  const { exportDocx, exportKorrekturraster, exportKompetenzraster, exporting, error: exportError, warnung: exportWarnung, lastSavedPaths } = useExport();
+  const { exportDocx, exportDocxOverride, exportKorrekturraster, exportKompetenzraster, exporting, error: exportError, warnung: exportWarnung, lastSavedPaths } = useExport();
+  const { regenerateBlock } = useGenerate(dispatch);
   const pdfExport = usePdfExport();
   const isKompetenz = state.meta.modus === 'kompetenz';
   const isFrei = isKompetenz && !!state.generiertesDokument?.meta.freieKompetenz?.trim()
@@ -33,6 +36,8 @@ export function Step4_Generate({ state, dispatch }: Props) {
     ? computeCoverage(state.generiertesDokument.meta)
     : null;
   const [showPdfHint, setShowPdfHint] = useState(false);
+  const [pendingExportIssues, setPendingExportIssues] = useState<string[] | null>(null);
+  const [niveauExportLabel, setNiveauExportLabel] = useState<string | null>(null);
 
   // Fortschritts-Anzeige je Stage
   const stageMeta: Record<string, { label: string; step: number }> = {
@@ -61,9 +66,84 @@ export function Step4_Generate({ state, dispatch }: Props) {
 
   const totalPunkte = state.bloecke.reduce((s, b) => s + b.punkte, 0);
 
+  const runExportWithQualityGate = async () => {
+    if (!state.generiertesDokument) return;
+    const issues = [
+      ...checkLernzielCoverage(state.generiertesDokument, state.generiertesDokument.meta),
+      ...checkSchreibaufgabe(state.generiertesDokument, state.quelltexte),
+    ].map((issue) => issue.message);
+    if (issues.length > 0) {
+      setPendingExportIssues(issues);
+      return;
+    }
+    await exportDocx(state);
+  };
+  const confirmExport = async () => {
+    setPendingExportIssues(null);
+    await exportDocx(state);
+  };
+
+  const exportDreiNiveaus = async () => {
+    if (!state.generiertesDokument) return;
+    setNiveauExportLabel('Mittel exportieren …');
+    await exportDocxOverride(state, state.generiertesDokument, 'mittel');
+
+    setNiveauExportLabel('Leicht transformieren …');
+    const leicht = transformiereLeicht(state.generiertesDokument);
+    await exportDocxOverride(state, leicht, 'leicht');
+
+    setNiveauExportLabel('Schwer regenerieren …');
+    const offeneIds = findeOffeneBlockIds(state.generiertesDokument);
+    for (const id of offeneIds) {
+      await regenerateBlock(state, id, 'Anspruchsvoller, höheres Bloom-Niveau — präzisere Analyse, komplexere Verknüpfungen, weniger Hilfestellung.');
+    }
+    // Nach den Regenerierungen ist state.generiertesDokument die schwere Fassung.
+    if (state.generiertesDokument) {
+      await exportDocxOverride(state, state.generiertesDokument, 'schwer');
+    }
+    setNiveauExportLabel(null);
+  };
+
   return (
     <div>
       <h2 style={{ marginBottom: '1.25rem' }}>Generieren &amp; Export</h2>
+
+      {/* Quality-Gate Bestätigungsdialog */}
+      {pendingExportIssues && (
+        <div style={{
+          marginBottom: '1.5rem',
+          padding: '1rem',
+          border: '1px solid var(--color-warning)',
+          borderRadius: 'var(--radius)',
+          background: 'var(--color-warning-bg)',
+        }}>
+          <h3 style={{ fontSize: '0.9375rem', marginBottom: '0.5rem', display: 'inline-flex', alignItems: 'center', gap: '0.375rem', color: 'var(--color-warning)' }}>
+            <AlertTriangle size={16} /> Mögliche Probleme vor dem Export
+          </h3>
+          <ul style={{ margin: '0 0 0.75rem 1.25rem', padding: 0, fontSize: '0.875rem', color: 'var(--color-text-primary)' }}>
+            {pendingExportIssues.map((issue, i) => (
+              <li key={i}>{issue}</li>
+            ))}
+          </ul>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button
+              className="btn-secondary"
+              onClick={() => setPendingExportIssues(null)}
+              style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}
+            >
+              Nochmal prüfen
+            </button>
+            <button
+              className="btn-primary"
+              onClick={confirmExport}
+              disabled={exporting}
+              style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}
+            >
+              Trotzdem exportieren
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Formatvorlage */}
       <div style={{ marginBottom: '1.5rem' }}>
@@ -161,7 +241,7 @@ export function Step4_Generate({ state, dispatch }: Props) {
           {/* Schritt 2: Exportieren */}
           <button
             className="btn-secondary"
-            onClick={() => exportDocx(state)}
+            onClick={runExportWithQualityGate}
             disabled={!canExport || exporting || generating}
             aria-label="Schülerfassung und Lösung als DOCX exportieren"
             style={{ padding: '0.65rem 1.25rem', fontSize: '0.9375rem',
@@ -198,6 +278,22 @@ export function Step4_Generate({ state, dispatch }: Props) {
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
             >
               <Target size={16} /> Kompetenznachweis exportieren
+            </button>
+          )}
+
+          {/* 3 Niveaus */}
+          {canExport && (
+            <button
+              className="btn-secondary"
+              onClick={exportDreiNiveaus}
+              disabled={exporting || generating}
+              style={{ padding: '0.65rem 1.25rem', fontSize: '0.9375rem',
+                borderStyle: 'dashed',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+            >
+              {niveauExportLabel
+                ? <><Loader2 size={16} className="spin" /> {niveauExportLabel}</>
+                : <><FileDown size={16} /> 3 Niveaus erzeugen</>}
             </button>
           )}
 

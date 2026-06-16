@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import type { AppState } from '../lib/types';
+import type { DocumentV1 } from '@lehrunterlagen/schema';
 
 import { getBlockLabel } from '../lib/blockDefaults';
 import { appendHistoryEntry } from '../lib/storage';
@@ -12,11 +13,7 @@ export function useExport() {
   const [warnung, setWarnung] = useState<string | null>(null);
   const [lastSavedPaths, setLastSavedPaths] = useState<string[] | null>(null);
 
-  const exportDocx = useCallback(async (state: AppState) => {
-    if (!state.generiertesDokument) {
-      setError('Bitte zuerst Inhalt generieren.');
-      return false;
-    }
+  const exportDocxOverride = useCallback(async (state: AppState, doc: DocumentV1, suffix?: string) => {
     setExporting(true);
     setError(null);
     setWarnung(null);
@@ -25,13 +22,14 @@ export function useExport() {
     try {
       const { renderDocumentToBlobs } = await import('@lehrunterlagen/renderer');
       const template = RENDER_TEMPLATES[state.renderTemplate];
-      const { schueler, loesung } = await renderDocumentToBlobs(state.generiertesDokument, template);
+      const { schueler, loesung } = await renderDocumentToBlobs(doc, template);
 
-      const thema = sanitizeFilename(state.generiertesDokument.meta.thema).slice(0, 40);
-      const datum = state.generiertesDokument.meta.datum;
+      const thema = sanitizeFilename(doc.meta.thema).slice(0, 40);
+      const datum = doc.meta.datum;
+      const suffixPart = suffix ? `_${suffix}` : '';
 
-      const schuelerName = `${datum}_${thema}_Schuelerfassung.docx`;
-      const loesungName = `${datum}_${thema}_Loesung.docx`;
+      const schuelerName = `${datum}_${thema}${suffixPart}_Schuelerfassung.docx`;
+      const loesungName = `${datum}_${thema}${suffixPart}_Loesung.docx`;
 
       // Nacheinander herunterladen mit Verzögerung, damit der Browser
       // beide Downloads akzeptiert (manche blockieren gleichzeitige Downloads)
@@ -42,17 +40,16 @@ export function useExport() {
       setLastSavedPaths([schuelerName, loesungName]);
 
       // Verlaufseintrag protokollieren (read-only Log in der Sidebar)
-      const dok = state.generiertesDokument;
       appendHistoryEntry({
         id: crypto.randomUUID(),
         timestamp: new Date().toISOString(),
-        thema: dok.meta.thema,
-        fach: dok.meta.fach,
-        stufe: dok.meta.stufe,
+        thema: doc.meta.thema,
+        fach: doc.meta.fach,
+        stufe: doc.meta.stufe,
         llmProvider: state.llmProvider,
         modelName: state.modelName,
-        blockCount: dok.bloecke.length,
-        totalPunkte: dok.bloecke.reduce((sum, b) => sum + (b.punkte ?? 0), 0),
+        blockCount: doc.bloecke.length,
+        totalPunkte: doc.bloecke.reduce((sum, b) => sum + (b.punkte ?? 0), 0),
         exportedFiles: [schuelerName, loesungName],
         savedDocumentId: state.aktuelleDokumentId,
       });
@@ -66,6 +63,14 @@ export function useExport() {
       setExporting(false);
     }
   }, []);
+
+  const exportDocx = useCallback(async (state: AppState) => {
+    if (!state.generiertesDokument) {
+      setError('Bitte zuerst Inhalt generieren.');
+      return false;
+    }
+    return exportDocxOverride(state, state.generiertesDokument);
+  }, [exportDocxOverride]);
 
   const exportKorrekturraster = useCallback(async (state: AppState) => {
     if (!state.generiertesDokument) {
@@ -171,7 +176,7 @@ export function useExport() {
     }
   }, []);
 
-  return { exportDocx, exportKorrekturraster, exportKompetenzraster, exporting, error, warnung, lastSavedPaths };
+  return { exportDocx, exportDocxOverride, exportKorrekturraster, exportKompetenzraster, exporting, error, warnung, lastSavedPaths };
 }
 
 function downloadBlob(blob: Blob, filename: string) {
