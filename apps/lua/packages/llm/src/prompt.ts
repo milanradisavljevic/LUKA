@@ -90,8 +90,20 @@ Distraktoren (die falschen Optionen / Ablenker) muessen drei didaktische Mindest
    Die Loesung darf NICHT durch auffaellig groessere Textlaenge, Ausrufezeichen oder Fachchinesisch verraten werden.
 3. TYPISCHE SCHUeLERFEHLER: Distraktoren bilden haeufige Fehlvorstellungen ab (Verwechslung zweier aehnlicher Begriffe,
    halbrichtige Aussagen, Uebergeneralisierung). KEINE absurd falschen, offensichtlich unsinnigen oder lustigen Optionen.
+4. STUFEN-ANGEMESSENHEIT (Unterstufe vs. Oberstufe):
+   - Unterstufe: Distraktoren duerfen deutlich falsch sein, ABER im selben Themenfeld. Fokus auf klare Begriffsverwechslungen.
+   - Oberstufe: Distraktoren muessen FEIN nuanciert sein. Sie sollen konzeptuell nahe an der korrekten Antwort liegen,
+     sodass die Entscheidung ein Nachdenken erfordert. Bevorzugt: halbrichtige Aussagen, Grenzfaelle, scheinbar logische
+     Schlussfolgerungen, die bei genauerem Hinsehen nicht ganz stimmen.
+     Positivbeispiel Oberstufe (Englisch / Past Simple vs. Present Perfect):
+     korrekt: "I have lost my keys." (Present Perfect, Resultat jetzt relevant)
+     → starker Distraktor: "I lost my keys." (Past Simple, grammatisch möglich, ABER falsch im Kontext „I can't find them now")
+     → schwacher Distraktor: "I am losing my keys." (offensichtlich falsche Zeitform).
 
 matching:
+- Ein matching-Block buendelt MEHRERE Zuordnungspaare (idealerweise 4-6 items) in EINEM Block.
+  Erzeuge NIEMALS mehrere kleine matching-Bloecke fuer dieselbe Aufgabe (das wiederholt nur Ueberschrift
+  und Optionen-Tabelle) — fasse alle Zuordnungen einer Aufgabe in einem einzigen Block zusammen.
 - Es gibt immer mehr Optionen als Items.
 - Die Reihenfolge der Optionen darf NICHT parallel zur Reihenfolge der Items sein.
 - WICHTIG: Jedes Item hat ein Feld "korrekt" mit dem Key der richtigen Option (z.B. "B").
@@ -112,8 +124,17 @@ offeneVerstaendnisfrage:
 - WICHTIG: Jede Frage hat ein Feld "musterantwort" mit der erwarteten Antwort.
 
 offeneSchreibaufgabe:
+- config.situation MUSS eine ausfuehrliche, schuelergerichtete Schreibsituation enthalten: Wer schreibt? An wen? Zu welchem
+  Anlass? In welchem Medium?
+- VARIIERE die Schreibsituation passend zu Thema, Textsorte und Adressat — verwende NICHT immer die Schuelerzeitung.
+  Waehle einen realistischen, abwechslungsreichen Kontext, z. B.: Leserbrief an eine (Tages-)Zeitung, Gastkommentar oder
+  Blogeintrag, Forumsbeitrag, offener Brief, Rede/Ansprache, E-Mail an die Schulleitung oder Gemeinde, Beitrag fuer ein
+  Jugendmagazin, Stellungnahme fuer eine Diskussionsrunde. (Beispiel: "Eine Tageszeitung ruft Jugendliche zu Leserbriefen
+  zum Thema auf. Du verfasst einen Leserbrief, in dem du klar Stellung beziehst.")
+- config.textsorte ist die geforderte Textsorte (z. B. Kommentar, Blogeintrag, Leserbrief, Erörterung).
+- config.aspekte nennen 2–4 konkrete inhaltliche/formale Kriterien, die im Text beruecksichtigt werden muessen.
 - Die Loesung gehoert in "loesung": { "musterloesung": "...", "erwartungshorizont": { "inhalt": "...", "struktur": "...", "ausdruck": "...", "sprachrichtigkeit": "..." } }.
-- musterloesung auf Sehr-gut-Niveau einer Schuelerin der Zielstufe, KEIN Expertentext.
+- musterloesung auf Sehr-gut-Niveau einer Schuelerin der Zielstufe, KEIN Expertentext. Achte auf Adressat, Anlass und Textsorten-Merkmale.
 - Halte den Umfang im vorgegebenen Wortbereich.
 - Fuelle erwartungshorizont in allen vier Feldern (inhalt, struktur, ausdruck, sprachrichtigkeit).
 
@@ -289,12 +310,12 @@ BEISPIEL fuer offeneSchreibaufgabe (Loesung im "loesung"-Objekt!):
     "typ": "offeneSchreibaufgabe",
     "punkte": 20,
     "quelleId": "q1",
-    "arbeitsanweisung": "Verfasse einen Kommentar zum Thema des Textes.",
+    "arbeitsanweisung": "Verfasse einen Leserbrief zum Thema des Textes.",
     "config": {
-      "situation": "In der Schuelerzeitung soll ein Kommentar erscheinen.",
-      "textsorte": "Kommentar",
+      "situation": "Eine Tageszeitung hat den Artikel veroeffentlicht und ruft Leserinnen und Leser zu Reaktionen auf. Du schreibst einen Leserbrief an die Redaktion und beziehst klar Stellung.",
+      "textsorte": "Leserbrief",
       "umfangWorte": { "min": 270, "max": 330 },
-      "aspekte": ["eigene Position", "zwei Argumente aus dem Text"]
+      "aspekte": ["eigene Position mit Begruendung", "zwei Argumente aus dem Text", "sachliche und hoefliche Sprache"]
     },
     "loesung": {
       "musterloesung": "Ein zusammenhaengender Beispieltext auf Sehr-gut-Niveau der Zielstufe.",

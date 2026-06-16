@@ -13,6 +13,25 @@ function isObject(val: unknown): val is AnyObj {
   return typeof val === 'object' && val !== null && !Array.isArray(val);
 }
 
+/** Entfernt leere/whitespace Strings aus einem Array (Provider-Robustheit). */
+function cleanStringArray(arr: unknown[]): string[] {
+  return arr
+    .filter((item): item is string => typeof item === 'string')
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+}
+
+/** Filtert Optionen-Objekte mit leerem Text heraus. */
+function cleanOptionen(optionen: unknown[]): AnyObj[] {
+  return optionen
+    .map((opt) => isObject(opt) ? opt : undefined)
+    .filter((opt): opt is AnyObj => {
+      if (!opt) return false;
+      const text = typeof opt.text === 'string' ? opt.text.trim() : '';
+      return text.length > 0;
+    });
+}
+
 // ---------------------------------------------------------------------------
 // Lueckentext
 // ---------------------------------------------------------------------------
@@ -42,6 +61,11 @@ function normalizeLueckentext(block: AnyObj): AnyObj {
     config.distraktoren = config.distraktoren.length;
   } else if (typeof config.distraktoren !== 'number') {
     config.distraktoren = 0;
+  }
+
+  // config.distraktorWoerter: leere/whitespace Einträge entfernen
+  if (Array.isArray(config.distraktorWoerter)) {
+    config.distraktorWoerter = cleanStringArray(config.distraktorWoerter);
   }
 
   // loesung.luecken: Array von Strings → Array von Objekten { nr, wort }
@@ -91,12 +115,12 @@ function normalizeMultipleChoice(block: AnyObj): AnyObj {
       if (isObject(item)) {
         const obj = item as AnyObj;
         if (Array.isArray(obj.optionen)) {
-          obj.optionen = obj.optionen.map((opt: unknown, i: number) => {
+          obj.optionen = cleanOptionen(obj.optionen.map((opt: unknown, i: number) => {
             if (typeof opt === 'string') {
               return { key: String.fromCharCode(65 + i), text: opt };
             }
             return opt;
-          });
+          }));
         }
         if (typeof obj.nr !== 'number') obj.nr = idx + 1;
         if (typeof obj.mehrfach !== 'boolean') obj.mehrfach = false;
@@ -329,7 +353,11 @@ function normalizeOffeneSchreibaufgabe(block: AnyObj): AnyObj {
   if (typeof config.aspekte === 'string') {
     config.aspekte = [config.aspekte];
   }
-  // config.aspekte fehlt → Platzhalter
+  // config.aspekte: leere/whitespace Einträge entfernen
+  if (Array.isArray(config.aspekte)) {
+    config.aspekte = cleanStringArray(config.aspekte);
+  }
+  // config.aspekte fehlt oder nur leere Strings → sinnvoller Fallback
   if (!Array.isArray(config.aspekte) || config.aspekte.length === 0) {
     config.aspekte = ['Inhalt', 'Struktur'];
   }

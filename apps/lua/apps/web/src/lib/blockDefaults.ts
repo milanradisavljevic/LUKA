@@ -9,7 +9,8 @@ function nextId(): string {
 
 export function createDefaultBlock(typ: Block['typ'], meta?: Meta): Block {
   const id = nextId();
-  const base = { id, punkte: 6, arbeitsanweisung: '', quelleId: undefined, clue: undefined };
+  const punkte = meta?.punkteAusblenden === true ? 0 : 6;
+  const base = { id, punkte, arbeitsanweisung: '', quelleId: undefined, clue: undefined };
 
   switch (typ) {
     case 'lueckentext':
@@ -29,8 +30,9 @@ export function createDefaultBlock(typ: Block['typ'], meta?: Meta): Block {
         ...base,
         typ: 'matching',
         config: {
-          items: [{ nr: 1, prompt: '' }, { nr: 2, prompt: '' }],
-          optionen: [{ key: 'A', text: '' }, { key: 'B', text: '' }, { key: 'C', text: '' }],
+          // Ein Zuordnungs-Block hält mehrere Paare (4) — nicht mehrere Mini-Blöcke anlegen.
+          items: [{ nr: 1, prompt: '' }, { nr: 2, prompt: '' }, { nr: 3, prompt: '' }, { nr: 4, prompt: '' }],
+          optionen: [{ key: 'A', text: '' }, { key: 'B', text: '' }, { key: 'C', text: '' }, { key: 'D', text: '' }, { key: 'E', text: '' }],
         },
         loesung: { zuordnung: {} },
       } as Block;
