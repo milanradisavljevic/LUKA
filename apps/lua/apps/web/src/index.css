@@ -145,56 +145,56 @@
   --shadow: 0 1px 3px var(--color-shadow);
 }
 
-/* === DARK — Papier-Nacht (warm, nicht kalter Schiefer) === */
+/* === DARK — Tafel & Kreide (Blackboard, RAL Design 180 30 15) === */
 :root[data-theme="dark"] {
   color-scheme: dark;
 
-  /* warmes dunkles Papier statt blaugrauem Schiefer */
-  --color-bg-base: #1B1713;
-  --color-bg-surface: #241F19;
-  --color-bg-elevated: #2C261E;
-  --color-bg-input: #201B15;
-  --color-bg-hover: #2F2820;
-  --color-bg-selected: rgba(143,176,204,0.16);
-  --color-bg-backdrop: rgba(27,23,19,0.96);
+  /* Tafelgrün statt Schiefer/Sepia — Kreide auf Tafel bei Nacht */
+  --color-bg-base: #1C3530;        /* tiefe Tafel */
+  --color-bg-surface: #244640;     /* RAL ~180 30 15 — Tafelgrün */
+  --color-bg-elevated: #2C534B;
+  --color-bg-input: #1F3D37;
+  --color-bg-hover: #2E544C;
+  --color-bg-selected: rgba(155,210,191,0.16);
+  --color-bg-backdrop: rgba(28,53,48,0.96);
 
-  --color-text-primary: #ECE6DC;   /* warmes Papierweiß */
-  --color-text-secondary: #B4AB99;
-  --color-text-muted: #847A6A;
+  --color-text-primary: #ECEDE6;   /* Kreideweiß */
+  --color-text-secondary: #B4C2BB;
+  --color-text-muted: #7E928A;
 
-  --color-border: #423A30;          /* warmes Dunkelbraun */
-  --color-border-focus: #8FB0CC;
-  --color-accent: #8FB0CC;          /* Tinte bei Nacht */
-  --color-accent-hover: #A9C5DC;
+  --color-border: #3C5C54;          /* Kreidestaub-Rahmen */
+  --color-border-focus: #9BD2BF;
+  --color-accent: #9BD2BF;          /* Kreide-Mint */
+  --color-accent-hover: #B6E2D2;
 
-  --color-error: #ff6b6b;
-  --color-error-bg: #3d2420;
-  --color-success: #5cdb95;
-  --color-success-bg: #21351f;
-  --color-warning: #ffc107;
-  --color-warning-bg: #3d3318;
+  --color-error: #ff8a80;           /* warme Kreide, lesbar auf Grün */
+  --color-error-bg: #3a2422;
+  --color-success: #8BD9A8;
+  --color-success-bg: #1f3d2e;
+  --color-warning: #ffd166;
+  --color-warning-bg: #3a3320;
 
   /* Info / didaktischer Hinweis */
-  --color-info: #8FCCB2;
-  --color-info-bg: rgba(143,204,178,0.12);
+  --color-info: #9BD2BF;
+  --color-info-bg: rgba(155,210,191,0.12);
 
   --color-shadow: rgba(0,0,0,0.45);
   --color-overlay: rgba(0,0,0,0.6);
-  --color-highlight: #CC9AAC;       /* Bordeaux-Rosé, warm */
-  --color-highlight-bg: rgba(204,154,172,0.14);
+  --color-highlight: #E8B7A0;       /* warme/„rote" Kreide */
+  --color-highlight-bg: rgba(232,183,160,0.14);
 
-  /* Tür-Füllfarben (Nacht): sichtbar gefüllt, nie bg-base */
-  --door-quelltext: #3B5878;
-  --door-quelltext-edge: #547295;
-  --door-kompetenz: #463C2C;        /* dunkles, gealtertes Pergament */
-  --door-kompetenz-edge: #CC9AAC;
+  /* Tür-Füllfarben (Tafel): sichtbar gefüllt, nie bg-base */
+  --door-quelltext: #2F5A51;        /* Tür auf der Tafel, dunkles Teal */
+  --door-quelltext-edge: #4E7E73;
+  --door-kompetenz: #46402E;        /* warmes Pergament bleibt */
+  --door-kompetenz-edge: #E8B7A0;
 
   /* Sidebar */
-  --sidebar-bg: #201B15;
-  --sidebar-text: rgba(236,230,220,0.78);
+  --sidebar-bg: #1F3D37;
+  --sidebar-text: rgba(236,237,230,0.80);
   --sidebar-text-active: #ffffff;
-  --sidebar-border: rgba(255,255,255,0.07);
-  --sidebar-accent: #8FB0CC;
+  --sidebar-border: rgba(255,255,255,0.08);
+  --sidebar-accent: #9BD2BF;
 }
 
 html {
