@@ -7,6 +7,18 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Kimi-Specs Runde 2 (2026-06-17)
+- `docs/ANLEITUNG.md`: Neue standalone-Anleitung, die alle 14 Hilfe-Abschnitte aus der
+  In-App-Hilfe als reines Markdown abbildet (zum Ausdrucken/Onboarding außerhalb der App).
+- `apps/web/src/components/PreviewTwoColumn.tsx`: Warnung vor Datenverlust beim
+  „Neu generieren" einer manuell bearbeiteten Aufgabe via `window.confirm`;
+  Bearbeitung wird bei Abbruch beibehalten.
+- `apps/web/src/components/Step4_Generate.tsx`: Nach „3 Niveaus erzeugen" wird die
+  Vorschau wieder auf die Mittel-Fassung zurückgesetzt, während die drei Exporte
+  (`_leicht`, `_mittel`, `_schwer`) korrekt erzeugt werden.
+- Verifikation: `pnpm --filter "./packages/*" build && pnpm -r typecheck && pnpm -r test`
+  grün (Schema 118, LLM 123, Renderer 33, Input 17, QA 96, Web 54).
+
 ### Added — Kompetenz-Modus: Freitext-Kompetenz + „ohne Quelltext"-Tür
 - `packages/schema/src/index.ts`: Neues optionales Feld `freieKompetenz` in `MetaSchema` und
   `AuftragSchema` — additiv, kein Breaking Change.

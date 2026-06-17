@@ -97,13 +97,22 @@ export function Step4_Generate({ state, dispatch }: Props) {
     // Block zurück; die schwere Fassung wird daraus zusammengesetzt (NICHT aus dem
     // async aktualisierten globalen State, der in diesem Closure stale wäre).
     setNiveauExportLabel('Schwer regenerieren …');
+    const offeneIds = findeOffeneBlockIds(basis);
+    const originalBloecke = new Map<string, Block>(
+      offeneIds.map((id) => [id, basis.bloecke.find((b) => b.id === id)!])
+    );
     const regeneriert = new Map<string, Block>();
-    for (const id of findeOffeneBlockIds(basis)) {
+    for (const id of offeneIds) {
       const neu = await regenerateBlock(state, id, 'Anspruchsvoller, höheres Bloom-Niveau — präzisere Analyse, komplexere Verknüpfungen, weniger Hilfestellung.');
       if (neu) regeneriert.set(id, neu);
     }
     const schwer = { ...basis, bloecke: basis.bloecke.map((b) => regeneriert.get(b.id) ?? b) };
     await exportDocxOverride(state, schwer, 'schwer');
+
+    // Vorschau wieder auf die Mittel-Fassung (Original) zurücksetzen.
+    for (const [id, block] of originalBloecke) {
+      dispatch({ type: 'UPDATE_GENERIERTER_BLOCK', id, block });
+    }
     setNiveauExportLabel(null);
   };
 

@@ -1,0 +1,186 @@
+# LUKA – Anleitung
+
+LUKA vereint zwei Lehrer-Werkzeuge in **einer** App mit **gemeinsamer Datenbank**:
+
+- **Unterlagen-Generator** – erzeugt Arbeitsblätter, Übungen und Schularbeiten mit KI und exportiert sauber formatierte DOCX (Schülerfassung, Lösung, Korrekturraster).
+- **Korrektur-Assistent** – analysiert Schülerabgaben anhand von Rubriken, erzeugt Notenempfehlung, Fehler-Heatmaps und Lern-Längsschnitte.
+
+Der eigentliche Mehrwert ist die **Verbindung** beider Seiten: Aus den Korrekturen weiß die App, **woran** eine Klasse oder einzelne Schüler:innen scheitern – und erstellt mit einem Klick **passgenaue Übungsblätter** dazu.
+
+---
+
+## Überblick & Closed Loop
+
+LUKA verbindet zwei Lehrer-Werkzeuge zu **einem** durchgängigen Kreislauf: Unterlagen **erstellen**, Schülerabgaben **korrigieren** und daraus gezielt **üben** lassen – alles in einer App, mit gemeinsamer Datenbank.
+
+Der Ablauf im Überblick: **Unterlagen erstellen → Abgaben korrigieren → Fehler-Heatmap → gezieltes Übungsblatt ↺**
+
+Der Clou: Nach der Korrektur kennt die App die häufigsten Fehler einer Klasse oder eines einzelnen Schülers – und erzeugt mit einem Klick ein passendes Übungsblatt dazu.
+
+> 💡 Wenn du neu bist, lies **Erste Schritte** und spiele danach den Closed Loop einmal komplett durch – das dauert keine 5 Minuten.
+
+---
+
+## Erste Schritte
+
+Damit die KI-Funktionen (Generieren, Korrigieren) laufen, brauchst du einen API-Schlüssel deines KI-Anbieters.
+
+1. Öffne **Einstellungen** und trage deinen API-Schlüssel ein (z. B. Anthropic, OpenAI, Mistral, DeepSeek). Schlüssel werden sicher im Schlüsselspeicher des Betriebssystems abgelegt – nicht im Klartext.
+2. Wähle Standard-Anbieter und -Modell. Für günstige Tests eignet sich ein kleines Modell.
+3. Zum gefahrlosen Ausprobieren ohne echte Schülerdaten: Testdaten laden (siehe **Onboarding** im README / Beispiel-Abgaben im Ordner `samples/`).
+4. Lade in **Korrektur** eine erste Abgabe hoch und starte die Analyse.
+
+> 💡 Ohne hinterlegten Schlüssel schlagen Analyse/Generierung fehl. Die Fehlermeldung nennt dann meist „Key/Provider prüfen".
+
+---
+
+## Unterlagen erstellen
+
+Der Generator führt dich in fünf Schritten von der Absicht zum fertigen DOCX.
+
+1. **Absicht** – Schulstufe, Fach, Thema und Art der Unterlage festlegen. Notizen fließen als Wünsche in die Generierung ein.
+2. **Quelltexte** – Textgrundlage per Direkteingabe, Datei (TXT/DOCX/PDF/HTML) oder URL hinzufügen.
+3. **Aufgabenblöcke** – gewünschte Aufgabentypen zusammenstellen, Punkte und Arbeitsanweisungen festlegen. Beispieldaten sind grau und werden beim Generieren ersetzt.
+4. **KI-Modell** – Anbieter, Modell und Kreativitätsgrad (präzise bis kreativ) wählen.
+5. **Generieren** – Inhalte erzeugen und Schülerfassung, Lösung und optional das Korrekturraster als DOCX exportieren. Jeder Export landet im Verlauf.
+
+**Bewertung (Punkte an/aus):** In Schritt „Absicht" legst du fest, ob die Unterlage Punkte trägt. Schulübungen sind standardmäßig *ohne* Punkte; mit dem Schalter „Punkte vergeben / Ohne Punkte" überschreibst du das pro Dokument. „Ohne Punkte" blendet Punktespalte und Gesamtpunkte überall aus – in Vorschau *und* Export gleich.
+
+**Einzelne Aufgabe neu generieren:** In der Vorschau bei einem Block auf „Neu generieren" – mit optionalem Hinweis (kürzer, schwieriger, andere Formulierung). Nur dieser Block wird ersetzt.
+
+**Export-Varianten:** „Beide Dokumente" (Schülerfassung + Lösung), „Korrekturraster", im Kompetenz-Modus zusätzlich „Kompetenznachweis", sowie „Als PDF". Vor dem Export prüft ein **Quality-Gate** Lernziel-Abdeckung und Wortzahl der Schreibaufgaben – bei Auffälligkeiten kannst du „Nochmal prüfen" oder „Trotzdem exportieren".
+
+**3 Niveaus auf einmal:** Der Knopf „3 Niveaus erzeugen" (nach dem Generieren) exportiert dasselbe Blatt in drei Fassungen – *leicht* (offene Aufgaben vereinfacht, ohne KI-Kosten), *mittel* (unverändert) und *schwer* (offene Aufgaben anspruchsvoller neu generiert). Dateinamen tragen `_leicht/_mittel/_schwer`.
+
+> 💡 Einen ganzen Blocktyp wieder entfernen: im Baukasten oben rechts am Block auf das **X** klicken. Mehr Zuordnungs-Paare/MC-Antworten: im Block-Editor auf „+ Item" / „+ Option" / „+ Frage".
+
+---
+
+## Übung ohne Quelltext (Kompetenz)
+
+Die zweite Tür auf der Startseite – **„Ohne Quelltext"** – erzeugt Übungen *ohne* eigene Textgrundlage. Statt eines Quelltexts gibst du vor, **woran** geübt werden soll:
+
+1. **Freies Thema / Kompetenz** – z. B. „Present Perfect vs. Past Simple" oder „Kommasetzung bei Relativsätzen" frei eintippen.
+2. **Oder Lehrplan-Kompetenz** aus dem Katalog (Deutsch/Englisch, Unter-/Oberstufe) wählen – dann entsteht zusätzlich ein **Kompetenznachweis** beim Export.
+3. Aufgabentypen wählen, optional Punkte an/aus, generieren – wie beim Quelltext-Pfad, nur dass die KI die Inhalte stufengerecht selbst erfindet.
+
+> 💡 Faustregel: **Aus Quelltext** = Schularbeit/Test zu einem konkreten Text. **Ohne Quelltext** = schnelle Grammatik-/Kompetenz-Übung.
+
+---
+
+## Aufgabentypen
+
+Diese Blocktypen kannst du im Baukasten kombinieren (je nach Fach/Stufe sinnvoll vorausgewählt):
+
+1. **Geschlossen:** Multiple Choice, Matching (Zuordnung), Lückentext (mit/ohne Wortbank), Kategorisierung, Wörter ordnen, Kreuzworträtsel, Wortgitter, Vokabelübung.
+2. **Offen:** Verständnisfrage, Schreibaufgabe, Markieraufgabe, Stilübung, Songanalyse.
+3. **Sprachrichtigkeit:** Fehlerkorrektur.
+
+Die **Schwierigkeit** (leicht/mittel/schwer) steuert das kognitive Niveau *innerhalb* des Typs (Bloom; bei Englisch zusätzlich CEFR A2/B1/B2) – der Typ selbst bleibt erhalten.
+
+> 💡 Ein Matching-Block = eine Aufgabe mit *mehreren* Paaren. Für mehr Paare „+ Item"/„+ Option" nutzen, nicht mehrere Matching-Blöcke anlegen.
+
+---
+
+## Dokumente, Vorlagen & Verlauf
+
+Erstellte Unterlagen und Konfigurationen verwaltest du über die Seitenleiste:
+
+1. **Speichern** (Kopf oben) sichert die aktuelle Unterlage unter **Meine Unterlagen**.
+2. **Vorlagen** – gespeicherte Baukasten-Konfigurationen, die du als Startpunkt für neue Unterlagen lädst.
+3. **Verlauf** – jede Generierung/jeder Export wird protokolliert.
+4. **Favoriten** – häufig genutzte Dokumente markieren; **Papierkorb** – Gelöschtes wiederherstellen.
+
+> 💡 Datensicherung: in **Einstellungen → Datenbank → „Datensicherung exportieren"** schreibst du eine Kopie der gesamten lokalen Datenbank an einen Ort deiner Wahl.
+
+---
+
+## Korrigieren (NATASCHA)
+
+Im Bereich **Korrektur** analysiert die KI Schülerabgaben anhand einer Rubrik: Kriterien-Bewertung, Notenempfehlung und einzelne Fehler – farbcodiert nach **R**echtschreibung, **G**rammatik, **Z**eichensetzung und **A**usdruck.
+
+1. Klasse und Aufgabe links wählen, dann „Neue Analyse" und eine Datei (DOCX/PDF/TXT) hochladen.
+2. Nach der Analyse zeigt die Detailansicht links die Bewertung (Note, Kriterien, Fehlerliste) und rechts den **markierten Schülertext** als A4-Vorschau.
+3. Eigene **Lehrernote** und einen Kommentar erfassen und speichern – die App vergleicht deine Note später mit der KI-Note (Kalibrierung).
+4. Mit „Feedback-DOCX" ein Rückmelde-Dokument für die Schülerin/den Schüler erzeugen.
+
+**Batch-Korrektur:** Im Analyse-Dialog „Mehrere wählen …" → ganze Klasse auf einmal. Ein Fortschrittsbalken zeigt den Lauf; „Abbrechen" stoppt nach der laufenden Datei. Duplikate werden übersprungen, nicht abgebrochen.
+
+**Retro-Import:** Bereits außerhalb der App korrigierte Abgaben (vorhandene Analyse-JSONs) holst du über „Retro-Import" im Abgaben-Kopf nachträglich in die Datenbank.
+
+> 💡 Über den Schülernamen in der Detailansicht springst du direkt zum Längsschnitt dieses Schülers.
+
+---
+
+## Klassen-Auswertung
+
+Der Bereich **Meine Klassen** verdichtet alle Korrekturen einer Klasse zu Auswertungen:
+
+1. **Fehler-Heatmap** – welche Fehlerarten dominieren.
+2. **Notenverteilung** und **Trend** über mehrere Aufgaben.
+3. **Kalibrierung** – wie stark KI-Note und Lehrernote auseinanderliegen.
+4. **KI-Klassen-Briefing** – eine generierte Zusammenfassung mit Handlungsempfehlungen.
+
+**Closed Loop:** „Übungsblatt zu Top-Fehlern generieren" springt direkt in den Generator – die häufigsten Fehlerschwerpunkte der Klasse sind bereits als Fokus vorbefüllt.
+
+> 💡 Du kannst die Noten einer Klasse als CSV exportieren (z. B. fürs Notenbuch).
+
+---
+
+## Schüler-Längsschnitt
+
+Im Bereich **Schüler** verfolgst du die Entwicklung einzelner Lernender über mehrere Aufgaben.
+
+1. Klasse und Schüler wählen → Notenverlauf, Trend (K1/K3), Fehlerschwerpunkte und Kalibrierung.
+2. **KI-Schüler-Profil** generieren – eine individuelle Einschätzung auf Basis des Längsschnitts.
+3. **Closed Loop pro Schüler:** „Übungsblatt zu Schwächen" erzeugt ein Arbeitsblatt, das auf die persönlichen Fehlerschwerpunkte zugeschnitten ist.
+4. **CSV-Import:** mehrere Schüler auf einmal anlegen – eine Zeile pro Person (Vorname, Nachname).
+
+---
+
+## Erwartungshorizont & Rubrik-Editor
+
+Ein **Erwartungshorizont** ist eine KI-generierte Musterlösung für eine Aufgabe. Generieren, im Textfeld bearbeiten und „Akzeptieren & speichern" – danach nutzt die Korrektur dieser Aufgabe ihn automatisch als Maßstab.
+
+Im **Rubrik-Editor** (gleiche Ansicht) bearbeitest du die Bewertungsraster direkt: Rubrik wählen, Markdown anpassen, speichern. Änderungen wirken bei der nächsten Korrektur mit dieser Rubrik.
+
+> 💡 So steuerst du die Bewertung gezielt – z. B. strengere oder fachspezifische Kriterien.
+
+---
+
+## Übersicht (Dashboard)
+
+Die **Übersicht** ist deine Startseite: Anzahl Klassen und Abgaben, Klassen mit **Handlungsbedarf** (schwacher Notenschnitt) und pro Klasse eine Karte mit Notenschnitt, letzter Aktivität und Lehrer-Feedback-Quote. Ein Klick führt in die Klassen-Ansicht.
+
+---
+
+## Tastenkürzel
+
+| Tastenkürzel | Wirkung |
+| --- | --- |
+| Strg / Cmd + K | Befehlspalette öffnen oder schließen |
+| Esc | Befehlspalette / Dialog schließen |
+| Enter | In Eingabefeldern: Aktion bestätigen (z. B. Schüler hinzufügen) |
+
+---
+
+## Datenschutz
+
+**Wichtig:** Bei Korrektur, Erwartungshorizont und Schüler-Profil wird der jeweilige **Text an den gewählten KI-Anbieter übertragen** (z. B. Anthropic, OpenAI, DeepSeek). Verwende daher möglichst **pseudonymisierte** Abgaben – keine vollen Klarnamen in den Dokumenten.
+
+Alles andere bleibt **lokal**: Datenbank und Exporte liegen auf deinem Rechner und sind nicht in der Cloud. Details im Dokument `docs/DATENSCHUTZ.md`.
+
+---
+
+## Bekannte Einschränkungen & Hilfe
+
+1. **„Analyse fehlgeschlagen"** → API-Schlüssel und Anbieter in den Einstellungen prüfen; ggf. anderes Modell wählen.
+2. **Erzeugtes DOCX öffnet sich nicht automatisch** (in der Entwicklungs-/WSL-Umgebung bekannt) → Datei manuell im Ausgabeordner öffnen.
+3. **Selten unvollständige KI-Antwort** bei sehr günstigen Modellen (z. B. abgeschnittenes JSON) → Analyse erneut starten oder hochwertigeres Modell wählen.
+4. **Daten nach Neustart weg?** Sollte nicht passieren – falls doch, bitte als Fehler melden (siehe README / Testplan).
+
+> 💡 Speicherfehler werden seit Kurzem als Hinweis (Toast) unten rechts angezeigt – wenn so einer auftaucht, bitte mit Screenshot melden.
+
+---
+
+Mehr Details im Repo: `docs/TESTPLAN.md` und `README.md`.
