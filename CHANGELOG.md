@@ -7,6 +7,26 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — F1: Quelltext-Check in Schritt 1
+- `apps/web/src/lib/quelltextInfo.ts`: Heuristik für Wortzahl, Satzzahl und
+  durchschnittliche Satzlänge ohne LLM.
+- `apps/web/src/components/Step1_Input.tsx`: Pro Quelltext wird angezeigt:
+  „{woerter} Wörter · Ø {schnitt} W/Satz · {hinweis}" mit Stufen-Einschätzung.
+- `apps/web/src/lib/quelltextInfo.test.ts`: 7 Tests für kurze/mittlere/lange Sätze,
+  leeren Text, Einzelsatz und Wortzahl-Extreme.
+
+### Added — F3: Selbstlern-Variante (Übung + Lösungsteil in einem DOCX)
+- `packages/renderer/src/index.ts`: `buildDocumentChildren` aus `buildDocxPacked`
+  herausfaktorisiert; neue `renderSelbstlernToBlob` erzeugt ein DOCX mit
+  Schülerfassung, Seitenumbruch und Lösungsteil (inkl. Englisch-Variante
+  „Solutions").
+- `apps/web/src/hooks/useExport.ts`: Neue `exportSelbstlern(state)` mit Dateiname
+  `{datum}_{thema}_Uebung-mit-Loesung.docx`.
+- `apps/web/src/components/Step4_Generate.tsx`: Button „Übung mit Lösungsteil" in
+  der Export-Spalte.
+- `packages/renderer/src/renderer.test.ts`: 2 Smoke-Tests für die Selbstlern-Variante.
+- **Hinweis:** Chief-Review vor Merge empfohlen (Renderer-Refactor).
+
 ### Added — Vertrauens-Badge: „Lösungen prüfen" im Haupt-Modus
 - `packages/llm/src/judge.ts` (Basis `921935a`): `runJudge` + `istRisikoTyp` exportiert.
 - `apps/web/src/hooks/useGenerate.ts`: Neue `pruefeLoesungen(state)` mit `llm_complete`-Invoke,

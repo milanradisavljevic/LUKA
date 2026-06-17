@@ -6,6 +6,7 @@ import {
   Header,
   HeadingLevel,
   LineRuleType,
+  PageBreak,
   PageNumber,
   HeightRule,
   Packer,
@@ -111,6 +112,36 @@ export async function renderDocumentToBlobs(doc: DocumentV1, template: RenderTem
     buildDocxPacked(Packer.toBlob.bind(Packer), doc, 'loesung', template),
   ]);
   return { schueler, loesung };
+}
+
+/** Browser-native export — ein DOCX mit Schülerfassung + Lösungsteil für Selbstlern/Hausübung. */
+export async function renderSelbstlernToBlob(doc: DocumentV1, template: RenderTemplate = DEFAULT_TEMPLATE): Promise<Blob> {
+  const schuelerChildren = buildDocumentChildren(doc, 'schueler', template);
+  const loesungChildren = buildDocumentChildren(doc, 'loesung', template);
+
+  const isEnglish = doc.meta.fach === 'englisch';
+  const children: (Paragraph | Table)[] = [
+    ...schuelerChildren,
+    new Paragraph({ children: [new PageBreak()] }),
+    new Paragraph({
+      heading: HeadingLevel.HEADING_1,
+      children: [run(isEnglish ? 'Solutions' : 'Lösungen', { font: template.font, size: template.fontSize.h1, bold: true })],
+    }),
+    ...loesungChildren,
+  ];
+
+  const document = new Document({
+    sections: [
+      {
+        properties: { page: { margin: template.margin } },
+        headers: { default: buildPageHeader(template) },
+        footers: { default: buildPageFooter(template) },
+        children,
+      },
+    ],
+  });
+
+  return Packer.toBlob(document);
 }
 
 // ---------------------------------------------------------------------------
@@ -539,18 +570,17 @@ function buildFreitextfeld(template: RenderTemplate): (Paragraph | Table)[] {
 
 type Mode = 'schueler' | 'loesung';
 
-async function buildDocxPacked<T>(
-  packer: (doc: Document) => Promise<T>,
+function buildDocumentChildren(
   doc: DocumentV1,
   mode: Mode,
   template: RenderTemplate,
-): Promise<T> {
+): (Paragraph | Table)[] {
   const quelltextMap = new Map<string, QuellText>(
     doc.quelltexte.map((q) => [q.id, q]),
   );
 
   const hidePunkte = doc.meta.punkteAusblenden === true;
-  const children: (Paragraph | Table)[] = [
+  return [
     ...buildDocumentHeader(doc, mode, template),
     buildSchuelerkopf(doc.meta, template),
     ...(hidePunkte ? [] : buildPunkteUebersicht(doc.bloecke, template, doc.meta.fach)),
@@ -563,6 +593,15 @@ async function buildDocxPacked<T>(
       ? buildTransferaufgabe(doc.didaktik.transferaufgabe.trim(), mode, template, doc.meta.fach)
       : []),
   ];
+}
+
+async function buildDocxPacked<T>(
+  packer: (doc: Document) => Promise<T>,
+  doc: DocumentV1,
+  mode: Mode,
+  template: RenderTemplate,
+): Promise<T> {
+  const children = buildDocumentChildren(doc, mode, template);
 
   const document = new Document({
     sections: [
