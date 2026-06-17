@@ -514,7 +514,8 @@ describe('checkSchreibaufgabe', () => {
     const issues = checkSchreibaufgabe(doc, mockQuelltexte);
     expect(issues.length).toBeGreaterThanOrEqual(1);
     expect(issues[0]!.severity).toBe('warning');
-    expect(issues[0]!.message).toContain('weicht vom vorgegebenen Umfang');
+    expect(issues[0]!.message).toContain('Schreibumfang');
+    expect(issues[0]!.message).toContain('50–60');
   });
 
   it('meldet Warning bei themenfremder Musterloesung', () => {

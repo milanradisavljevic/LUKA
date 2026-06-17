@@ -305,10 +305,11 @@ export function checkSchreibaufgabe(doc: DocumentV1, quelltexte: QuellText[]): Q
       const mitte = (min + max) / 2;
       const toleranz = mitte * SCHRIFTLICH_MAX_LENGENTOLERANZ;
       if (wortzahl < mitte - toleranz || wortzahl > mitte + toleranz) {
+        const richtung = wortzahl < mitte ? 'kuerzer' : 'laenger';
         issues.push({
           blockId: block.id,
           severity: 'warning',
-          message: `Musterloesung (${wortzahl} Worte) weicht vom vorgegebenen Umfang (${min}–${max}) ab.`,
+          message: `Schreibaufgabe: Die Musterloesung ist mit ${wortzahl} Woertern deutlich ${richtung} als der Schreibumfang, den die Schueler erreichen sollen (${min}–${max} Woerter, eingestellt im Schritt „Aufgabenbloecke"). Entweder die Musterloesung anpassen oder den Wortumfang der Aufgabe aendern — oder ignorieren, falls bewusst so gewollt.`,
         });
       }
     }

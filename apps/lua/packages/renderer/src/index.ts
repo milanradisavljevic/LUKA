@@ -1200,7 +1200,7 @@ function buildBlock(
         keepNext: true,
         indent: { left: 360 },
         children: [
-          run('Beispiel:  ', { font: template.font, size: template.fontSize.body, bold: true, italics: true }),
+          run(fach === 'englisch' ? 'Example:  ' : 'Beispiel:  ', { font: template.font, size: template.fontSize.body, bold: true, italics: true }),
           run(block.beispiel.trim(), { font: template.font, size: template.fontSize.body, italics: true, color: template.color.gray }),
         ],
         spacing: { after: 120 },
@@ -1216,13 +1216,13 @@ function buildBlock(
       result.push(...buildMatching(block, mode, template, fach));
       break;
     case 'multipleChoice':
-      result.push(...buildMultipleChoice(block, mode, template));
+      result.push(...buildMultipleChoice(block, mode, template, fach));
       break;
     case 'offeneVerstaendnisfrage':
       result.push(...buildOffeneVerstaendnisfrage(block, mode, template));
       break;
     case 'offeneSchreibaufgabe':
-      result.push(...buildOffeneSchreibaufgabe(block, mode, template));
+      result.push(...buildOffeneSchreibaufgabe(block, mode, template, fach));
       break;
     case 'markieraufgabe':
       result.push(...buildMarkieraufgabe(block, mode, quelltextMap, template));
@@ -1570,6 +1570,7 @@ function buildMultipleChoice(
   block: Extract<Block, { typ: 'multipleChoice' }>,
   mode: Mode,
   template: RenderTemplate,
+  fach: DocumentV1['meta']['fach'] = 'deutsch',
 ): (Paragraph | Table)[] {
   const result: (Paragraph | Table)[] = [];
 
@@ -1582,7 +1583,7 @@ function buildMultipleChoice(
           run(`${frage.nr}.  `, { font: template.font, size: template.fontSize.body, bold: true }),
           run(frage.frage, { font: template.font, size: template.fontSize.body }),
           frage.mehrfach
-            ? run('  (Mehrfachantwort möglich)', { font: template.font, size: template.fontSize.body, italics: true, color: template.color.gray })
+            ? run(fach === 'englisch' ? '  (multiple answers possible)' : '  (Mehrfachantwort möglich)', { font: template.font, size: template.fontSize.body, italics: true, color: template.color.gray })
             : new TextRun(''),
         ],
         spacing: { before: 80, after: 60 },
@@ -1665,6 +1666,7 @@ function buildOffeneSchreibaufgabe(
   block: Extract<Block, { typ: 'offeneSchreibaufgabe' }>,
   mode: Mode,
   template: RenderTemplate,
+  fach: DocumentV1['meta']['fach'] = 'deutsch',
 ): (Paragraph | Table)[] {
   const result: (Paragraph | Table)[] = [];
   const cfg = block.config;
@@ -1730,13 +1732,14 @@ function buildOffeneSchreibaufgabe(
     );
 
     const eh = block.loesung.erwartungshorizont;
+    const isEnglish = fach === 'englisch';
     result.push(
       new Paragraph({
         keepNext: true,
-        children: [run('Erwartungshorizont:', { font: template.font, size: template.fontSize.body, bold: true })],
+        children: [run(isEnglish ? 'Marking criteria:' : 'Erwartungshorizont:', { font: template.font, size: template.fontSize.body, bold: true })],
         spacing: { before: 120, after: 60 },
       }),
-      buildEH(eh, template),
+      buildEH(eh, template, isEnglish),
     );
   }
 
@@ -1746,14 +1749,22 @@ function buildOffeneSchreibaufgabe(
 function buildEH(
   eh: { inhalt: string; struktur: string; ausdruck: string; sprachrichtigkeit: string },
   template: RenderTemplate,
+  isEnglish = false,
 ): Table {
   const rows = (
-    [
-      ['Inhalt', eh.inhalt],
-      ['Struktur', eh.struktur],
-      ['Ausdruck', eh.ausdruck],
-      ['Sprachrichtigkeit', eh.sprachrichtigkeit],
-    ] as [string, string][]
+    (isEnglish
+      ? [
+          ['Content', eh.inhalt],
+          ['Structure', eh.struktur],
+          ['Expression', eh.ausdruck],
+          ['Accuracy', eh.sprachrichtigkeit],
+        ]
+      : [
+          ['Inhalt', eh.inhalt],
+          ['Struktur', eh.struktur],
+          ['Ausdruck', eh.ausdruck],
+          ['Sprachrichtigkeit', eh.sprachrichtigkeit],
+        ]) as [string, string][]
   ).map(
     ([label, value]) =>
       new TableRow({
