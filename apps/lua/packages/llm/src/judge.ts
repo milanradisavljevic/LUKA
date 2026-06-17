@@ -9,6 +9,11 @@ const RISIKO_TYPEN = new Set<string>([
   'offeneVerstaendnisfrage',
 ]);
 
+/** Blocktypen, die der Judge (solve-then-compare) prüft. */
+export function istRisikoTyp(typ: string): boolean {
+  return RISIKO_TYPEN.has(typ);
+}
+
 function findeQuelltext(quelltexte: QuellText[], quelleId?: string): QuellText | undefined {
   if (!quelleId) return quelltexte[0];
   return quelltexte.find((q) => q.id === quelleId);
