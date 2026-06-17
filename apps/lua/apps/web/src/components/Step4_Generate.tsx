@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   Loader2, Sparkles, FileDown, ClipboardList, FileType, CheckCircle2,
-  AlertTriangle, Timer, Bot, X, Palette, BookOpen, Target,
+  AlertTriangle, Timer, Bot, X, Palette, BookOpen, Target, ShieldCheck,
 } from 'lucide-react';
 import type { AppState, AppAction } from '../lib/types';
 import type { Block } from '@lehrunterlagen/schema';
@@ -26,9 +26,8 @@ interface Props {
 }
 
 export function Step4_Generate({ state, dispatch }: Props) {
-  const { generate, cancel, generating, stage, elapsedMs, aktiverProvider, error: generateError } = useGenerate(dispatch);
+  const { generate, regenerateBlock, pruefeLoesungen, cancel, generating, pruefend, stage, elapsedMs, aktiverProvider, error: generateError } = useGenerate(dispatch);
   const { exportDocx, exportDocxOverride, exportKorrekturraster, exportKompetenzraster, exporting, error: exportError, warnung: exportWarnung, lastSavedPaths } = useExport();
-  const { regenerateBlock } = useGenerate(dispatch);
   const pdfExport = usePdfExport();
   const isKompetenz = state.meta.modus === 'kompetenz';
   const isFrei = isKompetenz && !!state.generiertesDokument?.meta.freieKompetenz?.trim()
@@ -39,6 +38,7 @@ export function Step4_Generate({ state, dispatch }: Props) {
   const [showPdfHint, setShowPdfHint] = useState(false);
   const [pendingExportIssues, setPendingExportIssues] = useState<string[] | null>(null);
   const [niveauExportLabel, setNiveauExportLabel] = useState<string | null>(null);
+  const [judge, setJudge] = useState<{ issuesByBlock: Record<string, string[]>; gepruefteIds: string[] } | null>(null);
 
   // Fortschritts-Anzeige je Stage
   const stageMeta: Record<string, { label: string; step: number }> = {
@@ -309,6 +309,31 @@ export function Step4_Generate({ state, dispatch }: Props) {
             </button>
           )}
 
+          {/* Lösungen prüfen */}
+          {canExport && (
+            <button
+              className="btn-secondary"
+              onClick={async () => {
+                const r = await pruefeLoesungen(state);
+                setJudge(r);
+              }}
+              disabled={exporting || generating || pruefend}
+              style={{ padding: '0.65rem 1.25rem', fontSize: '0.9375rem',
+                borderStyle: 'dashed',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+            >
+              {pruefend
+                ? <><Loader2 size={16} className="spin" /> Prüfe Lösungen …</>
+                : <><ShieldCheck size={16} /> Lösungen prüfen</>}
+            </button>
+          )}
+
+          {judge && (
+            <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', textAlign: 'center', margin: 0 }}>
+              {judge.gepruefteIds.length} geprüft · {Object.keys(judge.issuesByBlock).length} auffällig
+            </p>
+          )}
+
           {/* PDF-Export */}
           <button
             className="btn-secondary"
@@ -561,7 +586,7 @@ export function Step4_Generate({ state, dispatch }: Props) {
               </span>
             )}
           </h3>
-          <PreviewTwoColumn state={state} dispatch={dispatch} />
+          <PreviewTwoColumn state={state} dispatch={dispatch} judge={judge ?? undefined} />
         </div>
       )}
 

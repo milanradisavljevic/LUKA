@@ -7,6 +7,18 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Vertrauens-Badge: „Lösungen prüfen" im Haupt-Modus
+- `packages/llm/src/judge.ts` (Basis `921935a`): `runJudge` + `istRisikoTyp` exportiert.
+- `apps/web/src/hooks/useGenerate.ts`: Neue `pruefeLoesungen(state)` mit `llm_complete`-Invoke,
+  `runJudge`-Aufruf und Ladezustand `pruefend`.
+- `apps/web/src/components/Step4_Generate.tsx`: Button „Lösungen prüfen" (nur bei
+  `canExport`), Summenzeile „X geprüft · Y auffällig", Judge-Ergebnis wird an
+  `PreviewTwoColumn` durchgereicht.
+- `apps/web/src/components/PreviewTwoColumn.tsx`: Pro Risiko-Block (`multipleChoice`,
+  `matching`, `lueckentext`, `offeneVerstaendnisfrage`) erscheint nach Prüfung ✓
+  „Lösung geprüft" oder ⚠ „bitte prüfen" mit Tooltip der Befunde. Kein Extra-Call
+  bei normaler Generierung.
+
 ### Added — Kimi-Specs Runde 2 (2026-06-17)
 - `docs/ANLEITUNG.md`: Neue standalone-Anleitung, die alle 14 Hilfe-Abschnitte aus der
   In-App-Hilfe als reines Markdown abbildet (zum Ausdrucken/Onboarding außerhalb der App).
