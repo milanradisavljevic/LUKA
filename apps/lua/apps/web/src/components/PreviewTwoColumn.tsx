@@ -42,6 +42,7 @@ export function PreviewTwoColumn({ state, dispatch }: Props) {
   const [activeTab, setActiveTab] = useState<'schueler' | 'loesung'>('schueler');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [regenId, setRegenId] = useState<string | null>(null);
+  const [editierteIds, setEditierteIds] = useState<Set<string>>(new Set());
   const windowWidth = useWindowWidth();
   const isNarrow = windowWidth < 768;
   const { regenerateBlock, generating, stage } = useGenerate(dispatch);
@@ -53,6 +54,7 @@ export function PreviewTwoColumn({ state, dispatch }: Props) {
   const meta = doc ? doc.meta : state.meta;
 
   const handleUpdate = (id: string, field: string, value: unknown) => {
+    setEditierteIds((prev) => new Set(prev).add(id));
     if (doc) {
       dispatch({ type: 'UPDATE_GENERIERTER_BLOCK', id, block: { [field]: value } as Partial<Block> });
     } else {
@@ -322,8 +324,19 @@ export function PreviewTwoColumn({ state, dispatch }: Props) {
                         <button
                           key={hint}
                           onClick={async () => {
+                            if (editierteIds.has(block.id)) {
+                              const ok = window.confirm('Diese Aufgabe wurde manuell bearbeitet. Beim Neu-Generieren gehen deine Änderungen verloren. Fortfahren?');
+                              if (!ok) return;
+                            }
                             setRegenId(null);
-                            await regenerateBlock(state, block.id, hint);
+                            const neu = await regenerateBlock(state, block.id, hint);
+                            if (neu) {
+                              setEditierteIds((prev) => {
+                                const next = new Set(prev);
+                                next.delete(block.id);
+                                return next;
+                              });
+                            }
                           }}
                           style={{
                             fontSize: '0.6875rem',
@@ -340,8 +353,19 @@ export function PreviewTwoColumn({ state, dispatch }: Props) {
                       ))}
                       <button
                         onClick={async () => {
+                          if (editierteIds.has(block.id)) {
+                            const ok = window.confirm('Diese Aufgabe wurde manuell bearbeitet. Beim Neu-Generieren gehen deine Änderungen verloren. Fortfahren?');
+                            if (!ok) return;
+                          }
                           setRegenId(null);
-                          await regenerateBlock(state, block.id);
+                          const neu = await regenerateBlock(state, block.id);
+                          if (neu) {
+                            setEditierteIds((prev) => {
+                              const next = new Set(prev);
+                              next.delete(block.id);
+                              return next;
+                            });
+                          }
                         }}
                         style={{
                           fontSize: '0.6875rem',
