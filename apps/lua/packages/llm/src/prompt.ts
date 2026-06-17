@@ -41,7 +41,7 @@ CEFR-Niveaus und steuern Wortschatz, Satzkomplexitaet und verlangte Textprodukti
 Deutsch bleibt bei der Bloom-Logik oben.
 
 COVERAGE: Verteile die Aufgaben gleichmaessig ueber ALLE Abschnitte (Absatz 1, Absatz 2, ...) des Quelltexts.
-Greife NICHT nur den ersten Absatz ab. Wenn der Quelltext nummerierte Absaetze enthaelt (Format "[Absatz N] ..."),
+Greife NICHT nur den ersten Absatz ab. Wenn der Quelltext nummerierte Absaetze enthaelt (Format "[Absatz N] ..." bzw. bei Englisch "[Paragraph N] ..."),
 binde jeweils mindestens eine Aufgabe an Absaetze, die nicht der erste sind. Eine reine Konzentration auf den
 Anfang deutet auf unvollstaendige Verarbeitung hin und ist zu vermeiden.
 
@@ -604,10 +604,13 @@ export function sanitizeQuelltext(inhalt: string): string {
  * bei Texten mit >= 2 Absätzen und >= 200 Zeichen, sonst bleibt der Inhalt unverändert
  * (kein Mehraufwand für kurze Quellen).
  */
-export function nummeriereAbsaetze(inhalt: string): string {
+export function nummeriereAbsaetze(inhalt: string, fach?: string): string {
   const abgesaetze = inhalt.split(/\n\s*\n+/).map((p) => p.trim()).filter((p) => p.length > 0);
   if (abgesaetze.length < 2 || inhalt.length < 200) return inhalt;
-  return abgesaetze.map((p, i) => `[Absatz ${i + 1}] ${p}`).join('\n\n');
+  // Markerlabel in der Zielsprache des Fachs, damit das LLM bei Englisch
+  // "Paragraph N" statt "Absatz N" in die schülerseitigen Fragen schreibt.
+  const label = fach === 'englisch' ? 'Paragraph' : 'Absatz';
+  return abgesaetze.map((p, i) => `[${label} ${i + 1}] ${p}`).join('\n\n');
 }
 
 export function buildMessages(input: GenerateInput): ChatMessage[] {
@@ -629,6 +632,13 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
   const zielgruppeHinweis =
     input.meta.klasse || stufeLabel
       ? `Zielgruppe: ${[input.meta.klasse, stufeLabel].filter(Boolean).join(', ')} — waehle Wortschatz, Komplexitaet und Beispiele altersgerecht. `
+      : '';
+  const spracheHinweis =
+    input.meta.fach === 'englisch'
+      ? `SPRACHE: Dies ist eine Englisch-Unterlage. JEDER schuelerseitige Text MUSS auf Englisch sein — `
+        + `arbeitsanweisung, Fragen, Antwortoptionen, Lueckensaetze, Schreibaufgaben-Situationen, Aspekte, Titel `
+        + `und Verweise auf den Text (z. B. "in paragraph 10", NICHT "in Absatz 10"). Die deutschen Beispiele unten `
+        + `zeigen NUR die Struktur, nicht die Sprache. Loesungen/Musterantworten ebenfalls auf Englisch. `
       : '';
   const fokusThemen = input.meta.fokusThemen ?? [];
   const fokusThemenHinweis =
@@ -659,6 +669,7 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
           `Erfinde EIN durchgehendes Szenario mit benannter Person (Roter Faden durch alle Bloecke) und fuelle den didaktischen Rahmen (arbeitsblattTitel, einleitung, merkkasten, transferaufgabe — siehe System-Prompt). ` +
           `Schwierigkeitsniveau: "${schwierigkeit}" — passe das kognitive Niveau entsprechend an. ` +
           niveauHinweis +
+          spracheHinweis +
           lernzielHinweis +
           zielgruppeHinweis +
           notizenHinweis +
@@ -675,7 +686,7 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
     meta: input.meta,
     quelltexte: input.quelltexte.map((q) => ({
       ...q,
-      inhalt: nummeriereAbsaetze(sanitizeQuelltext(q.inhalt)),
+      inhalt: nummeriereAbsaetze(sanitizeQuelltext(q.inhalt), input.meta.fach),
     })),
     angeforderteBloecke: input.bloecke,
   };
@@ -686,6 +697,7 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
       content:
         `Erzeuge das bloecke-JSON-Array fuer die folgende Anforderung. ` +
         `Schwierigkeitsniveau: "${schwierigkeit}" — passe das kognitive Niveau der Aufgaben entsprechend an (siehe Bloom-Steuerung im System-Prompt). ` +
+        spracheHinweis +
         lernzielHinweis +
         zielgruppeHinweis +
         notizenHinweis +

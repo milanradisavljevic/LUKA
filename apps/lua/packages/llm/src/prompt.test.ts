@@ -185,6 +185,17 @@ describe('nummeriereAbsaetze (Coverage-Prävention)', () => {
     expect(out).toContain('[Absatz 3]');
   });
 
+  it('verwendet "[Paragraph N]" bei fach=englisch', () => {
+    const text = 'First paragraph about media consumption among teenagers in the modern world. ' +
+      'It contains many important details and facts that one should know about.\n\n' +
+      'Second paragraph about the effects on sleep and concentration over time. ' +
+      'This paragraph is also long enough to exceed the 200 character threshold here.';
+    const out = nummeriereAbsaetze(text, 'englisch');
+    expect(out).toContain('[Paragraph 1]');
+    expect(out).toContain('[Paragraph 2]');
+    expect(out).not.toContain('[Absatz');
+  });
+
   it('lässt Einabsatz-Text unveraendert (kein Mehraufwand fuer kurze Quellen)', () => {
     const text = 'Nur ein einzelner Absatz ohne Trennung.';
     const out = nummeriereAbsaetze(text);

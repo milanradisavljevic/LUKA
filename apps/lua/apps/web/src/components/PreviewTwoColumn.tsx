@@ -98,6 +98,11 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
   const zeigePunkte = meta.punkteAusblenden !== true && gesamtPunkte > 0;
 
   // Schülerkopf (Name/Klasse/Datum) + Aufgabenübersicht — spiegelt das DOCX-Layout.
+  // Beschriftungen folgen der Fachsprache, damit Vorschau = englischer Export ist.
+  const isEnglish = meta.fach === 'englisch';
+  const L = isEnglish
+    ? { klasse: 'Class:', datum: 'Date:', uebersicht: 'Overview', nr: 'No.', aufgabe: 'Exercise', punkte: 'Points', gesamt: 'TOTAL', note: 'Grade:', unterschrift: 'Signature:' }
+    : { klasse: 'Klasse:', datum: 'Datum:', uebersicht: 'Aufgabenübersicht', nr: 'Nr.', aufgabe: 'Aufgabe', punkte: 'Punkte', gesamt: 'GESAMT', note: 'Note:', unterschrift: 'Unterschrift:' };
   const renderKopf = () => (
     <>
       <div style={{
@@ -106,18 +111,18 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
         color: PAPER_TEXT,
       }}>
         <span><strong>Name:</strong> <span style={{ borderBottom: `1px solid ${PAPER_BORDER}`, display: 'inline-block', minWidth: '8rem' }}>&nbsp;</span></span>
-        <span><strong>Klasse:</strong> {meta.klasse || '—'}</span>
-        <span><strong>Datum:</strong> {meta.datum ? formatDatum(meta.datum) : '—'}</span>
+        <span><strong>{L.klasse}</strong> {meta.klasse || '—'}</span>
+        <span><strong>{L.datum}</strong> {meta.datum ? formatDatum(meta.datum) : '—'}</span>
       </div>
       {bloecke.length > 0 && (
         <div style={{ marginBottom: '1rem' }}>
-          <p style={{ fontWeight: 600, fontSize: '11pt', marginBottom: '0.25rem', color: PAPER_TEXT }}>Aufgabenübersicht</p>
+          <p style={{ fontWeight: 600, fontSize: '11pt', marginBottom: '0.25rem', color: PAPER_TEXT }}>{L.uebersicht}</p>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '9pt' }}>
             <thead>
               <tr style={{ background: '#e8e8e8' }}>
-                <th style={{ border: `1px solid ${PAPER_BORDER}`, padding: '2px 6px', textAlign: 'left', width: '10%' }}>Nr.</th>
-                <th style={{ border: `1px solid ${PAPER_BORDER}`, padding: '2px 6px', textAlign: 'left' }}>Aufgabe</th>
-                {zeigePunkte && <th style={{ border: `1px solid ${PAPER_BORDER}`, padding: '2px 6px', textAlign: 'right', width: '22%' }}>Punkte</th>}
+                <th style={{ border: `1px solid ${PAPER_BORDER}`, padding: '2px 6px', textAlign: 'left', width: '10%' }}>{L.nr}</th>
+                <th style={{ border: `1px solid ${PAPER_BORDER}`, padding: '2px 6px', textAlign: 'left' }}>{L.aufgabe}</th>
+                {zeigePunkte && <th style={{ border: `1px solid ${PAPER_BORDER}`, padding: '2px 6px', textAlign: 'right', width: '22%' }}>{L.punkte}</th>}
               </tr>
             </thead>
             <tbody>
@@ -131,7 +136,7 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
               {zeigePunkte && (
                 <tr style={{ background: '#f0f0f0', fontWeight: 700 }}>
                   <td style={{ border: `1px solid ${PAPER_BORDER}`, padding: '2px 6px' }}></td>
-                  <td style={{ border: `1px solid ${PAPER_BORDER}`, padding: '2px 6px' }}>GESAMT</td>
+                  <td style={{ border: `1px solid ${PAPER_BORDER}`, padding: '2px 6px' }}>{L.gesamt}</td>
                   <td style={{ border: `1px solid ${PAPER_BORDER}`, padding: '2px 6px', textAlign: 'right' }}>____ / {gesamtPunkte}</td>
                 </tr>
               )}
@@ -139,7 +144,7 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
           </table>
           {zeigePunkte && (
             <p style={{ fontSize: '10pt', marginTop: '0.4rem', color: PAPER_TEXT }}>
-              <strong>Note:</strong> ________   <strong>Unterschrift:</strong> ____________
+              <strong>{L.note}</strong> ________   <strong>{L.unterschrift}</strong> ____________
             </p>
           )}
         </div>
