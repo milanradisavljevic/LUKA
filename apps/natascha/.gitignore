@@ -60,3 +60,5 @@ abgegebene Arbeiten/
 *.png
 *.jpg
 *.jpeg
+# App-Asset muss ins Repo (Test prüft Existenz; sonst CI-Fehler)
+!assets/natascha-init.png

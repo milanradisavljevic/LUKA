@@ -28,6 +28,8 @@ MODUL *.txt
 # Vorlagen und Assets (nicht Code)
 *.docx
 !packages/renderer/**/*.docx
+# Test-Fixtures müssen ins Repo (sonst schlägt CI fehl — kein lokales Sample in CI)
+!packages/input/src/__fixtures__/**
 
 # Temporäre Dateien
 DOC-*
