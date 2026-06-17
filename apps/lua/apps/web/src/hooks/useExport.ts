@@ -174,7 +174,54 @@ export function useExport() {
     }
   }, []);
 
-  return { exportDocx, exportDocxOverride, exportKorrekturraster, exportKompetenzraster, exporting, error, warnung, lastSavedPaths };
+  const exportSelbstlern = useCallback(async (state: AppState) => {
+    if (!state.generiertesDokument) {
+      setError('Bitte zuerst Inhalt generieren.');
+      return false;
+    }
+    setExporting(true);
+    setError(null);
+    setWarnung(null);
+    setLastSavedPaths(null);
+
+    try {
+      const { renderSelbstlernToBlob } = await import('@lehrunterlagen/renderer');
+      const template = RENDER_TEMPLATES[state.renderTemplate];
+      const blob = await renderSelbstlernToBlob(state.generiertesDokument, template);
+
+      const thema = sanitizeFilename(state.generiertesDokument.meta.thema).slice(0, 40);
+      const datum = state.generiertesDokument.meta.datum;
+      const fileName = `${datum}_${thema}_Uebung-mit-Loesung.docx`;
+
+      downloadBlob(blob, fileName);
+      setLastSavedPaths([fileName]);
+
+      const dok = state.generiertesDokument;
+      appendHistoryEntry({
+        id: crypto.randomUUID(),
+        timestamp: new Date().toISOString(),
+        thema: dok.meta.thema,
+        fach: dok.meta.fach,
+        stufe: dok.meta.stufe,
+        llmProvider: state.llmProvider,
+        modelName: state.modelName,
+        blockCount: dok.bloecke.length,
+        totalPunkte: dok.bloecke.reduce((sum, b) => sum + (b.punkte ?? 0), 0),
+        exportedFiles: [fileName],
+        savedDocumentId: state.aktuelleDokumentId,
+      });
+
+      return true;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unbekannter Fehler beim Selbstlern-Export';
+      setError(msg);
+      return false;
+    } finally {
+      setExporting(false);
+    }
+  }, []);
+
+  return { exportDocx, exportDocxOverride, exportKorrekturraster, exportKompetenzraster, exportSelbstlern, exporting, error, warnung, lastSavedPaths };
 }
 
 function downloadBlob(blob: Blob, filename: string) {

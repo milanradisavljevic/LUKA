@@ -27,7 +27,7 @@ interface Props {
 
 export function Step4_Generate({ state, dispatch }: Props) {
   const { generate, regenerateBlock, pruefeLoesungen, cancel, generating, pruefend, stage, elapsedMs, aktiverProvider, error: generateError } = useGenerate(dispatch);
-  const { exportDocx, exportDocxOverride, exportKorrekturraster, exportKompetenzraster, exporting, error: exportError, warnung: exportWarnung, lastSavedPaths } = useExport();
+  const { exportDocx, exportDocxOverride, exportKorrekturraster, exportKompetenzraster, exportSelbstlern, exporting, error: exportError, warnung: exportWarnung, lastSavedPaths } = useExport();
   const pdfExport = usePdfExport();
   const isKompetenz = state.meta.modus === 'kompetenz';
   const isFrei = isKompetenz && !!state.generiertesDokument?.meta.freieKompetenz?.trim()
@@ -354,6 +354,20 @@ export function Step4_Generate({ state, dispatch }: Props) {
               ? <><Loader2 size={15} className="spin" /> PDF wird erstellt…</>
               : <><FileType size={15} /> Als PDF speichern</>}
           </button>
+
+          {/* Selbstlern-Export */}
+          {canExport && (
+            <button
+              className="btn-secondary"
+              onClick={() => exportSelbstlern(state)}
+              disabled={exporting || generating}
+              style={{ padding: '0.65rem 1.25rem', fontSize: '0.9375rem',
+                borderStyle: 'dashed',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+            >
+              <FileDown size={16} /> Übung mit Lösungsteil
+            </button>
+          )}
 
           {lastSavedPaths && (
             <div style={{

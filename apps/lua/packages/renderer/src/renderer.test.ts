@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { renderDocument, renderDocumentToBlobs } from './index.js';
+import { renderDocument, renderDocumentToBlobs, renderSelbstlernToBlob } from './index.js';
 import type { DocumentV1 } from '@lehrunterlagen/schema';
 
 // ZIP magic bytes — every .docx starts with PK\x03\x04
@@ -540,5 +540,47 @@ describe('renderDocument: Dokument-Qualität (Layout)', () => {
     expect(xml).toContain('Signal words');
     expect(xml).toContain('yesterday');
     expect(xml).toContain('Your turn:');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Selbstlern-Variante
+// ---------------------------------------------------------------------------
+
+describe('renderSelbstlernToBlob', () => {
+  it('erzeugt ein gültiges .docx mit Schüler- und Lösungsteil', async () => {
+    const doc = makeDoc([{
+      id: 'b1', typ: 'lueckentext', punkte: 4, arbeitsanweisung: 'Setze die fehlenden Begriffe ein.',
+      config: { anzahlLuecken: 2, wortbank: false, distraktoren: 0 },
+      loesung: { luecken: [{ nr: 1, wort: 'Alpha' }, { nr: 2, wort: 'Beta' }] },
+    }]);
+
+    const blob = await renderSelbstlernToBlob(doc);
+    expect(blob).toBeInstanceOf(Blob);
+    expect(blob.size).toBeGreaterThan(0);
+
+    const buf = Buffer.from(await blob.arrayBuffer());
+    expect(isDocx(buf)).toBe(true);
+
+    const xml = extractDocumentXml(buf);
+    expect(xml).toContain('Setze die fehlenden Begriffe ein.');
+    expect(xml).toContain('Lösungen');
+    expect(xml).toContain('Alpha');
+    expect(xml).toContain('Beta');
+  });
+
+  it('verwendet "Solutions" im Englisch-Modus', async () => {
+    const doc = makeDoc([{
+      id: 'b1', typ: 'lueckentext', punkte: 4, arbeitsanweisung: 'Fill in the gaps.',
+      config: { anzahlLuecken: 1, wortbank: false, distraktoren: 0 },
+      loesung: { luecken: [{ nr: 1, wort: 'Gamma' }] },
+    }]);
+    doc.meta.fach = 'englisch';
+
+    const blob = await renderSelbstlernToBlob(doc);
+    const buf = Buffer.from(await blob.arrayBuffer());
+    const xml = extractDocumentXml(buf);
+    expect(xml).toContain('Solutions');
+    expect(xml).toContain('Gamma');
   });
 });
