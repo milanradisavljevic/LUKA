@@ -129,9 +129,12 @@ export function Step4_Generate({ state, dispatch }: Props) {
           borderRadius: 'var(--radius)',
           background: 'var(--color-warning-bg)',
         }}>
-          <h3 style={{ fontSize: '0.9375rem', marginBottom: '0.5rem', display: 'inline-flex', alignItems: 'center', gap: '0.375rem', color: 'var(--color-warning)' }}>
+          <h3 style={{ fontSize: '0.9375rem', marginBottom: '0.25rem', display: 'inline-flex', alignItems: 'center', gap: '0.375rem', color: 'var(--color-warning)' }}>
             <AlertTriangle size={16} /> Mögliche Probleme vor dem Export
           </h3>
+          <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>
+            Nur Hinweise — kein Fehler. Du kannst die Unterlage zurückgehen und anpassen oder trotzdem exportieren.
+          </p>
           <ul style={{ margin: '0 0 0.75rem 1.25rem', padding: 0, fontSize: '0.875rem', color: 'var(--color-text-primary)' }}>
             {pendingExportIssues.map((issue, i) => (
               <li key={i}>{issue}</li>
@@ -143,7 +146,7 @@ export function Step4_Generate({ state, dispatch }: Props) {
               onClick={() => setPendingExportIssues(null)}
               style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}
             >
-              Nochmal prüfen
+              Abbrechen & anpassen
             </button>
             <button
               className="btn-primary"
