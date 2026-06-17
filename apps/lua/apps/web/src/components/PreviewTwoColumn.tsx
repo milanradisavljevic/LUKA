@@ -9,6 +9,7 @@ import { useGenerate } from '../hooks/useGenerate';
 interface Props {
   state: AppState;
   dispatch: React.Dispatch<AppAction>;
+  judge?: { issuesByBlock: Record<string, string[]>; gepruefteIds: string[] };
 }
 
 const BLOCK_LABELS: Record<string, string> = Object.fromEntries(
@@ -38,7 +39,7 @@ const PAPER_MUTED = '#333333';
 const PAPER_BORDER = '#000000';
 const PAPER_SECONDARY = '#555555';
 
-export function PreviewTwoColumn({ state, dispatch }: Props) {
+export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
   const [activeTab, setActiveTab] = useState<'schueler' | 'loesung'>('schueler');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [regenId, setRegenId] = useState<string | null>(null);
@@ -46,6 +47,29 @@ export function PreviewTwoColumn({ state, dispatch }: Props) {
   const windowWidth = useWindowWidth();
   const isNarrow = windowWidth < 768;
   const { regenerateBlock, generating, stage } = useGenerate(dispatch);
+
+  const JudgeBadge = ({ blockId }: { blockId: string }) => {
+    if (!judge?.gepruefteIds.includes(blockId)) return null;
+    const issues = judge.issuesByBlock[blockId];
+    if (issues && issues.length > 0) {
+      return (
+        <span title={issues.join(' · ')} style={{
+          display: 'inline-flex', alignItems: 'center', gap: '0.25rem',
+          fontSize: '0.75rem', color: 'var(--color-warning)', fontWeight: 600,
+        }}>
+          <AlertTriangle size={12} /> bitte prüfen
+        </span>
+      );
+    }
+    return (
+      <span style={{
+        display: 'inline-flex', alignItems: 'center', gap: '0.25rem',
+        fontSize: '0.75rem', color: 'var(--color-success)', fontWeight: 600,
+      }}>
+        <CheckCircle2 size={12} /> Lösung geprüft
+      </span>
+    );
+  };
 
   // Zeige generiertes Dokument wenn vorhanden, sonst Skelett
   const doc = state.generiertesDokument;
@@ -286,6 +310,7 @@ export function PreviewTwoColumn({ state, dispatch }: Props) {
             {zeigePunkte && <span>{block.punkte} Punkte</span>}
             {block.quelleId && <span>Quelle: {resolveQuelleTitel(block.quelleId)}</span>}
             {editingId === block.id && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: '#6a1b9a' }}><Pencil size={12} /> Bearbeitung</span>}
+            {judge && <JudgeBadge blockId={block.id} />}
           </div>
           {block.beispiel?.trim() && (
             <p style={{ fontSize: '10pt', fontStyle: 'italic', color: PAPER_SECONDARY, margin: '0 0 0.5rem', paddingLeft: '0.5rem', borderLeft: '2px solid #cccccc' }}>
@@ -425,6 +450,7 @@ export function PreviewTwoColumn({ state, dispatch }: Props) {
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.375rem', fontSize: '9pt', color: PAPER_SECONDARY }}>
             {zeigePunkte && <span>{block.punkte} Punkte</span>}
             {block.quelleId && <span>Quelle: {resolveQuelleTitel(block.quelleId)}</span>}
+            {judge && <JudgeBadge blockId={block.id} />}
           </div>
           {block.beispiel?.trim() && (
             <p style={{ fontSize: '10pt', fontStyle: 'italic', color: PAPER_SECONDARY, margin: '0 0 0.5rem', paddingLeft: '0.5rem', borderLeft: '2px solid #cccccc' }}>

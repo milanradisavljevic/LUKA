@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import type { Block, DocumentV1, StoffItem } from '@lehrunterlagen/schema';
 import type { GenerateInput, BlockRequest, ChatMessage } from '@lehrunterlagen/llm';
-import { buildMessages, buildRepairMessage, parseAndValidate } from '@lehrunterlagen/llm';
+import { buildMessages, buildRepairMessage, parseAndValidate, runJudge, istRisikoTyp, type QualityIssue } from '@lehrunterlagen/llm';
 import { invoke } from '@tauri-apps/api/core';
 import type { AppState, AppAction } from '../lib/types';
 import { loadSettings } from '../lib/storage';
@@ -149,6 +149,7 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
   const [stage, setStage] = useState<GenerateStage>('idle');
   const [elapsedMs, setElapsedMs] = useState(0);
   const [aktiverProvider, setAktiverProvider] = useState<string | null>(null);
+  const [pruefend, setPruefend] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const cancelRef = useRef(false);
 
@@ -372,7 +373,47 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
     }
   }, [dispatch, runAttempts]);
 
+  const pruefeLoesungen = useCallback(async (state: AppState): Promise<{ issuesByBlock: Record<string, string[]>; gepruefteIds: string[] }> => {
+    if (!state.generiertesDokument) return { issuesByBlock: {}, gepruefteIds: [] };
+    if (!isTauri()) { setError('Nur in der Desktop-App verfügbar.'); return { issuesByBlock: {}, gepruefteIds: [] }; }
+
+    const { providerId, apiModel } = resolveProvider(state);
+    const complete = async (messages: ChatMessage[]): Promise<string> => {
+      const sys = messages.find((m) => m.role === 'system');
+      const rest = messages.filter((m) => m.role !== 'system') as ChatMessage[];
+      return invoke<string>('llm_complete', {
+        provider: providerId,
+        model: apiModel,
+        system: sys?.content ?? '',
+        messages: rest,
+        kreativitaet: 0.1,
+      });
+    };
+
+    setPruefend(true);
+    setError(null);
+    try {
+      const issues: QualityIssue[] = await runJudge(state.generiertesDokument, state.quelltexte, complete);
+      const issuesByBlock: Record<string, string[]> = {};
+      for (const issue of issues) {
+        if (!issue.blockId) continue;
+        if (!issuesByBlock[issue.blockId]) issuesByBlock[issue.blockId] = [];
+        issuesByBlock[issue.blockId]!.push(issue.message);
+      }
+      const gepruefteIds = state.generiertesDokument.bloecke
+        .filter((b) => istRisikoTyp(b.typ))
+        .map((b) => b.id);
+      return { issuesByBlock, gepruefteIds };
+    } catch (err) {
+      const msg = errToMessage(err);
+      setError(`Lösungsprüfung fehlgeschlagen: ${msg}`);
+      return { issuesByBlock: {}, gepruefteIds: [] };
+    } finally {
+      setPruefend(false);
+    }
+  }, []);
+
   const cancel = useCallback(() => { cancelRef.current = true; }, []);
 
-  return { generate, regenerateBlock, cancel, generating, stage, elapsedMs, aktiverProvider, error };
+  return { generate, regenerateBlock, pruefeLoesungen, cancel, generating, pruefend, stage, elapsedMs, aktiverProvider, error };
 }
