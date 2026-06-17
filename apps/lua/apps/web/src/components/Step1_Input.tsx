@@ -4,6 +4,7 @@ import type { AppState, AppAction } from '../lib/types';
 import { extractHtmlText } from '../lib/importText';
 import { istUrlArtig, titelAusUrl } from '../lib/urlTitle';
 import { bereinigeQuelltext } from '@lehrunterlagen/schema';
+import { analysiereQuelltext } from '../lib/quelltextInfo';
 
 interface Props {
   state: AppState;
@@ -276,6 +277,14 @@ export function Step1_Input({ state, dispatch }: Props) {
               <textarea rows={10} value={qt.inhalt} placeholder="Quelltext hier einfügen…"
                 style={{ whiteSpace: 'pre-wrap', lineHeight: 1.5 }}
                 onChange={(e) => dispatch({ type: 'UPDATE_QUELLTEXT', id: qt.id, quelltext: { inhalt: e.target.value } })} />
+              {qt.inhalt.trim().length > 0 && (() => {
+                const info = analysiereQuelltext(qt.inhalt);
+                return (
+                  <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.25rem' }}>
+                    {info.woerter} Wörter · Ø {info.schnittSatzlaenge} W/Satz · {info.hinweis}
+                  </p>
+                );
+              })()}
               <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.25rem' }}>
                 Zeilenumbrüche bleiben erhalten. <strong>Leerzeile = neue Strophe/Absatz.</strong>
               </p>
