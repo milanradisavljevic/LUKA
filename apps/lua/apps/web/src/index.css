@@ -224,6 +224,14 @@ input, textarea, select {
   width: 100%;
 }
 
+/* Checkbox/Radio aus dem width:100%-Reset nehmen — sonst blähen sie sich auf
+   und drücken danebenstehenden Label-Text auf einen Sliver. */
+input[type="checkbox"], input[type="radio"] {
+  width: auto;
+  padding: 0;
+  accent-color: var(--color-accent);
+}
+
 input:focus, textarea:focus, select:focus {
   outline: none;
   border-color: var(--color-border-focus);
