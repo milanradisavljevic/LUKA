@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   Loader2, Sparkles, FileDown, ClipboardList, FileType, CheckCircle2,
   AlertTriangle, Timer, Bot, X, Palette, BookOpen, Target, ShieldCheck,
+  ChevronRight, ChevronDown, Layers, Wrench,
 } from 'lucide-react';
 import type { AppState, AppAction } from '../lib/types';
 import type { Block } from '@lehrunterlagen/schema';
@@ -39,6 +40,11 @@ export function Step4_Generate({ state, dispatch }: Props) {
   const [pendingExportIssues, setPendingExportIssues] = useState<string[] | null>(null);
   const [niveauExportLabel, setNiveauExportLabel] = useState<string | null>(null);
   const [judge, setJudge] = useState<{ issuesByBlock: Record<string, string[]>; gepruefteIds: string[] } | null>(null);
+  // Aktions-Spalte: zwei Akkordeons + Niveau-Auswahl (Mittel = Haupt-Export, hier nur leichter/schwerer).
+  const [showDiff, setShowDiff] = useState(false);
+  const [showWeitere, setShowWeitere] = useState(false);
+  const [niveauLeicht, setNiveauLeicht] = useState(false);
+  const [niveauSchwer, setNiveauSchwer] = useState(false);
 
   // Fortschritts-Anzeige je Stage
   const stageMeta: Record<string, { label: string; step: number }> = {
@@ -84,34 +90,41 @@ export function Step4_Generate({ state, dispatch }: Props) {
     await exportDocx(state);
   };
 
-  const exportDreiNiveaus = async () => {
+  // Exportiert nur die angehakten Zusatz-Niveaus (Mittel = Haupt-Export „Beide Dokumente").
+  // Leicht = reine Transformation (kein LLM). Schwer = Reroll der offenen Blöcke (LLM-Calls),
+  // sequentiell mit kleiner Pause, um Provider-Rate-Limits (429) zu vermeiden.
+  const exportDifferenzierung = async () => {
     const basis = state.generiertesDokument;
-    if (!basis) return;
-    setNiveauExportLabel('Mittel exportieren …');
-    await exportDocxOverride(state, basis, 'mittel');
+    if (!basis || (!niveauLeicht && !niveauSchwer)) return;
 
-    setNiveauExportLabel('Leicht transformieren …');
-    await exportDocxOverride(state, transformiereLeicht(basis), 'leicht');
-
-    // Schwer: nur offene Blöcke neu generieren. regenerateBlock liefert den neuen
-    // Block zurück; die schwere Fassung wird daraus zusammengesetzt (NICHT aus dem
-    // async aktualisierten globalen State, der in diesem Closure stale wäre).
-    setNiveauExportLabel('Schwer regenerieren …');
-    const offeneIds = findeOffeneBlockIds(basis);
-    const originalBloecke = new Map<string, Block>(
-      offeneIds.map((id) => [id, basis.bloecke.find((b) => b.id === id)!])
-    );
-    const regeneriert = new Map<string, Block>();
-    for (const id of offeneIds) {
-      const neu = await regenerateBlock(state, id, 'Anspruchsvoller, höheres Bloom-Niveau — präzisere Analyse, komplexere Verknüpfungen, weniger Hilfestellung.');
-      if (neu) regeneriert.set(id, neu);
+    if (niveauLeicht) {
+      setNiveauExportLabel('Leichtere Fassung …');
+      await exportDocxOverride(state, transformiereLeicht(basis), 'leicht');
     }
-    const schwer = { ...basis, bloecke: basis.bloecke.map((b) => regeneriert.get(b.id) ?? b) };
-    await exportDocxOverride(state, schwer, 'schwer');
 
-    // Vorschau wieder auf die Mittel-Fassung (Original) zurücksetzen.
-    for (const [id, block] of originalBloecke) {
-      dispatch({ type: 'UPDATE_GENERIERTER_BLOCK', id, block });
+    if (niveauSchwer) {
+      setNiveauExportLabel('Schwerere Fassung wird erzeugt …');
+      const offeneIds = findeOffeneBlockIds(basis);
+      // regenerateBlock liefert den neuen Block zurück; die schwere Fassung wird daraus
+      // zusammengesetzt (NICHT aus dem async aktualisierten globalen State → wäre hier stale).
+      const originalBloecke = new Map<string, Block>(
+        offeneIds.map((id) => [id, basis.bloecke.find((b) => b.id === id)!])
+      );
+      const regeneriert = new Map<string, Block>();
+      for (let i = 0; i < offeneIds.length; i++) {
+        const id = offeneIds[i]!;
+        const neu = await regenerateBlock(state, id, 'Anspruchsvoller, höheres Bloom-Niveau — präzisere Analyse, komplexere Verknüpfungen, weniger Hilfestellung.');
+        if (neu) regeneriert.set(id, neu);
+        // Kleine Pause zwischen den Calls gegen 429 (Free-Tier-Rate-Limits).
+        if (i < offeneIds.length - 1) await new Promise((r) => setTimeout(r, 800));
+      }
+      const schwer = { ...basis, bloecke: basis.bloecke.map((b) => regeneriert.get(b.id) ?? b) };
+      await exportDocxOverride(state, schwer, 'schwer');
+
+      // Vorschau wieder auf die Original-Fassung zurücksetzen.
+      for (const [id, block] of originalBloecke) {
+        dispatch({ type: 'UPDATE_GENERIERTER_BLOCK', id, block });
+      }
     }
     setNiveauExportLabel(null);
   };
@@ -268,108 +281,131 @@ export function Step4_Generate({ state, dispatch }: Props) {
               : <><FileDown size={16} /> Beide Dokumente exportieren</>}
           </button>
 
-          {/* Schritt 3: Korrekturraster */}
-          <button
-            className="btn-secondary"
-            onClick={() => exportKorrekturraster(state)}
-            disabled={!canExport || exporting || generating}
-            aria-label="Korrekturraster als DOCX exportieren"
-            style={{ padding: '0.65rem 1.25rem', fontSize: '0.9375rem',
-              opacity: canExport ? 1 : 0.45, borderStyle: 'dashed',
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
-          >
-            <ClipboardList size={16} /> Korrekturraster exportieren
-          </button>
-
-          {/* Schritt 4: Kompetenznachweis (nur Kompetenz-Modus mit Katalog-Item) */}
-          {isKompetenz && !isFrei && (
-            <button
-              className="btn-secondary"
-              onClick={() => exportKompetenzraster(state)}
-              disabled={!canExport || exporting || generating}
-              aria-label="Kompetenznachweis als DOCX exportieren"
-              style={{ padding: '0.65rem 1.25rem', fontSize: '0.9375rem',
-                opacity: canExport ? 1 : 0.45, borderStyle: 'dashed',
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
-            >
-              <Target size={16} /> Kompetenznachweis exportieren
-            </button>
-          )}
-
-          {/* 3 Niveaus */}
+          {/* — Differenzierung (Akkordeon) — Mittel ist der Haupt-Export oben — */}
           {canExport && (
-            <button
-              className="btn-secondary"
-              onClick={exportDreiNiveaus}
-              disabled={exporting || generating}
-              style={{ padding: '0.65rem 1.25rem', fontSize: '0.9375rem',
-                borderStyle: 'dashed',
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
-            >
-              {niveauExportLabel
-                ? <><Loader2 size={16} className="spin" /> {niveauExportLabel}</>
-                : <><FileDown size={16} /> 3 Niveaus erzeugen</>}
-            </button>
+            <div style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', overflow: 'hidden' }}>
+              <button
+                type="button"
+                onClick={() => setShowDiff((v) => !v)}
+                aria-expanded={showDiff}
+                style={{ width: '100%', background: 'transparent', border: 'none', cursor: 'pointer',
+                  padding: '0.6rem 0.85rem', fontSize: '0.875rem', color: 'var(--color-text-primary)',
+                  display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+              >
+                {showDiff ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
+                <Layers size={15} /> Differenzierung
+                <span style={{ marginLeft: 'auto', fontSize: '0.7rem', color: 'var(--color-text-secondary)' }}>leichter · schwerer</span>
+              </button>
+              {showDiff && (
+                <div style={{ padding: '0 0.85rem 0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', margin: 0 }}>
+                    Mittel ist die Standardfassung („Beide Dokumente" oben). Hier zusätzliche Niveaus erzeugen:
+                  </p>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.8125rem', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={niveauLeicht} onChange={(e) => setNiveauLeicht(e.target.checked)} />
+                    Leichtere Fassung <span style={{ color: 'var(--color-text-secondary)' }}>· ohne KI, sofort</span>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.8125rem', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={niveauSchwer} onChange={(e) => setNiveauSchwer(e.target.checked)} />
+                    Schwerere Fassung <span style={{ color: 'var(--color-text-secondary)' }}>· erzeugt offene Aufgaben neu (KI, dauert kurz)</span>
+                  </label>
+                  <button
+                    className="btn-secondary"
+                    onClick={exportDifferenzierung}
+                    disabled={exporting || generating || (!niveauLeicht && !niveauSchwer) || !!niveauExportLabel}
+                    style={{ padding: '0.5rem 1rem', fontSize: '0.8125rem', borderStyle: 'dashed',
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+                  >
+                    {niveauExportLabel
+                      ? <><Loader2 size={15} className="spin" /> {niveauExportLabel}</>
+                      : <><FileDown size={15} /> Erzeugen & exportieren</>}
+                  </button>
+                  {!niveauLeicht && !niveauSchwer && (
+                    <p style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', margin: 0 }}>Mindestens eine Fassung wählen.</p>
+                  )}
+                </div>
+              )}
+            </div>
           )}
 
-          {/* Lösungen prüfen */}
+          {/* — Weitere Exporte & Werkzeuge (Akkordeon) — */}
           {canExport && (
-            <button
-              className="btn-secondary"
-              onClick={async () => {
-                const r = await pruefeLoesungen(state);
-                setJudge(r);
-              }}
-              disabled={exporting || generating || pruefend}
-              style={{ padding: '0.65rem 1.25rem', fontSize: '0.9375rem',
-                borderStyle: 'dashed',
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
-            >
-              {pruefend
-                ? <><Loader2 size={16} className="spin" /> Prüfe Lösungen …</>
-                : <><ShieldCheck size={16} /> Lösungen prüfen</>}
-            </button>
-          )}
-
-          {judge && (
-            <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', textAlign: 'center', margin: 0 }}>
-              {judge.gepruefteIds.length} geprüft · {Object.keys(judge.issuesByBlock).length} auffällig
-            </p>
-          )}
-
-          {/* PDF-Export */}
-          <button
-            className="btn-secondary"
-            onClick={() => {
-              if (isTauri()) {
-                pdfExport.startPdfExport();
-              } else {
-                setShowPdfHint(true);
-              }
-            }}
-            disabled={!canExport || pdfExport.converting}
-            aria-label="Dokument als PDF speichern"
-            style={{ padding: '0.5rem 1rem', fontSize: '0.8125rem',
-              opacity: canExport ? 1 : 0.45, borderStyle: 'dotted',
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
-          >
-            {pdfExport.converting
-              ? <><Loader2 size={15} className="spin" /> PDF wird erstellt…</>
-              : <><FileType size={15} /> Als PDF speichern</>}
-          </button>
-
-          {/* Selbstlern-Export */}
-          {canExport && (
-            <button
-              className="btn-secondary"
-              onClick={() => exportSelbstlern(state)}
-              disabled={exporting || generating}
-              style={{ padding: '0.65rem 1.25rem', fontSize: '0.9375rem',
-                borderStyle: 'dashed',
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
-            >
-              <FileDown size={16} /> Übung mit Lösungsteil
-            </button>
+            <div style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', overflow: 'hidden' }}>
+              <button
+                type="button"
+                onClick={() => setShowWeitere((v) => !v)}
+                aria-expanded={showWeitere}
+                style={{ width: '100%', background: 'transparent', border: 'none', cursor: 'pointer',
+                  padding: '0.6rem 0.85rem', fontSize: '0.875rem', color: 'var(--color-text-primary)',
+                  display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+              >
+                {showWeitere ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
+                <Wrench size={15} /> Weitere Exporte & Werkzeuge
+              </button>
+              {showWeitere && (
+                <div style={{ padding: '0 0.85rem 0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <button
+                    className="btn-secondary"
+                    onClick={async () => { const r = await pruefeLoesungen(state); setJudge(r); }}
+                    disabled={exporting || generating || pruefend}
+                    style={{ padding: '0.5rem 1rem', fontSize: '0.8125rem', borderStyle: 'dashed',
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+                  >
+                    {pruefend
+                      ? <><Loader2 size={15} className="spin" /> Prüfe Lösungen …</>
+                      : <><ShieldCheck size={15} /> Lösungen prüfen</>}
+                  </button>
+                  {judge && (
+                    <p style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)', textAlign: 'center', margin: 0 }}>
+                      {judge.gepruefteIds.length} geprüft · {Object.keys(judge.issuesByBlock).length} auffällig
+                    </p>
+                  )}
+                  <button
+                    className="btn-secondary"
+                    onClick={() => exportKorrekturraster(state)}
+                    disabled={exporting || generating}
+                    aria-label="Korrekturraster als DOCX exportieren"
+                    style={{ padding: '0.5rem 1rem', fontSize: '0.8125rem', borderStyle: 'dashed',
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+                  >
+                    <ClipboardList size={15} /> Korrekturraster exportieren
+                  </button>
+                  {isKompetenz && !isFrei && (
+                    <button
+                      className="btn-secondary"
+                      onClick={() => exportKompetenzraster(state)}
+                      disabled={exporting || generating}
+                      aria-label="Kompetenznachweis als DOCX exportieren"
+                      style={{ padding: '0.5rem 1rem', fontSize: '0.8125rem', borderStyle: 'dashed',
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+                    >
+                      <Target size={15} /> Kompetenznachweis exportieren
+                    </button>
+                  )}
+                  <button
+                    className="btn-secondary"
+                    onClick={() => { if (isTauri()) pdfExport.startPdfExport(); else setShowPdfHint(true); }}
+                    disabled={pdfExport.converting}
+                    aria-label="Dokument als PDF speichern"
+                    style={{ padding: '0.5rem 1rem', fontSize: '0.8125rem', borderStyle: 'dotted',
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+                  >
+                    {pdfExport.converting
+                      ? <><Loader2 size={15} className="spin" /> PDF wird erstellt…</>
+                      : <><FileType size={15} /> Als PDF speichern</>}
+                  </button>
+                  <button
+                    className="btn-secondary"
+                    onClick={() => exportSelbstlern(state)}
+                    disabled={exporting || generating}
+                    style={{ padding: '0.5rem 1rem', fontSize: '0.8125rem', borderStyle: 'dashed',
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+                  >
+                    <FileDown size={15} /> Übung mit Lösungsteil
+                  </button>
+                </div>
+              )}
+            </div>
           )}
 
           {lastSavedPaths && (
@@ -396,7 +432,7 @@ export function Step4_Generate({ state, dispatch }: Props) {
 
           {canExport && !lastSavedPaths && (
             <p style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', textAlign: 'center', margin: 0 }}>
-              Schülerfassung + Lösung + Korrekturraster als DOCX
+              Schülerfassung + Lösung als DOCX · weitere unter „Weitere Exporte"
             </p>
           )}
 
