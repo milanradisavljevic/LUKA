@@ -30,6 +30,7 @@ import { DashboardView } from './views/DashboardView';
 import { ErwartungshorizontView } from './views/ErwartungshorizontView';
 import { KompetenzView } from './views/KompetenzView';
 import { setPendingUebung } from './lib/korrekturBridge';
+import { createDefaultBlock } from './lib/blockDefaults';
 import type { NataschaPrefill } from './lib/nataschaBridge';
 import { loadDocuments, upsertDocument, snapshotFromState, saveTemplate, deleteTemplate, loadTemplates, hydrateCache, isHydrated, setPersistErrorHandler } from './lib/storage';
 import { Toast, type ToastMessage } from './components/Toast';
@@ -190,6 +191,31 @@ export default function App() {
     setActiveView('wizard');
   }, [state.bloecke.length, state.generiertesDokument, dispatch]);
 
+  const handleStartQuickExercise = useCallback((config: { fach: 'deutsch' | 'englisch'; stufe: 'unterstufe' | 'oberstufe'; typ: Block['typ']; thema: string }) => {
+    const hasWork = state.bloecke.length > 0 || state.generiertesDokument !== null;
+    if (hasWork && !window.confirm('Aktuellen Stand verwerfen und eine schnelle Übung beginnen?')) {
+      return;
+    }
+    const heute = new Date().toISOString().slice(0, 10);
+    const meta: Meta = {
+      stufe: config.stufe,
+      fach: config.fach,
+      thema: config.thema,
+      datum: heute,
+      klasse: '',
+      notizen: '',
+      typ: 'schuluebung',
+      punkteAusblenden: true,
+      schwierigkeit: 'mittel',
+    };
+    const block = createDefaultBlock(config.typ, meta);
+    dispatch({ type: 'RESET_STATE' });
+    dispatch({ type: 'SET_META', meta });
+    dispatch({ type: 'ADD_BLOCK', block });
+    dispatch({ type: 'SET_STEP', step: 'baukasten' });
+    setActiveView('wizard');
+  }, [state.bloecke.length, state.generiertesDokument, dispatch]);
+
   // Closed Loop: aus der Korrektur-Heatmap ein Übungsblatt im Generator starten.
   const handleGenerateUebung = useCallback((prefill: NataschaPrefill) => {
     const hasWork = state.bloecke.length > 0 || state.generiertesDokument !== null;
@@ -244,7 +270,7 @@ if (hydrating) {
           </div>
         );
       case 'dashboard':
-        return <DashboardView onNavigate={(v) => setActiveView(v)} />;
+        return <DashboardView onNavigate={(v) => setActiveView(v)} onStartQuickExercise={handleStartQuickExercise} />;
       case 'documents':
         return <DocumentsView onOpenDocument={handleOpenDocument} />;
       case 'favorites':

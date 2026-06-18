@@ -684,6 +684,11 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
   }
 
   // --- TEXT-MODUS (unveraendert) ---
+  const hatQuelltexte = input.quelltexte.length > 0;
+  const quelltextHinweis = hatQuelltexte
+    ? ''
+    : 'Es liegt KEIN Quelltext vor. Generiere die Inhalte passend zum Thema und den manuellen Vorgaben in den Bloecken. ' +
+      'Erfinde dabei stufengerechte, sachlich korrekte Beispiele und ein durchgaengiges Szenario. ';
   const user = {
     meta: input.meta,
     quelltexte: input.quelltexte.map((q) => ({
@@ -692,8 +697,13 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
     })),
     angeforderteBloecke: input.bloecke,
   };
+  const systemAddendum = hatQuelltexte
+    ? ''
+    : '\n\nAUSNAHME — KEIN QUELLTEXT: Wenn die Anforderung KEINE Quelltexte enthaelt (leeres "quelltexte"-Array), ' +
+      'sollst du die Inhalte passend zum Thema und den manuellen Vorgaben in den Bloecken erfinden. ' +
+      'Der User-Prompt markiert diesen Fall explizit.';
   return [
-    { role: 'system', content: SYSTEM },
+    { role: 'system', content: SYSTEM + systemAddendum },
     {
       role: 'user',
       content:
@@ -704,6 +714,7 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
         zielgruppeHinweis +
         notizenHinweis +
         fokusThemenHinweis +
+        quelltextHinweis +
         'Jeder Block muss ein vollstaendiges Objekt mit id, typ, punkte, quelleId, arbeitsanweisung und config sein. ' +
         'Bei multipleChoice/matching/offeneVerstaendnisfrage steht die Loesung DIREKT beim Item (Feld "korrekt" bzw. "musterantwort"); ' +
         'bei lueckentext/offeneSchreibaufgabe/markieraufgabe in einem "loesung"-Objekt am Block (siehe Beispiele).\n\n' +
