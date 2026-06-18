@@ -87,8 +87,7 @@ export function createDefaultBlock(typ: Block['typ'], meta?: Meta): Block {
       return {
         ...base,
         typ: 'wordScramble',
-        config: { wort: 'Der Hund läuft im Park', anzahlWoerter: 5, loesungsreihenfolge: [1, 2, 3, 4, 5] },
-        loesung: { korrektAnordnung: ['Der', 'Hund', 'läuft', 'im', 'Park'] },
+        config: { eingabemodus: 'ki', saetze: [{ wort: 'Der Hund läuft im Park' }] },
       } as Block;
     case 'kategorisierung':
       return {

@@ -30,16 +30,18 @@ export type BlockRequest =
       aspekte: string[];
     }
   | { typ: 'markieraufgabe'; punkte: number; quelleId: string; anweisung: string }
-  | { typ: 'wordScramble'; punkte: number; quelleId?: string; anzahlWoerter: number }
+  // saetze/eintraege/woerter/vokabeln: optionale, von der Lehrkraft VORGEGEBENE Inhalte
+  // (Manuell/Hybrid). Befüllte Einträge übernimmt das LLM unverändert, leere ergänzt es bis Anzahl.
+  | { typ: 'wordScramble'; punkte: number; quelleId?: string; anzahlSaetze: number; saetze?: { wort: string }[] }
   | { typ: 'kategorisierung'; punkte: number; quelleId?: string; anzahlItems: number; kategorien: string[] }
   | { typ: 'tabelle'; punkte: number; quelleId?: string; spalten: string[] }
   | { typ: 'stiluebung'; punkte: number; quelleId?: string; zielniveau: string; transformation: string }
   | { typ: 'songanalyse'; punkte: number; quelleId?: string; aufgabe: string }
-  | { typ: 'kreuzwortraetsel'; punkte: number; quelleId?: string; anzahlWoerter: number }
-  | { typ: 'wortgitter'; punkte: number; quelleId?: string; anzahlWoerter: number }
-  | { typ: 'vokabeluebung'; punkte: number; quelleId?: string; anzahlVokabeln: number; richtung: 'de_fremd' | 'fremd_de' }
+  | { typ: 'kreuzwortraetsel'; punkte: number; quelleId?: string; anzahlWoerter: number; eintraege?: { wort: string; hinweis: string }[] }
+  | { typ: 'wortgitter'; punkte: number; quelleId?: string; anzahlWoerter: number; woerter?: string[] }
+  | { typ: 'vokabeluebung'; punkte: number; quelleId?: string; anzahlVokabeln: number; richtung: 'de_fremd' | 'fremd_de'; vokabeln?: { deutsch: string; fremdsprache: string; kontextsatz?: string }[] }
   | { typ: 'umformung'; punkte: number; quelleId?: string; anzahlAufgaben: number }
-  | { typ: 'fehlerkorrektur'; punkte: number; quelleId?: string; anzahlSaetze: number };
+  | { typ: 'fehlerkorrektur'; punkte: number; quelleId?: string; anzahlSaetze: number; saetze?: { nr: number; satz: string; anzahlFehler: number }[] };
 
 export type BlockTyp = Block['typ'];
 

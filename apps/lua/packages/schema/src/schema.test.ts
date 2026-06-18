@@ -612,26 +612,24 @@ describe('MarkieraufgabeBlockSchema', () => {
 // ---------------------------------------------------------------------------
 
 describe('WordScrambleBlockSchema', () => {
-  it('accepts valid word scramble', () => {
+  it('accepts valid word scramble (Mehrsatz)', () => {
     const block: WordScrambleBlock = {
       id: 'b7',
       typ: 'wordScramble',
       punkte: 4,
       arbeitsanweisung: 'Bringe die Wörter in die richtige Reihenfolge.',
-      config: { wort: 'Der Hund läuft im Park', anzahlWoerter: 5, loesungsreihenfolge: [1, 2, 3, 4, 5] },
-      loesung: { korrektAnordnung: ['Der', 'Hund', 'läuft', 'im', 'Park'] },
+      config: { saetze: [{ wort: 'Der Hund läuft im Park' }, { wort: 'Die Katze schläft' }] },
     };
     expect(WordScrambleBlockSchema.safeParse(block).success).toBe(true);
   });
 
-  it('rejects mismatched loesungsreihenfolge length', () => {
+  it('rejects empty saetze array', () => {
     const result = WordScrambleBlockSchema.safeParse({
       id: 'b7',
       typ: 'wordScramble',
       punkte: 4,
       arbeitsanweisung: 'Bringe die Wörter in die richtige Reihenfolge.',
-      config: { wort: 'Der Hund', anzahlWoerter: 5, loesungsreihenfolge: [1, 2] },
-      loesung: { korrektAnordnung: ['Der', 'Hund'] },
+      config: { saetze: [] },
     });
     expect(result.success).toBe(false);
   });

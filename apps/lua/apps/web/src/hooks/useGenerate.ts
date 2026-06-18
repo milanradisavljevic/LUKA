@@ -94,9 +94,13 @@ function blockToRequest(block: Block): BlockRequest {
     case 'markieraufgabe':
       return { typ: 'markieraufgabe', punkte: block.punkte, quelleId: block.config.quelleId,
         anweisung: block.config.anweisung };
-    case 'wordScramble':
+    case 'wordScramble': {
+      const manuell = block.config.eingabemodus === 'manuell';
+      const gefuellt = (block.config.saetze ?? []).filter((s) => s.wort.trim().length > 0);
       return { typ: 'wordScramble', punkte: block.punkte, quelleId: block.quelleId,
-        anzahlWoerter: block.config.anzahlWoerter };
+        anzahlSaetze: Math.max(1, block.config.saetze?.length ?? 1),
+        ...(manuell && gefuellt.length > 0 ? { saetze: gefuellt } : {}) };
+    }
     case 'kategorisierung':
       return { typ: 'kategorisierung', punkte: block.punkte, quelleId: block.quelleId,
         anzahlItems: block.config.items.length,
@@ -110,18 +114,34 @@ function blockToRequest(block: Block): BlockRequest {
     case 'songanalyse':
       return { typ: 'songanalyse', punkte: block.punkte, quelleId: block.quelleId,
         aufgabe: block.config.aufgabe };
-    case 'kreuzwortraetsel':
+    case 'kreuzwortraetsel': {
+      const manuell = block.config.eingabemodus === 'manuell';
+      const gefuellt = (block.config.eintraege ?? []).filter((e) => e.wort.trim().length > 0);
       return { typ: 'kreuzwortraetsel', punkte: block.punkte, quelleId: block.quelleId,
-        anzahlWoerter: block.config.anzahlWoerter ?? block.config.eintraege?.length ?? 6 };
-    case 'wortgitter':
+        anzahlWoerter: block.config.anzahlWoerter ?? block.config.eintraege?.length ?? 6,
+        ...(manuell && gefuellt.length > 0 ? { eintraege: gefuellt } : {}) };
+    }
+    case 'wortgitter': {
+      const manuell = block.config.eingabemodus === 'manuell';
+      const gefuellt = (block.config.woerter ?? []).filter((w) => w.trim().length > 0);
       return { typ: 'wortgitter', punkte: block.punkte, quelleId: block.quelleId,
-        anzahlWoerter: block.config.anzahlWoerter ?? block.config.woerter?.length ?? 6 };
-    case 'vokabeluebung':
+        anzahlWoerter: block.config.anzahlWoerter ?? block.config.woerter?.length ?? 6,
+        ...(manuell && gefuellt.length > 0 ? { woerter: gefuellt } : {}) };
+    }
+    case 'vokabeluebung': {
+      const manuell = block.config.eingabemodus === 'manuell';
+      const gefuellt = (block.config.vokabeln ?? []).filter((v) => v.deutsch.trim().length > 0 || v.fremdsprache.trim().length > 0);
       return { typ: 'vokabeluebung', punkte: block.punkte, quelleId: block.quelleId,
-        anzahlVokabeln: block.config.anzahlVokabeln ?? block.config.vokabeln?.length ?? 6, richtung: block.config.richtung };
-    case 'fehlerkorrektur':
+        anzahlVokabeln: block.config.anzahlVokabeln ?? block.config.vokabeln?.length ?? 6, richtung: block.config.richtung,
+        ...(manuell && gefuellt.length > 0 ? { vokabeln: gefuellt } : {}) };
+    }
+    case 'fehlerkorrektur': {
+      const manuell = block.config.eingabemodus === 'manuell';
+      const gefuellt = (block.config.saetze ?? []).filter((s) => s.satz.trim().length > 0);
       return { typ: 'fehlerkorrektur', punkte: block.punkte, quelleId: block.quelleId,
-        anzahlSaetze: block.config.saetze.length };
+        anzahlSaetze: block.config.saetze.length,
+        ...(manuell && gefuellt.length > 0 ? { saetze: gefuellt } : {}) };
+    }
     case 'umformung':
       throw new Error('Blocktyp "umformung" wird nicht mehr unterstützt.');
   }

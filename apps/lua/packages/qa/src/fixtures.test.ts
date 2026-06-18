@@ -95,12 +95,14 @@ describe('Fixture-Details pruefen', () => {
     }
   });
 
-  it('wordScramble: loesungsreihenfolge passt zu anzahlWoerter', () => {
+  it('wordScramble: saetze sind nicht-leere Sätze (Mehrsatz)', () => {
     const doc = DocumentSchema.parse(wordScramble);
     const block = doc.bloecke[0];
     if (block.typ === 'wordScramble') {
-      expect(block.config.loesungsreihenfolge.length).toBe(block.config.anzahlWoerter);
-      expect(block.loesung.korrektAnordnung.length).toBe(block.config.anzahlWoerter);
+      expect(block.config.saetze.length).toBeGreaterThanOrEqual(1);
+      for (const s of block.config.saetze) {
+        expect(s.wort.trim().length).toBeGreaterThan(0);
+      }
     }
   });
 

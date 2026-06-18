@@ -213,7 +213,7 @@ export function getEmptyLoesung(typ: string): Record<string, unknown> {
     case 'offeneVerstaendnisfrage': return { antworten: {} };
     case 'offeneSchreibaufgabe': return { musterloesung: '', erwartungshorizont: { inhalt: '', struktur: '', ausdruck: '', sprachrichtigkeit: '' } };
     case 'markieraufgabe': return { stellen: [] };
-    case 'wordScramble': return { korrektAnordnung: [] };
+    case 'wordScramble': return {}; // kein loesung-Objekt mehr — Lösung = die Sätze selbst
     case 'kategorisierung': return { zuordnung: {} };
     case 'tabelle': return { zellen: {} };
     case 'stiluebung': return { umformulierung: '', begruendung: '' };

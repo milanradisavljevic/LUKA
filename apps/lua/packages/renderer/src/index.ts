@@ -1228,7 +1228,7 @@ function buildBlock(
       result.push(...buildMarkieraufgabe(block, mode, quelltextMap, template));
       break;
     case 'wordScramble':
-      result.push(...buildWordScramble(block, mode, template));
+      result.push(...buildWordScramble(block, mode, template, fach));
       break;
     case 'kategorisierung':
       result.push(...buildKategorisierung(block, mode, template, fach));
@@ -1860,51 +1860,51 @@ function buildWordScramble(
   block: Extract<Block, { typ: 'wordScramble' }>,
   mode: Mode,
   template: RenderTemplate,
+  fach: DocumentV1['meta']['fach'] = 'deutsch',
 ): (Paragraph | Table)[] {
   const result: (Paragraph | Table)[] = [];
-  const woerter = block.config.wort.split(/\s+/).filter((w) => w.length > 0);
+  const isEnglish = fach === 'englisch';
+  const saetze = block.config.saetze;
+  const mehrere = saetze.length > 1;
 
-  if (mode === 'schueler') {
-    // Deterministisch (seed = block.id): Schüler- und Lösungsblatt bleiben konsistent.
-    const gemischt = shuffle(woerter, block.id);
-    result.push(
-      new Paragraph({
-        children: [
-          run('Begriffe (durcheinander):  ', { font: template.font, size: template.fontSize.body, bold: true }),
-          run(gemischt.join('  |  '), { font: template.font, size: template.fontSize.body }),
-        ],
-        spacing: { after: 120 },
-      }),
-    );
-    result.push(
-      new Paragraph({
-        children: [run('Satz (richtige Reihenfolge):', { font: template.font, size: template.fontSize.body, bold: true })],
-        spacing: { after: 60 },
-      }),
-    );
-    for (let i = 0; i < block.config.anzahlWoerter; i++) {
-      result.push(writingLine(true, template));
+  saetze.forEach((satz, idx) => {
+    const woerter = satz.wort.split(/\s+/).filter((w) => w.length > 0);
+
+    // Satz-Nummer nur bei mehreren Sätzen.
+    if (mehrere) {
+      result.push(
+        new Paragraph({
+          children: [run(`${idx + 1}.`, { font: template.font, size: template.fontSize.body, bold: true })],
+          spacing: { before: idx === 0 ? 0 : 120, after: 40 },
+        }),
+      );
     }
-  } else {
-    result.push(
-      new Paragraph({
-        children: [
-          run('Korrekte Anordnung:  ', { font: template.font, size: template.fontSize.body, bold: true }),
-          run(block.loesung.korrektAnordnung.join(' '), { font: template.font, size: template.fontSize.body, italics: true }),
-        ],
-        spacing: { after: 80 },
-      }),
-    );
-    result.push(
-      new Paragraph({
-        children: [
-          run('Reihenfolge:  ', { font: template.font, size: template.fontSize.body, bold: true }),
-          run(block.config.loesungsreihenfolge.join(' → '), { font: template.font, size: template.fontSize.body, italics: true }),
-        ],
-        spacing: { after: 80 },
-      }),
-    );
-  }
+
+    if (mode === 'schueler') {
+      // Deterministisch (seed = block.id + Satz-Index): Schüler- und Lösungsblatt konsistent.
+      const gemischt = shuffle(woerter, `${block.id}-${idx}`);
+      result.push(
+        new Paragraph({
+          children: [
+            run(isEnglish ? 'Words (scrambled):  ' : 'Begriffe (durcheinander):  ', { font: template.font, size: template.fontSize.body, bold: true }),
+            run(gemischt.join('  |  '), { font: template.font, size: template.fontSize.body }),
+          ],
+          spacing: { after: 120 },
+        }),
+      );
+      result.push(writingLine(true, template));
+    } else {
+      result.push(
+        new Paragraph({
+          children: [
+            run(isEnglish ? 'Correct order:  ' : 'Korrekte Anordnung:  ', { font: template.font, size: template.fontSize.body, bold: true }),
+            run(satz.wort, { font: template.font, size: template.fontSize.body, italics: true }),
+          ],
+          spacing: { after: 80 },
+        }),
+      );
+    }
+  });
 
   return result;
 }

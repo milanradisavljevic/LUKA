@@ -159,12 +159,11 @@ describe('renderDocument: alle Blocktypen rendern fehlerfrei', () => {
     await expect(renderDocument(doc)).resolves.toBeDefined();
   });
 
-  it('wordScramble', async () => {
+  it('wordScramble (Mehrsatz)', async () => {
     const doc = makeDoc([{
       id: 'b7', typ: 'wordScramble', punkte: 4,
       arbeitsanweisung: 'Bringe die Wörter in die richtige Reihenfolge.',
-      config: { wort: 'Der Hund läuft im Park', anzahlWoerter: 5, loesungsreihenfolge: [1, 2, 3, 4, 5] },
-      loesung: { korrektAnordnung: ['Der', 'Hund', 'läuft', 'im', 'Park'] },
+      config: { saetze: [{ wort: 'Der Hund läuft im Park' }, { wort: 'Die Katze schläft tief' }] },
     }]);
     await expect(renderDocument(doc)).resolves.toBeDefined();
   });
