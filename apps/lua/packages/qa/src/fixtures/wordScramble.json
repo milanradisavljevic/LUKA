@@ -23,12 +23,10 @@
       "punkte": 4,
       "arbeitsanweisung": "Bringe die Wörter in die richtige Reihenfolge.",
       "config": {
-        "wort": "Lena liest abends ein Buch im Bett",
-        "anzahlWoerter": 7,
-        "loesungsreihenfolge": [1, 2, 3, 4, 5, 6, 7]
-      },
-      "loesung": {
-        "korrektAnordnung": ["Lena", "liest", "abends", "ein", "Buch", "im", "Bett"]
+        "saetze": [
+          { "wort": "Lena liest abends ein Buch im Bett" },
+          { "wort": "Der Hund läuft schnell durch den Park" }
+        ]
       }
     }
   ]

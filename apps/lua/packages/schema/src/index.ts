@@ -271,22 +271,19 @@ export type MarkieraufgabeBlock = z.infer<typeof MarkieraufgabeBlockSchema>;
 // Block: wordScramble
 // ---------------------------------------------------------------------------
 
+// Mehrsatz: ein Block enthält 1..n Sätze. Pro Satz NUR der korrekte Satz (`wort`).
+// Die durcheinandergebrachte Reihenfolge erzeugt der Renderer deterministisch
+// (Seed = block.id + Satz-Index) — kein separates loesung/loesungsreihenfolge nötig.
+export const WordScrambleSatzSchema = z.object({
+  wort: z.string().min(1),
+});
+
 export const WordScrambleBlockSchema = BlockBaseSchema.extend({
   typ: z.literal('wordScramble'),
   config: z.object({
-    wort: z.string().min(1),
-    anzahlWoerter: z.number().int().positive(),
-    loesungsreihenfolge: z.array(z.number().int().positive()),
-  }).refine(
-    (c) => c.loesungsreihenfolge.length === c.anzahlWoerter,
-    { message: 'loesungsreihenfolge.length muss anzahlWoerter entsprechen' },
-  ),
-  loesung: z.object({
-    korrektAnordnung: z.array(z.string().min(1)),
-  }).refine(
-    (l) => l.korrektAnordnung.every((w) => w.length > 0),
-    { message: 'korrektAnordnung darf keine leeren Strings enthalten' },
-  ),
+    eingabemodus: z.enum(['ki', 'manuell']).optional(),
+    saetze: z.array(WordScrambleSatzSchema).min(1),
+  }),
 });
 
 export type WordScrambleBlock = z.infer<typeof WordScrambleBlockSchema>;
@@ -909,8 +906,7 @@ export function buildSkelett(auftrag: Auftrag): Block[] {
         return {
           ...base,
           typ: 'wordScramble',
-          config: { wort: '[Satz]', anzahlWoerter: 5, loesungsreihenfolge: [1, 2, 3, 4, 5] },
-          loesung: { korrektAnordnung: ['[1]', '[2]', '[3]', '[4]', '[5]'] },
+          config: { saetze: [{ wort: '[Satz]' }] },
         };
       case 'kategorisierung':
         return {

@@ -350,14 +350,41 @@ export function BlockConfigPanel({ block, stufe, onConfigChange }: Props) {
   }
 
   if (block.typ === 'wordScramble') {
+    const modus = (config.eingabemodus as 'ki' | 'manuell') ?? 'ki';
+    const saetze = (config.saetze as Array<{ wort: string }> | undefined) ?? [{ wort: '' }];
+    const anzahl = Math.max(1, saetze.length);
+    const mkArray = (n: number) => Array.from({ length: n }, (_, i) => saetze[i] ?? { wort: '' });
+    const setAnzahl = (n: number) => set('saetze', mkArray(n));
+    const switchModus = (m: 'ki' | 'manuell') => {
+      // saetze-Länge bleibt erhalten; im KI-Modus reicht die Anzahl (leere Sätze → KI füllt).
+      onConfigChange({ ...config, eingabemodus: m, saetze: mkArray(anzahl) });
+    };
+    const setSatz = (i: number, v: string) => set('saetze', mkArray(anzahl).map((s, idx) => (idx === i ? { wort: v } : s)));
+
     return (
       <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
         <h3 style={{ marginBottom: '0.75rem', fontSize: '0.8125rem' }}>Wörter ordnen</h3>
-        <ConfigField label="Ausgangswort/Satz (Leerzeichen-getrennt)">
-          <textarea rows={2} value={config.wort as string ?? ''}
-            placeholder="z. B. Der Hund läuft im Park"
-            onChange={(e) => set('wort', e.target.value)} />
+        <ManuellToggle modus={modus} onChange={switchModus} />
+        <ConfigField label="Anzahl Sätze">
+          <input type="number" min={1} max={12} value={anzahl}
+            onChange={(e) => setAnzahl(Math.max(1, Math.min(12, parseInt(e.target.value) || 1)))} />
         </ConfigField>
+        {modus === 'manuell' ? (
+          <div>
+            {mkArray(anzahl).map((s, i) => (
+              <textarea key={i} rows={1} style={{ marginBottom: '0.4rem' }} value={s.wort}
+                placeholder={`Satz ${i + 1} (richtige Reihenfolge, z. B. Der Hund läuft im Park)`}
+                onChange={(e) => setSatz(i, e.target.value)} />
+            ))}
+            <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.25rem' }}>
+              Gib die Sätze in KORREKTER Reihenfolge ein — die App verwürfelt sie. Leere Sätze ergänzt die KI (Hybrid).
+            </p>
+          </div>
+        ) : (
+          <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.25rem' }}>
+            Beim Generieren erstellt die KI {anzahl} {anzahl === 1 ? 'Satz' : 'Sätze'} passend zum Quelltext.
+          </p>
+        )}
       </div>
     );
   }

@@ -20,22 +20,21 @@ async function expectOk(raw: string) {
 }
 
 describe('Neue Typen: echter parseAndValidate-Pfad', () => {
-  it('wordScramble validiert', async () => {
+  it('wordScramble validiert (Mehrsatz)', async () => {
     const doc = await expectOk(JSON.stringify([{
       id: 'b1', typ: 'wordScramble', punkte: 4, quelleId: 'q1', arbeitsanweisung: 'Ordne.',
-      config: { wort: 'Die Katze schlaeft tief', anzahlWoerter: 4, loesungsreihenfolge: [1, 2, 3, 4] },
-      loesung: { korrektAnordnung: ['Die', 'Katze', 'schlaeft', 'tief'] },
+      config: { saetze: [{ wort: 'Die Katze schlaeft tief' }, { wort: 'Der Hund bellt laut' }] },
     }]));
     expect(doc.bloecke[0]?.typ).toBe('wordScramble');
   });
 
-  it('wordScramble: normalize ergänzt fehlende loesungsreihenfolge + korrektAnordnung', async () => {
+  it('wordScramble: normalize konvertiert Legacy-Einzelsatz (config.wort) → saetze', async () => {
     const doc = await expectOk(JSON.stringify([{
       id: 'b1', typ: 'wordScramble', punkte: 4, quelleId: 'q1', arbeitsanweisung: 'Ordne.',
-      config: { wort: 'Die Katze schlaeft tief', anzahlWoerter: '4' }, // String + fehlende Felder
+      config: { wort: 'Die Katze schlaeft tief' }, // Legacy-Einzelsatz
     }]));
     const b = doc.bloecke[0];
-    expect(b?.typ === 'wordScramble' && b.config.loesungsreihenfolge).toEqual([1, 2, 3, 4]);
+    expect(b?.typ === 'wordScramble' && b.config.saetze).toEqual([{ wort: 'Die Katze schlaeft tief' }]);
   });
 
   it('kategorisierung validiert UND koerced zuordnung-String → Array', async () => {
@@ -85,7 +84,7 @@ describe('Neue Typen: echter parseAndValidate-Pfad', () => {
 describe('Neue Typen: Prompt-Vertrag', () => {
   const system = buildMessages({
     meta, quelltexte,
-    bloecke: [{ typ: 'wordScramble', punkte: 4, quelleId: 'q1', anzahlWoerter: 4 }],
+    bloecke: [{ typ: 'wordScramble', punkte: 4, quelleId: 'q1', anzahlSaetze: 2 }],
   }).find((m) => m.role === 'system')!.content;
 
   for (const typ of ['wordScramble', 'kategorisierung', 'tabelle', 'stiluebung', 'songanalyse']) {

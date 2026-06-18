@@ -428,35 +428,32 @@ function normalizeMarkieraufgabe(block: AnyObj): AnyObj {
 
 function normalizeWordScramble(block: AnyObj): AnyObj {
   const config = isObject(block.config) ? { ...block.config } : {};
-  const loesung = isObject(block.loesung) ? { ...block.loesung } : {};
 
-  if (typeof config.anzahlWoerter === 'string') {
-    const n = parseInt(config.anzahlWoerter, 10);
-    if (!isNaN(n)) config.anzahlWoerter = n;
+  // Kanonische Form: config.saetze = [{ wort }]. Legacy-Eingaben (einzelnes config.wort,
+  // oder saetze als String-Array) werden konvertiert, damit ältere LLM-Ausgaben weiter
+  // validieren. Der Renderer leitet Reihenfolge/Scramble deterministisch aus `wort` ab —
+  // anzahlWoerter/loesungsreihenfolge/korrektAnordnung sind nicht mehr nötig.
+  let saetze: { wort: string }[] = [];
+  if (Array.isArray(config.saetze)) {
+    saetze = config.saetze
+      .map((s: unknown) => {
+        if (typeof s === 'string') return { wort: s.trim() };
+        if (isObject(s) && typeof s.wort === 'string') return { wort: s.wort.trim() };
+        return { wort: '' };
+      })
+      .filter((s: { wort: string }) => s.wort.length > 0);
+  } else if (typeof config.wort === 'string' && config.wort.trim().length > 0) {
+    saetze = [{ wort: config.wort.trim() }];
   }
 
-  // config.wort ist die Quelle der Wahrheit: anzahlWoerter, loesungsreihenfolge und
-  // korrektAnordnung werden daraus konsistent abgeleitet. Das verhindert einen
-  // Mismatch (z. B. anzahlWoerter=6, aber 7 Wörter im Satz), der sonst eine
-  // Reparaturrunde kosten würde. Die Lehrer-Vorgabe wirkt über den Prompt (weich).
-  if (typeof config.wort === 'string' && config.wort.trim().length > 0) {
-    const woerter = config.wort.split(/\s+/).filter((w: string) => w.length > 0);
-    config.anzahlWoerter = woerter.length;
-    config.loesungsreihenfolge = woerter.map((_, i) => i + 1);
-    loesung.korrektAnordnung = woerter;
-    return { ...block, config, loesung };
-  }
+  delete config.wort;
+  delete config.anzahlWoerter;
+  delete config.loesungsreihenfolge;
+  config.saetze = saetze;
 
-  // Kein wort vorhanden: defensiv wie bisher.
-  if (Array.isArray(config.loesungsreihenfolge)) {
-    config.loesungsreihenfolge = config.loesungsreihenfolge.map((v: unknown) =>
-      typeof v === 'string' ? parseInt(v, 10) : v,
-    );
-  }
-  if (!Array.isArray(config.loesungsreihenfolge) && typeof config.anzahlWoerter === 'number') {
-    config.loesungsreihenfolge = Array.from({ length: config.anzahlWoerter }, (_, i) => i + 1);
-  }
-  return { ...block, config, loesung };
+  // loesung ist obsolet (Lösung = die Sätze selbst) — verwerfen.
+  const { loesung: _loesung, ...rest } = block;
+  return { ...rest, config };
 }
 
 // ---------------------------------------------------------------------------
