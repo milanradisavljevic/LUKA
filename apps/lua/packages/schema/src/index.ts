@@ -593,19 +593,13 @@ export type MerkkastenItem = NonNullable<Merkkasten['items']>[number];
 // Full Document
 // ---------------------------------------------------------------------------
 
-export const DocumentSchema = z
-  .object({
-    schemaVersion: z.literal('0.1.0'),
-    meta: MetaSchema,
-    quelltexte: z.array(QuellTextSchema).default([]),
-    bloecke: z.array(BlockSchema).min(1),
-    didaktik: DidaktikSchema.optional(),
-  })
-  .refine(
-    (d) => d.meta.modus === 'kompetenz' || d.quelltexte.length >= 1,
-    { message: 'Im Text-Modus ist mindestens ein Quelltext erforderlich.', path: ['quelltexte'] },
-  )
-;
+export const DocumentSchema = z.object({
+  schemaVersion: z.literal('0.1.0'),
+  meta: MetaSchema,
+  quelltexte: z.array(QuellTextSchema).default([]),
+  bloecke: z.array(BlockSchema).min(1),
+  didaktik: DidaktikSchema.optional(),
+});
 
 export type DocumentV1 = z.infer<typeof DocumentSchema>;
 

@@ -988,9 +988,9 @@ describe('DocumentSchema', () => {
     expect(result.success).toBe(false);
   });
 
-  it('rejects document with empty quelltexte in text mode', () => {
+  it('accepts document with empty quelltexte in text mode (schnelle Übung ohne Quelltext)', () => {
     const result = DocumentSchema.safeParse({ ...validDoc, quelltexte: [] });
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
   });
 
   it('accepts kompetenz modus with empty quelltexte', () => {

@@ -17,6 +17,10 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
   direkt im Baukasten mit passendem Blocktyp und leeren Quelltexten.
 - `packages/llm/src/prompt.ts`: Wenn `quelltexte` leer ist, bekommt das LLM
   explizit die Instruktion, Inhalte aus Thema + manuellen Vorgaben zu erfinden.
+- `packages/schema/src/index.ts`: `DocumentSchema` erlaubt jetzt leere
+  `quelltexte` auch im Text-Modus; entsprechender Test angepasst.
+- `apps/lua/scripts/quick-exercise-smoke.mjs`: Echter LLM-Smoke-Test für den
+  neuen Pfad ohne Quelltext (mit DeepSeek verifiziert).
 
 ### Added — F1: Quelltext-Check in Schritt 1
 - `apps/web/src/lib/quelltextInfo.ts`: Heuristik für Wortzahl, Satzzahl und
