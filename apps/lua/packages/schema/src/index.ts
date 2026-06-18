@@ -419,6 +419,9 @@ export type SonganalyseBlock = z.infer<typeof SonganalyseBlockSchema>;
 export const KreuzwortraetselBlockSchema = BlockBaseSchema.extend({
   typ: z.literal('kreuzwortraetsel'),
   config: z.object({
+    // 'ki' (Default): KI zieht Wörter aus dem Quelltext. 'manuell': Lehrkraft gibt eintraege
+    // selbst vor; teils befüllte Einträge = Hybrid (KI füllt die leeren bis anzahlWoerter).
+    eingabemodus: z.enum(['ki', 'manuell']).optional(),
     anzahlWoerter: z.number().int().positive().optional(),
     eintraege: z.array(
       z.object({
@@ -440,6 +443,7 @@ export type KreuzwortraetselBlock = z.infer<typeof KreuzwortraetselBlockSchema>;
 export const WortgitterBlockSchema = BlockBaseSchema.extend({
   typ: z.literal('wortgitter'),
   config: z.object({
+    eingabemodus: z.enum(['ki', 'manuell']).optional(),
     anzahlWoerter: z.number().int().positive().optional(),
     woerter: z.array(z.string().min(2)).optional(),
   }),
@@ -454,6 +458,7 @@ export type WortgitterBlock = z.infer<typeof WortgitterBlockSchema>;
 export const VokabeluebungBlockSchema = BlockBaseSchema.extend({
   typ: z.literal('vokabeluebung'),
   config: z.object({
+    eingabemodus: z.enum(['ki', 'manuell']).optional(),
     richtung: z.enum(['de_fremd', 'fremd_de']),
     anzahlVokabeln: z.number().int().positive().optional(),
     vokabeln: z.array(
@@ -503,6 +508,7 @@ export type UmformungBlock = z.infer<typeof UmformungBlockSchema>;
 export const FehlerkorrekturBlockSchema = BlockBaseSchema.extend({
   typ: z.literal('fehlerkorrektur'),
   config: z.object({
+    eingabemodus: z.enum(['ki', 'manuell']).optional(),
     saetze: z.array(z.object({
       nr: z.number().int().positive(),
       satz: z.string().min(1),
