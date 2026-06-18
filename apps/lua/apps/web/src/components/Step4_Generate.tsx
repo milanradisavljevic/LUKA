@@ -298,16 +298,30 @@ export function Step4_Generate({ state, dispatch }: Props) {
               </button>
               {showDiff && (
                 <div style={{ padding: '0 0.85rem 0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', margin: 0 }}>
-                    Mittel ist die Standardfassung („Beide Dokumente" oben). Hier zusätzliche Niveaus erzeugen:
+                  <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', margin: 0, lineHeight: 1.45 }}>
+                    Die Standard-Unterlage hat ein mittleres Niveau. Erstelle hier zusätzlich
+                    dieselbe Unterlage in einer leichteren und/oder schwereren Variante — für
+                    schwächere bzw. stärkere Schüler/innen.
                   </p>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.8125rem', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={niveauLeicht} onChange={(e) => setNiveauLeicht(e.target.checked)} />
-                    Leichtere Fassung <span style={{ color: 'var(--color-text-secondary)' }}>· ohne KI, sofort</span>
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.55rem', fontSize: '0.8125rem', cursor: 'pointer', lineHeight: 1.4 }}>
+                    <input type="checkbox" checked={niveauLeicht} onChange={(e) => setNiveauLeicht(e.target.checked)}
+                      style={{ width: 16, height: 16, flexShrink: 0, margin: '0.1rem 0 0', padding: 0, accentColor: 'var(--color-accent)' }} />
+                    <span>
+                      <strong>Leichtere Variante</strong>
+                      <span style={{ display: 'block', color: 'var(--color-text-secondary)', fontSize: '0.75rem' }}>
+                        Einfachere Aufgaben für schwächere Schüler/innen · sofort, ohne KI
+                      </span>
+                    </span>
                   </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.8125rem', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={niveauSchwer} onChange={(e) => setNiveauSchwer(e.target.checked)} />
-                    Schwerere Fassung <span style={{ color: 'var(--color-text-secondary)' }}>· erzeugt offene Aufgaben neu (KI, dauert kurz)</span>
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.55rem', fontSize: '0.8125rem', cursor: 'pointer', lineHeight: 1.4 }}>
+                    <input type="checkbox" checked={niveauSchwer} onChange={(e) => setNiveauSchwer(e.target.checked)}
+                      style={{ width: 16, height: 16, flexShrink: 0, margin: '0.1rem 0 0', padding: 0, accentColor: 'var(--color-accent)' }} />
+                    <span>
+                      <strong>Schwerere Variante</strong>
+                      <span style={{ display: 'block', color: 'var(--color-text-secondary)', fontSize: '0.75rem' }}>
+                        Anspruchsvollere offene Aufgaben für stärkere Schüler/innen · KI erstellt sie neu (dauert kurz)
+                      </span>
+                    </span>
                   </label>
                   <button
                     className="btn-secondary"
@@ -318,10 +332,10 @@ export function Step4_Generate({ state, dispatch }: Props) {
                   >
                     {niveauExportLabel
                       ? <><Loader2 size={15} className="spin" /> {niveauExportLabel}</>
-                      : <><FileDown size={15} /> Erzeugen & exportieren</>}
+                      : <><FileDown size={15} /> Variante(n) erstellen & exportieren</>}
                   </button>
                   {!niveauLeicht && !niveauSchwer && (
-                    <p style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', margin: 0 }}>Mindestens eine Fassung wählen.</p>
+                    <p style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', margin: 0 }}>Wähle mindestens eine Variante aus.</p>
                   )}
                 </div>
               )}
