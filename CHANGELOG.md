@@ -7,6 +7,17 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — UX-Friction: Quelltext wird optional für kleine Übungen
+- `apps/web/src/components/Step1_Input.tsx`: Button „Ohne Quelltext fortfahren",
+  wenn noch keine Quelltexte vorhanden sind.
+- `apps/web/src/components/Step0_Absicht.tsx`: Neue Schnellstart-Kachelreihe
+  „Schnell ohne Quelltext" für Kreuzworträtsel, Vokabeltest, Fehlerkorrektur.
+- `apps/web/src/views/DashboardView.tsx` + `apps/web/src/App.tsx`: Shortcuts
+  „Schnell ohne Quelltext" auf dem Dashboard; jeder Shortcut startet den Wizard
+  direkt im Baukasten mit passendem Blocktyp und leeren Quelltexten.
+- `packages/llm/src/prompt.ts`: Wenn `quelltexte` leer ist, bekommt das LLM
+  explizit die Instruktion, Inhalte aus Thema + manuellen Vorgaben zu erfinden.
+
 ### Added — F1: Quelltext-Check in Schritt 1
 - `apps/web/src/lib/quelltextInfo.ts`: Heuristik für Wortzahl, Satzzahl und
   durchschnittliche Satzlänge ohne LLM.

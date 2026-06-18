@@ -2,17 +2,20 @@ import { useState, useEffect, useMemo } from 'react';
 import {
   GraduationCap, AlertTriangle, Loader2, ClipboardCheck,
   ChevronRight, FileText, Timer, Files, Clock, Coins,
+  Grid3X3, Languages, Pencil, AlignLeft,
 } from 'lucide-react';
 import { useNatascha } from '../hooks/useNatascha';
 import { loadDocuments, loadTemplates } from '../lib/storage';
 import { BLOCK_TYPE_DEFS } from '../lib/constants';
 import type { ActiveView, SavedDocument } from '../lib/types';
+import type { Block } from '@lehrunterlagen/schema';
 import { Hero } from '../components/ui/Hero';
 import { Door } from '../components/ui/Door';
 import { Tile } from '../components/ui/Tile';
 
 interface DashboardViewProps {
   onNavigate?: (view: ActiveView) => void;
+  onStartQuickExercise?: (config: { fach: 'deutsch' | 'englisch'; stufe: 'unterstufe' | 'oberstufe'; typ: Block['typ']; thema: string }) => void;
 }
 
 interface KlasseStat {
@@ -26,7 +29,7 @@ interface KlasseStat {
 
 const HANDLUNGSBEDARF_AB = 3.5;
 
-export function DashboardView({ onNavigate }: DashboardViewProps = {}) {
+export function DashboardView({ onNavigate, onStartQuickExercise }: DashboardViewProps = {}) {
   const { listKlassen, getNotenverteilung, getKlassenTrend } = useNatascha();
   const [rows, setRows] = useState<KlasseStat[]>([]);
   const [loading, setLoading] = useState(true);
@@ -179,6 +182,36 @@ export function DashboardView({ onNavigate }: DashboardViewProps = {}) {
           </button>
         </div>
       </Hero>
+
+      {/* ═══ Schnell-Übungen ═══ */}
+      {onStartQuickExercise && (
+        <div style={{ marginBottom: '2rem' }}>
+          <p style={{
+            fontSize: '0.75rem', fontWeight: 500, color: 'var(--color-text-muted)',
+            textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem',
+          }}>
+            Schnell ohne Quelltext
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '0.5rem' }}>
+            {([
+              { label: 'Kreuzwort', icon: Grid3X3, fach: 'deutsch' as const, stufe: 'unterstufe' as const, typ: 'kreuzwortraetsel' as const, thema: 'Kreuzworträtsel — Thema anpassen' },
+              { label: 'Vokabeltest', icon: Languages, fach: 'englisch' as const, stufe: 'unterstufe' as const, typ: 'vokabeluebung' as const, thema: 'Vokabeltest — Thema anpassen' },
+              { label: 'Fehlerkorrektur', icon: Pencil, fach: 'deutsch' as const, stufe: 'oberstufe' as const, typ: 'fehlerkorrektur' as const, thema: 'Fehlerkorrektur — Thema anpassen' },
+              { label: 'Lückentext', icon: AlignLeft, fach: 'deutsch' as const, stufe: 'unterstufe' as const, typ: 'lueckentext' as const, thema: 'Lückentext — Thema anpassen' },
+            ] as const).map((s) => (
+              <button
+                key={s.label}
+                className="tile"
+                onClick={() => onStartQuickExercise({ fach: s.fach, stufe: s.stufe, typ: s.typ, thema: s.thema })}
+                style={{ fontSize: '0.8125rem', textAlign: 'left', flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}
+              >
+                <s.icon size={18} style={{ color: 'var(--color-accent)', flexShrink: 0 }} />
+                <span>{s.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ═══ Weiterarbeiten ═══ */}
       {lastDocument && (

@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
-import { ArrowRight, Clock, FolderOpen, BookOpen, ClipboardCheck, Target } from 'lucide-react';
+import { ArrowRight, Clock, FolderOpen, BookOpen, ClipboardCheck, Target, Grid3X3, Languages, Pencil } from 'lucide-react';
 import type { AppState, AppAction } from '../lib/types';
 import { BLOCK_TYPE_DEFS, SCHWIERIGKEIT_RULES, UNTERLAGENTYP_MINUTEN } from '../lib/constants';
 import { buildSkelett, type Auftrag } from '@lehrunterlagen/schema';
@@ -64,6 +64,7 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
   const [lernzieleRaw, setLernzieleRaw] = useState(lastMeta?.lernziele?.join(', ') ?? '');
   const [fokusThemen, setFokusThemen] = useState<string[]>(lastMeta?.fokusThemen ?? []);
   const [fehler, setFehler] = useState<string | null>(null);
+  const [schnellOhneQuelltext, setSchnellOhneQuelltext] = useState(false);
   // Punkte vergeben? Schulübung standardmäßig ohne Punkte, sonst mit.
   const [punkteVergeben, setPunkteVergeben] = useState<boolean>((lastMeta?.typ ?? 'schularbeit') !== 'schuluebung');
   // Sinnvoller Default je Unterlagentyp; manuell überschreibbar.
@@ -249,7 +250,7 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
           fokusThemen: fokusThemen.length > 0 ? fokusThemen : undefined,
         },
       });
-      dispatch({ type: 'SET_STEP', step: 'input' });
+      dispatch({ type: 'SET_STEP', step: schnellOhneQuelltext ? 'baukasten' : 'input' });
     } catch (err) {
       setFehler(err instanceof Error ? err.message : 'Fehler beim Erstellen des Skeletts.');
     }
@@ -386,6 +387,7 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
                 setSchwierigkeit(ex.auftrag.schwierigkeit ?? 'mittel');
                 setLernzieleRaw(ex.auftrag.lernziele?.join(', ') ?? '');
                 setNotizen(ex.auftrag.notizen ?? '');
+                setSchnellOhneQuelltext(false);
                 // Optional: gleich Skelett erstellen
                 // handleErstellen();
               }}
@@ -398,6 +400,78 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
               <strong style={{ fontSize: '0.875rem' }}>{ex.label}</strong>
               <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.125rem' }}>
                 {ex.beschreibung}
+              </span>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* Schnellstart ohne Quelltext */}
+      <section style={{ marginBottom: '1.25rem' }}>
+        <SectionLabel>Schnell ohne Quelltext</SectionLabel>
+        <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: '0 0 0.5rem' }}>
+          Für kleine Übungen mit eigenen Inhalten brauchst du keine Textgrundlage.
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.5rem' }}>
+          {[
+            {
+              id: 'schnell-kreuzwort',
+              label: 'Kreuzworträtsel',
+              beschreibung: 'Mit eigenen Begriffen und Hinweisen.',
+              Icon: Grid3X3,
+              fach: 'deutsch' as const,
+              stufe: 'unterstufe' as const,
+              typ: 'kreuzwortraetsel' as const,
+              thema: 'Kreuzworträtsel — Thema anpassen',
+            },
+            {
+              id: 'schnell-vokabeln',
+              label: 'Vokabeltest',
+              beschreibung: 'Mit eigener Wortliste.',
+              Icon: Languages,
+              fach: 'englisch' as const,
+              stufe: 'unterstufe' as const,
+              typ: 'vokabeluebung' as const,
+              thema: 'Vokabeltest — Thema anpassen',
+            },
+            {
+              id: 'schnell-fehler',
+              label: 'Fehlerkorrektur',
+              beschreibung: 'Mit eigenen Sätzen.',
+              Icon: Pencil,
+              fach: 'deutsch' as const,
+              stufe: 'oberstufe' as const,
+              typ: 'fehlerkorrektur' as const,
+              thema: 'Fehlerkorrektur — Thema anpassen',
+            },
+          ].map((s) => (
+            <button
+              key={s.id}
+              onClick={() => {
+                setTyp('schuluebung');
+                setFach(s.fach);
+                setStufe(s.stufe);
+                dispatch({ type: 'SET_RENDER_TEMPLATE', template: getDefaultTemplate(s.stufe).id });
+                setThema(s.thema);
+                setDauerMinuten(15);
+                setSchwierigkeit('mittel');
+                setLernzieleRaw('');
+                setNotizen('');
+                setGewuenschteAufgabenarten([s.typ]);
+                setPunkteVergeben(false);
+                setSchnellOhneQuelltext(true);
+                window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+              }}
+              className="tile"
+              aria-pressed={schnellOhneQuelltext && gewuenschteAufgabenarten.includes(s.typ) && thema === s.thema}
+              style={{ fontSize: '0.8125rem' }}
+            >
+              <span style={{ display: 'block', marginBottom: '0.25rem', color: 'var(--color-accent)' }}>
+                <s.Icon size={22} />
+              </span>
+              <strong style={{ fontSize: '0.875rem' }}>{s.label}</strong>
+              <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.125rem' }}>
+                {s.beschreibung}
               </span>
             </button>
           ))}
@@ -428,7 +502,7 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
                 key={u.id}
                 className="tile"
                 aria-pressed={typ === u.id}
-                onClick={() => setTyp(u.id)}
+                onClick={() => { setTyp(u.id); setSchnellOhneQuelltext(false); }}
                 style={{ fontSize: '0.875rem' }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%' }}>

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { FileText, Upload } from 'lucide-react';
+import { FileText, Upload, ArrowRight } from 'lucide-react';
 import type { AppState, AppAction } from '../lib/types';
 import { extractHtmlText } from '../lib/importText';
 import { istUrlArtig, titelAusUrl } from '../lib/urlTitle';
@@ -242,9 +242,16 @@ export function Step1_Input({ state, dispatch }: Props) {
         }}>
           <div style={{ marginBottom: '0.5rem' }}><FileText size={32} style={{ opacity: 0.5 }} /></div>
           <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>Noch keine Quelltexte</div>
-          <div style={{ fontSize: '0.8125rem' }}>
-            Lade eine Datei hoch (.txt, .docx, .pdf, .html), importiere eine URL oder gib einen Text manuell ein.
+          <div style={{ fontSize: '0.8125rem', marginBottom: '1rem' }}>
+            Lade eine Datei hoch, importiere eine URL oder gib einen Text manuell ein — oder überspringe diesen Schritt, wenn du Aufgaben mit eigenen Inhalten erstellen willst.
           </div>
+          <button
+            className="btn-secondary"
+            onClick={() => dispatch({ type: 'SET_STEP', step: 'baukasten' })}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}
+          >
+            Ohne Quelltext fortfahren <ArrowRight size={15} />
+          </button>
         </div>
       )}
 
