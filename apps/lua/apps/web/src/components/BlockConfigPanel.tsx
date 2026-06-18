@@ -19,6 +19,34 @@ function ConfigField({ label, error, children }: { label: string; error?: string
   );
 }
 
+/** Umschalter „KI-generiert ⇄ Selbst festlegen" für Inhalts-Blöcke. Teilweise befüllte
+ *  manuelle Felder = Hybrid (die KI ergänzt beim Generieren die leeren). */
+function ManuellToggle({ modus, onChange }: { modus: 'ki' | 'manuell'; onChange: (m: 'ki' | 'manuell') => void }) {
+  return (
+    <ConfigField label="Inhalt">
+      <div style={{ display: 'flex', gap: '0.4rem' }}>
+        {([['ki', 'KI-generiert'], ['manuell', 'Selbst festlegen']] as const).map(([val, label]) => (
+          <button
+            key={val}
+            type="button"
+            onClick={() => onChange(val)}
+            aria-pressed={modus === val}
+            style={{
+              flex: 1, padding: '0.4rem 0.6rem', fontSize: '0.8125rem', cursor: 'pointer',
+              borderRadius: 'var(--radius)',
+              border: `${modus === val ? 2 : 1}px solid ${modus === val ? 'var(--color-accent)' : 'var(--color-border)'}`,
+              background: modus === val ? 'var(--color-highlight-bg)' : 'transparent',
+              color: 'var(--color-text-primary)',
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    </ConfigField>
+  );
+}
+
 export function BlockConfigPanel({ block, stufe, onConfigChange }: Props) {
   const config = block.config as Record<string, unknown>;
   const set = (key: string, value: unknown) => {
@@ -702,58 +730,87 @@ export function BlockConfigPanel({ block, stufe, onConfigChange }: Props) {
 
   if (block.typ === 'kreuzwortraetsel') {
     const anzahl = (config.anzahlWoerter as number) ?? 6;
-    const syncArray = (n: number) => {
-      const current = (config.eintraege as { wort: string; hinweis: string }[] | undefined) ?? [];
-      if (n > current.length) {
-        set('eintraege', [...current, ...Array.from({ length: n - current.length }, () => ({ wort: '', hinweis: '' }))]);
-      } else if (n < current.length) {
-        set('eintraege', current.slice(0, n));
-      }
+    const modus = (config.eingabemodus as 'ki' | 'manuell') ?? 'ki';
+    const eintraege = (config.eintraege as { wort: string; hinweis: string }[] | undefined) ?? [];
+    const mkArray = (n: number) => Array.from({ length: n }, (_, i) => eintraege[i] ?? { wort: '', hinweis: '' });
+    const setAnzahl = (n: number) => {
+      set('anzahlWoerter', n);
+      if (modus === 'manuell') set('eintraege', mkArray(n));
+    };
+    const switchModus = (m: 'ki' | 'manuell') => {
+      onConfigChange({ ...config, eingabemodus: m, eintraege: m === 'manuell' ? mkArray(anzahl) : undefined });
+    };
+    const setEintrag = (i: number, key: 'wort' | 'hinweis', v: string) => {
+      set('eintraege', mkArray(anzahl).map((e, idx) => (idx === i ? { ...e, [key]: v } : e)));
     };
 
     return (
       <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
         <h3 style={{ marginBottom: '0.75rem', fontSize: '0.8125rem' }}>Kreuzworträtsel</h3>
+        <ManuellToggle modus={modus} onChange={switchModus} />
         <ConfigField label="Anzahl Wörter">
           <input type="number" min={3} max={20} value={anzahl}
-            onChange={(e) => {
-              const n = Math.max(3, Math.min(20, parseInt(e.target.value) || 6));
-              set('anzahlWoerter', n);
-              syncArray(n);
-            }} />
+            onChange={(e) => setAnzahl(Math.max(3, Math.min(20, parseInt(e.target.value) || 6)))} />
         </ConfigField>
-        <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.25rem' }}>
-          Beim Generieren zieht die KI {anzahl} Wörter + Hinweise automatisch aus dem Quelltext.
-        </p>
+        {modus === 'manuell' ? (
+          <div>
+            {mkArray(anzahl).map((e, i) => (
+              <div key={i} style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.4rem' }}>
+                <input style={{ flex: 1 }} placeholder={`Wort ${i + 1}`} value={e.wort}
+                  onChange={(ev) => setEintrag(i, 'wort', ev.target.value)} />
+                <input style={{ flex: 2 }} placeholder="Hinweis (Definition, ohne das Wort)" value={e.hinweis}
+                  onChange={(ev) => setEintrag(i, 'hinweis', ev.target.value)} />
+              </div>
+            ))}
+            <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.25rem' }}>
+              Leere Felder ergänzt die KI beim Generieren aus dem Quelltext (Hybrid).
+            </p>
+          </div>
+        ) : (
+          <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.25rem' }}>
+            Beim Generieren zieht die KI {anzahl} Wörter + Hinweise automatisch aus dem Quelltext.
+          </p>
+        )}
       </div>
     );
   }
 
   if (block.typ === 'wortgitter') {
     const anzahl = (config.anzahlWoerter as number) ?? 6;
-    const syncArray = (n: number) => {
-      const current = (config.woerter as string[] | undefined) ?? [];
-      if (n > current.length) {
-        set('woerter', [...current, ...Array.from({ length: n - current.length }, () => '')]);
-      } else if (n < current.length) {
-        set('woerter', current.slice(0, n));
-      }
+    const modus = (config.eingabemodus as 'ki' | 'manuell') ?? 'ki';
+    const woerter = (config.woerter as string[] | undefined) ?? [];
+    const mkArray = (n: number) => Array.from({ length: n }, (_, i) => woerter[i] ?? '');
+    const setAnzahl = (n: number) => {
+      set('anzahlWoerter', n);
+      if (modus === 'manuell') set('woerter', mkArray(n));
+    };
+    const switchModus = (m: 'ki' | 'manuell') => {
+      onConfigChange({ ...config, eingabemodus: m, woerter: m === 'manuell' ? mkArray(anzahl) : undefined });
     };
 
     return (
       <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
         <h3 style={{ marginBottom: '0.75rem', fontSize: '0.8125rem' }}>Wortgitter</h3>
+        <ManuellToggle modus={modus} onChange={switchModus} />
         <ConfigField label="Anzahl Wörter">
           <input type="number" min={3} max={20} value={anzahl}
-            onChange={(e) => {
-              const n = Math.max(3, Math.min(20, parseInt(e.target.value) || 6));
-              set('anzahlWoerter', n);
-              syncArray(n);
-            }} />
+            onChange={(e) => setAnzahl(Math.max(3, Math.min(20, parseInt(e.target.value) || 6)))} />
         </ConfigField>
-        <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.25rem' }}>
-          Beim Generieren zieht die KI {anzahl} Wörter automatisch aus dem Quelltext.
-        </p>
+        {modus === 'manuell' ? (
+          <div>
+            {mkArray(anzahl).map((w, i) => (
+              <input key={i} style={{ marginBottom: '0.4rem' }} placeholder={`Wort ${i + 1} (ein Wort, keine Leerzeichen)`} value={w}
+                onChange={(ev) => set('woerter', mkArray(anzahl).map((x, idx) => (idx === i ? ev.target.value : x)))} />
+            ))}
+            <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.25rem' }}>
+              Leere Felder ergänzt die KI beim Generieren aus dem Quelltext (Hybrid).
+            </p>
+          </div>
+        ) : (
+          <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.25rem' }}>
+            Beim Generieren zieht die KI {anzahl} Wörter automatisch aus dem Quelltext.
+          </p>
+        )}
       </div>
     );
   }
@@ -761,13 +818,19 @@ export function BlockConfigPanel({ block, stufe, onConfigChange }: Props) {
   if (block.typ === 'vokabeluebung') {
     const richtung = (config.richtung as 'de_fremd' | 'fremd_de') ?? 'de_fremd';
     const anzahl = (config.anzahlVokabeln as number) ?? 6;
-    const syncArray = (n: number) => {
-      const current = (config.vokabeln as Array<{ deutsch: string; fremdsprache: string; kontextsatz?: string }> | undefined) ?? [];
-      if (n > current.length) {
-        set('vokabeln', [...current, ...Array.from({ length: n - current.length }, () => ({ deutsch: '', fremdsprache: '' }))]);
-      } else if (n < current.length) {
-        set('vokabeln', current.slice(0, n));
-      }
+    const modus = (config.eingabemodus as 'ki' | 'manuell') ?? 'ki';
+    type Vok = { deutsch: string; fremdsprache: string; kontextsatz?: string };
+    const vokabeln = (config.vokabeln as Vok[] | undefined) ?? [];
+    const mkArray = (n: number): Vok[] => Array.from({ length: n }, (_, i) => vokabeln[i] ?? { deutsch: '', fremdsprache: '' });
+    const setAnzahl = (n: number) => {
+      set('anzahlVokabeln', n);
+      if (modus === 'manuell') set('vokabeln', mkArray(n));
+    };
+    const switchModus = (m: 'ki' | 'manuell') => {
+      onConfigChange({ ...config, eingabemodus: m, vokabeln: m === 'manuell' ? mkArray(anzahl) : undefined });
+    };
+    const setVok = (i: number, key: keyof Vok, v: string) => {
+      set('vokabeln', mkArray(anzahl).map((x, idx) => (idx === i ? { ...x, [key]: v } : x)));
     };
 
     return (
@@ -781,46 +844,83 @@ export function BlockConfigPanel({ block, stufe, onConfigChange }: Props) {
           </select>
         </ConfigField>
 
+        <ManuellToggle modus={modus} onChange={switchModus} />
         <ConfigField label="Anzahl Vokabeln">
           <input type="number" min={3} max={20} value={anzahl}
-            onChange={(e) => {
-              const n = Math.max(3, Math.min(20, parseInt(e.target.value) || 6));
-              set('anzahlVokabeln', n);
-              syncArray(n);
-            }} />
+            onChange={(e) => setAnzahl(Math.max(3, Math.min(20, parseInt(e.target.value) || 6)))} />
         </ConfigField>
-        <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.25rem' }}>
-          Beim Generieren zieht die KI {anzahl} Vokabeln automatisch aus dem Quelltext.
-        </p>
+        {modus === 'manuell' ? (
+          <div>
+            {mkArray(anzahl).map((v, i) => (
+              <div key={i} style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.4rem' }}>
+                <input style={{ flex: 1 }} placeholder={`Deutsch ${i + 1}`} value={v.deutsch}
+                  onChange={(ev) => setVok(i, 'deutsch', ev.target.value)} />
+                <input style={{ flex: 1 }} placeholder="Fremdsprache" value={v.fremdsprache}
+                  onChange={(ev) => setVok(i, 'fremdsprache', ev.target.value)} />
+              </div>
+            ))}
+            <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.25rem' }}>
+              Leere Felder ergänzt die KI beim Generieren aus dem Quelltext (Hybrid).
+            </p>
+          </div>
+        ) : (
+          <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.25rem' }}>
+            Beim Generieren zieht die KI {anzahl} Vokabeln automatisch aus dem Quelltext.
+          </p>
+        )}
       </div>
     );
   }
 
   if (block.typ === 'fehlerkorrektur') {
     const anzahl = (config.anzahlSaetze as number) ?? 1;
-    const syncArray = (n: number) => {
-      const current = (config.saetze as Array<{ nr: number; satz: string; anzahlFehler: number }> | undefined) ?? [];
-      if (n > current.length) {
-        set('saetze', [...current, ...Array.from({ length: n - current.length }, (_, i) => ({ nr: current.length + i + 1, satz: '', anzahlFehler: 1 }))]);
-      } else if (n < current.length) {
-        set('saetze', current.slice(0, n).map((s, i) => ({ ...s, nr: i + 1 })));
-      }
+    const modus = (config.eingabemodus as 'ki' | 'manuell') ?? 'ki';
+    type Satz = { nr: number; satz: string; anzahlFehler: number };
+    const saetze = (config.saetze as Satz[] | undefined) ?? [];
+    const mkArray = (n: number): Satz[] => Array.from({ length: n }, (_, i) => ({
+      nr: i + 1,
+      satz: saetze[i]?.satz ?? '',
+      anzahlFehler: saetze[i]?.anzahlFehler ?? 1,
+    }));
+    const setAnzahl = (n: number) => {
+      set('anzahlSaetze', n);
+      if (modus === 'manuell') set('saetze', mkArray(n));
+    };
+    const switchModus = (m: 'ki' | 'manuell') => {
+      onConfigChange({ ...config, eingabemodus: m, saetze: m === 'manuell' ? mkArray(anzahl) : undefined });
+    };
+    const setSatz = (i: number, key: 'satz' | 'anzahlFehler', v: string | number) => {
+      set('saetze', mkArray(anzahl).map((s, idx) => (idx === i ? { ...s, [key]: v } : s)));
     };
 
     return (
       <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
         <h3 style={{ marginBottom: '0.75rem', fontSize: '0.8125rem' }}>Fehlerkorrektur</h3>
+        <ManuellToggle modus={modus} onChange={switchModus} />
         <ConfigField label="Anzahl Sätze">
           <input type="number" min={1} max={12} value={anzahl}
-            onChange={(e) => {
-              const n = Math.max(1, Math.min(12, parseInt(e.target.value) || 1));
-              set('anzahlSaetze', n);
-              syncArray(n);
-            }} />
+            onChange={(e) => setAnzahl(Math.max(1, Math.min(12, parseInt(e.target.value) || 1)))} />
         </ConfigField>
-        <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.25rem' }}>
-          Beim Generieren erstellt die KI {anzahl} Sätze mit eingebauten Fehlern.
-        </p>
+        {modus === 'manuell' ? (
+          <div>
+            {mkArray(anzahl).map((s, i) => (
+              <div key={i} style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.4rem', alignItems: 'flex-start' }}>
+                <input style={{ flex: 3 }} placeholder={`Satz ${i + 1} (mit eingebauten Fehlern)`} value={s.satz}
+                  onChange={(ev) => setSatz(i, 'satz', ev.target.value)} />
+                <input style={{ flex: 1, minWidth: 0 }} type="number" min={1} max={6} value={s.anzahlFehler}
+                  title="Anzahl Fehler im Satz"
+                  onChange={(ev) => setSatz(i, 'anzahlFehler', Math.max(1, Math.min(6, parseInt(ev.target.value) || 1)))} />
+              </div>
+            ))}
+            <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.25rem' }}>
+              Zahl rechts = Fehler pro Satz. Leere Sätze ergänzt die KI (Hybrid); die Korrektur liefert sie ohnehin.
+            </p>
+          </div>
+        ) : (
+          <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.25rem' }}>
+            Beim Generieren erstellt die KI {anzahl} Sätze mit eingebauten Fehlern.
+          </p>
+        )}
       </div>
     );
   }
