@@ -7,6 +7,32 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Neuer Aufgabenblock: Rollenspiel (Roleplay)
+- `packages/schema/src/index.ts`: Neuer `RoleplayBlock` mit Situation, Setting,
+  Ziel, Zeitvorgabe, gemeinsamen + rollenspezifischen Redemitteln, 2–4 Rollen,
+  Bewertungs-Checkliste und Lösung (Musterdialog + Lehrerhinweise). Der Block
+  trägt immer 0 Punkte (reine Sprechübung).
+- `packages/llm/src/prompt.ts`: System-Prompt, Beispiel-JSON und
+  Manuell/Hybrid-Instruktionen für Rollenspiele.
+- `packages/llm/src/normalize.ts`: `normalizeRoleplay` bereinigt Rollen,
+  Redemittel, Bewertung und Zeitangaben aus LLM-Antworten.
+- `packages/renderer/src/index.ts`: `buildRoleplay` rendert Schülerfassung mit
+  Situation/Ziel/Zeit, gemeinsamer Wortbank und gerahmten Ausschneide-Karten pro
+  Rolle; Lösung zeigt Musterdialog und Hinweise.
+- `apps/web/src/components/BlockConfigPanel.tsx`: Vollständiger Editor für
+  Rollenspiele inkl. KI/Manuell-Umschalter, Rollen-Editor und Redemittel-Listen.
+- `apps/web/src/components/BlockPreviewRoleplay.tsx` + `BlockPreview.tsx`:
+  Live-Vorschau der Rollenkarten und des Musterdialogs.
+- `apps/web/src/lib/constants.ts`: Rollenspiel in Block-Typ-Definitionen und
+  Stufen-Regeln (Unter-/Oberstufe) aufgenommen.
+- `apps/web/src/hooks/useGenerate.ts`: Roleplay-Blöcke werden korrekt in den
+  LLM-Generate-Input überführt (Hybrid-Modus unterstützt).
+- `packages/qa/src/korrekturraster/builder.ts`: Rollenspiele liefern ein leeres
+  Korrekturraster (keine schriftliche Bewertung).
+- `docs/ANLEITUNG.md` + `apps/web/src/views/HelpView.tsx`: Dokumentation des
+  neuen Blocktyps mit Best Practices und Beispiel.
+- Tests: Schema-Validierung, Normalizer, Renderer, BlockDefaults.
+
 ### Added — Selbsteinschätzungsbogen (Quick Win #5)
 - `packages/renderer/src/index.ts`: `renderSelbsteinschaetzungToBlob(raster, lernziele, template)`
   — ein DOCX, das Schüler/innen VOR der Abgabe ausfüllen. Aussagen aus Lernzielen
