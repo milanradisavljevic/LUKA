@@ -331,6 +331,105 @@ export async function renderRasterToBlob(raster: KorrekturrasterDokument, templa
   return Packer.toBlob(buildRasterDoc(raster, template));
 }
 
+// ---------------------------------------------------------------------------
+// Selbsteinschätzungsbogen — Schüler/innen kreuzen VOR der Abgabe an, wie sicher
+// sie sich fühlen. Leitet sich aus den Raster-Kriterien + Lernzielen ab (kein LLM).
+// ---------------------------------------------------------------------------
+
+export async function renderSelbsteinschaetzungToBlob(
+  raster: KorrekturrasterDokument,
+  lernziele: string[],
+  template: RenderTemplate = DEFAULT_TEMPLATE,
+): Promise<Blob> {
+  return Packer.toBlob(buildSelbsteinschaetzungDoc(raster, lernziele, template));
+}
+
+function buildSelbsteinschaetzungDoc(
+  raster: KorrekturrasterDokument,
+  lernziele: string[],
+  template: RenderTemplate,
+): Document {
+  const isEnglish = raster.meta.fach === 'englisch';
+  const t = isEnglish
+    ? { titel: 'Self-assessment', intro: 'Before handing in: tick how confident you feel about each point.',
+        ichKann: 'I can:', sp: 'Statement', zu: 'yes', teils: 'partly', nicht: 'not yet',
+        reflexion: 'I still want to work on:', leer: 'No criteria available for this worksheet.' }
+    : { titel: 'Selbsteinschätzung', intro: 'Vor der Abgabe: Kreuze an, wie sicher du dich bei jedem Punkt fühlst.',
+        ichKann: 'Ich kann:', sp: 'Aussage', zu: 'sicher', teils: 'teilweise', nicht: 'unsicher',
+        reflexion: 'Daran möchte ich noch arbeiten:', leer: 'Für dieses Arbeitsblatt liegen keine Kriterien vor.' };
+
+  // Aussagen sammeln: erst Lernziele, dann eindeutige Raster-Kriterien (über Blöcke dedupliziert).
+  const aussagen: { titel: string; detail?: string }[] = [];
+  for (const lz of lernziele) {
+    if (lz.trim().length > 0) aussagen.push({ titel: `${t.ichKann} ${lz.trim()}` });
+  }
+  const gesehen = new Set<string>();
+  for (const block of raster.bloecke) {
+    for (const k of block.kriterien) {
+      if (gesehen.has(k.kriterium)) continue;
+      gesehen.add(k.kriterium);
+      aussagen.push({ titel: k.kriterium, detail: k.beschreibung });
+    }
+  }
+
+  const border = () => ({ top: thinBorder(template), bottom: thinBorder(template), left: thinBorder(template), right: thinBorder(template) });
+  const headCell = (text: string, width: number, align: typeof AlignmentType[keyof typeof AlignmentType] = AlignmentType.LEFT) =>
+    new TableCell({
+      borders: border(), width: { size: width, type: WidthType.PERCENTAGE }, shading: { fill: 'E8E8E8' },
+      children: [new Paragraph({ alignment: align, children: [run(text, { font: template.font, size: template.fontSize.body, bold: true })] })],
+    });
+
+  const kopfzeile = new TableRow({
+    tableHeader: true,
+    children: [
+      headCell(t.sp, 58),
+      headCell(t.zu, 14, AlignmentType.CENTER),
+      headCell(t.teils, 14, AlignmentType.CENTER),
+      headCell(t.nicht, 14, AlignmentType.CENTER),
+    ],
+  });
+
+  const zeilen = aussagen.map((a) => new TableRow({
+    children: [
+      new TableCell({
+        borders: border(), width: { size: 58, type: WidthType.PERCENTAGE },
+        children: [new Paragraph({ children: [
+          run(a.titel, { font: template.font, size: template.fontSize.body, bold: !!a.detail }),
+          ...(a.detail ? [run(`  — ${a.detail}`, { font: template.font, size: template.fontSize.body, color: template.color.gray })] : []),
+        ] })],
+      }),
+      ...[14, 14, 14].map((w) => new TableCell({
+        borders: border(), width: { size: w, type: WidthType.PERCENTAGE },
+        children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [run('☐', { font: template.font, size: template.fontSize.body })] })],
+      })),
+    ],
+  }));
+
+  const children: (Paragraph | Table)[] = [
+    ...buildRasterHeader(raster, template),
+    new Paragraph({ heading: HeadingLevel.HEADING_1, children: [run(t.titel, { font: template.font, size: template.fontSize.h1, bold: true })], spacing: { after: 80 } }),
+    new Paragraph({ children: [run(t.intro, { font: template.font, size: template.fontSize.body, italics: true, color: template.color.gray })], spacing: { after: 160 } }),
+  ];
+
+  if (aussagen.length === 0) {
+    children.push(new Paragraph({ children: [run(t.leer, { font: template.font, size: template.fontSize.body })] }));
+  } else {
+    children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [kopfzeile, ...zeilen] }));
+    children.push(new Paragraph({ children: [run(t.reflexion, { font: template.font, size: template.fontSize.body, bold: true })], spacing: { before: 200, after: 60 } }));
+    children.push(writingLine(true, template));
+    children.push(writingLine(false, template));
+  }
+
+  return new Document({
+    sections: [{
+      properties: { page: { margin: template.margin } },
+      headers: { default: buildPageHeader(template) },
+      footers: { default: buildPageFooter(template) },
+      children,
+    }],
+  });
+}
+
 function buildRasterHeader(raster: Pick<KorrekturrasterDokument, 'meta'>, template: RenderTemplate): (Paragraph | Table)[] {
   const fachLabel = raster.meta.fach.charAt(0).toUpperCase() + raster.meta.fach.slice(1);
   const stufeLabel = raster.meta.stufe === 'oberstufe' ? 'Oberstufe' : 'Unterstufe';

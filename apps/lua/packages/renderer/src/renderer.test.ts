@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { renderDocument, renderDocumentToBlobs, renderSelbstlernToBlob } from './index.js';
+import { renderDocument, renderDocumentToBlobs, renderSelbstlernToBlob, renderSelbsteinschaetzungToBlob, type KorrekturrasterDokument } from './index.js';
 import type { DocumentV1 } from '@lehrunterlagen/schema';
 
 // ZIP magic bytes — every .docx starts with PK\x03\x04
@@ -581,5 +581,39 @@ describe('renderSelbstlernToBlob', () => {
     const xml = extractDocumentXml(buf);
     expect(xml).toContain('Solutions');
     expect(xml).toContain('Gamma');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Selbsteinschätzungsbogen
+// ---------------------------------------------------------------------------
+
+describe('renderSelbsteinschaetzungToBlob', () => {
+  const raster: KorrekturrasterDokument = {
+    meta: { fach: 'deutsch', stufe: 'oberstufe', thema: 'Kommentar', datum: '2026-06-01', klasse: '7A' },
+    bloecke: [{
+      blockId: 'b1', blockNr: 1, typ: 'offeneSchreibaufgabe', aufgabeLabel: 'Aufgabe 1',
+      kriterien: [{ kriterium: 'Argumentation', beschreibung: 'nachvollziehbar und belegt', maxPunkte: 10, erreichtePunkte: null, anmerkung: '' }],
+      maxPunkte: 10,
+    }],
+    gesamtPunkte: 10,
+    notenschluessel: [],
+  };
+
+  it('erzeugt ein .docx mit Kriterien + Lernzielen (Ich kann)', async () => {
+    const blob = await renderSelbsteinschaetzungToBlob(raster, ['einen Kommentar verfassen']);
+    const buf = Buffer.from(await blob.arrayBuffer());
+    expect(isDocx(buf)).toBe(true);
+    const xml = extractDocumentXml(buf);
+    expect(xml).toContain('Selbsteinschätzung');
+    expect(xml).toContain('Ich kann:');
+    expect(xml).toContain('einen Kommentar verfassen');
+    expect(xml).toContain('Argumentation');
+  });
+
+  it('verwendet englische Beschriftung bei fach=englisch', async () => {
+    const blob = await renderSelbsteinschaetzungToBlob({ ...raster, meta: { ...raster.meta, fach: 'englisch' } }, []);
+    const xml = extractDocumentXml(Buffer.from(await blob.arrayBuffer()));
+    expect(xml).toContain('Self-assessment');
   });
 });

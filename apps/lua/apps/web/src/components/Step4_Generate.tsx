@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   Loader2, Sparkles, FileDown, ClipboardList, FileType, CheckCircle2,
   AlertTriangle, Timer, Bot, X, Palette, BookOpen, Target, ShieldCheck,
-  ChevronRight, ChevronDown, Layers, Wrench,
+  ChevronRight, ChevronDown, Layers, Wrench, ClipboardCheck,
 } from 'lucide-react';
 import type { AppState, AppAction } from '../lib/types';
 import type { Block } from '@lehrunterlagen/schema';
@@ -28,7 +28,7 @@ interface Props {
 
 export function Step4_Generate({ state, dispatch }: Props) {
   const { generate, regenerateBlock, pruefeLoesungen, cancel, generating, pruefend, stage, elapsedMs, aktiverProvider, error: generateError } = useGenerate(dispatch);
-  const { exportDocx, exportDocxOverride, exportKorrekturraster, exportKompetenzraster, exportSelbstlern, exporting, error: exportError, warnung: exportWarnung, lastSavedPaths } = useExport();
+  const { exportDocx, exportDocxOverride, exportKorrekturraster, exportKompetenzraster, exportSelbstlern, exportSelbsteinschaetzung, exporting, error: exportError, warnung: exportWarnung, lastSavedPaths } = useExport();
   const pdfExport = usePdfExport();
   const isKompetenz = state.meta.modus === 'kompetenz';
   const isFrei = isKompetenz && !!state.generiertesDokument?.meta.freieKompetenz?.trim()
@@ -416,6 +416,16 @@ export function Step4_Generate({ state, dispatch }: Props) {
                       display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
                   >
                     <FileDown size={15} /> Übung mit Lösungsteil
+                  </button>
+                  <button
+                    className="btn-secondary"
+                    onClick={() => exportSelbsteinschaetzung(state)}
+                    disabled={exporting || generating}
+                    title="Bogen, den Schüler/innen vor der Abgabe selbst ausfüllen"
+                    style={{ padding: '0.5rem 1rem', fontSize: '0.8125rem', borderStyle: 'dashed',
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+                  >
+                    <ClipboardCheck size={15} /> Selbsteinschätzungsbogen
                   </button>
                 </div>
               )}
