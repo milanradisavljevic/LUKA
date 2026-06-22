@@ -242,7 +242,7 @@ export default function App() {
       case 'baukasten':
         return <Step2_Baukasten state={state} dispatch={dispatch} />;
       case 'llm':
-        return <Step3_LLMOptions state={state} dispatch={dispatch} />;
+        return <Step3_LLMOptions state={state} dispatch={dispatch} onNavigateToSettings={() => setActiveView('settings')} />;
       case 'generate':
         return <Step4_Generate state={state} dispatch={dispatch} />;
     }
