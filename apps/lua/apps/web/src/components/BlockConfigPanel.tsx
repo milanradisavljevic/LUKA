@@ -952,5 +952,104 @@ export function BlockConfigPanel({ block, stufe, onConfigChange }: Props) {
     );
   }
 
+  if (block.typ === 'roleplay') {
+    const modus = (config.eingabemodus as 'ki' | 'manuell') ?? 'ki';
+    type Rolle = { name: string; beschreibung: string; aufgabe: string; redemittel: string[] };
+    const rollen = (config.rollen as Rolle[] | undefined) ?? [];
+    const redemittel = (config.redemittel as string[] | undefined) ?? [];
+    const bewertung = (config.bewertung as string[] | undefined) ?? [];
+
+    const setRollen = (rs: Rolle[]) => set('rollen', rs);
+    const setRedemittel = (text: string) => {
+      const arr = text.split('\n').map((s) => s.trim()).filter(Boolean);
+      set('redemittel', arr);
+    };
+    const setBewertung = (text: string) => {
+      const arr = text.split('\n').map((s) => s.trim()).filter(Boolean);
+      set('bewertung', arr);
+    };
+    const updateRolle = (i: number, key: keyof Rolle, value: string | string[]) => {
+      const next = rollen.map((r, idx) => (idx === i ? { ...r, [key]: value } : r));
+      setRollen(next);
+    };
+    const addRolle = () => {
+      if (rollen.length >= 4) return;
+      setRollen([...rollen, { name: '', beschreibung: '', aufgabe: '', redemittel: [] }]);
+    };
+    const removeRolle = (i: number) => {
+      if (rollen.length <= 2) return;
+      setRollen(rollen.filter((_, idx) => idx !== i));
+    };
+    const switchModus = (m: 'ki' | 'manuell') => {
+      onConfigChange({ ...config, eingabemodus: m });
+    };
+
+    return (
+      <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
+        <h3 style={{ marginBottom: '0.75rem', fontSize: '0.8125rem' }}>Rollenspiel</h3>
+        <ManuellToggle modus={modus} onChange={switchModus} />
+
+        <ConfigField label="Situation">
+          <input type="text" placeholder="z. B. Im Restaurant" value={String(config.situation ?? '')}
+            onChange={(e) => set('situation', e.target.value)} />
+        </ConfigField>
+        <ConfigField label="Setting (Kontext)">
+          <input type="text" placeholder="Wer, wo, warum?" value={String(config.setting ?? '')}
+            onChange={(e) => set('setting', e.target.value)} />
+        </ConfigField>
+        <ConfigField label="Ziel">
+          <input type="text" placeholder="Was sollen die Schüler erreichen?" value={String(config.ziel ?? '')}
+            onChange={(e) => set('ziel', e.target.value)} />
+        </ConfigField>
+        <ConfigField label="Zeit (Minuten)">
+          <input type="number" min={1} max={20} value={config.zeitMinuten as number ?? 5}
+            onChange={(e) => set('zeitMinuten', Math.max(1, Math.min(20, parseInt(e.target.value) || 5)))} />
+        </ConfigField>
+
+        <ConfigField label="Gemeinsame Redemittel (eine Phrase pro Zeile)">
+          <textarea rows={3} value={redemittel.join('\n')}
+            placeholder={modus === 'ki' ? 'wird von der KI ergänzt' : 'Ich hätte gerne ...\nKönnten Sie mir bitte ...?'}
+            onChange={(e) => setRedemittel(e.target.value)} />
+        </ConfigField>
+
+        <ConfigField label={`Rollen (${rollen.length}/4)`}>
+          {rollen.map((rolle, i) => (
+            <div key={i} style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', padding: '0.5rem', marginBottom: '0.5rem' }}>
+              <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.4rem' }}>
+                <input style={{ flex: 1 }} placeholder="Rollenname" value={rolle.name}
+                  onChange={(e) => updateRolle(i, 'name', e.target.value)} />
+                <button type="button" onClick={() => removeRolle(i)} disabled={rollen.length <= 2} title="Rolle entfernen">
+                  <X size={14} />
+                </button>
+              </div>
+              <input style={{ width: '100%', marginBottom: '0.4rem' }} placeholder="Beschreibung" value={rolle.beschreibung}
+                onChange={(e) => updateRolle(i, 'beschreibung', e.target.value)} />
+              <input style={{ width: '100%', marginBottom: '0.4rem' }} placeholder="Aufgabe" value={rolle.aufgabe}
+                onChange={(e) => updateRolle(i, 'aufgabe', e.target.value)} />
+              <textarea style={{ width: '100%' }} rows={2} placeholder="Rollenspezifische Redemittel (eine Phrase pro Zeile)"
+                value={rolle.redemittel.join('\n')}
+                onChange={(e) => updateRolle(i, 'redemittel', e.target.value.split('\n').map((s) => s.trim()).filter(Boolean))} />
+            </div>
+          ))}
+          <button type="button" className="btn-secondary" onClick={addRolle} disabled={rollen.length >= 4} style={{ fontSize: '0.75rem' }}>
+            + Rolle hinzufügen
+          </button>
+        </ConfigField>
+
+        <ConfigField label="Bewertungskriterien (eines pro Zeile)">
+          <textarea rows={3} value={bewertung.join('\n')}
+            placeholder="Höflich und freundlich bleiben\nDas Ziel erreichen"
+            onChange={(e) => setBewertung(e.target.value)} />
+        </ConfigField>
+
+        {modus === 'ki' && (
+          <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.25rem' }}>
+            Die KI erzeugt aus Situation und Ziel ein stufengerechtes Rollenspiel. Bereits ausgefüllte Felder bleiben erhalten (Hybrid).
+          </p>
+        )}
+      </div>
+    );
+  }
+
   return null;
 }

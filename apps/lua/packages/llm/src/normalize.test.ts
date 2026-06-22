@@ -276,4 +276,66 @@ describe('normalizeDocument', () => {
       expect(result.bloecke[0].loesung.stellen).toEqual(['Textstelle 1']);
     });
   });
+
+  describe('roleplay', () => {
+    it('normalisiert String in zeitMinuten zu Number', () => {
+      const input = {
+        schemaVersion: '0.1.0',
+        meta: { stufe: 'oberstufe', fach: 'deutsch', thema: 'Test', datum: '2026-01-01', klasse: '7A', notizen: '' },
+        quelltexte: [],
+        bloecke: [{
+          typ: 'roleplay',
+          id: 'b1',
+          punkte: 0,
+          arbeitsanweisung: 'Spielt die Situation durch.',
+          config: {
+            situation: 'Im Restaurant',
+            setting: 'Essen gehen',
+            ziel: 'Bestellen',
+            zeitMinuten: '5', // String statt Number
+            rollen: [
+              { name: 'Gast', beschreibung: 'Hungrig', aufgabe: 'Bestellen', redemittel: [] },
+              { name: 'Kellner', beschreibung: 'Freundlich', aufgabe: 'Bedienen', redemittel: [] },
+            ],
+            bewertung: ['Höflich bleiben'],
+          },
+          loesung: { musterdialog: 'Gast: Hallo', hinweise: 'Test' },
+        }]
+      };
+
+      const result = normalizeDocument(input) as any;
+      expect(result.bloecke[0].config.zeitMinuten).toBe(5);
+    });
+
+    it('bereinigt leere Redemittel und Bewertungskriterien', () => {
+      const input = {
+        schemaVersion: '0.1.0',
+        meta: { stufe: 'oberstufe', fach: 'deutsch', thema: 'Test', datum: '2026-01-01', klasse: '7A', notizen: '' },
+        quelltexte: [],
+        bloecke: [{
+          typ: 'roleplay',
+          id: 'b1',
+          punkte: 0,
+          arbeitsanweisung: 'Spielt die Situation durch.',
+          config: {
+            situation: 'X',
+            setting: 'Y',
+            ziel: 'Z',
+            redemittel: ['Ich hätte gerne ...', '', '  '],
+            rollen: [
+              { name: 'Gast', beschreibung: 'B', aufgabe: 'C', redemittel: ['A', '  ', 'B'] },
+              { name: 'Kellner', beschreibung: 'E', aufgabe: 'F', redemittel: [] },
+            ],
+            bewertung: ['Ziel erreichen', ''],
+          },
+          loesung: { musterdialog: '', hinweise: '' },
+        }]
+      };
+
+      const result = normalizeDocument(input) as any;
+      expect(result.bloecke[0].config.redemittel).toEqual(['Ich hätte gerne ...']);
+      expect(result.bloecke[0].config.rollen[0].redemittel).toEqual(['A', 'B']);
+      expect(result.bloecke[0].config.bewertung).toEqual(['Ziel erreichen']);
+    });
+  });
 });

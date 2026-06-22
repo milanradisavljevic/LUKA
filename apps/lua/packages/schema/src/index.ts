@@ -528,6 +528,37 @@ export const FehlerkorrekturBlockSchema = BlockBaseSchema.extend({
 export type FehlerkorrekturBlock = z.infer<typeof FehlerkorrekturBlockSchema>;
 
 // ---------------------------------------------------------------------------
+// Block: roleplay (Rollenspiel / kommunikative Sprechsituation)
+// ---------------------------------------------------------------------------
+
+export const RoleplayRolleSchema = z.object({
+  name: z.string().min(1),
+  beschreibung: z.string().min(1),
+  aufgabe: z.string().min(1),
+  redemittel: z.array(z.string().min(1)).default([]),
+});
+
+export const RoleplayBlockSchema = BlockBaseSchema.extend({
+  typ: z.literal('roleplay'),
+  config: z.object({
+    eingabemodus: z.enum(['ki', 'manuell']).optional(),
+    situation: z.string().min(1),
+    setting: z.string().min(1),
+    ziel: z.string().min(1),
+    zeitMinuten: z.number().int().positive().default(5),
+    redemittel: z.array(z.string().min(1)).default([]),
+    rollen: z.array(RoleplayRolleSchema).min(2).max(4),
+    bewertung: z.array(z.string().min(1)).default([]),
+  }),
+  loesung: z.object({
+    musterdialog: z.string().min(1),
+    hinweise: z.string().min(1),
+  }),
+});
+
+export type RoleplayBlock = z.infer<typeof RoleplayBlockSchema>;
+
+// ---------------------------------------------------------------------------
 // Discriminated union of all block types
 // ---------------------------------------------------------------------------
 
@@ -548,6 +579,7 @@ export const BlockSchema = z.discriminatedUnion('typ', [
   VokabeluebungBlockSchema,
   UmformungBlockSchema,
   FehlerkorrekturBlockSchema,
+  RoleplayBlockSchema,
 ]);
 
 export type Block = z.infer<typeof BlockSchema>;
@@ -663,6 +695,7 @@ export const BlockTypSchema = z.enum([
   'vokabeluebung',
   'umformung',
   'fehlerkorrektur',
+  'roleplay',
 ]);
 export type BlockTyp = z.infer<typeof BlockTypSchema>;
 

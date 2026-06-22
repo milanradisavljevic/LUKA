@@ -5,6 +5,7 @@ const BLOCK_TYPES = [
   'lueckentext', 'matching', 'multipleChoice', 'offeneVerstaendnisfrage',
   'offeneSchreibaufgabe', 'markieraufgabe',
   'wordScramble', 'kategorisierung', 'tabelle', 'stiluebung', 'songanalyse',
+  'kreuzwortraetsel', 'wortgitter', 'vokabeluebung', 'umformung', 'fehlerkorrektur', 'roleplay',
 ] as const;
 
 describe('BLOCK_ARBEITSANWEISUNG_PLACEHOLDER', () => {
@@ -37,7 +38,7 @@ describe('createDefaultBlock', () => {
       const block = createDefaultBlock(typ);
       expect(block.typ).toBe(typ);
       expect(block.id).toMatch(/^b\d+$/);
-      expect(block.punkte).toBeGreaterThan(0);
+      expect(block.punkte).toBeGreaterThanOrEqual(0);
     }
   });
 
@@ -46,16 +47,16 @@ describe('createDefaultBlock', () => {
     expect(block.punkte).toBe(30);
   });
 
-  it('andere Blocktypen haben 6 Punkte', () => {
+  it('andere Blocktypen haben erwartete Punkte', () => {
+    const expected: Record<typeof BLOCK_TYPES[number], number> = {
+      lueckentext: 6, matching: 6, multipleChoice: 6, offeneVerstaendnisfrage: 6,
+      offeneSchreibaufgabe: 30, markieraufgabe: 6, wordScramble: 6, kategorisierung: 6,
+      tabelle: 8, stiluebung: 6, songanalyse: 12,
+      kreuzwortraetsel: 6, wortgitter: 5, vokabeluebung: 6, umformung: 6, fehlerkorrektur: 6, roleplay: 0,
+    };
     for (const typ of BLOCK_TYPES) {
-      if (typ === 'offeneSchreibaufgabe' || typ === 'tabelle' || typ === 'songanalyse') continue;
       const block = createDefaultBlock(typ);
-      expect(block.punkte).toBe(6);
+      expect(block.punkte).toBe(expected[typ]);
     }
-  });
-
-  it('tabelle hat 8 Punkte, songanalyse hat 12 Punkte', () => {
-    expect(createDefaultBlock('tabelle').punkte).toBe(8);
-    expect(createDefaultBlock('songanalyse').punkte).toBe(12);
   });
 });

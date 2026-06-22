@@ -142,6 +142,23 @@ function blockToRequest(block: Block): BlockRequest {
         anzahlSaetze: block.config.saetze.length,
         ...(manuell && gefuellt.length > 0 ? { saetze: gefuellt } : {}) };
     }
+    case 'roleplay': {
+      const manuell = block.config.eingabemodus === 'manuell';
+      const gefuellteRollen = (block.config.rollen ?? []).filter((r) => r.name.trim().length > 0 || r.beschreibung.trim().length > 0 || r.aufgabe.trim().length > 0);
+      const gefuellteRedemittel = (block.config.redemittel ?? []).filter((r) => r.trim().length > 0);
+      return {
+        typ: 'roleplay',
+        punkte: block.punkte,
+        quelleId: block.quelleId,
+        situation: block.config.situation,
+        setting: block.config.setting,
+        ziel: block.config.ziel,
+        zeitMinuten: block.config.zeitMinuten,
+        ...(manuell && gefuellteRedemittel.length > 0 ? { redemittel: gefuellteRedemittel } : {}),
+        ...(manuell && gefuellteRollen.length > 0 ? { rollen: gefuellteRollen } : {}),
+        bewertung: block.config.bewertung,
+      };
+    }
     case 'umformung':
       throw new Error('Blocktyp "umformung" wird nicht mehr unterstützt.');
   }

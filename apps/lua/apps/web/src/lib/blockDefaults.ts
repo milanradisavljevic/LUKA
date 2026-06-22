@@ -188,6 +188,26 @@ export function createDefaultBlock(typ: Block['typ'], meta?: Meta): Block {
         },
         loesung: { korrekturen: [] },
       } as Block;
+    case 'roleplay':
+      return {
+        ...base,
+        punkte: 0, // Rollenspiele werden nicht mit Punkten bewertet
+        typ: 'roleplay',
+        config: {
+          eingabemodus: 'ki',
+          situation: '',
+          setting: '',
+          ziel: '',
+          zeitMinuten: 5,
+          redemittel: [],
+          rollen: [
+            { name: 'Rolle A', beschreibung: '', aufgabe: '', redemittel: [] },
+            { name: 'Rolle B', beschreibung: '', aufgabe: '', redemittel: [] },
+          ],
+          bewertung: ['Höflich und freundlich bleiben', 'Das Ziel erreichen', 'Redemittel aus der Wortbank nutzen'],
+        },
+        loesung: { musterdialog: '', hinweise: '' },
+      } as Block;
   }
 }
 
@@ -208,6 +228,7 @@ export const BLOCK_ARBEITSANWEISUNG_PLACEHOLDER: Record<Block['typ'], string> = 
   vokabeluebung: 'Übersetze die Vokabeln.',
   umformung: 'Forme die Sätze nach der Anweisung um.',
   fehlerkorrektur: 'Finde und korrigiere die Fehler in den Sätzen.',
+  roleplay: 'Spielt die Situation in eurer Gruppe oder zu zweit durch.',
 };
 
 const BLOCK_LABELS: Record<Block['typ'], string> = {
@@ -227,6 +248,7 @@ const BLOCK_LABELS: Record<Block['typ'], string> = {
   vokabeluebung: 'Vokabelübung',
   umformung: 'Umformung',
   fehlerkorrektur: 'Fehlerkorrektur',
+  roleplay: 'Rollenspiel',
 };
 
 export function getBlockLabel(typ: Block['typ']): string {

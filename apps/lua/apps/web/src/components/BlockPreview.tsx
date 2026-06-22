@@ -14,6 +14,7 @@ import { BlockPreviewKreuzwortraetsel } from './BlockPreviewKreuzwortraetsel';
 import { BlockPreviewWortgitter } from './BlockPreviewWortgitter';
 import { BlockPreviewVokabeluebung } from './BlockPreviewVokabeluebung';
 import { BlockPreviewFehlerkorrektur } from './BlockPreviewFehlerkorrektur';
+import { BlockPreviewRoleplay } from './BlockPreviewRoleplay';
 
 interface Props {
   block: Block;
@@ -61,5 +62,7 @@ export function BlockPreview({ block, showSolution, onUpdate }: Props) {
       return pass(BlockPreviewVokabeluebung);
     case 'fehlerkorrektur':
       return pass(BlockPreviewFehlerkorrektur);
+    case 'roleplay':
+      return pass(BlockPreviewRoleplay);
   }
 }

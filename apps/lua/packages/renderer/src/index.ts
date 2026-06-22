@@ -1208,6 +1208,7 @@ const BLOCK_LABELS_DE: Record<Block['typ'], string> = {
   vokabeluebung: 'Vokabelübung',
   umformung: 'Umformung',
   fehlerkorrektur: 'Fehlerkorrektur',
+  roleplay: 'Rollenspiel',
 };
 
 const BLOCK_LABELS_EN: Record<Block['typ'], string> = {
@@ -1227,6 +1228,7 @@ const BLOCK_LABELS_EN: Record<Block['typ'], string> = {
   vokabeluebung: 'Vocabulary',
   umformung: 'Transformation',
   fehlerkorrektur: 'Error correction',
+  roleplay: 'Roleplay',
 };
 
 function blockLabels(fach: DocumentV1['meta']['fach']): Record<Block['typ'], string> {
@@ -1356,6 +1358,9 @@ function buildBlock(
     case 'fehlerkorrektur':
       result.push(...buildFehlerkorrektur(block, mode, template, fach));
       break;
+    case 'roleplay':
+      result.push(...buildRoleplay(block, mode, template, fach));
+      break;
   }
 
   return result;
@@ -1431,6 +1436,163 @@ function buildFehlerkorrektur(
       }
     }
   }
+  return result;
+}
+
+// ---------------------------------------------------------------------------
+// Block: roleplay
+// ---------------------------------------------------------------------------
+
+function buildRoleplay(
+  block: Extract<Block, { typ: 'roleplay' }>,
+  mode: Mode,
+  template: RenderTemplate,
+  fach: DocumentV1['meta']['fach'] = 'deutsch',
+): (Paragraph | Table)[] {
+  const result: (Paragraph | Table)[] = [];
+  const isEnglish = fach === 'englisch';
+
+  if (mode === 'loesung') {
+    result.push(
+      new Paragraph({
+        indent: { left: 360 },
+        children: [run(isEnglish ? 'Sample dialogue' : 'Musterdialog', { font: template.font, size: template.fontSize.body, bold: true })],
+        spacing: { after: 80 },
+      }),
+    );
+    for (const line of block.loesung.musterdialog.split(/\n/)) {
+      if (line.trim()) {
+        result.push(new Paragraph({
+          indent: { left: 360 },
+          children: [run(line.trim(), { font: template.font, size: template.fontSize.body, italics: true })],
+          spacing: { after: 60 },
+        }));
+      }
+    }
+    result.push(new Paragraph({
+      indent: { left: 360 },
+      children: [run(isEnglish ? 'Teacher notes: ' : 'Hinweise für die Lehrkraft: ', { font: template.font, size: template.fontSize.body, bold: true }), run(block.loesung.hinweise, { font: template.font, size: template.fontSize.body })],
+      spacing: { before: 120, after: 100 },
+    }));
+    return result;
+  }
+
+  // Schülerfassung
+  result.push(new Paragraph({
+    indent: { left: 360 },
+    children: [
+      run(`${isEnglish ? 'Situation' : 'Situation'}: `, { font: template.font, size: template.fontSize.body, bold: true }),
+      run(block.config.situation, { font: template.font, size: template.fontSize.body }),
+    ],
+    spacing: { after: 60 },
+  }));
+  result.push(new Paragraph({
+    indent: { left: 360 },
+    children: [run(block.config.setting, { font: template.font, size: template.fontSize.body })],
+    spacing: { after: 80 },
+  }));
+  result.push(new Paragraph({
+    indent: { left: 360 },
+    children: [
+      run(`${isEnglish ? 'Goal' : 'Ziel'}: `, { font: template.font, size: template.fontSize.body, bold: true }),
+      run(block.config.ziel, { font: template.font, size: template.fontSize.body }),
+    ],
+    spacing: { after: 80 },
+  }));
+  result.push(new Paragraph({
+    indent: { left: 360 },
+    children: [
+      run(`${isEnglish ? 'Time' : 'Zeit'}: `, { font: template.font, size: template.fontSize.body, bold: true }),
+      run(`${block.config.zeitMinuten} ${isEnglish ? 'minutes' : 'Minuten'}`, { font: template.font, size: template.fontSize.body }),
+    ],
+    spacing: { after: 120 },
+  }));
+
+  if (block.config.redemittel.length > 0) {
+    result.push(new Paragraph({
+      indent: { left: 360 },
+      children: [run(isEnglish ? 'Useful phrases' : 'Nützliche Redemittel', { font: template.font, size: template.fontSize.body, bold: true })],
+      spacing: { after: 60 },
+    }));
+    result.push(new Paragraph({
+      indent: { left: 720 },
+      children: block.config.redemittel.map((r) => run(`• ${r}  `, { font: template.font, size: template.fontSize.body })),
+      spacing: { after: 120 },
+    }));
+  }
+
+  // Rollenkarten als gerahmte Tabelle pro Rolle
+  for (const rolle of block.config.rollen) {
+    const cellChildren: Paragraph[] = [
+      new Paragraph({
+        children: [run(rolle.name, { font: template.font, size: template.fontSize.body, bold: true, color: template.color.accent })],
+        spacing: { after: 80 },
+      }),
+      new Paragraph({
+        children: [run(rolle.beschreibung, { font: template.font, size: template.fontSize.body })],
+        spacing: { after: 80 },
+      }),
+      new Paragraph({
+        children: [
+          run(`${isEnglish ? 'Your task' : 'Deine Aufgabe'}: `, { font: template.font, size: template.fontSize.body, bold: true }),
+          run(rolle.aufgabe, { font: template.font, size: template.fontSize.body }),
+        ],
+        spacing: { after: 80 },
+      }),
+    ];
+    if (rolle.redemittel.length > 0) {
+      cellChildren.push(
+        new Paragraph({
+          children: [run(isEnglish ? 'Your phrases' : 'Deine Redemittel', { font: template.font, size: template.fontSize.body, bold: true })],
+          spacing: { after: 60 },
+        }),
+        new Paragraph({
+          children: rolle.redemittel.map((r) => run(`• ${r}  `, { font: template.font, size: template.fontSize.body })),
+          spacing: { after: 0 },
+        }),
+      );
+    }
+
+    result.push(new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: {
+        top: thinBorder(template),
+        bottom: thinBorder(template),
+        left: thinBorder(template),
+        right: thinBorder(template),
+        insideHorizontal: NO_BORDER,
+        insideVertical: NO_BORDER,
+      },
+      rows: [
+        new TableRow({
+          children: [
+            new TableCell({
+              shading: { fill: 'F5F5F5' },
+              margins: { top: 120, bottom: 120, left: 120, right: 120 },
+              children: cellChildren,
+            }),
+          ],
+        }),
+      ],
+    }));
+    result.push(new Paragraph({ spacing: { after: 160 }, children: [] }));
+  }
+
+  if (block.config.bewertung.length > 0) {
+    result.push(new Paragraph({
+      indent: { left: 360 },
+      children: [run(isEnglish ? 'Feedback checklist' : 'Feedback-Checkliste', { font: template.font, size: template.fontSize.body, bold: true })],
+      spacing: { before: 80, after: 60 },
+    }));
+    for (const kriterium of block.config.bewertung) {
+      result.push(new Paragraph({
+        indent: { left: 720 },
+        children: [run(`☐ ${kriterium}`, { font: template.font, size: template.fontSize.body })],
+        spacing: { after: 40 },
+      }));
+    }
+  }
+
   return result;
 }
 

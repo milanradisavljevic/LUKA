@@ -4,7 +4,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   Pencil, ArrowLeftRight, CircleDot, HelpCircle, PenLine, Highlighter,
   Shuffle, FolderTree, Table, Feather, Music, Puzzle, Grid3x3,
-  FileSearch,
+  FileSearch, Users,
 } from 'lucide-react';
 
 export const BLOCK_TYPE_DEFS: {
@@ -26,6 +26,7 @@ export const BLOCK_TYPE_DEFS: {
   { id: 'wortgitter', label: 'Wortgitter', description: 'Versteckte Wörter im Buchstabengitter finden', Icon: Grid3x3, color: '#90a4ae', minuten: [6, 10] },
   { id: 'vokabeluebung', label: 'Vokabelübung', description: 'Vokabeln übersetzen oder zuordnen', Icon: Pencil, color: '#4caf50', minuten: [5, 8] },
   { id: 'fehlerkorrektur', label: 'Fehlerkorrektur', description: 'Fehler in Sätzen finden und korrigieren', Icon: FileSearch, color: '#ba68c8', minuten: [6, 10] },
+  { id: 'roleplay', label: 'Rollenspiel', description: 'Kommunikative Sprechsituation mit Rollenkarten', Icon: Users, color: '#ff8a65', minuten: [8, 12] },
 ];
 
 export const STUFE_RULES = {
@@ -35,7 +36,7 @@ export const STUFE_RULES = {
       'offeneVerstaendnisfrage', 'offeneSchreibaufgabe', 'markieraufgabe',
       'wordScramble', 'kategorisierung', 'tabelle', 'stiluebung', 'songanalyse',
       'kreuzwortraetsel', 'wortgitter', 'vokabeluebung',
-      'fehlerkorrektur',
+      'fehlerkorrektur', 'roleplay',
     ] as const,
     wortbankAllowed: true,
   },
@@ -45,7 +46,7 @@ export const STUFE_RULES = {
       'offeneVerstaendnisfrage', 'markieraufgabe',
       'wordScramble', 'kategorisierung', 'tabelle',
       'kreuzwortraetsel', 'wortgitter', 'vokabeluebung',
-      'fehlerkorrektur',
+      'fehlerkorrektur', 'roleplay',
     ] as const,
     wortbankAllowed: true,
   },
