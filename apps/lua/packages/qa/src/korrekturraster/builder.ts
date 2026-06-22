@@ -61,6 +61,10 @@ function waehleKatalog(block: Block, fach: string): KriterienKatalog[] {
       // Default fuer Deutsch-Schreibaufgaben: Erörterung
       return ERORTERUNG;
     }
+
+    case 'roleplay':
+      // Rollenspiele sind reine Sprechuebungen und fliessen nicht in das Korrekturraster ein.
+      return [];
   }
 }
 

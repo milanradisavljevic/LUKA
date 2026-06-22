@@ -564,6 +564,65 @@ function normalizeWortgitter(block: AnyObj): AnyObj {
   return { ...block, config };
 }
 
+// ---------------------------------------------------------------------------
+// roleplay
+// ---------------------------------------------------------------------------
+
+function normalizeRoleplay(block: AnyObj): AnyObj {
+  const config = isObject(block.config) ? { ...block.config } : {};
+  const loesung = isObject(block.loesung) ? { ...block.loesung } : {};
+
+  // zeitMinuten: String → Number
+  if (typeof config.zeitMinuten === 'string') {
+    const n = parseInt(config.zeitMinuten, 10);
+    config.zeitMinuten = isNaN(n) ? 5 : n;
+  } else if (typeof config.zeitMinuten !== 'number') {
+    config.zeitMinuten = 5;
+  }
+
+  // Gemeinsame Redemittel bereinigen
+  if (Array.isArray(config.redemittel)) {
+    config.redemittel = cleanStringArray(config.redemittel);
+  }
+
+  // Bewertungskriterien bereinigen
+  if (Array.isArray(config.bewertung)) {
+    config.bewertung = cleanStringArray(config.bewertung);
+  }
+
+  // Rollen normalisieren
+  if (Array.isArray(config.rollen)) {
+    config.rollen = config.rollen
+      .map((r: unknown, idx: number) => {
+        if (typeof r === 'string') {
+          return { name: `Rolle ${idx + 1}`, beschreibung: r, aufgabe: '', redemittel: [] };
+        }
+        if (!isObject(r)) {
+          return { name: `Rolle ${idx + 1}`, beschreibung: '', aufgabe: '', redemittel: [] };
+        }
+        const rolle = { ...r } as AnyObj;
+        if (typeof rolle.name !== 'string' || rolle.name.trim().length === 0) {
+          rolle.name = `Rolle ${idx + 1}`;
+        }
+        if (typeof rolle.beschreibung !== 'string') rolle.beschreibung = '';
+        if (typeof rolle.aufgabe !== 'string') rolle.aufgabe = '';
+        if (Array.isArray(rolle.redemittel)) {
+          rolle.redemittel = cleanStringArray(rolle.redemittel);
+        } else {
+          rolle.redemittel = [];
+        }
+        return rolle;
+      })
+      .filter((r: AnyObj) => typeof r.beschreibung === 'string' && r.beschreibung.trim().length > 0);
+  }
+
+  // Loesung sicherstellen
+  if (typeof loesung.musterdialog !== 'string') loesung.musterdialog = '';
+  if (typeof loesung.hinweise !== 'string') loesung.hinweise = '';
+
+  return { ...block, config, loesung };
+}
+
 // vokabeluebung
 // ---------------------------------------------------------------------------
 
@@ -651,6 +710,8 @@ export function normalizeDocument(data: unknown): unknown {
         normalized = normalizeWortgitter(block); break;
       case 'vokabeluebung':
         normalized = normalizeVokabeluebung(block); break;
+      case 'roleplay':
+        normalized = normalizeRoleplay(block); break;
       default:
         normalized = block;
     }

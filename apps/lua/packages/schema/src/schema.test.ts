@@ -18,6 +18,7 @@ import {
   SonganalyseBlockSchema,
   UmformungBlockSchema,
   FehlerkorrekturBlockSchema,
+  RoleplayBlockSchema,
   BlockSchema,
   UnterlagentypSchema,
   BlockTypSchema,
@@ -937,6 +938,74 @@ describe('FehlerkorrekturBlockSchema', () => {
       arbeitsanweisung: 'Korrigiere.',
       config: { saetze: [] },
       loesung: { korrekturen: [] },
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// RoleplayBlockSchema
+// ---------------------------------------------------------------------------
+
+describe('RoleplayBlockSchema', () => {
+  it('accepts valid roleplay block', () => {
+    const block = {
+      id: 'b14',
+      typ: 'roleplay',
+      punkte: 0,
+      arbeitsanweisung: 'Spielt die Situation durch.',
+      config: {
+        situation: 'Im Restaurant',
+        setting: 'Du gehst mit Freunden essen.',
+        ziel: 'Einen Tisch reservieren und bestellen.',
+        zeitMinuten: 5,
+        redemittel: ['Ich hätte gerne ...', 'Könnten Sie mir bitte ...?'],
+        rollen: [
+          { name: 'Gast', beschreibung: 'Hungriger Gast', aufgabe: 'Bestelle für die Gruppe.', redemittel: [] },
+          { name: 'Kellner', beschreibung: 'Freundlicher Kellner', aufgabe: 'Nimm die Bestellung auf.', redemittel: ['Guten Appetit!'] },
+        ],
+        bewertung: ['Höflich bleiben', 'Ziel erreichen'],
+      },
+      loesung: {
+        musterdialog: 'Gast: Guten Abend...',
+        hinweise: 'Achten Sie auf Höflichkeitsformen.',
+      },
+    };
+    expect(RoleplayBlockSchema.safeParse(block).success).toBe(true);
+  });
+
+  it('rejects roleplay with only one rolle', () => {
+    const result = RoleplayBlockSchema.safeParse({
+      id: 'b14',
+      typ: 'roleplay',
+      punkte: 0,
+      arbeitsanweisung: 'Spielt die Situation durch.',
+      config: {
+        situation: 'X',
+        setting: 'Y',
+        ziel: 'Z',
+        rollen: [{ name: 'A', beschreibung: 'B', aufgabe: 'C', redemittel: [] }],
+        bewertung: [],
+      },
+      loesung: { musterdialog: '', hinweise: '' },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects roleplay with more than four rollen', () => {
+    const result = RoleplayBlockSchema.safeParse({
+      id: 'b14',
+      typ: 'roleplay',
+      punkte: 0,
+      arbeitsanweisung: 'Spielt die Situation durch.',
+      config: {
+        situation: 'X',
+        setting: 'Y',
+        ziel: 'Z',
+        rollen: Array.from({ length: 5 }, (_, i) => ({ name: `R${i}`, beschreibung: 'B', aufgabe: 'C', redemittel: [] })),
+        bewertung: [],
+      },
+      loesung: { musterdialog: '', hinweise: '' },
     });
     expect(result.success).toBe(false);
   });

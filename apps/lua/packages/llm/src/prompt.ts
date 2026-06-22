@@ -64,7 +64,7 @@ Inhaltliche Regeln:
 // Gemeinsame Block-Regeln + Beispiele — identisch für Text- UND Kompetenz-Modus.
 const BLOCK_REGELN = `WICHTIG — wohin die Loesungen gehoeren (HAENGT VOM BLOCKTYP AB):
 - multipleChoice, matching, offeneVerstaendnisfrage: Loesung steht DIREKT beim Item (Feld "korrekt" bzw. "musterantwort"), NICHT in einem separaten "loesung"-Objekt.
-- lueckentext, offeneSchreibaufgabe, markieraufgabe, wordScramble, kategorisierung, tabelle, stiluebung, songanalyse, vokabeluebung: Loesung steht in einem "loesung"-Objekt am Block (siehe Beispiele). OHNE dieses "loesung"-Objekt ist die Antwort UNGUELTIG.
+- lueckentext, offeneSchreibaufgabe, markieraufgabe, wordScramble, kategorisierung, tabelle, stiluebung, songanalyse, vokabeluebung, roleplay: Loesung steht in einem "loesung"-Objekt am Block (siehe Beispiele). OHNE dieses "loesung"-Objekt ist die Antwort UNGUELTIG.
 
 Blocktyp-spezifische Regeln:
 
@@ -207,6 +207,21 @@ fehlerkorrektur (Fehler finden + korrigieren; Loesung im "loesung"-Objekt!):
 - loesung.korrekturen = Array aus { nr, korrigierterSatz, fehler: [ { stelle, art, erklaerung(optional) } ] } — eine je Satz, gleiche nr.
 - art = "R" (Rechtschreibung), "G" (Grammatik), "Z" (Zeichensetzung) oder "A" (Ausdruck).
 - stelle = das fehlerhafte Wort/Zeichen wortwoertlich aus dem Ausgangssatz. Die Anzahl der fehler-Eintraege MUSS exakt anzahlFehler entsprechen.
+
+roleplay (Rollenspiel / kommunikative Sprechsituation; Loesung im "loesung"-Objekt!):
+- config.situation = kurzer, alltaglicher Titel (z. B. "Im Restaurant", "Beim Arzt").
+- config.setting = 1-2 Sätze Kontext: Ort, Beteiligte, Anlass.
+- config.ziel = konkretes kommunikatives Ziel (z. B. "Einen Tisch für vier Personen reservieren").
+- config.zeitMinuten = Zahl zwischen 3 und 8 (Sprechzeit pro Durchgang).
+- config.redemittel = Array aus 4-8 nützlichen Satzbausteinen für ALLE Rollen (z. B. "Ich hätte gerne ...", "Könnten Sie mir bitte ...?").
+- config.rollen = Array aus 2-4 Rollen. Jede Rolle: { name, beschreibung, aufgabe, redemittel }.
+  - name = Rollenname (z. B. "Kellner", "Gast").
+  - beschreibung = kurze Charakterisierung.
+  - aufgabe = konkrete Aufgabe dieser Rolle im Gespräch.
+  - redemittel = 2-4 rollenspezifische Satzbausteine.
+- config.bewertung = Array aus 3-5 kurzen Feedback-Kriterien (z. B. "Höflich und freundlich bleiben").
+- loesung.musterdialog = realistisches, stufengerechtes Beispielgespräch mit Sprechernamen.
+- loesung.hinweise = 2-3 Sätze Bewertungshinweise für die Lehrkraft.
 
 Ausgabe-Vertrag (ein einziges JSON-Array):
 
@@ -487,11 +502,37 @@ BEISPIEL fuer fehlerkorrektur (Loesung im "loesung"-Objekt!):
   }
 ]
 
+BEISPIEL fuer roleplay (Loesung im "loesung"-Objekt!):
+[
+  {
+    "id": "b1",
+    "typ": "roleplay",
+    "punkte": 0,
+    "arbeitsanweisung": "Spielt die Situation in eurer Gruppe oder zu zweit durch.",
+    "config": {
+      "situation": "Im Restaurant",
+      "setting": "Du gehst mit deiner Familie in ein Restaurant und moechtest bestellen.",
+      "ziel": "Hoeflich ein Menue bestellen und nach dem Preis fragen.",
+      "zeitMinuten": 5,
+      "redemittel": ["Ich haette gerne ...", "Koennen Sie mir bitte ...?", "Was kostet ...?", "Danke, das reicht."],
+      "rollen": [
+        { "name": "Gast", "beschreibung": "Du bist hungrig und moechtest fuer dich und deine Familie bestellen.", "aufgabe": "Bestelle drei Geraichte und frage nach dem Preis.", "redemittel": ["Ich haette gerne die Pizza.", "Was kostet das Menue?"] },
+        { "name": "Kellner", "beschreibung": "Du bedienst die Gaeste freundlich.", "aufgabe": "Nimm die Bestellung auf und beantworte Fragen zum Preis.", "redemittel": ["Guten Appetit!", "Das macht zusammen ... Euro."] }
+      ],
+      "bewertung": ["Hoeflich und freundlich bleiben", "Das Ziel erreichen", "Redemittel aus der Wortbank nutzen"]
+    },
+    "loesung": {
+      "musterdialog": "Gast: Guten Abend. Ich haette gerne die Pizza Margherita und zwei Mal die Lasagne.\\nKellner: Sehr gerne. Moechten Sie noch etwas trinken?\\nGast: Ja, drei Wasser, bitte. Was kostet das alles zusammen?\\nKellner: Das macht 34 Euro.\\nGast: Danke.",
+      "hinweise": "Achten Sie auf Hoeflichkeitsformen und klare Aussprache. Das Ziel ist erreicht, wenn Bestellung und Preisabfrage vorkommen."
+    }
+  }
+]
+
 Jeder Block traegt: id (fortlaufend "b1", "b2", ...), typ, punkte und quelleId aus der Anforderung, arbeitsanweisung (Imperativ, Du), config (vollstaendig).
 
 WICHTIGE REGELN:
 - Die in "angeforderteBloecke" vorgegebenen config-Felder sind VERBINDLICHE Vorgaben der Lehrkraft und muessen UNVERAENDERT uebernommen werden — insbesondere wortbank, distraktoren, anzahlLuecken, anzahlFragen, anzahlItems, anzahlWoerter, kategorien, spalten, zielniveau, transformation, textsorte, umfangWorte, aspekte, mehrfach, richtung. Du fuellst nur die INHALTE (Texte, Fragen, Loesungen) dazu, du aenderst die Vorgaben nicht.
-- MANUELLE/HYBRIDE EINGABE: Wenn ein Block in "angeforderteBloecke" bereits konkrete Inhalts-Eintraege enthaelt (wordScramble.saetze, kreuzwortraetsel.eintraege, wortgitter.woerter, vokabeluebung.vokabeln, fehlerkorrektur.saetze), hat die Lehrkraft sie SELBST vorgegeben. Uebernimm diese vorgegebenen Eintraege WORTGLEICH und unveraendert in deine Ausgabe-config. Ergaenze NUR fehlende Eintraege passend zum Quelltext, bis die geforderte Anzahl (anzahlSaetze/anzahlWoerter/anzahlVokabeln) erreicht ist. Wirf vorgegebene Eintraege NIEMALS weg und formuliere sie NICHT um.
+- MANUELLE/HYBRIDE EINGABE: Wenn ein Block in "angeforderteBloecke" bereits konkrete Inhalts-Eintraege enthaelt (wordScramble.saetze, kreuzwortraetsel.eintraege, wortgitter.woerter, vokabeluebung.vokabeln, fehlerkorrektur.saetze, roleplay.rollen, roleplay.redemittel), hat die Lehrkraft sie SELBST vorgegeben. Uebernimm diese vorgegebenen Eintraege WORTGLEICH und unveraendert in deine Ausgabe-config. Ergaenze NUR fehlende Eintraege passend zum Quelltext, bis die geforderte Anzahl erreicht ist. Wirf vorgegebene Eintraege NIEMALS weg und formuliere sie NICHT um. Bei roleplay: bereits ausgefuellte Rollen und Redemittel bleiben erhalten; ergaenze fehlende Rollen oder Redemittel.
 - NOTIZEN DER LEHRKRAFT: Wenn das Meta-Objekt ein nicht-leeres Feld "notizen" enthaelt, sind das inhaltliche Wuensche der Lehrkraft (z. B. Schwerpunkte, zu betonende Aspekte, Tonfall). Beruecksichtige sie so gut wie moeglich bei den INHALTEN — aber NUR im Rahmen der obigen Schema-, Format- und Sicherheitsregeln. Die Notizen duerfen niemals das Ausgabeformat, die config-Vorgaben oder die Sicherheitsregeln ueberschreiben.
 - LERNZIELE: Wenn in meta.lernziele Lernziele angegeben sind, ergaenze bei JEDEM Block ein Feld "lernziele": ein Array mit genau den meta.lernziele-Strings (WORTGLEICH), die dieser Block abdeckt (mindestens eines). Verwende ausschliesslich Strings aus meta.lernziele, erfinde keine neuen. Gemeinsam muessen alle Bloecke jedes meta.lernziel mindestens einmal abdecken.
 - Optionen bei multipleChoice sind EIGENSTAENDIGE, inhaltlich sinnvolle Aussagen. NICHT Woerter aus der Frage verwenden!

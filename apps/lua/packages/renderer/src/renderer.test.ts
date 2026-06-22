@@ -248,6 +248,30 @@ describe('renderDocument: alle Blocktypen rendern fehlerfrei', () => {
     await expect(renderDocument(doc)).resolves.toBeDefined();
   });
 
+  it('roleplay', async () => {
+    const doc = makeDoc([{
+      id: 'b12', typ: 'roleplay', punkte: 0,
+      arbeitsanweisung: 'Spielt die Situation durch.',
+      config: {
+        situation: 'Im Restaurant',
+        setting: 'Du gehst mit Freunden essen.',
+        ziel: 'Einen Tisch reservieren und bestellen.',
+        zeitMinuten: 5,
+        redemittel: ['Ich hätte gerne ...', 'Könnten Sie mir bitte ...?'],
+        rollen: [
+          { name: 'Gast', beschreibung: 'Hungriger Gast', aufgabe: 'Bestelle für die Gruppe.', redemittel: [] },
+          { name: 'Kellner', beschreibung: 'Freundlicher Kellner', aufgabe: 'Nimm die Bestellung auf.', redemittel: ['Guten Appetit!'] },
+        ],
+        bewertung: ['Höflich bleiben', 'Ziel erreichen'],
+      },
+      loesung: {
+        musterdialog: 'Gast: Guten Abend.\\nKellner: Willkommen!',
+        hinweise: 'Achten Sie auf Höflichkeitsformen.',
+      },
+    }]);
+    await expect(renderDocument(doc)).resolves.toBeDefined();
+  });
+
   it('Dokument mit mehreren Bloecken verschiedener Typen', async () => {
     const doc = makeDoc([
       {

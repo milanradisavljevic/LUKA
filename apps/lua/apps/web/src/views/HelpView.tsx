@@ -152,6 +152,7 @@ const SECTIONS: Section[] = [
           <><strong>Geschlossen:</strong> Multiple Choice, Matching (Zuordnung), Lückentext (mit/ohne Wortbank), Kategorisierung, Wörter ordnen, Kreuzworträtsel, Wortgitter, Vokabelübung.</>,
           <><strong>Offen:</strong> Verständnisfrage, Schreibaufgabe, Markieraufgabe, Stilübung, Songanalyse.</>,
           <><strong>Sprachrichtigkeit:</strong> Fehlerkorrektur.</>,
+          <><strong>Sprechhandlung:</strong> Rollenspiel — kommunikative Situationen mit Rollenkarten, Redemitteln, Zeitvorgabe und Bewertungs-Checkliste. Ideal für authentisches Sprechen im Paar oder in der Gruppe.</>,
         ]} />
         <P>Die <strong>Schwierigkeit</strong> (leicht/mittel/schwer) steuert das kognitive Niveau <em>innerhalb</em> des Typs (Bloom; bei Englisch zusätzlich CEFR A2/B1/B2) — der Typ selbst bleibt erhalten.</P>
         <Tip>Ein Matching-Block = eine Aufgabe mit <em>mehreren</em> Paaren. Für mehr Paare „+ Item"/„+ Option" nutzen, nicht mehrere Matching-Blöcke anlegen.</Tip>

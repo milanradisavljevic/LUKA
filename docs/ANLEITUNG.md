@@ -76,6 +76,21 @@ Die zweite Tür auf der Startseite – **„Ohne Quelltext"** – erzeugt Übung
 
 ---
 
+## Rollenspiel
+
+Der Blocktyp **Rollenspiel** erzeugt kommunikative Sprechsituationen für den Mündlich-Unterricht:
+
+- **Situation + Setting + Ziel** definieren, worum es geht (z. B. „Im Restaurant“, „Einen Tisch reservieren“).
+- **Rollenkarten** werden im DOCX als gerahmte Ausschneide-Karten dargestellt — pro Rolle eine Karte mit Beschreibung, Aufgabe und passenden Redemitteln.
+- **Gemeinsame Redemittel** stehen allen Rollen zur Verfügung; **rollenspezifische Redemittel** unterstützen die einzelne Rolle.
+- **Zeitvorgabe** (3–8 Minuten) hilft beim Unterrichtsablauf.
+- **Bewertungs-Checkliste** ermöglicht Selbst- oder Partner-Feedback.
+- **Lösung** zeigt einen Musterdialog und Hinweise für die Lehrkraft.
+
+> 💡 Leichte Variante: Viele Redemittel vorgeben. Schwere Variante: Redemittel reduzieren oder weglassen.
+
+---
+
 ## Aufgabentypen
 
 Diese Blocktypen kannst du im Baukasten kombinieren (je nach Fach/Stufe sinnvoll vorausgewählt):
@@ -83,6 +98,7 @@ Diese Blocktypen kannst du im Baukasten kombinieren (je nach Fach/Stufe sinnvoll
 1. **Geschlossen:** Multiple Choice, Matching (Zuordnung), Lückentext (mit/ohne Wortbank), Kategorisierung, Wörter ordnen, Kreuzworträtsel, Wortgitter, Vokabelübung.
 2. **Offen:** Verständnisfrage, Schreibaufgabe, Markieraufgabe, Stilübung, Songanalyse.
 3. **Sprachrichtigkeit:** Fehlerkorrektur.
+4. **Sprechhandlung:** Rollenspiel — kommunikative Situationen mit Rollenkarten, gemeinsamen und rollenspezifischen Redemitteln, Zeitvorgabe und Bewertungs-Checkliste. Ideal für authentisches Sprechen im Paar oder in der Gruppe.
 
 Die **Schwierigkeit** (leicht/mittel/schwer) steuert das kognitive Niveau *innerhalb* des Typs (Bloom; bei Englisch zusätzlich CEFR A2/B1/B2) – der Typ selbst bleibt erhalten.
 
