@@ -1,95 +1,69 @@
-# Next Steps — Kimi-Aufgaben (Stand 2026-06-18)
+# Next Steps — Kimi-Aufgaben (Stand 2026-06-18, Runde 3)
 
-Repo: **LUKA** (nicht lehr-suite). Branch `main`, **vor jeder Aufgabe `git pull`**.
+Repo: **LUKA**. Branch `main`, **vor jeder Aufgabe `git pull`**.
 Nach jeder Aufgabe muss grün sein:
 
 ```bash
 cd apps/lua && pnpm --filter "./packages/*" build && pnpm -r typecheck && pnpm -r test
 ```
 
-Danach **lokal committen** (sauberer Commit je Aufgabe). Push erledigt der Chief beim Review.
-Hinweis: `apps/lua/scripts/welle6-check.mjs` ist ein Dev-Skript (unversioniert) — nicht anfassen.
-
-## Reihenfolge
-1. **F1 — Quelltext-Check** (klein, isoliert) → zuerst.
-2. **F3 — Selbstlern-Variante** (Renderer-Refactor) → danach. Chief reviewt eng.
-
-(#2 GIFT/Plugin-Export = später. #4 Aufgaben-Pool = erst gemeinsames Brainstorming, NICHT bauen.)
+Danach **lokal committen** (ein Commit je Aufgabe). Push macht der Chief beim Review.
+Scoped, contentlastig, wenig Urteil — ideal für Kimi. Reihenfolge: K1 → K2 → K3.
+(Frühere Runden F1/F3/R2 sind erledigt; Archiv: `docs/_archiv-next-steps-kimi-r1r2.md`.)
 
 ---
 
-## Aufgabe F1 — Quelltext-Check in Schritt 1 (ohne LLM)
+## K1 — Hilfe + Anleitung für neue Features ergänzen (reiner Content)
+**Ziel:** Die seit Runde 1/2 gebauten Features sind in der In-App-Hilfe und der
+Standalone-Anleitung noch nicht (vollständig) erklärt.
 
-**Ziel:** Beim Hinzufügen eines Quelltexts sofort Wortzahl + grobe Stufen-/Lesbarkeits-Einschätzung
-anzeigen, damit die Lehrkraft einen passenden Text wählen kann. Keine KI, reine Heuristik.
-
-**1. Neue Util** `apps/lua/apps/web/src/lib/quelltextInfo.ts`:
-```ts
-export interface QuelltextInfo {
-  woerter: number;
-  saetze: number;
-  schnittSatzlaenge: number;
-  hinweis: string;
-}
-export function analysiereQuelltext(inhalt: string): QuelltextInfo { /* siehe unten */ }
-```
-- `woerter`: Tokens über `/\s+/` (leere raus).
-- `saetze`: Splits über `/[.!?]+/` (leere raus, mindestens 1).
-- `schnittSatzlaenge`: `Math.round(woerter / saetze)`.
-- `hinweis` (deskriptiv, KEIN hartes Urteil), kombiniert Satzlänge + Wortzahl, z. B.:
-  - schnitt ≤ 12 → „kurze Sätze · eher Unterstufe"
-  - 13–18 → „mittlere Satzlänge"
-  - > 18 → „lange Sätze · eher Oberstufe"
-  - zusätzlich bei woerter < 150 → „· sehr kurz", bei > 1200 → „· sehr lang".
-
-**2. Test** `apps/lua/apps/web/src/lib/quelltextInfo.test.ts` (vitest): je ein Fall für kurze/lange
-Sätze + leerer/Einzelsatz-Edge (keine Division durch 0).
-
-**3. Anzeige** in `apps/lua/apps/web/src/components/Step1_Input.tsx`: in der Liste der hinzugefügten
-Quelltexte pro Eintrag eine dezente Zeile (Stil wie sekundärer Hinweistext / `--color-text-secondary`):
-`{woerter} Wörter · Ø {schnittSatzlaenge} W/Satz · {hinweis}`.
-
-**Akzeptanz:** eingefügter/hochgeladener Text zeigt die Kennzahlen + Hinweis; kein LLM-Call;
-util-Test grün; build/typecheck/test grün.
+**Tun:**
+- `apps/lua/apps/web/src/views/HelpView.tsx` (Array `SECTIONS`, akt. 15 Abschnitte):
+  Inhalte ergänzen/erweitern für:
+  1. **Differenzierung** (Step 4): „Differenzierung"-Akkordeon → leichtere/schwerere
+     Variante zusätzlich zur Standardfassung; schwerer = KI erzeugt offene Aufgaben neu.
+  2. **Manuelle/Hybrid-Eingabe** bei Kreuzworträtsel/Wortgitter/Vokabelübung/Fehlerkorrektur/
+     Wörter-ordnen: Umschalter „KI-generiert ⇄ Selbst festlegen"; teils ausgefüllt = Hybrid.
+  3. **Selbsteinschätzungsbogen** (Step 4 → „Weitere Exporte"): Bogen, den Schüler VOR der
+     Abgabe ausfüllen.
+  4. **Schnell ohne Quelltext** (Dashboard-Shortcuts / Step 0): Mini-Übungen ohne Quelltextzwang.
+  5. **API-Key-Hinweis** in Schritt 4 (Modellauswahl): ohne hinterlegten Key Hinweis + Link
+     zu den Einstellungen.
+- `docs/ANLEITUNG.md`: dieselben 5 Punkte spiegeln (reiner Markdown-Fließtext, Tip → „> 💡 …").
+**Akzeptanz:** alle 5 Themen in HelpView UND ANLEITUNG.md auffindbar, lesbar ohne App.
+Keine Code-Logik. Build/Tests unberührt grün.
 
 ---
 
-## Aufgabe F3 — Selbstlern-Variante (Übung + Lösungsteil in EINEM DOCX)
-
-**Ziel:** Ein DOCX, das die Schülerfassung enthält und am Ende einen Lösungsteil — für
-Hausübung/Selbstkontrolle. **Renderer-Refactor — sauber faktorisieren, kein Copy-Paste.**
-
-**1. Renderer** `apps/lua/packages/renderer/src/index.ts`:
-- Heute baut `buildDocxPacked(packer, doc, mode, template)` (~Z. 542) pro `Mode = 'schueler' | 'loesung'`
-  ein ganzes Dokument. Faktorisiere den **block-bauenden Teil** so heraus, dass die Block-Children
-  je Mode als wiederverwendbare Funktion verfügbar sind (z. B. `buildBlockChildren(doc, mode, template)`).
-- Neue Funktion `export async function renderSelbstlernToBlob(doc, template = DEFAULT_TEMPLATE): Promise<Blob>`:
-  EIN Document = Schüler-Children + `new Paragraph({ children:[new PageBreak()] })` + Heading „Lösungen"
-  (HeadingLevel.HEADING_1) + Lösungs-Children. Browser-sicher: `Packer.toBlob` (nicht toBuffer).
-- Bestehende `renderDocument`/`renderDocumentToBlobs` unverändert lassen (nur refaktorierte Helfer nutzen).
-
-**2. Export-Hook** `apps/lua/apps/web/src/hooks/useExport.ts`: `exportSelbstlern(state)` analog
-`exportDocx` (dynamischer Import von `renderSelbstlernToBlob`), Dateiname
-`${datum}_${thema}_Uebung-mit-Loesung.docx`, im Return-Objekt ergänzen.
-
-**3. UI** `apps/lua/apps/web/src/components/Step4_Generate.tsx`: Knopf „Übung mit Lösungsteil"
-in der Export-Spalte (sichtbar bei `canExport`), Stil wie die anderen Sekundär-Export-Knöpfe.
-
-**Akzeptanz:** ein DOCX, Seite 1+ = Schülerfassung, danach Seitenumbruch + Lösungsteil; korrekt in
-Klassisch/Modern/Freundlich/Abgefahren-Vorlage. `renderer.test` um einen Smoke-Fall ergänzen
-(Selbstlern-Doc enthält sowohl Aufgaben- als auch Lösungstexte). build/typecheck/test grün.
-**Chief-Review vor Merge zwingend** (Refactor-Korrektheit, keine Regression in renderDocument).
+## K2 — Toten Export entfernen: `LogoChip`
+**Befund:** `apps/lua/apps/web/src/components/BrandLogo.tsx` exportiert `LogoChip`
+(`@deprecated`, ~Z. 88–Ende). **Nirgends mehr importiert** (verifiziert: `grep -rn LogoChip src`
+nur in BrandLogo.tsx). `WORDMARK_STYLE` (Z. 7) bleibt — wird von der aktiven Marke genutzt, NICHT anfassen.
+**Tun:** nur die `LogoChip`-Funktion + zugehörigen Kommentar löschen. Sonst nichts.
+**Akzeptanz:** `grep -rn LogoChip apps/lua/apps/web/src` liefert 0 Treffer; build/typecheck/test grün.
 
 ---
 
-## Später (nicht jetzt)
-- **#2 GIFT/Moodle-Export** der geschlossenen Aufgaben — wenn Plugin-/LMS-Thema dran ist.
-- **#4 Aufgaben-Pool / Frage-Bank** — erst gemeinsames Brainstorming. Offene Fragen: Granularität
-  (Blöcke vs. einzelne Fragen) · Speicherort (SQLite-Tabelle vs. localStorage) · Verschlagwortung
-  (Fach/Stufe/Thema/Typ/Lernziel) · Einfügen in den Baukasten · Abgrenzung zu „Vorlagen".
+## K3 — Empty-State-Politur (DocumentsView + FavoritesView)
+**Befund:** `DocumentsView.tsx` und `FavoritesView.tsx` zeigen bei leerer Liste fast nichts.
+`TemplatesView.tsx` hat einen guten freundlichen Leerzustand — **als Vorbild nehmen** (Stil/Struktur).
+**Tun:** in beiden Views bei leerer Liste einen freundlichen Leerzustand zeigen: dezentes
+Lucide-Icon + kurzer Satz („Noch keine gespeicherten Unterlagen." / „Noch keine Favoriten.")
++ optional ein Hinweis/CTA, wie man welche anlegt. Stil/Tokens wie TemplatesView, keine neue Logik.
+**Akzeptanz:** leere Liste → freundlicher Zustand (nicht nackt); gefüllte Liste unverändert.
+Build/typecheck/test grün.
+
+---
+
+## NICHT für Kimi (Chief-geführt — Urteil/Architektur/Cross-Cutting)
+- **SRDP-Matura-Modus** — neues Renderer-Template + Format-Korrektheit + Synergie mit NATASCHA-
+  SRDP-Kriterien. Urteilslastig.
+- **Kompetenz-Dashboard-Ausbau** (#1: abgedeckt/fehlt-Übersicht) — Fundament (`coverage.ts`,
+  `at-lehrplan`) da, aber Lehrplan-Modellierung + UX-Entscheidung.
+- **`umformung`-Typ entfernen** — 26 Referenzen über schema/llm/web verwoben; sauberes Entfernen
+  ist Mehrdatei-Sorgfalt, kein Quick-Cleanup.
+- **In-App-Angabe-Erfassung** (Rust-Command-Arg + Analyse-UI) für den voll-automatischen Closed Loop.
 
 ## Offen beim Chief/User
-- CI-Run nach den jüngsten Pushes auf grün prüfen.
-- Live-Testlauf der zuletzt gebauten Features (Korrekturraster-Export, 3-Niveau, Lösungen-prüfen-Badge,
-  Punkte-Schalter, Quelltext-Format, Quality-Gate, Tafelgrün, Preserve-Edits).
-- Optional: In-App-Angabe-Erfassung (Rust+UI) für den voll-automatischen In-App-Closed-Loop.
+- Kein-Key-Warnung (Step 3) live in der laufenden App sichtprüfen (Tauri-`invoke`, nicht headless testbar).
+- GO-TO-MARKET (`docs/GO-TO-MARKET.md`) bewusst geparkt — noch nicht dran.
