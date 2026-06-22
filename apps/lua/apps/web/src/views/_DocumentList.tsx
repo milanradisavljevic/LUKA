@@ -1,4 +1,4 @@
-import { Star, Trash2, X, RotateCcw } from 'lucide-react';
+import { Star, Trash2, X, RotateCcw, FileX, Sparkles } from 'lucide-react';
 import type { SavedDocument } from '../lib/types';
 
 const FACH_LABEL: Record<string, string> = { deutsch: 'Deutsch', englisch: 'Englisch' };
@@ -15,6 +15,8 @@ function formatDate(iso: string): string {
 interface Props {
   documents: SavedDocument[];
   emptyMessage: string;
+  emptyDescription?: string;
+  actionLabel?: string;
   /** Klick auf „Öffnen" — lädt den Snapshot in den Wizard. */
   onOpen?: (doc: SavedDocument) => void;
   /** Favoriten-Stern umschalten. */
@@ -25,22 +27,51 @@ interface Props {
   onRestore?: (id: string) => void;
   /** Endgültig löschen. */
   onPurge?: (id: string) => void;
+  /** Leerzustand-Aktion (z. B. „Neu erstellen" oder „Zu Dokumenten"). */
+  onAction?: () => void;
 }
 
 export function DocumentList({
   documents,
   emptyMessage,
+  emptyDescription,
+  actionLabel,
   onOpen,
   onToggleFavorite,
   onDelete,
   onRestore,
   onPurge,
+  onAction,
 }: Props) {
   if (documents.length === 0) {
     return (
-      <p style={{ color: 'var(--color-text-secondary)', textAlign: 'center', padding: '2rem 1rem', fontSize: '0.875rem' }}>
-        {emptyMessage}
-      </p>
+      <div style={{
+        textAlign: 'center',
+        padding: '2.5rem 1rem',
+        color: 'var(--color-text-secondary)',
+        background: 'var(--color-bg-base)',
+        borderRadius: 'var(--radius)',
+        border: '1px dashed var(--color-border)',
+      }}>
+        <FileX size={32} style={{ opacity: 0.5, marginBottom: '0.5rem' }} />
+        <p style={{ fontSize: '0.9375rem', margin: '0 0 0.25rem', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+          {emptyMessage}
+        </p>
+        {emptyDescription && (
+          <p style={{ fontSize: '0.8125rem', margin: '0 0 0.75rem', maxWidth: 420, marginInline: 'auto' }}>
+            {emptyDescription}
+          </p>
+        )}
+        {onAction && actionLabel && (
+          <button
+            className="btn-secondary"
+            onClick={onAction}
+            style={{ fontSize: '0.8125rem', display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}
+          >
+            <Sparkles size={14} /> {actionLabel}
+          </button>
+        )}
+      </div>
     );
   }
 

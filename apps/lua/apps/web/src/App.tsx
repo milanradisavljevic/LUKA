@@ -272,9 +272,9 @@ if (hydrating) {
       case 'dashboard':
         return <DashboardView onNavigate={(v) => setActiveView(v)} onStartQuickExercise={handleStartQuickExercise} />;
       case 'documents':
-        return <DocumentsView onOpenDocument={handleOpenDocument} />;
+        return <DocumentsView onOpenDocument={handleOpenDocument} onNavigate={(v) => setActiveView(v)} />;
       case 'favorites':
-        return <FavoritesView onOpenDocument={handleOpenDocument} />;
+        return <FavoritesView onOpenDocument={handleOpenDocument} onNavigate={(v) => setActiveView(v)} />;
       case 'trash':
         return <TrashView />;
       case 'history':
