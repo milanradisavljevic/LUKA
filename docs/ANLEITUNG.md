@@ -32,6 +32,8 @@ Damit die KI-Funktionen (Generieren, Korrigieren) laufen, brauchst du einen API-
 
 > 💡 Ohne hinterlegten Schlüssel schlagen Analyse/Generierung fehl. Die Fehlermeldung nennt dann meist „Key/Provider prüfen".
 
+**Kein-Key-Hinweis:** Solange noch kein API-Schlüssel hinterlegt ist, zeigt dir die App in den betroffenen Bereichen (Generieren, Korrektur, „Lösungen prüfen") einen deutlichen Hinweis. Sobald ein Schlüssel in den Einstellungen gespeichert ist, verschwindet er.
+
 ---
 
 ## Unterlagen erstellen
@@ -51,6 +53,12 @@ Der Generator führt dich in fünf Schritten von der Absicht zum fertigen DOCX.
 **Export-Varianten:** „Beide Dokumente" (Schülerfassung + Lösung), „Korrekturraster", im Kompetenz-Modus zusätzlich „Kompetenznachweis", sowie „Als PDF". Vor dem Export prüft ein **Quality-Gate** Lernziel-Abdeckung und Wortzahl der Schreibaufgaben – bei Auffälligkeiten kannst du „Nochmal prüfen" oder „Trotzdem exportieren".
 
 **3 Niveaus auf einmal:** Der Knopf „3 Niveaus erzeugen" (nach dem Generieren) exportiert dasselbe Blatt in drei Fassungen – *leicht* (offene Aufgaben vereinfacht, ohne KI-Kosten), *mittel* (unverändert) und *schwer* (offene Aufgaben anspruchsvoller neu generiert). Dateinamen tragen `_leicht/_mittel/_schwer`.
+
+**Manuell oder Hybrid festlegen:** Bei Kreuzworträtsel, Wortgitter, Vokabelübung, Fehlerkorrektur und „Wörter ordnen" kannst du im Block-Editor auf „Selbst festlegen" umschalten. Gib eigene Wörter, Sätze oder Vokabeln ein — die KI übernimmt sie wortgleich und ergänzt nur noch fehlende Einträge, bis die gewünschte Anzahl erreicht ist. So bleibst du Herrin/Herr der Inhalte, sparst aber trotzdem Zeit.
+
+**Schnell ohne Quelltext:** Für kleine Übungen mit eigenen Inhalten brauchst du keine Textgrundlage. Wähle im Dashboard oder in Schritt „Absicht" einen der Schnellstarts (z. B. „Kreuzworträtsel", „Vokabeltest", „Fehlerkorrektur", „Lückentext"). Der Assistent springt direkt in den Baukasten; Quelltexte kannst du überspringen.
+
+**Selbsteinschätzungsbogen:** Nach dem Generieren kannst du einen zusätzlichen Bogen exportieren, mit dem Schülerinnen und Schüler einschätzen, wie sicher sie sich bei den einzelnen Aufgaben fühlen. Er eignet sich besonders für differenzierte Rückmeldung und Selbstregulation.
 
 > 💡 Einen ganzen Blocktyp wieder entfernen: im Baukasten oben rechts am Block auf das **X** klicken. Mehr Zuordnungs-Paare/MC-Antworten: im Block-Editor auf „+ Item" / „+ Option" / „+ Frage".
 

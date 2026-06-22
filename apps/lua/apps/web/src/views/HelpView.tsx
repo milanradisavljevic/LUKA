@@ -92,6 +92,7 @@ const SECTIONS: Section[] = [
           <>Zum gefahrlosen Ausprobieren ohne echte Schülerdaten: Testdaten laden (siehe <strong>Onboarding</strong> im README / Beispiel-Abgaben im Ordner <code>samples/</code>).</>,
           <>Lade in <strong>Korrektur</strong> eine erste Abgabe hoch und starte die Analyse.</>,
         ]} />
+        <P><strong>Kein-Key-Hinweis:</strong> Solange noch kein API-Schlüssel hinterlegt ist, zeigt dir die App in den betroffenen Bereichen (Generieren, Korrektur, Lösungen prüfen) einen deutlichen Hinweis. Sobald ein Schlüssel in den Einstellungen gespeichert ist, verschwindet er.</P>
         <Tip>Ohne hinterlegten Schlüssel schlagen Analyse/Generierung fehl. Die Fehlermeldung nennt dann meist „Key/Provider prüfen".</Tip>
       </>
     ),
@@ -114,6 +115,9 @@ const SECTIONS: Section[] = [
         <P><strong>Einzelne Aufgabe neu generieren:</strong> In der Vorschau bei einem Block auf „Neu generieren" — mit optionalem Hinweis (kürzer, schwieriger, andere Formulierung). Nur dieser Block wird ersetzt.</P>
         <P><strong>Export-Varianten:</strong> „Beide Dokumente" (Schülerfassung + Lösung), „Korrekturraster", im Kompetenz-Modus zusätzlich „Kompetenznachweis", sowie „Als PDF". Vor dem Export prüft ein <strong>Quality-Gate</strong> Lernziel-Abdeckung und Wortzahl der Schreibaufgaben — bei Auffälligkeiten kannst du „Nochmal prüfen" oder „Trotzdem exportieren".</P>
         <P><strong>3 Niveaus auf einmal:</strong> Der Knopf „3 Niveaus erzeugen" (nach dem Generieren) exportiert dasselbe Blatt in drei Fassungen — <em>leicht</em> (offene Aufgaben vereinfacht, ohne KI-Kosten), <em>mittel</em> (unverändert) und <em>schwer</em> (offene Aufgaben anspruchsvoller neu generiert). Dateinamen tragen <code>_leicht/_mittel/_schwer</code>.</P>
+        <P><strong>Manuell oder Hybrid festlegen:</strong> Bei Kreuzworträtsel, Wortgitter, Vokabelübung, Fehlerkorrektur und „Wörter ordnen" kannst du im Block-Editor auf „Selbst festlegen" umschalten. Gib eigene Wörter, Sätze oder Vokabeln ein — die KI übernimmt sie wortgleich und ergänzt nur noch fehlende Einträge, bis die gewünschte Anzahl erreicht ist. So bleibst du Herrin/Herr der Inhalte, sparst aber trotzdem Zeit.</P>
+        <P><strong>Schnell ohne Quelltext:</strong> Für kleine Übungen mit eigenen Inhalten brauchst du keine Textgrundlage. Wähle im Dashboard oder in Schritt „Absicht" einen der Schnellstarts (z. B. „Kreuzworträtsel", „Vokabeltest", „Fehlerkorrektur", „Lückentext"). Der Assistent springt direkt in den Baukasten; Quelltexte kannst du überspringen.</P>
+        <P><strong>Selbsteinschätzungsbogen:</strong> Nach dem Generieren kannst du einen zusätzlichen Bogen exportieren, mit dem Schülerinnen und Schüler einschätzen, wie sicher sie sich bei den einzelnen Aufgaben fühlen. Er eignet sich besonders für differenzierte Rückmeldung und Selbstregulation.</P>
         <Tip>Einen ganzen Blocktyp wieder entfernen: im Baukasten oben rechts am Block auf das <strong>X</strong> klicken. Mehr Zuordnungs-Paare/MC-Antworten: im Block-Editor auf „+ Item" / „+ Option" / „+ Frage".</Tip>
       </>
     ),
