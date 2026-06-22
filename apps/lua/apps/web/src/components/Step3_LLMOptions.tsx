@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { Circle, Info } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Circle, Info, KeyRound } from 'lucide-react';
+import { invoke } from '@tauri-apps/api/core';
 import type { AppState, AppAction } from '../lib/types';
-import { LLM_PROVIDERS } from '../lib/constants';
+import { LLM_PROVIDERS, PROVIDER_KEY_IDS } from '../lib/constants';
 import { getModelInfo } from '../lib/models';
 import { CREATIVITY_PRESETS, getCreativityLabel } from '../lib/creativity';
 import { ProviderLogo } from './ProviderLogos';
@@ -9,14 +10,33 @@ import { ProviderLogo } from './ProviderLogos';
 interface Props {
   state: AppState;
   dispatch: React.Dispatch<AppAction>;
+  onNavigateToSettings?: () => void;
 }
 
-export function Step3_LLMOptions({ state, dispatch }: Props) {
+function isTauri(): boolean {
+  return typeof window !== 'undefined' && (window as any).__TAURI_INTERNALS__ !== undefined;
+}
+
+export function Step3_LLMOptions({ state, dispatch, onNavigateToSettings }: Props) {
   const selectedProvider = LLM_PROVIDERS.find((p) => p.id === state.llmProvider);
   const models = selectedProvider?.models ?? [];
   const modelInfo = getModelInfo(state.modelName);
   const [showInfo, setShowInfo] = useState(false);
   const creativity = getCreativityLabel(state.kreativitaet);
+
+  // Prüft, ob für den gewählten Provider ein API-Key hinterlegt ist. Verhindert,
+  // dass die Lehrkraft erst beim Generieren (Schritt 5) am fehlenden Key scheitert.
+  const [keyState, setKeyState] = useState<'unbekannt' | 'vorhanden' | 'fehlt'>('unbekannt');
+  useEffect(() => {
+    let abbruch = false;
+    if (!state.llmProvider || !isTauri()) { setKeyState('unbekannt'); return; }
+    setKeyState('unbekannt');
+    const keyId = PROVIDER_KEY_IDS[state.llmProvider] ?? state.llmProvider;
+    invoke<string>('load_api_key', { provider: keyId })
+      .then((key) => { if (!abbruch) setKeyState(key && key.trim().length > 0 ? 'vorhanden' : 'fehlt'); })
+      .catch(() => { if (!abbruch) setKeyState('fehlt'); });
+    return () => { abbruch = true; };
+  }, [state.llmProvider]);
 
   return (
     <div>
@@ -58,6 +78,29 @@ export function Step3_LLMOptions({ state, dispatch }: Props) {
           );
         })}
       </div>
+
+      {/* Fehlender API-Key: früher Hinweis statt Scheitern beim Generieren */}
+      {state.llmProvider && keyState === 'fehlt' && (
+        <div style={{
+          marginBottom: '1.5rem', padding: '0.875rem 1rem',
+          border: '1px solid var(--color-warning)', borderRadius: 'var(--radius)',
+          background: 'var(--color-warning-bg)', display: 'flex', alignItems: 'center', gap: '0.75rem',
+        }}>
+          <KeyRound size={18} style={{ flexShrink: 0, color: 'var(--color-warning)' }} />
+          <div style={{ flex: 1, fontSize: '0.875rem' }}>
+            <strong>Kein API-Schlüssel für {selectedProvider?.label} hinterlegt.</strong>
+            <div style={{ color: 'var(--color-text-secondary)', fontSize: '0.8125rem', marginTop: '0.15rem' }}>
+              Ohne Schlüssel kann nicht generiert werden. Jetzt in den Einstellungen hinterlegen.
+            </div>
+          </div>
+          {onNavigateToSettings && (
+            <button className="btn-primary" onClick={onNavigateToSettings}
+              style={{ padding: '0.5rem 0.9rem', fontSize: '0.8125rem', flexShrink: 0, whiteSpace: 'nowrap' }}>
+              Zu den Einstellungen
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Modell-Auswahl + Info */}
       {state.llmProvider && (

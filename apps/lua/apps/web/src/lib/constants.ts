@@ -101,6 +101,20 @@ export const LLM_PROVIDERS = [
   { id: 'kimi' as const, label: 'Kimi (Moonshot)', models: ['Moonshot V1 8K', 'Kimi K2.6'] },
 ];
 
+/**
+ * Mappt die UI-Provider-ID (llmProvider) auf die im OS-Keychain verwendete Provider-ID.
+ * Schlüssel werden unter diesen IDs gespeichert/geladen — beim Prüfen exakt dasselbe Mapping
+ * verwenden (sonst falsch-negative „Kein Key"-Warnungen, z. B. chatgpt → openai).
+ */
+export const PROVIDER_KEY_IDS: Record<string, string> = {
+  claude: 'claude',
+  chatgpt: 'openai',
+  deepseek: 'deepseek',
+  mistral: 'mistral',
+  qwen: 'qwen',
+  kimi: 'kimi',
+};
+
 /** Geschätzte Bearbeitungszeit [min, max] je Unterlagentyp (Step0-Kacheln). */
 export const UNTERLAGENTYP_MINUTEN: Record<string, [number, number]> = {
   hausuebung: [10, 15],

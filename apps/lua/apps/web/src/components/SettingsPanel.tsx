@@ -1,19 +1,10 @@
 import { useState } from 'react';
-import { LLM_PROVIDERS } from '../lib/constants';
+import { LLM_PROVIDERS, PROVIDER_KEY_IDS } from '../lib/constants';
 import { ProviderLogo } from './ProviderLogos';
 
 function isTauri(): boolean {
   return typeof window !== 'undefined' && (window as any).__TAURI_INTERNALS__ !== undefined;
 }
-
-const PROVIDER_KEY_IDS: Record<string, string> = {
-  claude: 'claude',
-  chatgpt: 'openai',
-  deepseek: 'deepseek',
-  mistral: 'mistral',
-  qwen: 'qwen',
-  kimi: 'kimi',
-};
 
 export function SettingsPanel() {
   const [keys, setKeys] = useState<Record<string, string>>({});
