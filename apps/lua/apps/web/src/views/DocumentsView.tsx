@@ -1,13 +1,14 @@
-import type { SavedDocument } from '../lib/types';
+import type { SavedDocument, ActiveView } from '../lib/types';
 import { useDocuments } from '../hooks/useDocuments';
 import { ViewShell } from './_ViewShell';
 import { DocumentList } from './_DocumentList';
 
 interface Props {
   onOpenDocument: (doc: SavedDocument) => void;
+  onNavigate?: (view: ActiveView) => void;
 }
 
-export function DocumentsView({ onOpenDocument }: Props) {
+export function DocumentsView({ onOpenDocument, onNavigate }: Props) {
   const { documents, toggleFavorite, softDelete } = useDocuments();
 
   const active = documents
@@ -21,7 +22,10 @@ export function DocumentsView({ onOpenDocument }: Props) {
     >
       <DocumentList
         documents={active}
-        emptyMessage="Noch keine Dokumente gespeichert. Erstelle eines im Assistenten und klicke oben auf „Speichern“."
+        emptyMessage="Noch keine Dokumente gespeichert."
+        emptyDescription="Erstelle eine neue Unterlage im Assistenten und speichere sie oben mit „Speichern“."
+        actionLabel="Neue Unterlage erstellen"
+        onAction={() => onNavigate?.('wizard')}
         onOpen={onOpenDocument}
         onToggleFavorite={toggleFavorite}
         onDelete={softDelete}
