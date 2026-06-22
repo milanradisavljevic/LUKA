@@ -87,6 +87,22 @@ Der Blocktyp **Rollenspiel** erzeugt kommunikative Sprechsituationen für den M�
 - **Bewertungs-Checkliste** ermöglicht Selbst- oder Partner-Feedback.
 - **Lösung** zeigt einen Musterdialog und Hinweise für die Lehrkraft.
 
+### Best Practices für den täglichen Einsatz
+
+1. **Klares kommunikatives Ziel wählen** — das Gespräch sollte auf ein konkretes Ergebnis hinauslaufen (z. B. „einen Termin vereinbaren", „eine Reklamation durchziehen").
+2. **2 Rollen = Paararbeit, 3–4 Rollen = Gruppenarbeit** — je nach Klassengröße und Zeit.
+3. **Redemittel als Scaffolding** — bei schwächeren Klassen mehr Satzbausteine vorgeben; bei stärkeren Klassen die Redemittel reduzieren oder ganz weglassen.
+4. **Authentische Alltagssituationen** — Restaurant, Arzt, Bewerbungsgespräch, Beschwerde, Reisebüro, Schließfach verloren.
+5. **Hybrid-Modus nutzen** — die Lehrkraft kann Situation, Rollen oder Redemittel selbst vorgeben; die KI ergänzt fehlende Teile stufengerecht.
+
+### Beispiel
+
+- **Situation:** Im Restaurant
+- **Setting:** Du gehst mit deiner Familie essen.
+- **Ziel:** Einen Tisch für vier Personen reservieren und bestellen.
+- **Rollen:** Gast (bestellt für die Gruppe) und Kellner (nimmt Bestellung auf).
+- **Redemittel:** „Ich hätte gerne …", „Könnten Sie mir bitte …?", „Was kostet …?"
+
 > 💡 Leichte Variante: Viele Redemittel vorgeben. Schwere Variante: Redemittel reduzieren oder weglassen.
 
 ---
