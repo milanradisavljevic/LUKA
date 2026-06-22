@@ -7,6 +7,23 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Selbsteinschätzungsbogen (Quick Win #5)
+- `packages/renderer/src/index.ts`: `renderSelbsteinschaetzungToBlob(raster, lernziele, template)`
+  — ein DOCX, das Schüler/innen VOR der Abgabe ausfüllen. Aussagen aus Lernzielen
+  („Ich kann: …") + eindeutigen Raster-Kriterien, 3-stufige Skala (sicher/teilweise/
+  unsicher) + Reflexionszeilen. Kein LLM, fach-lokalisiert (DE/EN).
+- `apps/web/src/hooks/useExport.ts`: `exportSelbsteinschaetzung(state)` (buildRaster +
+  Lernziele → Blob, Dateiname `…_Selbsteinschaetzung.docx`).
+- `apps/web/src/components/Step4_Generate.tsx`: Knopf „Selbsteinschätzungsbogen"
+  im Akkordeon „Weitere Exporte & Werkzeuge".
+
+### Added — Früh-Warnung bei fehlendem API-Key
+- `apps/web/src/components/Step3_LLMOptions.tsx`: prüft beim Provider-Wechsel, ob ein
+  Key im Keychain liegt; sonst Hinweis + Direkt-Button zu den Einstellungen (statt
+  erst beim Generieren zu scheitern).
+- `PROVIDER_KEY_IDS` nach `lib/constants.ts` ausgelagert/exportiert (gemeinsames
+  Mapping UI-Provider → Keychain-ID, verhindert falsch-negative Warnungen bei claude/chatgpt).
+
 ### Added — UX-Friction: Quelltext wird optional für kleine Übungen
 - `apps/web/src/components/Step1_Input.tsx`: Button „Ohne Quelltext fortfahren",
   wenn noch keine Quelltexte vorhanden sind.

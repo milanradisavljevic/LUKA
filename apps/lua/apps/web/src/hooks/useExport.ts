@@ -221,7 +221,41 @@ export function useExport() {
     }
   }, []);
 
-  return { exportDocx, exportDocxOverride, exportKorrekturraster, exportKompetenzraster, exportSelbstlern, exporting, error, warnung, lastSavedPaths };
+  const exportSelbsteinschaetzung = useCallback(async (state: AppState) => {
+    if (!state.generiertesDokument) {
+      setError('Bitte zuerst Inhalt generieren.');
+      return false;
+    }
+    setExporting(true);
+    setError(null);
+    setWarnung(null);
+    setLastSavedPaths(null);
+
+    try {
+      const { buildRaster } = await import('@lehrunterlagen/qa');
+      const { renderSelbsteinschaetzungToBlob } = await import('@lehrunterlagen/renderer');
+      const raster = buildRaster(state.generiertesDokument);
+      const lernziele = state.generiertesDokument.meta.lernziele ?? [];
+      const template = RENDER_TEMPLATES[state.renderTemplate];
+      const blob = await renderSelbsteinschaetzungToBlob(raster, lernziele, template);
+
+      const thema = sanitizeFilename(state.generiertesDokument.meta.thema).slice(0, 40);
+      const datum = state.generiertesDokument.meta.datum;
+      const fileName = `${datum}_${thema}_Selbsteinschaetzung.docx`;
+
+      downloadBlob(blob, fileName);
+      setLastSavedPaths([fileName]);
+      return true;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unbekannter Fehler beim Selbsteinschätzungs-Export';
+      setError(msg);
+      return false;
+    } finally {
+      setExporting(false);
+    }
+  }, []);
+
+  return { exportDocx, exportDocxOverride, exportKorrekturraster, exportKompetenzraster, exportSelbstlern, exportSelbsteinschaetzung, exporting, error, warnung, lastSavedPaths };
 }
 
 function downloadBlob(blob: Blob, filename: string) {
