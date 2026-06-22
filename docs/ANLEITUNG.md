@@ -32,7 +32,7 @@ Damit die KI-Funktionen (Generieren, Korrigieren) laufen, brauchst du einen API-
 
 > 💡 Ohne hinterlegten Schlüssel schlagen Analyse/Generierung fehl. Die Fehlermeldung nennt dann meist „Key/Provider prüfen".
 
-**Kein-Key-Hinweis:** Solange noch kein API-Schlüssel hinterlegt ist, zeigt dir die App in den betroffenen Bereichen (Generieren, Korrektur, „Lösungen prüfen") einen deutlichen Hinweis. Sobald ein Schlüssel in den Einstellungen gespeichert ist, verschwindet er.
+**Kein-Key-Hinweis:** Wählst du in Schritt „KI-Modell" einen Anbieter, für den noch kein Schlüssel hinterlegt ist, zeigt die App dort einen Hinweis mit Direkt-Link zu den Einstellungen — so scheiterst du nicht erst beim Generieren.
 
 ---
 
@@ -52,7 +52,7 @@ Der Generator führt dich in fünf Schritten von der Absicht zum fertigen DOCX.
 
 **Export-Varianten:** „Beide Dokumente" (Schülerfassung + Lösung), „Korrekturraster", im Kompetenz-Modus zusätzlich „Kompetenznachweis", sowie „Als PDF". Vor dem Export prüft ein **Quality-Gate** Lernziel-Abdeckung und Wortzahl der Schreibaufgaben – bei Auffälligkeiten kannst du „Nochmal prüfen" oder „Trotzdem exportieren".
 
-**3 Niveaus auf einmal:** Der Knopf „3 Niveaus erzeugen" (nach dem Generieren) exportiert dasselbe Blatt in drei Fassungen – *leicht* (offene Aufgaben vereinfacht, ohne KI-Kosten), *mittel* (unverändert) und *schwer* (offene Aufgaben anspruchsvoller neu generiert). Dateinamen tragen `_leicht/_mittel/_schwer`.
+**Differenzierung (leichter / schwerer):** Im Akkordeon „Differenzierung" (nach dem Generieren) erzeugst du zusätzlich zur Standardfassung (mittel = „Beide Dokumente") gezielt eine *leichtere* und/oder *schwerere* Variante: Häkchen setzen, dann „Variante(n) erstellen & exportieren". *Leicht* vereinfacht offene Aufgaben ohne KI-Kosten; *schwer* generiert die offenen Aufgaben anspruchsvoller neu. Dateinamen tragen `_leicht`/`_schwer`.
 
 **Manuell oder Hybrid festlegen:** Bei Kreuzworträtsel, Wortgitter, Vokabelübung, Fehlerkorrektur und „Wörter ordnen" kannst du im Block-Editor auf „Selbst festlegen" umschalten. Gib eigene Wörter, Sätze oder Vokabeln ein — die KI übernimmt sie wortgleich und ergänzt nur noch fehlende Einträge, bis die gewünschte Anzahl erreicht ist. So bleibst du Herrin/Herr der Inhalte, sparst aber trotzdem Zeit.
 
