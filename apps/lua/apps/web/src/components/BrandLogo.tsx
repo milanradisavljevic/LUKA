@@ -85,7 +85,4 @@ export function BrandSignature({
   );
 }
 
-/** @deprecated Alias für Bestandscode — nutzt jetzt die Feder-Nib-Marke. */
-export function LogoChip({ size = 36 }: { size?: number }) {
-  return <NibMark size={size} />;
-}
+
