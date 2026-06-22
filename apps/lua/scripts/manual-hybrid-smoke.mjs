@@ -55,7 +55,9 @@ const quelltexte = [{
 const MANUAL_KREUZWORT = { wort: 'DEMOKRATIE', hinweis: 'Staatsform, in der das Volk mitentscheidet' };
 const MANUAL_WORTGITTER = 'BÜRGER';
 const MANUAL_VOKABEL = { deutsch: 'Wahl', fremdsprache: 'election', kontextsatz: 'Bei der Wahl entscheiden die Bürger.' };
-const MANUAL_FEHLER = { nr: 1, satz: 'In einer Demokratie haben alle Bürgerinnen und Bürger das Recht zu wählen.', anzahlFehler: 0 };
+// Fehlerkorrektur-Sätze MÜSSEN bewusst eingebaute Fehler enthalten (anzahlFehler ≥ 1) —
+// ein fehlerfreier Satz widerspricht dem Aufgabentyp. Hier: Subjekt-Verb-Kongruenzfehler.
+const MANUAL_FEHLER = { nr: 1, satz: 'In einer Demokratie haben alle Bürger das recht zu wählen.', anzahlFehler: 1 };
 const MANUAL_SCRAMBLE = { wort: 'In einer Demokratie entscheiden die Bürger gemeinsam.' };
 
 const bloecke = [
