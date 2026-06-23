@@ -1,6 +1,10 @@
 import type { StoffItem, Deskriptor } from '@lehrunterlagen/schema';
 import { deutschDeskriptoren, deutschStoffItems } from './deutsch';
 import { englischDeskriptoren, englischStoffItems } from './englisch';
+import { franzoesischDeskriptoren, franzoesischStoffItems } from './franzoesisch';
+import { spanischDeskriptoren, spanischStoffItems } from './spanisch';
+import { italienischDeskriptoren, italienischStoffItems } from './italienisch';
+import { lateinDeskriptoren, lateinStoffItems } from './latein';
 
 // ---------------------------------------------------------------------------
 // Stoffkatalog für den Kompetenz-Modus (Rahmenwerk at-lehrplan).
@@ -11,13 +15,19 @@ import { englischDeskriptoren, englischStoffItems } from './englisch';
 const DESKRIPTOREN: Deskriptor[] = [
   ...englischDeskriptoren,
   ...deutschDeskriptoren,
-  // + neue Fächer hier registrieren (z. B. ...franzoesischDeskriptoren)
+  ...franzoesischDeskriptoren,
+  ...spanischDeskriptoren,
+  ...italienischDeskriptoren,
+  ...lateinDeskriptoren,
 ];
 
 const STOFF_ITEMS: StoffItem[] = [
   ...englischStoffItems,
   ...deutschStoffItems,
-  // + neue Fächer hier registrieren (z. B. ...franzoesischStoffItems)
+  ...franzoesischStoffItems,
+  ...spanischStoffItems,
+  ...italienischStoffItems,
+  ...lateinStoffItems,
 ];
 
 // ---------------------------------------------------------------------------
