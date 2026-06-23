@@ -79,11 +79,33 @@ export const StoffItemSchema = z.object({
   titel: z.string().min(1),
   fach: FachSchema,
   stufe: StufeSchema,
-  kategorie: z.enum(['grammatik', 'wortschatz', 'rechtschreibung', 'schreiben', 'sprachreflexion']),
+  // Kompetenzbereich (frei, je Fach aus KOMPETENZBEREICHE). Früher ein sprachfach-zentriertes
+  // Enum — geöffnet, damit Sachfächer ihre eigenen Bereiche tragen können.
+  kategorie: z.string().min(1),
   deskriptorIds: z.array(z.string().min(1)),
   defaultAufgabentypen: z.array(z.string()).optional(),
 });
 export type StoffItem = z.infer<typeof StoffItemSchema>;
+
+/**
+ * Offizielle Kompetenzbereiche je Fach (der „exakte" Teil des Hybrid-Ansatzes).
+ * `StoffItem.kategorie` und `Deskriptor.bereich` verwenden diese Namen WORTGLEICH.
+ * Stabil + gut dokumentiert; die einzelnen Deskriptoren darunter sind kuratierte Entwürfe.
+ */
+export const KOMPETENZBEREICHE: Record<Fach, string[]> = {
+  deutsch:     ['Zuhören & Sprechen', 'Lesen & Textverständnis', 'Schreiben', 'Sprachbewusstsein', 'Literarische Bildung', 'Grammatik'],
+  englisch:    ['Hören', 'Lesen', 'An Gesprächen teilnehmen', 'Zusammenhängend sprechen', 'Schreiben', 'Sprachmittlung', 'Grammatik', 'Wortschatz'],
+  franzoesisch:['Hören', 'Lesen', 'An Gesprächen teilnehmen', 'Zusammenhängend sprechen', 'Schreiben', 'Sprachmittlung', 'Grammatik', 'Wortschatz'],
+  spanisch:    ['Hören', 'Lesen', 'An Gesprächen teilnehmen', 'Zusammenhängend sprechen', 'Schreiben', 'Sprachmittlung', 'Grammatik', 'Wortschatz'],
+  italienisch: ['Hören', 'Lesen', 'An Gesprächen teilnehmen', 'Zusammenhängend sprechen', 'Schreiben', 'Sprachmittlung', 'Grammatik', 'Wortschatz'],
+  latein:      ['Sprachkompetenz', 'Textkompetenz', 'Kulturkompetenz'],
+  geschichte:  ['Historische Fragekompetenz', 'Historische Methodenkompetenz', 'Historische Orientierungskompetenz', 'Historische Sachkompetenz', 'Politische Bildung'],
+  geographie:  ['Wahrnehmungs- & Orientierungskompetenz', 'Methodenkompetenz', 'Synthesekompetenz', 'Wirtschaftliche Bildung'],
+  religion:    ['Wahrnehmen & Verstehen', 'Deuten & Urteilen', 'Reflektieren & Kommunizieren', 'Gestalten & Handeln'],
+  ethik:       ['Wahrnehmen & Beschreiben', 'Analysieren & Argumentieren', 'Urteilen & Reflektieren', 'Perspektivenwechsel'],
+  psychologie: ['Fachwissen', 'Methoden- & Erkenntniskompetenz', 'Reflexions- & Urteilskompetenz', 'Anwendung & Transfer'],
+  philosophie: ['Begriffs- & Theoriekompetenz', 'Argumentations- & Reflexionskompetenz', 'Anwendung & Transfer'],
+};
 
 export const MetaSchema = z.object({
   stufe: StufeSchema,
