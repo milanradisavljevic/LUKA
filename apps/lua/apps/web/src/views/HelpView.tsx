@@ -3,7 +3,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   Workflow, Rocket, FilePlus2, SpellCheck, GraduationCap, Users,
   ClipboardCheck, LayoutDashboard, Keyboard, ShieldCheck, LifeBuoy,
-  Lightbulb, CheckCircle2, Target, FolderOpen, Shapes,
+  Lightbulb, CheckCircle2, Target, FolderOpen, Shapes, BookOpen,
 } from 'lucide-react';
 import { ViewShell } from './_ViewShell';
 
@@ -134,10 +134,26 @@ const SECTIONS: Section[] = [
         </P>
         <Steps items={[
           <><strong>Freies Thema / Kompetenz</strong> — z. B. „Present Perfect vs. Past Simple" oder „Kommasetzung bei Relativsätzen" frei eintippen.</>,
-          <><strong>Oder Lehrplan-Kompetenz</strong> aus dem Katalog (Deutsch/Englisch, Unter-/Oberstufe) wählen — dann entsteht zusätzlich ein <strong>Kompetenznachweis</strong> beim Export.</>,
+          <><strong>Oder Lehrplan-Kompetenz</strong> aus dem Katalog wählen — dann entsteht zusätzlich ein <strong>Kompetenznachweis</strong> beim Export. Kompetenzkataloge gibt es für alle unterstützten Fächer.</>,
           <>Aufgabentypen wählen, optional Punkte an/aus, generieren — wie beim Quelltext-Pfad, nur dass die KI die Inhalte stufengerecht selbst erfindet.</>,
         ]} />
         <Tip>Faustregel: <strong>Aus Quelltext</strong> = Schularbeit/Test zu einem konkreten Text. <strong>Ohne Quelltext</strong> = schnelle Grammatik-/Kompetenz-Übung.</Tip>
+      </>
+    ),
+  },
+  {
+    id: 'faecher',
+    title: 'Fächer',
+    Icon: BookOpen,
+    body: (
+      <>
+        <P>LUKA unterstützt alle textbasierten AHS-Fächer:</P>
+        <Steps items={[
+          <><strong>Sprachfächer:</strong> Deutsch, Englisch, Französisch, Spanisch, Italienisch und Latein. Der Generator erzeugt Inhalte in der Zielsprache (z. B. französische Vokabeln, lateinische Übersetzungen) und nutzt CEFR-Niveaus bzw. Latein-spezifische Hinweise.</>,
+          <><strong>Sachfächer:</strong> Geschichte, Geographie, Religion, Ethik, Psychologie und Philosophie. Inhalte werden deutschsprachig erzeugt; Textsorten und Bewertungskataloge orientieren sich vorerst am Deutsch-Modell.</>,
+        ]} />
+        <P>Du wählst das Fach in Schritt „Absicht" oder im Kompetenz-Modus. Die App passt daraufhin Sprache, verfügbare Blocktypen und didaktische Hinweise automatisch an.</P>
+        <Tip>Sachfächer sind in v1 mit den deutschsprachigen Katalogen nutzbar. Fachspezifische Kompetenzkataloge (z. B. Geschichts-Quellenanalyse) folgen in späteren Updates.</Tip>
       </>
     ),
   },

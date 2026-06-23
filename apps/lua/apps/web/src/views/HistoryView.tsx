@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import type { HistoryEntry } from '../lib/types';
 import { clearHistory, loadHistory } from '../lib/storage';
+import { fachLabel } from '@lehrunterlagen/schema';
 import { ViewShell } from './_ViewShell';
-
-const FACH_LABEL: Record<string, string> = { deutsch: 'Deutsch', englisch: 'Englisch' };
 const STUFE_LABEL: Record<string, string> = { oberstufe: 'Oberstufe', unterstufe: 'Unterstufe' };
 
 function formatDate(iso: string): string {
@@ -61,7 +60,7 @@ export function HistoryView() {
                 </span>
               </div>
               <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', margin: '0.25rem 0 0' }}>
-                {FACH_LABEL[e.fach] ?? e.fach} · {STUFE_LABEL[e.stufe] ?? e.stufe}
+                {fachLabel(e.fach)} · {STUFE_LABEL[e.stufe] ?? e.stufe}
                 {' · '}{e.blockCount} Block{e.blockCount !== 1 ? 'e' : ''}
                 {' · '}{e.totalPunkte} Punkte
                 {e.llmProvider ? ` · ${e.llmProvider}${e.modelName ? ` (${e.modelName})` : ''}` : ''}

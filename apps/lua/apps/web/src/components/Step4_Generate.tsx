@@ -13,6 +13,7 @@ import { useExport } from '../hooks/useExport';
 import { usePdfExport } from '../hooks/usePdfExport';
 import { computeCoverage } from '../lib/coverage';
 import { checkLernzielCoverage, checkSchreibaufgabe } from '@lehrunterlagen/llm';
+import { fachLabel } from '@lehrunterlagen/schema';
 import { RENDER_TEMPLATES } from '@lehrunterlagen/renderer';
 import { transformiereLeicht, findeOffeneBlockIds } from '../lib/niveauTransform';
 
@@ -232,7 +233,7 @@ export function Step4_Generate({ state, dispatch }: Props) {
             <tbody>
               {[
                 ['Thema', state.meta.thema || '—'],
-                ['Fach / Stufe', `${state.meta.fach === 'deutsch' ? 'Deutsch' : 'Englisch'} · ${state.meta.stufe === 'oberstufe' ? 'Oberstufe' : 'Unterstufe'}`],
+                ['Fach / Stufe', `${fachLabel(state.meta.fach)} · ${state.meta.stufe === 'oberstufe' ? 'Oberstufe' : 'Unterstufe'}`],
                 ['Blöcke', state.bloecke.map((b) => getBlockLabel(b.typ)).join(', ') || '—'],
                 ['Gesamtpunkte', String(totalPunkte)],
                 ['KI-Modell', state.llmProvider ? `${state.llmProvider} (${state.modelName})` : '—'],

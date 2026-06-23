@@ -1,7 +1,6 @@
 import { Star, Trash2, X, RotateCcw, FileX, Sparkles } from 'lucide-react';
+import { fachLabel } from '@lehrunterlagen/schema';
 import type { SavedDocument } from '../lib/types';
-
-const FACH_LABEL: Record<string, string> = { deutsch: 'Deutsch', englisch: 'Englisch' };
 const STUFE_LABEL: Record<string, string> = { oberstufe: 'Oberstufe', unterstufe: 'Unterstufe' };
 
 function formatDate(iso: string): string {
@@ -103,7 +102,7 @@ export function DocumentList({
                 </strong>
               </div>
               <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', margin: '0.25rem 0 0' }}>
-                {FACH_LABEL[meta.fach] ?? meta.fach} · {STUFE_LABEL[meta.stufe] ?? meta.stufe}
+                {fachLabel(meta.fach)} · {STUFE_LABEL[meta.stufe] ?? meta.stufe}
                 {' · '}{blockCount} Block{blockCount !== 1 ? 'e' : ''}
                 {doc.snapshot.llmProvider ? ` · ${doc.snapshot.llmProvider}` : ''}
               </p>

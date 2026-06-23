@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
 import { ArrowRight, Target, Loader2 } from 'lucide-react';
 import type { AppState, AppAction } from '../lib/types';
-import type { StoffItem, BlockTyp } from '@lehrunterlagen/schema';
+import type { StoffItem, BlockTyp, Fach } from '@lehrunterlagen/schema';
+import { FACH_META, fachLabel } from '@lehrunterlagen/schema';
 import { listStoffItems } from '../lib/stoffkatalog';
 import { BLOCK_TYPE_DEFS, STUFE_RULES } from '../lib/constants';
 import { buildSkelett } from '@lehrunterlagen/schema';
@@ -19,10 +20,7 @@ const RAHMENWERKE = [
   { id: 'ib-dp' as const, label: 'IB Diploma Programme' },
 ] as const;
 
-const FAECHER = [
-  { id: 'deutsch' as const, label: 'Deutsch' },
-  { id: 'englisch' as const, label: 'Englisch' },
-] as const;
+const FAECHER = Object.entries(FACH_META).map(([id, m]) => ({ id: id as Fach, label: m.label }));
 
 const STUFEN = [
   { id: 'oberstufe' as const, label: 'Oberstufe' },
@@ -37,7 +35,7 @@ const NIVEAUS = [
 
 export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
   const [rahmenwerk, setRahmenwerk] = useState<'at-lehrplan' | 'ib-dp'>('at-lehrplan');
-  const [fach, setFach] = useState<'deutsch' | 'englisch'>('englisch');
+  const [fach, setFach] = useState<Fach>('englisch');
   const [stufe, setStufe] = useState<'oberstufe' | 'unterstufe'>('oberstufe');
   const [stoffItem, setStoffItem] = useState<StoffItem | null>(null);
   const [freieKompetenz, setFreieKompetenz] = useState('');
@@ -228,17 +226,22 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
       <section style={{ marginBottom: '1.25rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
         <div>
           <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.875rem' }}>Fach</label>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            {FAECHER.map((f) => (
-              <button
-                key={f.id}
-                onClick={() => setFach(f.id)}
-                style={fach === f.id ? activeButtonStyle : buttonStyle}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
+          <select
+            value={fach}
+            onChange={(e) => setFach(e.target.value as Fach)}
+            style={{ width: '100%', padding: '0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)', background: 'var(--color-bg-base)', fontSize: '0.875rem' }}
+          >
+            <optgroup label="Sprachfächer">
+              {FAECHER.filter((f) => FACH_META[f.id].sprachfach).map((f) => (
+                <option key={f.id} value={f.id}>{f.label}</option>
+              ))}
+            </optgroup>
+            <optgroup label="Sachfächer">
+              {FAECHER.filter((f) => !FACH_META[f.id].sprachfach).map((f) => (
+                <option key={f.id} value={f.id}>{f.label}</option>
+              ))}
+            </optgroup>
+          </select>
         </div>
         <div>
           <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.875rem' }}>Stufe</label>
