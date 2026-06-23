@@ -36,6 +36,24 @@ Damit die KI-Funktionen (Generieren, Korrigieren) laufen, brauchst du einen API-
 
 ---
 
+## Fächer
+
+LUKA unterstützt alle textbasierten AHS-Fächer in einer Codebase:
+
+- **Sprachfächer:** Deutsch, Englisch, Französisch, Spanisch, Italienisch, Latein.
+  - Inhalte werden in der Zielsprache erzeugt.
+  - Für lebende Fremdsprachen fließen CEFR-Niveaus (A2–B2) ein.
+  - Latein wird als Sprachfach behandelt, aber ohne CEFR-Bezug.
+- **Sachfächer:** Geschichte, Geographie, Religion, Ethik, Psychologie, Philosophie.
+  - Inhalte werden deutschsprachig erzeugt.
+  - Textsorten und Bewertungskataloge orientieren sich vorerst am Deutsch-Modell.
+
+Du wählst das Fach in Schritt **Absicht** oder im **Kompetenz-Modus**. Daraufhin passt LUKA automatisch Sprache, verfügbare Blocktypen und didaktische Hinweise an.
+
+> 💡 Sachfächer sind in v1 mit den deutschsprachigen Katalogen nutzbar. Fachspezifische Kompetenzkataloge (z. B. Geschichts-Quellenanalyse) folgen in späteren Updates.
+
+---
+
 ## Unterlagen erstellen
 
 Der Generator führt dich in fünf Schritten von der Absicht zum fertigen DOCX.

@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo, useEffect } from 'react';
 import { ArrowRight, Clock, FolderOpen, BookOpen, ClipboardCheck, Target, Grid3X3, Languages, Pencil } from 'lucide-react';
 import type { AppState, AppAction } from '../lib/types';
 import { BLOCK_TYPE_DEFS, SCHWIERIGKEIT_RULES, UNTERLAGENTYP_MINUTEN } from '../lib/constants';
-import { buildSkelett, type Auftrag } from '@lehrunterlagen/schema';
+import { buildSkelett, FACH_META, fachLabel, istSprachfach, type Auftrag, type Fach } from '@lehrunterlagen/schema';
 import { EXAMPLE_ABSICHTEN } from '../lib/exampleAbsichten';
 import { loadDocuments, loadSettings } from '../lib/storage';
 import { consumePendingUebung } from '../lib/korrekturBridge';
@@ -256,7 +256,7 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
     }
   }, [typ, fach, stufe, thema, datum, klasse, dauerMinuten, schwierigkeit, gewuenschteAufgabenarten, gesamtpunkteZiel, punkteVergeben, notizen, lernzieleRaw, fokusThemen, nataschaFehler, state.quelltexte, state.bloecke, dispatch]);
 
-  const fachLabel = fach === 'deutsch' ? 'Deutsch' : 'Englisch';
+  const fachLabelCurrent = fachLabel(fach);
   const stufeLabel = stufe === 'oberstufe' ? 'Oberstufe' : 'Unterstufe';
 
   return (
@@ -279,7 +279,7 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
             >
               <span style={{ fontWeight: 600 }}>{lastDoc.title}</span>
               <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
-                {lastDoc.snapshot.meta.fach === 'deutsch' ? 'Deutsch' : 'Englisch'} · {lastDoc.snapshot.meta.stufe === 'oberstufe' ? 'Oberstufe' : 'Unterstufe'} · zuletzt {new Date(lastDoc.updatedAt).toLocaleDateString('de-AT')}
+                {fachLabel(lastDoc.snapshot.meta.fach)} · {lastDoc.snapshot.meta.stufe === 'oberstufe' ? 'Oberstufe' : 'Unterstufe'} · zuletzt {new Date(lastDoc.updatedAt).toLocaleDateString('de-AT')}
               </span>
             </Tile>
           )}
@@ -526,19 +526,26 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
       <section style={{ marginBottom: '1.25rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
         <div>
           <SectionLabel>Fach</SectionLabel>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            {(['deutsch', 'englisch'] as const).map((f) => (
-              <button
-                key={f}
-                className="tile"
-                aria-pressed={fach === f}
-                onClick={() => setFach(f)}
-                style={{ flex: 1, padding: '0.5rem', alignItems: 'center', justifyContent: 'center', fontSize: '0.875rem' }}
-              >
-                {f === 'deutsch' ? 'Deutsch' : 'Englisch'}
-              </button>
-            ))}
-          </div>
+          <select
+            value={fach}
+            onChange={(e) => setFach(e.target.value as Fach)}
+            style={{ width: '100%', padding: '0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)', background: 'var(--color-bg-base)', fontSize: '0.875rem' }}
+          >
+            <optgroup label="Sprachfächer">
+              {Object.entries(FACH_META)
+                .filter(([, m]) => m.sprachfach)
+                .map(([f, m]) => (
+                  <option key={f} value={f}>{m.label}</option>
+                ))}
+            </optgroup>
+            <optgroup label="Sachfächer">
+              {Object.entries(FACH_META)
+                .filter(([, m]) => !m.sprachfach)
+                .map(([f, m]) => (
+                  <option key={f} value={f}>{m.label}</option>
+                ))}
+            </optgroup>
+          </select>
         </div>
         <div>
           <SectionLabel>Stufe</SectionLabel>
@@ -796,7 +803,7 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
         fontSize: '0.875rem',
       }}>
         <strong>Vorschau:</strong>{' '}
-        {UNTERLAGENTYPEN.find((u) => u.id === typ)?.label} · {fachLabel} · {stufeLabel}
+        {UNTERLAGENTYPEN.find((u) => u.id === typ)?.label} · {fachLabelCurrent} · {stufeLabel}
         {thema ? ` · „${thema}"` : ''}
         {klasse ? ` · ${klasse}` : ''}
       </div>

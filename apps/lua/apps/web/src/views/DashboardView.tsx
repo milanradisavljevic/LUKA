@@ -8,7 +8,8 @@ import { useNatascha } from '../hooks/useNatascha';
 import { loadDocuments, loadTemplates } from '../lib/storage';
 import { BLOCK_TYPE_DEFS } from '../lib/constants';
 import type { ActiveView, SavedDocument } from '../lib/types';
-import type { Block } from '@lehrunterlagen/schema';
+import { fachLabel } from '@lehrunterlagen/schema';
+import type { Block, Fach } from '@lehrunterlagen/schema';
 import { Hero } from '../components/ui/Hero';
 import { Door } from '../components/ui/Door';
 import { Tile } from '../components/ui/Tile';
@@ -89,7 +90,7 @@ export function DashboardView({ onNavigate, onStartQuickExercise }: DashboardVie
         return {
           id: t.id,
           name: t.name,
-          fach: meta.fach === 'englisch' ? 'Englisch' : meta.fach === 'deutsch' ? 'Deutsch' : null,
+          fach: meta.fach ? fachLabel(meta.fach as Fach) : null,
           stufe: meta.stufe === 'oberstufe' ? 'Oberstufe' : meta.stufe === 'unterstufe' ? 'Unterstufe' : null,
           punkte,
           minuten,
@@ -244,7 +245,7 @@ export function DashboardView({ onNavigate, onStartQuickExercise }: DashboardVie
                 {lastDocument.title}
               </div>
               <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-                {lastDocument.snapshot.meta.fach === 'deutsch' ? 'Deutsch' : 'Englisch'}
+                {fachLabel(lastDocument.snapshot.meta.fach)}
                 {' '}&middot;{' '}
                 {lastDocument.snapshot.meta.stufe === 'oberstufe' ? 'Oberstufe' : 'Unterstufe'}
                 {' '}&middot;{' '}

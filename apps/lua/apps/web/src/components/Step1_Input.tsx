@@ -3,7 +3,8 @@ import { FileText, Upload, ArrowRight } from 'lucide-react';
 import type { AppState, AppAction } from '../lib/types';
 import { extractHtmlText } from '../lib/importText';
 import { istUrlArtig, titelAusUrl } from '../lib/urlTitle';
-import { bereinigeQuelltext } from '@lehrunterlagen/schema';
+import { bereinigeQuelltext, fachLabel } from '@lehrunterlagen/schema';
+import type { Fach } from '@lehrunterlagen/schema';
 import { analysiereQuelltext } from '../lib/quelltextInfo';
 
 interface Props {
@@ -92,8 +93,8 @@ function labelTyp(typ: string | undefined): string {
   return typ ? labels[typ] ?? typ : '-';
 }
 
-function labelFach(fach: string): string {
-  return fach === 'deutsch' ? 'Deutsch' : 'Englisch';
+function labelFach(fach: Fach): string {
+  return fachLabel(fach);
 }
 
 function labelStufe(stufe: string): string {

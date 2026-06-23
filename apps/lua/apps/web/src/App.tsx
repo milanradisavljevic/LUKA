@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Save, Command, ArrowLeft, ArrowRight, Loader2, BookOpen } from 'lucide-react';
 import type { AppAction, ActiveView, SavedDocument } from './lib/types';
 import { STEP_DESCRIPTIONS } from './lib/types';
+import { fachLabel } from '@lehrunterlagen/schema';
 import type { Meta, Block } from '@lehrunterlagen/schema';
 import { useWizard } from './hooks/useWizard';
 import { useTheme } from './hooks/useTheme';
@@ -336,7 +337,7 @@ if (hydrating) {
               style={{ border: 'none', cursor: 'pointer' }}
             >
               <BookOpen size={12} />
-              {state.meta.fach === 'deutsch' ? 'Deutsch' : state.meta.fach === 'englisch' ? 'Englisch' : state.meta.fach}
+              {fachLabel(state.meta.fach)}
               {' '}&middot;{' '}
               {state.meta.stufe === 'oberstufe' ? 'Oberstufe' : 'Unterstufe'}
               {state.meta.klasse ? ` \u00B7 ${state.meta.klasse}` : ''}

@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
+import { fachLabel } from '@lehrunterlagen/schema';
 import type { Meta, Block } from '@lehrunterlagen/schema';
 import { getEmptyLoesung } from '../components/TemplateManager';
 import { ViewShell } from './_ViewShell';
 
 const STORAGE_KEY = 'lehrunterlagen-templates';
-
-const FACH_LABEL: Record<string, string> = { deutsch: 'Deutsch', englisch: 'Englisch' };
 const STUFE_LABEL: Record<string, string> = { oberstufe: 'Oberstufe', unterstufe: 'Unterstufe' };
 
 interface StoredTemplate {
@@ -178,7 +177,7 @@ export function TemplatesView({ meta, bloecke, onLoad }: Props) {
               <div style={{ flex: 1 }}>
                 <strong style={{ fontSize: '0.9375rem' }}>{tpl.name}</strong>
                 <p style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)', margin: '0.25rem 0 0' }}>
-                  {FACH_LABEL[tpl.meta.fach] ?? tpl.meta.fach} · {STUFE_LABEL[tpl.meta.stufe] ?? tpl.meta.stufe}
+                  {fachLabel(tpl.meta.fach)} · {STUFE_LABEL[tpl.meta.stufe] ?? tpl.meta.stufe}
                   {' · '}{tpl.bloecke.length} Block{tpl.bloecke.length !== 1 ? 'e' : ''}
                 </p>
                 <p style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)', margin: '0.125rem 0 0' }}>

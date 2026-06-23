@@ -5,7 +5,8 @@ import { useNatascha } from '../hooks/useNatascha';
 import type { KlasseInfo } from '../lib/storage';
 import type { SchuelerProfilRow } from '../hooks/useNatascha';
 import { KATEGORIE_TO_BLOCKTYPEN, type NataschaPrefill, type BridgeBeispiel } from '../lib/nataschaBridge';
-import type { BlockTyp } from '@lehrunterlagen/schema';
+import { FACH_META, fachLabel } from '@lehrunterlagen/schema';
+import type { BlockTyp, Fach } from '@lehrunterlagen/schema';
 import { ViewShell } from './_ViewShell';
 
 const FEHLER_LABELS: Record<string, string> = { R: 'Rechtschreibung', G: 'Grammatik', Z: 'Zeichensetzung', A: 'Ausdruck' };
@@ -315,7 +316,9 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
               style={{ width: '100%', boxSizing: 'border-box', marginBottom: 4, fontSize: '0.75rem', padding: '0.25rem 0.4rem' }} />
             <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
               <select value={aufFach} onChange={(e) => setAufFach(e.target.value)} style={{ flex: 1, fontSize: '0.7rem' }}>
-                <option>Deutsch</option><option>Englisch</option>
+                {Object.entries(FACH_META).map(([f, m]) => (
+                  <option key={f} value={m.label}>{m.label}</option>
+                ))}
               </select>
               <select value={aufStufe} onChange={(e) => setAufStufe(e.target.value)} style={{ flex: 1, fontSize: '0.7rem' }}>
                 <option>Oberstufe</option><option>Unterstufe</option>

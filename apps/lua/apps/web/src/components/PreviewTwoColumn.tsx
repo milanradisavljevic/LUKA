@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { AlertTriangle, CheckCircle2, Check, Circle, Pencil, RefreshCw, FileText, KeyRound } from 'lucide-react';
+import { istSprachfach, fachLabel } from '@lehrunterlagen/schema';
 import type { Block } from '@lehrunterlagen/schema';
 import type { AppState, AppAction } from '../lib/types';
 import { BlockPreview } from './BlockPreview';
@@ -98,8 +99,8 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
   const zeigePunkte = meta.punkteAusblenden !== true && gesamtPunkte > 0;
 
   // Schülerkopf (Name/Klasse/Datum) + Aufgabenübersicht — spiegelt das DOCX-Layout.
-  // Beschriftungen folgen der Fachsprache, damit Vorschau = englischer Export ist.
-  const isEnglish = meta.fach === 'englisch';
+  // Beschriftungen folgen der Fachsprache, damit Vorschau = fremdsprachiger Export ist.
+  const isEnglish = istSprachfach(meta.fach);
   const L = isEnglish
     ? { klasse: 'Class:', datum: 'Date:', uebersicht: 'Overview', nr: 'No.', aufgabe: 'Exercise', punkte: 'Points', gesamt: 'TOTAL', note: 'Grade:', unterschrift: 'Signature:' }
     : { klasse: 'Klasse:', datum: 'Datum:', uebersicht: 'Aufgabenübersicht', nr: 'Nr.', aufgabe: 'Aufgabe', punkte: 'Punkte', gesamt: 'GESAMT', note: 'Note:', unterschrift: 'Unterschrift:' };
@@ -161,7 +162,7 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
         {sprechenderTitel ? `${sprechenderTitel}${mode === 'loesung' ? ' – Lösungsfassung' : ''}` : `${meta.thema || '(Thema)'}${mode === 'loesung' ? ' – Lösungsfassung' : ''}`}
       </h2>
       <p style={{ fontSize: '9pt', color: PAPER_SECONDARY, marginBottom: didaktik?.einleitung?.trim() ? '0.5rem' : '0.75rem' }}>
-        {sprechenderTitel && <span>{meta.fach === 'deutsch' ? 'Deutsch' : 'Englisch'} · {meta.thema || '(Thema)'} · </span>}
+        {sprechenderTitel && <span>{fachLabel(meta.fach)} · {meta.thema || '(Thema)'} · </span>}
         {meta.stufe === 'oberstufe' ? 'Oberstufe' : 'Unterstufe'}
         {meta.schwierigkeit ? ` · ${meta.schwierigkeit.charAt(0).toUpperCase() + meta.schwierigkeit.slice(1)}` : ''}
       </p>
@@ -223,7 +224,7 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
 
   const renderTransferaufgabe = () => {
     if (!didaktik?.transferaufgabe?.trim()) return null;
-    const isEnglish = meta.fach === 'englisch';
+    const isEnglish = istSprachfach(meta.fach);
     const title = isEnglish ? 'Your turn:' : 'Zum Schluss – jetzt du!';
     const text = didaktik.transferaufgabe.trim().replace(/^Your turn:\s*/i, '').replace(/^Zum Schluss – jetzt du!\s*/i, '');
     return (
@@ -426,7 +427,7 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
     <div style={{ fontFamily: 'var(--font)', fontSize: '11pt', color: PAPER_TEXT }}>
       {renderDidaktischerRahmen('loesung')}
       <p style={{ fontSize: '9pt', color: PAPER_SECONDARY, marginBottom: '0.5rem' }}>
-        {meta.fach === 'deutsch' ? 'Deutsch' : 'Englisch'} ·{' '}
+        {fachLabel(meta.fach)} ·{' '}
         {meta.stufe === 'oberstufe' ? 'Oberstufe' : 'Unterstufe'} · Lösung
         {meta.schwierigkeit ? ` · ${meta.schwierigkeit.charAt(0).toUpperCase() + meta.schwierigkeit.slice(1)}` : ''}
       </p>
