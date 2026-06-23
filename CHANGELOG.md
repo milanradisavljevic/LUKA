@@ -7,6 +7,19 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Kompetenz-Modus: Sachfach-Stoffkataloge Welle 2
+- Neue Fach-Kataloge für die 6 Sachfächer in `apps/web/src/lib/stoffkatalog/`:
+  `geschichte.ts`, `geographie.ts`, `religion.ts`, `ethik.ts`, `psychologie.ts`,
+  `philosophie.ts`. Jeder Katalog hält je Stufe (Unter-/Oberstufe) Deskriptoren
+  und Stoff-Items pro Kompetenzbereich (exakte Namen aus `KOMPETENZBEREICHE`
+  in `@lehrunterlagen/schema`).
+- `apps/web/src/lib/stoffkatalog/index.ts`: Alle neuen Fächer in die
+  Aggregat-Arrays `DESKRIPTOREN` und `STOFF_ITEMS` eingetragen.
+- Deskriptoren sind als kuratierte Entwürfe gekennzeichnet (`quelle` =
+  „Entwurf, angelehnt an BMBWF-Lehrplan AHS <Fach> …").
+- Verifikation: `pnpm --filter "./packages/*" build && pnpm -r typecheck && pnpm -r test`
+  grün (Schema 127, LLM 126, Renderer 38, Input 17, QA 101, Web 64).
+
 ### Added — Neuer Aufgabenblock: Rollenspiel (Roleplay)
 - `packages/schema/src/index.ts`: Neuer `RoleplayBlock` mit Situation, Setting,
   Ziel, Zeitvorgabe, gemeinsamen + rollenspezifischen Redemitteln, 2–4 Rollen,
