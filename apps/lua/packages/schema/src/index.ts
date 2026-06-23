@@ -16,8 +16,37 @@ export type Unterlagentyp = z.infer<typeof UnterlagentypSchema>;
 export const StufeSchema = z.enum(['oberstufe', 'unterstufe']);
 export type Stufe = z.infer<typeof StufeSchema>;
 
-export const FachSchema = z.enum(['deutsch', 'englisch']);
+export const FachSchema = z.enum([
+  // Sprachfächer (Inhalt in der Zielsprache; CEFR/Vokabel-Logik)
+  'deutsch', 'englisch', 'franzoesisch', 'spanisch', 'italienisch', 'latein',
+  // Sachfächer (deutschsprachig, textbasiert)
+  'geschichte', 'geographie', 'religion', 'ethik', 'psychologie', 'philosophie',
+]);
 export type Fach = z.infer<typeof FachSchema>;
+
+/** Metadaten je Fach: Anzeigename, ob Sprachfach (Inhalt in Zielsprache), Zielsprache. */
+export const FACH_META: Record<Fach, { label: string; sprachfach: boolean; zielsprache: string }> = {
+  deutsch:     { label: 'Deutsch',     sprachfach: false, zielsprache: 'Deutsch' },
+  englisch:    { label: 'Englisch',    sprachfach: true,  zielsprache: 'Englisch' },
+  franzoesisch:{ label: 'Französisch', sprachfach: true,  zielsprache: 'Französisch' },
+  spanisch:    { label: 'Spanisch',    sprachfach: true,  zielsprache: 'Spanisch' },
+  italienisch: { label: 'Italienisch', sprachfach: true,  zielsprache: 'Italienisch' },
+  latein:      { label: 'Latein',      sprachfach: true,  zielsprache: 'Latein' },
+  geschichte:  { label: 'Geschichte',  sprachfach: false, zielsprache: 'Deutsch' },
+  geographie:  { label: 'Geographie',  sprachfach: false, zielsprache: 'Deutsch' },
+  religion:    { label: 'Religion',    sprachfach: false, zielsprache: 'Deutsch' },
+  ethik:       { label: 'Ethik',       sprachfach: false, zielsprache: 'Deutsch' },
+  psychologie: { label: 'Psychologie', sprachfach: false, zielsprache: 'Deutsch' },
+  philosophie: { label: 'Philosophie', sprachfach: false, zielsprache: 'Deutsch' },
+};
+
+/** Sprachfach = Inhalt soll in der Zielsprache stehen (Englisch, Französisch, …). */
+export function istSprachfach(fach: Fach): boolean {
+  return FACH_META[fach]?.sprachfach ?? false;
+}
+export function fachLabel(fach: Fach): string {
+  return FACH_META[fach]?.label ?? fach;
+}
 
 export const ModusSchema = z.enum(['text', 'kompetenz']);
 export type Modus = z.infer<typeof ModusSchema>;

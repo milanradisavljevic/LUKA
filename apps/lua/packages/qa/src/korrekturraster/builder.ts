@@ -1,4 +1,5 @@
 import type { DocumentV1, Block } from '@lehrunterlagen/schema';
+import { istSprachfach } from '@lehrunterlagen/schema';
 import type { KorrekturrasterDokument, RasterBlock, RasterKriterium } from './types';
 import type { KriterienKatalog } from './kataloge';
 import {
@@ -19,7 +20,7 @@ import { berechneNotenschluessel } from './notenschluessel';
 // Katalog-Auswahl nach Block-Typ + Textsorte + Fach
 // ---------------------------------------------------------------------------
 
-function waehleKatalog(block: Block, fach: string): KriterienKatalog[] {
+function waehleKatalog(block: Block, fach: DocumentV1['meta']['fach']): KriterienKatalog[] {
   switch (block.typ) {
     case 'lueckentext':
     case 'matching':
@@ -51,10 +52,11 @@ function waehleKatalog(block: Block, fach: string): KriterienKatalog[] {
 
     case 'offeneSchreibaufgabe': {
       const textsorte = block.config.textsorte.toLowerCase();
-      if (fach === 'englisch') {
+      if (istSprachfach(fach)) {
+        // Fremdsprachen-Schreibaufgabe: einheitliches Open-Writing-Raster.
         return OPEN_WRITING;
       }
-      // Deutsch: nach Textsorte
+      // Sachfaecher (deutschsprachig): nach Textsorte
       if (textsorte.includes('zusammenfassung')) return ZUSAMMENFASSUNG;
       if (textsorte.includes('erörterung') || textsorte.includes('erorterung') || textsorte.includes('stellungnahme')) return ERORTERUNG;
       if (textsorte.includes('analyse') || textsorte.includes('interpretation')) return TEXTANALYSE;

@@ -25,7 +25,7 @@ import {
 import type { DocumentV1, Block, QuellText } from '@lehrunterlagen/schema';
 import type { RenderTemplate } from './template.js';
 import { RENDER_TEMPLATES, getDefaultTemplate } from './template.js';
-import { baueWortbank, shuffle, baueKreuzwortgitter, baueWortgitter, bereinigeQuelltext } from '@lehrunterlagen/schema';
+import { baueWortbank, shuffle, baueKreuzwortgitter, baueWortgitter, bereinigeQuelltext, fachLabel as fachLabelOf } from '@lehrunterlagen/schema';
 
 const DEFAULT_TEMPLATE = RENDER_TEMPLATES.klassisch;
 
@@ -212,7 +212,7 @@ function buildCoverageHeader(
   anzahlFehlend: number,
   template: RenderTemplate,
 ): (Paragraph | Table)[] {
-  const fachLabel = meta.fach.charAt(0).toUpperCase() + meta.fach.slice(1);
+  const fachLabel = fachLabelOf(meta.fach as Parameters<typeof fachLabelOf>[0]);
   const stufeLabel = meta.stufe === 'oberstufe' ? 'Oberstufe' : 'Unterstufe';
   const gesamt = anzahlAbgedeckt + anzahlFehlend;
 
@@ -431,7 +431,7 @@ function buildSelbsteinschaetzungDoc(
 }
 
 function buildRasterHeader(raster: Pick<KorrekturrasterDokument, 'meta'>, template: RenderTemplate): (Paragraph | Table)[] {
-  const fachLabel = raster.meta.fach.charAt(0).toUpperCase() + raster.meta.fach.slice(1);
+  const fachLabel = fachLabelOf(raster.meta.fach as Parameters<typeof fachLabelOf>[0]);
   const stufeLabel = raster.meta.stufe === 'oberstufe' ? 'Oberstufe' : 'Unterstufe';
 
   return [
@@ -757,7 +757,7 @@ function buildPageFooter(template: RenderTemplate): Footer {
 function buildDocumentHeader(doc: DocumentV1, mode: Mode, template: RenderTemplate): Paragraph[] {
   const { meta } = doc;
   const isEnglish = meta.fach === 'englisch';
-  const fachLabel = isEnglish ? 'English' : 'Deutsch';
+  const fachLabel = isEnglish ? 'English' : fachLabelOf(meta.fach);
   const stufeLabel = meta.stufe === 'oberstufe' ? (isEnglish ? 'Upper level' : 'Oberstufe') : (isEnglish ? 'Lower level' : 'Unterstufe');
   const modeLabel = mode === 'loesung' ? (isEnglish ? ' – Solution' : ' – Lösungsfassung') : '';
 
