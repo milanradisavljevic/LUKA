@@ -4,6 +4,10 @@ import { loadSettings } from '../lib/storage';
 import { useNatascha } from '../hooks/useNatascha';
 import { ViewShell } from './_ViewShell';
 
+function isTauri(): boolean {
+  return typeof window !== 'undefined' && (window as any).__TAURI_INTERNALS__ !== undefined;
+}
+
 interface FehlerRow { id: number; zitat: string | null; korrektur: string | null; typ: string; erklaerung: string | null }
 
 interface AbgabeDetail {
@@ -100,6 +104,32 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
   const [batchCurrent, setBatchCurrent] = useState(0);
   const [batchResults, setBatchResults] = useState<{ file: string; ok: boolean; msg: string }[]>([]);
   const batchCancelRef = useRef(false);
+  // Drag-&-Drop-Ablage: Dateien in den Analyse-Dialog ziehen (Tauri liefert absolute Pfade).
+  const [dragActive, setDragActive] = useState(false);
+
+  useEffect(() => {
+    if (!analyzeOpen || !isTauri()) return;
+    let unlisten: (() => void) | undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { getCurrentWebview } = await import('@tauri-apps/api/webview');
+        const un = await getCurrentWebview().onDragDropEvent((event) => {
+          const p = event.payload as { type: string; paths?: string[] };
+          if (p.type === 'enter' || p.type === 'over') setDragActive(true);
+          else if (p.type === 'leave') setDragActive(false);
+          else if (p.type === 'drop') {
+            setDragActive(false);
+            const docs = (p.paths ?? []).filter((f) => /\.(docx|pdf|txt|odt)$/i.test(f));
+            if (docs.length === 1) { setAnalyzeFile(docs[0]!); }
+            else if (docs.length > 1) { setBatchFiles(docs); setBatchResults([]); }
+          }
+        });
+        if (cancelled) un(); else unlisten = un;
+      } catch { /* Drag-&-Drop nicht verfügbar (z. B. Web-Dev) — Picker bleibt */ }
+    })();
+    return () => { cancelled = true; if (unlisten) unlisten(); setDragActive(false); };
+  }, [analyzeOpen]);
 
   useEffect(() => {
     listKlassen().then(setKlassen);
@@ -627,7 +657,27 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
             <h3 style={{ fontSize: '1rem', margin: '0 0 1rem' }}>Neue Analyse starten</h3>
 
             <div style={{ marginBottom: '0.75rem' }}>
-              <label>Datei (DOCX/PDF/TXT)</label>
+              <label>Datei (DOCX/PDF/TXT/ODT)</label>
+              {/* Drag-&-Drop-Ablage — Datei aus dem Explorer hierher ziehen (oder klicken) */}
+              <button
+                type="button"
+                onClick={pickFile}
+                style={{
+                  width: '100%', marginBottom: '0.5rem', padding: '1.1rem 0.75rem', cursor: 'pointer',
+                  border: `2px dashed ${dragActive ? 'var(--color-accent)' : 'var(--color-border)'}`,
+                  borderRadius: 'var(--radius)',
+                  background: dragActive ? 'var(--color-highlight-bg)' : 'var(--color-bg-base)',
+                  color: 'var(--color-text-secondary)', textAlign: 'center',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.35rem',
+                  transition: 'border-color 0.15s, background 0.15s',
+                }}
+              >
+                <Upload size={20} style={{ opacity: 0.7 }} />
+                <span style={{ fontSize: '0.875rem', color: 'var(--color-text-primary)' }}>
+                  {dragActive ? 'Loslassen zum Übernehmen' : 'Datei hierher ziehen oder klicken'}
+                </span>
+                <span style={{ fontSize: '0.7rem' }}>DOCX · PDF · TXT · ODT — mehrere Dateien = Stapel</span>
+              </button>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <input
                   type="text"
