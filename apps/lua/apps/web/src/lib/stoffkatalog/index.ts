@@ -5,6 +5,12 @@ import { franzoesischDeskriptoren, franzoesischStoffItems } from './franzoesisch
 import { spanischDeskriptoren, spanischStoffItems } from './spanisch';
 import { italienischDeskriptoren, italienischStoffItems } from './italienisch';
 import { lateinDeskriptoren, lateinStoffItems } from './latein';
+import { geschichteDeskriptoren, geschichteStoffItems } from './geschichte';
+import { geographieDeskriptoren, geographieStoffItems } from './geographie';
+import { religionDeskriptoren, religionStoffItems } from './religion';
+import { ethikDeskriptoren, ethikStoffItems } from './ethik';
+import { psychologieDeskriptoren, psychologieStoffItems } from './psychologie';
+import { philosophieDeskriptoren, philosophieStoffItems } from './philosophie';
 
 // ---------------------------------------------------------------------------
 // Stoffkatalog für den Kompetenz-Modus (Rahmenwerk at-lehrplan).
@@ -19,6 +25,12 @@ const DESKRIPTOREN: Deskriptor[] = [
   ...spanischDeskriptoren,
   ...italienischDeskriptoren,
   ...lateinDeskriptoren,
+  ...geschichteDeskriptoren,
+  ...geographieDeskriptoren,
+  ...religionDeskriptoren,
+  ...ethikDeskriptoren,
+  ...psychologieDeskriptoren,
+  ...philosophieDeskriptoren,
 ];
 
 const STOFF_ITEMS: StoffItem[] = [
@@ -28,6 +40,12 @@ const STOFF_ITEMS: StoffItem[] = [
   ...spanischStoffItems,
   ...italienischStoffItems,
   ...lateinStoffItems,
+  ...geschichteStoffItems,
+  ...geographieStoffItems,
+  ...religionStoffItems,
+  ...ethikStoffItems,
+  ...psychologieStoffItems,
+  ...philosophieStoffItems,
 ];
 
 // ---------------------------------------------------------------------------
