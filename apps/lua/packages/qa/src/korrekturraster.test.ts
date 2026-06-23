@@ -6,7 +6,7 @@ import type { DocumentV1 } from '@lehrunterlagen/schema';
 const isDocx = (buf: Buffer) =>
   buf[0] === 0x50 && buf[1] === 0x4b && buf[2] === 0x03 && buf[3] === 0x04;
 
-function makeDoc(bloecke: DocumentV1['bloecke'], fach: 'deutsch' | 'englisch' = 'deutsch', stufe: 'oberstufe' | 'unterstufe' = 'oberstufe'): DocumentV1 {
+function makeDoc(bloecke: DocumentV1['bloecke'], fach: DocumentV1['meta']['fach'] = 'deutsch', stufe: 'oberstufe' | 'unterstufe' = 'oberstufe'): DocumentV1 {
   return {
     schemaVersion: '0.1.0',
     meta: { stufe, fach, thema: 'Testthema', datum: '2026-05-30', klasse: '7A', notizen: '' },
@@ -308,5 +308,36 @@ describe('Renderer: renderRaster', () => {
     expect(schueler.equals(loesung)).toBe(false);
     expect(schueler.equals(rasterBuf)).toBe(false);
     expect(loesung.equals(rasterBuf)).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Builder: fachspezifische Schreibaufgaben-Kataloge (Sachfächer)
+// ---------------------------------------------------------------------------
+
+describe('Builder: Sachfach-Schreibaufgaben-Kataloge', () => {
+  const schreibBlock = {
+    id: 'b1', typ: 'offeneSchreibaufgabe' as const, punkte: 30,
+    arbeitsanweisung: 'Verfasse einen Text.',
+    config: { textsorte: 'Aufsatz', situation: 'x', umfangWorte: { min: 200, max: 300 }, aspekte: ['a', 'b'] },
+    loesung: { musterloesung: 'x', erwartungshorizont: { inhalt: 'x', struktur: 'x', ausdruck: 'x', sprachrichtigkeit: 'x' } },
+  };
+  const ersteKriterien = (fach: DocumentV1['meta']['fach']) =>
+    buildRaster(makeDoc([schreibBlock], fach)).bloecke[0].kriterien.map((k) => k.kriterium);
+
+  it('Geschichte → Quellenanalyse-Raster', () => {
+    expect(ersteKriterien('geschichte')).toContain('Quellenbeschreibung');
+  });
+  it('Geographie → Materialinterpretation-Raster', () => {
+    expect(ersteKriterien('geographie')).toContain('Materialerfassung');
+  });
+  it('Ethik → Sacherörterung-Raster', () => {
+    expect(ersteKriterien('ethik')).toContain('Eigenes begruendetes Urteil');
+  });
+  it('Französisch → Open-Writing-Raster (Sprachfach)', () => {
+    expect(ersteKriterien('franzoesisch')).toContain('Task Achievement');
+  });
+  it('Deutsch → bleibt textsortenbasiert (kein Sachfach-Override)', () => {
+    expect(ersteKriterien('deutsch')).toContain('Aufgabenerfuellung / Thema');
   });
 });

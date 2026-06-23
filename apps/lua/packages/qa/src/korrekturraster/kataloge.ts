@@ -44,6 +44,45 @@ export const TEXTANALYSE: KriterienKatalog[] = [
 ];
 
 // ---------------------------------------------------------------------------
+// Sachfach -- Geschichte: Quellenanalyse / -interpretation (Ober- und Unterstufe)
+// ---------------------------------------------------------------------------
+
+export const QUELLENANALYSE: KriterienKatalog[] = [
+  { kriterium: 'Quellenbeschreibung', beschreibung: 'Quellenart, Autor/in, Entstehungszeit und -kontext korrekt benannt', maxPunkte: 6 },
+  { kriterium: 'Inhaltserfassung', beschreibung: 'Kernaussagen der Quelle korrekt herausgearbeitet und in eigenen Worten wiedergegeben', maxPunkte: 8 },
+  { kriterium: 'Analyse / Einordnung', beschreibung: 'Quelle in den historischen Kontext eingeordnet; Intention/Perspektive erkannt', maxPunkte: 10 },
+  { kriterium: 'Sach- und Werturteil', beschreibung: 'Begründetes Urteil zu Aussagekraft und Bedeutung der Quelle', maxPunkte: 6 },
+  { kriterium: 'Fachsprache', beschreibung: 'Korrekte historische Fachbegriffe; sachliches Register', maxPunkte: 4 },
+  { kriterium: 'Sprachrichtigkeit', beschreibung: 'Grammatik, Rechtschreibung, Zeichensetzung', maxPunkte: 4 },
+];
+
+// ---------------------------------------------------------------------------
+// Sachfach -- Geographie/GW: Materialinterpretation / Sachanalyse
+// ---------------------------------------------------------------------------
+
+export const MATERIALINTERPRETATION: KriterienKatalog[] = [
+  { kriterium: 'Materialerfassung', beschreibung: 'Material (Karte, Diagramm, Statistik, Text) korrekt gelesen und beschrieben', maxPunkte: 6 },
+  { kriterium: 'Auswertung', beschreibung: 'Relevante Daten/Zusammenhaenge herausgearbeitet; Tendenzen erkannt', maxPunkte: 10 },
+  { kriterium: 'Erklaerung / Vernetzung', beschreibung: 'Ursachen, Wirkungen und raeumliche/wirtschaftliche Zusammenhaenge erklaert', maxPunkte: 8 },
+  { kriterium: 'Sach- und Werturteil', beschreibung: 'Begruendete Einschaetzung/Bewertung der Ergebnisse', maxPunkte: 6 },
+  { kriterium: 'Fachsprache', beschreibung: 'Korrekte Fachbegriffe; sachliches Register', maxPunkte: 4 },
+  { kriterium: 'Sprachrichtigkeit', beschreibung: 'Grammatik, Rechtschreibung, Zeichensetzung', maxPunkte: 4 },
+];
+
+// ---------------------------------------------------------------------------
+// Sachfach -- Religion/Ethik/Psychologie/Philosophie: argumentativer Reflexionstext
+// ---------------------------------------------------------------------------
+
+export const SACHERORTERUNG: KriterienKatalog[] = [
+  { kriterium: 'Fragestellung erfasst', beschreibung: 'Problem-/Fragestellung klar erkannt und entfaltet', maxPunkte: 6 },
+  { kriterium: 'Fachwissen', beschreibung: 'Relevante Begriffe, Theorien, Positionen korrekt eingebracht', maxPunkte: 8 },
+  { kriterium: 'Argumentation', beschreibung: 'Nachvollziehbar, mehrperspektivisch, belegt; Pro/Contra abgewogen', maxPunkte: 10 },
+  { kriterium: 'Eigenes begruendetes Urteil', beschreibung: 'Reflektierte, begruendete eigene Position', maxPunkte: 6 },
+  { kriterium: 'Struktur', beschreibung: 'Einleitung -- Hauptteil -- Schluss erkennbar und funktional', maxPunkte: 4 },
+  { kriterium: 'Sprachrichtigkeit', beschreibung: 'Grammatik, Rechtschreibung, Zeichensetzung; sachliches Register', maxPunkte: 4 },
+];
+
+// ---------------------------------------------------------------------------
 // Englisch -- Open Writing Task (Oberstufe, SRDP-kompatibel)
 // ---------------------------------------------------------------------------
 

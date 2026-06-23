@@ -7,6 +7,9 @@ import {
   ERORTERUNG,
   TEXTANALYSE,
   OPEN_WRITING,
+  QUELLENANALYSE,
+  MATERIALINTERPRETATION,
+  SACHERORTERUNG,
   readingComprehension,
   WORD_SCRAMBLE,
   KATEGORISIERUNG,
@@ -56,7 +59,11 @@ function waehleKatalog(block: Block, fach: DocumentV1['meta']['fach']): Kriterie
         // Fremdsprachen-Schreibaufgabe: einheitliches Open-Writing-Raster.
         return OPEN_WRITING;
       }
-      // Sachfaecher (deutschsprachig): nach Textsorte
+      // Sachfaecher: fachspezifische Schreibaufgaben-Raster.
+      if (fach === 'geschichte') return QUELLENANALYSE;
+      if (fach === 'geographie') return MATERIALINTERPRETATION;
+      if (fach === 'religion' || fach === 'ethik' || fach === 'psychologie' || fach === 'philosophie') return SACHERORTERUNG;
+      // Deutsch: nach Textsorte
       if (textsorte.includes('zusammenfassung')) return ZUSAMMENFASSUNG;
       if (textsorte.includes('erörterung') || textsorte.includes('erorterung') || textsorte.includes('stellungnahme')) return ERORTERUNG;
       if (textsorte.includes('analyse') || textsorte.includes('interpretation')) return TEXTANALYSE;
