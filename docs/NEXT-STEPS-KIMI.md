@@ -1,4 +1,4 @@
-# Next Steps — Kimi-Aufgaben (Stand 2026-06-18, Runde 3)
+# Next Steps — Kimi-Aufgaben (Stand 2026-06-23, Runde 4)
 
 Repo: **LUKA**. Branch `main`, **vor jeder Aufgabe `git pull`**.
 Nach jeder Aufgabe muss grün sein:
@@ -8,62 +8,61 @@ cd apps/lua && pnpm --filter "./packages/*" build && pnpm -r typecheck && pnpm -
 ```
 
 Danach **lokal committen** (ein Commit je Aufgabe). Push macht der Chief beim Review.
-Scoped, contentlastig, wenig Urteil — ideal für Kimi. Reihenfolge: K1 → K2 → K3.
-(Frühere Runden F1/F3/R2 sind erledigt; Archiv: `docs/_archiv-next-steps-kimi-r1r2.md`.)
+(Runden F1/F3/R2/K1–K3 + Rollenspiel sind erledigt.)
+
+## Kontext
+Das **Fächer-Modell** wurde im Backend bereits erweitert (Commit `bb1a98f`): `FachSchema`
+kennt jetzt 12 Fächer, und `@lehrunterlagen/schema` exportiert **`FACH_META`**,
+**`istSprachfach(fach)`** und **`fachLabel(fach)`**. Prompt/Renderer/qa nutzen das schon.
+**Nur die UI hängt noch an „Deutsch/Englisch" fest** — das ist diese Runde.
+
+Fächer: deutsch, englisch, franzoesisch, spanisch, italienisch, latein, geschichte,
+geographie, religion, ethik, psychologie, philosophie.
 
 ---
 
-## K1 — Hilfe + Anleitung für neue Features ergänzen (reiner Content)
-**Ziel:** Die seit Runde 1/2 gebauten Features sind in der In-App-Hilfe und der
-Standalone-Anleitung noch nicht (vollständig) erklärt.
-
+## K4 — Fach-Auswahl in Step 0 auf alle Fächer (Kern)
+**Datei:** `apps/lua/apps/web/src/components/Step0_Absicht.tsx`
+**Befund:** Die Fach-Auswahl rendert aktuell nur zwei Kacheln „Deutsch/Englisch"
+(~Z. 533–539, `setFach(f)`; Label `f === 'deutsch' ? 'Deutsch' : 'Englisch'`).
 **Tun:**
-- `apps/lua/apps/web/src/views/HelpView.tsx` (Array `SECTIONS`, akt. 15 Abschnitte):
-  Inhalte ergänzen/erweitern für:
-  1. **Differenzierung** (Step 4): „Differenzierung"-Akkordeon → leichtere/schwerere
-     Variante zusätzlich zur Standardfassung; schwerer = KI erzeugt offene Aufgaben neu.
-  2. **Manuelle/Hybrid-Eingabe** bei Kreuzworträtsel/Wortgitter/Vokabelübung/Fehlerkorrektur/
-     Wörter-ordnen: Umschalter „KI-generiert ⇄ Selbst festlegen"; teils ausgefüllt = Hybrid.
-  3. **Selbsteinschätzungsbogen** (Step 4 → „Weitere Exporte"): Bogen, den Schüler VOR der
-     Abgabe ausfüllen.
-  4. **Schnell ohne Quelltext** (Dashboard-Shortcuts / Step 0): Mini-Übungen ohne Quelltextzwang.
-  5. **API-Key-Hinweis** in Schritt 4 (Modellauswahl): ohne hinterlegten Key Hinweis + Link
-     zu den Einstellungen.
-- `docs/ANLEITUNG.md`: dieselben 5 Punkte spiegeln (reiner Markdown-Fließtext, Tip → „> 💡 …").
-**Akzeptanz:** alle 5 Themen in HelpView UND ANLEITUNG.md auffindbar, lesbar ohne App.
-Keine Code-Logik. Build/Tests unberührt grün.
+- Fach-Auswahl auf **alle Fächer aus `FACH_META`** umstellen. Bei 12 Fächern ist ein
+  `<select>` mit zwei `<optgroup>` sinnvoll: „Sprachen" (`istSprachfach` true) und
+  „Sachfächer" (false). Option-Label = `FACH_META[f].label`, value = der Fach-Key.
+- `import { FACH_META, istSprachfach, fachLabel } from '@lehrunterlagen/schema'`.
+- `fachLabel`-Konstante (~Z. 259) durch `fachLabel(fach)` ersetzen.
+- `setFach` bleibt; `fach`-State-Typ ist schon `Auftrag['fach']` (= alle Fächer).
+**Akzeptanz:** alle 12 Fächer wählbar; Auswahl landet in `meta.fach`; build/typecheck/test grün.
+
+## K5 — Hartkodierte „Deutsch/Englisch"-Labels überall durch `fachLabel()` ersetzen
+**Befund:** mehrere Stellen zeigen `fach === 'deutsch' ? 'Deutsch' : 'Englisch'` —
+falsch für neue Fächer. Ersetzen durch `fachLabel(meta.fach)` (Import aus schema):
+- `apps/lua/apps/web/src/components/PreviewTwoColumn.tsx` (Z. ~164 und ~429)
+- `apps/lua/apps/web/src/components/Step1_Input.tsx` (Z. ~96)
+- `apps/lua/apps/web/src/components/Step4_Generate.tsx` (Z. ~235, Zusammenfassung „Fach / Stufe")
+- `apps/lua/apps/web/src/App.tsx` (Z. ~339, Kontext-Badge — hat schon Fallback, trotzdem auf `fachLabel`)
+- `apps/lua/apps/web/src/views/HistoryView.tsx` (`FACH_LABEL`-Map → `fachLabel` nutzen)
+- `apps/lua/apps/web/src/views/DashboardView.tsx` (Z. ~92, `meta.fach === 'englisch' ? … : null`)
+**NICHT anfassen:** die „Schnell-ohne-Quelltext"-Shortcuts (DashboardView ~197–200, Step0 ~422/442)
+bleiben fix auf `deutsch` — das sind bewusst deutsche Mini-Übungen.
+**Akzeptanz:** kein hartes `'deutsch' ? … : 'Englisch'` mehr für Anzeige-Labels; ein generiertes
+Französisch-/Geschichte-Dokument zeigt überall den korrekten Fachnamen. build/typecheck/test grün.
+
+## K6 — Hilfe/ANLEITUNG: Fächer-Ausbau erwähnen (Content)
+**Datei:** `apps/lua/apps/web/src/views/HelpView.tsx` + `docs/ANLEITUNG.md`
+Kurzer Absatz: LUKA unterstützt jetzt neben Deutsch/Englisch auch Französisch, Spanisch,
+Italienisch, Latein sowie Geschichte, Geographie, Religion, Ethik, Psychologie, Philosophie.
+Bei Sprachfächern erstellt die KI die Inhalte in der Zielsprache; Sachfächer sind deutschsprachig.
+**Akzeptanz:** in HelpView UND ANLEITUNG auffindbar.
 
 ---
 
-## K2 — Toten Export entfernen: `LogoChip`
-**Befund:** `apps/lua/apps/web/src/components/BrandLogo.tsx` exportiert `LogoChip`
-(`@deprecated`, ~Z. 88–Ende). **Nirgends mehr importiert** (verifiziert: `grep -rn LogoChip src`
-nur in BrandLogo.tsx). `WORDMARK_STYLE` (Z. 7) bleibt — wird von der aktiven Marke genutzt, NICHT anfassen.
-**Tun:** nur die `LogoChip`-Funktion + zugehörigen Kommentar löschen. Sonst nichts.
-**Akzeptanz:** `grep -rn LogoChip apps/lua/apps/web/src` liefert 0 Treffer; build/typecheck/test grün.
-
----
-
-## K3 — Empty-State-Politur (DocumentsView + FavoritesView)
-**Befund:** `DocumentsView.tsx` und `FavoritesView.tsx` zeigen bei leerer Liste fast nichts.
-`TemplatesView.tsx` hat einen guten freundlichen Leerzustand — **als Vorbild nehmen** (Stil/Struktur).
-**Tun:** in beiden Views bei leerer Liste einen freundlichen Leerzustand zeigen: dezentes
-Lucide-Icon + kurzer Satz („Noch keine gespeicherten Unterlagen." / „Noch keine Favoriten.")
-+ optional ein Hinweis/CTA, wie man welche anlegt. Stil/Tokens wie TemplatesView, keine neue Logik.
-**Akzeptanz:** leere Liste → freundlicher Zustand (nicht nackt); gefüllte Liste unverändert.
-Build/typecheck/test grün.
-
----
-
-## NICHT für Kimi (Chief-geführt — Urteil/Architektur/Cross-Cutting)
-- **SRDP-Matura-Modus** — neues Renderer-Template + Format-Korrektheit + Synergie mit NATASCHA-
-  SRDP-Kriterien. Urteilslastig.
-- **Kompetenz-Dashboard-Ausbau** (#1: abgedeckt/fehlt-Übersicht) — Fundament (`coverage.ts`,
-  `at-lehrplan`) da, aber Lehrplan-Modellierung + UX-Entscheidung.
-- **`umformung`-Typ entfernen** — 26 Referenzen über schema/llm/web verwoben; sauberes Entfernen
-  ist Mehrdatei-Sorgfalt, kein Quick-Cleanup.
-- **In-App-Angabe-Erfassung** (Rust-Command-Arg + Analyse-UI) für den voll-automatischen Closed Loop.
+## NICHT für Kimi (Chief)
+- Fachspezifische Bewertungs-/Kompetenzkataloge für Sachfächer (Geschichte-Quellenanalyse,
+  Religion/Ethik-Argumentation) — didaktisches Urteil, eigene Runde. v1 nutzt Deutsch-Kataloge.
+- SRDP-Matura-Modus.
+- Vokabel-Richtungs-Feinschliff je Sprachfach.
 
 ## Offen beim Chief/User
-- Kein-Key-Warnung (Step 3) live in der laufenden App sichtprüfen (Tauri-`invoke`, nicht headless testbar).
-- GO-TO-MARKET (`docs/GO-TO-MARKET.md`) bewusst geparkt — noch nicht dran.
+- Drag-&-Drop-Zone (Korrektur) live in der App sichtprüfen (Tauri, nicht headless testbar).
+- `natascha-stable`-Branch ist der Snapshot für Natascha.
