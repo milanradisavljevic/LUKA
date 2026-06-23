@@ -26,7 +26,7 @@ export const lateinDeskriptoren: Deskriptor[] = [
   { id: 'at-la-ob-text-3', rahmenwerk: 'at-lehrplan', fach: 'latein', stufe: 'oberstufe', bereich: 'Textkompetenz', code: '', text: 'Die Schülerinnen können lateinische Texte in angemessenes Deutsch übertragen und dabei Sprachebenen beachten.', quelle: Q('Oberstufe') },
 
   // Kulturkompetenz — Unterstufe
-  { id: 'at-la-un-kult-1', rahmenwerk: 'at-lehrplan', fach: 'latein', stufe: 'unterstufe', bereich: 'Kulturkompetenz', code: '', text: 'Die Schülerinnen können grundlegende Aspekte des römischen Alltags, Staatswesens und Glaubensbenennen.', quelle: Q('Unterstufe') },
+  { id: 'at-la-un-kult-1', rahmenwerk: 'at-lehrplan', fach: 'latein', stufe: 'unterstufe', bereich: 'Kulturkompetenz', code: '', text: 'Die Schülerinnen können grundlegende Aspekte des römischen Alltags, Staatswesens und Glaubens benennen.', quelle: Q('Unterstufe') },
   { id: 'at-la-un-kult-2', rahmenwerk: 'at-lehrplan', fach: 'latein', stufe: 'unterstufe', bereich: 'Kulturkompetenz', code: '', text: 'Die Schülerinnen können lateinische Begriffe und Lehnwörter in modernen Sprachen erkennen.', quelle: Q('Unterstufe') },
   // Kulturkompetenz — Oberstufe
   { id: 'at-la-ob-kult-1', rahmenwerk: 'at-lehrplan', fach: 'latein', stufe: 'oberstufe', bereich: 'Kulturkompetenz', code: '', text: 'Die Schülerinnen können antike Texte in ihren historischen, kulturellen und gesellschaftlichen Kontext einordnen.', quelle: Q('Oberstufe') },
