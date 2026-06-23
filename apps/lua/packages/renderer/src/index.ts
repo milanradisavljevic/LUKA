@@ -242,6 +242,15 @@ function buildCoverageHeader(
           { font: template.font, size: template.fontSize.body, bold: true },
         ),
       ],
+      spacing: { after: 80 },
+    }),
+    new Paragraph({
+      children: [
+        run(
+          'Hinweis: Kuratierter Kompetenzkatalog (Entwurf, angelehnt an den BMBWF-Lehrplan) — kein offizieller Nachweis.',
+          { font: template.font, size: template.fontSize.body, italics: true, color: template.color.gray },
+        ),
+      ],
       spacing: { after: 200 },
     }),
   ];

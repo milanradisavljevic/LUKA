@@ -28,6 +28,7 @@ import {
   baueWortbank,
   FachSchema,
   FACH_META,
+  KOMPETENZBEREICHE,
   istSprachfach,
   fachLabel,
   type DocumentV1,
@@ -1570,5 +1571,13 @@ describe('Fächer-Modell (FachSchema / FACH_META)', () => {
   it('fachLabel liefert Anzeigenamen mit Umlauten', () => {
     expect(fachLabel('franzoesisch')).toBe('Französisch');
     expect(fachLabel('geschichte')).toBe('Geschichte');
+  });
+
+  it('KOMPETENZBEREICHE deckt jedes Fach mit ≥1 Bereich ab', () => {
+    for (const f of FachSchema.options) {
+      expect(KOMPETENZBEREICHE[f]).toBeDefined();
+      expect(KOMPETENZBEREICHE[f].length).toBeGreaterThan(0);
+      expect(KOMPETENZBEREICHE[f].every((b) => b.trim().length > 0)).toBe(true);
+    }
   });
 });

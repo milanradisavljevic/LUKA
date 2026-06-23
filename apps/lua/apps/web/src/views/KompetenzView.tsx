@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { ArrowRight, Target, Loader2 } from 'lucide-react';
 import type { AppState, AppAction } from '../lib/types';
 import type { StoffItem, BlockTyp, Fach } from '@lehrunterlagen/schema';
-import { FACH_META, fachLabel } from '@lehrunterlagen/schema';
+import { FACH_META, fachLabel, KOMPETENZBEREICHE } from '@lehrunterlagen/schema';
 import { listStoffItems } from '../lib/stoffkatalog';
 import { BLOCK_TYPE_DEFS, STUFE_RULES } from '../lib/constants';
 import { buildSkelett } from '@lehrunterlagen/schema';
@@ -300,15 +300,31 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
           }}
         >
           <option value="">Kein Katalog-Item — Freitext verwenden</option>
-          {stoffItems.map((item) => (
-            <option key={item.id} value={item.id}>{item.titel}</option>
-          ))}
+          {(() => {
+            // Nach Kompetenzbereich gruppieren (Reihenfolge aus KOMPETENZBEREICHE[fach]).
+            const bereiche = KOMPETENZBEREICHE[fach] ?? [];
+            const gruppen = bereiche
+              .map((b) => ({ bereich: b, items: stoffItems.filter((i) => i.kategorie === b) }))
+              .filter((g) => g.items.length > 0);
+            const rest = stoffItems.filter((i) => !bereiche.includes(i.kategorie));
+            if (rest.length > 0) gruppen.push({ bereich: 'Weitere', items: rest });
+            return gruppen.map((g) => (
+              <optgroup key={g.bereich} label={g.bereich}>
+                {g.items.map((item) => (
+                  <option key={item.id} value={item.id}>{item.titel}</option>
+                ))}
+              </optgroup>
+            ));
+          })()}
         </select>
         {stoffItems.length === 0 && (
           <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem' }}>
             Für diese Kombination gibt es noch keine Stoff-Items. Du kannst trotzdem oben eine Kompetenz frei eingeben.
           </p>
         )}
+        <p style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', fontStyle: 'italic' }}>
+          Hinweis: Die Kompetenzkataloge sind kuratierte Entwürfe, angelehnt an den BMBWF-Lehrplan — kein offizieller Nachweis.
+        </p>
       </section>
 
       {/* Thema */}
