@@ -1,4 +1,5 @@
 import type { ChatMessage, GenerateInput } from './types.js';
+import { FACH_META, istSprachfach } from '@lehrunterlagen/schema';
 
 // Der System-Prompt traegt die inhaltlichen Regeln. Layout-Regeln (Hausstil)
 // gehoeren NICHT hierher, die macht der Renderer. Das LLM liefert nur Inhalt.
@@ -31,14 +32,16 @@ des angeforderten Typs. Beispiele:
   - "leichtes offeneVerstaendnisfrage" → Frage mit klarer Textstelle als Anker; "schwere Variante" → Frage
     ohne Textstellen-Hinweis, eigenstaendige Schlussfolgerung verlangt.
 
-ENGLISCH-SPEZIFISCH (nur bei meta.fach === "englisch"): Die Schwierigkeitsstufen entsprechen den
-CEFR-Niveaus und steuern Wortschatz, Satzkomplexitaet und verlangte Textproduktion:
-  - "leicht" ≈ A2: kurze Saetze, Alltagswortschatz, simple present/past, geschlossene Aufgaben dominieren.
-  - "mittel" ≈ B1: Alltagswortschatz plus erste abstrakte Begriffe, present perfect / conditional, kurze
+FREMDSPRACHEN-SPEZIFISCH (bei modernen Sprachfaechern: Englisch, Franzoesisch, Spanisch, Italienisch):
+Die Schwierigkeitsstufen entsprechen den CEFR-Niveaus und steuern Wortschatz, Satzkomplexitaet und
+verlangte Textproduktion:
+  - "leicht" ≈ A2: kurze Saetze, Alltagswortschatz, einfache Zeiten, geschlossene Aufgaben dominieren.
+  - "mittel" ≈ B1: Alltagswortschatz plus erste abstrakte Begriffe, komplexere Zeiten/Modi, kurze
     offene Antworten (3–5 Saetze).
   - "schwer" ≈ B2: abstrakter Wortschatz, komplexe Satzstrukturen, eigene Argumentation in zusammenhaengenden
     Texten (150–250 Woerter), idiomatische Ausdruecke.
-Deutsch bleibt bei der Bloom-Logik oben.
+LATEIN: statt CEFR Schwerpunkt auf Formenlehre, Uebersetzung und Textverstaendnis.
+Sachfaecher (Deutsch, Geschichte, Geographie, Religion, Ethik, Psychologie, Philosophie) bleiben bei der Bloom-Logik oben.
 
 COVERAGE: Verteile die Aufgaben gleichmaessig ueber ALLE Abschnitte (Absatz 1, Absatz 2, ...) des Quelltexts.
 Greife NICHT nur den ersten Absatz ab. Wenn der Quelltext nummerierte Absaetze enthaelt (Format "[Absatz N] ..." bzw. bei Englisch "[Paragraph N] ..."),
@@ -597,7 +600,7 @@ NIVEAU-STEUERUNG (Feld "kompetenzNiveau" im Meta-Objekt, falls gesetzt):
 
 VERBOT DES STILLEN TYP-TAUSCHS: Du darfst den in "angeforderteBloecke" vorgegebenen Blocktyp NICHT eigenmaechtig ersetzen. Steuere die kognitive Tiefe INNERHALB des angeforderten Typs.
 
-ENGLISCH-SPEZIFISCH (nur bei meta.fach === "englisch"): Die Schwierigkeitsstufen entsprechen den CEFR-Niveaus (leicht ≈ A2, mittel ≈ B1, schwer ≈ B2) und steuern Wortschatz und Satzkomplexitaet.
+FREMDSPRACHEN-SPEZIFISCH (moderne Sprachfaecher Englisch/Franzoesisch/Spanisch/Italienisch): Die Schwierigkeitsstufen entsprechen den CEFR-Niveaus (leicht ≈ A2, mittel ≈ B1, schwer ≈ B2) und steuern Wortschatz und Satzkomplexitaet. Latein: Schwerpunkt Formenlehre/Uebersetzung.
 
 Inhaltliche Regeln:
 - Durchgehend Du-Anrede. Arbeitsanweisungen im Imperativ ("Setze ... ein.", "Forme ... um.").
@@ -676,12 +679,13 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
     input.meta.klasse || stufeLabel
       ? `Zielgruppe: ${[input.meta.klasse, stufeLabel].filter(Boolean).join(', ')} — waehle Wortschatz, Komplexitaet und Beispiele altersgerecht. `
       : '';
+  const zielsprache = FACH_META[input.meta.fach]?.zielsprache ?? 'Deutsch';
   const spracheHinweis =
-    input.meta.fach === 'englisch'
-      ? `SPRACHE: Dies ist eine Englisch-Unterlage. JEDER schuelerseitige Text MUSS auf Englisch sein — `
+    istSprachfach(input.meta.fach)
+      ? `SPRACHE: Dies ist eine ${FACH_META[input.meta.fach].label}-Unterlage. JEDER schuelerseitige Inhalt MUSS auf ${zielsprache} sein — `
         + `arbeitsanweisung, Fragen, Antwortoptionen, Lueckensaetze, Schreibaufgaben-Situationen, Aspekte, Titel `
-        + `und Verweise auf den Text (z. B. "in paragraph 10", NICHT "in Absatz 10"). Die deutschen Beispiele unten `
-        + `zeigen NUR die Struktur, nicht die Sprache. Loesungen/Musterantworten ebenfalls auf Englisch. `
+        + `und Verweise auf den Text (z. B. "Absatz N" in der Zielsprache, nicht auf Deutsch). Die deutschen Beispiele unten `
+        + `zeigen NUR die Struktur, nicht die Sprache. Loesungen/Musterantworten ebenfalls auf ${zielsprache}. `
       : '';
   const fokusThemen = input.meta.fokusThemen ?? [];
   const fokusThemenHinweis =

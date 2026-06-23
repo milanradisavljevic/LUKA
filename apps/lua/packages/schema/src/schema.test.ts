@@ -26,6 +26,10 @@ import {
   PROFILE,
   buildSkelett,
   baueWortbank,
+  FachSchema,
+  FACH_META,
+  istSprachfach,
+  fachLabel,
   type DocumentV1,
   type Meta,
   type QuellText,
@@ -1532,5 +1536,39 @@ describe('migrateDocument', () => {
     expect(() => migrateDocument({ ...base, bloecke: [] })).toThrow();
     expect(() => migrateDocument(null)).toThrow();
     expect(() => migrateDocument('nope')).toThrow();
+  });
+});
+
+describe('Fächer-Modell (FachSchema / FACH_META)', () => {
+  it('akzeptiert alle textbasierten Fächer', () => {
+    for (const f of ['deutsch', 'englisch', 'franzoesisch', 'spanisch', 'italienisch', 'latein',
+      'geschichte', 'geographie', 'religion', 'ethik', 'psychologie', 'philosophie']) {
+      expect(FachSchema.safeParse(f).success).toBe(true);
+    }
+  });
+
+  it('lehnt unbekanntes Fach ab', () => {
+    expect(FachSchema.safeParse('chemie').success).toBe(false);
+  });
+
+  it('FACH_META deckt jedes Fach ab', () => {
+    for (const f of FachSchema.options) {
+      expect(FACH_META[f]).toBeDefined();
+      expect(FACH_META[f].label.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('istSprachfach: Sprachfächer true, Sachfächer false', () => {
+    expect(istSprachfach('englisch')).toBe(true);
+    expect(istSprachfach('franzoesisch')).toBe(true);
+    expect(istSprachfach('latein')).toBe(true);
+    expect(istSprachfach('deutsch')).toBe(false);
+    expect(istSprachfach('geschichte')).toBe(false);
+    expect(istSprachfach('ethik')).toBe(false);
+  });
+
+  it('fachLabel liefert Anzeigenamen mit Umlauten', () => {
+    expect(fachLabel('franzoesisch')).toBe('Französisch');
+    expect(fachLabel('geschichte')).toBe('Geschichte');
   });
 });
