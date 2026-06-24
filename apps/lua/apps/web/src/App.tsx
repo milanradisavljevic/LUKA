@@ -279,7 +279,7 @@ if (hydrating) {
       case 'trash':
         return <TrashView />;
       case 'history':
-        return <HistoryView />;
+        return <HistoryView onCreateNew={handleNewDocument} />;
       case 'templates':
         return <TemplatesView meta={state.meta} bloecke={state.bloecke} onLoad={handleLoadTemplate} />;
       case 'korrektur':

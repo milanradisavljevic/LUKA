@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { GraduationCap, Users, BarChart3, AlertTriangle, TrendingUp, Download, Wand2, Sparkles, Loader2 } from 'lucide-react';
+import { GraduationCap, Users, BarChart3, AlertTriangle, TrendingUp, Download, Wand2, Sparkles, Loader2, School } from 'lucide-react';
+import { EmptyState } from './_EmptyState';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from 'recharts';
 import type { KlasseInfo } from '../lib/storage';
 import { useNatascha } from '../hooks/useNatascha';
@@ -240,7 +241,12 @@ export function KlassenView({ onGenerateUebung }: Props) {
             <GraduationCap size={16} style={{ verticalAlign: -2, marginRight: 6 }} /> Klassen
           </h3>
           {klassen.length === 0 && !error && (
-            <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: 0 }}>Noch keine Klassen.</p>
+            <EmptyState
+              icon={School}
+              title="Noch keine Klassen"
+              description="Sobald du Schüler anlegst oder Korrekturen analysierst, erscheinen hier die Klassen."
+              bordered={false}
+            />
           )}
           {klassen.map((k) => (
             <button key={k.klasse} onClick={() => loadKlasse(k.klasse)} style={{
@@ -278,13 +284,27 @@ export function KlassenView({ onGenerateUebung }: Props) {
 
           {loading && <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>Laden …</p>}
 
+          {!loading && !selectedKlasse && (
+            <EmptyState
+              icon={GraduationCap}
+              title="Wähle eine Klasse"
+              description="Wähle links eine Klasse und Aufgabe, um Notenverteilung, Fehler-Heatmap und Abgaben zu sehen."
+              bordered={false}
+            />
+          )}
+
           {tab === 'uebersicht' && statistik && (
             <>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                 <div style={cardStyle}>
                   <h4 style={{ fontSize: '0.875rem', margin: '0 0 0.75rem' }}><BarChart3 size={16} style={{ verticalAlign: -2, marginRight: 6 }} /> Notenverteilung</h4>
                   {Object.keys(statistik.notenverteilung.noten).length === 0 ? (
-                    <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>Keine Noten.</p>
+                    <EmptyState
+                      icon={BarChart3}
+                      title="Keine Noten"
+                      description="Für die gewählte Aufgabe liegen noch keine Noten vor."
+                      bordered={false}
+                    />
                   ) : (
                     <ResponsiveContainer width="100%" height={160}>
                       <BarChart data={Object.entries(statistik.notenverteilung.noten).map(([n, c]) => ({ note: n, anzahl: c }))} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
@@ -306,7 +326,12 @@ export function KlassenView({ onGenerateUebung }: Props) {
                 <div style={cardStyle}>
                   <h4 style={{ fontSize: '0.875rem', margin: '0 0 0.75rem' }}><AlertTriangle size={16} style={{ verticalAlign: -2, marginRight: 6 }} /> Fehler-Heatmap</h4>
                   {heatmap.length === 0 ? (
-                    <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>Keine Fehlerdaten.</p>
+                    <EmptyState
+                      icon={AlertTriangle}
+                      title="Keine Fehlerdaten"
+                      description="Noch keine analysierten Fehler für diese Aufgabe."
+                      bordered={false}
+                    />
                   ) : (
                     heatmap.map((h) => (
                       <div key={h.typ} style={{ marginBottom: '0.5rem', cursor: 'pointer' }} onClick={() => handleHeatmapClick(h.typ)}>
