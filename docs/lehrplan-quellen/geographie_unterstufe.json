@@ -1,0 +1,48 @@
+{
+  "fach": "geographie",
+  "stufe": "unterstufe",
+  "quelle": "BMBWF-Lehrplan AHS Geographie und wirtschaftliche Bildung (Unterstufe) — RIS, Stand 2023",
+  "quelleUrl": "https://gwb.schule.at/pluginfile.php/294490/mod_resource/content/0/GW_Lehrplan_2023_gesamt.pdf",
+  "bereiche": [
+    {
+      "bereich": "Wahrnehmungs- & Orientierungskompetenz",
+      "deskriptoren": [
+        {"id": "at-geographie-un-wahrnehmung-1", "code": "1.3", "text": "Die Schülerinnen und Schüler können persönliches Leben beginnend in der Wohn-/Schulortgemeinde auf verschiedenen Maßstabsebenen mit Hilfe von Geomedien einordnen und darstellen."},
+        {"id": "at-geographie-un-wahrnehmung-2", "code": "1.4", "text": "Die Schülerinnen und Schüler können wesentliche Charakteristika der räumlichen Umwelt erheben, beschreiben und individuell bewerten."},
+        {"id": "at-geographie-un-wahrnehmung-3", "code": "1.6", "text": "Die Schülerinnen und Schüler können soziale, ökonomische und kulturelle sowie alters- und geschlechtsbedingte Gemeinsamkeiten und Unterschiede im Zusammenhang mit Arbeiten, Wohnen und Mobilität in weltweit ausgewählten Fallbeispielen aus Zentren und Peripherien vergleichen und diese mit Geomedien lokalisieren."},
+        {"id": "at-geographie-un-wahrnehmung-4", "code": "3.6", "text": "Die Schülerinnen und Schüler können Industrieregionen, Tourismusregionen, landwirtschaftlich geprägte Regionen und Regionen mit anderen wirtschaftlichen Schwerpunkten charakterisieren und verorten."},
+        {"id": "at-geographie-un-wahrnehmung-5", "code": "3.15", "text": "Die Schülerinnen und Schüler können Zentren und Peripherien Österreichs abgrenzen, in Geomedien verorten und die Relativität jeder Abgrenzung erläutern."}
+      ]
+    },
+    {
+      "bereich": "Methodenkompetenz",
+      "deskriptoren": [
+        {"id": "at-geographie-un-methoden-1", "code": "1.1", "text": "Die Schülerinnen und Schüler können eigene Wünsche und Bedürfnisse formulieren, vergleichen und reflektieren, deren Umsetzbarkeit überprüfen und erklären."},
+        {"id": "at-geographie-un-methoden-2", "code": "2.2", "text": "Die Schülerinnen und Schüler können die ungleiche räumliche und gesellschaftliche Verteilung von Ressourcen mit Hilfe von (Geo-)Medien beschreiben und deren Nutzung, Wiederverwendung und Entsorgung analysieren."},
+        {"id": "at-geographie-un-methoden-3", "code": "3.1", "text": "Die Schülerinnen und Schüler können aktuelle demografische Strukturen und Prozesse beschreiben und deren mediale Darstellungen interpretieren sowie die Bedeutung für die eigene und gesellschaftliche Zukunft erörtern."},
+        {"id": "at-geographie-un-methoden-4", "code": "3.17", "text": "Die Schülerinnen und Schüler können mit Hilfe von (Geo-)Medien die Raumnutzungen für Wohnen, Arbeit, Verkehr, Freizeitaktivitäten und Tourismus vergleichen sowie Lösungsansätze der Raumplanung bei Nutzungskonflikten erörtern."},
+        {"id": "at-geographie-un-methoden-5", "code": "4.4", "text": "Die Schülerinnen und Schüler können unterschiedliche Gliederungen, Wahrnehmungen und Darstellungen von Europa und der Europäischen Union in ihrer Vielfalt beschreiben, in (Geo-)Medien analysieren und dazu kritisch Stellung beziehen."}
+      ]
+    },
+    {
+      "bereich": "Synthesekompetenz",
+      "deskriptoren": [
+        {"id": "at-geographie-un-synthese-1", "code": "1.5", "text": "Die Schülerinnen und Schüler können unterschiedliche Vorstellungen von Lebensqualität erkunden und Lebensstile hinsichtlich Nachhaltigkeit reflektieren."},
+        {"id": "at-geographie-un-synthese-2", "code": "1.11", "text": "Die Schülerinnen und Schüler können Wechselwirkungen von Naturereignissen, Lebensqualität und Wirtschaften der Menschen anhand von Fallbeispielen beschreiben und erörtern."},
+        {"id": "at-geographie-un-synthese-3", "code": "1.12", "text": "Die Schülerinnen und Schüler können unterschiedliche Betroffenheit von Menschen und Gesellschaften durch Naturgefahren in angemessener Sprache bewerten und Möglichkeiten solidarischen Handelns erörtern."},
+        {"id": "at-geographie-un-synthese-4", "code": "4.2", "text": "Die Schülerinnen und Schüler können Folgen der Überschreitung von Belastungsgrenzen der Erde, des Klimawandels oder des Artensterbens auf das Leben und Wirtschaften erörtern."},
+        {"id": "at-geographie-un-synthese-5", "code": "4.3", "text": "Die Schülerinnen und Schüler können über das sich wandelnde Verhältnis zwischen Mensch und Natur reflektieren, bereits etablierte Maßnahmen und Konzepte zum nachhaltigen Leben und Wirtschaften analysieren und eigene Ideen für nachhaltige Handlungen entwickeln."}
+      ]
+    },
+    {
+      "bereich": "Wirtschaftliche Bildung",
+      "deskriptoren": [
+        {"id": "at-geographie-un-wirtschaft-1", "code": "1.2", "text": "Die Schülerinnen und Schüler können das Produzieren und Konsumieren im Wirtschaftskreislauf sowie den verantwortungsbewussten Umgang mit Geld (Einnahmen und Ausgaben) anhand von Fallbeispielen aus dem eigenen Umfeld analysieren."},
+        {"id": "at-geographie-un-wirtschaft-2", "code": "2.7", "text": "Die Schülerinnen und Schüler können das Zusammentreffen von Angebot und Nachfrage nach verschiedenen Gütern auf Märkten sowie deren wesentliche Funktionen insbesondere für die Preisbildung charakterisieren."},
+        {"id": "at-geographie-un-wirtschaft-3", "code": "2.8", "text": "Die Schülerinnen und Schüler können einfache Projektideen zur Erzeugung von Gütern oder zur Bereitstellung von Dienstleistungen planen und durchführen."},
+        {"id": "at-geographie-un-wirtschaft-4", "code": "3.4", "text": "Die Schülerinnen und Schüler können unbezahlte und bezahlte Arbeit, Arbeitslosigkeit, Höhe und Verwendung des Einkommens, Sparen, Finanzieren und Versichern, Rechte und Pflichten von Erwerbstätigen und Konsumierenden einschließlich Konsumentenschutz beschreiben."},
+        {"id": "at-geographie-un-wirtschaft-5", "code": "3.13", "text": "Die Schülerinnen und Schüler können die wirtschaftliche Entwicklung Österreichs anhand von Kenngrößen beschreiben und persönliche, gesellschaftliche und ökologische Folgen diskutieren."}
+      ]
+    }
+  ]
+}

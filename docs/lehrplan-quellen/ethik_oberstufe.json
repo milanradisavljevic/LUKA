@@ -1,0 +1,41 @@
+{
+  "fach": "ethik",
+  "stufe": "oberstufe",
+  "quelle": "BMBWF-Lehrplan AHS Ethik (Oberstufe) — RIS, Stand 2023",
+  "quelleUrl": "https://www.ethik.wien/wp-content/uploads/2021/10/Lehrplan_Ethik_Stand_2020_191113-1.pdf",
+  "bereiche": [
+    {
+      "bereich": "Wahrnehmen & Beschreiben",
+      "deskriptoren": [
+        {"id": "at-ethik-ob-wahrnehmen-1", "code": "", "text": "Die Schülerinnen und Schüler können Situationen und Probleme der individuellen, sozialen und ökologischen Lebenswelt wahrnehmen, beschreiben und deuten."},
+        {"id": "at-ethik-ob-wahrnehmen-2", "code": "", "text": "Die Schülerinnen und Schüler können ethisch-relevante Texte mit Hilfe fachspezifischer Terminologie und Methoden erschließen und verfassen."},
+        {"id": "at-ethik-ob-wahrnehmen-3", "code": "", "text": "Die Schülerinnen und Schüler können eigene Gedankengänge und die anderer sachgemäß und sprachlich sensibel darstellen."}
+      ]
+    },
+    {
+      "bereich": "Analysieren & Argumentieren",
+      "deskriptoren": [
+        {"id": "at-ethik-ob-analysieren-1", "code": "", "text": "Die Schülerinnen und Schüler können Wissen aus unterschiedlichen Fachgebieten und Lebensbereichen aufeinander beziehen und im Lichte ethischer Positionen reflektieren."},
+        {"id": "at-ethik-ob-analysieren-2", "code": "", "text": "Die Schülerinnen und Schüler können moralische und ethische Grundkonzepte darstellen und ihre historischen und kulturellen Zusammenhänge verstehen."},
+        {"id": "at-ethik-ob-analysieren-3", "code": "", "text": "Die Schülerinnen und Schüler können Argumente kritisch prüfen sowie eigenständige und begründete ethische Urteile fällen."},
+        {"id": "at-ethik-ob-analysieren-4", "code": "", "text": "Die Schülerinnen und Schüler können Auseinandersetzungen auf argumentativer Grundlage konsens- und dissensfähig führen und mit Meinungsverschiedenheiten und Konflikten gewaltfrei umgehen."}
+      ]
+    },
+    {
+      "bereich": "Urteilen & Reflektieren",
+      "deskriptoren": [
+        {"id": "at-ethik-ob-urteilen-1", "code": "", "text": "Die Schülerinnen und Schüler können durch Handlungsentwürfe zu moralischen Problemen verantwortungsbewusst und ethisch reflektiert Stellung beziehen."},
+        {"id": "at-ethik-ob-urteilen-2", "code": "", "text": "Die Schülerinnen und Schüler können die erworbenen Kompetenzen zu eigenen Lebensentwürfen in Beziehung setzen."},
+        {"id": "at-ethik-ob-urteilen-3", "code": "", "text": "Die Schülerinnen und Schüler können sich mit Denkweisen, Wertvorstellungen und Lebenswelten anderer auseinandersetzen sowie die eigene Position einordnen."}
+      ]
+    },
+    {
+      "bereich": "Perspektivenwechsel",
+      "deskriptoren": [
+        {"id": "at-ethik-ob-perspektiven-1", "code": "", "text": "Die Schülerinnen und Schüler können sich mit Denkweisen, Wertvorstellungen und Lebenswelten anderer auseinandersetzen sowie die eigene Position einordnen."},
+        {"id": "at-ethik-ob-perspektiven-2", "code": "", "text": "Die Schülerinnen und Schüler können die Bedeutung der Wahrnehmung und Bewertung von Umwelt im weitesten Sinn für das menschliche Handeln erkennen."},
+        {"id": "at-ethik-ob-perspektiven-3", "code": "", "text": "Die Schülerinnen und Schüler können ihre persönliche Rolle als Konsument bzw. Konsumentin kritisch durchleuchten und die volkswirtschaftliche Bedeutung des Konsumverhaltens erkennen."}
+      ]
+    }
+  ]
+}

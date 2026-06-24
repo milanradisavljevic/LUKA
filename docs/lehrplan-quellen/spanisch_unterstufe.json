@@ -1,0 +1,53 @@
+{
+  "fach": "spanisch",
+  "stufe": "unterstufe",
+  "quelle": "BMBWF-Lehrplan AHS Spanisch (Unterstufe) — RIS, Stand 2023",
+  "quelleUrl": "https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Gesetzesnummer=10008568&Anlage=4",
+  "bereiche": [
+    {
+      "bereich": "Hören",
+      "deskriptoren": [
+        {"id": "at-spanisch-un-hoeren-1", "code": "", "text": "Die Schülerinnen und Schüler können vertraute Wörter und ganz einfache Sätze, die sich auf die eigene Person, die Familie oder auf konkrete Dinge beziehen, verstehen, vorausgesetzt, es wird langsam und deutlich gesprochen."},
+        {"id": "at-spanisch-un-hoeren-2", "code": "", "text": "Die Schülerinnen und Schüler können grundlegende Informationen zur eigenen Person, zu Familie, Einkaufen, Arbeit, nähere Umgebung verstehen, sofern deutlich und langsam gesprochen wird."},
+        {"id": "at-spanisch-un-hoeren-3", "code": "", "text": "Die Schülerinnen und Schüler können die wesentliche Information sowie zentrale Wendungen und Wörter verstehen, wenn es um Dinge von ganz unmittelbarer Bedeutung geht, sofern deutlich und langsam gesprochen wird."},
+        {"id": "at-spanisch-un-hoeren-4", "code": "", "text": "Die Schülerinnen und Schüler können genug verstehen, um Bedürfnisse konkreter Art befriedigen zu können, sofern deutlich und langsam gesprochen wird."}
+      ]
+    },
+    {
+      "bereich": "Lesen",
+      "deskriptoren": [
+        {"id": "at-spanisch-un-lesen-1", "code": "", "text": "Die Schülerinnen und Schüler können kurze, einfache Texte mit einem sehr frequenten Wortschatz und einem Anteil international bekannter Wörter lesen und verstehen."},
+        {"id": "at-spanisch-un-lesen-2", "code": "", "text": "Die Schülerinnen und Schüler können Sätze und häufig gebrauchte Ausdrücke, die mit Bereichen von ganz unmittelbarer Bedeutung zusammenhängen, verstehen."},
+        {"id": "at-spanisch-un-lesen-3", "code": "", "text": "Die Schülerinnen und Schüler können in einfachen kurzen Texten konkrete, vorhersehbare Informationen auffinden."},
+        {"id": "at-spanisch-un-lesen-4", "code": "", "text": "Die Schülerinnen und Schüler können kurze, einfache Texte zu vertrauten, konkreten Themen verstehen, in denen gängige Alltagssprache verwendet wird."}
+      ]
+    },
+    {
+      "bereich": "An Gesprächen teilnehmen",
+      "deskriptoren": [
+        {"id": "at-spanisch-un-gespraeche-1", "code": "", "text": "Die Schülerinnen und Schüler können sich auf einfache Art verständigen, wenn die Gesprächspartner bereit sind, etwas langsamer zu wiederholen oder anders zu sagen."},
+        {"id": "at-spanisch-un-gespraeche-2", "code": "", "text": "Die Schülerinnen und Schüler können einfache Fragen stellen und beantworten, sofern es sich um unmittelbar notwendige Dinge und um sehr vertraute Themen handelt."},
+        {"id": "at-spanisch-un-gespraeche-3", "code": "", "text": "Die Schülerinnen und Schüler können sich in einfachen, routinemäßigen Situationen verständigen, in denen es um einen unkomplizierten und direkten Austausch von Informationen über vertraute Themen geht."},
+        {"id": "at-spanisch-un-gespraeche-4", "code": "", "text": "Die Schülerinnen und Schüler können sich in routinemäßigen Situationen verständigen, in denen es um einen unkomplizierten und direkten Austausch von Informationen über vertraute Themen im Zusammenhang mit Fragen des Alltags, Schule und Freizeit geht."}
+      ]
+    },
+    {
+      "bereich": "Zusammenhängend sprechen",
+      "deskriptoren": [
+        {"id": "at-spanisch-un-zusammenhaengend-1", "code": "", "text": "Die Schülerinnen und Schüler können einfache Wendungen und Sätze gebrauchen, um Leute, die man kennt, zu beschreiben und um zu beschreiben, wo man wohnt."},
+        {"id": "at-spanisch-un-zusammenhaengend-2", "code": "", "text": "Die Schülerinnen und Schüler können einfache Beschreibungen von Menschen, Alltagsroutinen, Vorlieben oder Abneigungen geben, und zwar in kurzen, einfachen auch memorierten Wendungen und Sätzen."},
+        {"id": "at-spanisch-un-zusammenhaengend-3", "code": "", "text": "Die Schülerinnen und Schüler können über gegenwärtige und vergangene Aktivitäten erzählen."},
+        {"id": "at-spanisch-un-zusammenhaengend-4", "code": "", "text": "Die Schülerinnen und Schüler können Beschreibungen von Menschen, Alltagsroutinen, Vorlieben oder Abneigungen geben, und zwar in kurzen Wendungen und Sätzen."}
+      ]
+    },
+    {
+      "bereich": "Schreiben",
+      "deskriptoren": [
+        {"id": "at-spanisch-un-schreiben-1", "code": "", "text": "Die Schülerinnen und Schüler können eine Reihe einfacher Sätze über alltägliche Aspekte schreiben."},
+        {"id": "at-spanisch-un-schreiben-2", "code": "", "text": "Die Schülerinnen und Schüler können eine Reihe einfacher memorierter Wendungen und Sätze über alltägliche Aspekte schreiben und mit Konnektoren wie und, aber oder weil verbinden."},
+        {"id": "at-spanisch-un-schreiben-3", "code": "", "text": "Die Schülerinnen und Schüler können ganz einfache persönliche Briefe und elektronische Mitteilungen schreiben, die sich auf unmittelbare Bedürfnisse beziehen."},
+        {"id": "at-spanisch-un-schreiben-4", "code": "", "text": "Die Schülerinnen und Schüler können kurze, unkomplizierte und zusammenhängende Texte über alltägliche Aspekte des eigenen Umfelds schreiben."}
+      ]
+    }
+  ]
+}

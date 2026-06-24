@@ -1,0 +1,57 @@
+{
+  "fach": "englisch",
+  "stufe": "unterstufe",
+  "quelle": "BMBWF-Lehrplan AHS Englisch (Unterstufe) — RIS, Stand 2023",
+  "quelleUrl": "https://www.ris.bka.gv.at/GeltendeFassung.wxe?Abfrage=Bundesnormen&Gesetzesnummer=10008568",
+  "bereiche": [
+    {
+      "bereich": "Hören",
+      "deskriptoren": [
+        {"id": "at-englisch-un-hoeren-1", "code": "", "text": "Die Schülerinnen und Schüler können, wenn sehr langsam, klar und deutlich in Standardsprache gesprochen wird, in kurzen Dialogen oder Monologen einfache Fragen und Sätze, die sich auf sie selbst und ihr persönliches Umfeld beziehen, verstehen."},
+        {"id": "at-englisch-un-hoeren-2", "code": "", "text": "Die Schülerinnen und Schüler können einfache alltägliche Kommunikation im Unterricht verstehen."},
+        {"id": "at-englisch-un-hoeren-3", "code": "", "text": "Die Schülerinnen und Schüler können, wenn langsam, klar und deutlich in Standardsprache gesprochen wird, Anweisungen, Fragen und Auskünfte verstehen."},
+        {"id": "at-englisch-un-hoeren-4", "code": "", "text": "Die Schülerinnen und Schüler können kurze einfache Gespräche und Texte über vertraute Themen verstehen."},
+        {"id": "at-englisch-un-hoeren-5", "code": "", "text": "Die Schülerinnen und Schüler können, wenn klar und deutlich und nicht zu schnell in Standardsprache gesprochen wird, einfache Gespräche, Erzählungen und kurze Medienbeiträge verstehen."},
+        {"id": "at-englisch-un-hoeren-6", "code": "", "text": "Die Schülerinnen und Schüler können, wenn in klarer und deutlicher Standardsprache gesprochen wird, Gespräche, kurze Erzählungen, Präsentationen, Filme und kurze Medienbeiträge über vertraute Themen verstehen."}
+      ]
+    },
+    {
+      "bereich": "Lesen",
+      "deskriptoren": [
+        {"id": "at-englisch-un-lesen-1", "code": "", "text": "Die Schülerinnen und Schüler können einfache Arbeitsanweisungen und Mitteilungen verstehen."},
+        {"id": "at-englisch-un-lesen-2", "code": "", "text": "Die Schülerinnen und Schüler können sehr einfache Texte über vertraute Themen verstehen."},
+        {"id": "at-englisch-un-lesen-3", "code": "", "text": "Die Schülerinnen und Schüler können kurze einfache Geschichten, Briefe, E-Mails oder bebilderte Sachtexte verstehen."},
+        {"id": "at-englisch-un-lesen-4", "code": "", "text": "Die Schülerinnen und Schüler können kurzen vertrauten Alltagstexten wichtige Informationen entnehmen."},
+        {"id": "at-englisch-un-lesen-5", "code": "", "text": "Die Schülerinnen und Schüler können einfache und konkrete Artikel in Magazinen und Jugendzeitschriften, altersadäquate Kinder- und Jugendbücher, Geschichten und Sachtexte sowie persönliche Texte, die sich auf altersgerechte Aspekte der zielsprachlichen Kultur(en) beziehen, verstehen."},
+        {"id": "at-englisch-un-lesen-6", "code": "", "text": "Die Schülerinnen und Schüler können einfache klar strukturierte Jugendliteratur oder Sachliteratur mit befriedigendem Verständnis lesen und darin enthaltene Einstellungen erkennen."}
+      ]
+    },
+    {
+      "bereich": "An Gesprächen teilnehmen",
+      "deskriptoren": [
+        {"id": "at-englisch-un-gespraeche-1", "code": "", "text": "Die Schülerinnen und Schüler können zu alltäglichen und persönlichen Themen an Gesprächen teilnehmen und sich mit Hilfe des Gesprächspartners auf einfache Art verständigen."},
+        {"id": "at-englisch-un-gespraeche-2", "code": "", "text": "Die Schülerinnen und Schüler können einfache Fragen stellen und beantworten."},
+        {"id": "at-englisch-un-gespraeche-3", "code": "", "text": "Die Schülerinnen und Schüler können in einfachen zusammenhängenden Sätzen kurze Gespräche über vertraute Themen führen."},
+        {"id": "at-englisch-un-gespraeche-4", "code": "", "text": "Die Schülerinnen und Schüler können in einfacher Sprache ein Gespräch beginnen, weiterführen und beenden sowie einfache Sprecherwechsel durchführen."},
+        {"id": "at-englisch-un-gespraeche-5", "code": "", "text": "Die Schülerinnen und Schüler können sich in routinemäßigen Situationen über vertraute Themen ohne große Mühe verständigen (ua. Zustimmung oder Ablehnung ausdrücken, Vorschläge machen, über Pläne reden, Rat erbitten und geben, einfache Begründungen vorbringen, die eigene Meinung und Vermutungen formulieren)."}
+      ]
+    },
+    {
+      "bereich": "Zusammenhängend sprechen",
+      "deskriptoren": [
+        {"id": "at-englisch-un-zusammenhaengend-1", "code": "", "text": "Die Schülerinnen und Schüler können beim zusammenhängenden Sprechen in einfachen Sätzen über vertraute Themen (ua. Familie, Freunde, Tagesablauf, Hobbys, Schule) sprechen."}
+      ]
+    },
+    {
+      "bereich": "Schreiben",
+      "deskriptoren": [
+        {"id": "at-englisch-un-schreiben-1", "code": "", "text": "Die Schülerinnen und Schüler können über sich selbst und vertraute Themen (ua. Familie, Freunde, Tagesablauf, Hobbys, Schule) in einfachen Sätzen schreiben."},
+        {"id": "at-englisch-un-schreiben-2", "code": "", "text": "Die Schülerinnen und Schüler können Informationen in geschriebener Form weitergeben (persönliche Mitteilungen)."},
+        {"id": "at-englisch-un-schreiben-3", "code": "", "text": "Die Schülerinnen und Schüler können in einfachen zusammenhängenden Sätzen Aspekte des persönlichen Lebensumfeldes beschreiben (ua. Personen, Orte, Pläne, Wünsche)."},
+        {"id": "at-englisch-un-schreiben-4", "code": "", "text": "Die Schülerinnen und Schüler können die eigene Meinung ausdrücken und begründen."},
+        {"id": "at-englisch-un-schreiben-5", "code": "", "text": "Die Schülerinnen und Schüler können einfache Geschichten und Gebrauchstexte (ua. E-Mails, Mitteilungen) schreiben und dabei auch über vergangene und zukünftige Ereignisse berichten."},
+        {"id": "at-englisch-un-schreiben-6", "code": "", "text": "Die Schülerinnen und Schüler können unkomplizierte, strukturierte Texte (ua. Postings, E-Mails, Erfahrungsberichte) zu vertrauten Themen schreiben."}
+      ]
+    }
+  ]
+}

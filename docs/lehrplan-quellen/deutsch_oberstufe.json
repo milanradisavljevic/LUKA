@@ -1,0 +1,42 @@
+{
+  "fach": "deutsch",
+  "stufe": "oberstufe",
+  "quelle": "BMBWF-Lehrplan AHS Deutsch (Oberstufe) — RIS, Stand 2023",
+  "quelleUrl": "https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Gesetzesnummer=10008568&Artikel=&Paragraf=&Anlage=1&Uebergangsrecht=",
+  "bereiche": [
+    {
+      "bereich": "Sprachbewusstsein",
+      "deskriptoren": [
+        {"id": "at-deutsch-ob-sprachbewusstsein-1", "code": "", "text": "Die Schülerinnen und Schüler können vertieftes Verständnis von sprachlichen Strukturen und Regeln (Variation und Vergleich) entwickeln."},
+        {"id": "at-deutsch-ob-sprachbewusstsein-2", "code": "", "text": "Die Schülerinnen und Schüler können sich mit Soziolekten, Dialekten, Fachsprachen, Idiolekten und deren Abweichungen von der Standardsprache auseinandersetzen."},
+        {"id": "at-deutsch-ob-sprachbewusstsein-3", "code": "", "text": "Die Schülerinnen und Schüler können Einsicht in die Sprachverwendung im Kontext von Mehrsprachigkeit gewinnen."}
+      ]
+    },
+    {
+      "bereich": "Zuhören & Sprechen",
+      "deskriptoren": [
+        {"id": "at-deutsch-ob-zuhoeren-sprechen-1", "code": "", "text": "Die Schülerinnen und Schüler können in unterschiedlichen Beiträgen, im direkten Kontakt oder über Medien vermittelt, Mehrdeutigkeiten und nicht explizit genannte Inhalte erschließen und interpretieren, dabei Absichten und Emotionen reflektieren und situationsbezogen Schlüsse daraus ziehen."},
+        {"id": "at-deutsch-ob-zuhoeren-sprechen-2", "code": "", "text": "Die Schülerinnen und Schüler können ihr Repertoire verbaler und nonverbaler Mittel erweitern und Sprache unter Verwendung unterschiedlicher sprachlicher Register (Standard- und Bildungssprache) reflektiert und bewusst kreativ einsetzen."},
+        {"id": "at-deutsch-ob-zuhoeren-sprechen-3", "code": "", "text": "Die Schülerinnen und Schüler können aus bewusst gewählten Quellen Informationen gezielt herausfiltern, thematisch aufbereiten und unter Anwendung entsprechender Visualisierungsmethoden mündlich präsentieren."}
+      ]
+    },
+    {
+      "bereich": "Lesen & Textverständnis",
+      "deskriptoren": [
+        {"id": "at-deutsch-ob-lesen-text-1", "code": "", "text": "Die Schülerinnen und Schüler können pragmatische und literarische Texte und Medien in unterschiedlichen Darbietungsformen rezipieren, deren Inhalt, Form und Sprache erschließen und ihre Entstehungszusammenhänge erfassen."},
+        {"id": "at-deutsch-ob-lesen-text-2", "code": "", "text": "Die Schülerinnen und Schüler können eigene Leseinteressen vertiefen, eine dynamische und vielfältige Lesebiografie entwickeln und sich differenziert mit anderen darüber austauschen."},
+        {"id": "at-deutsch-ob-lesen-text-3", "code": "", "text": "Die Schülerinnen und Schüler können Texte mit Hilfe szenischer Mittel vortragen, darstellen und mit anderen künstlerischen Ausdrucksformen vergleichen."},
+        {"id": "at-deutsch-ob-lesen-text-4", "code": "", "text": "Die Schülerinnen und Schüler können die Aufbereitung und Gestaltung von Themen und Inhalten medialer Beiträge erkennen und vergleichen und dabei Informationssysteme differenziert und kritisch nutzen."}
+      ]
+    },
+    {
+      "bereich": "Schreiben",
+      "deskriptoren": [
+        {"id": "at-deutsch-ob-schreiben-1", "code": "", "text": "Die Schülerinnen und Schüler können unterschiedliche Impulse und Vorlagen für eigene pragmatische und kreative Schreibprozesse nutzen."},
+        {"id": "at-deutsch-ob-schreiben-2", "code": "", "text": "Die Schülerinnen und Schüler können zu strittigen Sachverhalten, unter Einbeziehung differenzierter Quellen, argumentierend schreiben und auf Gegenargumente eingehen."},
+        {"id": "at-deutsch-ob-schreiben-3", "code": "", "text": "Die Schülerinnen und Schüler können Textverarbeitungsprogramme zur Gestaltung umfangreicherer multimedialer Texte, auch im Team, nutzen."},
+        {"id": "at-deutsch-ob-schreiben-4", "code": "", "text": "Die Schülerinnen und Schüler können Bedeutungswandel der Schrift und des Schreibens in analogen, digitalen und multimodalen Settings reflektieren."}
+      ]
+    }
+  ]
+}
