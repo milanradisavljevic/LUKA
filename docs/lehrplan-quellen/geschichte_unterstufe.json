@@ -1,0 +1,51 @@
+{
+  "fach": "geschichte",
+  "stufe": "unterstufe",
+  "quelle": "BMBWF-Lehrplan AHS Geschichte und Politische Bildung (Unterstufe) — RIS, Stand 2023",
+  "quelleUrl": "https://www.ris.bka.gv.at/GeltendeFassung.wxe?Abfrage=Bundesnormen&Gesetzesnummer=10008568",
+  "bereiche": [
+    {
+      "bereich": "Historische Fragekompetenz",
+      "deskriptoren": [
+        {"id": "at-geschichte-un-frage-1", "code": "", "text": "Die Schülerinnen und Schüler können historische Fragen an Quellen und Darstellungen stellen und dabei zwischen Vergangenheit, Gegenwart und Zukunft unterscheiden."},
+        {"id": "at-geschichte-un-frage-2", "code": "", "text": "Die Schülerinnen und Schüler können Fragen zur Geschichte eigener Lebenswelten formulieren und diese mit historischen Entwicklungen in Beziehung setzen."},
+        {"id": "at-geschichte-un-frage-3", "code": "", "text": "Die Schülerinnen und Schüler können Fragestellungen zu gesellschaftlichen und politischen Veränderungen in verschiedenen Epochen entwickeln."}
+      ]
+    },
+    {
+      "bereich": "Historische Methodenkompetenz",
+      "deskriptoren": [
+        {"id": "at-geschichte-un-methoden-1", "code": "", "text": "Die Schülerinnen und Schüler können Quellen (Texte, Bilder, Karten, Statistiken, Sachquellen) identifizieren, analysieren und kritisch bewerten."},
+        {"id": "at-geschichte-un-methoden-2", "code": "", "text": "Die Schülerinnen und Schüler können historische Darstellungen (Geschichtsbücher, Dokumentationen, Filme, Internet) auf ihre Aussageabsicht und Zuverlässigkeit überprüfen."},
+        {"id": "at-geschichte-un-methoden-3", "code": "", "text": "Die Schülerinnen und Schüler können Informationen aus verschiedenen Quellen sammeln, ordnen und vergleichen."},
+        {"id": "at-geschichte-un-methoden-4", "code": "", "text": "Die Schülerinnen und Schüler können historische Sachverhalte mit Hilfe von Zeitleisten, Karten und Diagrammen einordnen."}
+      ]
+    },
+    {
+      "bereich": "Historische Orientierungskompetenz",
+      "deskriptoren": [
+        {"id": "at-geschichte-un-orientierung-1", "code": "", "text": "Die Schülerinnen und Schüler können historische Ereignisse, Personen und Strukturen in zeitliche und räumliche Zusammenhänge einordnen."},
+        {"id": "at-geschichte-un-orientierung-2", "code": "", "text": "Die Schülerinnen und Schüler können Kontinuitäten und Veränderungen in verschiedenen historischen Epochen erkennen und beschreiben."},
+        {"id": "at-geschichte-un-orientierung-3", "code": "", "text": "Die Schülerinnen und Schüler können historische Erfahrungen für die Orientierung in der Gegenwart nutzen."}
+      ]
+    },
+    {
+      "bereich": "Historische Sachkompetenz",
+      "deskriptoren": [
+        {"id": "at-geschichte-un-sach-1", "code": "", "text": "Die Schülerinnen und Schüler können zentrale Ereignisse, Entwicklungen und Strukturen in verschiedenen Epochen (Antike, Mittelalter, Neuzeit) beschreiben und erklären."},
+        {"id": "at-geschichte-un-sach-2", "code": "", "text": "Die Schülerinnen und Schüler können Ursachen und Folgen historischer Entwicklungen analysieren und darstellen."},
+        {"id": "at-geschichte-un-sach-3", "code": "", "text": "Die Schülerinnen und Schüler können Handlungsmöglichkeiten und -grenzen von Menschen in verschiedenen historischen Situationen beschreiben und bewerten."},
+        {"id": "at-geschichte-un-sach-4", "code": "", "text": "Die Schülerinnen und Schüler können historische Begriffe und Konzepte fachgerecht verwenden."}
+      ]
+    },
+    {
+      "bereich": "Politische Bildung",
+      "deskriptoren": [
+        {"id": "at-geschichte-un-politisch-1", "code": "", "text": "Die Schülerinnen und Schüler können grundlegende politische Strukturen und Prozesse in Österreich und Europa beschreiben und erklären."},
+        {"id": "at-geschichte-un-politisch-2", "code": "", "text": "Die Schülerinnen und Schüler können eigene politische Positionen entwickeln und begründen sowie andere Standpunkte respektieren."},
+        {"id": "at-geschichte-un-politisch-3", "code": "", "text": "Die Schülerinnen und Schüler können die Bedeutung von Menschenrechten, Demokratie und Rechtsstaatlichkeit in Geschichte und Gegenwart beschreiben."},
+        {"id": "at-geschichte-un-politisch-4", "code": "", "text": "Die Schülerinnen und Schüler können Möglichkeiten der politischen Partizipation in Schule, Gemeinde und Gesellschaft erkennen und nutzen."}
+      ]
+    }
+  ]
+}

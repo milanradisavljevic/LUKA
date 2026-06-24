@@ -1,0 +1,41 @@
+{
+  "fach": "ethik",
+  "stufe": "unterstufe",
+  "quelle": "BMBWF-Lehrplan AHS Ethik (Unterstufe) — RIS, Stand 2023",
+  "quelleUrl": "https://www.ris.bka.gv.at/GeltendeFassung.wxe?Abfrage=Bundesnormen&Gesetzesnummer=10008568",
+  "bereiche": [
+    {
+      "bereich": "Wahrnehmen & Beschreiben",
+      "deskriptoren": [
+        {"id": "at-ethik-un-wahrnehmen-1", "code": "", "text": "Die Schülerinnen und Schüler können Situationen und Probleme der individuellen, sozialen und ökologischen Lebenswelt in ihrem eigenen Umfeld wahrnehmen und beschreiben."},
+        {"id": "at-ethik-un-wahrnehmen-2", "code": "", "text": "Die Schülerinnen und Schüler können einfache ethisch-relevante Texte mit Hilfe grundlegender Fachbegriffe erschließen."},
+        {"id": "at-ethik-un-wahrnehmen-3", "code": "", "text": "Die Schülerinnen und Schüler können eigene Gedanken und Gefühle in ethischen Fragen sachgemäß ausdrücken."}
+      ]
+    },
+    {
+      "bereich": "Analysieren & Argumentieren",
+      "deskriptoren": [
+        {"id": "at-ethik-un-analysieren-1", "code": "", "text": "Die Schülerinnen und Schüler können einfache moralische und ethische Grundkonzepte darstellen und ihre Bedeutung für das eigene Leben verstehen."},
+        {"id": "at-ethik-un-analysieren-2", "code": "", "text": "Die Schülerinnen und Schüler können Argumente in ethischen Diskussionen prüfen und eigene begründete Positionen entwickeln."},
+        {"id": "at-ethik-un-analysieren-3", "code": "", "text": "Die Schülerinnen und Schüler können in einfachen ethischen Auseinandersetzungen konsens- und dissensfähig argumentieren."},
+        {"id": "at-ethik-un-analysieren-4", "code": "", "text": "Die Schülerinnen und Schüler können Wissen aus verschiedenen Lebensbereichen auf ethische Fragen beziehen."}
+      ]
+    },
+    {
+      "bereich": "Urteilen & Reflektieren",
+      "deskriptoren": [
+        {"id": "at-ethik-un-urteilen-1", "code": "", "text": "Die Schülerinnen und Schüler können zu einfachen moralischen Problemen verantwortungsbewusst Stellung beziehen."},
+        {"id": "at-ethik-un-urteilen-2", "code": "", "text": "Die Schülerinnen und Schüler können die erworbenen ethischen Kompetenzen zu eigenen Lebenserfahrungen in Beziehung setzen."},
+        {"id": "at-ethik-un-urteilen-3", "code": "", "text": "Die Schülerinnen und Schüler können die eigene Position in ethischen Fragen reflektieren und begründen."}
+      ]
+    },
+    {
+      "bereich": "Perspektivenwechsel",
+      "deskriptoren": [
+        {"id": "at-ethik-un-perspektiven-1", "code": "", "text": "Die Schülerinnen und Schüler können sich mit Denkweisen und Wertvorstellungen anderer in ihrem direkten Umfeld auseinandersetzen."},
+        {"id": "at-ethik-un-perspektiven-2", "code": "", "text": "Die Schülerinnen und Schüler können die Bedeutung von Umwelt und Mitwelt für das eigene Handeln erkennen."},
+        {"id": "at-ethik-un-perspektiven-3", "code": "", "text": "Die Schülerinnen und Schüler können einfache Konflikte aus verschiedenen Perspektiven betrachten und Lösungen entwickeln."}
+      ]
+    }
+  ]
+}

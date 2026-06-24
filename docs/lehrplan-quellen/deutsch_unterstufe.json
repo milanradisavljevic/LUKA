@@ -1,0 +1,43 @@
+{
+  "fach": "deutsch",
+  "stufe": "unterstufe",
+  "quelle": "BMBWF-Lehrplan AHS Deutsch (Unterstufe) — RIS, Stand 2023",
+  "quelleUrl": "https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Gesetzesnummer=10008568&Artikel=&Paragraf=&Anlage=1&Uebergangsrecht=",
+  "bereiche": [
+    {
+      "bereich": "Sprachbewusstsein",
+      "deskriptoren": [
+        { "id": "at-deutsch-un-sprachbewusstsein-1", "code": "", "text": "Die Schülerinnen und Schüler können Einsichten in Rechtschreibung und Grammatik hinsichtlich Gebrauch und Funktion anwenden." },
+        { "id": "at-deutsch-un-sprachbewusstsein-2", "code": "", "text": "Die Schülerinnen und Schüler können differenzierte Fertigkeiten im Bereich von Wort-, Satz- und Textgrammatik unter Berücksichtigung ihrer stilistischen Auswirkungen nutzen." },
+        { "id": "at-deutsch-un-sprachbewusstsein-3", "code": "", "text": "Die Schülerinnen und Schüler können Kennzeichen mündlicher, schriftlich-textueller und multimodaler Kommunikation im Kontext von Mehrsprachigkeit reflektieren." }
+      ]
+    },
+    {
+      "bereich": "Zuhören & Sprechen",
+      "deskriptoren": [
+        { "id": "at-deutsch-un-zuhoeren-sprechen-1", "code": "", "text": "Die Schülerinnen und Schüler können Inhalte aus unterschiedlichen medialen Beiträgen erschließen, Absichten und Emotionen wahrnehmen, Wissen sichern, wiedergeben und der Situation angemessen reagieren." },
+        { "id": "at-deutsch-un-zuhoeren-sprechen-2", "code": "", "text": "Die Schülerinnen und Schüler können bereits bekannte verbale und nonverbale Mittel variieren, monologische und dialogische Sprechbeiträge planen und ausführen, um adressaten- und situationsgerecht zu kommunizieren." },
+        { "id": "at-deutsch-un-zuhoeren-sprechen-3", "code": "", "text": "Die Schülerinnen und Schüler können aus unterschiedlichen Quellen Informationen einholen, aufbereiten und mündlich präsentieren." },
+        { "id": "at-deutsch-un-zuhoeren-sprechen-4", "code": "", "text": "Die Schülerinnen und Schüler können einfache Formen der Argumentation anwenden." }
+      ]
+    },
+    {
+      "bereich": "Lesen & Textverständnis",
+      "deskriptoren": [
+        { "id": "at-deutsch-un-lesen-text-1", "code": "", "text": "Die Schülerinnen und Schüler können sinnerfassend, mit zunehmender Leseflüssigkeit und unter Anwendung geeigneter Lesestrategien lesen und vorlesen, Inhalte entnehmen und darüber kommunizieren." },
+        { "id": "at-deutsch-un-lesen-text-2", "code": "", "text": "Die Schülerinnen und Schüler können subjektive und kreative Zugänge zu literarischen Werken in unterschiedlichen künstlerischen Erscheinungsformen finden und zur Anschlusskommunikation nutzen." },
+        { "id": "at-deutsch-un-lesen-text-3", "code": "", "text": "Die Schülerinnen und Schüler können die Art der Aufbereitung von Beiträgen in unterschiedlichen Mediensystemen erkennen und darüber sprechen." },
+        { "id": "at-deutsch-un-lesen-text-4", "code": "", "text": "Die Schülerinnen und Schüler können mit Internetquellen sorgsam und dem Datenschutz gemäß umgehen." }
+      ]
+    },
+    {
+      "bereich": "Schreiben",
+      "deskriptoren": [
+        { "id": "at-deutsch-un-schreiben-1", "code": "", "text": "Die Schülerinnen und Schüler können Erlebnisse, Erfahrungen und Gedanken verschriftlichen sowie persönliche Beziehungen und Absichten ausdrücken, auch in kreativer Form." },
+        { "id": "at-deutsch-un-schreiben-2", "code": "", "text": "Die Schülerinnen und Schüler können schriftlich informieren und darstellen." },
+        { "id": "at-deutsch-un-schreiben-3", "code": "", "text": "Die Schülerinnen und Schüler können Textverarbeitungsprogramme zur digitalen Textproduktion einsetzen." },
+        { "id": "at-deutsch-un-schreiben-4", "code": "", "text": "Die Schülerinnen und Schüler können einfache Argumente schriftlich formulieren und auf Aussagen anderer sprachlich und inhaltlich angemessen reagieren." }
+      ]
+    }
+  ]
+}

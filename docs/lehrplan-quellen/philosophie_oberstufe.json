@@ -1,0 +1,35 @@
+{
+  "fach": "philosophie",
+  "stufe": "oberstufe",
+  "quelle": "BMBWF-Lehrplan AHS Philosophie (Oberstufe) — RIS, Stand 2023",
+  "quelleUrl": "https://www.ris.bka.gv.at/GeltendeFassung.wxe?Abfrage=Bundesnormen&Gesetzesnummer=10008568",
+  "bereiche": [
+    {
+      "bereich": "Begriffs- & Theoriekompetenz",
+      "deskriptoren": [
+        {"id": "at-philosophie-ob-begriffe-1", "code": "", "text": "Die Schülerinnen und Schüler können zentrale philosophische Begriffe (Sein, Wahrheit, Freiheit, Gerechtigkeit, Glück) definieren, differenzieren und in verschiedenen philosophischen Traditionen verorten."},
+        {"id": "at-philosophie-ob-begriffe-2", "code": "", "text": "Die Schülerinnen und Schüler können philosophische Texte (Primär- und Sekundärliteratur) mit Hilfe fachspezifischer Terminologie und Methoden erschließen."},
+        {"id": "at-philosophie-ob-begriffe-3", "code": "", "text": "Die Schülerinnen und Schüler können verschiedene philosophische Theorien und Positionen in ihrer historischen Entwicklung und systematischen Struktur vergleichen."},
+        {"id": "at-philosophie-ob-begriffe-4", "code": "", "text": "Die Schülerinnen und Schüler können die Genese und Funktion philosophischer Begriffe in verschiedenen Diskursen analysieren."}
+      ]
+    },
+    {
+      "bereich": "Argumentations- & Reflexionskompetenz",
+      "deskriptoren": [
+        {"id": "at-philosophie-ob-argumentation-1", "code": "", "text": "Die Schülerinnen und Schüler können philosophische Argumentationen identifizieren, analysieren und auf ihre logische Schlüssigkeit überprüfen."},
+        {"id": "at-philosophie-ob-argumentation-2", "code": "", "text": "Die Schülerinnen und Schüler können eigene philosophische Positionen entwickeln, begründen und in öffentlichen Diskursen vertreten."},
+        {"id": "at-philosophie-ob-argumentation-3", "code": "", "text": "Die Schülerinnen und Schüler können die Grenzen und Voraussetzungen des eigenen Denkens und Erkennens reflektieren."},
+        {"id": "at-philosophie-ob-argumentation-4", "code": "", "text": "Die Schülerinnen und Schüler können in philosophischen Diskussionen konsens- und dissensfähig argumentieren und mit Meinungsverschiedenheiten produktiv umgehen."}
+      ]
+    },
+    {
+      "bereich": "Anwendung & Transfer",
+      "deskriptoren": [
+        {"id": "at-philosophie-ob-anwendung-1", "code": "", "text": "Die Schülerinnen und Schüler können philosophische Fragestellungen auf aktuelle gesellschaftliche, politische und ethische Probleme anwenden."},
+        {"id": "at-philosophie-ob-anwendung-2", "code": "", "text": "Die Schülerinnen und Schüler können die erworbenen philosophischen Kompetenzen zu eigenen Lebensentwürfen und Weltdeutungen in Beziehung setzen."},
+        {"id": "at-philosophie-ob-anwendung-3", "code": "", "text": "Die Schülerinnen und Schüler können philosophische Perspektiven auf wissenschaftliche, technologische und kulturelle Entwicklungen anwenden."},
+        {"id": "at-philosophie-ob-anwendung-4", "code": "", "text": "Die Schülerinnen und Schüler können durch philosophische Reflexion zu verantwortungsbewusstem und ethisch reflektiertem Handeln befähigt werden."}
+      ]
+    }
+  ]
+}

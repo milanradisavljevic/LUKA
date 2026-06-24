@@ -1,0 +1,51 @@
+{
+  "fach": "franzoesisch",
+  "stufe": "oberstufe",
+  "quelle": "BMBWF-Lehrplan AHS Französisch (Oberstufe) — RIS, Stand 2023",
+  "quelleUrl": "https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Gesetzesnummer=10008568&Anlage=4",
+  "bereiche": [
+    {
+      "bereich": "Hören",
+      "deskriptoren": [
+        {"id": "at-franzoesisch-ob-hoeren-1", "code": "", "text": "Die Schülerinnen und Schüler können die Hauptpunkte verstehen, wenn in deutlich artikulierter Standardsprache über vertraute Dinge gesprochen wird, denen man normalerweise in der Ausbildung oder der Freizeit begegnet."},
+        {"id": "at-franzoesisch-ob-hoeren-2", "code": "", "text": "Die Schülerinnen und Schüler können Hauptpunkte und wesentliche Informationen verstehen, auch in Radiosendungen und Filmen, wenn relativ langsam und in deutlich artikulierter Standardsprache über vertraute Themen gesprochen wird."},
+        {"id": "at-franzoesisch-ob-hoeren-3", "code": "", "text": "Die Schülerinnen und Schüler können kurze Erzählungen verstehen."}
+      ]
+    },
+    {
+      "bereich": "Lesen",
+      "deskriptoren": [
+        {"id": "at-franzoesisch-ob-lesen-1", "code": "", "text": "Die Schülerinnen und Schüler können konkrete, unkomplizierte, klar gegliederte Texte, auch Zeitungsartikel und einfache literarische Texte über vertraute Themen mit befriedigendem Verständnis lesen, die wesentlichen Punkte erfassen und wichtige Informationen auffinden."},
+        {"id": "at-franzoesisch-ob-lesen-2", "code": "", "text": "Die Schülerinnen und Schüler können Beschreibungen von Ereignissen, Gefühlen und Wünschen verstehen."},
+        {"id": "at-franzoesisch-ob-lesen-3", "code": "", "text": "Die Schülerinnen und Schüler können in klar geschriebenen argumentativen Texten die wesentlichen Schlussfolgerungen erkennen."}
+      ]
+    },
+    {
+      "bereich": "An Gesprächen teilnehmen",
+      "deskriptoren": [
+        {"id": "at-franzoesisch-ob-gespraeche-1", "code": "", "text": "Die Schülerinnen und Schüler können ohne Vorbereitung an Gesprächen über vertraute Themen teilnehmen und Informationen austauschen."},
+        {"id": "at-franzoesisch-ob-gespraeche-2", "code": "", "text": "Die Schülerinnen und Schüler können die eigene Meinung und Gefühle sowie Träume, Hoffnungen und Ziele ausdrücken und darauf reagieren."},
+        {"id": "at-franzoesisch-ob-gespraeche-3", "code": "", "text": "Die Schülerinnen und Schüler können Vorschläge unterschiedlicher Art machen und entsprechend darauf reagieren."},
+        {"id": "at-franzoesisch-ob-gespraeche-4", "code": "", "text": "Die Schülerinnen und Schüler können zu einem vertrauten Thema kurz Gründe und Erläuterungen zu Meinungen, Plänen und Handlungen geben."}
+      ]
+    },
+    {
+      "bereich": "Zusammenhängend sprechen",
+      "deskriptoren": [
+        {"id": "at-franzoesisch-ob-zusammenhaengend-1", "code": "", "text": "Die Schülerinnen und Schüler können relativ flüssig eine unkomplizierte zusammenhängende Beschreibung zu vertrauten Themen geben, wobei einzelne Punkte linear aneinandergereiht werden."},
+        {"id": "at-franzoesisch-ob-zusammenhaengend-2", "code": "", "text": "Die Schülerinnen und Schüler können Vergleiche anstellen."},
+        {"id": "at-franzoesisch-ob-zusammenhaengend-3", "code": "", "text": "Die Schülerinnen und Schüler können kurz und einfach über ein Ereignis, gegenwärtige oder vergangene Aktivitäten oder Tätigkeiten berichten und sich darüber austauschen."},
+        {"id": "at-franzoesisch-ob-zusammenhaengend-4", "code": "", "text": "Die Schülerinnen und Schüler können Pläne und Vereinbarungen sowie Gewohnheiten und Alltagsbeschäftigungen beschreiben und sich darüber austauschen."}
+      ]
+    },
+    {
+      "bereich": "Schreiben",
+      "deskriptoren": [
+        {"id": "at-franzoesisch-ob-schreiben-1", "code": "", "text": "Die Schülerinnen und Schüler können unkomplizierte, zusammenhängende Texte, auch in Form von persönlichen Briefen und elektronischen Mitteilungen, zu vertrauten Themen verfassen, wobei einzelne kürzere Teile in linearer Abfolge verbunden werden."},
+        {"id": "at-franzoesisch-ob-schreiben-2", "code": "", "text": "Die Schülerinnen und Schüler können Sachinformationen weitergeben sowie Gründe für Handlungen angeben."},
+        {"id": "at-franzoesisch-ob-schreiben-3", "code": "", "text": "Die Schülerinnen und Schüler können eine Beschreibung eines Ereignisses oder einer kürzlich unternommenen Reise verfassen."},
+        {"id": "at-franzoesisch-ob-schreiben-4", "code": "", "text": "Die Schülerinnen und Schüler können über Erfahrungen, Gefühle und Ereignisse berichten."}
+      ]
+    }
+  ]
+}

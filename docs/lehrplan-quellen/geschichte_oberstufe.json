@@ -1,0 +1,51 @@
+{
+  "fach": "geschichte",
+  "stufe": "oberstufe",
+  "quelle": "BMBWF-Lehrplan AHS Geschichte und Sozialkunde/Politische Bildung (Oberstufe) — RIS, Stand 2023",
+  "quelleUrl": "https://www.ris.bka.gv.at/GeltendeFassung.wxe?Abfrage=Bundesnormen&Gesetzesnummer=10008568",
+  "bereiche": [
+    {
+      "bereich": "Historische Fragekompetenz",
+      "deskriptoren": [
+        {"id": "at-geschichte-ob-frage-1", "code": "", "text": "Die Schülerinnen und Schüler können komplexe historische Fragestellungen zu gesellschaftlichen, politischen und kulturellen Entwicklungen formulieren und diese methodisch geleitet bearbeiten."},
+        {"id": "at-geschichte-ob-frage-2", "code": "", "text": "Die Schülerinnen und Schüler können historische Fragestellungen mit aktuellen gesellschaftlichen und politischen Problemen in Beziehung setzen."},
+        {"id": "at-geschichte-ob-frage-3", "code": "", "text": "Die Schülerinnen und Schüler können unterschiedliche historiographische Perspektiven und Deutungen historischer Ereignisse identifizieren und vergleichen."}
+      ]
+    },
+    {
+      "bereich": "Historische Methodenkompetenz",
+      "deskriptoren": [
+        {"id": "at-geschichte-ob-methoden-1", "code": "", "text": "Die Schülerinnen und Schüler können verschiedene Quellengattungen (schriftliche Quellen, Bildquellen, audiovisuelle Medien, digitale Quellen) selbstständig analysieren und kritisch bewerten."},
+        {"id": "at-geschichte-ob-methoden-2", "code": "", "text": "Die Schülerinnen und Schüler können historische Argumentationen in wissenschaftlichen und populären Darstellungen identifizieren und auf ihre Schlüssigkeit überprüfen."},
+        {"id": "at-geschichte-ob-methoden-3", "code": "", "text": "Die Schülerinnen und Schüler können Informationen aus verschiedenen Quellen und Darstellungen synthetisieren und eigene historische Narrative konstruieren."},
+        {"id": "at-geschichte-ob-methoden-4", "code": "", "text": "Die Schülerinnen und Schüler können quantitative und qualitative Methoden der Geschichtswissenschaft anwenden."}
+      ]
+    },
+    {
+      "bereich": "Historische Orientierungskompetenz",
+      "deskriptoren": [
+        {"id": "at-geschichte-ob-orientierung-1", "code": "", "text": "Die Schülerinnen und Schüler können komplexe historische Zusammenhänge und Entwicklungen in verschiedenen Epochen analysieren und in größere historische Narrative einordnen."},
+        {"id": "at-geschichte-ob-orientierung-2", "code": "", "text": "Die Schülerinnen und Schüler können historische Erfahrungen für die Analyse und Bewertung aktueller gesellschaftlicher und politischer Herausforderungen nutzen."},
+        {"id": "at-geschichte-ob-orientierung-3", "code": "", "text": "Die Schülerinnen und Schüler können die historische Bedingtheit gegenwärtiger Strukturen und Probleme erkennen und reflektieren."}
+      ]
+    },
+    {
+      "bereich": "Historische Sachkompetenz",
+      "deskriptoren": [
+        {"id": "at-geschichte-ob-sach-1", "code": "", "text": "Die Schülerinnen und Schüler können zentrale historische Prozesse und Strukturen in verschiedenen Epochen (19., 20., 21. Jahrhundert) analysieren und erklären."},
+        {"id": "at-geschichte-ob-sach-2", "code": "", "text": "Die Schülerinnen und Schüler können Ursachen, Verläufe und Folgen historischer Entwicklungen multiperspektivisch analysieren und darstellen."},
+        {"id": "at-geschichte-ob-sach-3", "code": "", "text": "Die Schülerinnen und Schüler können Handlungsspielräume und -grenzen von Individuen und Gruppen in verschiedenen historischen Kontexten bewerten."},
+        {"id": "at-geschichte-ob-sach-4", "code": "", "text": "Die Schülerinnen und Schüler können historische Fachbegriffe und Konzepte differenziert und reflektiert verwenden."}
+      ]
+    },
+    {
+      "bereich": "Politische Bildung",
+      "deskriptoren": [
+        {"id": "at-geschichte-ob-politisch-1", "code": "", "text": "Die Schülerinnen und Schüler können komplexe politische Strukturen, Prozesse und Institutionen in Österreich, Europa und der Welt analysieren und bewerten."},
+        {"id": "at-geschichte-ob-politisch-2", "code": "", "text": "Die Schülerinnen und Schüler können eigene politische Positionen auf der Grundlage demokratischer Werte und Menschenrechte begründen und in öffentlichen Diskursen vertreten."},
+        {"id": "at-geschichte-ob-politisch-3", "code": "", "text": "Die Schülerinnen und Schüler können die historische Genese und aktuelle Bedeutung von Demokratie, Rechtsstaatlichkeit und Menschenrechten analysieren."},
+        {"id": "at-geschichte-ob-politisch-4", "code": "", "text": "Die Schülerinnen und Schüler können Formen politischer Partizipation und zivilgesellschaftlichen Engagements analysieren und eigene Handlungsmöglichkeiten entwickeln."}
+      ]
+    }
+  ]
+}

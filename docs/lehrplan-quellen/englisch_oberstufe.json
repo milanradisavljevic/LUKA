@@ -1,0 +1,57 @@
+{
+  "fach": "englisch",
+  "stufe": "oberstufe",
+  "quelle": "BMBWF-Lehrplan AHS Englisch (Oberstufe) — RIS, Stand 2023",
+  "quelleUrl": "https://www.ris.bka.gv.at/GeltendeFassung.wxe?Abfrage=Bundesnormen&Gesetzesnummer=10008568",
+  "bereiche": [
+    {
+      "bereich": "Hören",
+      "deskriptoren": [
+        {"id": "at-englisch-ob-hoeren-1", "code": "", "text": "Die Schülerinnen und Schüler können genug verstehen, um Bedürfnisse konkreter Art befriedigen zu können, sofern deutlich und langsam gesprochen wird."},
+        {"id": "at-englisch-ob-hoeren-2", "code": "", "text": "Die Schülerinnen und Schüler können die Hauptpunkte verstehen, wenn in deutlich artikulierter Standardsprache über vertraute Dinge gesprochen wird, denen man normalerweise in der Ausbildung oder der Freizeit begegnet."},
+        {"id": "at-englisch-ob-hoeren-3", "code": "", "text": "Die Schülerinnen und Schüler können unkomplizierte Sachinformationen über gewöhnliche alltags-, berufs- oder ausbildungsbezogene Themen verstehen und dabei die Hauptaussagen und Einzelinformationen erkennen, sofern klar artikuliert und mit vertrautem Akzent gesprochen wird."},
+        {"id": "at-englisch-ob-hoeren-4", "code": "", "text": "Die Schülerinnen und Schüler können längeren Redebeiträgen und komplexer Argumentation folgen, sofern die Thematik einigermaßen vertraut und der Rede- oder Gesprächsverlauf durch explizite Signale gekennzeichnet ist."},
+        {"id": "at-englisch-ob-hoeren-5", "code": "", "text": "Die Schülerinnen und Schüler können Hauptaussagen und spezifische Informationen von inhaltlich und sprachlich komplexen Redebeiträgen zu konkreten und abstrakten Themen verstehen, wenn Standardsprache gesprochen wird."},
+        {"id": "at-englisch-ob-hoeren-6", "code": "", "text": "Die Schülerinnen und Schüler können im direkten Kontakt und in den Medien gesprochene Standardsprache verstehen, wenn es um vertraute oder auch um weniger vertraute Themen geht."}
+      ]
+    },
+    {
+      "bereich": "Lesen",
+      "deskriptoren": [
+        {"id": "at-englisch-ob-lesen-1", "code": "", "text": "Die Schülerinnen und Schüler können kurze, einfache Texte zu vertrauten, konkreten Themen verstehen, in denen gängige Alltagssprache verwendet wird."},
+        {"id": "at-englisch-ob-lesen-2", "code": "", "text": "Die Schülerinnen und Schüler können konkrete, unkomplizierte Texte über vertraute Themen mit befriedigendem Verständnis lesen, die wesentlichen Punkte erfassen und wichtige Informationen auffinden."},
+        {"id": "at-englisch-ob-lesen-3", "code": "", "text": "Die Schülerinnen und Schüler können unkomplizierte, auch literarische Texte über vertraute Themen mit befriedigendem Verständnis lesen und wichtige Informationen auffinden."},
+        {"id": "at-englisch-ob-lesen-4", "code": "", "text": "Die Schülerinnen und Schüler können längere Texte, auch Berichte und Artikel, zu aktuellen Fragen sowie literarische Texte selbstständig lesen und verstehen."},
+        {"id": "at-englisch-ob-lesen-5", "code": "", "text": "Die Schülerinnen und Schüler können die Hauptaussagen von inhaltlich und sprachlich komplexen Texten, auch literarischen, zu konkreten und abstrakten Themen verstehen."},
+        {"id": "at-englisch-ob-lesen-6", "code": "", "text": "Die Schülerinnen und Schüler können ein breites Spektrum an Texten (auch literarischen) auch zu weniger vertrauten Themen verstehen und die Hauptaussagen sowie spezifische Informationen und implizite Bedeutungen erfassen."}
+      ]
+    },
+    {
+      "bereich": "An Gesprächen teilnehmen",
+      "deskriptoren": [
+        {"id": "at-englisch-ob-gespraeche-1", "code": "", "text": "Die Schülerinnen und Schüler können ohne Vorbereitung an Gesprächen über vertraute Themen teilnehmen und Informationen austauschen."},
+        {"id": "at-englisch-ob-gespraeche-2", "code": "", "text": "Die Schülerinnen und Schüler können die eigene Meinung und Gefühle ausdrücken und darauf reagieren sowie für Ansichten, Pläne oder Handlungen Begründungen oder Erklärungen geben."},
+        {"id": "at-englisch-ob-gespraeche-3", "code": "", "text": "Die Schülerinnen und Schüler können ein Gespräch oder eine Diskussion aufrechterhalten und dabei kurz zu den Standpunkten anderer Stellung nehmen, Vergleiche anstellen und verschiedene Möglichkeiten angeben."}
+      ]
+    },
+    {
+      "bereich": "Zusammenhängend sprechen",
+      "deskriptoren": [
+        {"id": "at-englisch-ob-zusammenhaengend-1", "code": "", "text": "Die Schülerinnen und Schüler können kurz und einfach über ein Ereignis, gegenwärtige oder vergangene Aktivitäten oder Tätigkeiten berichten und sich darüber austauschen."},
+        {"id": "at-englisch-ob-zusammenhaengend-2", "code": "", "text": "Die Schülerinnen und Schüler können relativ flüssig eine unkomplizierte zusammenhängende Beschreibung zu vertrauten Themen (auch Filme, literarische Texte) geben, wobei einzelne Punkte linear aneinandergereiht werden."},
+        {"id": "at-englisch-ob-zusammenhaengend-3", "code": "", "text": "Die Schülerinnen und Schüler können flüssig, korrekt und wirkungsvoll über ein breites Spektrum allgemeiner Themen sprechen und dabei Zusammenhänge zwischen Ideen deutlich machen."}
+      ]
+    },
+    {
+      "bereich": "Schreiben",
+      "deskriptoren": [
+        {"id": "at-englisch-ob-schreiben-1", "code": "", "text": "Die Schülerinnen und Schüler können kurze, unkomplizierte zusammenhängende Texte über alltägliche Aspekte des eigenen Umfelds schreiben."},
+        {"id": "at-englisch-ob-schreiben-2", "code": "", "text": "Die Schülerinnen und Schüler können unkomplizierte, zusammenhängende Texte zu vertrauten Themen verfassen, wobei einzelne kürzere Teile in linearer Abfolge verbunden werden; Sachinformationen weitergeben sowie Gründe für Handlungen angeben."},
+        {"id": "at-englisch-ob-schreiben-3", "code": "", "text": "Die Schülerinnen und Schüler können unkomplizierte, detaillierte Beschreibungen zu einer Reihe verschiedener vertrauter Themen verfassen."},
+        {"id": "at-englisch-ob-schreiben-4", "code": "", "text": "Die Schülerinnen und Schüler können mit einer gewissen Sicherheit größere Mengen von Sachinformationen über vertraute Routineangelegenheiten und über weniger routinemäßige Dinge zusammenfassen, darüber berichten und dazu Stellung nehmen."},
+        {"id": "at-englisch-ob-schreiben-5", "code": "", "text": "Die Schülerinnen und Schüler können unterschiedliche Texte schreiben, in denen Argumente für oder gegen einen bestimmten Standpunkt angegeben und die Vor- und Nachteile verschiedener Optionen erläutert werden."},
+        {"id": "at-englisch-ob-schreiben-6", "code": "", "text": "Die Schülerinnen und Schüler können klare detaillierte Texte zu einem breiten Spektrum an Themen verfassen, darin den Zusammenhang zwischen verschiedenen Ideen deutlich machen und die für das betreffende Genre geltenden Konventionen beachten."}
+      ]
+    }
+  ]
+}

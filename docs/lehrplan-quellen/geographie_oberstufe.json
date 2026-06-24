@@ -1,0 +1,44 @@
+{
+  "fach": "geographie",
+  "stufe": "oberstufe",
+  "quelle": "BMBWF-Lehrplan AHS Geographie und wirtschaftliche Bildung (Oberstufe) — RIS, Stand 2023",
+  "quelleUrl": "https://www.ris.bka.gv.at/GeltendeFassung.wxe?Abfrage=Bundesnormen&Gesetzesnummer=10008568",
+  "bereiche": [
+    {
+      "bereich": "Wahrnehmungs- & Orientierungskompetenz",
+      "deskriptoren": [
+        {"id": "at-geographie-ob-wahrnehmung-1", "code": "", "text": "Die Schülerinnen und Schüler können komplexe räumliche Strukturen und Prozesse auf verschiedenen Maßstabsebenen (lokal, regional, national, global) wahrnehmen, analysieren und einordnen."},
+        {"id": "at-geographie-ob-wahrnehmung-2", "code": "", "text": "Die Schülerinnen und Schüler können unterschiedliche Wahrnehmungen und Bewertungen von Räumen durch verschiedene Akteure identifizieren und reflektieren."},
+        {"id": "at-geographie-ob-wahrnehmung-3", "code": "", "text": "Die Schülerinnen und Schüler können ihr räumliches Orientierungswissen erweitern und dieses für Entscheidungen in privaten, beruflichen und öffentlichen Kontexten nutzen."},
+        {"id": "at-geographie-ob-wahrnehmung-4", "code": "", "text": "Die Schülerinnen und Schüler können die Relativität räumlicher Abgrenzungen und Zuordnungen erkennen und kritisch hinterfragen."}
+      ]
+    },
+    {
+      "bereich": "Methodenkompetenz",
+      "deskriptoren": [
+        {"id": "at-geographie-ob-methoden-1", "code": "", "text": "Die Schülerinnen und Schüler können geographisch-wirtschaftskundliche Informationen mit Hilfe bewährter und computergestützter Verfahren gewinnen, analysieren und zielgruppenorientiert darstellen."},
+        {"id": "at-geographie-ob-methoden-2", "code": "", "text": "Die Schülerinnen und Schüler können topographische und thematische Karten sowie Satellitenbilder selbstständig auswerten und interpretieren."},
+        {"id": "at-geographie-ob-methoden-3", "code": "", "text": "Die Schülerinnen und Schüler können statistische Daten und Geodaten kritisch analysieren und visualisieren."},
+        {"id": "at-geographie-ob-methoden-4", "code": "", "text": "Die Schülerinnen und Schüler können qualitative und quantitative Forschungsmethoden der Geographie und Wirtschaftskunde anwenden."}
+      ]
+    },
+    {
+      "bereich": "Synthesekompetenz",
+      "deskriptoren": [
+        {"id": "at-geographie-ob-synthese-1", "code": "", "text": "Die Schülerinnen und Schüler können Einsicht in das Wirkungsgefüge und die Dynamik von Raum, Gesellschaft und Wirtschaft sowie in die zugrunde liegenden Machtstrukturen gewinnen."},
+        {"id": "at-geographie-ob-synthese-2", "code": "", "text": "Die Schülerinnen und Schüler können die Komplexität von Beziehungsgeflechten zwischen Natur- und Humanfaktoren erkennen und zu den Auswirkungen menschlicher Eingriffe Stellung nehmen."},
+        {"id": "at-geographie-ob-synthese-3", "code": "", "text": "Die Schülerinnen und Schüler können Raum, Gesellschaft und Wirtschaft fächerübergreifend mit benachbarten natur- und sozialwissenschaftlichen Disziplinen betrachten."},
+        {"id": "at-geographie-ob-synthese-4", "code": "", "text": "Die Schülerinnen und Schüler können Landschaften als Lebensräume ökonomisch und ökologisch einschätzen und Interessensgegensätze bei der Nutzung analysieren."}
+      ]
+    },
+    {
+      "bereich": "Wirtschaftliche Bildung",
+      "deskriptoren": [
+        {"id": "at-geographie-ob-wirtschaft-1", "code": "", "text": "Die Schülerinnen und Schüler können grundlegende Zusammenhänge in betriebs-, volks- und weltwirtschaftlichen Bereichen sowie gesamtwirtschaftliche Gesetzmäßigkeiten, Strukturen und Probleme analysieren."},
+        {"id": "at-geographie-ob-wirtschaft-2", "code": "", "text": "Die Schülerinnen und Schüler können Wirtschaftspolitik als wesentlichen Bestandteil der Politik erkennen, ihre Modelle und deren reale Umsetzung in unterschiedlichen Systemen einschätzen."},
+        {"id": "at-geographie-ob-wirtschaft-3", "code": "", "text": "Die Schülerinnen und Schüler können ihre persönliche Rolle als Konsument bzw. Konsumentin kritisch durchleuchten und die volkswirtschaftliche Bedeutung des Konsumverhaltens erkennen."},
+        {"id": "at-geographie-ob-wirtschaft-4", "code": "", "text": "Die Schülerinnen und Schüler können die Bedeutung nachhaltiger wirtschaftlicher Aktivitäten in der globalisierten Welt diskutieren und Handlungsmöglichkeiten entwickeln."}
+      ]
+    }
+  ]
+}
