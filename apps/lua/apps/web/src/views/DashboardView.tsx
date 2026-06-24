@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import {
   GraduationCap, AlertTriangle, Loader2, ClipboardCheck,
   ChevronRight, FileText, Timer, Files, Clock, Coins,
-  Grid3X3, Languages, Pencil, AlignLeft,
+  Grid3X3, Languages, Pencil, AlignLeft, Zap,
 } from 'lucide-react';
 import { useNatascha } from '../hooks/useNatascha';
 import { loadDocuments, loadTemplates } from '../lib/storage';
@@ -210,6 +210,14 @@ export function DashboardView({ onNavigate, onStartQuickExercise }: DashboardVie
                 <span>{s.label}</span>
               </button>
             ))}
+            <button
+              className="tile"
+              onClick={() => onNavigate?.('quick')}
+              style={{ fontSize: '0.8125rem', textAlign: 'left', flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}
+            >
+              <Zap size={18} style={{ color: 'var(--color-accent)', flexShrink: 0 }} />
+              <span>Eigene Schnell-Übung</span>
+            </button>
           </div>
         </div>
       )}

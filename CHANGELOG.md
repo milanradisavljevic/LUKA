@@ -19,6 +19,23 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 - `apps/lua/scripts/srdp-smoke.mjs`: Live-Smoke DE + EN (DeepSeek) — K1/K3- bzw. Open-Writing-Raster.
 - Tests: schema (matura-Profil + Skelett), qa (matura → SRDP/Open-Writing). Schema 129, QA 103.
 
+### Added — In-App-Auto-Fetch Ausgangstext (Task 4b UI)
+- `apps/lua/apps/web/src/hooks/useNatascha.ts`: neuer `quelltextGet(klasse, aufgabe)`-Getter,
+  ruft `natascha_quelltext_get` (Chief: Rust/Python) ab und liefert den gespeicherten Ausgangstext.
+- `apps/lua/apps/web/src/views/KlassenView.tsx`: `handleGenerateUebung` ist jetzt async und
+  befüllt `prefill.ausgangstext` mit dem Ausgangstext der gewählten Klasse/Aufgabe.
+- `apps/lua/apps/web/src/views/SchuelerView.tsx`: `handleGenerateUebung` holt den Ausgangstext
+  der jüngsten Aufgabe aus dem Längsschnitt (`laengsschnitt.verlauf`) und setzt ihn in den Prefill.
+- Step0 konsumiert den Ausgangstext bereits als Quelltext — Closed Loop damit komplett.
+
+### Added — Quick-Übung als eigener 1-Screen (Task 3b)
+- `apps/lua/apps/web/src/lib/types.ts`: `ActiveView` um `'quick'` erweitert.
+- Neue `apps/lua/apps/web/src/views/QuickExerciseView.tsx`: Eingaben Thema, Fach, Stufe,
+  Aufgabentyp (nach Stufe gefiltert) → `buildSkelett` → sofortiger Sprung in den Baukasten.
+- `apps/lua/apps/web/src/App.tsx`: View-Route + Titel für `quick` eingetragen.
+- `apps/lua/apps/web/src/components/Sidebar.tsx`: Sidebar-Eintrag „Schnell-Übung" (Zap-Icon).
+- `apps/lua/apps/web/src/views/DashboardView.tsx`: Dashboard-Kachel „Eigene Schnell-Übung".
+
 ### Added — Einheitliche Empty-States für leere Views (Task 3a)
 - Neue wiederverwendbare `EmptyState`-Komponente in `apps/web/src/views/_EmptyState.tsx`
   (Icon + Titel + Beschreibung + optional CTA), orientiert am bestehenden Muster in

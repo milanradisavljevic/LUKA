@@ -30,6 +30,7 @@ import { SchuelerView } from './views/SchuelerView';
 import { DashboardView } from './views/DashboardView';
 import { ErwartungshorizontView } from './views/ErwartungshorizontView';
 import { KompetenzView } from './views/KompetenzView';
+import { QuickExerciseView } from './views/QuickExerciseView';
 import { setPendingUebung } from './lib/korrekturBridge';
 import { createDefaultBlock } from './lib/blockDefaults';
 import type { NataschaPrefill } from './lib/nataschaBridge';
@@ -42,6 +43,7 @@ const VIEW_TITLES: Record<ActiveView, string> = {
   dashboard: 'Übersicht',
   wizard: 'Neue Unterlage',
   kompetenz: 'Kompetenz-Übung',
+  quick: 'Schnell-Übung',
   documents: 'Meine Unterlagen',
   klassen: 'Meine Klassen',
   korrektur: 'Korrektur',
@@ -298,6 +300,8 @@ if (hydrating) {
         );
       case 'erwartungshorizont':
         return <ErwartungshorizontView />;
+      case 'quick':
+        return <QuickExerciseView dispatch={dispatch} onDone={() => setActiveView('wizard')} />;
       case 'settings':
         return <SettingsView />;
       case 'help':

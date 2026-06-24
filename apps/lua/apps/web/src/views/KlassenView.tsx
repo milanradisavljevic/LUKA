@@ -83,7 +83,7 @@ const FEHLER_COLORS: Record<string, string> = { R: '#e74c3c', G: '#27ae60', Z: '
 type Tab = 'uebersicht' | 'statistik';
 
 export function KlassenView({ onGenerateUebung }: Props) {
-  const { listKlassen, listAufgaben, getAbgaben, getHeatmap, getKlassenStatistik, getKlassenTrend, getKlassenKalibrierung, getFehlerDetail, exportNotenCsv, generateKlassenBriefing, getKlassenBriefing } = useNatascha();
+  const { listKlassen, listAufgaben, getAbgaben, getHeatmap, getKlassenStatistik, getKlassenTrend, getKlassenKalibrierung, getFehlerDetail, exportNotenCsv, generateKlassenBriefing, getKlassenBriefing, quelltextGet } = useNatascha();
 
   const [tab, setTab] = useState<Tab>('uebersicht');
   const [klassen, setKlassen] = useState<KlasseInfo[]>([]);
@@ -161,7 +161,7 @@ export function KlassenView({ onGenerateUebung }: Props) {
     setFehlerDetail({ typ, rows: rows as FehlerDetailRow[] });
   }, [selectedKlasse, selectedAufgabe, getFehlerDetail]);
 
-  const handleGenerateUebung = useCallback(() => {
+  const handleGenerateUebung = useCallback(async () => {
     if (!selectedKlasse || heatmap.length === 0) return;
     const top = [...heatmap].filter((h) => h.anzahl > 0).sort((a, b) => b.anzahl - a.anzahl).slice(0, 3);
     const fokusThemen = top.map((h) => HEATMAP_LABELS[h.typ] ?? h.typ);
@@ -171,6 +171,10 @@ export function KlassenView({ onGenerateUebung }: Props) {
         if (!arten.includes(t)) arten.push(t);
       }
     }
+    let ausgangstext = '';
+    if (selectedKlasse && selectedAufgabe) {
+      ausgangstext = await quelltextGet(selectedKlasse, selectedAufgabe);
+    }
     const prefill: NataschaPrefill = {
       thema: `Übung zu Fehlerschwerpunkten – ${selectedKlasse}${selectedAufgabe ? ' · ' + selectedAufgabe : ''}`,
       fach: 'deutsch',
@@ -178,9 +182,10 @@ export function KlassenView({ onGenerateUebung }: Props) {
       fokusThemen,
       gewuenschteAufgabenarten: arten,
       notizen: `Automatisch aus der Korrektur-Heatmap der Klasse ${selectedKlasse} erzeugt. Schwerpunkte: ${fokusThemen.join(', ')}.`,
+      ausgangstext: ausgangstext || undefined,
     };
     onGenerateUebung?.(prefill);
-  }, [selectedKlasse, selectedAufgabe, heatmap, onGenerateUebung]);
+  }, [selectedKlasse, selectedAufgabe, heatmap, onGenerateUebung, quelltextGet]);
 
   const handleGenerateBriefing = useCallback(async () => {
     if (!selectedKlasse) return;

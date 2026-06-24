@@ -265,6 +265,17 @@ export function useNatascha() {
     } catch { return null; }
   }, []);
 
+  const quelltextGet = useCallback(async (klasse: string, aufgabe: string): Promise<string> => {
+    const s = loadSettings();
+    try {
+      const result = await invoke<string>('natascha_quelltext_get', {
+        dir: s.nataschaDir ?? '', python: s.pythonCommand ?? '', klasse, aufgabe,
+      });
+      const parsed = JSON.parse(result) as { ausgangstext?: string };
+      return (parsed.ausgangstext ?? '').trim();
+    } catch { return ''; }
+  }, []);
+
   // --- Rubrik-Editor ---
   const listRubricFiles = useCallback(async (): Promise<string[]> => {
     const s = loadSettings();
@@ -400,6 +411,7 @@ export function useNatascha() {
     readRubric,
     saveRubric,
     retroImport,
+    quelltextGet,
   };
 }
 
