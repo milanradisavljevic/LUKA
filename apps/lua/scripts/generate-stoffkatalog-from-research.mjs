@@ -82,6 +82,16 @@ const DEFAULT_AUFGABENTYPEN = {
   'Begriffs- & Theoriekompetenz': ['offeneVerstaendnisfrage', 'multipleChoice'],
   'Argumentations- & Reflexionskompetenz': ['offeneSchreibaufgabe', 'offeneVerstaendnisfrage'],
   'Anwendung & Transfer': ['offeneSchreibaufgabe', 'offeneVerstaendnisfrage'],
+  'Sprachkompetenz': ['lueckentext', 'multipleChoice'],
+  'Textkompetenz': ['offeneVerstaendnisfrage', 'multipleChoice'],
+  'Kulturkompetenz': ['multipleChoice', 'kategorisierung'],
+  'Wahrnehmen & Verstehen': ['multipleChoice', 'offeneVerstaendnisfrage'],
+  'Deuten & Urteilen': ['offeneVerstaendnisfrage', 'multipleChoice'],
+  'Reflektieren & Kommunizieren': ['offeneSchreibaufgabe', 'roleplay'],
+  'Gestalten & Handeln': ['offeneSchreibaufgabe', 'multipleChoice'],
+  'Fachwissen': ['multipleChoice', 'offeneVerstaendnisfrage'],
+  'Methoden- & Erkenntniskompetenz': ['offeneVerstaendnisfrage', 'multipleChoice'],
+  'Reflexions- & Urteilskompetenz': ['offeneSchreibaufgabe', 'offeneVerstaendnisfrage'],
 };
 
 const args = process.argv.slice(2);

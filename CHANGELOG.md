@@ -18,7 +18,8 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
   den Recherche-JSONs neu generiert (Voloverwrite, verlustfrei).
 - Sprachfächer `deutsch`, `englisch`, `franzoesisch`, `italienisch`, `spanisch`
   gemerged: gesourcte Skill-Deskriptoren + erhaltene kuratierte Spezialbereiche.
-- `latein`, `religion`, `psychologie` unverändert (keine Qwen-Daten).
+- `latein`, `religion`, `psychologie` nachträglich aus `docs/lehrplan-quellen/`
+  generiert; Mapping um Latein-/Religions-/Psychologie-Kompetenzbereiche erweitert.
 - Verifikation: `pnpm --filter "./packages/*" build && pnpm -r typecheck &&
   pnpm -r test` grün (Schema 129, LLM 126, Renderer 38, Input 17, QA 103, Web 64).
 
