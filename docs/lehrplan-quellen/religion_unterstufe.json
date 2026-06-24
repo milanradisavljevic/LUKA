@@ -1,0 +1,108 @@
+{
+  "fach": "religion",
+  "stufe": "unterstufe",
+  "quelle": "BMBWF-Lehrplan AHS Religion (Unterstufe) — RIS, Stand 2023",
+  "quelleUrl": "https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Gesetzesnummer=20009503&FassungVom=2023-04-12&Anlage=1",
+  "bereiche": [
+    {
+      "bereich": "Wahrnehmen & Verstehen",
+      "deskriptoren": [
+        {
+          "id": "at-religion-un-wahrnehmen-1",
+          "code": "A",
+          "text": "Die Schülerinnen und Schüler können religiös bedeutsame Phänomene in ihrer Lebenswelt wahrnehmen und beschreiben."
+        },
+        {
+          "id": "at-religion-un-wahrnehmen-2",
+          "code": "B",
+          "text": "Die Schülerinnen und Schüler können religiöse Sprach- und Gestaltungsformen (Symbole, Rituale, Gebete) erkennen und ihre Bedeutung verstehen."
+        },
+        {
+          "id": "at-religion-un-wahrnehmen-3",
+          "code": "A",
+          "text": "Die Schülerinnen und Schüler können biblische Erzählungen und ihre zentralen Botschaften wiedergeben und deuten."
+        },
+        {
+          "id": "at-religion-un-wahrnehmen-4",
+          "code": "B",
+          "text": "Die Schülerinnen und Schüler können grundlegende Aspekte der christlichen Religion (Gottesbild, Jesus Christus, Kirche) beschreiben und erklären."
+        }
+      ]
+    },
+    {
+      "bereich": "Deuten & Urteilen",
+      "deskriptoren": [
+        {
+          "id": "at-religion-un-deuten-1",
+          "code": "B",
+          "text": "Die Schülerinnen und Schüler können religiöse Texte (Bibel, Gleichnisse) interpretieren und ihre Aussagen für heute deuten."
+        },
+        {
+          "id": "at-religion-un-deuten-2",
+          "code": "D",
+          "text": "Die Schülerinnen und Schüler können ethische Fragen aus ihrer Lebenswelt identifizieren und verschiedene Positionen dazu darstellen."
+        },
+        {
+          "id": "at-religion-un-deuten-3",
+          "code": "D",
+          "text": "Die Schülerinnen und Schüler können Gemeinsamkeiten und Unterschiede zwischen Religionen und Weltanschauungen benennen und respektvoll damit umgehen."
+        },
+        {
+          "id": "at-religion-un-deuten-4",
+          "code": "B",
+          "text": "Die Schülerinnen und Schüler können die Bedeutung christlicher Feste und Feiern im Kirchenjahr erklären und ihre Symbolik deuten."
+        }
+      ]
+    },
+    {
+      "bereich": "Reflektieren & Kommunizieren",
+      "deskriptoren": [
+        {
+          "id": "at-religion-un-reflektieren-1",
+          "code": "D",
+          "text": "Die Schülerinnen und Schüler können eigene religiöse Vorstellungen artikulieren und mit anderen ins Gespräch bringen."
+        },
+        {
+          "id": "at-religion-un-reflektieren-2",
+          "code": "E",
+          "text": "Die Schülerinnen und Schüler können Fragen nach Sinn und Ziel des Lebens stellen und verschiedene Antwortmöglichkeiten reflektieren."
+        },
+        {
+          "id": "at-religion-un-reflektieren-3",
+          "code": "D",
+          "text": "Die Schülerinnen und Schüler können in einfachen ethischen Dilemmata begründet Stellung nehmen und ihre Position vertreten."
+        },
+        {
+          "id": "at-religion-un-reflektieren-4",
+          "code": "E",
+          "text": "Die Schülerinnen und Schüler können Erfahrungen mit Gerechtigkeit und Ungerechtigkeit beschreiben und christliche Antworten darauf reflektieren."
+        }
+      ]
+    },
+    {
+      "bereich": "Gestalten & Handeln",
+      "deskriptoren": [
+        {
+          "id": "at-religion-un-gestalten-1",
+          "code": "C",
+          "text": "Die Schülerinnen und Schüler können an religiösen Ausdrucksformen (Gebete, Lieder, Rituale) aktiv teilnehmen und diese mitgestalten."
+        },
+        {
+          "id": "at-religion-un-gestalten-2",
+          "code": "C",
+          "text": "Die Schülerinnen und Schüler können in konkreten Situationen solidarisches und verantwortungsvolles Handeln zeigen."
+        },
+        {
+          "id": "at-religion-un-gestalten-3",
+          "code": "E",
+          "text": "Die Schülerinnen und Schüler können Projekte zur Nächstenliebe und sozialen Gerechtigkeit planen und durchführen."
+        },
+        {
+          "id": "at-religion-un-gestalten-4",
+          "code": "C",
+          "text": "Die Schülerinnen und Schüler können Wege zur Konfliktlösung und Versöhnung aufzeigen und in ihrem Umfeld praktizieren."
+        }
+      ]
+    }
+  ]
+}
