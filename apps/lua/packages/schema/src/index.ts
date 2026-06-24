@@ -10,7 +10,7 @@ export * from './clean.js';
 // Meta
 // ---------------------------------------------------------------------------
 
-export const UnterlagentypSchema = z.enum(['hausuebung', 'test', 'schuluebung', 'schularbeit']);
+export const UnterlagentypSchema = z.enum(['hausuebung', 'test', 'schuluebung', 'schularbeit', 'matura']);
 export type Unterlagentyp = z.infer<typeof UnterlagentypSchema>;
 
 export const StufeSchema = z.enum(['oberstufe', 'unterstufe']);
@@ -886,6 +886,18 @@ export const PROFILE: Record<Unterlagentyp, TypProfil> = {
     defaultDauerMinuten: 50,
     defaultGesamtpunkte: 48,
     strukturhinweis: 'Schularbeit nach oesterreichischer Maturastruktur: Leseverstaendnis und offene Schreibaufgabe mit Situation, Textsorte, Umfang und Aspekten.',
+  },
+  matura: {
+    typ: 'matura',
+    standardAufgabenarten: [
+      { typ: 'offeneVerstaendnisfrage', punkteAnteil: 0.25 },
+      { typ: 'offeneSchreibaufgabe', punkteAnteil: 0.75 },
+    ],
+    rasterErzeugen: true,
+    notenschluesselErzeugen: true,
+    defaultDauerMinuten: 270,
+    defaultGesamtpunkte: 60,
+    strukturhinweis: 'Standardisierte Reifepruefung (SRDP) nach BMBWF-Format: schriftliche Klausur mit Textbeilage(n) und mehreren Arbeitsauftraegen (Operatoren wie zusammenfassen, analysieren, eroertern). Bewertung nach K1 (Inhalt + Textstruktur) und K3 (Ausdruck + Sprachnormen). Genaue Textsorten- und Wortanzahl-Vorgaben je Aufgabe.',
   },
 };
 

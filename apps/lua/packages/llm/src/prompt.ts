@@ -687,6 +687,17 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
         + `und Verweise auf den Text (z. B. "Absatz N" in der Zielsprache, nicht auf Deutsch). Die deutschen Beispiele unten `
         + `zeigen NUR die Struktur, nicht die Sprache. Loesungen/Musterantworten ebenfalls auf ${zielsprache}. `
       : '';
+  const maturaHinweis =
+    input.meta.typ === 'matura'
+      ? (istSprachfach(input.meta.fach)
+          ? `SRDP-FORMAT (Matura, Fremdsprache): Gestalte die Aufgaben im Stil der standardisierten Reifepruefung — `
+            + `klare Arbeitsauftraege je Fertigkeit, authentische Textbeilage(n), Textsorte + Wortanzahl je Schreibaufgabe explizit nennen. `
+            + `Anspruchsvolles, maturaadaequates Niveau (B2/C1). `
+          : `SRDP-FORMAT (Matura, Deutsch): Gestalte die Klausur im Stil der standardisierten Reifepruefung — `
+            + `eine oder mehrere Textbeilagen, mehrere Arbeitsauftraege mit klaren Operatoren (z. B. zusammenfassen, analysieren, eroertern), `
+            + `je Schreibauftrag Textsorte (z. B. Zusammenfassung, Leserbrief, Eroerterung, Kommentar, Textanalyse) und konkrete Wortanzahl explizit vorgeben. `
+            + `Maturaadaequates Anspruchsniveau. `)
+      : '';
   const fokusThemen = input.meta.fokusThemen ?? [];
   const fokusThemenHinweis =
     fokusThemen.length > 0
@@ -717,6 +728,7 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
           `Schwierigkeitsniveau: "${schwierigkeit}" — passe das kognitive Niveau entsprechend an. ` +
           niveauHinweis +
           spracheHinweis +
+          maturaHinweis +
           lernzielHinweis +
           zielgruppeHinweis +
           notizenHinweis +
@@ -755,6 +767,7 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
         `Erzeuge das bloecke-JSON-Array fuer die folgende Anforderung. ` +
         `Schwierigkeitsniveau: "${schwierigkeit}" — passe das kognitive Niveau der Aufgaben entsprechend an (siehe Bloom-Steuerung im System-Prompt). ` +
         spracheHinweis +
+        maturaHinweis +
         lernzielHinweis +
         zielgruppeHinweis +
         notizenHinweis +

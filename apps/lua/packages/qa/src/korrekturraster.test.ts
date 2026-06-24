@@ -6,10 +6,10 @@ import type { DocumentV1 } from '@lehrunterlagen/schema';
 const isDocx = (buf: Buffer) =>
   buf[0] === 0x50 && buf[1] === 0x4b && buf[2] === 0x03 && buf[3] === 0x04;
 
-function makeDoc(bloecke: DocumentV1['bloecke'], fach: DocumentV1['meta']['fach'] = 'deutsch', stufe: 'oberstufe' | 'unterstufe' = 'oberstufe'): DocumentV1 {
+function makeDoc(bloecke: DocumentV1['bloecke'], fach: DocumentV1['meta']['fach'] = 'deutsch', stufe: 'oberstufe' | 'unterstufe' = 'oberstufe', typ?: DocumentV1['meta']['typ']): DocumentV1 {
   return {
     schemaVersion: '0.1.0',
-    meta: { stufe, fach, thema: 'Testthema', datum: '2026-05-30', klasse: '7A', notizen: '' },
+    meta: { stufe, fach, thema: 'Testthema', datum: '2026-05-30', klasse: '7A', notizen: '', ...(typ ? { typ } : {}) },
     quelltexte: [{ id: 'q1', titel: 'Test', inhalt: 'Text', herkunft: { typ: 'upload', ref: 't.txt' } }],
     bloecke,
   };
@@ -339,5 +339,15 @@ describe('Builder: Sachfach-Schreibaufgaben-Kataloge', () => {
   });
   it('Deutsch → bleibt textsortenbasiert (kein Sachfach-Override)', () => {
     expect(ersteKriterien('deutsch')).toContain('Aufgabenerfuellung / Thema');
+  });
+
+  it('Matura Deutsch → SRDP-K1/K3-Raster', () => {
+    const k = buildRaster(makeDoc([schreibBlock], 'deutsch', 'oberstufe', 'matura')).bloecke[0].kriterien.map((x) => x.kriterium);
+    expect(k).toContain('K1 — Inhalt');
+    expect(k).toContain('K3 — Sprachnormen');
+  });
+  it('Matura Englisch → Open-Writing-Raster', () => {
+    const k = buildRaster(makeDoc([schreibBlock], 'englisch', 'oberstufe', 'matura')).bloecke[0].kriterien.map((x) => x.kriterium);
+    expect(k).toContain('Task Achievement');
   });
 });

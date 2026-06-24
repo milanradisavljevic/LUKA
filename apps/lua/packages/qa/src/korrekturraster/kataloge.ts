@@ -83,6 +83,17 @@ export const SACHERORTERUNG: KriterienKatalog[] = [
 ];
 
 // ---------------------------------------------------------------------------
+// Deutsch -- SRDP-Matura-Klausur (K1 Inhalt+Textstruktur / K3 Ausdruck+Sprachnormen)
+// ---------------------------------------------------------------------------
+
+export const SRDP_DEUTSCH: KriterienKatalog[] = [
+  { kriterium: 'K1 — Inhalt', beschreibung: 'Aufgabenstellung vollstaendig erfuellt; Inhalt sachlich richtig, relevant und ausreichend ausgefuehrt', maxPunkte: 10 },
+  { kriterium: 'K1 — Textstruktur', beschreibung: 'Textsortenkonformer Aufbau; klare Gliederung, Kohaerenz und nachvollziehbare Gedankenfuehrung', maxPunkte: 8 },
+  { kriterium: 'K3 — Ausdruck & Stil', beschreibung: 'Praeziser, variabler Wortschatz; angemessenes Register; stilistische Sicherheit', maxPunkte: 8 },
+  { kriterium: 'K3 — Sprachnormen', beschreibung: 'Grammatik, Rechtschreibung, Zeichensetzung; normgerechte Sprachrichtigkeit', maxPunkte: 8 },
+];
+
+// ---------------------------------------------------------------------------
 // Englisch -- Open Writing Task (Oberstufe, SRDP-kompatibel)
 // ---------------------------------------------------------------------------
 
