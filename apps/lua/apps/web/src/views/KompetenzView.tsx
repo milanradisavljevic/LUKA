@@ -3,7 +3,7 @@ import { ArrowRight, Target, Loader2 } from 'lucide-react';
 import type { AppState, AppAction } from '../lib/types';
 import type { StoffItem, BlockTyp, Fach } from '@lehrunterlagen/schema';
 import { FACH_META, fachLabel, KOMPETENZBEREICHE } from '@lehrunterlagen/schema';
-import { listStoffItems } from '../lib/stoffkatalog';
+import { listStoffItems, fachHatEntwurf } from '../lib/stoffkatalog';
 import { BLOCK_TYPE_DEFS, STUFE_RULES } from '../lib/constants';
 import { buildSkelett } from '@lehrunterlagen/schema';
 import { useGenerate } from '../hooks/useGenerate';
@@ -322,9 +322,11 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
             Für diese Kombination gibt es noch keine Stoff-Items. Du kannst trotzdem oben eine Kompetenz frei eingeben.
           </p>
         )}
-        <p style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', fontStyle: 'italic' }}>
-          Hinweis: Die Kompetenzkataloge sind kuratierte Entwürfe, angelehnt an den BMBWF-Lehrplan — kein offizieller Nachweis.
-        </p>
+        {fachHatEntwurf(fach, stufe) && (
+          <p style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', fontStyle: 'italic' }}>
+            Hinweis: Teile dieses Kompetenzkatalogs sind kuratierte Entwürfe, angelehnt an den BMBWF-Lehrplan — kein offizieller Nachweis.
+          </p>
+        )}
       </section>
 
       {/* Thema */}

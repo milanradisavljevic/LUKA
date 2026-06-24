@@ -162,6 +162,8 @@ export interface CoverageMeta {
   thema: string;
   datum: string;
   klasse?: string;
+  /** Wenn true: dezenter Entwurfs-Vermerk (Katalog noch nicht voll gesourct). */
+  istEntwurf?: boolean;
 }
 
 function buildCoverageDoc(
@@ -244,15 +246,19 @@ function buildCoverageHeader(
       ],
       spacing: { after: 80 },
     }),
-    new Paragraph({
-      children: [
-        run(
-          'Hinweis: Kuratierter Kompetenzkatalog (Entwurf, angelehnt an den BMBWF-Lehrplan) — kein offizieller Nachweis.',
-          { font: template.font, size: template.fontSize.body, italics: true, color: template.color.gray },
-        ),
-      ],
-      spacing: { after: 200 },
-    }),
+    ...(meta.istEntwurf
+      ? [
+          new Paragraph({
+            children: [
+              run(
+                'Hinweis: Teile dieses Kompetenzkatalogs sind kuratierte Entwürfe (angelehnt an den BMBWF-Lehrplan) — kein offizieller Nachweis.',
+                { font: template.font, size: template.fontSize.body, italics: true, color: template.color.gray },
+              ),
+            ],
+            spacing: { after: 200 },
+          }),
+        ]
+      : []),
   ];
 }
 
