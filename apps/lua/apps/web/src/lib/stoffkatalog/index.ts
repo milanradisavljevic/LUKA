@@ -85,6 +85,28 @@ export function getAllStoffItems(): StoffItem[] {
   return [...STOFF_ITEMS];
 }
 
+/** True, wenn die Quelle einen kuratierten Entwurf bezeichnet (kein offizieller Nachweis). */
+export function istEntwurfsQuelle(quelle: string | undefined): boolean {
+  return /entwurf/i.test(quelle ?? '');
+}
+
+/**
+ * True, wenn (mind. ein) Deskriptor des Fachs (optional: der Stufe) noch ein
+ * kuratierter Entwurf ist. Steuert den Entwurfs-Vermerk: voll gesourcte Fächer
+ * (z. B. Sachfächer) zeigen ihn nicht mehr.
+ */
+export function fachHatEntwurf(
+  fach: Deskriptor['fach'],
+  stufe?: Deskriptor['stufe'],
+): boolean {
+  return DESKRIPTOREN.some(
+    (d) =>
+      d.fach === fach &&
+      (stufe === undefined || d.stufe === stufe) &&
+      istEntwurfsQuelle(d.quelle),
+  );
+}
+
 /**
  * Alle Deskriptoren ("Universum") für eine Fach/Stufe(/Rahmenwerk)-Kombination.
  * Basis für die Coverage-Berechnung: fehlend = Universum − abgedeckt.

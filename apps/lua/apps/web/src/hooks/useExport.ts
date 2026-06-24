@@ -5,6 +5,7 @@ import type { DocumentV1 } from '@lehrunterlagen/schema';
 import { getBlockLabel } from '../lib/blockDefaults';
 import { appendHistoryEntry } from '../lib/storage';
 import { computeCoverage } from '../lib/coverage';
+import { istEntwurfsQuelle } from '../lib/stoffkatalog';
 import { RENDER_TEMPLATES } from '@lehrunterlagen/renderer';
 
 export function useExport() {
@@ -129,6 +130,9 @@ export function useExport() {
       const coverageDeskriptoren = (list: typeof abgedeckt) =>
         list.map((d) => ({ bereich: d.bereich, code: d.code || undefined, text: d.text }));
 
+      // Entwurfs-Vermerk nur, wenn dieser Nachweis (noch) Entwurfs-Deskriptoren enthält.
+      const istEntwurf = [...abgedeckt, ...fehlend].some((d) => istEntwurfsQuelle(d.quelle));
+
       const blob = await renderCoverageToBlob(
         {
           fach: state.generiertesDokument.meta.fach,
@@ -136,6 +140,7 @@ export function useExport() {
           thema: state.generiertesDokument.meta.thema,
           datum: state.generiertesDokument.meta.datum,
           klasse: state.generiertesDokument.meta.klasse,
+          istEntwurf,
         },
         coverageDeskriptoren(abgedeckt),
         coverageDeskriptoren(fehlend),
