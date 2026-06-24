@@ -328,6 +328,24 @@ pub async fn natascha_retro_import(
     run_cli_and_capture(cmd)
 }
 
+/// Liest den gespeicherten Ausgangstext einer Aufgabe (für die In-App-Übung-
+/// Vorbefüllung). Gibt JSON `{ klasse, aufgabe, ausgangstext }` zurück;
+/// `ausgangstext` ist leer, wenn keiner gespeichert ist.
+#[tauri::command]
+pub async fn natascha_quelltext_get(
+    dir: String,
+    python: String,
+    klasse: String,
+    aufgabe: String,
+) -> Result<String, String> {
+    let nat_dir = resolve_dir(&dir)?;
+    let mut cmd = build_cli_command(&nat_dir, &python);
+    cmd.arg("quelltext-get")
+        .arg("--klasse").arg(&klasse)
+        .arg("--aufgabe").arg(&aufgabe);
+    run_cli_and_capture(cmd)
+}
+
 /// Listet alle Rubrik-Markdown-Dateien (roh) für den Editor.
 #[tauri::command]
 pub async fn natascha_list_rubric_files(
