@@ -1,8 +1,11 @@
 import { useState } from 'react';
+import { History } from 'lucide-react';
 import type { HistoryEntry } from '../lib/types';
 import { clearHistory, loadHistory } from '../lib/storage';
 import { fachLabel } from '@lehrunterlagen/schema';
 import { ViewShell } from './_ViewShell';
+import { EmptyState } from './_EmptyState';
+
 const STUFE_LABEL: Record<string, string> = { oberstufe: 'Oberstufe', unterstufe: 'Unterstufe' };
 
 function formatDate(iso: string): string {
@@ -13,7 +16,11 @@ function formatDate(iso: string): string {
   }
 }
 
-export function HistoryView() {
+interface Props {
+  onCreateNew?: () => void;
+}
+
+export function HistoryView({ onCreateNew }: Props) {
   const [entries, setEntries] = useState<HistoryEntry[]>(() => loadHistory());
 
   const sorted = [...entries].sort((a, b) => b.timestamp.localeCompare(a.timestamp));
@@ -38,9 +45,13 @@ export function HistoryView() {
       }
     >
       {sorted.length === 0 ? (
-        <p style={{ color: 'var(--color-text-secondary)', textAlign: 'center', padding: '2rem 1rem', fontSize: '0.875rem' }}>
-          Noch keine Exporte. Der Verlauf füllt sich, sobald du ein Dokument als DOCX exportierst.
-        </p>
+        <EmptyState
+          icon={History}
+          title="Noch keine Exporte"
+          description="Der Verlauf füllt sich, sobald du ein Dokument als DOCX exportierst."
+          actionLabel={onCreateNew ? 'Neue Übung erstellen' : undefined}
+          onAction={onCreateNew}
+        />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
           {sorted.map((e) => (

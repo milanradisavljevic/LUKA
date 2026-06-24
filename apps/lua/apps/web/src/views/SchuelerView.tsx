@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Users, TrendingUp, AlertTriangle, Loader2, BarChart3, ChevronRight, Trash2, UserPlus, Sparkles, Wand2, FileUp } from 'lucide-react';
+import { Users, TrendingUp, AlertTriangle, Loader2, BarChart3, ChevronRight, Trash2, UserPlus, Sparkles, Wand2, FileUp, User, School } from 'lucide-react';
+import { EmptyState } from './_EmptyState';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, Legend, CartesianGrid } from 'recharts';
 import { useNatascha } from '../hooks/useNatascha';
 import type { KlasseInfo } from '../lib/storage';
@@ -280,6 +281,15 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
             </div>
           ))}
 
+          {klassen.length === 0 && (
+            <EmptyState
+              icon={School}
+              title="Noch keine Klassen"
+              description="Lege eine Klasse und Schüler an oder importiere eine CSV-Liste."
+              bordered={false}
+            />
+          )}
+
           <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--color-border)' }}>
             <div style={{ fontSize: '0.75rem', fontWeight: 700, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: 4 }}>
               <UserPlus size={14} /> Schüler anlegen
@@ -506,19 +516,21 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
           )}
 
           {!loading && selectedKlasse && schueler.length === 0 && (
-            <div style={cardStyle}>
-              <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', textAlign: 'center', margin: 0 }}>
-                Keine Schüler in dieser Klasse.
-              </p>
-            </div>
+            <EmptyState
+              icon={UserPlus}
+              title="Keine Schüler in dieser Klasse"
+              description="Lege links Schüler an oder importiere eine CSV-Liste."
+              bordered={false}
+            />
           )}
 
           {!loading && !selectedKlasse && (
-            <div style={cardStyle}>
-              <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', textAlign: 'center', margin: 0 }}>
-                Wähle eine Klasse und einen Schüler, um den Längsschnitt zu sehen.
-              </p>
-            </div>
+            <EmptyState
+              icon={User}
+              title="Wähle eine Klasse und einen Schüler"
+              description="Hier siehst du den Längsschnitt, Fehlerschwerpunkte und kannst ein Übungsblatt generieren."
+              bordered={false}
+            />
           )}
         </div>
       </div>

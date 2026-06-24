@@ -7,6 +7,19 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Einheitliche Empty-States für leere Views (Task 3a)
+- Neue wiederverwendbare `EmptyState`-Komponente in `apps/web/src/views/_EmptyState.tsx`
+  (Icon + Titel + Beschreibung + optional CTA), orientiert am bestehenden Muster in
+  `_DocumentList.tsx`.
+- `HistoryView.tsx`: Aufgewerteter Leerzustand mit CTA „Neue Übung erstellen".
+- `KlassenView.tsx`: Freundliche Leerzustände für „Noch keine Klassen", „Keine Noten",
+  „Keine Fehlerdaten" und „Wähle eine Klasse".
+- `SchuelerView.tsx`: Leerzustände für „Noch keine Klassen", „Keine Schüler in dieser
+  Klasse" und „Wähle eine Klasse und einen Schüler".
+- `App.tsx`: `onCreateNew` an `HistoryView` durchgereicht.
+- Verifikation: `pnpm --filter "./packages/*" build && pnpm -r typecheck && pnpm -r test`
+  grün (Schema 127, LLM 126, Renderer 38, Input 17, QA 101, Web 64).
+
 ### Added — Kompetenz-Modus: Sachfach-Stoffkataloge Welle 2
 - Neue Fach-Kataloge für die 6 Sachfächer in `apps/web/src/lib/stoffkatalog/`:
   `geschichte.ts`, `geographie.ts`, `religion.ts`, `ethik.ts`, `psychologie.ts`,
