@@ -22,7 +22,7 @@ interface SchuelerViewProps {
 }
 
 export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }: SchuelerViewProps = {}) {
-  const { listKlassen, listSchueler, insertSchueler, deleteSchueler, addKlasse, addAufgabe, listRubrics, getSchuelerLaengsschnitt, generateSchuelerProfil, getSchuelerProfil } = useNatascha();
+  const { listKlassen, listSchueler, insertSchueler, deleteSchueler, addKlasse, addAufgabe, listRubrics, getSchuelerLaengsschnitt, generateSchuelerProfil, getSchuelerProfil, quelltextGet } = useNatascha();
 
   const [klassen, setKlassen] = useState<KlasseInfo[]>([]);
   const [selectedKlasse, setSelectedKlasse] = useState<string | null>(null);
@@ -109,7 +109,7 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
   }, [preselect, loadSchueler, loadLaengsschnitt, onConsumePreselect]);
 
   // Closed Loop pro Schüler: aus den Fehlerschwerpunkten ein Übungsblatt erzeugen.
-  const handleGenerateUebung = useCallback(() => {
+  const handleGenerateUebung = useCallback(async () => {
     if (!laengsschnitt || !onGenerateUebung) return;
     const top = [...(laengsschnitt.fehlerschwerpunkte ?? [])]
       .filter((f: any) => f.anzahl > 0)
@@ -134,17 +134,26 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
         }
       }
     }
+    // Jüngste Aufgabe aus dem Verlauf ableiten, um den passenden Ausgangstext zu holen.
+    const verlauf = (laengsschnitt.verlauf ?? []) as Array<{ aufgabe?: string; datum?: string | null }>;
+    const juengste = verlauf[verlauf.length - 1];
+    let ausgangstext: string | undefined;
+    if (s.klasse && juengste?.aufgabe) {
+      const text = await quelltextGet(s.klasse, juengste.aufgabe);
+      if (text) ausgangstext = text;
+    }
     const prefill: NataschaPrefill = {
       thema: `Übung zu Schwächen – ${name}`,
       fach: 'deutsch',
       stufe: 'oberstufe',
       fokusThemen,
       gewuenschteAufgabenarten: arten,
-      notizen: `Automatisch aus dem Längsschnitt von ${name} (${laengsschnitt.schueler.klasse}) erzeugt. Schwerpunkte: ${fokusThemen.join(', ')}.`,
+      notizen: `Automatisch aus dem Längsschnitt von ${name} (${s.klasse}) erzeugt. Schwerpunkte: ${fokusThemen.join(', ')}.`,
       fehler: fehler.length > 0 ? fehler.slice(0, 12) : undefined,
+      ausgangstext,
     };
     onGenerateUebung(prefill);
-  }, [laengsschnitt, onGenerateUebung]);
+  }, [laengsschnitt, onGenerateUebung, quelltextGet]);
 
   const handleGenerateProfil = useCallback(async () => {
     if (!selectedSchuelerId) return;
