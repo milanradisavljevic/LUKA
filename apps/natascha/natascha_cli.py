@@ -449,6 +449,14 @@ def cmd_read_rubric(args):
     return 0
 
 
+def cmd_quelltext_get(args):
+    """Liest den gespeicherten Ausgangstext einer Aufgabe (für die In-App-Übung)."""
+    nc, ndb, config, db_path = _load_env_and_config()
+    text = ndb.get_aufgabe_quelltext(db_path, args.klasse, args.aufgabe)
+    _json_out({"klasse": args.klasse, "aufgabe": args.aufgabe, "ausgangstext": text or ""})
+    return 0
+
+
 def cmd_save_rubric(args):
     """Speichert (überschreibt/legt an) eine Rubrik aus stdin."""
     nc, ndb, config, db_path = _load_env_and_config()
@@ -607,6 +615,11 @@ def main():
     p_sr = sub.add_parser("save-rubric", help="Rubrik (stdin) speichern/überschreiben")
     p_sr.add_argument("--name", required=True)
 
+    # Ausgangstext einer Aufgabe lesen (In-App-Übung-Vorbefüllung)
+    p_qg = sub.add_parser("quelltext-get", help="Gespeicherten Ausgangstext einer Aufgabe lesen")
+    p_qg.add_argument("--klasse", required=True)
+    p_qg.add_argument("--aufgabe", required=True)
+
     # Retro-Import bestehender Analyse-JSONs
     p_ri = sub.add_parser("retro-import", help="Bestehende *_analysis.json in die DB importieren")
     p_ri.add_argument("--klasse", required=True)
@@ -633,6 +646,7 @@ def main():
         "list-rubric-files": cmd_list_rubric_files,
         "read-rubric": cmd_read_rubric,
         "save-rubric": cmd_save_rubric,
+        "quelltext-get": cmd_quelltext_get,
         "retro-import": cmd_retro_import,
     }
 
