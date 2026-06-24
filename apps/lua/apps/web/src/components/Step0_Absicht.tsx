@@ -29,6 +29,7 @@ const UNTERLAGENTYPEN = [
   { id: 'test' as const, label: 'Test / Stundenwiederholung', beschreibung: 'Mittel, Punkte + einfacher Schlüssel, ~25 Min, ~24 Pkte' },
   { id: 'schuluebung' as const, label: 'Schulübung', beschreibung: 'Übungsaufgaben ohne Punkte/Noten, ~20 Min' },
   { id: 'schularbeit' as const, label: 'Schularbeit / Klassenarbeit', beschreibung: 'Lang, hohe Stakes, Maturastruktur, ~50 Min, ~48 Pkte' },
+  { id: 'matura' as const, label: 'Matura (SRDP)', beschreibung: 'Standardisierte Reifeprüfung, BMBWF-Format, K1/K3-Raster, ~270 Min' },
 ];
 
 const SCHWIERIGKEITEN = [
@@ -69,6 +70,8 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
   const [punkteVergeben, setPunkteVergeben] = useState<boolean>((lastMeta?.typ ?? 'schularbeit') !== 'schuluebung');
   // Sinnvoller Default je Unterlagentyp; manuell überschreibbar.
   useEffect(() => { setPunkteVergeben(typ !== 'schuluebung'); }, [typ]);
+  // Matura (SRDP) → nüchternes SRDP-Template vorwählen.
+  useEffect(() => { if (typ === 'matura') dispatch({ type: 'SET_RENDER_TEMPLATE', template: 'srdp' }); }, [typ, dispatch]);
 
   // NATASCHA-Datei-Brücke (Phase 1)
   const [nataschaExports, setNataschaExports] = useState<BridgeExportMeta[] | null>(null);

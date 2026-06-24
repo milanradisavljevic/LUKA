@@ -7,6 +7,18 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — SRDP-Matura-Modus (Task 1, Deutsch + Englisch)
+- `packages/schema/src/index.ts`: neuer Unterlagentyp `'matura'` + `PROFILE.matura`
+  (SRDP-Struktur, K1/K3-Hinweis, Raster + Notenschlüssel, ~270 Min).
+- `packages/renderer/src/template.ts`: nüchternes Render-Template `'srdp'` (formell, s/w).
+- `packages/qa/src/korrekturraster/`: SRDP-Deutsch-Katalog (K1 Inhalt/Textstruktur, K3
+  Ausdruck/Sprachnormen); `waehleKatalog` routet bei `typ==='matura'` (DE → SRDP, EN → Open Writing).
+- `packages/llm/src/prompt.ts`: `maturaHinweis` (SRDP-Format je Fach) in beide Prompt-Pfade.
+- `apps/web/src/components/Step0_Absicht.tsx`: Unterlagentyp-Kachel „Matura (SRDP)" +
+  automatische Vorwahl des `srdp`-Templates.
+- `apps/lua/scripts/srdp-smoke.mjs`: Live-Smoke DE + EN (DeepSeek) — K1/K3- bzw. Open-Writing-Raster.
+- Tests: schema (matura-Profil + Skelett), qa (matura → SRDP/Open-Writing). Schema 129, QA 103.
+
 ### Added — Einheitliche Empty-States für leere Views (Task 3a)
 - Neue wiederverwendbare `EmptyState`-Komponente in `apps/web/src/views/_EmptyState.tsx`
   (Icon + Titel + Beschreibung + optional CTA), orientiert am bestehenden Muster in

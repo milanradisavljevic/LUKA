@@ -1162,8 +1162,18 @@ describe('UnterlagentypSchema', () => {
   it('accepts schularbeit', () => {
     expect(UnterlagentypSchema.safeParse('schularbeit').success).toBe(true);
   });
+  it('accepts matura', () => {
+    expect(UnterlagentypSchema.safeParse('matura').success).toBe(true);
+  });
   it('rejects invalid typ', () => {
     expect(UnterlagentypSchema.safeParse('pruefung').success).toBe(false);
+  });
+  it('PROFILE.matura erzeugt SRDP-Skelett (Raster + Notenschlüssel)', () => {
+    expect(PROFILE.matura).toBeDefined();
+    expect(PROFILE.matura.rasterErzeugen).toBe(true);
+    const bloecke = buildSkelett({ typ: 'matura', stufe: 'oberstufe', fach: 'deutsch', thema: 'T', gewuenschteAufgabenarten: ['offeneSchreibaufgabe'] } as never);
+    expect(bloecke.length).toBeGreaterThan(0);
+    expect(bloecke.some((b) => b.typ === 'offeneSchreibaufgabe')).toBe(true);
   });
 });
 

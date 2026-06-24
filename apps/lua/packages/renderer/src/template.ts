@@ -1,4 +1,4 @@
-export type RenderTemplateId = 'klassisch' | 'modern' | 'freundlich' | 'abgefahren';
+export type RenderTemplateId = 'klassisch' | 'modern' | 'freundlich' | 'abgefahren' | 'srdp';
 
 export interface RenderTemplate {
   id: RenderTemplateId;
@@ -69,6 +69,19 @@ export const RENDER_TEMPLATES: Record<RenderTemplateId, RenderTemplate> = {
     borderColor: '6366f1',
     blockShading: 'eef2ff',
     headingStyle: 'accent',
+  },
+  srdp: {
+    id: 'srdp',
+    label: 'Matura (SRDP)',
+    description: 'Nüchtern, formell, schwarz-weiß — für standardisierte Reifeprüfungen.',
+    font: 'Arial',
+    fontSize: { body: 22, h1: 26, h2: 24, h3: 22, small: 18 },
+    color: { text: '000000', gray: '595959', lightGray: 'BFBFBF', accent: '000000' },
+    margin: { top: 1134, bottom: 1134, left: 1418, right: 1418 },
+    lineHeightMm: 10,
+    borderWidth: 4,
+    borderColor: '000000',
+    headingStyle: 'bold',
   },
 };
 

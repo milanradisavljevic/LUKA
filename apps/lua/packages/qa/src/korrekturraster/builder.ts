@@ -7,6 +7,7 @@ import {
   ERORTERUNG,
   TEXTANALYSE,
   OPEN_WRITING,
+  SRDP_DEUTSCH,
   QUELLENANALYSE,
   MATERIALINTERPRETATION,
   SACHERORTERUNG,
@@ -23,7 +24,7 @@ import { berechneNotenschluessel } from './notenschluessel';
 // Katalog-Auswahl nach Block-Typ + Textsorte + Fach
 // ---------------------------------------------------------------------------
 
-function waehleKatalog(block: Block, fach: DocumentV1['meta']['fach']): KriterienKatalog[] {
+function waehleKatalog(block: Block, fach: DocumentV1['meta']['fach'], typ?: DocumentV1['meta']['typ']): KriterienKatalog[] {
   switch (block.typ) {
     case 'lueckentext':
     case 'matching':
@@ -55,6 +56,10 @@ function waehleKatalog(block: Block, fach: DocumentV1['meta']['fach']): Kriterie
 
     case 'offeneSchreibaufgabe': {
       const textsorte = block.config.textsorte.toLowerCase();
+      // Matura (SRDP): Deutsch → K1/K3-Raster, Fremdsprachen → Open Writing.
+      if (typ === 'matura') {
+        return fach === 'deutsch' ? SRDP_DEUTSCH : OPEN_WRITING;
+      }
       if (istSprachfach(fach)) {
         // Fremdsprachen-Schreibaufgabe: einheitliches Open-Writing-Raster.
         return OPEN_WRITING;
@@ -111,7 +116,7 @@ function skaliereKatalog(katalog: KriterienKatalog[], zielPunkte: number): Raste
 
 export function buildRaster(doc: DocumentV1): KorrekturrasterDokument {
   const bloecke: RasterBlock[] = doc.bloecke.map((block, i) => {
-    const katalog = waehleKatalog(block, doc.meta.fach);
+    const katalog = waehleKatalog(block, doc.meta.fach, doc.meta.typ);
     const kriterien = skaliereKatalog(katalog, block.punkte);
 
     return {
