@@ -85,7 +85,7 @@ export function useNatascha() {
     filePath: string,
     klasse: string,
     aufgabe: string,
-    opts?: { fach?: string; schulstufe?: string; textsorte?: string; schueler?: string; bewertungsmodus?: string },
+    opts?: { fach?: string; schulstufe?: string; textsorte?: string; schueler?: string; bewertungsmodus?: string; ausgangstext?: string },
   ) => {
     setAnalyzing(true);
     setAnalyzeError(null);
@@ -102,6 +102,7 @@ export function useNatascha() {
         textsorte: opts?.textsorte,
         schueler: opts?.schueler,
         bewertungsmodus: opts?.bewertungsmodus,
+        ausgangstext: opts?.ausgangstext,
       });
       return JSON.parse(result);
     } catch (e) {
