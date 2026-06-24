@@ -1,0 +1,108 @@
+{
+  "fach": "psychologie",
+  "stufe": "oberstufe",
+  "quelle": "BMBWF-Lehrplan AHS Psychologie (Oberstufe) — RIS, Stand 2023",
+  "quelleUrl": "https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Gesetzesnummer=10008568&Anlage=4",
+  "bereiche": [
+    {
+      "bereich": "Fachwissen",
+      "deskriptoren": [
+        {
+          "id": "at-psychologie-ob-fachwissen-1",
+          "code": "",
+          "text": "Die Schülerinnen und Schüler können grundlegende psychologische Konzepte, Theorien und Modelle (zB Lerntheorien, Entwicklungspsychologie, Sozialpsychologie) benennen und erklären."
+        },
+        {
+          "id": "at-psychologie-ob-fachwissen-2",
+          "code": "",
+          "text": "Die Schülerinnen und Schüler können zentrale Forschungsergebnisse der Psychologie zu Wahrnehmung, Gedächtnis, Motivation und Emotion darlegen."
+        },
+        {
+          "id": "at-psychologie-ob-fachwissen-3",
+          "code": "",
+          "text": "Die Schülerinnen und Schüler können historische Entwicklungen und wichtige Vertreter der Psychologie (Freud, Piaget, Skinner, Rogers) in ihren Grundzügen darstellen."
+        },
+        {
+          "id": "at-psychologie-ob-fachwissen-4",
+          "code": "",
+          "text": "Die Schülerinnen und Schüler können psychologische Fachbegriffe und Forschungsmethoden (Experiment, Beobachtung, Interview) unterscheiden und ihre Anwendungsbereiche benennen."
+        }
+      ]
+    },
+    {
+      "bereich": "Methoden- & Erkenntniskompetenz",
+      "deskriptoren": [
+        {
+          "id": "at-psychologie-ob-methoden-1",
+          "code": "",
+          "text": "Die Schülerinnen und Schüler können psychologische Fragestellungen formulieren und geeignete Untersuchungsmethoden zur Beantwortung auswählen."
+        },
+        {
+          "id": "at-psychologie-ob-methoden-2",
+          "code": "",
+          "text": "Die Schülerinnen und Schüler können psychologische Studien kritisch analysieren, ihre methodische Qualität bewerten und Schlussfolgerungen überprüfen."
+        },
+        {
+          "id": "at-psychologie-ob-methoden-3",
+          "code": "",
+          "text": "Die Schülerinnen und Schüler können einfache psychologische Untersuchungen (Beobachtungen, Befragungen, Experimente) planen, durchführen und auswerten."
+        },
+        {
+          "id": "at-psychologie-ob-methoden-4",
+          "code": "",
+          "text": "Die Schülerinnen und Schüler können statistische Grundbegriffe (Mittelwert, Korrelation, Signifikanz) interpretieren und ihre Bedeutung für psychologische Forschung erklären."
+        }
+      ]
+    },
+    {
+      "bereich": "Reflexions- & Urteilskompetenz",
+      "deskriptoren": [
+        {
+          "id": "at-psychologie-ob-reflexion-1",
+          "code": "",
+          "text": "Die Schülerinnen und Schüler können psychologische Erkenntnisse kritisch reflektieren, ihre Gültigkeit prüfen und ethische Implikationen bewerten."
+        },
+        {
+          "id": "at-psychologie-ob-reflexion-2",
+          "code": "",
+          "text": "Die Schülerinnen und Schüler können verschiedene psychologische Erklärungsansätze für menschliches Verhalten vergleichen und ihre Stärken und Grenzen diskutieren."
+        },
+        {
+          "id": "at-psychologie-ob-reflexion-3",
+          "code": "",
+          "text": "Die Schülerinnen und Schüler können psychologische Konzepte auf eigene Erfahrungen und Beobachtungen anwenden und deren Erklärungsgehalt überprüfen."
+        },
+        {
+          "id": "at-psychologie-ob-reflexion-4",
+          "code": "",
+          "text": "Die Schülerinnen und Schüler können gesellschaftliche Diskurse zu psychologischen Themen (zB Stress, Sucht, mentale Gesundheit) fachlich fundiert mitgestalten."
+        }
+      ]
+    },
+    {
+      "bereich": "Anwendung & Transfer",
+      "deskriptoren": [
+        {
+          "id": "at-psychologie-ob-anwendung-1",
+          "code": "",
+          "text": "Die Schülerinnen und Schüler können psychologische Erkenntnisse auf konkrete Lebensbereiche (Schule, Beruf, Beziehungen, Gesundheit) übertragen und Handlungsempfehlungen ableiten."
+        },
+        {
+          "id": "at-psychologie-ob-anwendung-2",
+          "code": "",
+          "text": "Die Schülerinnen und Schüler können Strategien zur Stressbewältigung, Lernoptimierung und Konfliktlösung auf der Grundlage psychologischer Forschung entwickeln und anwenden."
+        },
+        {
+          "id": "at-psychologie-ob-anwendung-3",
+          "code": "",
+          "text": "Die Schülerinnen und Schüler können psychologische Beratungsmöglichkeiten und therapeutische Ansätze beschreiben und deren Wirksamkeit bewerten."
+        },
+        {
+          "id": "at-psychologie-ob-anwendung-4",
+          "code": "",
+          "text": "Die Schülerinnen und Schüler können psychologische Prinzipien in angewandten Bereichen (Arbeitspsychologie, Pädagogik, Gesundheitswesen) erkennen und ihre praktische Relevanz aufzeigen."
+        }
+      ]
+    }
+  ]
+}

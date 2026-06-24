@@ -1,0 +1,108 @@
+{
+  "fach": "religion",
+  "stufe": "oberstufe",
+  "quelle": "BMBWF-Lehrplan AHS Religion (Oberstufe) — RIS, Stand 2023",
+  "quelleUrl": "https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Gesetzesnummer=20009503&FassungVom=2023-04-12&Anlage=1",
+  "bereiche": [
+    {
+      "bereich": "Wahrnehmen & Verstehen",
+      "deskriptoren": [
+        {
+          "id": "at-religion-ob-wahrnehmen-1",
+          "code": "A",
+          "text": "Die Schülerinnen und Schüler können sich selbst, ihr Lebensumfeld und die Welt mit ihren Chancen, Problemen, Grenzen und Entwicklungsmöglichkeiten offen und differenziert wahrnehmen und diese Wahrnehmung zum Ausdruck bringen."
+        },
+        {
+          "id": "at-religion-ob-wahrnehmen-2",
+          "code": "A",
+          "text": "Die Schülerinnen und Schüler können religiös bedeutsame Phänomene wahrnehmen und Sprach-, Kommunikations- und Gestaltungsformen erkennen, die für das religiöse Selbst- und Weltverständnis charakteristisch sind."
+        },
+        {
+          "id": "at-religion-ob-wahrnehmen-3",
+          "code": "A",
+          "text": "Die Schülerinnen und Schüler erkennen die vielfältigen Dimensionen religiösen Denkens und Handelns und reflektieren die unterschiedlichen Zugänge zur Religion sowie verschiedene Ausdrucksformen von Spiritualität."
+        },
+        {
+          "id": "at-religion-ob-wahrnehmen-4",
+          "code": "B",
+          "text": "Die Schülerinnen und Schüler können die zentrale Botschaft, die Grundbegriffe, die Aussagen der wichtigsten Texte und Lehren sowie entscheidende Phasen und geschichtliche Schlüsselereignisse ihrer Religion in ihrer konfessionellen Ausprägung wiedergeben und deuten."
+        }
+      ]
+    },
+    {
+      "bereich": "Deuten & Urteilen",
+      "deskriptoren": [
+        {
+          "id": "at-religion-ob-deuten-1",
+          "code": "B",
+          "text": "Die Schülerinnen und Schüler können zwischen verschiedenen kulturellen Ausprägungen ihrer Religion in ihrer konfessionellen Ausprägung differenzieren, deren Gemeinsamkeiten und Unterschiede erkennen und sensibel darstellen."
+        },
+        {
+          "id": "at-religion-ob-deuten-2",
+          "code": "B",
+          "text": "Die Schülerinnen und Schüler können Grundformen religiöser Praxis (zB Rituale sowie religiöse Riten und Feiern) in ihrer allgemeinen und persönlichen Bedeutung beschreiben und reflektieren."
+        },
+        {
+          "id": "at-religion-ob-deuten-3",
+          "code": "D",
+          "text": "Die Schülerinnen und Schüler können verschiedene (religiös fundierte) Modelle ethischen Handelns beschreiben und beurteilen."
+        },
+        {
+          "id": "at-religion-ob-deuten-4",
+          "code": "D",
+          "text": "Die Schülerinnen und Schüler sind fähig, auf der Basis religiöser Grundwerte zu ethischen Konflikten sowie den damit verbundenen gesellschaftlichen Diskursen Stellung zu nehmen."
+        }
+      ]
+    },
+    {
+      "bereich": "Reflektieren & Kommunizieren",
+      "deskriptoren": [
+        {
+          "id": "at-religion-ob-reflektieren-1",
+          "code": "D",
+          "text": "Auf Basis ihres Wissens und der erworbenen dialogischen Grundhaltung sind die Schülerinnen und Schüler in der Lage, in der (religions)pluralen Gesellschaft mit Angehörigen anderer Kulturen, Konfessionen und Religionen respektvoll zu kommunizieren."
+        },
+        {
+          "id": "at-religion-ob-reflektieren-2",
+          "code": "E",
+          "text": "Die Schülerinnen und Schüler können eigene religiöse Vorstellungen auf Grund der zentralen Deutungsmuster ihrer Religion in ihrer konfessionellen Ausprägung reflektieren und wichtige Grundlagen anderer Religionen, Konfessionen oder Weltanschauungen darlegen."
+        },
+        {
+          "id": "at-religion-ob-reflektieren-3",
+          "code": "D",
+          "text": "Die Schülerinnen und Schüler sind in der Lage, die zentralen Deutungsmuster ihrer Religion in ihrer konfessionellen Ausprägung mit den Deutungsmustern anderer religiöser Traditionen, Weltanschauungen und Weltbilder in Beziehung zu setzen."
+        },
+        {
+          "id": "at-religion-ob-reflektieren-4",
+          "code": "D",
+          "text": "Die Schülerinnen und Schüler sind fähig, die zentrale Botschaft und die Deutungsmuster ihrer Religion in ihrer konfessionellen Ausprägung als relevant für das Leben des oder der Einzelnen und das Leben in der Gemeinschaft aufzuzeigen und zu würdigen."
+        }
+      ]
+    },
+    {
+      "bereich": "Gestalten & Handeln",
+      "deskriptoren": [
+        {
+          "id": "at-religion-ob-gestalten-1",
+          "code": "C",
+          "text": "Die Schülerinnen und Schüler sind in der Lage, in (inter)kulturellen und ethischen Herausforderungen unserer Welt Handlungsoptionen zu entwickeln und zu begründen sowie Möglichkeiten von eigenem verantwortlichem Handeln zu beschreiben."
+        },
+        {
+          "id": "at-religion-ob-gestalten-2",
+          "code": "E",
+          "text": "Die Schülerinnen und Schüler können einen verantwortlichen Umgang mit Mensch und Natur darlegen."
+        },
+        {
+          "id": "at-religion-ob-gestalten-3",
+          "code": "C",
+          "text": "Die Schülerinnen und Schüler können sich mit der Frage nach Gerechtigkeit, Frieden und Bewahrung der Schöpfung auseinandersetzen und Wege zu solidarischem Handeln aufzeigen."
+        },
+        {
+          "id": "at-religion-ob-gestalten-4",
+          "code": "E",
+          "text": "Die Schülerinnen und Schüler können Möglichkeiten der Mitgestaltung von Kirche und Gesellschaft in ihrem Umfeld identifizieren und sich engagiert einbringen."
+        }
+      ]
+    }
+  ]
+}

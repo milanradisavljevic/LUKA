@@ -1,0 +1,78 @@
+{
+  "fach": "latein",
+  "stufe": "unterstufe",
+  "quelle": "BMBWF-Lehrplan AHS Latein (Unterstufe) — RIS, Stand 2023",
+  "quelleUrl": "https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Gesetzesnummer=10008568&Anlage=1",
+  "bereiche": [
+    {
+      "bereich": "Sprachkompetenz",
+      "deskriptoren": [
+        {
+          "id": "at-latein-un-sprachkompetenz-1",
+          "code": "",
+          "text": "Die Schülerinnen und Schüler können grundlegende lateinische Wortformen (Substantive, Adjektive, Verben) erkennen und in einfachen Sätzen anwenden."
+        },
+        {
+          "id": "at-latein-un-sprachkompetenz-2",
+          "code": "",
+          "text": "Die Schülerinnen und Schüler können einfache lateinische Satzstrukturen (Subjekt-Prädikat-Objekt) verstehen und übersetzen."
+        },
+        {
+          "id": "at-latein-un-sprachkompetenz-3",
+          "code": "",
+          "text": "Die Schülerinnen und Schüler können einen Grundwortschatz von ca. 800-1000 lateinischen Wörtern aktiv und passiv verwenden."
+        },
+        {
+          "id": "at-latein-un-sprachkompetenz-4",
+          "code": "",
+          "text": "Die Schülerinnen und Schüler können lateinische Texte mit bekanntem Wortschatz und einfacher Grammatik sinngemäß ins Deutsche übertragen."
+        }
+      ]
+    },
+    {
+      "bereich": "Textkompetenz",
+      "deskriptoren": [
+        {
+          "id": "at-latein-un-textkompetenz-1",
+          "code": "",
+          "text": "Die Schülerinnen und Schüler können kurze lateinische Originaltexte (Fabeln, einfache historische Berichte) inhaltlich erfassen und wiedergeben."
+        },
+        {
+          "id": "at-latein-un-textkompetenz-2",
+          "code": "",
+          "text": "Die Schülerinnen und Schüler können Textsorten (Erzählung, Beschreibung, Bericht) in lateinischen Texten erkennen."
+        },
+        {
+          "id": "at-latein-un-textkompetenz-3",
+          "code": "",
+          "text": "Die Schülerinnen und Schüler können einfache rhetorische Figuren (Alliteration, Anapher) in lateinischen Texten identifizieren."
+        }
+      ]
+    },
+    {
+      "bereich": "Kulturkompetenz",
+      "deskriptoren": [
+        {
+          "id": "at-latein-un-kulturkompetenz-1",
+          "code": "",
+          "text": "Die Schülerinnen und Schüler können grundlegende Aspekte des römischen Alltagslebens (Familie, Schule, Wohnen) beschreiben und mit der Gegenwart vergleichen."
+        },
+        {
+          "id": "at-latein-un-kulturkompetenz-2",
+          "code": "",
+          "text": "Die Schülerinnen und Schüler können wichtige römische Gottheiten, Mythen und religiöse Praktiken benennen und ihre Bedeutung erklären."
+        },
+        {
+          "id": "at-latein-un-kulturkompetenz-3",
+          "code": "",
+          "text": "Die Schülerinnen und Schüler können den Einfluss der römischen Kultur auf das heutige Europa an Beispielen (Recht, Sprache, Architektur) aufzeigen."
+        },
+        {
+          "id": "at-latein-un-kulturkompetenz-4",
+          "code": "",
+          "text": "Die Schülerinnen und Schüler können geographische und historische Grundkenntnisse über das Römische Reich in Karten und Zeitleisten einordnen."
+        }
+      ]
+    }
+  ]
+}

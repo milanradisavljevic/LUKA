@@ -1,0 +1,83 @@
+{
+  "fach": "latein",
+  "stufe": "oberstufe",
+  "quelle": "BMBWF-Lehrplan AHS Latein (Oberstufe) — RIS, Stand 2023",
+  "quelleUrl": "https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Gesetzesnummer=10008568&Anlage=2",
+  "bereiche": [
+    {
+      "bereich": "Sprachkompetenz",
+      "deskriptoren": [
+        {
+          "id": "at-latein-ob-sprachkompetenz-1",
+          "code": "",
+          "text": "Die Schülerinnen und Schüler können komplexe lateinische Satzstrukturen (Hypotaxen, Partizipialkonstruktionen, Konjunktiv) analysieren und übersetzen."
+        },
+        {
+          "id": "at-latein-ob-sprachkompetenz-2",
+          "code": "",
+          "text": "Die Schülerinnen und Schüler können einen erweiterten Wortschatz (ca. 1500-2000 Wörter) zur Lektüre anspruchsvoller Originaltexte nutzen."
+        },
+        {
+          "id": "at-latein-ob-sprachkompetenz-3",
+          "code": "",
+          "text": "Die Schülerinnen und Schüler können stilistische Besonderheiten (Wortwahl, Satzbau, Rhetorik) in lateinischen Texten erkennen und deuten."
+        },
+        {
+          "id": "at-latein-ob-sprachkompetenz-4",
+          "code": "",
+          "text": "Die Schülerinnen und Schüler können sprachvergleichend arbeiten und lateinische Strukturen mit modernen romanischen Sprachen oder dem Deutschen in Beziehung setzen."
+        }
+      ]
+    },
+    {
+      "bereich": "Textkompetenz",
+      "deskriptoren": [
+        {
+          "id": "at-latein-ob-textkompetenz-1",
+          "code": "",
+          "text": "Die Schülerinnen und Schüler können Originaltexte bedeutender lateinischer Autoren (Cicero, Caesar, Vergil, Ovid, Seneca) interpretieren und in ihren historischen Kontext einordnen."
+        },
+        {
+          "id": "at-latein-ob-textkompetenz-2",
+          "code": "",
+          "text": "Die Schülerinnen und Schüler können literarische Gattungen (Rede, Brief, Epos, Satire, Philosophie) unterscheiden und ihre Charakteristika benennen."
+        },
+        {
+          "id": "at-latein-ob-textkompetenz-3",
+          "code": "",
+          "text": "Die Schülerinnen und Schüler können rhetorische Strategien und Argumentationstechniken in lateinischen Texten analysieren und bewerten."
+        },
+        {
+          "id": "at-latein-ob-textkompetenz-4",
+          "code": "",
+          "text": "Die Schülerinnen und Schüler können Rezeption und Wirkungsgeschichte antiker Texte in Literatur, Kunst und Philosophie bis in die Gegenwart nachvollziehen."
+        }
+      ]
+    },
+    {
+      "bereich": "Kulturkompetenz",
+      "deskriptoren": [
+        {
+          "id": "at-latein-ob-kulturkompetenz-1",
+          "code": "",
+          "text": "Die Schülerinnen und Schüler können zentrale Aspekte der römischen Gesellschaft (Politik, Recht, Sozialstruktur, Sklaverei) kritisch analysieren und mit modernen Gesellschaftsformen vergleichen."
+        },
+        {
+          "id": "at-latein-ob-kulturkompetenz-2",
+          "code": "",
+          "text": "Die Schülerinnen und Schüler können philosophische und ethische Konzepte der Antike (Stoa, Epikureismus, platonische Ideenlehre) darlegen und ihre Relevanz für heute diskutieren."
+        },
+        {
+          "id": "at-latein-ob-kulturkompetenz-3",
+          "code": "",
+          "text": "Die Schülerinnen und Schüler können das Fortwirken antiker Mythologie, Literatur und Kunst in europäischen Kulturtraditionen aufzeigen und reflektieren."
+        },
+        {
+          "id": "at-latein-ob-kulturkompetenz-4",
+          "code": "",
+          "text": "Die Schülerinnen und Schüler können die Bedeutung lateinischer Fachsprachen in Wissenschaft, Medizin und Rechtswesen erkennen und Fachtermini etymologisch herleiten."
+        }
+      ]
+    }
+  ]
+}
