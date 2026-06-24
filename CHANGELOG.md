@@ -7,6 +7,21 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Gesourcte Lehrplan-Recherche in Stoffkatalog integriert (Task 2)
+- `apps/lua/scripts/generate-stoffkatalog-from-research.mjs`: `--only`-Filter,
+  `--output`-Verzeichnis wird rekursiv angelegt, `DEFAULT_AUFGABENTYPEN`-Mapping
+  je Kompetenzbereich (1–2 BlockTyp-Werte pro StoffItem).
+- `apps/lua/scripts/merge-language-stoffkatalog.mjs`: neues Merge-Skript für
+  Sprachfächer; ersetzt Skill-Blöcke aus `docs/lehrplan-quellen/` und behält
+  kuratierte Grammatik-/Wortschatz-/Sprachmittlungs-/Literatur-Blöcke bei.
+- Sachfächer `ethik`, `geschichte`, `geographie`, `philosophie` vollständig aus
+  den Recherche-JSONs neu generiert (Voloverwrite, verlustfrei).
+- Sprachfächer `deutsch`, `englisch`, `franzoesisch`, `italienisch`, `spanisch`
+  gemerged: gesourcte Skill-Deskriptoren + erhaltene kuratierte Spezialbereiche.
+- `latein`, `religion`, `psychologie` unverändert (keine Qwen-Daten).
+- Verifikation: `pnpm --filter "./packages/*" build && pnpm -r typecheck &&
+  pnpm -r test` grün (Schema 129, LLM 126, Renderer 38, Input 17, QA 103, Web 64).
+
 ### Added — SRDP-Matura-Modus (Task 1, Deutsch + Englisch)
 - `packages/schema/src/index.ts`: neuer Unterlagentyp `'matura'` + `PROFILE.matura`
   (SRDP-Struktur, K1/K3-Hinweis, Raster + Notenschlüssel, ~270 Min).
