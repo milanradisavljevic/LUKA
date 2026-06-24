@@ -96,6 +96,9 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
   const [analyzeKlasse, setAnalyzeKlasse] = useState('');
   const [analyzeAufgabe, setAnalyzeAufgabe] = useState('');
   const [analyzeFile, setAnalyzeFile] = useState('');
+  // Ausgangstext (Angabe/Quelltext der Arbeit) — optional. Schließt den In-App-Closed-Loop:
+  // wird mitanalysiert und kann später die passgenaue Übung vorbefüllen.
+  const [analyzeAusgangstext, setAnalyzeAusgangstext] = useState('');
   const [analyzeSuccess, setAnalyzeSuccess] = useState<string | null>(null);
 
   // Batch-Korrektur (mehrere Dateien sequenziell)
@@ -244,12 +247,13 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     if (!analyzeFile || !analyzeKlasse || !analyzeAufgabe) return;
     setError(null);
     setAnalyzeSuccess(null);
-    const result = await analyze(analyzeFile, analyzeKlasse, analyzeAufgabe);
+    const result = await analyze(analyzeFile, analyzeKlasse, analyzeAufgabe, { ausgangstext: analyzeAusgangstext.trim() || undefined });
     if (result) {
       setAnalyzeSuccess('Analyse abgeschlossen — Daten gespeichert.');
       setAnalyzeOpen(false);
       setAnalyzeFile('');
       setAnalyzeAufgabe('');
+      setAnalyzeAusgangstext('');
       const refreshed = await listKlassen();
       setKlassen(refreshed);
       if (analyzeKlasse) {
@@ -258,7 +262,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     } else {
       setError(analyzeError ?? 'Analyse fehlgeschlagen');
     }
-  }, [analyze, analyzeFile, analyzeKlasse, analyzeAufgabe, analyzeError, listKlassen, loadAufgaben]);
+  }, [analyze, analyzeFile, analyzeKlasse, analyzeAufgabe, analyzeAusgangstext, analyzeError, listKlassen, loadAufgaben]);
 
   const annotatedNodes = useMemo(() => {
     const rohtext = selectedAbgabe?.abgabe.rohtext;
@@ -312,7 +316,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
       const file = batchFiles[i]!;
       setBatchCurrent(i + 1);
       try {
-        const result = await analyze(file, analyzeKlasse, analyzeAufgabe);
+        const result = await analyze(file, analyzeKlasse, analyzeAufgabe, { ausgangstext: analyzeAusgangstext.trim() || undefined });
         if (result) {
           const note = result?.analysis?.notenempfehlung?.note;
           results.push({ file, ok: true, msg: note != null ? `Note ${note}` : 'OK' });
@@ -331,7 +335,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     const refreshed = await listKlassen();
     setKlassen(refreshed);
     if (analyzeKlasse) await loadAufgaben(analyzeKlasse);
-  }, [batchFiles, analyzeKlasse, analyzeAufgabe, analyze, analyzeError, listKlassen, loadAufgaben]);
+  }, [batchFiles, analyzeKlasse, analyzeAufgabe, analyzeAusgangstext, analyze, analyzeError, listKlassen, loadAufgaben]);
 
   const cardStyle = {
     padding: '1.25rem', border: '1px solid var(--color-border)',
@@ -690,6 +694,19 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
                   Durchsuchen …
                 </button>
               </div>
+            </div>
+
+            {/* Ausgangstext / Angabe — optional. Schließt den Closed Loop: aus der Korrektur
+                kann später eine passgenaue Übung mit genau diesem Quelltext erzeugt werden. */}
+            <div style={{ marginBottom: '0.75rem' }}>
+              <label>Ausgangstext / Angabe <span style={{ color: 'var(--color-text-secondary)', fontWeight: 400 }}>(optional)</span></label>
+              <textarea
+                rows={3}
+                value={analyzeAusgangstext}
+                onChange={(e) => setAnalyzeAusgangstext(e.target.value)}
+                placeholder="Quelltext bzw. Angabe der Arbeit hier einfügen — ermöglicht später eine passgenaue Übung aus den Fehlern."
+                style={{ width: '100%', resize: 'vertical' }}
+              />
             </div>
 
             {/* Batch: mehrere Dateien sequenziell */}
