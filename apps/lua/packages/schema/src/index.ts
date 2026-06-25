@@ -1120,6 +1120,55 @@ export function buildSkelett(auftrag: Auftrag): Block[] {
           },
           loesung: { korrekturen: [] },
         };
+      case 'roleplay':
+        return {
+          ...base,
+          typ: 'roleplay',
+          config: {
+            eingabemodus: 'ki',
+            situation: '[Situation]',
+            setting: '[Setting]',
+            ziel: '[Ziel]',
+            zeitMinuten: 5,
+            redemittel: [],
+            rollen: [
+              { name: '[Rolle A]', beschreibung: '[Beschreibung]', aufgabe: '[Aufgabe]', redemittel: [] },
+              { name: '[Rolle B]', beschreibung: '[Beschreibung]', aufgabe: '[Aufgabe]', redemittel: [] },
+            ],
+            bewertung: [],
+          },
+          loesung: { musterdialog: '[Musterdialog]', hinweise: '[Hinweise]' },
+        };
+      case 'vokabeluebung':
+        return {
+          ...base,
+          typ: 'vokabeluebung',
+          config: { eingabemodus: 'ki', richtung: 'de_fremd', anzahlVokabeln: 8 },
+        };
+      case 'rollenkartenSet':
+        return {
+          ...base,
+          typ: 'rollenkartenSet',
+          punkte: 0, // Sprechprodukt — keine Punkte
+          config: {
+            eingabemodus: 'ki',
+            rahmen: '[Rahmen]',
+            zeitMinuten: 8,
+            rollen: [
+              { name: '[Rolle A]', rollenhinweis: '[Hinweis]', inhaltsLabel: '[Label]', sprachhinweis: '' },
+              { name: '[Rolle B]', rollenhinweis: '[Hinweis]', inhaltsLabel: '[Label]', sprachhinweis: '' },
+            ],
+            szenarien: [
+              { nummer: 1, titel: '[Szenario 1]', fakten: '', rollenInhalte: [
+                { untertitel: '', punkte: ['[Stichpunkt]'] },
+                { untertitel: '', punkte: ['[Stichpunkt]'] },
+              ] },
+            ],
+            schnittlinie: true,
+            teamFeld: true,
+          },
+          loesung: { hinweise: '[Hinweise]' },
+        };
       default:
         throw new Error(`Unbekannter Blocktyp: ${typ}`);
     }

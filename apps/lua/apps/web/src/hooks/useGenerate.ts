@@ -161,7 +161,7 @@ function blockToRequest(block: Block): BlockRequest {
     }
     case 'rollenkartenSet': {
       const manuell = block.config.eingabemodus === 'manuell';
-      const gefuellteRollen = (block.config.rollen ?? []).filter((r) => r.name.trim().length > 0);
+      const gefuellteRollen = (block.config.rollen ?? []).filter((r) => r.name.trim().length > 0 && !r.name.trim().startsWith('['));
       const gefuellteSzenarien = (block.config.szenarien ?? []).filter((s) => s.titel.trim().length > 0 && !s.titel.startsWith('['));
       return {
         typ: 'rollenkartenSet',
