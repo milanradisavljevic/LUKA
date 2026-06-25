@@ -62,6 +62,13 @@ pub async fn convert_pdf(docx_path: String) -> Result<String, String> {
     }
 }
 
+/// Ob LibreOffice (soffice) auf dem System gefunden wird. Frontend blendet den
+/// PDF-Export aus, wenn nicht vorhanden (graceful degrade, Phase-0-Launch).
+#[tauri::command]
+pub fn libreoffice_available() -> bool {
+    find_libreoffice().is_some()
+}
+
 fn find_libreoffice() -> Option<String> {
     #[cfg(target_os = "windows")]
     {
