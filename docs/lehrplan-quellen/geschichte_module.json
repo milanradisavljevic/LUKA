@@ -1,0 +1,14 @@
+{
+  "fach": "geschichte",
+  "quelle": "BMBWF-Lehrplan AHS Geschichte — RIS, Stand 2023",
+  "module": [
+    {"id": "at-geschichte-antike", "schulstufe": 6, "titel": "Antike Hochkulturen", "beschreibung": "Griechische Polis, Römisches Reich, Demokratie und Republik als Grundlagen europäischer Kultur."},
+    {"id": "at-geschichte-mittelalter", "schulstufe": 7, "titel": "Mittelalter und frühe Neuzeit", "beschreibung": "Feudalismus, Kirche, Kreuzzüge, Renaissance und Reformation als Umbruchszeiten."},
+    {"id": "at-geschichte-aufklaerung", "schulstufe": 8, "titel": "Aufklärung und Revolutionen", "beschreibung": "Aufklärung, Französische Revolution, Industrialisierung und ihre gesellschaftlichen Folgen."},
+    {"id": "at-geschichte-imperialismus", "schulstufe": 9, "titel": "Imperialismus und Erster Weltkrieg", "beschreibung": "Kolonialismus, Nationalismus, Erster Weltkrieg und die Neuordnung Europas."},
+    {"id": "at-geschichte-zwischenkrieg", "schulstufe": 9, "titel": "Zwischenkriegszeit und Nationalsozialismus", "beschreibung": "Weimarer Republik, Ständestaat, NS-Diktatur, Holocaust und Zweiter Weltkrieg."},
+    {"id": "at-geschichte-zweite-republik", "schulstufe": 10, "titel": "Zweite Republik und Kalter Krieg", "beschreibung": "Besatzungszeit, Staatsvertrag, Neutralität, Ost-West-Konflikt und europäische Integration."},
+    {"id": "at-geschichte-globalisierung", "schulstufe": 11, "titel": "Globalisierung und Gegenwart", "beschreibung": "Ende des Kalten Krieges, EU-Erweiterung, 9/11, Migration und aktuelle globale Herausforderungen."},
+    {"id": "at-geschichte-erinnerungskultur", "schulstufe": 12, "titel": "Erinnerungskultur und Geschichtspolitik", "beschreibung": "Denkmäler, Gedenktage, Museen und die politische Nutzung von Geschichte."}
+  ]
+}

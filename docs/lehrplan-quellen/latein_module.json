@@ -1,0 +1,13 @@
+{
+  "fach": "latein",
+  "quelle": "BMBWF-Lehrplan AHS Latein — RIS, Stand 2023",
+  "module": [
+    {"id": "at-latein-grundlagen", "schulstufe": 6, "titel": "Grundlagen der lateinischen Sprache", "beschreibung": "Deklinationen, Konjugationen und einfache Satzstrukturen."},
+    {"id": "at-latein-roemischer-alltag", "schulstufe": 7, "titel": "Römischer Alltag und Gesellschaft", "beschreibung": "Familie, Sklaverei, Wohnen und Leben im antiken Rom."},
+    {"id": "at-latein-geschichte", "schulstufe": 8, "titel": "Römische Geschichte und Politik", "beschreibung": "Republik, Kaiserzeit und politische Institutionen."},
+    {"id": "at-latein-mythologie", "schulstufe": 9, "titel": "Griechische und römische Mythologie", "beschreibung": "Götter, Helden und mythologische Erzählungen in lateinischen Texten."},
+    {"id": "at-latein-philosophie", "schulstufe": 10, "titel": "Antike Philosophie und Ethik", "beschreibung": "Stoa, Epikureismus und philosophische Texte (Seneca, Cicero)."},
+    {"id": "at-latein-literatur", "schulstufe": 11, "titel": "Römische Literatur und Dichtung", "beschreibung": "Vergil, Ovid, Horaz und literarische Gattungen."},
+    {"id": "at-latein-rezeption", "schulstufe": 12, "titel": "Rezeption und europäische Tradition", "beschreibung": "Einfluss des Lateinischen auf europäische Sprachen, Recht und Kultur."}
+  ]
+}

@@ -1,0 +1,263 @@
+{
+  "fach": "geographie",
+  "quelle": "BMBWF-Lehrplan AHS Geographie und Wirtschaftskunde — RIS, Stand 2023",
+  "quelleUrl": "https://www.ris.bka.gv.at/GeltendeFassung.wxe?Abfrage=Bundesnormen&Gesetzesnummer=10008568",
+  "stufen": [
+    {
+      "schulstufe": 5,
+      "bereiche": [
+        {
+          "bereich": "Wahrnehmungs- & Orientierungskompetenz",
+          "deskriptoren": [
+            {"id": "at-geographie-s5-wahrnehmung-1", "code": "", "text": "Die Schülerinnen und Schüler können sich im unmittelbaren Lebensraum (Schulweg, Gemeinde, Stadtteil) orientieren und räumliche Strukturen wahrnehmen."},
+            {"id": "at-geographie-s5-wahrnehmung-2", "code": "", "text": "Die Schülerinnen und Schüler können landschaftliche Grundformen Österreichs (Alpen, Vorland, Becken, Rumpfgebirge) benennen und in Karten verorten."},
+            {"id": "at-geographie-s5-wahrnehmung-3", "code": "", "text": "Die Schülerinnen und Schüler können unterschiedliche Darstellungsformen von Räumen (Luftbild, Plan, Karte) unterscheiden."}
+          ]
+        },
+        {
+          "bereich": "Methodenkompetenz",
+          "deskriptoren": [
+            {"id": "at-geographie-s5-methoden-1", "code": "", "text": "Die Schülerinnen und Schüler können einfache Karten lesen, Maßstäbe anwenden und Entfernungen messen."},
+            {"id": "at-geographie-s5-methoden-2", "code": "", "text": "Die Schülerinnen und Schüler können geographische Informationen aus Schulbuch, Bild und einfachen Tabellen entnehmen."},
+            {"id": "at-geographie-s5-methoden-3", "code": "", "text": "Die Schülerinnen und Schüler können einfache Skizzen und Geländeprofile anfertigen."}
+          ]
+        },
+        {
+          "bereich": "Synthesekompetenz",
+          "deskriptoren": [
+            {"id": "at-geographie-s5-synthese-1", "code": "", "text": "Die Schülerinnen und Schüler können Zusammenhänge zwischen Naturausstattung und einfacher menschlicher Nutzung im Heimatraum beschreiben."},
+            {"id": "at-geographie-s5-synthese-2", "code": "", "text": "Die Schülerinnen und Schüler können ihren eigenen Standort als Teil eines größeren räumlichen Systems (Gemeinde – Bundesland – Staat) einordnen."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 6,
+      "bereiche": [
+        {
+          "bereich": "Wahrnehmungs- & Orientierungskompetenz",
+          "deskriptoren": [
+            {"id": "at-geographie-s6-wahrnehmung-1", "code": "", "text": "Die Schülerinnen und Schüler können die natürlichen Großräume Europas (Küsten, Gebirge, Ebenen) verorten und charakterisieren."},
+            {"id": "at-geographie-s6-wahrnehmung-2", "code": "", "text": "Die Schülerinnen und Schüler können die Nachbarstaaten Österreichs sowie ausgewählte europäische Länder topographisch zuordnen."},
+            {"id": "at-geographie-s6-wahrnehmung-3", "code": "", "text": "Die Schülerinnen und Schüler können unterschiedliche Lebens- und Wirtschaftsräume in Europa beschreiben."}
+          ]
+        },
+        {
+          "bereich": "Methodenkompetenz",
+          "deskriptoren": [
+            {"id": "at-geographie-s6-methoden-1", "code": "", "text": "Die Schülerinnen und Schüler können thematische Karten (Klima, Bevölkerung, Wirtschaft) systematisch auswerten."},
+            {"id": "at-geographie-s6-methoden-2", "code": "", "text": "Die Schülerinnen und Schüler können einfache Diagramme (Säulen-, Kreis-, Liniendiagramm) erstellen und interpretieren."},
+            {"id": "at-geographie-s6-methoden-3", "code": "", "text": "Die Schülerinnen und Schüler können geographische Informationen aus mehreren Quellen vergleichen."}
+          ]
+        },
+        {
+          "bereich": "Synthesekompetenz",
+          "deskriptoren": [
+            {"id": "at-geographie-s6-synthese-1", "code": "", "text": "Die Schülerinnen und Schüler können Wechselwirkungen zwischen Naturraum und Siedlung in europäischen Regionen erklären."},
+            {"id": "at-geographie-s6-synthese-2", "code": "", "text": "Die Schülerinnen und Schüler können Europas Vielfalt als Ergebnis natürlicher und menschlicher Faktoren beschreiben."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 7,
+      "bereiche": [
+        {
+          "bereich": "Wahrnehmungs- & Orientierungskompetenz",
+          "deskriptoren": [
+            {"id": "at-geographie-s7-wahrnehmung-1", "code": "", "text": "Die Schülerinnen und Schüler können die klimatischen Zonen der Erde und deren Einfluss auf Lebens- und Wirtschaftsräume verorten."},
+            {"id": "at-geographie-s7-wahrnehmung-2", "code": "", "text": "Die Schülerinnen und Schüler können naturräumliche Großlandschaften der Erde (Wüsten, Tropen, Polargebiete) charakterisieren."},
+            {"id": "at-geographie-s7-wahrnehmung-3", "code": "", "text": "Die Schülerinnen und Schüler können geodynamische Prozesse (Plattentektonik, Vulkanismus, Erdbeben) räumlich zuordnen."}
+          ]
+        },
+        {
+          "bereich": "Methodenkompetenz",
+          "deskriptoren": [
+            {"id": "at-geographie-s7-methoden-1", "code": "", "text": "Die Schülerinnen und Schüler können Klimadiagramme analysieren und Klimastationen typologischen Regionen zuordnen."},
+            {"id": "at-geographie-s7-methoden-2", "code": "", "text": "Die Schülerinnen und Schüler können Satellitenbilder und digitale Geomedien zur Raumanalyse nutzen."},
+            {"id": "at-geographie-s7-methoden-3", "code": "", "text": "Die Schülerinnen und Schüler können Naturgefahren aus Karten und Datenbeständen ableiten."}
+          ]
+        },
+        {
+          "bereich": "Synthesekompetenz",
+          "deskriptoren": [
+            {"id": "at-geographie-s7-synthese-1", "code": "", "text": "Die Schülerinnen und Schüler können das Zusammenwirken endogener und exogener Kräfte bei der Gestaltung der Erdoberfläche erklären."},
+            {"id": "at-geographie-s7-synthese-2", "code": "", "text": "Die Schülerinnen und Schüler können Anpassungsstrategien menschlicher Gesellschaften an extreme Naturräume beschreiben."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 8,
+      "bereiche": [
+        {
+          "bereich": "Wahrnehmungs- & Orientierungskompetenz",
+          "deskriptoren": [
+            {"id": "at-geographie-s8-wahrnehmung-1", "code": "", "text": "Die Schülerinnen und Schüler können globale Bevölkerungsmuster (Dichte, Verteilung, Wachstum) räumlich verorten."},
+            {"id": "at-geographie-s8-wahrnehmung-2", "code": "", "text": "Die Schülerinnen und Schüler können Migrationsströme und ihre räumlichen Auswirkungen beschreiben."},
+            {"id": "at-geographie-s8-wahrnehmung-3", "code": "", "text": "Die Schülerinnen und Schüler können urbane Strukturen (Stadt-Land-Gefälle, Megastädte) identifizieren."}
+          ]
+        },
+        {
+          "bereich": "Methodenkompetenz",
+          "deskriptoren": [
+            {"id": "at-geographie-s8-methoden-1", "code": "", "text": "Die Schülerinnen und Schüler können Bevölkerungsstatistiken und Bevölkerungspyramiden analysieren und den demographischen Übergang ableiten."},
+            {"id": "at-geographie-s8-methoden-2", "code": "", "text": "Die Schülerinnen und Schüler können Ursachen und Wirkungen von Migration aus unterschiedlichen Quellen rekonstruieren."},
+            {"id": "at-geographie-s8-methoden-3", "code": "", "text": "Die Schülerinnen und Schüler können Stadtpläne und Satellitenbilder zur Stadtstruktur vergleichend auswerten."}
+          ]
+        },
+        {
+          "bereich": "Synthesekompetenz",
+          "deskriptoren": [
+            {"id": "at-geographie-s8-synthese-1", "code": "", "text": "Die Schülerinnen und Schüler können Wechselwirkungen zwischen demographischer Entwicklung und wirtschaftlichen sowie sozialen Systemen erklären."},
+            {"id": "at-geographie-s8-synthese-2", "code": "", "text": "Die Schülerinnen und Schüler können Chancen und Herausforderungen von Urbanisierung multiperspektivisch beurteilen."}
+          ]
+        },
+        {
+          "bereich": "Wirtschaftliche Bildung",
+          "deskriptoren": [
+            {"id": "at-geographie-s8-wirtschaft-1", "code": "", "text": "Die Schülerinnen und Schüler können Grundbegriffe des Wirtschaftens (Bedürfnisse, Güter, Märkte) auf Alltagssituationen anwenden."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 9,
+      "bereiche": [
+        {
+          "bereich": "Wahrnehmungs- & Orientierungskompetenz",
+          "deskriptoren": [
+            {"id": "at-geographie-s9-wahrnehmung-1", "code": "", "text": "Die Schülerinnen und Schüler können globale Wirtschaftsräume und Produktionsnetzwerke räumlich verorten."},
+            {"id": "at-geographie-s9-wahrnehmung-2", "code": "", "text": "Die Schülerinnen und Schüler können industrielle und postindustrielle Standorte charakterisieren."},
+            {"id": "at-geographie-s9-wahrnehmung-3", "code": "", "text": "Die Schülerinnen und Schüler können Dienstleistungszentren und digitale Wirtschaftsräume identifizieren."}
+          ]
+        },
+        {
+          "bereich": "Methodenkompetenz",
+          "deskriptoren": [
+            {"id": "at-geographie-s9-methoden-1", "code": "", "text": "Die Schülerinnen und Schüler können Wirtschaftsindikatoren (BIP, HDI, Gini) kritisch auswerten und vergleichen."},
+            {"id": "at-geographie-s9-methoden-2", "code": "", "text": "Die Schülerinnen und Schüler können Wertschöpfungsketten an konkreten Produkten nachvollziehen."},
+            {"id": "at-geographie-s9-methoden-3", "code": "", "text": "Die Schülerinnen und Schüler können wirtschaftsgeographische Modelle (z. B. Standorttheorien) auf Fallbeispiele anwenden."}
+          ]
+        },
+        {
+          "bereich": "Synthesekompetenz",
+          "deskriptoren": [
+            {"id": "at-geographie-s9-synthese-1", "code": "", "text": "Die Schülerinnen und Schüler können Globalisierungsprozesse als treibende Kraft wirtschaftlicher und räumlicher Veränderungen analysieren."},
+            {"id": "at-geographie-s9-synthese-2", "code": "", "text": "Die Schülerinnen und Schüler können regionale Disparitäten als Ergebnis globaler Wirtschaftsstrukturen erklären."}
+          ]
+        },
+        {
+          "bereich": "Wirtschaftliche Bildung",
+          "deskriptoren": [
+            {"id": "at-geographie-s9-wirtschaft-1", "code": "", "text": "Die Schülerinnen und Schüler können zwischen mikro- und makroökonomischen Perspektiven unterscheiden und eigene Konsumentscheidungen reflektieren."},
+            {"id": "at-geographie-s9-wirtschaft-2", "code": "", "text": "Die Schülerinnen und Schüler können internationale Arbeitsteilung und ihre sozialen wie ökologischen Folgen bewerten."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 10,
+      "bereiche": [
+        {
+          "bereich": "Wahrnehmungs- & Orientierungskompetenz",
+          "deskriptoren": [
+            {"id": "at-geographie-s10-wahrnehmung-1", "code": "", "text": "Die Schülerinnen und Schüler können unterschiedliche Entwicklungswege von Staaten (Schwellen-, Transformations-, Entwicklungsländer) verorten."},
+            {"id": "at-geographie-s10-wahrnehmung-2", "code": "", "text": "Die Schülerinnen und Schüler können Raumplanung, Tourismusregionen und Ressourcenräume identifizieren."},
+            {"id": "at-geographie-s10-wahrnehmung-3", "code": "", "text": "Die Schülerinnen und Schüler können Ungleichverteilungen von Ressourcen und Infrastruktur global kartieren."}
+          ]
+        },
+        {
+          "bereich": "Methodenkompetenz",
+          "deskriptoren": [
+            {"id": "at-geographie-s10-methoden-1", "code": "", "text": "Die Schülerinnen und Schüler können Entwicklungsmessgrößen (HDI, MPI, Gini) kritisch reflektieren und ihre Aussagekraft bewerten."},
+            {"id": "at-geographie-s10-methoden-2", "code": "", "text": "Die Schülerinnen und Schüler können Fallstudien zu Raumnutzungskonflikten multiperspektivisch auswerten."},
+            {"id": "at-geographie-s10-methoden-3", "code": "", "text": "Die Schülerinnen und Schüler können GIS-Grundfunktionen zur Raumanalyse anwenden."}
+          ]
+        },
+        {
+          "bereich": "Synthesekompetenz",
+          "deskriptoren": [
+            {"id": "at-geographie-s10-synthese-1", "code": "", "text": "Die Schülerinnen und Schüler können Entwicklung als multidimensionalen Prozess (ökonomisch, sozial, ökologisch) analysieren."},
+            {"id": "at-geographie-s10-synthese-2", "code": "", "text": "Die Schülerinnen und Schüler können Nutzungskonflikte um knappe Ressourcen als Ergebnis gesellschaftlicher und wirtschaftlicher Interessen erklären."}
+          ]
+        },
+        {
+          "bereich": "Wirtschaftliche Bildung",
+          "deskriptoren": [
+            {"id": "at-geographie-s10-wirtschaft-1", "code": "", "text": "Die Schülerinnen und Schüler können Tourismus als Wirtschaftsfaktor mit seinen räumlichen, sozialen und ökologischen Wirkungen bewerten."},
+            {"id": "at-geographie-s10-wirtschaft-2", "code": "", "text": "Die Schülerinnen und Schüler können nachhaltige und nicht-nachhaltige Wirtschaftsweisen anhand konkreter Beispiele unterscheiden."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 11,
+      "bereiche": [
+        {
+          "bereich": "Wahrnehmungs- & Orientierungskompetenz",
+          "deskriptoren": [
+            {"id": "at-geographie-s11-wahrnehmung-1", "code": "", "text": "Die Schülerinnen und Schüler können geopolitische Konfliktlinien und globale Machtverschiebungen räumlich verorten."},
+            {"id": "at-geographie-s11-wahrnehmung-2", "code": "", "text": "Die Schülerinnen und Schüler können Klima- und Umweltveränderungen als räumlich differenzierte Prozesse kartieren."},
+            {"id": "at-geographie-s11-wahrnehmung-3", "code": "", "text": "Die Schülerinnen und Schüler können Nachhaltigkeitskonzepte auf globale und regionale Räume übertragen."}
+          ]
+        },
+        {
+          "bereich": "Methodenkompetenz",
+          "deskriptoren": [
+            {"id": "at-geographie-s11-methoden-1", "code": "", "text": "Die Schülerinnen und Schüler können wissenschaftliche Studien, IPCC-Berichte und statistische Dossiers systematisch auswerten."},
+            {"id": "at-geographie-s11-methoden-2", "code": "", "text": "Die Schülerinnen und Schüler können Szenarien und Modellrechnungen zu Klima und Ressourcen interpretieren."},
+            {"id": "at-geographie-s11-methoden-3", "code": "", "text": "Die Schülerinnen und Schüler können Raumplanung als politikgestütztes Handlungsfeld analysieren."}
+          ]
+        },
+        {
+          "bereich": "Synthesekompetenz",
+          "deskriptoren": [
+            {"id": "at-geographie-s11-synthese-1", "code": "", "text": "Die Schülerinnen und Schüler können systemische Wechselwirkungen zwischen Umwelt, Gesellschaft und Wirtschaft in globaler Perspektive analysieren."},
+            {"id": "at-geographie-s11-synthese-2", "code": "", "text": "Die Schülerinnen und Schüler können nachhaltige Entwicklung als normatives Leitbild kritisch reflektieren."}
+          ]
+        },
+        {
+          "bereich": "Wirtschaftliche Bildung",
+          "deskriptoren": [
+            {"id": "at-geographie-s11-wirtschaft-1", "code": "", "text": "Die Schülerinnen und Schüler können internationale Wirtschaftsbeziehungen (WTO, Freihandelszonen, Lieferketten) systematisch analysieren."},
+            {"id": "at-geographie-s11-wirtschaft-2", "code": "", "text": "Die Schülerinnen und Schüler können Kreislauf- und Postwachstumsökonomie als alternative Wirtschaftsmodelle bewerten."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 12,
+      "bereiche": [
+        {
+          "bereich": "Wahrnehmungs- & Orientierungskompetenz",
+          "deskriptoren": [
+            {"id": "at-geographie-s12-wahrnehmung-1", "code": "", "text": "Die Schülerinnen und Schüler können aktuelle raumwirksame Herausforderungen (Klimawandel, Digitalisierung, Deglobalisierung) multiperspektivisch verorten."},
+            {"id": "at-geographie-s12-wahrnehmung-2", "code": "", "text": "Die Schülerinnen und Schüler können Zukunftsfragen der Raumgestaltung und Ressourcenpolitik räumlich einordnen."}
+          ]
+        },
+        {
+          "bereich": "Methodenkompetenz",
+          "deskriptoren": [
+            {"id": "at-geographie-s12-methoden-1", "code": "", "text": "Die Schülerinnen und Schüler können eigenständig raumbezogene Forschungsfragen entwickeln und mit geographischen Methoden bearbeiten."},
+            {"id": "at-geographie-s12-methoden-2", "code": "", "text": "Die Schülerinnen und Schüler können unterschiedliche wissenschaftliche und mediale Narrative zu Raumthemen dekonstruieren."}
+          ]
+        },
+        {
+          "bereich": "Synthesekompetenz",
+          "deskriptoren": [
+            {"id": "at-geographie-s12-synthese-1", "code": "", "text": "Die Schülerinnen und Schüler können komplexe Mensch-Umwelt-Systeme als Ganzes analysieren und Handlungsoptionen begründet abwägen."},
+            {"id": "at-geographie-s12-synthese-2", "code": "", "text": "Die Schülerinnen und Schüler können geographisches Wissen in gesellschaftliche Debatten um Nachhaltigkeit und Gerechtigkeit einbringen."}
+          ]
+        },
+        {
+          "bereich": "Wirtschaftliche Bildung",
+          "deskriptoren": [
+            {"id": "at-geographie-s12-wirtschaft-1", "code": "", "text": "Die Schülerinnen und Schüler können eigene ökonomische Entscheidungen als Teil globaler Wertschöpfungsketten reflektieren und verantwortungsvoll gestalten."},
+            {"id": "at-geographie-s12-wirtschaft-2", "code": "", "text": "Die Schülerinnen und Schüler können ökonomische Theorien und Modelle kritisch auf ihre Tragfähigkeit für Zukunftsherausforderungen prüfen."}
+          ]
+        }
+      ]
+    }
+  ]
+}

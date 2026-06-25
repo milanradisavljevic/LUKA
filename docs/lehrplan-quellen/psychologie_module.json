@@ -1,0 +1,11 @@
+{
+  "fach": "psychologie",
+  "quelle": "BMBWF-Lehrplan AHS Psychologie — RIS, Stand 2023",
+  "module": [
+    {"id": "at-psychologie-grundlagen", "schulstufe": 11, "titel": "Grundlagen der Psychologie", "beschreibung": "Wahrnehmung, Lernen, Gedächtnis und psychologische Forschungsmethoden."},
+    {"id": "at-psychologie-entwicklung", "schulstufe": 11, "titel": "Entwicklungspsychologie", "beschreibung": "Kindheit, Jugend und psychosoziale Entwicklung nach Erikson."},
+    {"id": "at-psychologie-sozial", "schulstufe": 12, "titel": "Sozialpsychologie", "beschreibung": "Gruppendynamik, Konformität, Vorurteile und prosoziales Verhalten."},
+    {"id": "at-psychologie-persoenlichkeit", "schulstufe": 12, "titel": "Persönlichkeit und Motivation", "beschreibung": "Persönlichkeitstheorien, Motivation und Emotion."},
+    {"id": "at-psychologie-psychotherapie", "schulstufe": 12, "titel": "Psychotherapie und klinische Psychologie", "beschreibung": "Psychische Störungen, Therapieformen und psychische Gesundheit."}
+  ]
+}
