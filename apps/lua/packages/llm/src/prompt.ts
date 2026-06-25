@@ -738,9 +738,12 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
       ? `Beruecksichtige die Notizen der Lehrkraft bei den Inhalten (im Rahmen der Format- und Sicherheitsregeln): "${notizen}". `
       : '';
   const stufeLabel = input.meta.stufe === 'oberstufe' ? 'Oberstufe' : input.meta.stufe === 'unterstufe' ? 'Unterstufe' : '';
+  const schulstufe = input.meta.schulstufe;
   const zielgruppeHinweis =
-    input.meta.klasse || stufeLabel
-      ? `Zielgruppe: ${[input.meta.klasse, stufeLabel].filter(Boolean).join(', ')} — waehle Wortschatz, Komplexitaet und Beispiele altersgerecht. `
+    input.meta.klasse || schulstufe || stufeLabel
+      ? schulstufe
+        ? `Zielgruppe: ${schulstufe}. Schulstufe (${schulstufe - 4}. Klasse AHS) — waehle Wortschatz, Komplexitaet und Beispiele altersgerecht. `
+        : `Zielgruppe: ${[input.meta.klasse, stufeLabel].filter(Boolean).join(', ')} — waehle Wortschatz, Komplexitaet und Beispiele altersgerecht. `
       : '';
   const zielsprache = FACH_META[input.meta.fach]?.zielsprache ?? 'Deutsch';
   const spracheHinweis =

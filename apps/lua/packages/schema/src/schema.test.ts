@@ -24,6 +24,9 @@ import {
   UnterlagentypSchema,
   BlockTypSchema,
   AuftragSchema,
+  DeskriptorSchema,
+  StoffItemSchema,
+  stufeFromSchulstufe,
   PROFILE,
   buildSkelett,
   baueWortbank,
@@ -189,6 +192,66 @@ describe('MetaSchema', () => {
   it('rejects invalid modus', () => {
     const result = MetaSchema.safeParse({ stufe: 'oberstufe', fach: 'deutsch', thema: 'x', datum: '2026-01-01', klasse: '7A', notizen: '', modus: 'thema' });
     expect(result.success).toBe(false);
+  });
+
+  it('accepts meta with optional schulstufe', () => {
+    const result = MetaSchema.safeParse({ stufe: 'unterstufe', fach: 'deutsch', thema: 'x', datum: '2026-01-01', klasse: '5A', notizen: '', schulstufe: 7 });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects invalid schulstufe', () => {
+    const result = MetaSchema.safeParse({ stufe: 'unterstufe', fach: 'deutsch', thema: 'x', datum: '2026-01-01', klasse: '5A', notizen: '', schulstufe: 13 });
+    expect(result.success).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Schulstufe / Stufe
+// ---------------------------------------------------------------------------
+
+describe('stufeFromSchulstufe', () => {
+  it('maps 5-8 to unterstufe', () => {
+    expect(stufeFromSchulstufe(5)).toBe('unterstufe');
+    expect(stufeFromSchulstufe(8)).toBe('unterstufe');
+  });
+
+  it('maps 9-12 to oberstufe', () => {
+    expect(stufeFromSchulstufe(9)).toBe('oberstufe');
+    expect(stufeFromSchulstufe(12)).toBe('oberstufe');
+  });
+});
+
+describe('DeskriptorSchema + StoffItemSchema schulstufe', () => {
+  it('accepts Deskriptor with schulstufe', () => {
+    const result = DeskriptorSchema.safeParse({
+      id: 'd1', rahmenwerk: 'at-lehrplan', fach: 'geschichte', stufe: 'oberstufe', schulstufe: 11,
+      bereich: 'Historische Methodenkompetenz', code: 'HM-11', text: 'Quellen analysieren.', quelle: '',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts Deskriptor without schulstufe (back-compat)', () => {
+    const result = DeskriptorSchema.safeParse({
+      id: 'd1', rahmenwerk: 'at-lehrplan', fach: 'geschichte', stufe: 'oberstufe',
+      bereich: 'Historische Methodenkompetenz', code: 'HM', text: 'Quellen analysieren.', quelle: '',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts StoffItem with schulstufe', () => {
+    const result = StoffItemSchema.safeParse({
+      id: 'si1', rahmenwerk: 'at-lehrplan', fach: 'geschichte', stufe: 'oberstufe', schulstufe: 11,
+      kategorie: 'Historische Methodenkompetenz', titel: 'Quellenanalyse', deskriptorIds: ['d1'], defaultAufgabentypen: ['offeneVerstaendnisfrage'],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts StoffItem without schulstufe (back-compat)', () => {
+    const result = StoffItemSchema.safeParse({
+      id: 'si1', rahmenwerk: 'at-lehrplan', fach: 'geschichte', stufe: 'oberstufe',
+      kategorie: 'Historische Methodenkompetenz', titel: 'Quellenanalyse', deskriptorIds: ['d1'],
+    });
+    expect(result.success).toBe(true);
   });
 });
 

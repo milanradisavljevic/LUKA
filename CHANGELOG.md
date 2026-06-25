@@ -7,6 +7,23 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Schulstufen-Granularität 5–12 im Kompetenz-Modus (Welle B)
+- `apps/lua/packages/schema/src/index.ts`: `SCHULSTUFEN`, `stufeFromSchulstufe(s)`
+  und optionales `schulstufe`-Feld an `DeskriptorSchema`, `StoffItemSchema`,
+  `MetaSchema` und `AuftragSchema`.
+- `apps/lua/apps/web/src/lib/stoffkatalog/index.ts`: `listStoffItems` und
+  `listDeskriptoren` mit optionalem `schulstufe`-Parameter und Fallback-Regel
+  (exakte Schulstufe ODER grobe Stufe, wenn keine Schulstufe angegeben).
+- `apps/lua/apps/web/src/views/KompetenzView.tsx`: Schulstufen-Wähler 5–12
+  plus „ganze Unter-/Oberstufe"; `stufe` bleibt synchron; `schulstufe` fließt
+  in `meta`/`auftrag` ein.
+- `apps/lua/packages/llm/src/prompt.ts`: altersgenauer `zielgruppeHinweis` mit
+  konkreter Schulstufe/Klasse AHS, wenn `meta.schulstufe` gesetzt.
+- `apps/lua/packages/schema/src/schema.test.ts`: Tests für `schulstufe` und
+  `stufeFromSchulstufe`.
+- Verifikation: `pnpm --filter "./packages/*" build && pnpm -r typecheck &&
+  `pnpm -r test` grün (Schema 141, LLM 126, Renderer 38, Input 17, QA 103, Web 67).
+
 ### Added — Multi-Kompetenz-Auswahl im Kompetenz-Modus (Welle A)
 - `apps/lua/apps/web/src/views/KompetenzView.tsx`: Stoff-Item-Auswahl von
   Single-`<select>` auf Checkbox-Kacheln (gruppiert nach Kompetenzbereich)

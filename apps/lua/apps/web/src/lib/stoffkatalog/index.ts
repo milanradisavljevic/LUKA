@@ -56,12 +56,16 @@ export function listStoffItems(
   fach: StoffItem['fach'],
   stufe: StoffItem['stufe'],
   rahmenwerk?: StoffItem['rahmenwerk'],
+  schulstufe?: number,
 ): StoffItem[] {
   return STOFF_ITEMS.filter(
     (item) =>
       item.fach === fach &&
       item.stufe === stufe &&
-      (rahmenwerk === undefined || item.rahmenwerk === rahmenwerk),
+      (rahmenwerk === undefined || item.rahmenwerk === rahmenwerk) &&
+      (schulstufe === undefined
+        ? true
+        : item.schulstufe === schulstufe || (item.schulstufe === undefined && item.stufe === stufe)),
   );
 }
 
@@ -115,11 +119,15 @@ export function listDeskriptoren(
   fach: Deskriptor['fach'],
   stufe: Deskriptor['stufe'],
   rahmenwerk?: Deskriptor['rahmenwerk'],
+  schulstufe?: number,
 ): Deskriptor[] {
   return DESKRIPTOREN.filter(
     (d) =>
       d.fach === fach &&
       d.stufe === stufe &&
-      (rahmenwerk === undefined || d.rahmenwerk === rahmenwerk),
+      (rahmenwerk === undefined || d.rahmenwerk === rahmenwerk) &&
+      (schulstufe === undefined
+        ? true
+        : d.schulstufe === schulstufe || (d.schulstufe === undefined && d.stufe === stufe)),
   );
 }
