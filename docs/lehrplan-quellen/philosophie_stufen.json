@@ -1,0 +1,63 @@
+{
+  "fach": "philosophie",
+  "quelle": "BMBWF-Lehrplan AHS Philosophie — RIS, Stand 2023",
+  "quelleUrl": "https://www.ris.bka.gv.at/GeltendeFassung.wxe?Abfrage=Bundesnormen&Gesetzesnummer=10008568",
+  "stufen": [
+    {
+      "schulstufe": 11,
+      "bereiche": [
+        {
+          "bereich": "Begriffs- & Theoriekompetenz",
+          "deskriptoren": [
+            {"id": "at-philosophie-s11-begriff-1", "code": "", "text": "Die Schülerinnen und Schüler können zentrale philosophische Begriffe (z. B. Wahrheit, Gerechtigkeit, Freiheit, Glück) klären und ihre historische Entwicklung nachvollziehen."},
+            {"id": "at-philosophie-s11-begriff-2", "code": "", "text": "Die Schülerinnen und Schüler können wichtige philosophische Positionen (z. B. Platon, Aristoteles, Kant, Nietzsche) in Grundzügen charakterisieren und vergleichen."},
+            {"id": "at-philosophie-s11-begriff-3", "code": "", "text": "Die Schülerinnen und Schüler können philosophische Texte (z. B. Platons Höhlengleichnis, Kants kategorischer Imperativ) sinnerfassend lesen und in Grundzügen interpretieren."}
+          ]
+        },
+        {
+          "bereich": "Argumentations- & Reflexionskompetenz",
+          "deskriptoren": [
+            {"id": "at-philosophie-s11-argumentation-1", "code": "", "text": "Die Schülerinnen und Schüler können philosophische Argumente strukturiert aufbauen und auf Gegenargumente eingehen."},
+            {"id": "at-philosophie-s11-argumentation-2", "code": "", "text": "Die Schülerinnen und Schüler können eigene philosophische Positionen in Auseinandersetzung mit verschiedenen Traditionen begründen."},
+            {"id": "at-philosophie-s11-argumentation-3", "code": "", "text": "Die Schülerinnen und Schüler können philosophische Fragen (z. B. Was ist der Mensch? Was soll ich tun?) reflexiv und dialogisch bearbeiten."}
+          ]
+        },
+        {
+          "bereich": "Anwendung & Transfer",
+          "deskriptoren": [
+            {"id": "at-philosophie-s11-anwendung-1", "code": "", "text": "Die Schülerinnen und Schüler können philosophische Erkenntnisse auf aktuelle gesellschaftliche und ethische Fragen übertragen."},
+            {"id": "at-philosophie-s11-anwendung-2", "code": "", "text": "Die Schülerinnen und Schüler können philosophische Konzepte zur Reflexion eigener Lebensfragen und gesellschaftlicher Herausforderungen nutzen."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 12,
+      "bereiche": [
+        {
+          "bereich": "Begriffs- & Theoriekompetenz",
+          "deskriptoren": [
+            {"id": "at-philosophie-s12-begriff-1", "code": "", "text": "Die Schülerinnen und Schüler können komplexe philosophische Theorien und ihre historischen Kontexte multiperspektivisch analysieren."},
+            {"id": "at-philosophie-s12-begriff-2", "code": "", "text": "Die Schülerinnen und Schüler können philosophische Texte mit wissenschaftlichen Methoden interpretieren und in größere Zusammenhänge einordnen."},
+            {"id": "at-philosophie-s12-begriff-3", "code": "", "text": "Die Schülerinnen und Schüler können aktuelle philosophische Debatten (z. B. Philosophie des Geistes, politische Philosophie, Ästhetik) in Grundzügen erfassen."}
+          ]
+        },
+        {
+          "bereich": "Argumentations- & Reflexionskompetenz",
+          "deskriptoren": [
+            {"id": "at-philosophie-s12-argumentation-1", "code": "", "text": "Die Schülerinnen und Schüler können komplexe philosophische Argumentationen aufbauen und kritisch bewerten."},
+            {"id": "at-philosophie-s12-argumentation-2", "code": "", "text": "Die Schülerinnen und Schüler können eigene philosophische Positionen souverän und reflektiert in akademischen und öffentlichen Diskursen vertreten."},
+            {"id": "at-philosophie-s12-argumentation-3", "code": "", "text": "Die Schülerinnen und Schüler können mündliche Reifeprüfung differenziert und souverän führen."}
+          ]
+        },
+        {
+          "bereich": "Anwendung & Transfer",
+          "deskriptoren": [
+            {"id": "at-philosophie-s12-anwendung-1", "code": "", "text": "Die Schülerinnen und Schüler können philosophische Erkenntnisse auf komplexe existenzielle und gesellschaftliche Herausforderungen souverän übertragen."},
+            {"id": "at-philosophie-s12-anwendung-2", "code": "", "text": "Die Schülerinnen und Schüler können philosophische Reflexion als Grundlage für lebenslanges Lernen und verantwortungsvolles Handeln nutzen."}
+          ]
+        }
+      ]
+    }
+  ]
+}

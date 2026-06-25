@@ -1,0 +1,244 @@
+{
+  "fach": "italienisch",
+  "quelle": "BMBWF-Lehrplan AHS Italienisch — RIS, Stand 2023",
+  "quelleUrl": "https://www.ris.bka.gv.at/GeltendeFassung.wxe?Abfrage=Bundesnormen&Gesetzesnummer=10008568",
+  "stufen": [
+    {
+      "schulstufe": 9,
+      "bereiche": [
+        {
+          "bereich": "Hören",
+          "deskriptoren": [
+            {"id": "at-italienisch-s9-hoeren-1", "code": "A1", "text": "Die Schülerinnen und Schüler können einfache, langsam gesprochene Anweisungen und Fragen verstehen, wenn sie sich auf vertraute Themen beziehen."},
+            {"id": "at-italienisch-s9-hoeren-2", "code": "A1", "text": "Die Schülerinnen und Schüler können kurzen Gesprächen über Alltagsthemen Hauptinformationen entnehmen."},
+            {"id": "at-italienisch-s9-hoeren-3", "code": "A1", "text": "Die Schülerinnen und Schüler können einfache Hörtexte global verstehen."}
+          ]
+        },
+        {
+          "bereich": "Lesen",
+          "deskriptoren": [
+            {"id": "at-italienisch-s9-lesen-1", "code": "A1", "text": "Die Schülerinnen und Schüler können einfache, kurze Texte (Postkarten, Briefe, einfache Geschichten) verstehen."},
+            {"id": "at-italienisch-s9-lesen-2", "code": "A1", "text": "Die Schülerinnen und Schüler können konkreten Informationen aus einfachen Alltagstexten entnehmen."}
+          ]
+        },
+        {
+          "bereich": "An Gesprächen teilnehmen",
+          "deskriptoren": [
+            {"id": "at-italienisch-s9-gespraech-1", "code": "A1", "text": "Die Schülerinnen und Schüler können sich mit einfachen Worten vorstellen und auf entsprechende Fragen reagieren."},
+            {"id": "at-italienisch-s9-gespraech-2", "code": "A1", "text": "Die Schülerinnen und Schüler können einfache Fragen zu vertrauten Themen stellen und beantworten."}
+          ]
+        },
+        {
+          "bereich": "Zusammenhängend sprechen",
+          "deskriptoren": [
+            {"id": "at-italienisch-s9-sprechen-1", "code": "A1", "text": "Die Schülerinnen und Schüler können mit einfachen Sätzen über sich selbst, ihre Familie und ihren Alltag sprechen."},
+            {"id": "at-italienisch-s9-sprechen-2", "code": "A1", "text": "Die Schülerinnen und Schüler können kurze, vorbereitete Präsentationen zu vertrauten Themen halten."}
+          ]
+        },
+        {
+          "bereich": "Schreiben",
+          "deskriptoren": [
+            {"id": "at-italienisch-s9-schreiben-1", "code": "A1", "text": "Die Schülerinnen und Schüler können kurze, einfache Texte (Postkarten, Einladungen, Briefe) verfassen."},
+            {"id": "at-italienisch-s9-schreiben-2", "code": "A1", "text": "Die Schülerinnen und Schüler können Formulare mit persönlichen Daten ausfüllen."}
+          ]
+        },
+        {
+          "bereich": "Sprachmittlung",
+          "deskriptoren": [
+            {"id": "at-italienisch-s9-mittlung-1", "code": "A1", "text": "Die Schülerinnen und Schüler können einfache Informationen aus kurzen Texten sinngemäß ins Deutsche übertragen."}
+          ]
+        },
+        {
+          "bereich": "Grammatik",
+          "deskriptoren": [
+            {"id": "at-italienisch-s9-grammatik-1", "code": "A1", "text": "Die Schülerinnen und Schüler können einfache grammatikalische Strukturen (presente, Artikel, einfache Präpositionen) anwenden."},
+            {"id": "at-italienisch-s9-grammatik-2", "code": "A1", "text": "Die Schülerinnen und Schüler können grundlegende Satzstrukturen bilden und einfache Fragen formulieren."}
+          ]
+        },
+        {
+          "bereich": "Wortschatz",
+          "deskriptoren": [
+            {"id": "at-italienisch-s9-wortschatz-1", "code": "A1", "text": "Die Schülerinnen und Schüler können einen Grundwortschatz zu vertrauten Themen aktiv verwenden."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 10,
+      "bereiche": [
+        {
+          "bereich": "Hören",
+          "deskriptoren": [
+            {"id": "at-italienisch-s10-hoeren-1", "code": "A1/A2", "text": "Die Schülerinnen und Schüler können längeren Gesprächen über Alltagsthemen folgen, wenn deutlich gesprochen wird."},
+            {"id": "at-italienisch-s10-hoeren-2", "code": "A1/A2", "text": "Die Schülerinnen und Schüler können einfachen Hörtexten detaillierte Informationen entnehmen."}
+          ]
+        },
+        {
+          "bereich": "Lesen",
+          "deskriptoren": [
+            {"id": "at-italienisch-s10-lesen-1", "code": "A1/A2", "text": "Die Schülerinnen und Schüler können kürzere erzählende Texte und Sachtexte zu vertrauten Themen verstehen."},
+            {"id": "at-italienisch-s10-lesen-2", "code": "A1/A2", "text": "Die Schülerinnen und Schüler können Informationen aus verschiedenen einfachen Textquellen vergleichen."}
+          ]
+        },
+        {
+          "bereich": "An Gesprächen teilnehmen",
+          "deskriptoren": [
+            {"id": "at-italienisch-s10-gespraech-1", "code": "A1/A2", "text": "Die Schülerinnen und Schüler können einfache Gespräche über vertraute Themen führen und Nachfragen stellen."},
+            {"id": "at-italienisch-s10-gespraech-2", "code": "A1/A2", "text": "Die Schülerinnen und Schüler können in Alltagssituationen angemessen reagieren."}
+          ]
+        },
+        {
+          "bereich": "Zusammenhängend sprechen",
+          "deskriptoren": [
+            {"id": "at-italienisch-s10-sprechen-1", "code": "A1/A2", "text": "Die Schülerinnen und Schüler können über Erlebnisse, Pläne und Erfahrungen in mehreren zusammenhängenden Sätzen sprechen."},
+            {"id": "at-italienisch-s10-sprechen-2", "code": "A1/A2", "text": "Die Schülerinnen und Schüler können kurze Beschreibungen und Erzählungen vortragen."}
+          ]
+        },
+        {
+          "bereich": "Schreiben",
+          "deskriptoren": [
+            {"id": "at-italienisch-s10-schreiben-1", "code": "A1/A2", "text": "Die Schülerinnen und Schüler können kurze zusammenhängende Texte über vertraute Themen schreiben."},
+            {"id": "at-italienisch-s10-schreiben-2", "code": "A1/A2", "text": "Die Schülerinnen und Schüler können persönliche Briefe und E-Mails mit einfachen Informationen verfassen."}
+          ]
+        },
+        {
+          "bereich": "Sprachmittlung",
+          "deskriptoren": [
+            {"id": "at-italienisch-s10-mittlung-1", "code": "A1/A2", "text": "Die Schülerinnen und Schüler können einfache Inhalte aus kurzen Texten sinngemäß in die jeweils andere Sprache übertragen."}
+          ]
+        },
+        {
+          "bereich": "Grammatik",
+          "deskriptoren": [
+            {"id": "at-italienisch-s10-grammatik-1", "code": "A1/A2", "text": "Die Schülerinnen und Schüler können weitere Zeitformen (passato prossimo, imperfetto) korrekt anwenden."},
+            {"id": "at-italienisch-s10-grammatik-2", "code": "A1/A2", "text": "Die Schülerinnen und Schüler können einfache Nebensätze (perché, quando, se) bilden."}
+          ]
+        },
+        {
+          "bereich": "Wortschatz",
+          "deskriptoren": [
+            {"id": "at-italienisch-s10-wortschatz-1", "code": "A1/A2", "text": "Die Schülerinnen und Schüler können einen erweiterten Grundwortschatz zu Themen wie Freizeit, Reisen, Umwelt aktiv verwenden."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 11,
+      "bereiche": [
+        {
+          "bereich": "Hören",
+          "deskriptoren": [
+            {"id": "at-italienisch-s11-hoeren-1", "code": "A2", "text": "Die Schülerinnen und Schüler können Gesprächen und Hörtexten zu vertrauten Themen Hauptpunkte und wichtige Details entnehmen."},
+            {"id": "at-italienisch-s11-hoeren-2", "code": "A2", "text": "Die Schülerinnen und Schüler können einfache Sachtexte und Reportagen in deutlichem Standarditalienisch verstehen."}
+          ]
+        },
+        {
+          "bereich": "Lesen",
+          "deskriptoren": [
+            {"id": "at-italienisch-s11-lesen-1", "code": "A2", "text": "Die Schülerinnen und Schüler können kürzere literarische Texte und Sachtexte zu vertrauten Themen sinnerfassend lesen."},
+            {"id": "at-italienisch-s11-lesen-2", "code": "A2", "text": "Die Schülerinnen und Schüler können Texte aus verschiedenen Quellen vergleichen und Informationen gezielt entnehmen."}
+          ]
+        },
+        {
+          "bereich": "An Gesprächen teilnehmen",
+          "deskriptoren": [
+            {"id": "at-italienisch-s11-gespraech-1", "code": "A2", "text": "Die Schülerinnen und Schüler können an Gesprächen über vertraute Themen aktiv teilnehmen und eigene Ideen einbringen."},
+            {"id": "at-italienisch-s11-gespraech-2", "code": "A2", "text": "Die Schülerinnen und Schüler können in einfachen Diskussionen ihre Meinung äußern und auf andere reagieren."}
+          ]
+        },
+        {
+          "bereich": "Zusammenhängend sprechen",
+          "deskriptoren": [
+            {"id": "at-italienisch-s11-sprechen-1", "code": "A2", "text": "Die Schülerinnen und Schüler können über Erfahrungen, Ereignisse und Pläne zusammenhängend berichten."},
+            {"id": "at-italienisch-s11-sprechen-2", "code": "A2", "text": "Die Schülerinnen und Schüler können kurze Präsentationen zu vertrauten Themen halten und Fragen dazu beantworten."}
+          ]
+        },
+        {
+          "bereich": "Schreiben",
+          "deskriptoren": [
+            {"id": "at-italienisch-s11-schreiben-1", "code": "A2", "text": "Die Schülerinnen und Schüler können zusammenhängende Texte über vertraute Themen verfassen."},
+            {"id": "at-italienisch-s11-schreiben-2", "code": "A2", "text": "Die Schülerinnen und Schüler können persönliche und formelle Briefe/E-Mails mit klarer Struktur schreiben."}
+          ]
+        },
+        {
+          "bereich": "Sprachmittlung",
+          "deskriptoren": [
+            {"id": "at-italienisch-s11-mittlung-1", "code": "A2", "text": "Die Schülerinnen und Schüler können einfache Informationen aus authentischen Texten sinngemäß und adressatengerecht vermitteln."}
+          ]
+        },
+        {
+          "bereich": "Grammatik",
+          "deskriptoren": [
+            {"id": "at-italienisch-s11-grammatik-1", "code": "A2", "text": "Die Schülerinnen und Schüler können verschiedene Zeitformen (futuro, condizionale) korrekt anwenden."},
+            {"id": "at-italienisch-s11-grammatik-2", "code": "A2", "text": "Die Schülerinnen und Schüler können komplexere Satzstrukturen (Relativsätze, congiuntivo in einfachen Kontexten) bilden."}
+          ]
+        },
+        {
+          "bereich": "Wortschatz",
+          "deskriptoren": [
+            {"id": "at-italienisch-s11-wortschatz-1", "code": "A2", "text": "Die Schülerinnen und Schüler können einen erweiterten Wortschatz zu Themen wie Gesellschaft, Medien, Umwelt aktiv verwenden."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 12,
+      "bereiche": [
+        {
+          "bereich": "Hören",
+          "deskriptoren": [
+            {"id": "at-italienisch-s12-hoeren-1", "code": "A2/B1", "text": "Die Schülerinnen und Schüler können längeren Gesprächen und Vorträgen zu bekannten Themen folgen, wenn in Standardsprache gesprochen wird."},
+            {"id": "at-italienisch-s12-hoeren-2", "code": "A2/B1", "text": "Die Schülerinnen und Schüler können medialen Beiträgen Hauptargumente und wichtige Details entnehmen."}
+          ]
+        },
+        {
+          "bereich": "Lesen",
+          "deskriptoren": [
+            {"id": "at-italienisch-s12-lesen-1", "code": "A2/B1", "text": "Die Schülerinnen und Schüler können längere Sachtexte und einfache literarische Texte zu bekannten Themen verstehen und analysieren."},
+            {"id": "at-italienisch-s12-lesen-2", "code": "A2/B1", "text": "Die Schülerinnen und Schüler können authentische Texte hinsichtlich Inhalt und Absicht interpretieren."}
+          ]
+        },
+        {
+          "bereich": "An Gesprächen teilnehmen",
+          "deskriptoren": [
+            {"id": "at-italienisch-s12-gespraech-1", "code": "A2/B1", "text": "Die Schülerinnen und Schüler können sich aktiv an Diskussionen über vertraute Themen beteiligen und Argumente austauschen."},
+            {"id": "at-italienisch-s12-gespraech-2", "code": "A2/B1", "text": "Die Schülerinnen und Schüler können in Gesprächen Probleme beschreiben und Lösungsvorschläge machen."}
+          ]
+        },
+        {
+          "bereich": "Zusammenhängend sprechen",
+          "deskriptoren": [
+            {"id": "at-italienisch-s12-sprechen-1", "code": "A2/B1", "text": "Die Schülerinnen und Schüler können über Erfahrungen, Ereignisse und Standpunkte zusammenhängend und strukturiert berichten."},
+            {"id": "at-italienisch-s12-sprechen-2", "code": "A2/B1", "text": "Die Schülerinnen und Schüler können Präsentationen zu verschiedenen Themen halten und auf Nachfragen eingehen."}
+          ]
+        },
+        {
+          "bereich": "Schreiben",
+          "deskriptoren": [
+            {"id": "at-italienisch-s12-schreiben-1", "code": "A2/B1", "text": "Die Schülerinnen und Schüler können strukturierte Texte zu bekannten Themen verfassen."},
+            {"id": "at-italienisch-s12-schreiben-2", "code": "A2/B1", "text": "Die Schülerinnen und Schüler können Argumente für und gegen einen Standpunkt darlegen und begründen."}
+          ]
+        },
+        {
+          "bereich": "Sprachmittlung",
+          "deskriptoren": [
+            {"id": "at-italienisch-s12-mittlung-1", "code": "A2/B1", "text": "Die Schülerinnen und Schüler können komplexere Informationen aus authentischen Texten sinngemäß und adressatengerecht vermitteln."}
+          ]
+        },
+        {
+          "bereich": "Grammatik",
+          "deskriptoren": [
+            {"id": "at-italienisch-s12-grammatik-1", "code": "A2/B1", "text": "Die Schülerinnen und Schüler können alle gängigen Zeitformen sicher anwenden und deren Nuancen unterscheiden."},
+            {"id": "at-italienisch-s12-grammatik-2", "code": "A2/B1", "text": "Die Schülerinnen und Schüler können komplexe Satzstrukturen (congiuntivo, Konditionalsätze) korrekt bilden."}
+          ]
+        },
+        {
+          "bereich": "Wortschatz",
+          "deskriptoren": [
+            {"id": "at-italienisch-s12-wortschatz-1", "code": "A2/B1", "text": "Die Schülerinnen und Schüler können einen differenzierten Wortschatz zu gesellschaftlichen, kulturellen und wissenschaftlichen Themen verwenden."}
+          ]
+        }
+      ]
+    }
+  ]
+}
