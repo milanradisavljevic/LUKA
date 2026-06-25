@@ -1511,6 +1511,32 @@ describe('buildSkelett', () => {
       expect(result.success).toBe(true);
     }
   });
+
+  // Regressionsschutz: jeder als Aufgabentyp anwählbare Blocktyp (STUFE_RULES.allowedBlockTypes)
+  // MUSS über buildSkelett baubar sein, sonst crasht Schnell-Übung/Kompetenz/Step0 mit
+  // "Unbekannter Blocktyp". Deckt insb. die config-only-Typen roleplay/vokabeluebung/rollenkartenSet ab.
+  it('builds a valid skeleton for every anwählbaren Blocktyp', () => {
+    const alleTypen = [
+      'lueckentext', 'matching', 'multipleChoice', 'offeneVerstaendnisfrage', 'offeneSchreibaufgabe',
+      'markieraufgabe', 'wordScramble', 'kategorisierung', 'tabelle', 'stiluebung', 'songanalyse',
+      'kreuzwortraetsel', 'wortgitter', 'umformung', 'fehlerkorrektur', 'roleplay', 'vokabeluebung',
+      'rollenkartenSet',
+    ];
+    for (const typ of alleTypen) {
+      const auftrag = {
+        typ: 'schuluebung', fach: 'englisch', stufe: 'oberstufe', thema: 'x', datum: '2026-06-01',
+        quelltexte: [], gewuenschteAufgabenarten: [typ], gesamtpunkteZiel: 0,
+      } as unknown as Auftrag;
+      const blocks = buildSkelett(auftrag);
+      expect(blocks).toHaveLength(1);
+      const result = BlockSchema.safeParse(blocks[0]);
+      if (!result.success) {
+        console.error('buildSkelett ungültig für', typ, JSON.stringify(result.error.issues, null, 2));
+      }
+      expect(result.success).toBe(true);
+      expect(blocks[0]!.typ).toBe(typ);
+    }
+  });
 });
 
 // ---------------------------------------------------------------------------
