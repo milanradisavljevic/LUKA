@@ -1,5 +1,6 @@
 import type { Block } from '@lehrunterlagen/schema';
 import type { AppAction } from './types';
+import { createDefaultBlock } from './blockDefaults';
 
 export interface CommandDef {
   id: string;
@@ -85,7 +86,7 @@ export const COMMANDS: CommandDef[] = [
     id: 'block-add',
     label: 'Füge <Typ> hinzu',
     description: 'Fügt einen neuen Aufgabenblock hinzu (Lückentext, Matching, etc.)',
-    pattern: /^(füge|add|neu(er|en)?)\s*(lückentext|lueckentext|matching|multiple.?choice|verständnisfrage|verstaendnisfrage|schreibaufgabe|markieraufgabe)\s*(hinzu|block)?$/i,
+    pattern: /^(füge|add|neu(er|en)?)\s*(lückentext|lueckentext|matching|multiple.?choice|verständnisfrage|verstaendnisfrage|schreibaufgabe|markieraufgabe|rollenkarten|rollenkartenset)\s*(hinzu|block)?$/i,
     parse: (m) => {
       const raw = m[3]?.toLowerCase().replace(/[^a-z]/g, '') ?? '';
       const typeMap: Record<string, string> = {
@@ -96,6 +97,8 @@ export const COMMANDS: CommandDef[] = [
         verstaendnisfrage: 'offeneVerstaendnisfrage',
         schreibaufgabe: 'offeneSchreibaufgabe',
         markieraufgabe: 'markieraufgabe',
+        rollenkarten: 'rollenkartenSet',
+        rollenkartenset: 'rollenkartenSet',
       };
       const typ = typeMap[raw];
       if (!typ) return null;
@@ -158,6 +161,7 @@ function getDefaultConfig(typ: string): Record<string, unknown> {
     case 'offeneSchreibaufgabe': return { situation: '', textsorte: '', umfangWorte: { min: 200, max: 300 }, aspekte: [''] };
     case 'markieraufgabe': return { quelleId: '', anweisung: '' };
     case 'vokabeluebung': return { richtung: 'de_fremd', vokabeln: [{ deutsch: '', fremdsprache: '' }] };
+    case 'rollenkartenSet': return createDefaultBlock('rollenkartenSet').config;
     default: return {};
   }
 }
@@ -171,6 +175,7 @@ function getEmptyLoesung(typ: string): Record<string, unknown> {
     case 'offeneSchreibaufgabe': return { musterloesung: '', erwartungshorizont: { inhalt: '', struktur: '', ausdruck: '', sprachrichtigkeit: '' } };
     case 'markieraufgabe': return { stellen: [] };
     case 'vokabeluebung': return { antworten: {} };
+    case 'rollenkartenSet': return { hinweise: '' };
     default: return {};
   }
 }

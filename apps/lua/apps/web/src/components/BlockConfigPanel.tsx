@@ -1051,5 +1051,140 @@ export function BlockConfigPanel({ block, stufe, onConfigChange }: Props) {
     );
   }
 
+  if (block.typ === 'rollenkartenSet') {
+    const modus = (config.eingabemodus as 'ki' | 'manuell') ?? 'ki';
+    type RKRolle = { name: string; rollenhinweis: string; inhaltsLabel: string; sprachhinweis: string };
+    type RKRollenInhalt = { untertitel: string; punkte: string[] };
+    type RKSzenario = { nummer: number; titel: string; fakten: string; rollenInhalte: RKRollenInhalt[] };
+    const rollen = (config.rollen as RKRolle[]) ?? [];
+    const szenarien = (config.szenarien as RKSzenario[]) ?? [];
+    const rahmen = (config.rahmen as string) ?? '';
+    const zeitMinuten = (config.zeitMinuten as number) ?? 8;
+    const schnittlinie = !!config.schnittlinie;
+    const teamFeld = !!config.teamFeld;
+
+    const syncSzenarien = (rs: RKRolle[], sz: RKSzenario[]): RKSzenario[] =>
+      sz.map((s) => ({
+        ...s,
+        rollenInhalte: rs.map((_, i) => s.rollenInhalte[i] ?? { untertitel: '', punkte: ['…'] }),
+      }));
+
+    const setRollen = (rs: RKRolle[]) => {
+      onConfigChange({ ...config, rollen: rs, szenarien: syncSzenarien(rs, szenarien) });
+    };
+    const updateRolle = (i: number, key: keyof RKRolle, value: string) => {
+      setRollen(rollen.map((r, idx) => (idx === i ? { ...r, [key]: value } : r)));
+    };
+    const addRolle = () => {
+      if (rollen.length >= 3) return;
+      setRollen([...rollen, { name: '', rollenhinweis: '', inhaltsLabel: 'Sprich über:', sprachhinweis: '' }]);
+    };
+    const removeRolle = (i: number) => {
+      if (rollen.length <= 2) return;
+      setRollen(rollen.filter((_, idx) => idx !== i));
+    };
+
+    const mkSzenarien = (n: number): RKSzenario[] =>
+      Array.from({ length: n }, (_, i) => {
+        const existing = szenarien[i];
+        if (existing) return existing;
+        return {
+          nummer: i + 1,
+          titel: `[Szenario ${i + 1}]`,
+          fakten: '',
+          rollenInhalte: rollen.map(() => ({ untertitel: '', punkte: ['…'] })),
+        };
+      });
+
+    const setAnzahl = (n: number) => {
+      set('szenarien', mkSzenarien(Math.max(1, Math.min(15, n))));
+    };
+    const setSzenarioTitel = (i: number, titel: string) => {
+      const next = [...szenarien];
+      const current = next[i];
+      if (!current) return;
+      next[i] = { ...current, titel };
+      set('szenarien', next);
+    };
+    const switchModus = (m: 'ki' | 'manuell') => set('eingabemodus', m);
+
+    return (
+      <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
+        <h3 style={{ marginBottom: '0.75rem', fontSize: '0.8125rem' }}>Rollenkarten-Set</h3>
+
+        <ConfigField label="Rahmen">
+          <input type="text" value={rahmen} placeholder="z. B. Disaster Reports — live TV news"
+            onChange={(e) => set('rahmen', e.target.value)} />
+        </ConfigField>
+
+        <ConfigField label="Zeit pro Paar (Minuten)">
+          <input type="number" min={1} max={20} value={zeitMinuten}
+            onChange={(e) => set('zeitMinuten', Math.max(1, Math.min(20, parseInt(e.target.value) || 8)))} />
+        </ConfigField>
+
+        <ManuellToggle modus={modus} onChange={switchModus} />
+
+        <ConfigField label={`Rollen (${rollen.length}/3)`}>
+          {rollen.map((rolle, i) => (
+            <div key={i} style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', padding: '0.5rem', marginBottom: '0.5rem' }}>
+              <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.4rem' }}>
+                <input style={{ flex: 1 }} placeholder="Name" value={rolle.name}
+                  onChange={(e) => updateRolle(i, 'name', e.target.value)} />
+                <button type="button" onClick={() => removeRolle(i)} disabled={rollen.length <= 2} title="Rolle entfernen">
+                  <X size={14} />
+                </button>
+              </div>
+              <input style={{ width: '100%', marginBottom: '0.4rem' }} placeholder="Rollenhinweis" value={rolle.rollenhinweis}
+                onChange={(e) => updateRolle(i, 'rollenhinweis', e.target.value)} />
+              <input style={{ width: '100%', marginBottom: '0.4rem' }} placeholder="Inhalts-Label, z. B. Report on:" value={rolle.inhaltsLabel}
+                onChange={(e) => updateRolle(i, 'inhaltsLabel', e.target.value)} />
+              <input style={{ width: '100%' }} placeholder="Sprachhinweis, z. B. present continuous · past simple" value={rolle.sprachhinweis}
+                onChange={(e) => updateRolle(i, 'sprachhinweis', e.target.value)} />
+            </div>
+          ))}
+          <button type="button" className="btn-secondary" onClick={addRolle} disabled={rollen.length >= 3} style={{ fontSize: '0.75rem' }}>
+            + Rolle hinzufügen
+          </button>
+        </ConfigField>
+
+        <ConfigField label="Anzahl Szenarien">
+          <input type="number" min={1} max={15} value={szenarien.length}
+            onChange={(e) => setAnzahl(parseInt(e.target.value) || 1)} />
+        </ConfigField>
+
+        {modus === 'manuell' && (
+          <ConfigField label="Szenario-Titel">
+            {szenarien.map((sz, i) => (
+              <input key={i} style={{ marginBottom: '0.4rem' }} value={sz.titel} placeholder={`Szenario ${i + 1}`}
+                onChange={(e) => setSzenarioTitel(i, e.target.value)} />
+            ))}
+            <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.25rem' }}>
+              Titel ohne führendes „[" bleiben wortgleich; Inhalte füllt die KI.
+            </p>
+          </ConfigField>
+        )}
+
+        <ConfigField label="Optionen">
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.25rem' }}>
+            <input type="checkbox" checked={schnittlinie}
+              onChange={(e) => set('schnittlinie', e.target.checked)} />
+            Schnittlinie zwischen Karten
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            <input type="checkbox" checked={teamFeld}
+              onChange={(e) => set('teamFeld', e.target.checked)} />
+            Team-/Namensfeld
+          </label>
+        </ConfigField>
+
+        {modus === 'ki' && (
+          <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.25rem' }}>
+            Die KI erfindet passende Szenarien zum Rahmen. Bereits ausgefüllte Felder bleiben erhalten.
+          </p>
+        )}
+      </div>
+    );
+  }
+
   return null;
 }
