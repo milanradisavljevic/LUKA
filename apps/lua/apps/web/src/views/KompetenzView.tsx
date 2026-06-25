@@ -1,9 +1,9 @@
 import { useState, useMemo } from 'react';
-import { ArrowRight, Target, Loader2 } from 'lucide-react';
+import { ArrowRight, Target, Loader2, Check } from 'lucide-react';
 import type { AppState, AppAction } from '../lib/types';
-import type { StoffItem, BlockTyp, Fach } from '@lehrunterlagen/schema';
+import type { BlockTyp, Fach } from '@lehrunterlagen/schema';
 import { FACH_META, fachLabel, KOMPETENZBEREICHE } from '@lehrunterlagen/schema';
-import { listStoffItems, fachHatEntwurf } from '../lib/stoffkatalog';
+import { listStoffItems, fachHatEntwurf, getStoffItems } from '../lib/stoffkatalog';
 import { BLOCK_TYPE_DEFS, STUFE_RULES } from '../lib/constants';
 import { buildSkelett } from '@lehrunterlagen/schema';
 import { useGenerate } from '../hooks/useGenerate';
@@ -37,7 +37,7 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
   const [rahmenwerk, setRahmenwerk] = useState<'at-lehrplan' | 'ib-dp'>('at-lehrplan');
   const [fach, setFach] = useState<Fach>('englisch');
   const [stufe, setStufe] = useState<'oberstufe' | 'unterstufe'>('oberstufe');
-  const [stoffItem, setStoffItem] = useState<StoffItem | null>(null);
+  const [stoffItemIds, setStoffItemIds] = useState<string[]>([]);
   const [freieKompetenz, setFreieKompetenz] = useState('');
   const [thema, setThema] = useState('');
   const [niveau, setNiveau] = useState<'basis' | 'standard' | 'erweitert'>('standard');
@@ -55,17 +55,27 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
     );
   }, [stufe]);
 
-  const handleStoffItemChange = (id: string) => {
-    const item = stoffItems.find((s) => s.id === id) ?? null;
-    setStoffItem(item);
-    if (item && thema.trim() === '') {
-      setThema(item.titel);
-    }
-    if (item?.defaultAufgabentypen && item.defaultAufgabentypen.length > 0) {
-      setGewuenschteTypen(item.defaultAufgabentypen as BlockTyp[]);
-    } else {
-      setGewuenschteTypen([]);
-    }
+  const toggleStoffItem = (id: string) => {
+    setStoffItemIds((prev) => {
+      const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+      const selectedItems = stoffItems.filter((s) => next.includes(s.id));
+
+      // Thema-Prefill nur bei exakt einer Auswahl und leerem Thema
+      if (selectedItems.length === 1 && thema.trim() === '') {
+        setThema(selectedItems[0]?.titel ?? '');
+      }
+
+      // defaultAufgabentypen aller gewählten Items mergen (ohne bestehende zu löschen)
+      const mergedTypes = Array.from(
+        new Set([
+          ...gewuenschteTypen,
+          ...selectedItems.flatMap((s) => (s.defaultAufgabentypen ?? []) as BlockTyp[]),
+        ]),
+      ).filter((t) => (erlaubteTypen as readonly string[]).includes(t));
+      setGewuenschteTypen(mergedTypes);
+
+      return next;
+    });
   };
 
   const toggleTyp = (typ: BlockTyp) => {
@@ -79,7 +89,7 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
 
     const freitext = freieKompetenz.trim();
     const hatFreitext = freitext.length > 0;
-    const hatKatalog = stoffItem !== null;
+    const hatKatalog = stoffItemIds.length > 0;
 
     if (!hatFreitext && !hatKatalog) {
       setFehler('Bitte eine Kompetenz oder ein Thema eingeben — oder ein Stoff-Item aus dem Katalog wählen.');
@@ -90,7 +100,7 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
       return;
     }
 
-    const themaFinal = thema.trim() || freitext || (stoffItem?.titel ?? '');
+    const themaFinal = thema.trim() || freitext || getStoffItems(stoffItemIds)[0]?.titel || '';
     if (!themaFinal) {
       setFehler('Bitte ein Thema eingeben.');
       return;
@@ -104,7 +114,7 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
       fach,
       stufe,
       thema: themaFinal,
-      stoffItemIds: hatKatalog ? [stoffItem.id] : [],
+      stoffItemIds,
       freieKompetenz: hatFreitext ? freitext : undefined,
       kompetenzNiveau: niveau,
       punkteAusblenden: !punkteVergeben,
@@ -122,7 +132,7 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
       quelltexte: [],
       modus: 'kompetenz' as const,
       rahmenwerk,
-      stoffItemIds: hatKatalog ? [stoffItem.id] : [],
+      stoffItemIds,
       freieKompetenz: hatFreitext ? freitext : undefined,
       kompetenzNiveau: niveau,
       punkteAusblenden: !punkteVergeben,
@@ -287,19 +297,7 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
         <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.875rem' }}>
           …oder aus Lehrplan-Katalog wählen <span style={{ color: 'var(--color-text-secondary)', fontWeight: 400 }}>(optional)</span>
         </label>
-        <select
-          value={stoffItem?.id ?? ''}
-          onChange={(e) => handleStoffItemChange(e.target.value)}
-          style={{
-            width: '100%',
-            padding: '0.625rem 0.875rem',
-            borderRadius: 'var(--radius)',
-            border: '1px solid var(--color-border)',
-            fontSize: '0.875rem',
-            background: 'var(--color-bg-surface)',
-          }}
-        >
-          <option value="">Kein Katalog-Item — Freitext verwenden</option>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           {(() => {
             // Nach Kompetenzbereich gruppieren (Reihenfolge aus KOMPETENZBEREICHE[fach]).
             const bereiche = KOMPETENZBEREICHE[fach] ?? [];
@@ -309,14 +307,47 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
             const rest = stoffItems.filter((i) => !bereiche.includes(i.kategorie));
             if (rest.length > 0) gruppen.push({ bereich: 'Weitere', items: rest });
             return gruppen.map((g) => (
-              <optgroup key={g.bereich} label={g.bereich}>
-                {g.items.map((item) => (
-                  <option key={item.id} value={item.id}>{item.titel}</option>
-                ))}
-              </optgroup>
+              <div key={g.bereich}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: '0.375rem' }}>
+                  {g.bereich}
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  {g.items.map((item) => {
+                    const aktiv = stoffItemIds.includes(item.id);
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => toggleStoffItem(item.id)}
+                        aria-pressed={aktiv}
+                        title={item.titel}
+                        style={{
+                          padding: '0.375rem 0.75rem',
+                          borderRadius: 'var(--radius)',
+                          border: aktiv ? '2px solid var(--color-accent)' : '1px solid var(--color-border)',
+                          background: aktiv ? 'var(--color-highlight-bg)' : 'var(--color-bg-surface)',
+                          cursor: 'pointer',
+                          fontSize: '0.8125rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.25rem',
+                          textAlign: 'left',
+                        }}
+                      >
+                        {aktiv ? (
+                          <Check size={14} style={{ color: 'var(--color-accent)', flexShrink: 0 }} />
+                        ) : (
+                          <span style={{ width: 14, flexShrink: 0 }} />
+                        )}
+                        <span>{item.titel}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             ));
           })()}
-        </select>
+        </div>
         {stoffItems.length === 0 && (
           <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem' }}>
             Für diese Kombination gibt es noch keine Stoff-Items. Du kannst trotzdem oben eine Kompetenz frei eingeben.

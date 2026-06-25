@@ -7,6 +7,20 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Multi-Kompetenz-Auswahl im Kompetenz-Modus (Welle A)
+- `apps/lua/apps/web/src/views/KompetenzView.tsx`: Stoff-Item-Auswahl von
+  Single-`<select>` auf Checkbox-Kacheln (gruppiert nach Kompetenzbereich)
+  umgestellt; mehrere Items gleichzeitig wählbar.
+- State `stoffItem` → `stoffItemIds`; `handleErstellen` übergibt das Array an
+  `meta`/`auftrag`; `thema`-Fallback nutzt das erste gewählte Item.
+- `toggleStoffItem`: Thema-Prefill nur bei exakt einer Auswahl, sonst Typen
+  aus `defaultAufgabentypen` aller gewählten Items in `gewuenschteTypen` mergen.
+- `apps/lua/packages/llm/src/prompt.ts`: Verzahnungs-Anweisung im
+  Kompetenz-Zweig — mehrere `stoffItems` sollen organisch in EINEM Arbeitsblatt
+  umgesetzt werden, keine getrennten Teilblätter.
+- Verifikation: `pnpm --filter "./packages/*" build && pnpm -r typecheck &&
+  `pnpm -r test` grün (Schema 133, LLM 126, Renderer 38, Input 17, QA 103, Web 67).
+
 ### Added — Phase-0 Launch-Härtung (Generator-only, NATASCHA gegated)
 - `apps/lua/apps/web/src/lib/features.ts`: neues Feature-Flag `FEATURES.natascha = false`.
 - `apps/lua/apps/web/src/components/Sidebar.tsx`: NATASCHA-Nav-Items
