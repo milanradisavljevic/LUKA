@@ -7,6 +7,18 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Rollenkarten-Set UI-Editor
+- `apps/lua/apps/web/src/lib/constants.ts`: Baukasten-Kachel „Rollenkarten-Set"
+  (`Layers`-Icon) + Freigabe für Unter- und Oberstufe.
+- `apps/lua/apps/web/src/components/BlockConfigPanel.tsx`: Neuer Zweig für
+  `rollenkartenSet` — Rahmen, Zeit pro Paar, KI/Manuell-Toggle, editierbare
+  Rollenliste (2–3 Rollen), Szenario-Anzahl (1–15), manuelle Szenario-Titel
+  und Toggles für Schnittlinie/Team-Feld.
+- `apps/lua/apps/web/src/lib/commands.ts`: Schnell-Einfügen-Befehl für
+  „Rollenkarten" / „rollenkartenSet".
+- Verifikation: `pnpm --filter "./packages/*" build && pnpm -r typecheck &&
+  `pnpm -r test` grün (Schema 132, LLM 126, Renderer 38, Input 17, QA 103, Web 67).
+
 ### Added — Rollenkarten-Set-Modus (Sprech-Differenzierung) — Fundament (Chief)
 - Neuer Blocktyp `rollenkartenSet`: EINE Rollen-Struktur (2–3 Rollen) × N Szenarien — jedes
   Schüler-Paar bekommt ein eigenes Szenario mit gleicher Rollenmechanik (Reporter/Experte-Muster
