@@ -1,0 +1,291 @@
+{
+  "fach": "geschichte",
+  "quelle": "BMBWF-Lehrplan AHS Geschichte & Politische Bildung — RIS, Stand 2023 (Deskriptoren altersgerecht kalibriert je Schulstufe)",
+  "quelleUrl": "https://www.ris.bka.gv.at/GeltendeFassung.wxe?Abfrage=Bundesnormen&Gesetzesnummer=10008568",
+  "stufen": [
+    {
+      "schulstufe": 6,
+      "bereiche": [
+        {
+          "bereich": "Historische Fragekompetenz",
+          "deskriptoren": [
+            {"id": "at-geschichte-s6-frage-1", "code": "", "text": "Die Schülerinnen und Schüler können einfache Fragen an die Vergangenheit formulieren und zwischen historischen und gegenwartsbezogenen Fragen unterscheiden."},
+            {"id": "at-geschichte-s6-frage-2", "code": "", "text": "Die Schülerinnen und Schüler können ausgehend von Alltagsgegenständen und Bildern neugierige Fragen zur Lebensweise früherer Kulturen entwickeln."}
+          ]
+        },
+        {
+          "bereich": "Historische Methodenkompetenz",
+          "deskriptoren": [
+            {"id": "at-geschichte-s6-methoden-1", "code": "", "text": "Die Schülerinnen und Schüler können einfache Sachquellen, Bilder und kindgerechte Texte erschließen und wesentliche Informationen entnehmen."},
+            {"id": "at-geschichte-s6-methoden-2", "code": "", "text": "Die Schülerinnen und Schüler können zwischen Original (echtem Überrest) und Nachbildung (Rekonstruktion) unterscheiden."}
+          ]
+        },
+        {
+          "bereich": "Historische Orientierungskompetenz",
+          "deskriptoren": [
+            {"id": "at-geschichte-s6-orientierung-1", "code": "", "text": "Die Schülerinnen und Schüler können historische Sachverhalte auf einem einfachen Zeitstrahl zeitlich einordnen und Großepochen wie Antike benennen."},
+            {"id": "at-geschichte-s6-orientierung-2", "code": "", "text": "Die Schülerinnen und Schüler können antike Kulturen (Ägypten, Griechenland, Römisches Reich) auf einer Karte räumlich verorten."}
+          ]
+        },
+        {
+          "bereich": "Historische Sachkompetenz",
+          "deskriptoren": [
+            {"id": "at-geschichte-s6-sach-1", "code": "", "text": "Die Schülerinnen und Schüler können grundlegende historische Fachbegriffe (z. B. Polis, Imperium, Pharao) in altersgerechter Form erklären und anwenden."},
+            {"id": "at-geschichte-s6-sach-2", "code": "", "text": "Die Schülerinnen und Schüler können zentrale Merkmale antiker Hochkulturen in eigenen Worten beschreiben."}
+          ]
+        },
+        {
+          "bereich": "Politische Bildung",
+          "deskriptoren": [
+            {"id": "at-geschichte-s6-politisch-1", "code": "", "text": "Die Schülerinnen und Schüler können Grundzüge der athenischen Demokratie beschreiben und mit heutigen demokratischen Prinzipien vergleichen."},
+            {"id": "at-geschichte-s6-politisch-2", "code": "", "text": "Die Schülerinnen und Schüler können Rechte und Pflichten von Bürgerinnen und Bürgern in verschiedenen antiken Gesellschaften benennen."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 7,
+      "bereiche": [
+        {
+          "bereich": "Historische Fragekompetenz",
+          "deskriptoren": [
+            {"id": "at-geschichte-s7-frage-1", "code": "", "text": "Die Schülerinnen und Schüler können Fragen zu Mittelalter und früher Neuzeit formulieren, die auf Veränderungen in Gesellschaft, Wirtschaft und Religion abzielen."},
+            {"id": "at-geschichte-s7-frage-2", "code": "", "text": "Die Schülerinnen und Schüler können historische Fragestellungen mit eigener Lebenswelt (z. B. Feste, Schule, Arbeit) verknüpfen."}
+          ]
+        },
+        {
+          "bereich": "Historische Methodenkompetenz",
+          "deskriptoren": [
+            {"id": "at-geschichte-s7-methoden-1", "code": "", "text": "Die Schülerinnen und Schüler können schriftliche Quellen wie Urkunden, Chronikauszüge und einfache Sachtexte analysieren und deren Aussageabsicht erkennen."},
+            {"id": "at-geschichte-s7-methoden-2", "code": "", "text": "Die Schülerinnen und Schüler können bildliche Darstellungen (z. B. Buchmalereien, Holzschnitte) als historische Quellen lesen und deuten."}
+          ]
+        },
+        {
+          "bereich": "Historische Orientierungskompetenz",
+          "deskriptoren": [
+            {"id": "at-geschichte-s7-orientierung-1", "code": "", "text": "Die Schülerinnen und Schüler können Mittelalter und frühe Neuzeit zeitlich einordnen und zentrale Wendepunkte (z. B. Reformation, Entdeckungsfahrten) benennen."},
+            {"id": "at-geschichte-s7-orientierung-2", "code": "", "text": "Die Schülerinnen und Schüler können den geographischen Raum Europas im Mittelalter und in der frühen Neuzeit kartographisch verorten."}
+          ]
+        },
+        {
+          "bereich": "Historische Sachkompetenz",
+          "deskriptoren": [
+            {"id": "at-geschichte-s7-sach-1", "code": "", "text": "Die Schülerinnen und Schüler können zentrale Strukturen der mittelalterlichen Gesellschaft (Lehenswesen, Stände, Grundherrschaft) erklären."},
+            {"id": "at-geschichte-s7-sach-2", "code": "", "text": "Die Schülerinnen und Schüler können die Rolle der Kirche im Mittelalter sowie die Ursachen und Folgen der Reformation darlegen."}
+          ]
+        },
+        {
+          "bereich": "Politische Bildung",
+          "deskriptoren": [
+            {"id": "at-geschichte-s7-politisch-1", "code": "", "text": "Die Schülerinnen und Schüler können mittelalterliche Herrschaftsformen mit heutigen vergleichen und Unterschiede in Legitimation und Machtausübung benennen."},
+            {"id": "at-geschichte-s7-politisch-2", "code": "", "text": "Die Schülerinnen und Schüler können die Bedeutung von Glaubensfreiheit und Toleranz anhand der Religionskonflikte der frühen Neuzeit reflektieren."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 8,
+      "bereiche": [
+        {
+          "bereich": "Historische Fragekompetenz",
+          "deskriptoren": [
+            {"id": "at-geschichte-s8-frage-1", "code": "", "text": "Die Schülerinnen und Schüler können differenzierte Fragen zu Revolution, Aufklärung und Industrialisierung formulieren, die nach Ursachen, Verlauf und Folgen fragen."},
+            {"id": "at-geschichte-s8-frage-2", "code": "", "text": "Die Schülerinnen und Schüler können kontroverse historische Fragestellungen erkennen und eigene Untersuchungsfragen entwickeln."}
+          ]
+        },
+        {
+          "bereich": "Historische Methodenkompetenz",
+          "deskriptoren": [
+            {"id": "at-geschichte-s8-methoden-1", "code": "", "text": "Die Schülerinnen und Schüler können mehrere Quellen zu einem historischen Ereignis vergleichen und unterschiedliche Perspektiven herausarbeiten."},
+            {"id": "at-geschichte-s8-methoden-2", "code": "", "text": "Die Schülerinnen und Schüler können politische Karikaturen und Flugblätter als Quellen erschließen und deren Intention deuten."}
+          ]
+        },
+        {
+          "bereich": "Historische Orientierungskompetenz",
+          "deskriptoren": [
+            {"id": "at-geschichte-s8-orientierung-1", "code": "", "text": "Die Schülerinnen und Schüler können das 18. und 19. Jahrhundert in europäische und globale Zusammenhänge einordnen."},
+            {"id": "at-geschichte-s8-orientierung-2", "code": "", "text": "Die Schülerinnen und Schüler können die langfristigen Wirkungen von Aufklärung und Französischer Revolution auf das moderne Europa benennen."}
+          ]
+        },
+        {
+          "bereich": "Historische Sachkompetenz",
+          "deskriptoren": [
+            {"id": "at-geschichte-s8-sach-1", "code": "", "text": "Die Schülerinnen und Schüler können zentrale Ideen der Aufklärung sowie deren Einfluss auf Revolutionen und Verfassungen erklären."},
+            {"id": "at-geschichte-s8-sach-2", "code": "", "text": "Die Schülerinnen und Schüler können Ursachen, Verlauf und soziale Folgen der Industrialisierung in Europa analysieren."},
+            {"id": "at-geschichte-s8-sach-3", "code": "", "text": "Die Schülerinnen und Schüler können die Revolutionen von 1848 als Kampf um nationale Einheit und bürgerliche Freiheiten einordnen."}
+          ]
+        },
+        {
+          "bereich": "Politische Bildung",
+          "deskriptoren": [
+            {"id": "at-geschichte-s8-politisch-1", "code": "", "text": "Die Schülerinnen und Schüler können die Entwicklung der Menschen- und Bürgerrechte von der Französischen Revolution bis heute nachvollziehen."},
+            {"id": "at-geschichte-s8-politisch-2", "code": "", "text": "Die Schülerinnen und Schüler können Entstehung und Funktion moderner Verfassungen am Beispiel des 19. Jahrhunderts erklären."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 9,
+      "bereiche": [
+        {
+          "bereich": "Historische Fragekompetenz",
+          "deskriptoren": [
+            {"id": "at-geschichte-s9-frage-1", "code": "", "text": "Die Schülerinnen und Schüler können komplexe Fragen zu Imperialismus, Erstem Weltkrieg und den Umbrüchen der Zwischenkriegszeit formulieren."},
+            {"id": "at-geschichte-s9-frage-2", "code": "", "text": "Die Schülerinnen und Schüler können historische Fragestellungen aus unterschiedlichen Interessensperspektiven (z. B. Arbeiter, Unternehmer, Kolonisierte) entwickeln."}
+          ]
+        },
+        {
+          "bereich": "Historische Methodenkompetenz",
+          "deskriptoren": [
+            {"id": "at-geschichte-s9-methoden-1", "code": "", "text": "Die Schülerinnen und Schüler können Propagandamaterial (Plakate, Reden, Filme) analysieren und dessen ideologische Funktion erkennen."},
+            {"id": "at-geschichte-s9-methoden-2", "code": "", "text": "Die Schülerinnen und Schüler können statistisches Material und Graphiken zu demographischen und wirtschaftlichen Entwicklungen auswerten."}
+          ]
+        },
+        {
+          "bereich": "Historische Orientierungskompetenz",
+          "deskriptoren": [
+            {"id": "at-geschichte-s9-orientierung-1", "code": "", "text": "Die Schülerinnen und Schüler können die Zeit von 1870 bis 1938 in europäische und globale Entwicklungslinien einordnen."},
+            {"id": "at-geschichte-s9-orientierung-2", "code": "", "text": "Die Schülerinnen und Schüler können territoriale Veränderungen nach dem Ersten Weltkrieg kartographisch nachvollziehen."}
+          ]
+        },
+        {
+          "bereich": "Historische Sachkompetenz",
+          "deskriptoren": [
+            {"id": "at-geschichte-s9-sach-1", "code": "", "text": "Die Schülerinnen und Schüler können Ursachen, Verlauf und Folgen des Ersten Weltkriegs multiperspektivisch erklären."},
+            {"id": "at-geschichte-s9-sach-2", "code": "", "text": "Die Schülerinnen und Schüler können Entstehung und Scheitern der Ersten Republik in Österreich in den europäischen Kontext einordnen."},
+            {"id": "at-geschichte-s9-sach-3", "code": "", "text": "Die Schülerinnen und Schüler können Merkmale totalitärer Systeme (Faschismus, Stalinismus) analysieren und vergleichen."}
+          ]
+        },
+        {
+          "bereich": "Politische Bildung",
+          "deskriptoren": [
+            {"id": "at-geschichte-s9-politisch-1", "code": "", "text": "Die Schülerinnen und Schüler können Gefährdungen demokratischer Systeme in der Zwischenkriegszeit analysieren und auf aktuelle Entwicklungen beziehen."},
+            {"id": "at-geschichte-s9-politisch-2", "code": "", "text": "Die Schülerinnen und Schüler können die Rolle von Medien und Propaganda für politische Meinungsbildung kritisch reflektieren."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 10,
+      "bereiche": [
+        {
+          "bereich": "Historische Fragekompetenz",
+          "deskriptoren": [
+            {"id": "at-geschichte-s10-frage-1", "code": "", "text": "Die Schülerinnen und Schüler können kritische Fragen zu Nationalsozialismus, Holocaust und Zweitem Weltkrieg aus verschiedenen Perspektiven formulieren."},
+            {"id": "at-geschichte-s10-frage-2", "code": "", "text": "Die Schülerinnen und Schüler können Fragen zu Täterschaft, Mitläufertum, Widerstand und Opferrolle differenziert entwickeln."}
+          ]
+        },
+        {
+          "bereich": "Historische Methodenkompetenz",
+          "deskriptoren": [
+            {"id": "at-geschichte-s10-methoden-1", "code": "", "text": "Die Schülerinnen und Schüler können Selbstzeugnisse (Tagebücher, Briefe, Interviews) aus der NS-Zeit und der Nachkriegszeit quellenkritisch analysieren."},
+            {"id": "at-geschichte-s10-methoden-2", "code": "", "text": "Die Schülerinnen und Schüler können multiperspektivisch arbeiten und Täter-, Opfer-, Zuschauer- und Helfer-Perspektiven vergleichen."}
+          ]
+        },
+        {
+          "bereich": "Historische Orientierungskompetenz",
+          "deskriptoren": [
+            {"id": "at-geschichte-s10-orientierung-1", "code": "", "text": "Die Schülerinnen und Schüler können die Jahre 1933/38 bis 1955 in die europäische und österreichische Geschichte einordnen."},
+            {"id": "at-geschichte-s10-orientierung-2", "code": "", "text": "Die Schülerinnen und Schüler können die Entwicklung der Zweiten Republik im Kontext des beginnenden Kalten Krieges verorten."}
+          ]
+        },
+        {
+          "bereich": "Historische Sachkompetenz",
+          "deskriptoren": [
+            {"id": "at-geschichte-s10-sach-1", "code": "", "text": "Die Schülerinnen und Schüler können NS-Ideologie, Verfolgungsmechanismen und den Holocaust als systematischen Völkermord erklären."},
+            {"id": "at-geschichte-s10-sach-2", "code": "", "text": "Die Schülerinnen und Schüler können Formen des Widerstands gegen den Nationalsozialismus in Österreich und Europa darlegen."},
+            {"id": "at-geschichte-s10-sach-3", "code": "", "text": "Die Schülerinnen und Schüler können den Staatsvertrag 1955 und die österreichische Neutralität historisch einordnen."}
+          ]
+        },
+        {
+          "bereich": "Politische Bildung",
+          "deskriptoren": [
+            {"id": "at-geschichte-s10-politisch-1", "code": "", "text": "Die Schülerinnen und Schüler können die Bedeutung der Menschenrechte als Antwort auf die NS-Verbrechen reflektieren und aktuelle Gefährdungen benennen."},
+            {"id": "at-geschichte-s10-politisch-2", "code": "", "text": "Die Schülerinnen und Schüler können Formen der Erinnerungskultur in Österreich analysieren und ihre eigene Position dazu bestimmen."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 11,
+      "bereiche": [
+        {
+          "bereich": "Historische Fragekompetenz",
+          "deskriptoren": [
+            {"id": "at-geschichte-s11-frage-1", "code": "", "text": "Die Schülerinnen und Schüler können forschende Fragen zu Zeitgeschichte, Globalisierung und europäischen Integrationsprozessen entwickeln."},
+            {"id": "at-geschichte-s11-frage-2", "code": "", "text": "Die Schülerinnen und Schüler können historische Fragen mit aktuellen globalen Herausforderungen (Migration, Klimawandel, Digitalisierung) verknüpfen."}
+          ]
+        },
+        {
+          "bereich": "Historische Methodenkompetenz",
+          "deskriptoren": [
+            {"id": "at-geschichte-s11-methoden-1", "code": "", "text": "Die Schülerinnen und Schüler können audiovisuelle Quellen, Oral History und digitale Medien als historische Quellen methodisch reflektiert erschließen."},
+            {"id": "at-geschichte-s11-methoden-2", "code": "", "text": "Die Schülerinnen und Schüler können geschichtskulturelle Produkte (Filme, Denkmäler, Museen) dekonstruieren und deren Narrative analysieren."}
+          ]
+        },
+        {
+          "bereich": "Historische Orientierungskompetenz",
+          "deskriptoren": [
+            {"id": "at-geschichte-s11-orientierung-1", "code": "", "text": "Die Schülerinnen und Schüler können die Zeitgeschichte von 1945 bis zur Gegenwart in globale Entwicklungslinien einordnen."},
+            {"id": "at-geschichte-s11-orientierung-2", "code": "", "text": "Die Schülerinnen und Schüler können die Zäsuren 1968, 1989/91 und 2001 als Wendepunkte in europäische und globale Kontexte einbetten."}
+          ]
+        },
+        {
+          "bereich": "Historische Sachkompetenz",
+          "deskriptoren": [
+            {"id": "at-geschichte-s11-sach-1", "code": "", "text": "Die Schülerinnen und Schüler können den Ost-West-Konflikt, die Blockkonfrontation und die Entspannungspolitik analysieren."},
+            {"id": "at-geschichte-s11-sach-2", "code": "", "text": "Die Schülerinnen und Schüler können Entkolonialisierung, Nord-Süd-Konflikt und neue Abhängigkeiten in ihrer historischen Genese erklären."},
+            {"id": "at-geschichte-s11-sach-3", "code": "", "text": "Die Schülerinnen und Schüler können die europäische Integration von den Römischen Verträgen bis zur EU-Osterweiterung nachvollziehen."}
+          ]
+        },
+        {
+          "bereich": "Politische Bildung",
+          "deskriptoren": [
+            {"id": "at-geschichte-s11-politisch-1", "code": "", "text": "Die Schülerinnen und Schüler können die EU als politisches System und als Friedensprojekt analysieren und deren aktuelle Herausforderungen reflektieren."},
+            {"id": "at-geschichte-s11-politisch-2", "code": "", "text": "Die Schülerinnen und Schüler können die Entwicklung der österreichischen Migrationsgesellschaft seit 1945 analysieren und Integrationsdebatten historisch einordnen."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 12,
+      "bereiche": [
+        {
+          "bereich": "Historische Fragekompetenz",
+          "deskriptoren": [
+            {"id": "at-geschichte-s12-frage-1", "code": "", "text": "Die Schülerinnen und Schüler können selbstständig forschende Fragen zu aktuellen gesellschaftlichen Debatten mit historischer Tiefenschärfe formulieren."},
+            {"id": "at-geschichte-s12-frage-2", "code": "", "text": "Die Schülerinnen und Schüler können historiographische Kontroversen identifizieren und eigene Untersuchungsdesigns entwickeln."}
+          ]
+        },
+        {
+          "bereich": "Historische Methodenkompetenz",
+          "deskriptoren": [
+            {"id": "at-geschichte-s12-methoden-1", "code": "", "text": "Die Schülerinnen und Schüler können konkurrierende historische Narrative dekonstruieren und deren Genese und Funktion erklären."},
+            {"id": "at-geschichte-s12-methoden-2", "code": "", "text": "Die Schülerinnen und Schüler können grundlegende historiographische Ansätze (z. B. Strukturgeschichte, Kulturgeschichte, Gender History) unterscheiden und anwenden."}
+          ]
+        },
+        {
+          "bereich": "Historische Orientierungskompetenz",
+          "deskriptoren": [
+            {"id": "at-geschichte-s12-orientierung-1", "code": "", "text": "Die Schülerinnen und Schüler können aktuelle globale Herausforderungen (Demokratiekrise, Klimawandel, digitale Transformation) historisch kontextualisieren."},
+            {"id": "at-geschichte-s12-orientierung-2", "code": "", "text": "Die Schülerinnen und Schüler können eigene historische Orientierung in Zeit und Raum reflektiert formulieren."}
+          ]
+        },
+        {
+          "bereich": "Historische Sachkompetenz",
+          "deskriptoren": [
+            {"id": "at-geschichte-s12-sach-1", "code": "", "text": "Die Schülerinnen und Schüler können zentrale Konzepte der Geschichtskultur und der Memory Studies an aktuellen Beispielen anwenden."},
+            {"id": "at-geschichte-s12-sach-2", "code": "", "text": "Die Schülerinnen und Schüler können langfristige historische Entwicklungslinien (z. B. Staatlichkeit, Demokratie, Geschlechterordnungen) in ihrer Wandelbarkeit analysieren."}
+          ]
+        },
+        {
+          "bereich": "Politische Bildung",
+          "deskriptoren": [
+            {"id": "at-geschichte-s12-politisch-1", "code": "", "text": "Die Schülerinnen und Schüler können ihre eigene Rolle als politisch handelnde Personen in der Demokratie reflektieren und Handlungsoptionen formulieren."},
+            {"id": "at-geschichte-s12-politisch-2", "code": "", "text": "Die Schülerinnen und Schüler können aktuelle Demokratiediskurse historisch fundiert bewerten und begründete Positionen zu gesellschaftlichen Herausforderungen einnehmen."}
+          ]
+        }
+      ]
+    }
+  ]
+}
