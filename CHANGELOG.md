@@ -7,6 +7,28 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Phase-0 Launch-Härtung (Generator-only, NATASCHA gegated)
+- `apps/lua/apps/web/src/lib/features.ts`: neues Feature-Flag `FEATURES.natascha = false`.
+- `apps/lua/apps/web/src/components/Sidebar.tsx`: NATASCHA-Nav-Items
+  (`klassen`, `korrektur`, `schueler`, `erwartungshorizont`) ausgeblendet, wenn
+  `FEATURES.natascha` aus ist.
+- `apps/lua/apps/web/src/views/DashboardView.tsx`: NATASCHA-Klassenstats/-Widgets
+  nur noch bei `FEATURES.natascha`.
+- `apps/lua/apps/web/src/components/Step0_Absicht.tsx`: Closed-Loop-Einstieg
+  (`consumePendingUebung`, `FehlerKuration`, NATASCHA-Export-Sektion) gegated.
+- `apps/lua/apps/web/src/App.tsx`: NATASCHA-Views landen bei ausgeschaltetem
+  Flag auf dem Dashboard; First-Run-Onboarding-Gate verlangt mindestens einen
+  API-Key, bevor die App bedienbar wird (nur Tauri).
+- `apps/lua/apps/web/src/hooks/usePdfExport.ts` +
+  `apps/lua/apps/web/src/components/Step4_Generate.tsx`: LibreOffice-Verfügbarkeit
+  abfragen (Command vom Chief) — PDF-Button nur anzeigen, sonst dezenter Hinweis.
+- `apps/lua/apps/web/src/components/SettingsPanel.tsx`: optionales
+  `onKeySaved`-Callback für das Onboarding-Gate.
+- `apps/lua/apps/web/src/views/TrashView.tsx`: freundlicherer Leerzustand mit
+  Aktion „Neue Übung erstellen".
+- Verifikation: `pnpm --filter "./packages/*" build && pnpm -r typecheck &&
+  `pnpm -r test` grün (Schema 132, LLM 126, Renderer 38, Input 17, QA 103, Web 67).
+
 ### Added — Rollenkarten-Set UI-Editor
 - `apps/lua/apps/web/src/lib/constants.ts`: Baukasten-Kachel „Rollenkarten-Set"
   (`Layers`-Icon) + Freigabe für Unter- und Oberstufe.
