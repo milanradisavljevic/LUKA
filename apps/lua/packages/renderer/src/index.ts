@@ -1224,6 +1224,7 @@ const BLOCK_LABELS_DE: Record<Block['typ'], string> = {
   umformung: 'Umformung',
   fehlerkorrektur: 'Fehlerkorrektur',
   roleplay: 'Rollenspiel',
+  rollenkartenSet: 'Rollenkarten-Set',
 };
 
 const BLOCK_LABELS_EN: Record<Block['typ'], string> = {
@@ -1244,6 +1245,7 @@ const BLOCK_LABELS_EN: Record<Block['typ'], string> = {
   umformung: 'Transformation',
   fehlerkorrektur: 'Error correction',
   roleplay: 'Roleplay',
+  rollenkartenSet: 'Role-card set',
 };
 
 function blockLabels(fach: DocumentV1['meta']['fach']): Record<Block['typ'], string> {
@@ -1375,6 +1377,9 @@ function buildBlock(
       break;
     case 'roleplay':
       result.push(...buildRoleplay(block, mode, template, fach));
+      break;
+    case 'rollenkartenSet':
+      result.push(...buildRollenkartenSet(block, mode, template, fach));
       break;
   }
 
@@ -1607,6 +1612,133 @@ function buildRoleplay(
       }));
     }
   }
+
+  return result;
+}
+
+// ---------------------------------------------------------------------------
+// Block: rollenkartenSet (differenziertes Rollenkarten-Set)
+// ---------------------------------------------------------------------------
+
+function buildRollenkartenSet(
+  block: Extract<Block, { typ: 'rollenkartenSet' }>,
+  mode: Mode,
+  template: RenderTemplate,
+  fach: DocumentV1['meta']['fach'] = 'deutsch',
+): (Paragraph | Table)[] {
+  const result: (Paragraph | Table)[] = [];
+  const isEnglish = fach === 'englisch';
+
+  if (mode === 'loesung') {
+    result.push(new Paragraph({
+      indent: { left: 360 },
+      children: [
+        run(isEnglish ? 'Teacher notes: ' : 'Hinweise für die Lehrkraft: ', { font: template.font, size: template.fontSize.body, bold: true }),
+        run(block.loesung.hinweise, { font: template.font, size: template.fontSize.body }),
+      ],
+      spacing: { before: 60, after: 120 },
+    }));
+    return result;
+  }
+
+  // Schülerfassung: gemeinsamer Rahmen + je Szenario eine Karte pro Rolle.
+  result.push(new Paragraph({
+    indent: { left: 360 },
+    children: [
+      run(`${isEnglish ? 'Setting' : 'Rahmen'}: `, { font: template.font, size: template.fontSize.body, bold: true }),
+      run(block.config.rahmen, { font: template.font, size: template.fontSize.body }),
+      run(`   ·   ${block.config.zeitMinuten} ${isEnglish ? 'minutes per pair' : 'Minuten pro Paar'}`, { font: template.font, size: template.fontSize.body, color: template.color.gray }),
+    ],
+    spacing: { after: 160 },
+  }));
+
+  const teamLabel = isEnglish ? 'Team: ' : 'Team: ';
+  block.config.szenarien.forEach((szenario, sIdx) => {
+    block.config.rollen.forEach((rolle, rIdx) => {
+      const inhalt = szenario.rollenInhalte[rIdx];
+      const cellChildren: Paragraph[] = [];
+      // Kopf: Rolle (+ Team-Feld)
+      cellChildren.push(new Paragraph({
+        children: [
+          run(rolle.name, { font: template.font, size: template.fontSize.body, bold: true, color: template.color.accent }),
+          ...(block.config.teamFeld ? [run(`        ${teamLabel}______________`, { font: template.font, size: template.fontSize.body, color: template.color.gray })] : []),
+        ],
+        spacing: { after: 60 },
+      }));
+      // Szenario-Nr. + Titel
+      cellChildren.push(new Paragraph({
+        children: [run(`#${szenario.nummer} ${szenario.titel}`, { font: template.font, size: template.fontSize.body, bold: true })],
+        spacing: { after: 40 },
+      }));
+      // Fakten-Briefing (grau)
+      if (szenario.fakten.trim()) {
+        cellChildren.push(new Paragraph({
+          children: [run(szenario.fakten, { font: template.font, size: template.fontSize.body, color: template.color.gray })],
+          spacing: { after: 40 },
+        }));
+      }
+      // Rollenhinweis / Sprech-Reihenfolge
+      cellChildren.push(new Paragraph({
+        children: [run(rolle.rollenhinweis, { font: template.font, size: template.fontSize.body, italics: true })],
+        spacing: { after: 60 },
+      }));
+      // Inhalts-Label (+ optionaler Untertitel) + Bullet-Liste
+      const labelText = inhalt?.untertitel?.trim()
+        ? `${rolle.inhaltsLabel} ${inhalt.untertitel}`
+        : rolle.inhaltsLabel;
+      cellChildren.push(new Paragraph({
+        children: [run(labelText, { font: template.font, size: template.fontSize.body, bold: true })],
+        spacing: { after: 40 },
+      }));
+      for (const punkt of inhalt?.punkte ?? []) {
+        cellChildren.push(new Paragraph({
+          indent: { left: 240 },
+          children: [run(`•  ${punkt}`, { font: template.font, size: template.fontSize.body })],
+          spacing: { after: 20 },
+        }));
+      }
+      // Sprach-Hinweis (kursiv, grau)
+      if (rolle.sprachhinweis.trim()) {
+        cellChildren.push(new Paragraph({
+          children: [
+            run(`${isEnglish ? 'Language' : 'Sprache'}: `, { font: template.font, size: template.fontSize.body, bold: true, color: template.color.gray }),
+            run(rolle.sprachhinweis, { font: template.font, size: template.fontSize.body, italics: true, color: template.color.gray }),
+          ],
+          spacing: { before: 60, after: 0 },
+        }));
+      }
+
+      result.push(new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        borders: {
+          top: thinBorder(template), bottom: thinBorder(template),
+          left: thinBorder(template), right: thinBorder(template),
+          insideHorizontal: NO_BORDER, insideVertical: NO_BORDER,
+        },
+        rows: [new TableRow({ children: [new TableCell({
+          margins: { top: 120, bottom: 120, left: 120, right: 120 },
+          children: cellChildren,
+        })] })],
+      }));
+
+      // Schnittlinie zwischen den gepaarten Karten (nicht nach der letzten Rolle).
+      const istLetzteRolle = rIdx === block.config.rollen.length - 1;
+      if (block.config.schnittlinie && !istLetzteRolle) {
+        result.push(new Paragraph({
+          alignment: AlignmentType.CENTER,
+          children: [run('✂ — — — — — — — — — — — — — — — — — — — — — — —', { font: template.font, size: template.fontSize.body, color: template.color.gray })],
+          spacing: { before: 40, after: 40 },
+        }));
+      } else {
+        result.push(new Paragraph({ spacing: { after: 80 }, children: [] }));
+      }
+    });
+
+    // Abstand zwischen Szenarien (außer nach dem letzten).
+    if (sIdx < block.config.szenarien.length - 1) {
+      result.push(new Paragraph({ spacing: { after: 200 }, children: [] }));
+    }
+  });
 
   return result;
 }

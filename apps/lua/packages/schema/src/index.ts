@@ -610,6 +610,51 @@ export const RoleplayBlockSchema = BlockBaseSchema.extend({
 export type RoleplayBlock = z.infer<typeof RoleplayBlockSchema>;
 
 // ---------------------------------------------------------------------------
+// Block: rollenkartenSet (differenziertes Rollenkarten-Set für die Klasse)
+// Eine Rollen-Struktur (z. B. Reporter + Experte) × N Szenarien → jedes
+// Schüler-Paar bekommt ein eigenes Szenario mit gleicher Rollenmechanik.
+// ---------------------------------------------------------------------------
+
+export const RollenkartenRolleSchema = z.object({
+  name: z.string().min(1),            // "Live Reporter"
+  rollenhinweis: z.string().min(1),   // "Reporter at the scene. You speak first."
+  inhaltsLabel: z.string().min(1),    // "Report on:" / "Advise on:"
+  sprachhinweis: z.string().default(''), // "present continuous · present perfect · past simple"
+});
+
+export const RollenkartenRollenInhaltSchema = z.object({
+  untertitel: z.string().default(''), // z. B. Experte: "What to do in an earthquake"
+  punkte: z.array(z.string().min(1)).min(1), // Stichpunkte (Bullets)
+});
+
+export const RollenkartenSzenarioSchema = z.object({
+  nummer: z.number().int().positive(),
+  titel: z.string().min(1),           // "Shaanxi Earthquake"
+  fakten: z.string().default(''),     // "China · 1556 · ~830,000 deaths · cave homes collapsed"
+  // GENAU rollen.length Einträge (in Rollen-Reihenfolge). Längen-Mismatch wird
+  // im Renderer defensiv behandelt (discriminatedUnion erlaubt kein superRefine).
+  rollenInhalte: z.array(RollenkartenRollenInhaltSchema).min(1),
+});
+
+export const RollenkartenSetBlockSchema = BlockBaseSchema.extend({
+  typ: z.literal('rollenkartenSet'),
+  config: z.object({
+    eingabemodus: z.enum(['ki', 'manuell']).optional(),
+    rahmen: z.string().min(1),        // gemeinsamer Rahmen, z. B. "Disaster Reports — live TV news"
+    zeitMinuten: z.number().int().positive().default(8),
+    rollen: z.array(RollenkartenRolleSchema).min(2).max(3),
+    szenarien: z.array(RollenkartenSzenarioSchema).min(1).max(15),
+    schnittlinie: z.boolean().default(true),
+    teamFeld: z.boolean().default(true),
+  }),
+  loesung: z.object({
+    hinweise: z.string().min(1),      // Lehrer-Hinweise (kein Musterdialog — Sprechprodukt)
+  }),
+});
+
+export type RollenkartenSetBlock = z.infer<typeof RollenkartenSetBlockSchema>;
+
+// ---------------------------------------------------------------------------
 // Discriminated union of all block types
 // ---------------------------------------------------------------------------
 
@@ -631,6 +676,7 @@ export const BlockSchema = z.discriminatedUnion('typ', [
   UmformungBlockSchema,
   FehlerkorrekturBlockSchema,
   RoleplayBlockSchema,
+  RollenkartenSetBlockSchema,
 ]);
 
 export type Block = z.infer<typeof BlockSchema>;
@@ -747,6 +793,7 @@ export const BlockTypSchema = z.enum([
   'umformung',
   'fehlerkorrektur',
   'roleplay',
+  'rollenkartenSet',
 ]);
 export type BlockTyp = z.infer<typeof BlockTypSchema>;
 

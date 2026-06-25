@@ -7,6 +7,20 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Rollenkarten-Set-Modus (Sprech-Differenzierung) — Fundament (Chief)
+- Neuer Blocktyp `rollenkartenSet`: EINE Rollen-Struktur (2–3 Rollen) × N Szenarien — jedes
+  Schüler-Paar bekommt ein eigenes Szenario mit gleicher Rollenmechanik (Reporter/Experte-Muster
+  aus Nataschas „Disaster Reports"-Vorlage).
+- schema: neue Block-/Rollen-/Szenario-Schemata + Union + BlockTyp-Enum + Tests.
+- prompt: Beschreibungs-Sektion + Few-Shot (aus der Referenz-DOCX) + Preserve-Regel (manuelle
+  Szenario-Titel/Rollen bleiben wortgleich).
+- renderer: `buildRollenkartenSet` — Karten als gerahmte Tabellen (Rolle + Team-Feld, Szenario,
+  Fakten, Sprech-Reihenfolge, Inhalts-Bullets, Sprach-Hinweis), Schnittlinie zwischen Paaren.
+- qa: `rollenkartenSet` erzeugt kein Korrekturraster (Sprechprodukt). normalize: leere Punkte gefiltert.
+- web: createDefaultBlock + Labels + blockToRequest (BlockRequest-Variante) — Generierung lauffähig.
+- Live-Smoke (DeepSeek): Rahmen + 4 Szenarien × 2 Rollen × 4 Punkte, gerendert. UI-Editor (BlockConfigPanel,
+  Baukasten-Kachel) = Kimi.
+
 ### Added — Gesourcte Lehrplan-Recherche in Stoffkatalog integriert (Task 2)
 - `apps/lua/scripts/generate-stoffkatalog-from-research.mjs`: `--only`-Filter,
   `--output`-Verzeichnis wird rekursiv angelegt, `DEFAULT_AUFGABENTYPEN`-Mapping

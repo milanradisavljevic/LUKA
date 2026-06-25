@@ -42,7 +42,8 @@ export type BlockRequest =
   | { typ: 'vokabeluebung'; punkte: number; quelleId?: string; anzahlVokabeln: number; richtung: 'de_fremd' | 'fremd_de'; vokabeln?: { deutsch: string; fremdsprache: string; kontextsatz?: string }[] }
   | { typ: 'umformung'; punkte: number; quelleId?: string; anzahlAufgaben: number }
   | { typ: 'fehlerkorrektur'; punkte: number; quelleId?: string; anzahlSaetze: number; saetze?: { nr: number; satz: string; anzahlFehler: number }[] }
-  | { typ: 'roleplay'; punkte: number; quelleId?: string; situation?: string; setting?: string; ziel?: string; zeitMinuten?: number; rollen?: { name?: string; beschreibung?: string; aufgabe?: string; redemittel?: string[] }[]; redemittel?: string[]; bewertung?: string[] };
+  | { typ: 'roleplay'; punkte: number; quelleId?: string; situation?: string; setting?: string; ziel?: string; zeitMinuten?: number; rollen?: { name?: string; beschreibung?: string; aufgabe?: string; redemittel?: string[] }[]; redemittel?: string[]; bewertung?: string[] }
+  | { typ: 'rollenkartenSet'; punkte: number; quelleId?: string; rahmen?: string; zeitMinuten?: number; anzahlSzenarien?: number; rollen?: { name?: string; rollenhinweis?: string; inhaltsLabel?: string; sprachhinweis?: string }[]; szenarien?: { nummer?: number; titel?: string; fakten?: string; rollenInhalte?: { untertitel?: string; punkte?: string[] }[] }[] };
 
 export type BlockTyp = Block['typ'];
 

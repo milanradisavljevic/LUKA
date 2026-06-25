@@ -208,6 +208,30 @@ export function createDefaultBlock(typ: Block['typ'], meta?: Meta): Block {
         },
         loesung: { musterdialog: '', hinweise: '' },
       } as Block;
+    case 'rollenkartenSet':
+      return {
+        ...base,
+        punkte: 0, // Sprechaktivität — keine Punkte
+        typ: 'rollenkartenSet',
+        config: {
+          eingabemodus: 'ki',
+          rahmen: '',
+          zeitMinuten: 8,
+          rollen: [
+            { name: 'Rolle A', rollenhinweis: 'Du beginnst.', inhaltsLabel: 'Sprich über:', sprachhinweis: '' },
+            { name: 'Rolle B', rollenhinweis: 'Du antwortest.', inhaltsLabel: 'Sprich über:', sprachhinweis: '' },
+          ],
+          szenarien: [
+            { nummer: 1, titel: '[Szenario 1]', fakten: '', rollenInhalte: [
+              { untertitel: '', punkte: ['[Stichpunkt]'] },
+              { untertitel: '', punkte: ['[Stichpunkt]'] },
+            ] },
+          ],
+          schnittlinie: true,
+          teamFeld: true,
+        },
+        loesung: { hinweise: '' },
+      } as Block;
   }
 }
 
@@ -229,6 +253,7 @@ export const BLOCK_ARBEITSANWEISUNG_PLACEHOLDER: Record<Block['typ'], string> = 
   umformung: 'Forme die Sätze nach der Anweisung um.',
   fehlerkorrektur: 'Finde und korrigiere die Fehler in den Sätzen.',
   roleplay: 'Spielt die Situation in eurer Gruppe oder zu zweit durch.',
+  rollenkartenSet: 'Jedes Paar bekommt eine Karte und spielt sein Szenario durch.',
 };
 
 const BLOCK_LABELS: Record<Block['typ'], string> = {
@@ -249,6 +274,7 @@ const BLOCK_LABELS: Record<Block['typ'], string> = {
   umformung: 'Umformung',
   fehlerkorrektur: 'Fehlerkorrektur',
   roleplay: 'Rollenspiel',
+  rollenkartenSet: 'Rollenkarten-Set',
 };
 
 export function getBlockLabel(typ: Block['typ']): string {

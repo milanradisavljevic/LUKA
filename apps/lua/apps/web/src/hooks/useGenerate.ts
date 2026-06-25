@@ -159,6 +159,21 @@ function blockToRequest(block: Block): BlockRequest {
         bewertung: block.config.bewertung,
       };
     }
+    case 'rollenkartenSet': {
+      const manuell = block.config.eingabemodus === 'manuell';
+      const gefuellteRollen = (block.config.rollen ?? []).filter((r) => r.name.trim().length > 0);
+      const gefuellteSzenarien = (block.config.szenarien ?? []).filter((s) => s.titel.trim().length > 0 && !s.titel.startsWith('['));
+      return {
+        typ: 'rollenkartenSet',
+        punkte: block.punkte,
+        quelleId: block.quelleId,
+        rahmen: block.config.rahmen,
+        zeitMinuten: block.config.zeitMinuten,
+        anzahlSzenarien: block.config.szenarien?.length ?? 1,
+        ...(gefuellteRollen.length > 0 ? { rollen: gefuellteRollen } : {}),
+        ...(manuell && gefuellteSzenarien.length > 0 ? { szenarien: gefuellteSzenarien } : {}),
+      };
+    }
     case 'umformung':
       throw new Error('Blocktyp "umformung" wird nicht mehr unterstützt.');
   }
