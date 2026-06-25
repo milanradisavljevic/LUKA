@@ -94,6 +94,19 @@ export const StoffItemSchema = z.object({
 });
 export type StoffItem = z.infer<typeof StoffItemSchema>;
 
+// Inhalts-Modul (Ebene 3: fachlicher Themenbereich — z. B. "Französische Revolution")
+export const InhaltsModulSchema = z.object({
+  id: z.string().min(1),
+  rahmenwerk: RahmenwerkSchema,
+  fach: FachSchema,
+  stufe: StufeSchema,
+  schulstufe: z.number().int().min(5).max(12).optional(),
+  titel: z.string().min(1),
+  beschreibung: z.string().default(''),
+  quelle: z.string(),
+});
+export type InhaltsModul = z.infer<typeof InhaltsModulSchema>;
+
 /**
  * Offizielle Kompetenzbereiche je Fach (der „exakte" Teil des Hybrid-Ansatzes).
  * `StoffItem.kategorie` und `Deskriptor.bereich` verwenden diese Namen WORTGLEICH.
@@ -133,6 +146,7 @@ export const MetaSchema = z.object({
   rahmenwerk: RahmenwerkSchema.optional(),
   stoffItemIds: z.array(z.string().min(1)).optional(),
   schulstufe: z.number().int().min(5).max(12).optional(),
+  inhaltsModulId: z.string().optional(),
   kompetenzNiveau: z.enum(['basis', 'standard', 'erweitert']).optional(),
   bewertungsschema: BewertungsschemaSchema.optional(),
   // Frei formulierte Kompetenz oder Thema (z. B. "Present Perfect vs Past Simple").
@@ -872,6 +886,7 @@ export const AuftragSchema = z.object({
   rahmenwerk: RahmenwerkSchema.optional(),
   stoffItemIds: z.array(z.string().min(1)).optional(),
   schulstufe: z.number().int().min(5).max(12).optional(),
+  inhaltsModulId: z.string().optional(),
   kompetenzNiveau: z.enum(['basis', 'standard', 'erweitert']).optional(),
   bewertungsschema: BewertungsschemaSchema.optional(),
   freieKompetenz: z.string().optional(),

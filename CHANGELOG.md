@@ -7,6 +7,25 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Inhalts-Module für Geschichte + Geographie (Welle C)
+- `apps/lua/packages/schema/src/index.ts`: `InhaltsModulSchema` und optionales
+  `inhaltsModulId` in `MetaSchema`/`AuftragSchema`.
+- `apps/lua/apps/web/src/lib/inhaltskatalog/`: neuer Katalog mit
+  `geschichte.ts`, `geographie.ts` und `index.ts` (`listInhaltsModule`,
+  `getInhaltsModul`) — gleiche Fallback-Filterregel wie bei `stoffkatalog`.
+- `apps/lua/apps/web/src/views/KompetenzView.tsx`: optionaler
+  Inhalts-Modul-Selektor (nur bei vorhandenen Daten); Thema-Prefill und
+  Weitergabe von `inhaltsModulId` an `meta`/`auftrag`.
+- `apps/lua/packages/llm/src/types.ts`: `GenerateInput.inhaltsModul`;
+  `apps/lua/apps/web/src/hooks/useGenerate.ts`: baut und reicht das Modul in
+  beide Generate-Aufrufe durch; `packages/llm/src/prompt.ts`: inhaltlicher
+  Rahmen im Kompetenz-Zweig.
+- `apps/lua/packages/schema/src/schema.test.ts`: Tests für `InhaltsModulSchema`;
+  `apps/lua/apps/web/src/lib/inhaltskatalog/inhaltskatalog.test.ts`:
+  Integritätstest (keine Dup-IDs, gültige fach/stufe-Werte).
+- Verifikation: `pnpm --filter "./packages/*" build && pnpm -r typecheck &&
+  `pnpm -r test` grün (Schema 145, LLM 126, Renderer 38, Input 17, QA 103, Web 73).
+
 ### Added — Schulstufen-Granularität 5–12 im Kompetenz-Modus (Welle B)
 - `apps/lua/packages/schema/src/index.ts`: `SCHULSTUFEN`, `stufeFromSchulstufe(s)`
   und optionales `schulstufe`-Feld an `DeskriptorSchema`, `StoffItemSchema`,
