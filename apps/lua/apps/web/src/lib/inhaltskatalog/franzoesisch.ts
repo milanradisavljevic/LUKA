@@ -1,0 +1,66 @@
+import type { InhaltsModul } from '@lehrunterlagen/schema';
+
+// Französisch — Inhalts-Module (Themenbereiche), generiert aus Lehrplan-Recherche.
+
+export const franzoesischInhaltsModule: InhaltsModul[] = [
+  {
+    id: 'at-franzoesisch-alltag',
+    rahmenwerk: 'at-lehrplan',
+    fach: 'franzoesisch',
+    stufe: 'unterstufe',
+    schulstufe: 7,
+    titel: 'Vie quotidienne et monde personnel',
+    beschreibung: 'Familie, Schule, Hobbys und tägliche Routinen auf A1/A2-Niveau.',
+    quelle: 'BMBWF-Lehrplan AHS Französisch — RIS, Stand 2023',
+  },
+  {
+    id: 'at-franzoesisch-reisen',
+    rahmenwerk: 'at-lehrplan',
+    fach: 'franzoesisch',
+    stufe: 'unterstufe',
+    schulstufe: 8,
+    titel: 'Voyages et cultures francophones',
+    beschreibung: 'Reisen, frankophone Länder und interkulturelle Begegnungen auf A2-Niveau.',
+    quelle: 'BMBWF-Lehrplan AHS Französisch — RIS, Stand 2023',
+  },
+  {
+    id: 'at-franzoesisch-medien',
+    rahmenwerk: 'at-lehrplan',
+    fach: 'franzoesisch',
+    stufe: 'oberstufe',
+    schulstufe: 9,
+    titel: 'Médias et communication',
+    beschreibung: 'Soziale Medien, Nachrichten und digitale Kommunikation auf B1-Niveau.',
+    quelle: 'BMBWF-Lehrplan AHS Französisch — RIS, Stand 2023',
+  },
+  {
+    id: 'at-franzoesisch-gesellschaft',
+    rahmenwerk: 'at-lehrplan',
+    fach: 'franzoesisch',
+    stufe: 'oberstufe',
+    schulstufe: 10,
+    titel: 'Société et questions actuelles',
+    beschreibung: 'Gesellschaftliche Debatten, Umwelt und Migration auf B1/B2-Niveau.',
+    quelle: 'BMBWF-Lehrplan AHS Französisch — RIS, Stand 2023',
+  },
+  {
+    id: 'at-franzoesisch-literatur',
+    rahmenwerk: 'at-lehrplan',
+    fach: 'franzoesisch',
+    stufe: 'oberstufe',
+    schulstufe: 11,
+    titel: 'Littérature et expression créative',
+    beschreibung: 'Kurzgeschichten, Gedichte und kreative Schreibformen auf B2-Niveau.',
+    quelle: 'BMBWF-Lehrplan AHS Französisch — RIS, Stand 2023',
+  },
+  {
+    id: 'at-franzoesisch-kultur',
+    rahmenwerk: 'at-lehrplan',
+    fach: 'franzoesisch',
+    stufe: 'oberstufe',
+    schulstufe: 12,
+    titel: 'Culture et civilisation francophones',
+    beschreibung: 'Französische Philosophie, Kino und kulturelle Identität auf B2/C1-Niveau.',
+    quelle: 'BMBWF-Lehrplan AHS Französisch — RIS, Stand 2023',
+  },
+];

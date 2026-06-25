@@ -66,7 +66,7 @@ describe('computeCoverage — App-Variante gegen echten Stoffkatalog', () => {
   it('liefert konsistente Mengen (abgedeckt ⊆ Universum, kein Überlapp)', () => {
     const res = computeCoverage({
       fach: 'englisch', stufe: 'oberstufe', rahmenwerk: 'at-lehrplan',
-      stoffItemIds: ['en-past-perfect'],
+      stoffItemIds: ['en-h-ren-ob'],
     });
     const abIds = new Set(res.abgedeckt.map((d) => d.id));
     expect(res.abgedeckt.length).toBeGreaterThan(0);

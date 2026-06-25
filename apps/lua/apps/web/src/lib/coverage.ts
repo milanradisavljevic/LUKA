@@ -22,6 +22,7 @@ interface CoverageMeta {
   stufe: Deskriptor['stufe'];
   rahmenwerk?: Deskriptor['rahmenwerk'];
   stoffItemIds?: string[];
+  schulstufe?: number;
 }
 
 /**
@@ -64,6 +65,6 @@ export function computeCoverageFrom(
 export function computeCoverage(meta: CoverageMeta): CoverageResult {
   const ids = meta.stoffItemIds ?? [];
   const items = getStoffItems(ids);
-  const universum = listDeskriptoren(meta.fach, meta.stufe, meta.rahmenwerk);
+  const universum = listDeskriptoren(meta.fach, meta.stufe, meta.rahmenwerk, meta.schulstufe);
   return computeCoverageFrom(ids, items, universum);
 }
