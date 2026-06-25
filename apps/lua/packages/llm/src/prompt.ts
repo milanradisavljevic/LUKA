@@ -787,6 +787,7 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
         content:
           `Erzeuge das JSON-Objekt { "didaktik": ..., "bloecke": [...] } fuer die folgende Anforderung im KOMPETENZ-MODUS (keine Quelltexte). ` +
           `Trainiere gezielt die unter "stoffItems" angegebenen Kompetenzen und erfinde dafuer korrekte, stufengerechte Beispiele. ` +
+          `Sind MEHRERE Kompetenzen unter "stoffItems" angegeben, verzahne sie organisch in EINEM zusammenhaengenden Arbeitsblatt rund um das gemeinsame Thema — KEINE getrennten Teilblaetter. Verschiedene Aufgaben duerfen verschiedene Kompetenzen treffen; gemeinsam decken alle Aufgaben alle angegebenen Kompetenzen ab. ` +
           `Erfinde EIN durchgehendes Szenario mit benannter Person (Roter Faden durch alle Bloecke) und fuelle den didaktischen Rahmen (arbeitsblattTitel, einleitung, merkkasten, transferaufgabe — siehe System-Prompt). ` +
           `Schwierigkeitsniveau: "${schwierigkeit}" — passe das kognitive Niveau entsprechend an. ` +
           niveauHinweis +
