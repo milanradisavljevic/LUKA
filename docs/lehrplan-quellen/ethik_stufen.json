@@ -1,0 +1,141 @@
+{
+  "fach": "ethik",
+  "quelle": "BMBWF-Lehrplan AHS Ethik — RIS, Stand 2023",
+  "quelleUrl": "https://www.ris.bka.gv.at/GeltendeFassung.wxe?Abfrage=Bundesnormen&Gesetzesnummer=10008568",
+  "stufen": [
+    {
+      "schulstufe": 9,
+      "bereiche": [
+        {
+          "bereich": "Wahrnehmen & Beschreiben",
+          "deskriptoren": [
+            {"id": "at-ethik-s9-wahrnehmen-1", "code": "", "text": "Die Schülerinnen und Schüler können ethische Fragen und Konflikte im Alltag und in der eigenen Lebenswelt wahrnehmen und beschreiben."},
+            {"id": "at-ethik-s9-wahrnehmen-2", "code": "", "text": "Die Schülerinnen und Schüler können verschiedene Wertvorstellungen und Lebensentwürfe in der pluralistischen Gesellschaft identifizieren."},
+            {"id": "at-ethik-s9-wahrnehmen-3", "code": "", "text": "Die Schülerinnen und Schüler können moralische Emotionen (z. B. Empathie, Schuld, Verantwortung) bei sich und anderen wahrnehmen."}
+          ]
+        },
+        {
+          "bereich": "Analysieren & Argumentieren",
+          "deskriptoren": [
+            {"id": "at-ethik-s9-analysieren-1", "code": "", "text": "Die Schülerinnen und Schüler können einfache ethische Dilemmata analysieren und verschiedene Handlungsoptionen beschreiben."},
+            {"id": "at-ethik-s9-analysieren-2", "code": "", "text": "Die Schülerinnen und Schüler können grundlegende ethische Begriffe (z. B. gut/böse, gerecht/ungerecht, frei/gebunden) klären und anwenden."}
+          ]
+        },
+        {
+          "bereich": "Urteilen & Reflektieren",
+          "deskriptoren": [
+            {"id": "at-ethik-s9-urteilen-1", "code": "", "text": "Die Schülerinnen und Schüler können eigene Wertvorstellungen reflektieren und in einfachen Situationen begründet urteilen."},
+            {"id": "at-ethik-s9-urteilen-2", "code": "", "text": "Die Schülerinnen und Schüler können verschiedene ethische Positionen vergleichen und erste eigene Standpunkte entwickeln."}
+          ]
+        },
+        {
+          "bereich": "Perspektivenwechsel",
+          "deskriptoren": [
+            {"id": "at-ethik-s9-perspektiven-1", "code": "", "text": "Die Schülerinnen und Schüler können die Perspektive anderer Personen und Gruppen in ethischen Konflikten einnehmen."},
+            {"id": "at-ethik-s9-perspektiven-2", "code": "", "text": "Die Schülerinnen und Schüler können kulturelle und weltanschauliche Unterschiede in ethischen Fragen nachvollziehen."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 10,
+      "bereiche": [
+        {
+          "bereich": "Wahrnehmen & Beschreiben",
+          "deskriptoren": [
+            {"id": "at-ethik-s10-wahrnehmen-1", "code": "", "text": "Die Schülerinnen und Schüler können ethische Dimensionen gesellschaftlicher und politischer Debatten (z. B. Umwelt, Migration, Technologie) wahrnehmen."},
+            {"id": "at-ethik-s10-wahrnehmen-2", "code": "", "text": "Die Schülerinnen und Schüler können verschiedene ethische Theorien (z. B. Utilitarismus, Pflichtethik, Tugendethik) in Grundzügen charakterisieren."},
+            {"id": "at-ethik-s10-wahrnehmen-3", "code": "", "text": "Die Schülerinnen und Schüler können mediale Darstellungen ethischer Konflikte kritisch analysieren."}
+          ]
+        },
+        {
+          "bereich": "Analysieren & Argumentieren",
+          "deskriptoren": [
+            {"id": "at-ethik-s10-analysieren-1", "code": "", "text": "Die Schülerinnen und Schüler können komplexe ethische Dilemmata mit verschiedenen theoretischen Ansätzen analysieren."},
+            {"id": "at-ethik-s10-analysieren-2", "code": "", "text": "Die Schülerinnen und Schüler können ethische Argumente strukturiert aufbauen und auf Gegenargumente eingehen."}
+          ]
+        },
+        {
+          "bereich": "Urteilen & Reflektieren",
+          "deskriptoren": [
+            {"id": "at-ethik-s10-urteilen-1", "code": "", "text": "Die Schülerinnen und Schüler können eigene ethische Positionen in Auseinandersetzung mit verschiedenen Theorien begründen."},
+            {"id": "at-ethik-s10-urteilen-2", "code": "", "text": "Die Schülerinnen und Schüler können die Grenzen und Stärken verschiedener ethischer Ansätze beurteilen."}
+          ]
+        },
+        {
+          "bereich": "Perspektivenwechsel",
+          "deskriptoren": [
+            {"id": "at-ethik-s10-perspektiven-1", "code": "", "text": "Die Schülerinnen und Schüler können verschiedene kulturelle und weltanschauliche Perspektiven auf ethische Fragen systematisch vergleichen."},
+            {"id": "at-ethik-s10-perspektiven-2", "code": "", "text": "Die Schülerinnen und Schüler können die eigene Position im Licht fremder Perspektiven kritisch hinterfragen."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 11,
+      "bereiche": [
+        {
+          "bereich": "Wahrnehmen & Beschreiben",
+          "deskriptoren": [
+            {"id": "at-ethik-s11-wahrnehmen-1", "code": "", "text": "Die Schülerinnen und Schüler können ethische Dimensionen wissenschaftlicher und technologischer Entwicklungen (z. B. KI, Gentechnik, Überwachung) multiperspektivisch erfassen."},
+            {"id": "at-ethik-s11-wahrnehmen-2", "code": "", "text": "Die Schülerinnen und Schüler können komplexe ethische Theorien und ihre historischen Kontexte analysieren."}
+          ]
+        },
+        {
+          "bereich": "Analysieren & Argumentieren",
+          "deskriptoren": [
+            {"id": "at-ethik-s11-analysieren-1", "code": "", "text": "Die Schülerinnen und Schüler können ethische Fragen mit wissenschaftlichen Methoden analysieren und verschiedene theoretische Positionen systematisch vergleichen."},
+            {"id": "at-ethik-s11-analysieren-2", "code": "", "text": "Die Schülerinnen und Schüler können komplexe ethische Argumentationen aufbauen und kritisch bewerten."}
+          ]
+        },
+        {
+          "bereich": "Urteilen & Reflektieren",
+          "deskriptoren": [
+            {"id": "at-ethik-s11-urteilen-1", "code": "", "text": "Die Schülerinnen und Schüler können eigene ethische Positionen reflexiv und differenziert in komplexen gesellschaftlichen Debatten vertreten."},
+            {"id": "at-ethik-s11-urteilen-2", "code": "", "text": "Die Schülerinnen und Schüler können die Tragfähigkeit verschiedener ethischer Ansätze für gegenwärtige Herausforderungen beurteilen."}
+          ]
+        },
+        {
+          "bereich": "Perspektivenwechsel",
+          "deskriptoren": [
+            {"id": "at-ethik-s11-perspektiven-1", "code": "", "text": "Die Schülerinnen und Schüler können verschiedene kulturelle, weltanschauliche und disziplinäre Perspektiven auf ethische Fragen produktiv integrieren."},
+            {"id": "at-ethik-s11-perspektiven-2", "code": "", "text": "Die Schülerinnen und Schüler können die eigene Position im Kontext globaler und historischer Perspektiven kritisch reflektieren."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 12,
+      "bereiche": [
+        {
+          "bereich": "Wahrnehmen & Beschreiben",
+          "deskriptoren": [
+            {"id": "at-ethik-s12-wahrnehmen-1", "code": "", "text": "Die Schülerinnen und Schüler können aktuelle ethische Herausforderungen (z. B. Klimawandel, digitale Ethik, globale Gerechtigkeit) multiperspektivisch analysieren."},
+            {"id": "at-ethik-s12-wahrnehmen-2", "code": "", "text": "Die Schülerinnen und Schüler können die Relevanz ethischer Reflexion für persönliche und gesellschaftliche Zukunftsfragen erfassen."}
+          ]
+        },
+        {
+          "bereich": "Analysieren & Argumentieren",
+          "deskriptoren": [
+            {"id": "at-ethik-s12-analysieren-1", "code": "", "text": "Die Schülerinnen und Schüler können komplexe ethische Fragestellungen eigenständig und mit wissenschaftlichen Methoden analysieren."},
+            {"id": "at-ethik-s12-analysieren-2", "code": "", "text": "Die Schülerinnen und Schüler können ethische Argumentationen unter komplexen Fragestellungen vergleichend erarbeiten."}
+          ]
+        },
+        {
+          "bereich": "Urteilen & Reflektieren",
+          "deskriptoren": [
+            {"id": "at-ethik-s12-urteilen-1", "code": "", "text": "Die Schülerinnen und Schüler können eigene ethische Positionen souverän und reflektiert in akademischen und öffentlichen Diskursen vertreten."},
+            {"id": "at-ethik-s12-urteilen-2", "code": "", "text": "Die Schülerinnen und Schüler können mündliche Reifeprüfung differenziert und souverän führen."}
+          ]
+        },
+        {
+          "bereich": "Perspektivenwechsel",
+          "deskriptoren": [
+            {"id": "at-ethik-s12-perspektiven-1", "code": "", "text": "Die Schülerinnen und Schüler können verschiedene Perspektiven auf ethische Fragen souverän integrieren und für verantwortungsvolles Handeln nutzen."},
+            {"id": "at-ethik-s12-perspektiven-2", "code": "", "text": "Die Schülerinnen und Schüler können ethische Reflexion als Grundlage für lebenslanges Lernen und gesellschaftliche Teilhabe verstehen."}
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,108 @@
+{
+  "fach": "psychologie",
+  "quelle": "BMBWF-Lehrplan AHS Psychologie — RIS, Stand 2023",
+  "quelleUrl": "https://www.ris.bka.gv.at/GeltendeFassung.wxe?Abfrage=Bundesnormen&Gesetzesnummer=10008568",
+  "stufen": [
+    {
+      "schulstufe": 10,
+      "bereiche": [
+        {
+          "bereich": "Fachwissen",
+          "deskriptoren": [
+            {"id": "at-psychologie-s10-fachwissen-1", "code": "", "text": "Die Schülerinnen und Schüler können grundlegende psychologische Begriffe und Konzepte (z. B. Wahrnehmung, Lernen, Motivation) definieren und anwenden."},
+            {"id": "at-psychologie-s10-fachwissen-2", "code": "", "text": "Die Schülerinnen und Schüler können wichtige psychologische Strömungen (z. B. Behaviorismus, Psychoanalyse, kognitive Psychologie) in Grundzügen charakterisieren."},
+            {"id": "at-psychologie-s10-fachwissen-3", "code": "", "text": "Die Schülerinnen und Schüler können grundlegende Modelle der Entwicklungspsychologie (z. B. Piaget, Erikson) beschreiben."}
+          ]
+        },
+        {
+          "bereich": "Methoden- & Erkenntniskompetenz",
+          "deskriptoren": [
+            {"id": "at-psychologie-s10-methoden-1", "code": "", "text": "Die Schülerinnen und Schüler können einfache psychologische Forschungsmethoden (z. B. Beobachtung, Befragung, Experiment) beschreiben und ihre Vor- und Nachteile benennen."},
+            {"id": "at-psychologie-s10-methoden-2", "code": "", "text": "Die Schülerinnen und Schüler können einfache psychologische Studien kritisch analysieren und ihre Aussagekraft bewerten."}
+          ]
+        },
+        {
+          "bereich": "Reflexions- & Urteilskompetenz",
+          "deskriptoren": [
+            {"id": "at-psychologie-s10-reflexion-1", "code": "", "text": "Die Schülerinnen und Schüler können psychologische Erkenntnisse auf Alltagssituationen übertragen und kritisch reflektieren."},
+            {"id": "at-psychologie-s10-reflexion-2", "code": "", "text": "Die Schülerinnen und Schüler können populärwissenschaftliche Darstellungen psychologischer Themen von wissenschaftlichen unterscheiden."}
+          ]
+        },
+        {
+          "bereich": "Anwendung & Transfer",
+          "deskriptoren": [
+            {"id": "at-psychologie-s10-anwendung-1", "code": "", "text": "Die Schülerinnen und Schüler können psychologische Erkenntnisse auf Lern- und Leistungssituationen anwenden."},
+            {"id": "at-psychologie-s10-anwendung-2", "code": "", "text": "Die Schülerinnen und Schüler können psychologische Konzepte zur Selbstreflexion und Persönlichkeitsentwicklung nutzen."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 11,
+      "bereiche": [
+        {
+          "bereich": "Fachwissen",
+          "deskriptoren": [
+            {"id": "at-psychologie-s11-fachwissen-1", "code": "", "text": "Die Schülerinnen und Schüler können komplexe psychologische Theorien und Modelle (z. B. Sozialpsychologie, Persönlichkeitspsychologie, klinische Psychologie) analysieren und vergleichen."},
+            {"id": "at-psychologie-s11-fachwissen-2", "code": "", "text": "Die Schülerinnen und Schüler können psychologische Phänomene (z. B. Konformität, Aggression, Stress) mit verschiedenen theoretischen Ansätzen erklären."},
+            {"id": "at-psychologie-s11-fachwissen-3", "code": "", "text": "Die Schülerinnen und Schüler können die historische Entwicklung psychologischer Forschung in Grundzügen nachvollziehen."}
+          ]
+        },
+        {
+          "bereich": "Methoden- & Erkenntniskompetenz",
+          "deskriptoren": [
+            {"id": "at-psychologie-s11-methoden-1", "code": "", "text": "Die Schülerinnen und Schüler können verschiedene psychologische Forschungsmethoden systematisch vergleichen und ihre Anwendbarkeit bewerten."},
+            {"id": "at-psychologie-s11-methoden-2", "code": "", "text": "Die Schülerinnen und Schüler können psychologische Studien hinsichtlich ihrer methodischen Qualität und ethischen Vertretbarkeit kritisch analysieren."}
+          ]
+        },
+        {
+          "bereich": "Reflexions- & Urteilskompetenz",
+          "deskriptoren": [
+            {"id": "at-psychologie-s11-reflexion-1", "code": "", "text": "Die Schülerinnen und Schüler können psychologische Erkenntnisse in verschiedenen Anwendungsfeldern (z. B. Bildung, Gesundheit, Arbeit) kritisch bewerten."},
+            {"id": "at-psychologie-s11-reflexion-2", "code": "", "text": "Die Schülerinnen und Schüler können ethische Fragen psychologischer Forschung und Praxis reflektieren."}
+          ]
+        },
+        {
+          "bereich": "Anwendung & Transfer",
+          "deskriptoren": [
+            {"id": "at-psychologie-s11-anwendung-1", "code": "", "text": "Die Schülerinnen und Schüler können psychologische Erkenntnisse auf komplexe gesellschaftliche und individuelle Fragestellungen übertragen."},
+            {"id": "at-psychologie-s11-anwendung-2", "code": "", "text": "Die Schülerinnen und Schüler können psychologische Konzepte zur Analyse sozialer Prozesse und zwischenmenschlicher Beziehungen nutzen."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 12,
+      "bereiche": [
+        {
+          "bereich": "Fachwissen",
+          "deskriptoren": [
+            {"id": "at-psychologie-s12-fachwissen-1", "code": "", "text": "Die Schülerinnen und Schüler können aktuelle psychologische Forschung und ihre gesellschaftliche Relevanz multiperspektivisch analysieren."},
+            {"id": "at-psychologie-s12-fachwissen-2", "code": "", "text": "Die Schülerinnen und Schüler können psychologische Theorien im Kontext philosophischer, biologischer und soziologischer Diskurse verorten."}
+          ]
+        },
+        {
+          "bereich": "Methoden- & Erkenntniskompetenz",
+          "deskriptoren": [
+            {"id": "at-psychologie-s12-methoden-1", "code": "", "text": "Die Schülerinnen und Schüler können eigenständig psychologische Fragestellungen entwickeln und mit wissenschaftlichen Methoden bearbeiten."},
+            {"id": "at-psychologie-s12-methoden-2", "code": "", "text": "Die Schülerinnen und Schüler können psychologische Studien hinsichtlich ihrer methodischen Qualität, ethischen Vertretbarkeit und gesellschaftlichen Relevanz umfassend bewerten."}
+          ]
+        },
+        {
+          "bereich": "Reflexions- & Urteilskompetenz",
+          "deskriptoren": [
+            {"id": "at-psychologie-s12-reflexion-1", "code": "", "text": "Die Schülerinnen und Schüler können psychologische Erkenntnisse souverän und reflektiert in akademischen und öffentlichen Diskursen vertreten."},
+            {"id": "at-psychologie-s12-reflexion-2", "code": "", "text": "Die Schülerinnen und Schüler können mündliche Reifeprüfung differenziert und souverän führen."}
+          ]
+        },
+        {
+          "bereich": "Anwendung & Transfer",
+          "deskriptoren": [
+            {"id": "at-psychologie-s12-anwendung-1", "code": "", "text": "Die Schülerinnen und Schüler können psychologische Erkenntnisse auf komplexe individuelle und gesellschaftliche Herausforderungen souverän übertragen."},
+            {"id": "at-psychologie-s12-anwendung-2", "code": "", "text": "Die Schülerinnen und Schüler können psychologische Konzepte als Grundlage für lebenslanges Lernen und verantwortungsvolles Handeln nutzen."}
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,515 @@
+{
+  "fach": "englisch",
+  "quelle": "BMBWF-Lehrplan AHS Englisch — RIS, Stand 2023",
+  "quelleUrl": "https://www.ris.bka.gv.at/GeltendeFassung.wxe?Abfrage=Bundesnormen&Gesetzesnummer=10008568",
+  "stufen": [
+    {
+      "schulstufe": 5,
+      "bereiche": [
+        {
+          "bereich": "Hören",
+          "deskriptoren": [
+            {"id": "at-englisch-s5-hoeren-1", "code": "A1", "text": "Die Schülerinnen und Schüler können einfache, langsam gesprochene Anweisungen und Fragen verstehen, wenn sie sich auf vertraute Themen beziehen."},
+            {"id": "at-englisch-s5-hoeren-2", "code": "A1", "text": "Die Schülerinnen und Schüler können kurzen Gesprächen über Alltagsthemen (Familie, Hobbys, Schule) Hauptinformationen entnehmen."},
+            {"id": "at-englisch-s5-hoeren-3", "code": "A1", "text": "Die Schülerinnen und Schüler können einfache Hörtexte (Dialoge, kurze Beschreibungen) global verstehen."}
+          ]
+        },
+        {
+          "bereich": "Lesen",
+          "deskriptoren": [
+            {"id": "at-englisch-s5-lesen-1", "code": "A1", "text": "Die Schülerinnen und Schüler können einfache, kurze Texte (Postkarten, Briefe, einfache Geschichten) verstehen."},
+            {"id": "at-englisch-s5-lesen-2", "code": "A1", "text": "Die Schülerinnen und Schüler können konkreten Informationen aus einfachen Alltagstexten (Speisekarten, Schilder, Prospekte) entnehmen."},
+            {"id": "at-englisch-s5-lesen-3", "code": "A1", "text": "Die Schülerinnen und Schüler können einfache Anweisungen und Beschreibungen sinnerfassend lesen."}
+          ]
+        },
+        {
+          "bereich": "An Gesprächen teilnehmen",
+          "deskriptoren": [
+            {"id": "at-englisch-s5-gespraech-1", "code": "A1", "text": "Die Schülerinnen und Schüler können sich mit einfachen Worten vorstellen und auf entsprechende Fragen reagieren."},
+            {"id": "at-englisch-s5-gespraech-2", "code": "A1", "text": "Die Schülerinnen und Schüler können einfache Fragen zu vertrauten Themen stellen und beantworten."},
+            {"id": "at-englisch-s5-gespraech-3", "code": "A1", "text": "Die Schülerinnen und Schüler können sich in routinemäßigen Situationen (Einkaufen, Bestellen) mit einfachen Redemitteln verständigen."}
+          ]
+        },
+        {
+          "bereich": "Zusammenhängend sprechen",
+          "deskriptoren": [
+            {"id": "at-englisch-s5-sprechen-1", "code": "A1", "text": "Die Schülerinnen und Schüler können mit einfachen Sätzen über sich selbst, ihre Familie und ihren Alltag sprechen."},
+            {"id": "at-englisch-s5-sprechen-2", "code": "A1", "text": "Die Schülerinnen und Schüler können kurze, vorbereitete Präsentationen zu vertrauten Themen halten."}
+          ]
+        },
+        {
+          "bereich": "Schreiben",
+          "deskriptoren": [
+            {"id": "at-englisch-s5-schreiben-1", "code": "A1", "text": "Die Schülerinnen und Schüler können kurze, einfache Texte (Postkarten, Einladungen, Briefe) verfassen."},
+            {"id": "at-englisch-s5-schreiben-2", "code": "A1", "text": "Die Schülerinnen und Schüler können Formulare mit persönlichen Daten ausfüllen."},
+            {"id": "at-englisch-s5-schreiben-3", "code": "A1", "text": "Die Schülerinnen und Schüler können einfache Sätze über sich und vertraute Themen schreiben."}
+          ]
+        },
+        {
+          "bereich": "Sprachmittlung",
+          "deskriptoren": [
+            {"id": "at-englisch-s5-mittlung-1", "code": "A1", "text": "Die Schülerinnen und Schüler können einfache Informationen aus kurzen Texten sinngemäß ins Deutsche übertragen."}
+          ]
+        },
+        {
+          "bereich": "Grammatik",
+          "deskriptoren": [
+            {"id": "at-englisch-s5-grammatik-1", "code": "A1", "text": "Die Schülerinnen und Schüler können einfache grammatikalische Strukturen (present simple, there is/are, einfache Präpositionen) anwenden."},
+            {"id": "at-englisch-s5-grammatik-2", "code": "A1", "text": "Die Schülerinnen und Schüler können grundlegende Satzstrukturen (SVO) bilden und einfache Fragen formulieren."}
+          ]
+        },
+        {
+          "bereich": "Wortschatz",
+          "deskriptoren": [
+            {"id": "at-englisch-s5-wortschatz-1", "code": "A1", "text": "Die Schülerinnen und Schüler können einen Grundwortschatz zu vertrauten Themen (Familie, Schule, Hobbys, Alltag) aktiv verwenden."},
+            {"id": "at-englisch-s5-wortschatz-2", "code": "A1", "text": "Die Schülerinnen und Schüler können einfache Zahlen, Farben, Zeitangaben und Wochentage verstehen und verwenden."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 6,
+      "bereiche": [
+        {
+          "bereich": "Hören",
+          "deskriptoren": [
+            {"id": "at-englisch-s6-hoeren-1", "code": "A1/A2", "text": "Die Schülerinnen und Schüler können längeren Gesprächen über Alltagsthemen folgen, wenn deutlich gesprochen wird."},
+            {"id": "at-englisch-s6-hoeren-2", "code": "A1/A2", "text": "Die Schülerinnen und Schüler können einfachen Hörtexten (Geschichten, Beschreibungen) detaillierte Informationen entnehmen."},
+            {"id": "at-englisch-s6-hoeren-3", "code": "A1/A2", "text": "Die Schülerinnen und Schüler können einfache Anweisungen und Erklärungen in Lernkontexten verstehen."}
+          ]
+        },
+        {
+          "bereich": "Lesen",
+          "deskriptoren": [
+            {"id": "at-englisch-s6-lesen-1", "code": "A1/A2", "text": "Die Schülerinnen und Schüler können kürzere erzählende Texte und Sachtexte zu vertrauten Themen verstehen."},
+            {"id": "at-englisch-s6-lesen-2", "code": "A1/A2", "text": "Die Schülerinnen und Schüler können Informationen aus verschiedenen einfachen Textquellen vergleichen."},
+            {"id": "at-englisch-s6-lesen-3", "code": "A1/A2", "text": "Die Schülerinnen und Schüler können einfache Texte mit Hilfe von Lesestrategien (scanning, skimming) erschließen."}
+          ]
+        },
+        {
+          "bereich": "An Gesprächen teilnehmen",
+          "deskriptoren": [
+            {"id": "at-englisch-s6-gespraech-1", "code": "A1/A2", "text": "Die Schülerinnen und Schüler können einfache Gespräche über vertraute Themen führen und Nachfragen stellen."},
+            {"id": "at-englisch-s6-gespraech-2", "code": "A1/A2", "text": "Die Schülerinnen und Schüler können in Alltagssituationen (Restaurant, Geschäft) angemessen reagieren."},
+            {"id": "at-englisch-s6-gespraech-3", "code": "A1/A2", "text": "Die Schülerinnen und Schüler können einfache Meinungen äußern und begründen."}
+          ]
+        },
+        {
+          "bereich": "Zusammenhängend sprechen",
+          "deskriptoren": [
+            {"id": "at-englisch-s6-sprechen-1", "code": "A1/A2", "text": "Die Schülerinnen und Schüler können über Erlebnisse, Pläne und Erfahrungen in mehreren zusammenhängenden Sätzen sprechen."},
+            {"id": "at-englisch-s6-sprechen-2", "code": "A1/A2", "text": "Die Schülerinnen und Schüler können kurze Beschreibungen und Erzählungen vortragen."}
+          ]
+        },
+        {
+          "bereich": "Schreiben",
+          "deskriptoren": [
+            {"id": "at-englisch-s6-schreiben-1", "code": "A1/A2", "text": "Die Schülerinnen und Schüler können kurze zusammenhängende Texte über vertraute Themen schreiben."},
+            {"id": "at-englisch-s6-schreiben-2", "code": "A1/A2", "text": "Die Schülerinnen und Schüler können persönliche Briefe und E-Mails mit einfachen Informationen verfassen."},
+            {"id": "at-englisch-s6-schreiben-3", "code": "A1/A2", "text": "Die Schülerinnen und Schüler können einfache Erlebnisse und Erfahrungen schriftlich festhalten."}
+          ]
+        },
+        {
+          "bereich": "Sprachmittlung",
+          "deskriptoren": [
+            {"id": "at-englisch-s6-mittlung-1", "code": "A1/A2", "text": "Die Schülerinnen und Schüler können einfache Inhalte aus kurzen Texten sinngemäß in die jeweils andere Sprache übertragen."}
+          ]
+        },
+        {
+          "bereich": "Grammatik",
+          "deskriptoren": [
+            {"id": "at-englisch-s6-grammatik-1", "code": "A1/A2", "text": "Die Schülerinnen und Schüler können weitere Zeitformen (present continuous, simple past) korrekt anwenden."},
+            {"id": "at-englisch-s6-grammatik-2", "code": "A1/A2", "text": "Die Schülerinnen und Schüler können einfache Nebensätze (because, when, if) bilden."}
+          ]
+        },
+        {
+          "bereich": "Wortschatz",
+          "deskriptoren": [
+            {"id": "at-englisch-s6-wortschatz-1", "code": "A1/A2", "text": "Die Schülerinnen und Schüler können einen erweiterten Grundwortschatz zu Themen wie Freizeit, Reisen, Umwelt aktiv verwenden."},
+            {"id": "at-englisch-s6-wortschatz-2", "code": "A1/A2", "text": "Die Schülerinnen und Schüler können einfache Redewendungen und feste Ausdrücke situationsgerecht einsetzen."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 7,
+      "bereiche": [
+        {
+          "bereich": "Hören",
+          "deskriptoren": [
+            {"id": "at-englisch-s7-hoeren-1", "code": "A2", "text": "Die Schülerinnen und Schüler können Gesprächen und Hörtexten zu vertrauten Themen Hauptpunkte und wichtige Details entnehmen."},
+            {"id": "at-englisch-s7-hoeren-2", "code": "A2", "text": "Die Schülerinnen und Schüler können einfache Sachtexte und Reportagen in deutlichem Standardenglisch verstehen."},
+            {"id": "at-englisch-s7-hoeren-3", "code": "A2", "text": "Die Schülerinnen und Schüler können einfachen medialen Beiträgen (Podcasts, kurze Videos) Informationen entnehmen."}
+          ]
+        },
+        {
+          "bereich": "Lesen",
+          "deskriptoren": [
+            {"id": "at-englisch-s7-lesen-1", "code": "A2", "text": "Die Schülerinnen und Schüler können kürzere literarische Texte und Sachtexte zu vertrauten Themen sinnerfassend lesen."},
+            {"id": "at-englisch-s7-lesen-2", "code": "A2", "text": "Die Schülerinnen und Schüler können Texte aus verschiedenen Quellen vergleichen und Informationen gezielt entnehmen."},
+            {"id": "at-englisch-s7-lesen-3", "code": "A2", "text": "Die Schülerinnen und Schüler können einfache authentische Texte (Zeitungsartikel, Blogbeiträge) in Grundzügen verstehen."}
+          ]
+        },
+        {
+          "bereich": "An Gesprächen teilnehmen",
+          "deskriptoren": [
+            {"id": "at-englisch-s7-gespraech-1", "code": "A2", "text": "Die Schülerinnen und Schüler können an Gesprächen über vertraute Themen aktiv teilnehmen und eigene Ideen einbringen."},
+            {"id": "at-englisch-s7-gespraech-2", "code": "A2", "text": "Die Schülerinnen und Schüler können in einfachen Diskussionen ihre Meinung äußern und auf andere reagieren."},
+            {"id": "at-englisch-s7-gespraech-3", "code": "A2", "text": "Die Schülerinnen und Schüler können Gespräche über Alltagsprobleme führen und Lösungen vorschlagen."}
+          ]
+        },
+        {
+          "bereich": "Zusammenhängend sprechen",
+          "deskriptoren": [
+            {"id": "at-englisch-s7-sprechen-1", "code": "A2", "text": "Die Schülerinnen und Schüler können über Erfahrungen, Ereignisse und Pläne zusammenhängend berichten."},
+            {"id": "at-englisch-s7-sprechen-2", "code": "A2", "text": "Die Schülerinnen und Schüler können kurze Präsentationen zu vertrauten Themen halten und Fragen dazu beantworten."}
+          ]
+        },
+        {
+          "bereich": "Schreiben",
+          "deskriptoren": [
+            {"id": "at-englisch-s7-schreiben-1", "code": "A2", "text": "Die Schülerinnen und Schüler können zusammenhängende Texte über vertraute Themen verfassen (Erlebnisse, Beschreibungen, einfache Argumentationen)."},
+            {"id": "at-englisch-s7-schreiben-2", "code": "A2", "text": "Die Schülerinnen und Schüler können persönliche und formelle Briefe/E-Mails mit klarer Struktur schreiben."},
+            {"id": "at-englisch-s7-schreiben-3", "code": "A2", "text": "Die Schülerinnen und Schüler können eigene Texte mit Hilfe von Strategien (Planen, Überarbeiten) verbessern."}
+          ]
+        },
+        {
+          "bereich": "Sprachmittlung",
+          "deskriptoren": [
+            {"id": "at-englisch-s7-mittlung-1", "code": "A2", "text": "Die Schülerinnen und Schüler können einfache Informationen aus authentischen Texten sinngemäß und adressatengerecht in die jeweils andere Sprache übertragen."}
+          ]
+        },
+        {
+          "bereich": "Grammatik",
+          "deskriptoren": [
+            {"id": "at-englisch-s7-grammatik-1", "code": "A2", "text": "Die Schülerinnen und Schüler können verschiedene Zeitformen (present perfect, past continuous, will-future) korrekt anwenden."},
+            {"id": "at-englisch-s7-grammatik-2", "code": "A2", "text": "Die Schülerinnen und Schüler können komplexere Satzstrukturen (Relativsätze, Konditionalsätze Typ I) bilden."}
+          ]
+        },
+        {
+          "bereich": "Wortschatz",
+          "deskriptoren": [
+            {"id": "at-englisch-s7-wortschatz-1", "code": "A2", "text": "Die Schülerinnen und Schüler können einen erweiterten Wortschatz zu Themen wie Gesellschaft, Medien, Umwelt aktiv verwenden."},
+            {"id": "at-englisch-s7-wortschatz-2", "code": "A2", "text": "Die Schülerinnen und Schüler können einfache idiomatische Ausdrücke und Kollokationen situationsgerecht einsetzen."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 8,
+      "bereiche": [
+        {
+          "bereich": "Hören",
+          "deskriptoren": [
+            {"id": "at-englisch-s8-hoeren-1", "code": "A2/B1", "text": "Die Schülerinnen und Schüler können längeren Gesprächen und Vorträgen zu bekannten Themen folgen, wenn in Standardsprache gesprochen wird."},
+            {"id": "at-englisch-s8-hoeren-2", "code": "A2/B1", "text": "Die Schülerinnen und Schüler können medialen Beiträgen (Filme, Reportagen, Interviews) Hauptargumente und wichtige Details entnehmen."},
+            {"id": "at-englisch-s8-hoeren-3", "code": "A2/B1", "text": "Die Schülerinnen und Schüler können authentischen Hörtexten mit unterschiedlichen Akzenten in Grundzügen folgen."}
+          ]
+        },
+        {
+          "bereich": "Lesen",
+          "deskriptoren": [
+            {"id": "at-englisch-s8-lesen-1", "code": "A2/B1", "text": "Die Schülerinnen und Schüler können längere Sachtexte und einfache literarische Texte zu bekannten Themen verstehen und analysieren."},
+            {"id": "at-englisch-s8-lesen-2", "code": "A2/B1", "text": "Die Schülerinnen und Schüler können authentische Texte (Zeitungsartikel, Kurzgeschichten) hinsichtlich Inhalt und Absicht interpretieren."},
+            {"id": "at-englisch-s8-lesen-3", "code": "A2/B1", "text": "Die Schülerinnen und Schüler können Lesestrategien gezielt zur Erschließung komplexerer Texte einsetzen."}
+          ]
+        },
+        {
+          "bereich": "An Gesprächen teilnehmen",
+          "deskriptoren": [
+            {"id": "at-englisch-s8-gespraech-1", "code": "A2/B1", "text": "Die Schülerinnen und Schüler können sich aktiv an Diskussionen über vertraute Themen beteiligen und Argumente austauschen."},
+            {"id": "at-englisch-s8-gespraech-2", "code": "A2/B1", "text": "Die Schülerinnen und Schüler können in Gesprächen Probleme beschreiben und Lösungsvorschläge machen."},
+            {"id": "at-englisch-s8-gespraech-3", "code": "A2/B1", "text": "Die Schülerinnen und Schüler können spontan auf unerwartete Gesprächssituationen reagieren."}
+          ]
+        },
+        {
+          "bereich": "Zusammenhängend sprechen",
+          "deskriptoren": [
+            {"id": "at-englisch-s8-sprechen-1", "code": "A2/B1", "text": "Die Schülerinnen und Schüler können über Erfahrungen, Ereignisse und Standpunkte zusammenhängend und strukturiert berichten."},
+            {"id": "at-englisch-s8-sprechen-2", "code": "A2/B1", "text": "Die Schülerinnen und Schüler können Präsentationen zu verschiedenen Themen halten und auf Nachfragen eingehen."}
+          ]
+        },
+        {
+          "bereich": "Schreiben",
+          "deskriptoren": [
+            {"id": "at-englisch-s8-schreiben-1", "code": "A2/B1", "text": "Die Schülerinnen und Schüler können strukturierte Texte (Erörterungen, Berichte, Zusammenfassungen) zu bekannten Themen verfassen."},
+            {"id": "at-englisch-s8-schreiben-2", "code": "A2/B1", "text": "Die Schülerinnen und Schüler können Argumente für und gegen einen Standpunkt darlegen und begründen."},
+            {"id": "at-englisch-s8-schreiben-3", "code": "A2/B1", "text": "Die Schülerinnen und Schüler können Texte stilistisch und inhaltlich überarbeiten."}
+          ]
+        },
+        {
+          "bereich": "Sprachmittlung",
+          "deskriptoren": [
+            {"id": "at-englisch-s8-mittlung-1", "code": "A2/B1", "text": "Die Schülerinnen und Schüler können komplexere Informationen aus authentischen Texten sinngemäß und adressatengerecht vermitteln."}
+          ]
+        },
+        {
+          "bereich": "Grammatik",
+          "deskriptoren": [
+            {"id": "at-englisch-s8-grammatik-1", "code": "A2/B1", "text": "Die Schülerinnen und Schüler können alle gängigen Zeitformen sicher anwenden und deren Nuancen unterscheiden."},
+            {"id": "at-englisch-s8-grammatik-2", "code": "A2/B1", "text": "Die Schülerinnen und Schüler können komplexe Satzstrukturen (Passiv, Konditionalsätze Typ II/III, indirekte Rede) korrekt bilden."}
+          ]
+        },
+        {
+          "bereich": "Wortschatz",
+          "deskriptoren": [
+            {"id": "at-englisch-s8-wortschatz-1", "code": "A2/B1", "text": "Die Schülerinnen und Schüler können einen differenzierten Wortschatz zu gesellschaftlichen, kulturellen und wissenschaftlichen Themen verwenden."},
+            {"id": "at-englisch-s8-wortschatz-2", "code": "A2/B1", "text": "Die Schülerinnen und Schüler können idiomatische Ausdrücke und stilistische Varianten situationsgerecht einsetzen."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 9,
+      "bereiche": [
+        {
+          "bereich": "Hören",
+          "deskriptoren": [
+            {"id": "at-englisch-s9-hoeren-1", "code": "B1", "text": "Die Schülerinnen und Schüler können längeren Vorträgen und komplexen Gesprächen zu bekannten Themen folgen, auch wenn nicht Standardsprache gesprochen wird."},
+            {"id": "at-englisch-s9-hoeren-2", "code": "B1", "text": "Die Schülerinnen und Schüler können authentischen medialen Beiträgen (Filme, Dokumentationen, Podcasts) Hauptargumente und implizite Bedeutungen entnehmen."},
+            {"id": "at-englisch-s9-hoeren-3", "code": "B1", "text": "Die Schülerinnen und Schüler können verschiedene Akzente und Sprechweisen des Englischen unterscheiden."}
+          ]
+        },
+        {
+          "bereich": "Lesen",
+          "deskriptoren": [
+            {"id": "at-englisch-s9-lesen-1", "code": "B1", "text": "Die Schülerinnen und Schüler können längere Sachtexte und literarische Werke (Kurzgeschichten, einfache Romane) analysieren und interpretieren."},
+            {"id": "at-englisch-s9-lesen-2", "code": "B1", "text": "Die Schülerinnen und Schüler können authentische Texte (Zeitungsartikel, Essays) hinsichtlich Argumentation, Stil und Intention untersuchen."},
+            {"id": "at-englisch-s9-lesen-3", "code": "B1", "text": "Die Schülerinnen und Schüler können Texte aus verschiedenen Perspektiven lesen und kritisch bewerten."}
+          ]
+        },
+        {
+          "bereich": "An Gesprächen teilnehmen",
+          "deskriptoren": [
+            {"id": "at-englisch-s9-gespraech-1", "code": "B1", "text": "Die Schülerinnen und Schüler können sich aktiv und differenziert an Diskussionen über gesellschaftliche und kulturelle Themen beteiligen."},
+            {"id": "at-englisch-s9-gespraech-2", "code": "B1", "text": "Die Schülerinnen und Schüler können Argumente strukturiert darlegen, auf Gegenargumente eingehen und Kompromisse vorschlagen."},
+            {"id": "at-englisch-s9-gespraech-3", "code": "B1", "text": "Die Schülerinnen und Schüler können Gespräche moderieren und andere zur Teilnahme ermutigen."}
+          ]
+        },
+        {
+          "bereich": "Zusammenhängend sprechen",
+          "deskriptoren": [
+            {"id": "at-englisch-s9-sprechen-1", "code": "B1", "text": "Die Schülerinnen und Schüler können über komplexe Themen strukturiert und differenziert sprechen und verschiedene Aspekte beleuchten."},
+            {"id": "at-englisch-s9-sprechen-2", "code": "B1", "text": "Die Schülerinnen und Schüler können Präsentationen zu anspruchsvollen Themen halten und auf kritische Fragen reagieren."}
+          ]
+        },
+        {
+          "bereich": "Schreiben",
+          "deskriptoren": [
+            {"id": "at-englisch-s9-schreiben-1", "code": "B1", "text": "Die Schülerinnen und Schüler können strukturierte und argumentative Texte (Essays, Analysen, Kommentare) zu komplexen Themen verfassen."},
+            {"id": "at-englisch-s9-schreiben-2", "code": "B1", "text": "Die Schülerinnen und Schüler können literarische Texte interpretieren und ihre Deutung mit Textbelegen stützen."},
+            {"id": "at-englisch-s9-schreiben-3", "code": "B1", "text": "Die Schülerinnen und Schüler können Texte für verschiedene Adressaten und Medien zielgerichtet gestalten."}
+          ]
+        },
+        {
+          "bereich": "Sprachmittlung",
+          "deskriptoren": [
+            {"id": "at-englisch-s9-mittlung-1", "code": "B1", "text": "Die Schülerinnen und Schüler können komplexe Informationen aus authentischen Texten differenziert und situationsgerecht in die jeweils andere Sprache übertragen."}
+          ]
+        },
+        {
+          "bereich": "Grammatik",
+          "deskriptoren": [
+            {"id": "at-englisch-s9-grammatik-1", "code": "B1", "text": "Die Schülerinnen und Schüler können grammatikalische Strukturen sicher und differenziert zur Gestaltung komplexer Texte einsetzen."},
+            {"id": "at-englisch-s9-grammatik-2", "code": "B1", "text": "Die Schülerinnen und Schüler können stilistische Nuancen durch grammatikalische Variation erzeugen."}
+          ]
+        },
+        {
+          "bereich": "Wortschatz",
+          "deskriptoren": [
+            {"id": "at-englisch-s9-wortschatz-1", "code": "B1", "text": "Die Schülerinnen und Schüler können einen differenzierten und themenspezifischen Wortschatz zu gesellschaftlichen, politischen und kulturellen Themen verwenden."},
+            {"id": "at-englisch-s9-wortschatz-2", "code": "B1", "text": "Die Schülerinnen und Schüler können stilistische Register (formal, informal, akademisch) situationsgerecht einsetzen."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 10,
+      "bereiche": [
+        {
+          "bereich": "Hören",
+          "deskriptoren": [
+            {"id": "at-englisch-s10-hoeren-1", "code": "B1/B2", "text": "Die Schülerinnen und Schüler können komplexen Vorträgen und Diskussionen zu abstrakten Themen folgen und implizite Bedeutungen erfassen."},
+            {"id": "at-englisch-s10-hoeren-2", "code": "B1/B2", "text": "Die Schülerinnen und Schüler können authentischen medialen Beiträgen mit verschiedenen Akzenten und Sprechweisen sicher folgen."},
+            {"id": "at-englisch-s10-hoeren-3", "code": "B1/B2", "text": "Die Schülerinnen und Schüler können rhetorische Strategien und persuasive Techniken in Hörtexten identifizieren."}
+          ]
+        },
+        {
+          "bereich": "Lesen",
+          "deskriptoren": [
+            {"id": "at-englisch-s10-lesen-1", "code": "B1/B2", "text": "Die Schülerinnen und Schüler können anspruchsvolle literarische Werke und wissenschaftliche Texte analysieren und interpretieren."},
+            {"id": "at-englisch-s10-lesen-2", "code": "B1/B2", "text": "Die Schülerinnen und Schüler können Texte aus verschiedenen theoretischen Perspektiven (z. B. postkolonial, feministisch) lesen."},
+            {"id": "at-englisch-s10-lesen-3", "code": "B1/B2", "text": "Die Schülerinnen und Schüler können intertextuelle Bezüge und kulturelle Kontexte in Texten erkennen."}
+          ]
+        },
+        {
+          "bereich": "An Gesprächen teilnehmen",
+          "deskriptoren": [
+            {"id": "at-englisch-s10-gespraech-1", "code": "B1/B2", "text": "Die Schülerinnen und Schüler können sich souverän an komplexen Diskussionen über abstrakte und kontroverse Themen beteiligen."},
+            {"id": "at-englisch-s10-gespraech-2", "code": "B1/B2", "text": "Die Schülerinnen und Schüler können Argumente rhetorisch geschickt präsentieren und auf Gegenpositionen differenziert reagieren."},
+            {"id": "at-englisch-s10-gespraech-3", "code": "B1/B2", "text": "Die Schülerinnen und Schüler können Gespräche strategisch führen und verschiedene Gesprächspartner einbeziehen."}
+          ]
+        },
+        {
+          "bereich": "Zusammenhängend sprechen",
+          "deskriptoren": [
+            {"id": "at-englisch-s10-sprechen-1", "code": "B1/B2", "text": "Die Schülerinnen und Schüler können komplexe Themen strukturiert, differenziert und rhetorisch ansprechend präsentieren."},
+            {"id": "at-englisch-s10-sprechen-2", "code": "B1/B2", "text": "Die Schülerinnen und Schüler können wissenschaftliche oder projektbezogene Präsentationen halten und auf kritische Nachfragen souverän reagieren."}
+          ]
+        },
+        {
+          "bereich": "Schreiben",
+          "deskriptoren": [
+            {"id": "at-englisch-s10-schreiben-1", "code": "B1/B2", "text": "Die Schülerinnen und Schüler können anspruchsvolle argumentative und analytische Texte (Essays, Kommentare, Reviews) verfassen."},
+            {"id": "at-englisch-s10-schreiben-2", "code": "B1/B2", "text": "Die Schülerinnen und Schüler können literarische Interpretationen mit differenzierter Argumentation und Textbelegen schreiben."},
+            {"id": "at-englisch-s10-schreiben-3", "code": "B1/B2", "text": "Die Schülerinnen und Schüler können Texte stilistisch und rhetorisch optimieren."}
+          ]
+        },
+        {
+          "bereich": "Sprachmittlung",
+          "deskriptoren": [
+            {"id": "at-englisch-s10-mittlung-1", "code": "B1/B2", "text": "Die Schülerinnen und Schüler können komplexe und nuancierte Informationen aus authentischen Texten adressatengerecht und kulturell sensibel vermitteln."}
+          ]
+        },
+        {
+          "bereich": "Grammatik",
+          "deskriptoren": [
+            {"id": "at-englisch-s10-grammatik-1", "code": "B1/B2", "text": "Die Schülerinnen und Schüler können komplexe grammatikalische Strukturen souverän zur Gestaltung anspruchsvoller Texte einsetzen."},
+            {"id": "at-englisch-s10-grammatik-2", "code": "B1/B2", "text": "Die Schülerinnen und Schüler können grammatikalische Variation gezielt für stilistische und rhetorische Effekte nutzen."}
+          ]
+        },
+        {
+          "bereich": "Wortschatz",
+          "deskriptoren": [
+            {"id": "at-englisch-s10-wortschatz-1", "code": "B1/B2", "text": "Die Schülerinnen und Schüler können einen umfangreichen und differenzierten Wortschatz zu komplexen gesellschaftlichen, wissenschaftlichen und kulturellen Themen verwenden."},
+            {"id": "at-englisch-s10-wortschatz-2", "code": "B1/B2", "text": "Die Schülerinnen und Schüler können stilistische Register und Fachsprachen situationsgerecht einsetzen."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 11,
+      "bereiche": [
+        {
+          "bereich": "Hören",
+          "deskriptoren": [
+            {"id": "at-englisch-s11-hoeren-1", "code": "B2", "text": "Die Schülerinnen und Schüler können komplexen Vorträgen, Diskussionen und medialen Beiträgen zu abstrakten und spezialisierten Themen sicher folgen."},
+            {"id": "at-englisch-s11-hoeren-2", "code": "B2", "text": "Die Schülerinnen und Schüler können implizite Bedeutungen, Ironie und rhetorische Strategien in Hörtexten identifizieren."},
+            {"id": "at-englisch-s11-hoeren-3", "code": "B2", "text": "Die Schülerinnen und Schüler können verschiedene Akzente und regionale Varianten des Englischen verstehen."}
+          ]
+        },
+        {
+          "bereich": "Lesen",
+          "deskriptoren": [
+            {"id": "at-englisch-s11-lesen-1", "code": "B2", "text": "Die Schülerinnen und Schüler können anspruchsvolle literarische Werke verschiedener Epochen und Kulturen multiperspektivisch analysieren."},
+            {"id": "at-englisch-s11-lesen-2", "code": "B2", "text": "Die Schülerinnen und Schüler können wissenschaftliche Texte und theoretische Positionen zu Literatur und Gesellschaft erfassen."},
+            {"id": "at-englisch-s11-lesen-3", "code": "B2", "text": "Die Schülerinnen und Schüler können Texte im Kontext philosophischer, politischer und ästhetischer Diskurse verorten."}
+          ]
+        },
+        {
+          "bereich": "An Gesprächen teilnehmen",
+          "deskriptoren": [
+            {"id": "at-englisch-s11-gespraech-1", "code": "B2", "text": "Die Schülerinnen und Schüler können sich souverän und differenziert an akademischen und öffentlichen Diskursen beteiligen."},
+            {"id": "at-englisch-s11-gespraech-2", "code": "B2", "text": "Die Schülerinnen und Schüler können komplexe Argumentationsstrategien einsetzen und auf Gegenpositionen reflexiv reagieren."},
+            {"id": "at-englisch-s11-gespraech-3", "code": "B2", "text": "Die Schülerinnen und Schüler können Gespräche moderieren und verschiedene Perspektiven produktiv integrieren."}
+          ]
+        },
+        {
+          "bereich": "Zusammenhängend sprechen",
+          "deskriptoren": [
+            {"id": "at-englisch-s11-sprechen-1", "code": "B2", "text": "Die Schülerinnen und Schüler können komplexe Themen strukturiert, differenziert und rhetorisch anspruchsvoll präsentieren."},
+            {"id": "at-englisch-s11-sprechen-2", "code": "B2", "text": "Die Schülerinnen und Schüler können wissenschaftliche oder projektbezogene Präsentationen mit theoretischer Fundierung halten."}
+          ]
+        },
+        {
+          "bereich": "Schreiben",
+          "deskriptoren": [
+            {"id": "at-englisch-s11-schreiben-1", "code": "B2", "text": "Die Schülerinnen und Schüler können wissenschaftspropädeutische Texte (Essays, Analysen, Reviews) nach akademischen Standards verfassen."},
+            {"id": "at-englisch-s11-schreiben-2", "code": "B2", "text": "Die Schülerinnen und Schüler können komplexe literaturwissenschaftliche oder gesellschaftswissenschaftliche Fragestellungen argumentativ bearbeiten."},
+            {"id": "at-englisch-s11-schreiben-3", "code": "B2", "text": "Die Schülerinnen und Schüler können Texte in verschiedenen akademischen Formaten produzieren."}
+          ]
+        },
+        {
+          "bereich": "Sprachmittlung",
+          "deskriptoren": [
+            {"id": "at-englisch-s11-mittlung-1", "code": "B2", "text": "Die Schülerinnen und Schüler können komplexe und spezialisierte Informationen aus authentischen Texten differenziert und kulturell sensibel vermitteln."}
+          ]
+        },
+        {
+          "bereich": "Grammatik",
+          "deskriptoren": [
+            {"id": "at-englisch-s11-grammatik-1", "code": "B2", "text": "Die Schülerinnen und Schüler können grammatikalische Strukturen souverän und nuanciert zur Gestaltung akademischer Texte einsetzen."},
+            {"id": "at-englisch-s11-grammatik-2", "code": "B2", "text": "Die Schülerinnen und Schüler können sprachwissenschaftliche Modelle auf konkrete Texte anwenden."}
+          ]
+        },
+        {
+          "bereich": "Wortschatz",
+          "deskriptoren": [
+            {"id": "at-englisch-s11-wortschatz-1", "code": "B2", "text": "Die Schülerinnen und Schüler können einen umfangreichen und spezialisierten Wortschatz zu akademischen und kulturellen Themen verwenden."},
+            {"id": "at-englisch-s11-wortschatz-2", "code": "B2", "text": "Die Schülerinnen und Schüler können akademische Fachsprachen und stilistische Register souverän einsetzen."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 12,
+      "bereiche": [
+        {
+          "bereich": "Hören",
+          "deskriptoren": [
+            {"id": "at-englisch-s12-hoeren-1", "code": "B2", "text": "Die Schülerinnen und Schüler können komplexen akademischen und öffentlichen Diskursen sicher folgen und diese kritisch bewerten."},
+            {"id": "at-englisch-s12-hoeren-2", "code": "B2", "text": "Die Schülerinnen und Schüler können rhetorische und persuasive Strategien in Hörtexten dekonstruieren und bewerten."}
+          ]
+        },
+        {
+          "bereich": "Lesen",
+          "deskriptoren": [
+            {"id": "at-englisch-s12-lesen-1", "code": "B2", "text": "Die Schülerinnen und Schüler können anspruchsvolle literarische Werke und theoretische Texte eigenständig erschließen und in größere Zusammenhänge einordnen."},
+            {"id": "at-englisch-s12-lesen-2", "code": "B2", "text": "Die Schülerinnen und Schüler können Texte unter komplexen Fragestellungen vergleichend analysieren und kritisch bewerten."}
+          ]
+        },
+        {
+          "bereich": "An Gesprächen teilnehmen",
+          "deskriptoren": [
+            {"id": "at-englisch-s12-gespraech-1", "code": "B2", "text": "Die Schülerinnen und Schüler können in akademischen und öffentlichen Diskursen souverän und reflektiert Position beziehen."},
+            {"id": "at-englisch-s12-gespraech-2", "code": "B2", "text": "Die Schülerinnen und Schüler können mündliche Reifeprüfung (Prüfungsgespräch) differenziert und souverän führen."}
+          ]
+        },
+        {
+          "bereich": "Zusammenhängend sprechen",
+          "deskriptoren": [
+            {"id": "at-englisch-s12-sprechen-1", "code": "B2", "text": "Die Schülerinnen und Schüler können komplexe Fragestellungen strukturiert, differenziert und rhetorisch souverän präsentieren."},
+            {"id": "at-englisch-s12-sprechen-2", "code": "B2", "text": "Die Schülerinnen und Schüler können eigene Forschungs- oder Projektarbeit mündlich präsentieren und fachkundig diskutieren."}
+          ]
+        },
+        {
+          "bereich": "Schreiben",
+          "deskriptoren": [
+            {"id": "at-englisch-s12-schreiben-1", "code": "B2", "text": "Die Schülerinnen und Schüler können unter Prüfungsbedingungen strukturierte, differenzierte und sprachlich präzise Texte (Matura-Klausur) verfassen."},
+            {"id": "at-englisch-s12-schreiben-2", "code": "B2", "text": "Die Schülerinnen und Schüler können eigene Texte nach akademischen und ästhetischen Kriterien beurteilen und optimieren."}
+          ]
+        },
+        {
+          "bereich": "Sprachmittlung",
+          "deskriptoren": [
+            {"id": "at-englisch-s12-mittlung-1", "code": "B2", "text": "Die Schülerinnen und Schüler können komplexe und nuancierte Informationen aus verschiedenen Quellen adressatengerecht und kulturell sensibel vermitteln."}
+          ]
+        },
+        {
+          "bereich": "Grammatik",
+          "deskriptoren": [
+            {"id": "at-englisch-s12-grammatik-1", "code": "B2", "text": "Die Schülerinnen und Schüler können grammatisches Wissen als Grundlage für sprachliche Präzision und stilistische Souveränität in eigenen Texten nutzen."},
+            {"id": "at-englisch-s12-grammatik-2", "code": "B2", "text": "Die Schülerinnen und Schüler können sprachwissenschaftliche Erkenntnisse in die Analyse und Produktion komplexer Texte einbringen."}
+          ]
+        },
+        {
+          "bereich": "Wortschatz",
+          "deskriptoren": [
+            {"id": "at-englisch-s12-wortschatz-1", "code": "B2", "text": "Die Schülerinnen und Schüler können einen umfangreichen und hochdifferenzierten Wortschatz souverän einsetzen."},
+            {"id": "at-englisch-s12-wortschatz-2", "code": "B2", "text": "Die Schülerinnen und Schüler können sprachliche Variation gezielt für stilistische und rhetorische Effekte nutzen."}
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,194 @@
+{
+  "fach": "latein",
+  "quelle": "BMBWF-Lehrplan AHS Latein — RIS, Stand 2023",
+  "quelleUrl": "https://www.ris.bka.gv.at/GeltendeFassung.wxe?Abfrage=Bundesnormen&Gesetzesnummer=10008568",
+  "stufen": [
+    {
+      "schulstufe": 6,
+      "bereiche": [
+        {
+          "bereich": "Sprachkompetenz",
+          "deskriptoren": [
+            {"id": "at-latein-s6-sprach-1", "code": "", "text": "Die Schülerinnen und Schüler können einfache lateinische Sätze mit grundlegender Grammatik (Nominativ, Akkusativ, Präsens) lesen und übersetzen."},
+            {"id": "at-latein-s6-sprach-2", "code": "", "text": "Die Schülerinnen und Schüler können grundlegende lateinische Wortformen (Deklinationen, Konjugationen) erkennen und bestimmen."},
+            {"id": "at-latein-s6-sprach-3", "code": "", "text": "Die Schülerinnen und Schüler können einfache lateinische Texte (Lehrbuchtexte) unter Anleitung erschließen."}
+          ]
+        },
+        {
+          "bereich": "Textkompetenz",
+          "deskriptoren": [
+            {"id": "at-latein-s6-text-1", "code": "", "text": "Die Schülerinnen und Schüler können einfache lateinische Texte inhaltlich erfassen und in Grundzügen wiedergeben."},
+            {"id": "at-latein-s6-text-2", "code": "", "text": "Die Schülerinnen und Schüler können einfache Übersetzungsstrategien (Wort-für-Wort, Satzbau) anwenden."}
+          ]
+        },
+        {
+          "bereich": "Kulturkompetenz",
+          "deskriptoren": [
+            {"id": "at-latein-s6-kultur-1", "code": "", "text": "Die Schülerinnen und Schüler können grundlegende Aspekte des römischen Alltagslebens (Familie, Haus, Schule) beschreiben."},
+            {"id": "at-latein-s6-kultur-2", "code": "", "text": "Die Schülerinnen und Schüler können römische Götter und einfache mythologische Erzählungen benennen und zuordnen."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 7,
+      "bereiche": [
+        {
+          "bereich": "Sprachkompetenz",
+          "deskriptoren": [
+            {"id": "at-latein-s7-sprach-1", "code": "", "text": "Die Schülerinnen und Schüler können lateinische Sätze mit erweiterter Grammatik (weitere Kasus, Tempora, Modi) lesen und übersetzen."},
+            {"id": "at-latein-s7-sprach-2", "code": "", "text": "Die Schülerinnen und Schüler können komplexere Satzstrukturen (Nebensätze, Participia) erkennen und analysieren."},
+            {"id": "at-latein-s7-sprach-3", "code": "", "text": "Die Schülerinnen und Schüler können lateinische Texte mit Hilfe von Wörterbuch und Grammatik eigenständiger erschließen."}
+          ]
+        },
+        {
+          "bereich": "Textkompetenz",
+          "deskriptoren": [
+            {"id": "at-latein-s7-text-1", "code": "", "text": "Die Schülerinnen und Schüler können lateinische Texte inhaltlich und formal in Grundzügen analysieren."},
+            {"id": "at-latein-s7-text-2", "code": "", "text": "Die Schülerinnen und Schüler können verschiedene Übersetzungsmethoden (Konstruktionsmethode, Ganzheitsmethode) anwenden."}
+          ]
+        },
+        {
+          "bereich": "Kulturkompetenz",
+          "deskriptoren": [
+            {"id": "at-latein-s7-kultur-1", "code": "", "text": "Die Schülerinnen und Schüler können Aspekte der römischen Gesellschaft (Stände, Politik, Militär) beschreiben und mit modernen Gesellschaften vergleichen."},
+            {"id": "at-latein-s7-kultur-2", "code": "", "text": "Die Schülerinnen und Schüler können römische Mythologie und ihre Rezeption in Kunst und Literatur nachvollziehen."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 8,
+      "bereiche": [
+        {
+          "bereich": "Sprachkompetenz",
+          "deskriptoren": [
+            {"id": "at-latein-s8-sprach-1", "code": "", "text": "Die Schülerinnen und Schüler können anspruchsvollere lateinische Texte (Originaltexte in adaptierter Form) mit komplexer Grammatik übersetzen."},
+            {"id": "at-latein-s8-sprach-2", "code": "", "text": "Die Schülerinnen und Schüler können stilistische Merkmale lateinischer Texte (Wortwahl, Satzbau, rhetorische Figuren) erkennen."},
+            {"id": "at-latein-s8-sprach-3", "code": "", "text": "Die Schülerinnen und Schüler können lateinische Texte mit Hilfe von Kommentar und Wörterbuch eigenständig erschließen."}
+          ]
+        },
+        {
+          "bereich": "Textkompetenz",
+          "deskriptoren": [
+            {"id": "at-latein-s8-text-1", "code": "", "text": "Die Schülerinnen und Schüler können lateinische Texte inhaltlich und formal analysieren und interpretieren."},
+            {"id": "at-latein-s8-text-2", "code": "", "text": "Die Schülerinnen und Schüler können Übersetzungen hinsichtlich Angemessenheit und stilistischer Qualität beurteilen."}
+          ]
+        },
+        {
+          "bereich": "Kulturkompetenz",
+          "deskriptoren": [
+            {"id": "at-latein-s8-kultur-1", "code": "", "text": "Die Schülerinnen und Schüler können zentrale Aspekte der römischen Geschichte und Politik beschreiben und ihre Bedeutung für die europäische Geschichte erkennen."},
+            {"id": "at-latein-s8-kultur-2", "code": "", "text": "Die Schülerinnen und Schüler können römische Philosophie, Rhetorik und Literatur in Grundzügen charakterisieren."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 9,
+      "bereiche": [
+        {
+          "bereich": "Sprachkompetenz",
+          "deskriptoren": [
+            {"id": "at-latein-s9-sprach-1", "code": "", "text": "Die Schülerinnen und Schüler können Originaltexte verschiedener Autoren und Gattungen mit komplexer Syntax und Stilistik übersetzen."},
+            {"id": "at-latein-s9-sprach-2", "code": "", "text": "Die Schülerinnen und Schüler können sprachliche Besonderheiten verschiedener Autoren (z. B. Caesar, Cicero, Ovid) erkennen und beschreiben."},
+            {"id": "at-latein-s9-sprach-3", "code": "", "text": "Die Schülerinnen und Schüler können lateinische Texte mit wissenschaftlichen Hilfsmitteln (Kommentar, Lexikon, Grammatik) eigenständig erschließen."}
+          ]
+        },
+        {
+          "bereich": "Textkompetenz",
+          "deskriptoren": [
+            {"id": "at-latein-s9-text-1", "code": "", "text": "Die Schülerinnen und Schüler können lateinische Originaltexte inhaltlich, formal und kontextuell analysieren und interpretieren."},
+            {"id": "at-latein-s9-text-2", "code": "", "text": "Die Schülerinnen und Schüler können verschiedene Übersetzungsvarianten kritisch vergleichen und bewerten."}
+          ]
+        },
+        {
+          "bereich": "Kulturkompetenz",
+          "deskriptoren": [
+            {"id": "at-latein-s9-kultur-1", "code": "", "text": "Die Schülerinnen und Schüler können römische Kultur und Gesellschaft im Kontext ihrer Zeit verstehen und mit modernen Kulturen vergleichen."},
+            {"id": "at-latein-s9-kultur-2", "code": "", "text": "Die Schülerinnen und Schüler können die Rezeption antiker Themen in späteren Epochen nachvollziehen."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 10,
+      "bereiche": [
+        {
+          "bereich": "Sprachkompetenz",
+          "deskriptoren": [
+            {"id": "at-latein-s10-sprach-1", "code": "", "text": "Die Schülerinnen und Schüler können anspruchsvolle Originaltexte verschiedener Gattungen (Prosa, Dichtung) sicher und differenziert übersetzen."},
+            {"id": "at-latein-s10-sprach-2", "code": "", "text": "Die Schülerinnen und Schüler können komplexe stilistische und rhetorische Mittel analysieren und ihre Funktion im Text erklären."},
+            {"id": "at-latein-s10-sprach-3", "code": "", "text": "Die Schülerinnen und Schüler können sprachliche und stilistische Besonderheiten verschiedener Autoren und Epochen unterscheiden."}
+          ]
+        },
+        {
+          "bereich": "Textkompetenz",
+          "deskriptoren": [
+            {"id": "at-latein-s10-text-1", "code": "", "text": "Die Schülerinnen und Schüler können lateinische Texte multiperspektivisch analysieren und in historische und kulturelle Kontexte einordnen."},
+            {"id": "at-latein-s10-text-2", "code": "", "text": "Die Schülerinnen und Schüler können Interpretationen mit Textbelegen argumentativ stützen."}
+          ]
+        },
+        {
+          "bereich": "Kulturkompetenz",
+          "deskriptoren": [
+            {"id": "at-latein-s10-kultur-1", "code": "", "text": "Die Schülerinnen und Schüler können zentrale Themen der römischen Kultur (z. B. Macht, Freiheit, Tugend) in verschiedenen Texten nachvollziehen."},
+            {"id": "at-latein-s10-kultur-2", "code": "", "text": "Die Schülerinnen und Schüler können die Wirkung antiker Kultur auf die europäische Geistesgeschichte beschreiben."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 11,
+      "bereiche": [
+        {
+          "bereich": "Sprachkompetenz",
+          "deskriptoren": [
+            {"id": "at-latein-s11-sprach-1", "code": "", "text": "Die Schülerinnen und Schüler können anspruchsvolle Originaltexte mit komplexer Sprache und Stilistik souverän übersetzen."},
+            {"id": "at-latein-s11-sprach-2", "code": "", "text": "Die Schülerinnen und Schüler können sprachliche und stilistische Phänomene im Kontext literarischer Gattungen und Epochen analysieren."}
+          ]
+        },
+        {
+          "bereich": "Textkompetenz",
+          "deskriptoren": [
+            {"id": "at-latein-s11-text-1", "code": "", "text": "Die Schülerinnen und Schüler können lateinische Texte mit wissenschaftlichen Methoden analysieren und interpretieren."},
+            {"id": "at-latein-s11-text-2", "code": "", "text": "Die Schülerinnen und Schüler können Texte im Kontext philosophischer, politischer und ästhetischer Diskurse verorten."}
+          ]
+        },
+        {
+          "bereich": "Kulturkompetenz",
+          "deskriptoren": [
+            {"id": "at-latein-s11-kultur-1", "code": "", "text": "Die Schülerinnen und Schüler können antike Kultur und ihre Rezeption in späteren Epochen multiperspektivisch analysieren."},
+            {"id": "at-latein-s11-kultur-2", "code": "", "text": "Die Schülerinnen und Schüler können die Aktualität antiker Themen in modernen Diskursen erkennen und bewerten."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 12,
+      "bereiche": [
+        {
+          "bereich": "Sprachkompetenz",
+          "deskriptoren": [
+            {"id": "at-latein-s12-sprach-1", "code": "", "text": "Die Schülerinnen und Schüler können anspruchsvolle Originaltexte souverän und differenziert übersetzen und ihre sprachliche Gestaltung reflektieren."},
+            {"id": "at-latein-s12-sprach-2", "code": "", "text": "Die Schülerinnen und Schüler können sprachwissenschaftliche Erkenntnisse auf lateinische Texte anwenden."}
+          ]
+        },
+        {
+          "bereich": "Textkompetenz",
+          "deskriptoren": [
+            {"id": "at-latein-s12-text-1", "code": "", "text": "Die Schülerinnen und Schüler können lateinische Texte eigenständig und multiperspektivisch analysieren und interpretieren."},
+            {"id": "at-latein-s12-text-2", "code": "", "text": "Die Schülerinnen und Schüler können Interpretationen unter komplexen Fragestellungen vergleichend erarbeiten."}
+          ]
+        },
+        {
+          "bereich": "Kulturkompetenz",
+          "deskriptoren": [
+            {"id": "at-latein-s12-kultur-1", "code": "", "text": "Die Schülerinnen und Schüler können antike Kultur als kulturelles Gedächtnis und als Grundlage europäischer Identität verstehen."},
+            {"id": "at-latein-s12-kultur-2", "code": "", "text": "Die Schülerinnen und Schüler können die Relevanz antiker Themen für gegenwärtige gesellschaftliche und ethische Fragen reflektieren."}
+          ]
+        }
+      ]
+    }
+  ]
+}

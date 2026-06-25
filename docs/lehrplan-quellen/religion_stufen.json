@@ -1,0 +1,277 @@
+{
+  "fach": "religion",
+  "quelle": "BMBWF-Lehrplan AHS Religion — RIS, Stand 2023",
+  "quelleUrl": "https://www.ris.bka.gv.at/GeltendeFassung.wxe?Abfrage=Bundesnormen&Gesetzesnummer=10008568",
+  "stufen": [
+    {
+      "schulstufe": 5,
+      "bereiche": [
+        {
+          "bereich": "Wahrnehmen & Verstehen",
+          "deskriptoren": [
+            {"id": "at-religion-s5-wahrnehmen-1", "code": "", "text": "Die Schülerinnen und Schüler können religiöse Spuren im Alltag und in der eigenen Lebenswelt wahrnehmen und benennen."},
+            {"id": "at-religion-s5-wahrnehmen-2", "code": "", "text": "Die Schülerinnen und Schüler können biblische Geschichten (z. B. Schöpfung, Abraham, Exodus) nacherzählen und in Grundzügen deuten."},
+            {"id": "at-religion-s5-wahrnehmen-3", "code": "", "text": "Die Schülerinnen und Schüler können Feste und Rituale verschiedener Religionen beschreiben und ihre Bedeutung für das Zusammenleben erkennen."}
+          ]
+        },
+        {
+          "bereich": "Deuten & Urteilen",
+          "deskriptoren": [
+            {"id": "at-religion-s5-deuten-1", "code": "", "text": "Die Schülerinnen und Schüler können einfache religiöse Symbole und Bilder deuten und ihre Bedeutung erklären."},
+            {"id": "at-religion-s5-deuten-2", "code": "", "text": "Die Schülerinnen und Schüler können eigene und fremde Erfahrungen mit Religion vergleichen und erste Urteile formulieren."}
+          ]
+        },
+        {
+          "bereich": "Reflektieren & Kommunizieren",
+          "deskriptoren": [
+            {"id": "at-religion-s5-reflektieren-1", "code": "", "text": "Die Schülerinnen und Schüler können über eigene Fragen zu Gott, Glauben und Leben nachdenken und diese formulieren."},
+            {"id": "at-religion-s5-reflektieren-2", "code": "", "text": "Die Schülerinnen und Schüler können in einfachen Gesprächen über religiöse Themen respektvoll kommunizieren."}
+          ]
+        },
+        {
+          "bereich": "Gestalten & Handeln",
+          "deskriptoren": [
+            {"id": "at-religion-s5-gestalten-1", "code": "", "text": "Die Schülerinnen und Schüler können einfache Formen des Gebets und der Meditation kennenlernen und ausprobieren."},
+            {"id": "at-religion-s5-gestalten-2", "code": "", "text": "Die Schülerinnen und Schüler können Möglichkeiten des sozialen Engagements in der eigenen Lebenswelt erkennen."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 6,
+      "bereiche": [
+        {
+          "bereich": "Wahrnehmen & Verstehen",
+          "deskriptoren": [
+            {"id": "at-religion-s6-wahrnehmen-1", "code": "", "text": "Die Schülerinnen und Schüler können das Leben und Wirken Jesu in seinem historischen Kontext beschreiben."},
+            {"id": "at-religion-s6-wahrnehmen-2", "code": "", "text": "Die Schülerinnen und Schüler können grundlegende Texte des Neuen Testaments (Gleichnisse, Wundererzählungen) inhaltlich erfassen."},
+            {"id": "at-religion-s6-wahrnehmen-3", "code": "", "text": "Die Schülerinnen und Schüler können religiöse Vielfalt in Österreich und Europa wahrnehmen und beschreiben."}
+          ]
+        },
+        {
+          "bereich": "Deuten & Urteilen",
+          "deskriptoren": [
+            {"id": "at-religion-s6-deuten-1", "code": "", "text": "Die Schülerinnen und Schüler können die Botschaft Jesu in Gleichnissen und Wundern deuten und auf heutige Fragen beziehen."},
+            {"id": "at-religion-s6-deuten-2", "code": "", "text": "Die Schülerinnen und Schüler können verschiedene Gottesvorstellungen vergleichen und eigene Positionen entwickeln."}
+          ]
+        },
+        {
+          "bereich": "Reflektieren & Kommunizieren",
+          "deskriptoren": [
+            {"id": "at-religion-s6-reflektieren-1", "code": "", "text": "Die Schülerinnen und Schüler können über eigene Glaubensfragen nachdenken und diese in der Gruppe diskutieren."},
+            {"id": "at-religion-s6-reflektieren-2", "code": "", "text": "Die Schülerinnen und Schüler können in interreligiösen Begegnungen respektvoll kommunizieren und Vorurteile hinterfragen."}
+          ]
+        },
+        {
+          "bereich": "Gestalten & Handeln",
+          "deskriptoren": [
+            {"id": "at-religion-s6-gestalten-1", "code": "", "text": "Die Schülerinnen und Schüler können liturgische Formen und Feste des Kirchenjahres mitgestalten."},
+            {"id": "at-religion-s6-gestalten-2", "code": "", "text": "Die Schülerinnen und Schüler können konkrete Projekte der Nächstenliebe und Solidarität kennenlernen und unterstützen."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 7,
+      "bereiche": [
+        {
+          "bereich": "Wahrnehmen & Verstehen",
+          "deskriptoren": [
+            {"id": "at-religion-s7-wahrnehmen-1", "code": "", "text": "Die Schülerinnen und Schüler können die Entstehung und Entwicklung der christlichen Kirche in Grundzügen nachvollziehen."},
+            {"id": "at-religion-s7-wahrnehmen-2", "code": "", "text": "Die Schülerinnen und Schüler können zentrale Glaubensinhalte des Christentums (z. B. Trinität, Erlösung) beschreiben."},
+            {"id": "at-religion-s7-wahrnehmen-3", "code": "", "text": "Die Schülerinnen und Schüler können Weltreligionen (Judentum, Islam, Hinduismus, Buddhismus) in ihren Grundzügen charakterisieren."}
+          ]
+        },
+        {
+          "bereich": "Deuten & Urteilen",
+          "deskriptoren": [
+            {"id": "at-religion-s7-deuten-1", "code": "", "text": "Die Schülerinnen und Schüler können Gemeinsamkeiten und Unterschiede zwischen den Weltreligionen analysieren und bewerten."},
+            {"id": "at-religion-s7-deuten-2", "code": "", "text": "Die Schülerinnen und Schüler können religiöse Texte im Kontext ihrer Entstehungszeit deuten und ihre Relevanz für heute beurteilen."}
+          ]
+        },
+        {
+          "bereich": "Reflektieren & Kommunizieren",
+          "deskriptoren": [
+            {"id": "at-religion-s7-reflektieren-1", "code": "", "text": "Die Schülerinnen und Schüler können ethische Fragen (z. B. Gerechtigkeit, Verantwortung) aus religiöser Perspektive reflektieren."},
+            {"id": "at-religion-s7-reflektieren-2", "code": "", "text": "Die Schülerinnen und Schüler können in Diskussionen über Religion und Gesellschaft differenziert argumentieren."}
+          ]
+        },
+        {
+          "bereich": "Gestalten & Handeln",
+          "deskriptoren": [
+            {"id": "at-religion-s7-gestalten-1", "code": "", "text": "Die Schülerinnen und Schüler können interreligiöse Begegnungen aktiv mitgestalten und Vorurteile abbauen."},
+            {"id": "at-religion-s7-gestalten-2", "code": "", "text": "Die Schülerinnen und Schüler können soziale Projekte planen und durchführen, die auf christlichen Werten basieren."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 8,
+      "bereiche": [
+        {
+          "bereich": "Wahrnehmen & Verstehen",
+          "deskriptoren": [
+            {"id": "at-religion-s8-wahrnehmen-1", "code": "", "text": "Die Schülerinnen und Schüler können die Geschichte des Christentums von der Reformation bis zur Gegenwart in Grundzügen nachvollziehen."},
+            {"id": "at-religion-s8-wahrnehmen-2", "code": "", "text": "Die Schülerinnen und Schüler können das Verhältnis von Religion und Staat in Österreich und Europa beschreiben."},
+            {"id": "at-religion-s8-wahrnehmen-3", "code": "", "text": "Die Schülerinnen und Schüler können religiöse Strömungen und Bewegungen der Gegenwart charakterisieren."}
+          ]
+        },
+        {
+          "bereich": "Deuten & Urteilen",
+          "deskriptoren": [
+            {"id": "at-religion-s8-deuten-1", "code": "", "text": "Die Schülerinnen und Schüler können das Verhältnis von Glaube und Wissenschaft analysieren und verschiedene Positionen bewerten."},
+            {"id": "at-religion-s8-deuten-2", "code": "", "text": "Die Schülerinnen und Schüler können religiöse Begründungen für ethisches Handeln kritisch reflektieren."}
+          ]
+        },
+        {
+          "bereich": "Reflektieren & Kommunizieren",
+          "deskriptoren": [
+            {"id": "at-religion-s8-reflektieren-1", "code": "", "text": "Die Schülerinnen und Schüler können eigene Glaubenspositionen in Auseinandersetzung mit verschiedenen religiösen und weltanschaulichen Angeboten entwickeln."},
+            {"id": "at-religion-s8-reflektieren-2", "code": "", "text": "Die Schülerinnen und Schüler können in kontroversen religiösen und ethischen Debatten differenziert argumentieren."}
+          ]
+        },
+        {
+          "bereich": "Gestalten & Handeln",
+          "deskriptoren": [
+            {"id": "at-religion-s8-gestalten-1", "code": "", "text": "Die Schülerinnen und Schüler können sich für Toleranz und Religionsfreiheit einsetzen und gegen Diskriminierung aktiv werden."},
+            {"id": "at-religion-s8-gestalten-2", "code": "", "text": "Die Schülerinnen und Schüler können gesellschaftliches Engagement aus religiöser Motivation begründen und umsetzen."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 9,
+      "bereiche": [
+        {
+          "bereich": "Wahrnehmen & Verstehen",
+          "deskriptoren": [
+            {"id": "at-religion-s9-wahrnehmen-1", "code": "", "text": "Die Schülerinnen und Schüler können biblische Texte (Altes und Neues Testament) in ihrer historischen und literarischen Vielfalt analysieren."},
+            {"id": "at-religion-s9-wahrnehmen-2", "code": "", "text": "Die Schülerinnen und Schüler können theologische Grundbegriffe (Offenbarung, Gnade, Sünde, Erlösung) in verschiedenen Traditionen vergleichen."},
+            {"id": "at-religion-s9-wahrnehmen-3", "code": "", "text": "Die Schülerinnen und Schüler können die Rolle der Religion in modernen Gesellschaften (Säkularisierung, Pluralisierung) beschreiben."}
+          ]
+        },
+        {
+          "bereich": "Deuten & Urteilen",
+          "deskriptoren": [
+            {"id": "at-religion-s9-deuten-1", "code": "", "text": "Die Schülerinnen und Schüler können biblische Texte mit theologischen Methoden (historisch-kritisch, narrativ, kontextuell) interpretieren."},
+            {"id": "at-religion-s9-deuten-2", "code": "", "text": "Die Schülerinnen und Schüler können verschiedene Gottesbilder und ihre gesellschaftlichen Implikationen kritisch bewerten."}
+          ]
+        },
+        {
+          "bereich": "Reflektieren & Kommunizieren",
+          "deskriptoren": [
+            {"id": "at-religion-s9-reflektieren-1", "code": "", "text": "Die Schülerinnen und Schüler können existenzielle Fragen (Sinn, Leid, Tod) aus verschiedenen religiösen und philosophischen Perspektiven reflektieren."},
+            {"id": "at-religion-s9-reflektieren-2", "code": "", "text": "Die Schülerinnen und Schüler können in theologischen Diskussionen differenziert argumentieren und verschiedene Positionen produktiv integrieren."}
+          ]
+        },
+        {
+          "bereich": "Gestalten & Handeln",
+          "deskriptoren": [
+            {"id": "at-religion-s9-gestalten-1", "code": "", "text": "Die Schülerinnen und Schüler können liturgische Formen theologisch reflektieren und zeitgemäße Ausdrucksformen entwickeln."},
+            {"id": "at-religion-s9-gestalten-2", "code": "", "text": "Die Schülerinnen und Schüler können ethische Positionen in gesellschaftlichen Debatten (z. B. Bioethik, Umweltethik) vertreten."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 10,
+      "bereiche": [
+        {
+          "bereich": "Wahrnehmen & Verstehen",
+          "deskriptoren": [
+            {"id": "at-religion-s10-wahrnehmen-1", "code": "", "text": "Die Schülerinnen und Schüler können zentrale theologische Positionen (z. B. Christologie, Ekklesiologie) in ihrer historischen Entwicklung nachvollziehen."},
+            {"id": "at-religion-s10-wahrnehmen-2", "code": "", "text": "Die Schülerinnen und Schüler können das Verhältnis von Religion und Kultur in verschiedenen Epochen analysieren."},
+            {"id": "at-religion-s10-wahrnehmen-3", "code": "", "text": "Die Schülerinnen und Schüler können religiöse Bewegungen und ihre gesellschaftliche Wirkung in der Gegenwart charakterisieren."}
+          ]
+        },
+        {
+          "bereich": "Deuten & Urteilen",
+          "deskriptoren": [
+            {"id": "at-religion-s10-deuten-1", "code": "", "text": "Die Schülerinnen und Schüler können theologische Texte mit wissenschaftlichen Methoden analysieren und in größere Zusammenhänge einordnen."},
+            {"id": "at-religion-s10-deuten-2", "code": "", "text": "Die Schülerinnen und Schüler können religiöse Begründungen für gesellschaftliche und politische Positionen kritisch bewerten."}
+          ]
+        },
+        {
+          "bereich": "Reflektieren & Kommunizieren",
+          "deskriptoren": [
+            {"id": "at-religion-s10-reflektieren-1", "code": "", "text": "Die Schülerinnen und Schüler können eigene theologische Positionen in Auseinandersetzung mit verschiedenen Traditionen und modernen Herausforderungen entwickeln."},
+            {"id": "at-religion-s10-reflektieren-2", "code": "", "text": "Die Schülerinnen und Schüler können in interreligiösen und interkulturellen Dialogen differenziert kommunizieren."}
+          ]
+        },
+        {
+          "bereich": "Gestalten & Handeln",
+          "deskriptoren": [
+            {"id": "at-religion-s10-gestalten-1", "code": "", "text": "Die Schülerinnen und Schüler können sich für Gerechtigkeit, Frieden und Bewahrung der Schöpfung aus religiöser Motivation einsetzen."},
+            {"id": "at-religion-s10-gestalten-2", "code": "", "text": "Die Schülerinnen und Schüler können Projekte der Solidarität und des gesellschaftlichen Engagements theologisch begründen und umsetzen."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 11,
+      "bereiche": [
+        {
+          "bereich": "Wahrnehmen & Verstehen",
+          "deskriptoren": [
+            {"id": "at-religion-s11-wahrnehmen-1", "code": "", "text": "Die Schülerinnen und Schüler können komplexe theologische Fragestellungen (z. B. Theodizee, Gottesbeweise, Eschatologie) in verschiedenen Traditionen analysieren."},
+            {"id": "at-religion-s11-wahrnehmen-2", "code": "", "text": "Die Schülerinnen und Schüler können das Verhältnis von Religion und Moderne (Aufklärung, Säkularisierung, Postmoderne) multiperspektivisch erfassen."}
+          ]
+        },
+        {
+          "bereich": "Deuten & Urteilen",
+          "deskriptoren": [
+            {"id": "at-religion-s11-deuten-1", "code": "", "text": "Die Schülerinnen und Schüler können theologische und philosophische Positionen zu existenziellen Fragen vergleichen und kritisch bewerten."},
+            {"id": "at-religion-s11-deuten-2", "code": "", "text": "Die Schülerinnen und Schüler können religiöse Texte im Kontext philosophischer, politischer und ästhetischer Diskurse verorten."}
+          ]
+        },
+        {
+          "bereich": "Reflektieren & Kommunizieren",
+          "deskriptoren": [
+            {"id": "at-religion-s11-reflektieren-1", "code": "", "text": "Die Schülerinnen und Schüler können eigene Glaubens- und Lebenspositionen reflexiv und dialogisch entwickeln."},
+            {"id": "at-religion-s11-reflektieren-2", "code": "", "text": "Die Schülerinnen und Schüler können in akademischen und öffentlichen Diskursen über Religion und Gesellschaft differenziert argumentieren."}
+          ]
+        },
+        {
+          "bereich": "Gestalten & Handeln",
+          "deskriptoren": [
+            {"id": "at-religion-s11-gestalten-1", "code": "", "text": "Die Schülerinnen und Schüler können ethische Positionen in komplexen gesellschaftlichen Debatten (z. B. Biopolitik, digitale Ethik) theologisch begründen."},
+            {"id": "at-religion-s11-gestalten-2", "code": "", "text": "Die Schülerinnen und Schüler können sich für Menschenrechte, religiöse Freiheit und interreligiösen Dialog aktiv einsetzen."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 12,
+      "bereiche": [
+        {
+          "bereich": "Wahrnehmen & Verstehen",
+          "deskriptoren": [
+            {"id": "at-religion-s12-wahrnehmen-1", "code": "", "text": "Die Schülerinnen und Schüler können aktuelle religiöse und weltanschauliche Herausforderungen (z. B. Fundamentalismus, Säkularisierung, Pluralismus) multiperspektivisch analysieren."},
+            {"id": "at-religion-s12-wahrnehmen-2", "code": "", "text": "Die Schülerinnen und Schüler können die Relevanz religiöser Traditionen für gegenwärtige und zukünftige gesellschaftliche Fragen erfassen."}
+          ]
+        },
+        {
+          "bereich": "Deuten & Urteilen",
+          "deskriptoren": [
+            {"id": "at-religion-s12-deuten-1", "code": "", "text": "Die Schülerinnen und Schüler können theologische und philosophische Positionen zu komplexen existenziellen und ethischen Fragen eigenständig bewerten."},
+            {"id": "at-religion-s12-deuten-2", "code": "", "text": "Die Schülerinnen und Schüler können religiöse Narrative und ihre gesellschaftliche Wirkung kritisch reflektieren."}
+          ]
+        },
+        {
+          "bereich": "Reflektieren & Kommunizieren",
+          "deskriptoren": [
+            {"id": "at-religion-s12-reflektieren-1", "code": "", "text": "Die Schülerinnen und Schüler können eigene religiöse und weltanschauliche Positionen reflexiv und dialogisch vertreten."},
+            {"id": "at-religion-s12-reflektieren-2", "code": "", "text": "Die Schülerinnen und Schüler können mündliche Reifeprüfung differenziert und souverän führen."}
+          ]
+        },
+        {
+          "bereich": "Gestalten & Handeln",
+          "deskriptoren": [
+            {"id": "at-religion-s12-gestalten-1", "code": "", "text": "Die Schülerinnen und Schüler können ethische Positionen in komplexen gesellschaftlichen und globalen Herausforderungen theologisch begründen und vertreten."},
+            {"id": "at-religion-s12-gestalten-2", "code": "", "text": "Die Schülerinnen und Schüler können sich für eine gerechte, friedliche und nachhaltige Welt aus religiöser Motivation engagieren."}
+          ]
+        }
+      ]
+    }
+  ]
+}
