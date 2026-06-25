@@ -1,0 +1,14 @@
+{
+  "fach": "deutsch",
+  "quelle": "BMBWF-Lehrplan AHS Deutsch — RIS, Stand 2023",
+  "module": [
+    {"id": "at-deutsch-maerchen-sagen", "schulstufe": 5, "titel": "Märchen, Sagen und Fabeln", "beschreibung": "Einfache literarische Gattungen und ihre Merkmale, Erzählstrukturen und Moral."},
+    {"id": "at-deutsch-kinderliteratur", "schulstufe": 6, "titel": "Kinder- und Jugendliteratur", "beschreibung": "Kinderromane, Gedichte und kurze Erzählungen mit Fokus auf Figuren und Handlung."},
+    {"id": "at-deutsch-balladen", "schulstufe": 7, "titel": "Balladen und Kurzgeschichten", "beschreibung": "Literarische Gattungen, Motive und historische Kontexte."},
+    {"id": "at-deutsch-drama", "schulstufe": 8, "titel": "Drama und Roman", "beschreibung": "Komplexere literarische Werke, Textanalyse und Interpretation."},
+    {"id": "at-deutsch-klassik-romantik", "schulstufe": 9, "titel": "Weimarer Klassik und Romantik", "beschreibung": "Literarische Epochen, zentrale Werke und historische Einordnung."},
+    {"id": "at-deutsch-vormaerz-realismus", "schulstufe": 10, "titel": "Vormärz, Realismus und Moderne", "beschreibung": "Epochenübergreifende Analyse und theoretische Perspektiven."},
+    {"id": "at-deutsch-moderne-nachkrieg", "schulstufe": 11, "titel": "Moderne und Nachkriegsliteratur", "beschreibung": "Kafka, Celan, Bachmann und literarische Traditionen nach 1945."},
+    {"id": "at-deutsch-gegenwart", "schulstufe": 12, "titel": "Gegenwartsliteratur und Medien", "beschreibung": "Aktuelle literarische Positionen, Identität und Erinnerung."}
+  ]
+}

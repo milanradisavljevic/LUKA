@@ -1,0 +1,12 @@
+{
+  "fach": "franzoesisch",
+  "quelle": "BMBWF-Lehrplan AHS Französisch — RIS, Stand 2023",
+  "module": [
+    {"id": "at-franzoesisch-alltag", "schulstufe": 7, "titel": "Vie quotidienne et monde personnel", "beschreibung": "Familie, Schule, Hobbys und tägliche Routinen auf A1/A2-Niveau."},
+    {"id": "at-franzoesisch-reisen", "schulstufe": 8, "titel": "Voyages et cultures francophones", "beschreibung": "Reisen, frankophone Länder und interkulturelle Begegnungen auf A2-Niveau."},
+    {"id": "at-franzoesisch-medien", "schulstufe": 9, "titel": "Médias et communication", "beschreibung": "Soziale Medien, Nachrichten und digitale Kommunikation auf B1-Niveau."},
+    {"id": "at-franzoesisch-gesellschaft", "schulstufe": 10, "titel": "Société et questions actuelles", "beschreibung": "Gesellschaftliche Debatten, Umwelt und Migration auf B1/B2-Niveau."},
+    {"id": "at-franzoesisch-literatur", "schulstufe": 11, "titel": "Littérature et expression créative", "beschreibung": "Kurzgeschichten, Gedichte und kreative Schreibformen auf B2-Niveau."},
+    {"id": "at-franzoesisch-kultur", "schulstufe": 12, "titel": "Culture et civilisation francophones", "beschreibung": "Französische Philosophie, Kino und kulturelle Identität auf B2/C1-Niveau."}
+  ]
+}

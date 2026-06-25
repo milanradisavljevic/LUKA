@@ -1,0 +1,10 @@
+{
+  "fach": "spanisch",
+  "quelle": "BMBWF-Lehrplan AHS Spanisch — RIS, Stand 2023",
+  "module": [
+    {"id": "at-spanisch-alltag", "schulstufe": 9, "titel": "Vida cotidiana y mundo personal", "beschreibung": "Familie, Schule, Hobbys und tägliche Routinen auf A1/A2-Niveau."},
+    {"id": "at-spanisch-reisen", "schulstufe": 10, "titel": "Viajes y culturas hispanohablantes", "beschreibung": "Reisen, spanischsprachige Länder und interkulturelle Begegnungen auf A2/B1-Niveau."},
+    {"id": "at-spanisch-medien", "schulstufe": 11, "titel": "Medios y comunicación digital", "beschreibung": "Soziale Medien, Nachrichten und digitale Kommunikation auf B1-Niveau."},
+    {"id": "at-spanisch-gesellschaft", "schulstufe": 12, "titel": "Sociedad y temas actuales", "beschreibung": "Migration, Umwelt und gesellschaftliche Debatten auf B1/B2-Niveau."}
+  ]
+}

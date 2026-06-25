@@ -1,0 +1,14 @@
+{
+  "fach": "religion",
+  "quelle": "BMBWF-Lehrplan AHS Religionsunterricht — RIS, Stand 2023",
+  "module": [
+    {"id": "at-religion-identitaet", "schulstufe": 5, "titel": "Identität und Gemeinschaft", "beschreibung": "Selbstwahrnehmung, Freundschaft und religiöse Zugehörigkeit."},
+    {"id": "at-religion-bibel", "schulstufe": 6, "titel": "Bibel und religiöse Texte", "beschreibung": "Altes und Neues Testament, Erzählungen und ihre Bedeutung."},
+    {"id": "at-religion-weltreligionen", "schulstufe": 7, "titel": "Weltreligionen und Dialog", "beschreibung": "Judentum, Islam, Buddhismus und interreligiöser Dialog."},
+    {"id": "at-religion-ethik", "schulstufe": 8, "titel": "Ethische Fragen und Werte", "beschreibung": "Gerechtigkeit, Verantwortung und moralische Entscheidungen."},
+    {"id": "at-religion-kirche", "schulstufe": 9, "titel": "Kirche und Geschichte", "beschreibung": "Kirchengeschichte, Reformation und moderne Herausforderungen."},
+    {"id": "at-religion-sinn", "schulstufe": 10, "titel": "Sinnfragen und Spiritualität", "beschreibung": "Leid, Tod, Hoffnung und spirituelle Suche."},
+    {"id": "at-religion-gesellschaft", "schulstufe": 11, "titel": "Religion und Gesellschaft", "beschreibung": "Religion im öffentlichen Raum, Säkularisierung und Fundamentalismus."},
+    {"id": "at-religion-philosophie", "schulstufe": 12, "titel": "Theologie und Philosophie", "beschreibung": "Gottesfrage, Theodizee und religiöse Sprachformen."}
+  ]
+}

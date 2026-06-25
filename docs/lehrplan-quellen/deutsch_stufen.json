@@ -1,0 +1,407 @@
+{
+  "fach": "deutsch",
+  "quelle": "BMBWF-Lehrplan AHS Deutsch — RIS, Stand 2023",
+  "quelleUrl": "https://www.ris.bka.gv.at/GeltendeFassung.wxe?Abfrage=Bundesnormen&Gesetzesnummer=10008568",
+  "stufen": [
+    {
+      "schulstufe": 5,
+      "bereiche": [
+        {
+          "bereich": "Zuhören & Sprechen",
+          "deskriptoren": [
+            {"id": "at-deutsch-s5-zuhoeren-1", "code": "", "text": "Die Schülerinnen und Schüler können kurzen mündlichen Beiträgen aufmerksam folgen und zentrale Informationen wiedergeben."},
+            {"id": "at-deutsch-s5-zuhoeren-2", "code": "", "text": "Die Schülerinnen und Schüler können Erlebnisse und Erfahrungen zusammenhängend und für andere verständlich erzählen."},
+            {"id": "at-deutsch-s5-zuhoeren-3", "code": "", "text": "Die Schülerinnen und Schüler können einfache Gespräche führen, Gesprächsregeln beachten und sich an Klassengesprächen beteiligen."}
+          ]
+        },
+        {
+          "bereich": "Lesen & Textverständnis",
+          "deskriptoren": [
+            {"id": "at-deutsch-s5-lesen-1", "code": "", "text": "Die Schülerinnen und Schüler können altersgemäße literarische Texte (Märchen, Sagen, Fabeln) sinnerfassend lesen und wiedergeben."},
+            {"id": "at-deutsch-s5-lesen-2", "code": "", "text": "Die Schülerinnen und Schüler können einfache Sachtexte lesen und wichtige Informationen entnehmen."},
+            {"id": "at-deutsch-s5-lesen-3", "code": "", "text": "Die Schülerinnen und Schüler können Lesestrategien (Überfliegen, Markieren, Zusammenfassen) anwenden."}
+          ]
+        },
+        {
+          "bereich": "Schreiben",
+          "deskriptoren": [
+            {"id": "at-deutsch-s5-schreiben-1", "code": "", "text": "Die Schülerinnen und Schüler können Erlebnisse und Geschichten in ganzen Sätzen schriftlich erzählen."},
+            {"id": "at-deutsch-s5-schreiben-2", "code": "", "text": "Die Schülerinnen und Schüler können einfache Berichte und Beschreibungen verfassen."},
+            {"id": "at-deutsch-s5-schreiben-3", "code": "", "text": "Die Schülerinnen und Schüler können eigene Texte überarbeiten und auf Rechtschreibung achten."}
+          ]
+        },
+        {
+          "bereich": "Sprachbewusstsein",
+          "deskriptoren": [
+            {"id": "at-deutsch-s5-sprachbewusstsein-1", "code": "", "text": "Die Schülerinnen und Schüler können grundlegende Rechtschreibregeln (Groß-/Kleinschreibung, Satzzeichen) anwenden."},
+            {"id": "at-deutsch-s5-sprachbewusstsein-2", "code": "", "text": "Die Schülerinnen und Schüler können Wörter in Wortarten (Nomen, Verb, Adjektiv) einteilen."}
+          ]
+        },
+        {
+          "bereich": "Literarische Bildung",
+          "deskriptoren": [
+            {"id": "at-deutsch-s5-literarisch-1", "code": "", "text": "Die Schülerinnen und Schüler können Merkmale einfacher literarischer Gattungen (Märchen, Fabel, Sage) erkennen und benennen."},
+            {"id": "at-deutsch-s5-literarisch-2", "code": "", "text": "Die Schülerinnen und Schüler können zu literarischen Texten eigene Zugänge finden und ihre Eindrücke formulieren."}
+          ]
+        },
+        {
+          "bereich": "Grammatik",
+          "deskriptoren": [
+            {"id": "at-deutsch-s5-grammatik-1", "code": "", "text": "Die Schülerinnen und Schüler können die grundlegenden Satzglieder (Subjekt, Prädikat) bestimmen."},
+            {"id": "at-deutsch-s5-grammatik-2", "code": "", "text": "Die Schülerinnen und Schüler können einfache Satzstrukturen (Hauptsatz) erkennen und bilden."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 6,
+      "bereiche": [
+        {
+          "bereich": "Zuhören & Sprechen",
+          "deskriptoren": [
+            {"id": "at-deutsch-s6-zuhoeren-1", "code": "", "text": "Die Schülerinnen und Schüler können längeren mündlichen Beiträgen folgen und deren Absicht und Kern erkennen."},
+            {"id": "at-deutsch-s6-zuhoeren-2", "code": "", "text": "Die Schülerinnen und Schüler können über Sachverhalte berichten, beschreiben und erklären."},
+            {"id": "at-deutsch-s6-zuhoeren-3", "code": "", "text": "Die Schülerinnen und Schüler können in einfachen Situationen argumentieren und ihre Meinung begründen."}
+          ]
+        },
+        {
+          "bereich": "Lesen & Textverständnis",
+          "deskriptoren": [
+            {"id": "at-deutsch-s6-lesen-1", "code": "", "text": "Die Schülerinnen und Schüler können altersgemäße literarische Texte (Gedichte, kurze Erzählungen, Kinderromane) inhaltlich und formal erfassen."},
+            {"id": "at-deutsch-s6-lesen-2", "code": "", "text": "Die Schülerinnen und Schüler können Sachtexten Informationen entnehmen und diese vergleichen."},
+            {"id": "at-deutsch-s6-lesen-3", "code": "", "text": "Die Schülerinnen und Schüler können Texte in einfache Strukturmodelle einordnen (Einleitung, Hauptteil, Schluss)."}
+          ]
+        },
+        {
+          "bereich": "Schreiben",
+          "deskriptoren": [
+            {"id": "at-deutsch-s6-schreiben-1", "code": "", "text": "Die Schülerinnen und Schüler können informierende Texte (Bericht, Beschreibung, Erklärung) strukturiert verfassen."},
+            {"id": "at-deutsch-s6-schreiben-2", "code": "", "text": "Die Schülerinnen und Schüler können zu Bildern, Themen oder Texten kreative Texte schreiben."},
+            {"id": "at-deutsch-s6-schreiben-3", "code": "", "text": "Die Schülerinnen und Schüler können eigene Texte nach Kriterien überarbeiten und Rückmeldungen einarbeiten."}
+          ]
+        },
+        {
+          "bereich": "Sprachbewusstsein",
+          "deskriptoren": [
+            {"id": "at-deutsch-s6-sprachbewusstsein-1", "code": "", "text": "Die Schülerinnen und Schüler können Rechtschreibstrategien (Ableitung, Verlängerung, Stammschreibung) anwenden."},
+            {"id": "at-deutsch-s6-sprachbewusstsein-2", "code": "", "text": "Die Schülerinnen und Schüler können den Einfluss von Sprache auf zwischenmenschliche Beziehungen in einfachen Beispielen erkennen."}
+          ]
+        },
+        {
+          "bereich": "Literarische Bildung",
+          "deskriptoren": [
+            {"id": "at-deutsch-s6-literarisch-1", "code": "", "text": "Die Schülerinnen und Schüler können literarische Figuren charakterisieren und deren Handlungen nachvollziehen."},
+            {"id": "at-deutsch-s6-literarisch-2", "code": "", "text": "Die Schülerinnen und Schüler können einfache sprachliche Gestaltungsmittel (Vergleich, Metapher) in Texten erkennen."}
+          ]
+        },
+        {
+          "bereich": "Grammatik",
+          "deskriptoren": [
+            {"id": "at-deutsch-s6-grammatik-1", "code": "", "text": "Die Schülerinnen und Schüler können alle vier Kasus (Fälle) bestimmen und korrekt anwenden."},
+            {"id": "at-deutsch-s6-grammatik-2", "code": "", "text": "Die Schülerinnen und Schüler können Nebensätze (kausale, temporale) erkennen und bilden."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 7,
+      "bereiche": [
+        {
+          "bereich": "Zuhören & Sprechen",
+          "deskriptoren": [
+            {"id": "at-deutsch-s7-zuhoeren-1", "code": "", "text": "Die Schülerinnen und Schüler können argumentative und informative Beiträge zu einem Thema mündlich präsentieren."},
+            {"id": "at-deutsch-s7-zuhoeren-2", "code": "", "text": "Die Schülerinnen und Schüler können in Diskussionen eigene Positionen vertreten und auf Gegenargumente reagieren."},
+            {"id": "at-deutsch-s7-zuhoeren-3", "code": "", "text": "Die Schülerinnen und Schüler können verbale und nonverbale Kommunikationsmittel bewusst einsetzen."}
+          ]
+        },
+        {
+          "bereich": "Lesen & Textverständnis",
+          "deskriptoren": [
+            {"id": "at-deutsch-s7-lesen-1", "code": "", "text": "Die Schülerinnen und Schüler können literarische Texte verschiedener Gattungen (Ballade, Kurzgeschichte, Drama) in Grundzügen analysieren."},
+            {"id": "at-deutsch-s7-lesen-2", "code": "", "text": "Die Schülerinnen und Schüler können Sach- und Gebrauchstexte zielgerichtet auswerten und deren Argumentationsstruktur erfassen."},
+            {"id": "at-deutsch-s7-lesen-3", "code": "", "text": "Die Schülerinnen und Schüler können Texte aus unterschiedlichen Medien (Print, digital) kritisch vergleichen."}
+          ]
+        },
+        {
+          "bereich": "Schreiben",
+          "deskriptoren": [
+            {"id": "at-deutsch-s7-schreiben-1", "code": "", "text": "Die Schülerinnen und Schüler können einfache argumentative Texte (Meinungsäußerung, Begründung) verfassen."},
+            {"id": "at-deutsch-s7-schreiben-2", "code": "", "text": "Die Schülerinnen und Schüler können Texte in verschiedenen Formaten (Brief, E-Mail, Protokoll) adressatengerecht gestalten."},
+            {"id": "at-deutsch-s7-schreiben-3", "code": "", "text": "Die Schülerinnen und Schüler können den Schreibprozess (Planen, Formulieren, Überarbeiten) selbstständig anwenden."}
+          ]
+        },
+        {
+          "bereich": "Sprachbewusstsein",
+          "deskriptoren": [
+            {"id": "at-deutsch-s7-sprachbewusstsein-1", "code": "", "text": "Die Schülerinnen und Schüler können sprachliche Mittel (z. B. Ironie, Übertreibung) in ihrer Wirkung erkennen."},
+            {"id": "at-deutsch-s7-sprachbewusstsein-2", "code": "", "text": "Die Schülerinnen und Schüler können zwischen Standard- und Umgangssprache sowie Jugendsprache unterscheiden."}
+          ]
+        },
+        {
+          "bereich": "Literarische Bildung",
+          "deskriptoren": [
+            {"id": "at-deutsch-s7-literarisch-1", "code": "", "text": "Die Schülerinnen und Schüler können literarische Motive und Themen in verschiedenen Texten vergleichen."},
+            {"id": "at-deutsch-s7-literarisch-2", "code": "", "text": "Die Schülerinnen und Schüler können Texte in einfache historische und kulturelle Kontexte einordnen."}
+          ]
+        },
+        {
+          "bereich": "Grammatik",
+          "deskriptoren": [
+            {"id": "at-deutsch-s7-grammatik-1", "code": "", "text": "Die Schülerinnen und Schüler können verschiedene Verbformen (Indikativ, Konjunktiv) unterscheiden und ihre Funktion erklären."},
+            {"id": "at-deutsch-s7-grammatik-2", "code": "", "text": "Die Schülerinnen und Schüler können komplexe Satzgefüge analysieren und die Funktion von Nebensätzen bestimmen."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 8,
+      "bereiche": [
+        {
+          "bereich": "Zuhören & Sprechen",
+          "deskriptoren": [
+            {"id": "at-deutsch-s8-zuhoeren-1", "code": "", "text": "Die Schülerinnen und Schüler können strukturierte Referate zu selbst gewählten Themen halten und Fragen dazu beantworten."},
+            {"id": "at-deutsch-s8-zuhoeren-2", "code": "", "text": "Die Schülerinnen und Schüler können in Debatten und Podiumsdiskussionen begründet Stellung nehmen und rhetorische Mittel einsetzen."},
+            {"id": "at-deutsch-s8-zuhoeren-3", "code": "", "text": "Die Schülerinnen und Schüler können Gesprächsverläufe reflektieren und Kommunikationsstörungen erkennen."}
+          ]
+        },
+        {
+          "bereich": "Lesen & Textverständnis",
+          "deskriptoren": [
+            {"id": "at-deutsch-s8-lesen-1", "code": "", "text": "Die Schülerinnen und Schüler können komplexere literarische Werke (Roman, Drama) inhaltlich und formal analysieren und interpretieren."},
+            {"id": "at-deutsch-s8-lesen-2", "code": "", "text": "Die Schülerinnen und Schüler können Sachtexte und Medienbeiträge hinsichtlich ihrer Argumentationsstrategie und Intention beurteilen."},
+            {"id": "at-deutsch-s8-lesen-3", "code": "", "text": "Die Schülerinnen und Schüler können verschiedene Interpretationsansätze zu einem literarischen Text vergleichen."}
+          ]
+        },
+        {
+          "bereich": "Schreiben",
+          "deskriptoren": [
+            {"id": "at-deutsch-s8-schreiben-1", "code": "", "text": "Die Schülerinnen und Schüler können strukturierte Erörterungen zu vorgegebenen oder selbst gewählten Themen verfassen."},
+            {"id": "at-deutsch-s8-schreiben-2", "code": "", "text": "Die Schülerinnen und Schüler können literarische Texte interpretieren (Textanalyse mit Deutungshypothese und Belegführung)."},
+            {"id": "at-deutsch-s8-schreiben-3", "code": "", "text": "Die Schülerinnen und Schüler können eigene Texte stilistisch überarbeiten und sprachliche Präzision anstreben."}
+          ]
+        },
+        {
+          "bereich": "Sprachbewusstsein",
+          "deskriptoren": [
+            {"id": "at-deutsch-s8-sprachbewusstsein-1", "code": "", "text": "Die Schülerinnen und Schüler können die gesellschaftliche Funktion von Sprache (z. B. in Werbung, Politik) reflektieren."},
+            {"id": "at-deutsch-s8-sprachbewusstsein-2", "code": "", "text": "Die Schülerinnen und Schüler können Mehrsprachigkeit und Sprachvarietäten als Ressource wahrnehmen."}
+          ]
+        },
+        {
+          "bereich": "Literarische Bildung",
+          "deskriptoren": [
+            {"id": "at-deutsch-s8-literarisch-1", "code": "", "text": "Die Schülerinnen und Schüler können literarische Werke in Grundzügen literaturgeschichtlich einordnen (z. B. Aufklärung, Romantik)."},
+            {"id": "at-deutsch-s8-literarisch-2", "code": "", "text": "Die Schülerinnen und Schüler können unterschiedliche mediale Umsetzungen literarischer Stoffe vergleichen."}
+          ]
+        },
+        {
+          "bereich": "Grammatik",
+          "deskriptoren": [
+            {"id": "at-deutsch-s8-grammatik-1", "code": "", "text": "Die Schülerinnen und Schüler können grammatikalische Strukturen im Kontext von Textwirkung und Stil analysieren."},
+            {"id": "at-deutsch-s8-grammatik-2", "code": "", "text": "Die Schülerinnen und Schüler können grammatisches Wissen für präzises und stilistisch angemessenes Schreiben nutzen."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 9,
+      "bereiche": [
+        {
+          "bereich": "Zuhören & Sprechen",
+          "deskriptoren": [
+            {"id": "at-deutsch-s9-zuhoeren-1", "code": "", "text": "Die Schülerinnen und Schüler können anspruchsvolle mündliche Texte (Vorträge, Interviews, Hörspiele) analytisch rezipieren."},
+            {"id": "at-deutsch-s9-zuhoeren-2", "code": "", "text": "Die Schülerinnen und Schüler können rhetorisch gestaltete Redebeiträge (z. B. Überzeugungsrede) planen und halten."},
+            {"id": "at-deutsch-s9-zuhoeren-3", "code": "", "text": "Die Schülerinnen und Schüler können in komplexen Diskussionssituationen moderierend und argumentierend agieren."}
+          ]
+        },
+        {
+          "bereich": "Lesen & Textverständnis",
+          "deskriptoren": [
+            {"id": "at-deutsch-s9-lesen-1", "code": "", "text": "Die Schülerinnen und Schüler können literarische Werke einer Epoche (z. B. Klassik, Romantik, Realismus) vertieft analysieren."},
+            {"id": "at-deutsch-s9-lesen-2", "code": "", "text": "Die Schülerinnen und Schüler können wissenschaftspropädeutische Texte lesen und deren Argumentationsgang nachvollziehen."},
+            {"id": "at-deutsch-s9-lesen-3", "code": "", "text": "Die Schülerinnen und Schüler können intertextuelle Bezüge zwischen literarischen Werken erkennen."}
+          ]
+        },
+        {
+          "bereich": "Schreiben",
+          "deskriptoren": [
+            {"id": "at-deutsch-s9-schreiben-1", "code": "", "text": "Die Schülerinnen und Schüler können literarische Interpretationen nach wissenschaftspropädeutischen Standards (Zitat, Beleg) verfassen."},
+            {"id": "at-deutsch-s9-schreiben-2", "code": "", "text": "Die Schülerinnen und Schüler können dialektische Erörterungen (pro/kontra) mit differenzierter Argumentation schreiben."},
+            {"id": "at-deutsch-s9-schreiben-3", "code": "", "text": "Die Schülerinnen und Schüler können den eigenen Schreibprozess reflektieren und systematisch optimieren."}
+          ]
+        },
+        {
+          "bereich": "Sprachbewusstsein",
+          "deskriptoren": [
+            {"id": "at-deutsch-s9-sprachbewusstsein-1", "code": "", "text": "Die Schülerinnen und Schüler können Sprache als System und als gesellschaftliches Handlungsmittel analysieren."},
+            {"id": "at-deutsch-s9-sprachbewusstsein-2", "code": "", "text": "Die Schülerinnen und Schüler können historische Entwicklungslinien der deutschen Sprache nachvollziehen."}
+          ]
+        },
+        {
+          "bereich": "Literarische Bildung",
+          "deskriptoren": [
+            {"id": "at-deutsch-s9-literarisch-1", "code": "", "text": "Die Schülerinnen und Schüler können literarische Epochen (z. B. Weimarer Klassik, Romantik) anhand zentraler Werke charakterisieren."},
+            {"id": "at-deutsch-s9-literarisch-2", "code": "", "text": "Die Schülerinnen und Schüler können literarische Texte im Kontext ihrer Entstehungszeit interpretieren."}
+          ]
+        },
+        {
+          "bereich": "Grammatik",
+          "deskriptoren": [
+            {"id": "at-deutsch-s9-grammatik-1", "code": "", "text": "Die Schülerinnen und Schüler können grammatische Strukturen in ihrer Funktion für Textkonstitution und Wirkung analysieren."},
+            {"id": "at-deutsch-s9-grammatik-2", "code": "", "text": "Die Schülerinnen und Schüler können grammatische Terminologie präzise zur Beschreibung von Texten verwenden."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 10,
+      "bereiche": [
+        {
+          "bereich": "Zuhören & Sprechen",
+          "deskriptoren": [
+            {"id": "at-deutsch-s10-zuhoeren-1", "code": "", "text": "Die Schülerinnen und Schüler können komplexe Redebeiträge (wissenschaftliche Vorträge, politische Debatten) analytisch erfassen."},
+            {"id": "at-deutsch-s10-zuhoeren-2", "code": "", "text": "Die Schülerinnen und Schüler können argumentative Diskussionsformate (Debatte, Dialektik) souverän führen."},
+            {"id": "at-deutsch-s10-zuhoeren-3", "code": "", "text": "Die Schülerinnen und Schüler können rhetorische Strategien in öffentlichen Diskursen dekonstruieren."}
+          ]
+        },
+        {
+          "bereich": "Lesen & Textverständnis",
+          "deskriptoren": [
+            {"id": "at-deutsch-s10-lesen-1", "code": "", "text": "Die Schülerinnen und Schüler können literarische Werke verschiedener Epochen (z. B. Vormärz, Realismus, Moderne) vergleichend analysieren."},
+            {"id": "at-deutsch-s10-lesen-2", "code": "", "text": "Die Schülerinnen und Schüler können wissenschaftliche und essayistische Texte zu gesellschaftlichen Themen kritisch lesen."},
+            {"id": "at-deutsch-s10-lesen-3", "code": "", "text": "Die Schülerinnen und Schüler können literarische Werke unter verschiedenen theoretischen Perspektiven (z. B. psychoanalytisch, soziologisch) betrachten."}
+          ]
+        },
+        {
+          "bereich": "Schreiben",
+          "deskriptoren": [
+            {"id": "at-deutsch-s10-schreiben-1", "code": "", "text": "Die Schülerinnen und Schüler können differenzierte Textanalysen und Interpretationen mit wissenschaftspropädeutischem Anspruch verfassen."},
+            {"id": "at-deutsch-s10-schreiben-2", "code": "", "text": "Die Schülerinnen und Schüler können komplexe Erörterungen mit abgewogenem Urteil und differenzierter Argumentationsstruktur schreiben."},
+            {"id": "at-deutsch-s10-schreiben-3", "code": "", "text": "Die Schülerinnen und Schüler können Texte für verschiedene Medien und Adressaten zielgerichtet gestalten."}
+          ]
+        },
+        {
+          "bereich": "Sprachbewusstsein",
+          "deskriptoren": [
+            {"id": "at-deutsch-s10-sprachbewusstsein-1", "code": "", "text": "Die Schülerinnen und Schüler können Sprachkritik (z. B. Sprachverfall, politische Sprache) reflektiert diskutieren."},
+            {"id": "at-deutsch-s10-sprachbewusstsein-2", "code": "", "text": "Die Schülerinnen und Schüler können den Zusammenhang von Sprache, Macht und Ideologie an Beispielen analysieren."}
+          ]
+        },
+        {
+          "bereich": "Literarische Bildung",
+          "deskriptoren": [
+            {"id": "at-deutsch-s10-literarisch-1", "code": "", "text": "Die Schülerinnen und Schüler können Literatur als gesellschaftlichen Diskurs verstehen und Werke in historische Debatten einordnen."},
+            {"id": "at-deutsch-s10-literarisch-2", "code": "", "text": "Die Schülerinnen und Schüler können Gattungs- und Stilmerkmale (z. B. Drama, Roman) epochenübergreifend vergleichen."}
+          ]
+        },
+        {
+          "bereich": "Grammatik",
+          "deskriptoren": [
+            {"id": "at-deutsch-s10-grammatik-1", "code": "", "text": "Die Schülerinnen und Schüler können syntaktische und textgrammatische Phänomene (z. B. Kohärenz, Kohäsion) analysieren."},
+            {"id": "at-deutsch-s10-grammatik-2", "code": "", "text": "Die Schülerinnen und Schüler können grammatisches Wissen für stilistisch anspruchsvolles Schreiben gezielt einsetzen."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 11,
+      "bereiche": [
+        {
+          "bereich": "Zuhören & Sprechen",
+          "deskriptoren": [
+            {"id": "at-deutsch-s11-zuhoeren-1", "code": "", "text": "Die Schülerinnen und Schüler können wissenschaftliche und mediale Diskurse analytisch rezipieren und deren Strategien bewerten."},
+            {"id": "at-deutsch-s11-zuhoeren-2", "code": "", "text": "Die Schülerinnen und Schüler können eigene Forschungs- oder Projektarbeit mündlich präsentieren und fachkundig diskutieren."},
+            {"id": "at-deutsch-s11-zuhoeren-3", "code": "", "text": "Die Schülerinnen und Schüler können in komplexen Gesprächssituationen (z. B. Kolloquium, Podium) souverän agieren."}
+          ]
+        },
+        {
+          "bereich": "Lesen & Textverständnis",
+          "deskriptoren": [
+            {"id": "at-deutsch-s11-lesen-1", "code": "", "text": "Die Schülerinnen und Schüler können anspruchsvolle literarische Werke (z. B. der Moderne, der Nachkriegsliteratur) multiperspektivisch interpretieren."},
+            {"id": "at-deutsch-s11-lesen-2", "code": "", "text": "Die Schülerinnen und Schüler können wissenschaftliche Fachtexte und theoretische Positionen zur Literatur erfassen."},
+            {"id": "at-deutsch-s11-lesen-3", "code": "", "text": "Die Schülerinnen und Schüler können Literatur im Kontext philosophischer, politischer und ästhetischer Diskurse verorten."}
+          ]
+        },
+        {
+          "bereich": "Schreiben",
+          "deskriptoren": [
+            {"id": "at-deutsch-s11-schreiben-1", "code": "", "text": "Die Schülerinnen und Schüler können wissenschaftspropädeutische Arbeiten (z. B. Fachbereichsarbeit) nach formalen und methodischen Standards verfassen."},
+            {"id": "at-deutsch-s11-schreiben-2", "code": "", "text": "Die Schülerinnen und Schüler können komplexe literaturwissenschaftliche Fragestellungen argumentativ und belegorientiert bearbeiten."},
+            {"id": "at-deutsch-s11-schreiben-3", "code": "", "text": "Die Schülerinnen und Schüler können Texte in unterschiedlichen akademischen Formaten (Abstract, Essay, Rezension) produzieren."}
+          ]
+        },
+        {
+          "bereich": "Sprachbewusstsein",
+          "deskriptoren": [
+            {"id": "at-deutsch-s11-sprachbewusstsein-1", "code": "", "text": "Die Schülerinnen und Schüler können Sprache als historisch gewachsenes System und als Medium gesellschaftlicher Diskurse begreifen."},
+            {"id": "at-deutsch-s11-sprachbewusstsein-2", "code": "", "text": "Die Schülerinnen und Schüler können sprachphilosophische Positionen (z. B. Sprachkritik, Konstruktivismus) in Grundzügen nachvollziehen."}
+          ]
+        },
+        {
+          "bereich": "Literarische Bildung",
+          "deskriptoren": [
+            {"id": "at-deutsch-s11-literarisch-1", "code": "", "text": "Die Schülerinnen und Schüler können literarische Werke der Moderne und Nachmoderne (z. B. Kafka, Celan, Bachmann) in ihren ästhetischen und existenziellen Dimensionen deuten."},
+            {"id": "at-deutsch-s11-literarisch-2", "code": "", "text": "Die Schülerinnen und Schüler können literarische Traditionen und Brüche (z. B. nach 1945, nach 1989) analysieren."}
+          ]
+        },
+        {
+          "bereich": "Grammatik",
+          "deskriptoren": [
+            {"id": "at-deutsch-s11-grammatik-1", "code": "", "text": "Die Schülerinnen und Schüler können sprachwissenschaftliche Modelle (z. B. Pragmatik, Diskursanalyse) auf konkrete Texte anwenden."},
+            {"id": "at-deutsch-s11-grammatik-2", "code": "", "text": "Die Schülerinnen und Schüler können grammatisches Wissen in den Dienst eigener Textproduktion und -analyse stellen."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 12,
+      "bereiche": [
+        {
+          "bereich": "Zuhören & Sprechen",
+          "deskriptoren": [
+            {"id": "at-deutsch-s12-zuhoeren-1", "code": "", "text": "Die Schülerinnen und Schüler können in akademischen und öffentlichen Diskursen begründet und reflektiert Position beziehen."},
+            {"id": "at-deutsch-s12-zuhoeren-2", "code": "", "text": "Die Schülerinnen und Schüler können komplexe Sachverhalte und literarische Fragestellungen mündlich präsentieren und zur Diskussion stellen."},
+            {"id": "at-deutsch-s12-zuhoeren-3", "code": "", "text": "Die Schülerinnen und Schüler können mündliche Reifeprüfung (Prüfungsgespräch) souverän und differenziert führen."}
+          ]
+        },
+        {
+          "bereich": "Lesen & Textverständnis",
+          "deskriptoren": [
+            {"id": "at-deutsch-s12-lesen-1", "code": "", "text": "Die Schülerinnen und Schüler können literarische Werke der Gegenwart und zentrale Positionen der Literaturtheorie eigenständig erschließen."},
+            {"id": "at-deutsch-s12-lesen-2", "code": "", "text": "Die Schülerinnen und Schüler können Texte unter komplexen Fragestellungen (z. B. Identität, Erinnerung, Medien) vergleichend analysieren."},
+            {"id": "at-deutsch-s12-lesen-3", "code": "", "text": "Die Schülerinnen und Schüler können Lesekompetenz als Grundlage für lebenslanges Lernen und gesellschaftliche Teilhabe reflektieren."}
+          ]
+        },
+        {
+          "bereich": "Schreiben",
+          "deskriptoren": [
+            {"id": "at-deutsch-s12-schreiben-1", "code": "", "text": "Die Schülerinnen und Schüler können unter Prüfungsbedingungen strukturierte, differenzierte und sprachlich präzise Texte (Matura-Klausur) verfassen."},
+            {"id": "at-deutsch-s12-schreiben-2", "code": "", "text": "Die Schülerinnen und Schüler können eigene Texte nach wissenschaftlichen und ästhetischen Kriterien beurteilen und überarbeiten."},
+            {"id": "at-deutsch-s12-schreiben-3", "code": "", "text": "Die Schülerinnen und Schüler können Schreiben als Medium des Denkens und der Selbstvergewisserung nutzen."}
+          ]
+        },
+        {
+          "bereich": "Sprachbewusstsein",
+          "deskriptoren": [
+            {"id": "at-deutsch-s12-sprachbewusstsein-1", "code": "", "text": "Die Schülerinnen und Schüler können Sprache als konstitutiv für Wirklichkeitskonstruktion und Identität begreifen."},
+            {"id": "at-deutsch-s12-sprachbewusstsein-2", "code": "", "text": "Die Schülerinnen und Schüler können aktuelle Sprachdebatten (z. B. geschlechtergerechte Sprache, digitale Kommunikation) differenziert beurteilen."}
+          ]
+        },
+        {
+          "bereich": "Literarische Bildung",
+          "deskriptoren": [
+            {"id": "at-deutsch-s12-literarisch-1", "code": "", "text": "Die Schülerinnen und Schüler können Literatur als kulturelles Gedächtnis und als ästhetische Erfahrung verstehen."},
+            {"id": "at-deutsch-s12-literarisch-2", "code": "", "text": "Die Schülerinnen und Schüler können eigene literarische Präferenzen und Lektüreerfahrungen reflektieren und in größere Zusammenhänge einordnen."}
+          ]
+        },
+        {
+          "bereich": "Grammatik",
+          "deskriptoren": [
+            {"id": "at-deutsch-s12-grammatik-1", "code": "", "text": "Die Schülerinnen und Schüler können grammatisches Wissen als Grundlage für sprachliche Präzision und stilistische Souveränität in eigenen Texten nutzen."},
+            {"id": "at-deutsch-s12-grammatik-2", "code": "", "text": "Die Schülerinnen und Schüler können sprachwissenschaftliche Erkenntnisse in die Analyse und Produktion komplexer Texte einbringen."}
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "fach": "ethik",
+  "quelle": "BMBWF-Lehrplan AHS Ethik — RIS, Stand 2023",
+  "module": [
+    {"id": "at-ethik-identitaet", "schulstufe": 9, "titel": "Identität und Selbstverständnis", "beschreibung": "Personale Identität, Autonomie und Verantwortung."},
+    {"id": "at-ethik-gemeinschaft", "schulstufe": 9, "titel": "Gemeinschaft und soziale Beziehungen", "beschreibung": "Familie, Freundschaft, Liebe und soziale Normen."},
+    {"id": "at-ethik-gerechtigkeit", "schulstufe": 10, "titel": "Gerechtigkeit und Menschenrechte", "beschreibung": "Soziale Gerechtigkeit, Gleichheit und Menschenwürde."},
+    {"id": "at-ethik-umwelt", "schulstufe": 10, "titel": "Umweltethik und Nachhaltigkeit", "beschreibung": "Klimawandel, Tierethik und Verantwortung für zukünftige Generationen."},
+    {"id": "at-ethik-medizin", "schulstufe": 11, "titel": "Medizinethik und Biopolitik", "beschreibung": "Sterbehilfe, Gentechnik und ethische Grenzfälle."},
+    {"id": "at-ethik-technologie", "schulstufe": 11, "titel": "Technologie und Digitalisierung", "beschreibung": "Künstliche Intelligenz, Datenschutz und digitale Autonomie."},
+    {"id": "at-ethik-philosophie", "schulstufe": 12, "titel": "Philosophische Ethik", "beschreibung": "Utilitarismus, Pflichtethik, Tugendethik und zeitgenössische Positionen."},
+    {"id": "at-ethik-globalisierung", "schulstufe": 12, "titel": "Globalisierung und Verantwortung", "beschreibung": "Globale Gerechtigkeit, Migration und kosmopolitische Ethik."}
+  ]
+}

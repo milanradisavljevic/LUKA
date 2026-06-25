@@ -1,0 +1,10 @@
+{
+  "fach": "italienisch",
+  "quelle": "BMBWF-Lehrplan AHS Italienisch — RIS, Stand 2023",
+  "module": [
+    {"id": "at-italienisch-alltag", "schulstufe": 9, "titel": "Vita quotidiana e mondo personale", "beschreibung": "Familie, Schule, Hobbys und tägliche Routinen auf A1/A2-Niveau."},
+    {"id": "at-italienisch-reisen", "schulstufe": 10, "titel": "Viaggi e cultura italiana", "beschreibung": "Reisen, italienische Regionen und interkulturelle Begegnungen auf A2/B1-Niveau."},
+    {"id": "at-italienisch-medien", "schulstufe": 11, "titel": "Media e comunicazione", "beschreibung": "Soziale Medien, Nachrichten und digitale Kommunikation auf B1-Niveau."},
+    {"id": "at-italienisch-gesellschaft", "schulstufe": 12, "titel": "Società e temi attuali", "beschreibung": "Migration, Umwelt und gesellschaftliche Debatten auf B1/B2-Niveau."}
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "fach": "englisch",
+  "quelle": "BMBWF-Lehrplan AHS Englisch — RIS, Stand 2023",
+  "module": [
+    {"id": "at-englisch-alltag", "schulstufe": 5, "titel": "Everyday Life and Personal World", "beschreibung": "Familie, Schule, Hobbys und tägliche Routinen auf A1-Niveau."},
+    {"id": "at-englisch-reisen", "schulstufe": 6, "titel": "Travel and Cultural Exchange", "beschreibung": "Reisen, Essen, Feste und interkulturelle Begegnungen auf A2-Niveau."},
+    {"id": "at-englisch-medien", "schulstufe": 7, "titel": "Media and Digital Communication", "beschreibung": "Soziale Medien, Nachrichten und digitale Kommunikation auf A2/B1-Niveau."},
+    {"id": "at-englisch-umwelt", "schulstufe": 8, "titel": "Environment and Sustainability", "beschreibung": "Klimawandel, Umweltschutz und nachhaltige Lebensweisen auf B1-Niveau."},
+    {"id": "at-englisch-globalisierung", "schulstufe": 9, "titel": "Globalization and Migration", "beschreibung": "Internationale Mobilität, kulturelle Vielfalt und Identität auf B1/B2-Niveau."},
+    {"id": "at-englisch-literatur", "schulstufe": 10, "titel": "Literature and Creative Expression", "beschreibung": "Kurzgeschichten, Gedichte und kreative Schreibformen auf B2-Niveau."},
+    {"id": "at-englisch-politik", "schulstufe": 11, "titel": "Politics and Social Issues", "beschreibung": "Demokratie, Menschenrechte und gesellschaftliche Debatten auf B2-Niveau."},
+    {"id": "at-englisch-wissenschaft", "schulstufe": 12, "titel": "Science and Future Challenges", "beschreibung": "Wissenschaftliche Diskurse, Technologie und Zukunftsfragen auf B2/C1-Niveau."}
+  ]
+}

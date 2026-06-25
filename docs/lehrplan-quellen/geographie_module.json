@@ -1,0 +1,14 @@
+{
+  "fach": "geographie",
+  "quelle": "BMBWF-Lehrplan AHS Geographie und Wirtschaftskunde — RIS, Stand 2023",
+  "module": [
+    {"id": "at-geographie-heimatraum", "schulstufe": 5, "titel": "Heimatraum und Österreich", "beschreibung": "Landschaftsformen, Siedlungsstrukturen und wirtschaftliche Nutzung im unmittelbaren Lebensraum."},
+    {"id": "at-geographie-europa", "schulstufe": 6, "titel": "Europa – Vielfalt und Integration", "beschreibung": "Naturräume, Kulturlandschaften und wirtschaftliche Zusammenarbeit in der EU."},
+    {"id": "at-geographie-erde-natur", "schulstufe": 7, "titel": "Physische Geographie der Erde", "beschreibung": "Klimazonen, Plattentektonik, Naturgefahren und Anpassungsstrategien."},
+    {"id": "at-geographie-bevoelkerung", "schulstufe": 8, "titel": "Bevölkerung und Urbanisierung", "beschreibung": "Demographischer Übergang, Migration, Stadtentwicklung und Megastädte."},
+    {"id": "at-geographie-globalisierung", "schulstufe": 9, "titel": "Globalisierung und Wirtschaft", "beschreibung": "Wertschöpfungsketten, Standorttheorien und regionale Disparitäten."},
+    {"id": "at-geographie-entwicklung", "schulstufe": 10, "titel": "Entwicklung und Ressourcen", "beschreibung": "Entwicklungsländer, Schwellenländer, Tourismus und nachhaltige Entwicklung."},
+    {"id": "at-geographie-geopolitik", "schulstufe": 11, "titel": "Geopolitik und Nachhaltigkeit", "beschreibung": "Klimawandel, Ressourcenkonflikte und internationale Wirtschaftsbeziehungen."},
+    {"id": "at-geographie-zukunft", "schulstufe": 12, "titel": "Zukunftsfragen der Raumgestaltung", "beschreibung": "Digitalisierung, Deglobalisierung und gesellschaftliche Debatten um Nachhaltigkeit."}
+  ]
+}
