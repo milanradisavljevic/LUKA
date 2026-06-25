@@ -16,6 +16,11 @@ export type Unterlagentyp = z.infer<typeof UnterlagentypSchema>;
 export const StufeSchema = z.enum(['oberstufe', 'unterstufe']);
 export type Stufe = z.infer<typeof StufeSchema>;
 
+export const SCHULSTUFEN = [5, 6, 7, 8, 9, 10, 11, 12] as const;
+export function stufeFromSchulstufe(s: number): Stufe {
+  return s <= 8 ? 'unterstufe' : 'oberstufe';
+}
+
 export const FachSchema = z.enum([
   // Sprachfächer (Inhalt in der Zielsprache; CEFR/Vokabel-Logik)
   'deutsch', 'englisch', 'franzoesisch', 'spanisch', 'italienisch', 'latein',
@@ -63,6 +68,7 @@ export const DeskriptorSchema = z.object({
   rahmenwerk: RahmenwerkSchema,
   fach: FachSchema,
   stufe: StufeSchema,
+  schulstufe: z.number().int().min(5).max(12).optional(),
   bereich: z.string().min(1),
   code: z.string(),
   text: z.string().min(1),
@@ -79,6 +85,7 @@ export const StoffItemSchema = z.object({
   titel: z.string().min(1),
   fach: FachSchema,
   stufe: StufeSchema,
+  schulstufe: z.number().int().min(5).max(12).optional(),
   // Kompetenzbereich (frei, je Fach aus KOMPETENZBEREICHE). Früher ein sprachfach-zentriertes
   // Enum — geöffnet, damit Sachfächer ihre eigenen Bereiche tragen können.
   kategorie: z.string().min(1),
@@ -125,6 +132,7 @@ export const MetaSchema = z.object({
   modus: ModusSchema.optional(),
   rahmenwerk: RahmenwerkSchema.optional(),
   stoffItemIds: z.array(z.string().min(1)).optional(),
+  schulstufe: z.number().int().min(5).max(12).optional(),
   kompetenzNiveau: z.enum(['basis', 'standard', 'erweitert']).optional(),
   bewertungsschema: BewertungsschemaSchema.optional(),
   // Frei formulierte Kompetenz oder Thema (z. B. "Present Perfect vs Past Simple").
@@ -863,6 +871,7 @@ export const AuftragSchema = z.object({
   modus: ModusSchema.optional(),
   rahmenwerk: RahmenwerkSchema.optional(),
   stoffItemIds: z.array(z.string().min(1)).optional(),
+  schulstufe: z.number().int().min(5).max(12).optional(),
   kompetenzNiveau: z.enum(['basis', 'standard', 'erweitert']).optional(),
   bewertungsschema: BewertungsschemaSchema.optional(),
   freieKompetenz: z.string().optional(),

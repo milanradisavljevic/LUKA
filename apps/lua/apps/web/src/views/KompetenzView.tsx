@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { ArrowRight, Target, Loader2, Check } from 'lucide-react';
 import type { AppState, AppAction } from '../lib/types';
 import type { BlockTyp, Fach } from '@lehrunterlagen/schema';
-import { FACH_META, fachLabel, KOMPETENZBEREICHE } from '@lehrunterlagen/schema';
+import { FACH_META, fachLabel, KOMPETENZBEREICHE, SCHULSTUFEN, stufeFromSchulstufe } from '@lehrunterlagen/schema';
 import { listStoffItems, fachHatEntwurf, getStoffItems } from '../lib/stoffkatalog';
 import { BLOCK_TYPE_DEFS, STUFE_RULES } from '../lib/constants';
 import { buildSkelett } from '@lehrunterlagen/schema';
@@ -37,6 +37,7 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
   const [rahmenwerk, setRahmenwerk] = useState<'at-lehrplan' | 'ib-dp'>('at-lehrplan');
   const [fach, setFach] = useState<Fach>('englisch');
   const [stufe, setStufe] = useState<'oberstufe' | 'unterstufe'>('oberstufe');
+  const [schulstufe, setSchulstufe] = useState<number | undefined>(undefined);
   const [stoffItemIds, setStoffItemIds] = useState<string[]>([]);
   const [freieKompetenz, setFreieKompetenz] = useState('');
   const [thema, setThema] = useState('');
@@ -47,7 +48,10 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
 
   const { generate, generating, stage, aktiverProvider, error } = useGenerate(dispatch);
 
-  const stoffItems = useMemo(() => listStoffItems(fach, stufe, rahmenwerk), [fach, stufe, rahmenwerk]);
+  const stoffItems = useMemo(
+    () => listStoffItems(fach, stufe, rahmenwerk, schulstufe),
+    [fach, stufe, rahmenwerk, schulstufe],
+  );
 
   const erlaubteTypen = useMemo(() => {
     return STUFE_RULES[stufe].allowedBlockTypes.filter((t) =>
@@ -115,6 +119,7 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
       stufe,
       thema: themaFinal,
       stoffItemIds,
+      schulstufe,
       freieKompetenz: hatFreitext ? freitext : undefined,
       kompetenzNiveau: niveau,
       punkteAusblenden: !punkteVergeben,
@@ -133,6 +138,7 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
       modus: 'kompetenz' as const,
       rahmenwerk,
       stoffItemIds,
+      schulstufe,
       freieKompetenz: hatFreitext ? freitext : undefined,
       kompetenzNiveau: niveau,
       punkteAusblenden: !punkteVergeben,
@@ -254,17 +260,32 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
           </select>
         </div>
         <div>
-          <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.875rem' }}>Stufe</label>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            {STUFEN.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => setStufe(s.id)}
-                style={stufe === s.id ? activeButtonStyle : buttonStyle}
-              >
-                {s.label}
-              </button>
-            ))}
+          <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.875rem' }}>Schulstufe</label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+            {SCHULSTUFEN.map((s) => {
+              const aktiv = schulstufe === s;
+              return (
+                <button
+                  key={s}
+                  onClick={() => { setSchulstufe(s); setStufe(stufeFromSchulstufe(s)); }}
+                  style={aktiv ? activeButtonStyle : buttonStyle}
+                >
+                  {s}
+                </button>
+              );
+            })}
+            <button
+              onClick={() => { setSchulstufe(undefined); setStufe('unterstufe'); }}
+              style={schulstufe === undefined && stufe === 'unterstufe' ? activeButtonStyle : buttonStyle}
+            >
+              ganze Unterstufe
+            </button>
+            <button
+              onClick={() => { setSchulstufe(undefined); setStufe('oberstufe'); }}
+              style={schulstufe === undefined && stufe === 'oberstufe' ? activeButtonStyle : buttonStyle}
+            >
+              ganze Oberstufe
+            </button>
           </div>
         </div>
       </section>
