@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 
 const LAST_DOCX_PATH_KEY = 'lehrunterlagen-last-docx-path';
@@ -26,6 +26,13 @@ export function usePdfExport() {
     showPathInput: false,
     docxPath: getLastDocxPath(),
   });
+  const [libreOfficeAvailable, setLibreOfficeAvailable] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    invoke<boolean>('libreoffice_available')
+      .then(setLibreOfficeAvailable)
+      .catch(() => setLibreOfficeAvailable(false));
+  }, []);
 
   const startPdfExport = useCallback(() => {
     setState((prev) => ({
@@ -82,6 +89,7 @@ export function usePdfExport() {
 
   return {
     ...state,
+    libreOfficeAvailable,
     startPdfExport,
     setDocxPath,
     convertToPdf,

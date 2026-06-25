@@ -6,6 +6,7 @@ import {
   Target, Zap,
 } from 'lucide-react';
 import type { ActiveView } from '../lib/types';
+import { FEATURES } from '../lib/features';
 import { NibMark, BrandSignature } from './BrandLogo';
 
 interface Props {
@@ -24,6 +25,8 @@ interface NavItem {
   action?: 'new';
   tooltip?: string;
 }
+
+const NATASCHA_NAV_IDS = ['klassen', 'korrektur', 'schueler', 'erwartungshorizont'];
 
 const NAV_ITEMS: NavItem[] = [
   { id: 'dashboard', label: 'Übersicht', Icon: LayoutDashboard, view: 'dashboard', tooltip: 'Klassen, Korrekturstand und Weiterarbeiten' },
@@ -48,6 +51,10 @@ const SETTINGS_ITEMS: NavItem[] = [
 
 export function Sidebar({ currentView, onViewChange, onNewDocument }: Props) {
   const [collapsed, setCollapsed] = useState(false);
+
+  const visibleNavItems = NAV_ITEMS.filter(
+    (item) => FEATURES.natascha || !NATASCHA_NAV_IDS.includes(item.id),
+  );
 
   const handleItemClick = (item: NavItem) => {
     if (item.action === 'new') {
@@ -118,7 +125,7 @@ export function Sidebar({ currentView, onViewChange, onNewDocument }: Props) {
 
       {/* Navigation */}
       <nav style={{ flex: 1, padding: '0.75rem 0', overflowY: 'auto' }}>
-        {NAV_ITEMS.map(renderNavItem)}
+        {visibleNavItems.map(renderNavItem)}
 
         {/* Trennlinie */}
         <div style={{ margin: '0.75rem 1rem', height: 1, background: 'var(--sidebar-border)' }} />

@@ -397,18 +397,24 @@ export function Step4_Generate({ state, dispatch }: Props) {
                       <Target size={15} /> Kompetenznachweis exportieren
                     </button>
                   )}
-                  <button
-                    className="btn-secondary"
-                    onClick={() => { if (isTauri()) pdfExport.startPdfExport(); else setShowPdfHint(true); }}
-                    disabled={pdfExport.converting}
-                    aria-label="Dokument als PDF speichern"
-                    style={{ padding: '0.5rem 1rem', fontSize: '0.8125rem', borderStyle: 'dotted',
-                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
-                  >
-                    {pdfExport.converting
-                      ? <><Loader2 size={15} className="spin" /> PDF wird erstellt…</>
-                      : <><FileType size={15} /> Als PDF speichern</>}
-                  </button>
+                  {pdfExport.libreOfficeAvailable ? (
+                    <button
+                      className="btn-secondary"
+                      onClick={pdfExport.startPdfExport}
+                      disabled={pdfExport.converting}
+                      aria-label="Dokument als PDF speichern"
+                      style={{ padding: '0.5rem 1rem', fontSize: '0.8125rem', borderStyle: 'dotted',
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+                    >
+                      {pdfExport.converting
+                        ? <><Loader2 size={15} className="spin" /> PDF wird erstellt…</>
+                        : <><FileType size={15} /> Als PDF speichern</>}
+                    </button>
+                  ) : isTauri() ? (
+                    <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', margin: 0, lineHeight: 1.5 }}>
+                      PDF-Export erfordert LibreOffice (soffice). Ohne installiertes LibreOffice steht dieser Export nicht zur Verfügung — die DOCX-Dateien können in Word oder LibreOffice Writer manuell als PDF gespeichert werden.
+                    </p>
+                  ) : null}
                   <button
                     className="btn-secondary"
                     onClick={() => exportSelbstlern(state)}

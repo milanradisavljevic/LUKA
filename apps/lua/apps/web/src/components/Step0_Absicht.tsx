@@ -5,6 +5,7 @@ import { BLOCK_TYPE_DEFS, SCHWIERIGKEIT_RULES, UNTERLAGENTYP_MINUTEN } from '../
 import { buildSkelett, FACH_META, fachLabel, istSprachfach, type Auftrag, type Fach } from '@lehrunterlagen/schema';
 import { EXAMPLE_ABSICHTEN } from '../lib/exampleAbsichten';
 import { loadDocuments, loadSettings } from '../lib/storage';
+import { FEATURES } from '../lib/features';
 import { consumePendingUebung } from '../lib/korrekturBridge';
 import { getDefaultTemplate } from '@lehrunterlagen/renderer';
 import { Tile } from './ui/Tile';
@@ -104,6 +105,7 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
 
   // Closed Loop: Übungs-Vorbefüllung aus der Korrektur-Heatmap übernehmen (einmalig beim Mounten).
   useEffect(() => {
+    if (!FEATURES.natascha) return;
     const p = consumePendingUebung();
     if (!p) return;
     setTyp('schuluebung');
@@ -306,6 +308,7 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
       )}
 
       {/* NATASCHA-Korrektur → gezielte Übungen (Datei-Brücke Phase 1) */}
+      {FEATURES.natascha && (
       <section style={{ marginBottom: '1.25rem' }}>
         <SectionLabel>Aus NATASCHA-Korrektur</SectionLabel>
         {nataschaExports && nataschaExports.length > 0 ? (
@@ -367,9 +370,10 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
           </p>
         )}
       </section>
+      )}
 
       {/* Kuratierbare Fehler aus der NATASCHA-Korrektur (Brücke v2) */}
-      <FehlerKuration fehler={nataschaFehler} onChange={setNataschaFehler} />
+      {FEATURES.natascha && <FehlerKuration fehler={nataschaFehler} onChange={setNataschaFehler} />}
 
       {/* Schnellstart — Beispiel-Absichten */}
       <section style={{ marginBottom: '1.25rem' }}>

@@ -6,7 +6,11 @@ function isTauri(): boolean {
   return typeof window !== 'undefined' && (window as any).__TAURI_INTERNALS__ !== undefined;
 }
 
-export function SettingsPanel() {
+interface SettingsPanelProps {
+  onKeySaved?: () => void;
+}
+
+export function SettingsPanel({ onKeySaved }: SettingsPanelProps) {
   const [keys, setKeys] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState<Record<string, boolean>>({});
   const [loaded, setLoaded] = useState<Record<string, string>>({});
@@ -29,6 +33,7 @@ export function SettingsPanel() {
       setSaved((prev) => ({ ...prev, [providerId]: true }));
       setKeys((prev) => ({ ...prev, [providerId]: '' }));
       setLoaded((prev) => ({ ...prev, [providerId]: '' }));
+      onKeySaved?.();
     } catch (err) {
       setErrors((prev) => ({ ...prev, [providerId]: err instanceof Error ? err.message : 'Fehler beim Speichern' }));
     }

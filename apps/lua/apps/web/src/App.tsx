@@ -36,7 +36,14 @@ import { createDefaultBlock } from './lib/blockDefaults';
 import type { NataschaPrefill } from './lib/nataschaBridge';
 import { loadDocuments, upsertDocument, snapshotFromState, saveTemplate, deleteTemplate, loadTemplates, hydrateCache, isHydrated, setPersistErrorHandler } from './lib/storage';
 import { Toast, type ToastMessage } from './components/Toast';
+import { SettingsPanel } from './components/SettingsPanel';
+import { FEATURES } from './lib/features';
+import { PROVIDER_KEY_IDS } from './lib/constants';
 import './App.css';
+
+function isTauri(): boolean {
+  return typeof window !== 'undefined' && (window as any).__TAURI_INTERNALS__ !== undefined;
+}
 
 /** Seitentitel je Ansicht — ersetzt die Marken-Dopplung im Header. */
 const VIEW_TITLES: Record<ActiveView, string> = {
@@ -76,6 +83,8 @@ export default function App() {
   const [toast, setToast] = useState<ToastMessage | null>(null);
   // Cross-Nav: aus der Korrektur zu einem bestimmten Schüler springen.
   const [pendingSchueler, setPendingSchueler] = useState<{ klasse: string; id: number } | null>(null);
+  // First-Run-Onboarding: mindestens ein API-Key nötig, bevor die App bedienbar ist.
+  const [keyGateOpen, setKeyGateOpen] = useState(false);
 
   // Stille DB-Write-Fehler sichtbar machen (vorher nur console.error).
   useEffect(() => {
@@ -89,6 +98,27 @@ export default function App() {
     const handler = () => setIsMobile(window.innerWidth < 1024);
     window.addEventListener('resize', handler);
     return () => window.removeEventListener('resize', handler);
+  }, []);
+
+  // First-Run-Onboarding: bei 0 hinterlegten Keys das Key-Gate zeigen.
+  useEffect(() => {
+    if (!isTauri()) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { invoke } = await import('@tauri-apps/api/core');
+        const keyIds = [...new Set(Object.values(PROVIDER_KEY_IDS))];
+        const keys = await Promise.all(
+          keyIds.map((id) => invoke<string>('load_api_key', { provider: id }).catch(() => '')),
+        );
+        if (!cancelled && keys.every((k) => !k)) {
+          setKeyGateOpen(true);
+        }
+      } catch {
+        // ignore
+      }
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
@@ -252,6 +282,11 @@ export default function App() {
   };
 
   const renderView = () => {
+    const nataschaViews: ActiveView[] = ['klassen', 'korrektur', 'schueler', 'erwartungshorizont'];
+    if (!FEATURES.natascha && nataschaViews.includes(activeView)) {
+      return <DashboardView onNavigate={(v) => setActiveView(v)} onStartQuickExercise={handleStartQuickExercise} />;
+    }
+
     switch (activeView) {
       case 'wizard':
 if (hydrating) {
@@ -279,7 +314,7 @@ if (hydrating) {
       case 'favorites':
         return <FavoritesView onOpenDocument={handleOpenDocument} onNavigate={(v) => setActiveView(v)} />;
       case 'trash':
-        return <TrashView />;
+        return <TrashView onCreateNew={handleNewDocument} />;
       case 'history':
         return <HistoryView onCreateNew={handleNewDocument} />;
       case 'templates':
@@ -411,6 +446,27 @@ if (hydrating) {
       />
 
       <Toast toast={toast} onClose={() => setToast(null)} />
+
+      {/* First-Run-Onboarding: API-Key-Gate */}
+      {keyGateOpen && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'var(--color-bg-base)',
+          zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem',
+        }}>
+          <div style={{
+            maxWidth: 720, width: '100%', maxHeight: '90vh', overflow: 'auto',
+            background: 'var(--color-bg-surface)', borderRadius: 'var(--radius)',
+            border: '1px solid var(--color-border)', padding: '1.5rem', boxShadow: 'var(--shadow)',
+          }}>
+            <h2 style={{ marginBottom: '0.5rem' }}>Willkommen bei LUKA</h2>
+            <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', marginBottom: '1.25rem' }}>
+              Um die KI-Funktionen nutzen zu können, hinterlege mindestens einen API-Key.
+              Der Schlüssel bleibt lokal im System-Keyring und verlässt niemals den Rechner.
+            </p>
+            <SettingsPanel onKeySaved={() => setKeyGateOpen(false)} />
+          </div>
+        </div>
+      )}
 
       {/* Zoom-Anzeige */}
       {zoom !== 1.0 && (

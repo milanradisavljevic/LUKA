@@ -2,7 +2,11 @@ import { useDocuments } from '../hooks/useDocuments';
 import { ViewShell } from './_ViewShell';
 import { DocumentList } from './_DocumentList';
 
-export function TrashView() {
+interface Props {
+  onCreateNew?: () => void;
+}
+
+export function TrashView({ onCreateNew }: Props) {
   const { documents, restore, purge, purgeAllDeleted } = useDocuments();
 
   const deleted = documents
@@ -36,6 +40,9 @@ export function TrashView() {
       <DocumentList
         documents={deleted}
         emptyMessage="Der Papierkorb ist leer."
+        emptyDescription="Gelöschte Dokumente erscheinen hier."
+        actionLabel={onCreateNew ? 'Neue Übung erstellen' : undefined}
+        onAction={onCreateNew}
         onRestore={restore}
         onPurge={handlePurge}
       />

@@ -8,6 +8,7 @@ import { useNatascha } from '../hooks/useNatascha';
 import { loadDocuments, loadTemplates } from '../lib/storage';
 import { BLOCK_TYPE_DEFS } from '../lib/constants';
 import type { ActiveView, SavedDocument } from '../lib/types';
+import { FEATURES } from '../lib/features';
 import { fachLabel } from '@lehrunterlagen/schema';
 import type { Block, Fach } from '@lehrunterlagen/schema';
 import { Hero } from '../components/ui/Hero';
@@ -36,6 +37,10 @@ export function DashboardView({ onNavigate, onStartQuickExercise }: DashboardVie
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!FEATURES.natascha) {
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     (async () => {
       setLoading(true);
@@ -312,7 +317,7 @@ export function DashboardView({ onNavigate, onStartQuickExercise }: DashboardVie
       )}
 
       {/* ═══ NATASCHA-Klassenstats ═══ */}
-      {loading ? (
+      {FEATURES.natascha && (loading ? (
         <div className="card" style={{ padding: '1.25rem' }}>
           <Loader2 size={18} className="spin" style={{ verticalAlign: -2, marginRight: 6 }} /> Laden …
         </div>
@@ -428,7 +433,7 @@ export function DashboardView({ onNavigate, onStartQuickExercise }: DashboardVie
             })}
           </div>
         </div>
-      )}
+      ))}
     </div>
   );
 }
