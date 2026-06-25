@@ -77,7 +77,8 @@ function waehleKatalog(block: Block, fach: DocumentV1['meta']['fach'], typ?: Doc
     }
 
     case 'roleplay':
-      // Rollenspiele sind reine Sprechuebungen und fliessen nicht in das Korrekturraster ein.
+    case 'rollenkartenSet':
+      // Sprechuebungen (Rollenspiel / Rollenkarten-Set) fliessen nicht in das Korrekturraster ein.
       return [];
   }
 }

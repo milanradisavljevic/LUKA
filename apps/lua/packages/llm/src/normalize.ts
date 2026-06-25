@@ -623,6 +623,64 @@ function normalizeRoleplay(block: AnyObj): AnyObj {
   return { ...block, config, loesung };
 }
 
+// rollenkartenSet
+// ---------------------------------------------------------------------------
+
+function normalizeRollenkartenSet(block: AnyObj): AnyObj {
+  const config = isObject(block.config) ? { ...block.config } : {};
+  const loesung = isObject(block.loesung) ? { ...block.loesung } : {};
+
+  if (typeof config.zeitMinuten === 'string') {
+    const n = parseInt(config.zeitMinuten, 10);
+    config.zeitMinuten = isNaN(n) ? 8 : n;
+  } else if (typeof config.zeitMinuten !== 'number') {
+    config.zeitMinuten = 8;
+  }
+  if (typeof config.rahmen !== 'string') config.rahmen = '';
+  if (typeof config.schnittlinie !== 'boolean') config.schnittlinie = true;
+  if (typeof config.teamFeld !== 'boolean') config.teamFeld = true;
+
+  // Rollen-Struktur bereinigen
+  if (Array.isArray(config.rollen)) {
+    config.rollen = config.rollen
+      .filter(isObject)
+      .map((r: AnyObj, idx: number) => ({
+        ...r,
+        name: typeof r.name === 'string' && r.name.trim() ? r.name : `Rolle ${idx + 1}`,
+        rollenhinweis: typeof r.rollenhinweis === 'string' ? r.rollenhinweis : '',
+        inhaltsLabel: typeof r.inhaltsLabel === 'string' && r.inhaltsLabel.trim() ? r.inhaltsLabel : 'Sprich über:',
+        sprachhinweis: typeof r.sprachhinweis === 'string' ? r.sprachhinweis : '',
+      }));
+  }
+
+  // Szenarien bereinigen: leere punkte filtern, rollenInhalte auf Rollenanzahl bringen
+  const rollenAnzahl = Array.isArray(config.rollen) ? config.rollen.length : 0;
+  if (Array.isArray(config.szenarien)) {
+    config.szenarien = config.szenarien
+      .filter(isObject)
+      .map((s: AnyObj, idx: number) => {
+        const szenario = { ...s } as AnyObj;
+        if (typeof szenario.nummer !== 'number') szenario.nummer = idx + 1;
+        if (typeof szenario.titel !== 'string') szenario.titel = `Szenario ${idx + 1}`;
+        if (typeof szenario.fakten !== 'string') szenario.fakten = '';
+        const inhalte = Array.isArray(szenario.rollenInhalte) ? szenario.rollenInhalte : [];
+        szenario.rollenInhalte = Array.from({ length: rollenAnzahl || inhalte.length }, (_, i) => {
+          const ri = isObject(inhalte[i]) ? (inhalte[i] as AnyObj) : {};
+          const punkte = Array.isArray(ri.punkte) ? cleanStringArray(ri.punkte) : [];
+          return {
+            untertitel: typeof ri.untertitel === 'string' ? ri.untertitel : '',
+            punkte: punkte.length > 0 ? punkte : ['…'],
+          };
+        });
+        return szenario;
+      });
+  }
+
+  if (typeof loesung.hinweise !== 'string') loesung.hinweise = '';
+
+  return { ...block, config, loesung };
+}
+
 // vokabeluebung
 // ---------------------------------------------------------------------------
 
@@ -712,6 +770,8 @@ export function normalizeDocument(data: unknown): unknown {
         normalized = normalizeVokabeluebung(block); break;
       case 'roleplay':
         normalized = normalizeRoleplay(block); break;
+      case 'rollenkartenSet':
+        normalized = normalizeRollenkartenSet(block); break;
       default:
         normalized = block;
     }

@@ -19,6 +19,7 @@ import {
   UmformungBlockSchema,
   FehlerkorrekturBlockSchema,
   RoleplayBlockSchema,
+  RollenkartenSetBlockSchema,
   BlockSchema,
   UnterlagentypSchema,
   BlockTypSchema,
@@ -1011,6 +1012,58 @@ describe('RoleplayBlockSchema', () => {
         bewertung: [],
       },
       loesung: { musterdialog: '', hinweise: '' },
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe('RollenkartenSetBlockSchema', () => {
+  const gueltig = {
+    id: 'b20',
+    typ: 'rollenkartenSet',
+    punkte: 0,
+    arbeitsanweisung: 'Spielt euer Szenario in der Gruppe durch.',
+    config: {
+      rahmen: 'Disaster Reports — live TV news',
+      zeitMinuten: 8,
+      rollen: [
+        { name: 'Live Reporter', rollenhinweis: 'Reporter at the scene. You speak first.', inhaltsLabel: 'Report on:', sprachhinweis: 'present continuous · present perfect · past simple' },
+        { name: 'Safety Expert', rollenhinweis: 'Studio expert. You speak after the reporter.', inhaltsLabel: 'Advise on:', sprachhinweis: 'should / must · if …, … · imperatives' },
+      ],
+      szenarien: [
+        {
+          nummer: 1, titel: 'Shaanxi Earthquake', fakten: 'China · 1556 · ~830,000 deaths',
+          rollenInhalte: [
+            { untertitel: '', punkte: ['Where you are and the year', 'The ground shaking'] },
+            { untertitel: 'What to do in an earthquake', punkte: ['Drop, cover and hold on', 'Keep away from windows'] },
+          ],
+        },
+      ],
+      schnittlinie: true,
+      teamFeld: true,
+    },
+    loesung: { hinweise: 'Reporter spricht zuerst, Experte reagiert. Auf Zeitenmix achten.' },
+  };
+
+  it('accepts a valid rollenkartenSet block', () => {
+    expect(RollenkartenSetBlockSchema.safeParse(gueltig).success).toBe(true);
+  });
+
+  it('rejects rollenkartenSet with only one rolle', () => {
+    const result = RollenkartenSetBlockSchema.safeParse({
+      ...gueltig,
+      config: { ...gueltig.config, rollen: [gueltig.config.rollen[0]] },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects a scenario with empty punkte', () => {
+    const result = RollenkartenSetBlockSchema.safeParse({
+      ...gueltig,
+      config: {
+        ...gueltig.config,
+        szenarien: [{ nummer: 1, titel: 'X', fakten: '', rollenInhalte: [{ untertitel: '', punkte: [] }, { untertitel: '', punkte: ['a'] }] }],
+      },
     });
     expect(result.success).toBe(false);
   });

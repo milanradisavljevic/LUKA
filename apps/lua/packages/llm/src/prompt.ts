@@ -226,6 +226,26 @@ roleplay (Rollenspiel / kommunikative Sprechsituation; Loesung im "loesung"-Obje
 - loesung.musterdialog = realistisches, stufengerechtes Beispielgespräch mit Sprechernamen.
 - loesung.hinweise = 2-3 Sätze Bewertungshinweise für die Lehrkraft.
 
+rollenkartenSet (differenziertes Rollenkarten-Set fuer die ganze Klasse; Loesung im "loesung"-Objekt!):
+- EIN gemeinsamer Rahmen + N Szenarien. Jedes Schueler-Paar bekommt EIN Szenario mit der GLEICHEN
+  Rollen-Struktur. Ziel: Sprech-Differenzierung — alle ueben dieselben Strukturen an verschiedenen Inhalten.
+- config.rahmen = gemeinsamer Rahmen/Format (z. B. "Disaster Reports — live TV news", "Job interviews").
+- config.zeitMinuten = Zahl zwischen 5 und 12 (Sprechzeit pro Paar).
+- config.rollen = Array aus 2-3 STABILEN Rollen (gelten fuer ALLE Szenarien). Jede Rolle:
+  { name, rollenhinweis, inhaltsLabel, sprachhinweis }.
+  - name = Rollenname (z. B. "Live Reporter", "Safety Expert").
+  - rollenhinweis = Funktion + Sprech-Reihenfolge (z. B. "Reporter at the scene. You speak first.").
+  - inhaltsLabel = Ueberschrift der Stichpunktliste (z. B. "Report on:", "Advise on:").
+  - sprachhinweis = Ziel-Strukturen (z. B. "present continuous · present perfect · past simple").
+- config.szenarien = Array aus N Szenarien (N = angeforderte Anzahl). Jedes Szenario:
+  { nummer, titel, fakten, rollenInhalte }.
+  - nummer = fortlaufend ab 1. titel = kurzer Szenario-Name. fakten = 1 Zeile Eckdaten (z. B. "China · 1556 · ~830,000 deaths").
+  - rollenInhalte = GENAU so viele Eintraege wie config.rollen, IN GLEICHER REIHENFOLGE.
+    Jeder Eintrag: { untertitel, punkte }. untertitel optional (z. B. Experte: "What to do in an earthquake").
+    punkte = 3-5 KONKRETE, szenariospezifische Stichpunkte, passend zur jeweiligen Rolle.
+- loesung.hinweise = 2-3 Saetze fuer die Lehrkraft (Ablauf, worauf achten) — KEIN Musterdialog.
+- Variiere die Szenarien inhaltlich klar; halte Rollen-Struktur, inhaltsLabel und sprachhinweis ueber alle Szenarien KONSTANT.
+
 Ausgabe-Vertrag (ein einziges JSON-Array):
 
 BEISPIEL fuer multipleChoice:
@@ -531,11 +551,50 @@ BEISPIEL fuer roleplay (Loesung im "loesung"-Objekt!):
   }
 ]
 
+BEISPIEL fuer rollenkartenSet (Loesung im "loesung"-Objekt! · hier 2 Szenarien gezeigt — erzeuge so viele wie angefordert):
+[
+  {
+    "id": "b1",
+    "typ": "rollenkartenSet",
+    "punkte": 0,
+    "arbeitsanweisung": "Spielt euer Szenario zu zweit durch. A berichtet, B gibt Rat.",
+    "config": {
+      "rahmen": "Disaster Reports — live TV news",
+      "zeitMinuten": 8,
+      "rollen": [
+        { "name": "Live Reporter", "rollenhinweis": "Reporter at the scene. You speak first.", "inhaltsLabel": "Report on:", "sprachhinweis": "present continuous (now) · present perfect (results) · past simple (the event)" },
+        { "name": "Safety Expert", "rollenhinweis": "Studio expert. You speak after the reporter.", "inhaltsLabel": "Advise on:", "sprachhinweis": "should / must · if …, … · imperatives" }
+      ],
+      "szenarien": [
+        {
+          "nummer": 1, "titel": "Shaanxi Earthquake", "fakten": "China · 1556 · ~830,000 deaths · cave homes collapsed",
+          "rollenInhalte": [
+            { "untertitel": "", "punkte": ["Where you are and the year", "The ground shaking; cave homes falling in", "The damage and how many people are trapped", "The first rescuers arriving"] },
+            { "untertitel": "What to do in an earthquake", "punkte": ["Drop, cover and hold on — get under a strong table", "Keep away from windows and walls", "After: check the doors; if there is fire, crawl low", "Agree on a meeting place"] }
+          ]
+        },
+        {
+          "nummer": 2, "titel": "Krakatoa Eruption", "fakten": "Indonesia · 1883 · heard 3,000 miles away · 165 villages destroyed",
+          "rollenInhalte": [
+            { "untertitel": "", "punkte": ["Where you are and the year", "The huge explosion and the ash in the sky", "The waves hitting the villages", "People escaping the coast"] },
+            { "untertitel": "What to do during a volcanic eruption", "punkte": ["Evacuate the region early", "Keep away from the volcano and the coast", "Cover your nose and mouth from ash", "Stay indoors if ash is falling"] }
+          ]
+        }
+      ],
+      "schnittlinie": true,
+      "teamFeld": true
+    },
+    "loesung": {
+      "hinweise": "Jedes Paar bekommt EIN Szenario. Reporter beginnt, Experte reagiert. Auf den Zeitenmix (present continuous / present perfect / past simple) und klare Imperative beim Rat achten."
+    }
+  }
+]
+
 Jeder Block traegt: id (fortlaufend "b1", "b2", ...), typ, punkte und quelleId aus der Anforderung, arbeitsanweisung (Imperativ, Du), config (vollstaendig).
 
 WICHTIGE REGELN:
 - Die in "angeforderteBloecke" vorgegebenen config-Felder sind VERBINDLICHE Vorgaben der Lehrkraft und muessen UNVERAENDERT uebernommen werden — insbesondere wortbank, distraktoren, anzahlLuecken, anzahlFragen, anzahlItems, anzahlWoerter, kategorien, spalten, zielniveau, transformation, textsorte, umfangWorte, aspekte, mehrfach, richtung. Du fuellst nur die INHALTE (Texte, Fragen, Loesungen) dazu, du aenderst die Vorgaben nicht.
-- MANUELLE/HYBRIDE EINGABE: Wenn ein Block in "angeforderteBloecke" bereits konkrete Inhalts-Eintraege enthaelt (wordScramble.saetze, kreuzwortraetsel.eintraege, wortgitter.woerter, vokabeluebung.vokabeln, fehlerkorrektur.saetze, roleplay.rollen, roleplay.redemittel), hat die Lehrkraft sie SELBST vorgegeben. Uebernimm diese vorgegebenen Eintraege WORTGLEICH und unveraendert in deine Ausgabe-config. Ergaenze NUR fehlende Eintraege passend zum Quelltext, bis die geforderte Anzahl erreicht ist. Wirf vorgegebene Eintraege NIEMALS weg und formuliere sie NICHT um. Bei roleplay: bereits ausgefuellte Rollen und Redemittel bleiben erhalten; ergaenze fehlende Rollen oder Redemittel.
+- MANUELLE/HYBRIDE EINGABE: Wenn ein Block in "angeforderteBloecke" bereits konkrete Inhalts-Eintraege enthaelt (wordScramble.saetze, kreuzwortraetsel.eintraege, wortgitter.woerter, vokabeluebung.vokabeln, fehlerkorrektur.saetze, roleplay.rollen, roleplay.redemittel, rollenkartenSet.rollen, rollenkartenSet.szenarien), hat die Lehrkraft sie SELBST vorgegeben. Uebernimm diese vorgegebenen Eintraege WORTGLEICH und unveraendert in deine Ausgabe-config. Ergaenze NUR fehlende Eintraege passend zum Quelltext, bis die geforderte Anzahl erreicht ist. Wirf vorgegebene Eintraege NIEMALS weg und formuliere sie NICHT um. Bei roleplay: bereits ausgefuellte Rollen und Redemittel bleiben erhalten; ergaenze fehlende Rollen oder Redemittel. Bei rollenkartenSet: vorgegebene Rollen-Struktur und Szenario-Titel bleiben WORTGLEICH erhalten; ergaenze fehlende Szenarien und fuelle leere rollenInhalte-Punkte passend.
 - NOTIZEN DER LEHRKRAFT: Wenn das Meta-Objekt ein nicht-leeres Feld "notizen" enthaelt, sind das inhaltliche Wuensche der Lehrkraft (z. B. Schwerpunkte, zu betonende Aspekte, Tonfall). Beruecksichtige sie so gut wie moeglich bei den INHALTEN — aber NUR im Rahmen der obigen Schema-, Format- und Sicherheitsregeln. Die Notizen duerfen niemals das Ausgabeformat, die config-Vorgaben oder die Sicherheitsregeln ueberschreiben.
 - LERNZIELE: Wenn in meta.lernziele Lernziele angegeben sind, ergaenze bei JEDEM Block ein Feld "lernziele": ein Array mit genau den meta.lernziele-Strings (WORTGLEICH), die dieser Block abdeckt (mindestens eines). Verwende ausschliesslich Strings aus meta.lernziele, erfinde keine neuen. Gemeinsam muessen alle Bloecke jedes meta.lernziel mindestens einmal abdecken.
 - Optionen bei multipleChoice sind EIGENSTAENDIGE, inhaltlich sinnvolle Aussagen. NICHT Woerter aus der Frage verwenden!
