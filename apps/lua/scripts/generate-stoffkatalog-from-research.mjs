@@ -31,7 +31,7 @@ import { join, basename, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // @ts-ignore – built schema
-const { KOMPETENZBEREICHE, FACH_META } = await import('../packages/schema/dist/index.js');
+const { KOMPETENZBEREICHE, FACH_META, stufeFromSchulstufe } = await import('../packages/schema/dist/index.js');
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
@@ -156,19 +156,88 @@ function validateFile(path, data) {
   return errors;
 }
 
+function validateStufenFile(path, data) {
+  const errors = [];
+  if (!data.fach || !FACH_CODE[data.fach]) {
+    errors.push(`Unbekanntes Fach: ${data.fach}`);
+  }
+  if (!Array.isArray(data.stufen) || data.stufen.length === 0) {
+    errors.push(`stufen muss ein nicht-leeres Array sein`);
+    return errors;
+  }
+  const erlaubteBereiche = data.fach ? KOMPETENZBEREICHE[data.fach] ?? [] : [];
+  for (const st of data.stufen) {
+    if (!Number.isInteger(st.schulstufe) || st.schulstufe < 5 || st.schulstufe > 12) {
+      errors.push(`Ungültige schulstufe: ${st.schulstufe}`);
+      continue;
+    }
+    if (!Array.isArray(st.bereiche) || st.bereiche.length === 0) {
+      errors.push(`schulstufe ${st.schulstufe}: bereiche fehlt`);
+      continue;
+    }
+    for (const b of st.bereiche) {
+      if (!b.bereich) {
+        errors.push(`Ein Bereich hat keinen Namen`);
+        continue;
+      }
+      if (!erlaubteBereiche.includes(b.bereich)) {
+        errors.push(`Bereich "${b.bereich}" ist nicht in KOMPETENZBEREICHE[${data.fach}]`);
+      }
+      if (!Array.isArray(b.deskriptoren) || b.deskriptoren.length === 0) {
+        errors.push(`Bereich "${b.bereich}": keine Deskriptoren`);
+        continue;
+      }
+      for (const d of b.deskriptoren) {
+        if (typeof d.text !== 'string' || d.text.trim().length === 0) {
+          errors.push(`Bereich "${b.bereich}": Deskriptor ohne text`);
+        }
+      }
+    }
+  }
+  return errors;
+}
+
 function loadInputs() {
-  const files = readdirSync(inputDir).filter((f) => {
+  const files = readdirSync(inputDir);
+  const byFach = {};
+
+  // 1) Neue _stufen.json-Dateien (präferiert)
+  const stufenFiles = files.filter((f) => {
+    const ext = extname(f);
+    if (ext !== '.json') return false;
+    const name = basename(f, ext);
+    const parts = name.split('_');
+    return parts.length === 2 && parts[1] === 'stufen' && parts[0] in FACH_CODE;
+  });
+
+  for (const f of stufenFiles) {
+    const fach = basename(f, '.json').split('_')[0];
+    const path = join(inputDir, f);
+    const raw = readFileSync(path, 'utf8');
+    let data;
+    try {
+      data = JSON.parse(raw);
+    } catch (e) {
+      console.error(`Fehler beim Parsen von ${f}: ${e.message}`);
+      process.exit(1);
+    }
+    data.fach = fach;
+    if (!byFach[fach]) byFach[fach] = {};
+    byFach[fach].__stufen = data;
+  }
+
+  // 2) Legacy <fach>_<stufe>.json-Dateien (nur wenn keine _stufen.json vorhanden)
+  const legacyFiles = files.filter((f) => {
     const ext = extname(f);
     if (ext !== '.json') return false;
     const name = basename(f, ext);
     const parts = name.split('_');
     if (parts.length !== 2) return false;
     const [fach, stufe] = parts;
-    return fach in FACH_CODE && stufe in STUFE_ABBR;
+    return fach in FACH_CODE && stufe in STUFE_ABBR && !byFach[fach]?.__stufen;
   });
 
-  const byFach = {};
-  for (const f of files) {
+  for (const f of legacyFiles) {
     const [fach, stufe] = basename(f, '.json').split('_');
     const path = join(inputDir, f);
     const raw = readFileSync(path, 'utf8');
@@ -184,6 +253,7 @@ function loadInputs() {
     if (!byFach[fach]) byFach[fach] = {};
     byFach[fach][stufe] = data;
   }
+
   return byFach;
 }
 
@@ -252,19 +322,99 @@ function generateFachTs(fach, stufenData) {
   return lines.join('\n');
 }
 
+function generateFachTsFromStufen(fach, data) {
+  const fachCode = FACH_CODE[fach];
+  const label = FACH_META[fach]?.label ?? fach;
+  const defaultQuelle = data.quelle ?? data.quelleUrl ?? '';
+  const lines = [
+    `import type { StoffItem, Deskriptor } from '@lehrunterlagen/schema';`,
+    ``,
+    `// ${label} — generiert aus Lehrplan-Recherche (_stufen.json).`,
+    `// Deskriptoren sind gesourct und mit konkreter Schulstufe (5–12) hinterlegt;`,
+    `// StoffItems bleiben grob (Unter-/Oberstufe) und verlinken passende Deskriptoren.`,
+    ``,
+    `export const ${fach}Deskriptoren: Deskriptor[] = [`,
+  ];
+
+  const stoffItemMap = new Map(); // key: `${stufe}|${bereich}`
+  const seenIds = new Set();
+
+  for (const st of data.stufen) {
+    const schulstufe = st.schulstufe;
+    const stufe = stufeFromSchulstufe(schulstufe);
+    for (const bereichObj of st.bereiche) {
+      const bereich = bereichObj.bereich;
+      const key = `${stufe}|${bereich}`;
+      if (!stoffItemMap.has(key)) {
+        const stufeAbbr = STUFE_ABBR[stufe];
+        const bereichSlug = slugify(bereich);
+        stoffItemMap.set(key, {
+          id: stoffItemId(fachCode, stufeAbbr, bereichSlug),
+          titel: bereich,
+          stufe,
+          bereich,
+          deskriptorIds: [],
+        });
+      }
+      const item = stoffItemMap.get(key);
+
+      for (let i = 0; i < bereichObj.deskriptoren.length; i++) {
+        const d = bereichObj.deskriptoren[i];
+        const id = d.id?.trim() || `${fachCode}-${slugify(bereich)}-s${schulstufe}-${i + 1}`;
+        if (seenIds.has(id)) throw new Error(`Doppelte Deskriptor-ID: ${id}`);
+        seenIds.add(id);
+        item.deskriptorIds.push(id);
+        const quelle = d.quelle?.trim() || defaultQuelle || '';
+        lines.push(
+          `  { id: '${id}', rahmenwerk: 'at-lehrplan', fach: '${fach}', stufe: '${stufe}', schulstufe: ${schulstufe}, bereich: '${bereich.replace(/'/g, "\\'")}', code: '${(d.code ?? '').replace(/'/g, "\\'")}', text: '${d.text.replace(/'/g, "\\'")}', quelle: '${quelle.replace(/'/g, "\\'")}' },`,
+        );
+      }
+    }
+  }
+
+  lines.push(`];`, ``, `export const ${fach}StoffItems: StoffItem[] = [`);
+  // Sortiere StoffItems nach kanonischer Bereichsreihenfolge und Stufe
+  const bereichOrder = KOMPETENZBEREICHE[fach] ?? [];
+  const stoffItems = Array.from(stoffItemMap.values()).sort((a, b) => {
+    const idxA = bereichOrder.indexOf(a.bereich);
+    const idxB = bereichOrder.indexOf(b.bereich);
+    if (idxA !== idxB) return idxA - idxB;
+    return a.stufe === 'unterstufe' ? -1 : 1;
+  });
+
+  for (const item of stoffItems) {
+    lines.push(
+      `  { id: '${item.id}', rahmenwerk: 'at-lehrplan', titel: '${item.titel.replace(/'/g, "\\'")}', fach: '${fach}', stufe: '${item.stufe}', kategorie: '${item.bereich.replace(/'/g, "\\'")}', deskriptorIds: [${item.deskriptorIds.map((id) => `'${id}'`).join(', ')}], defaultAufgabentypen: [${(DEFAULT_AUFGABENTYPEN[item.titel] ?? DEFAULT_AUFGABENTYPEN[item.bereich] ?? ['offeneVerstaendnisfrage']).map((t) => `'${t}'`).join(', ')}] },`,
+    );
+  }
+  lines.push(`];`, ``);
+
+  return lines.join('\n');
+}
+
 function main() {
   const byFach = loadInputs();
   const faecher = Object.keys(byFach).sort();
 
   if (faecher.length === 0) {
-    console.error(`Keine <fach>_<stufe>.json-Dateien in ${inputDir} gefunden.`);
+    console.error(`Keine <fach>_stufen.json- oder <fach>_<stufe>.json-Dateien in ${inputDir} gefunden.`);
     process.exit(1);
   }
 
   let totalErrors = 0;
   for (const fach of faecher) {
-    for (const stufe of Object.keys(byFach[fach])) {
-      const data = byFach[fach][stufe];
+    const fachData = byFach[fach];
+    if (fachData.__stufen) {
+      const errors = validateStufenFile(null, fachData.__stufen);
+      if (errors.length > 0) {
+        totalErrors += errors.length;
+        console.error(`\n${fach}_stufen.json:`);
+        for (const e of errors) console.error(`  ✗ ${e}`);
+      }
+      continue;
+    }
+    for (const stufe of Object.keys(fachData)) {
+      const data = fachData[stufe];
       const errors = validateFile(null, data);
       if (errors.length > 0) {
         totalErrors += errors.length;
@@ -291,7 +441,9 @@ function main() {
   }
 
   for (const fach of filteredFaecher) {
-    const ts = generateFachTs(fach, byFach[fach]);
+    const ts = byFach[fach].__stufen
+      ? generateFachTsFromStufen(fach, byFach[fach].__stufen)
+      : generateFachTs(fach, byFach[fach]);
     if (writeMode) {
       if (!existsSync(outputDir)) mkdirSync(outputDir, { recursive: true });
       const outPath = join(outputDir, `${fach}.ts`);

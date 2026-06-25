@@ -7,6 +7,26 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Daten-Integration: Stufen-Deskriptoren + Inhalts-Module (alle 12 Fächer)
+- `apps/lua/scripts/generate-stoffkatalog-from-research.mjs` um
+  `<fach>_stufen.json`-Pfad erweitert: ersetzt grobe Deskriptoren pro Fach
+  durch schulstufen-genauere (5–12); StoffItems bleiben grob und verlinken
+  Unterstufe (≤ 8) / Oberstufe (≥ 9) passend.
+- Alle 12 `apps/lua/apps/web/src/lib/stoffkatalog/<fach>.ts` neu generiert;
+  keine verwaisten `deskriptorIds`, keine Dup-IDs.
+- `apps/lua/scripts/generate-inhaltskatalog-from-research.mjs` neu: liest
+  `<fach>_module.json` und erzeugt `apps/lua/apps/web/src/lib/inhaltskatalog/<fach>.ts`
+  + `index.ts` für alle 12 Fächer.
+- `apps/lua/apps/web/src/lib/coverage.ts`: `computeCoverage` beachtet optional
+  `meta.schulstufe` für grad-genauen Kompetenznachweis.
+- Tests angepasst/grün gehalten:
+  - `stoffkatalog.test.ts`: Entwurfs-Vermerk nach vollständiger Sourcierung
+    korrigiert.
+  - `coverage.test.ts`: Item-ID an neuen Stoffkatalog angepasst.
+  - `inhaltskatalog.test.ts`: auf alle 12 Fächer mit Modulen aktualisiert.
+- Verifikation: `pnpm --filter "./packages/*" build && pnpm -r typecheck &&
+  `pnpm -r test` grün (Schema 145, LLM 126, Renderer 38, Input 17, QA 103, Web 73).
+
 ### Added — Inhalts-Module für Geschichte + Geographie (Welle C)
 - `apps/lua/packages/schema/src/index.ts`: `InhaltsModulSchema` und optionales
   `inhaltsModulId` in `MetaSchema`/`AuftragSchema`.

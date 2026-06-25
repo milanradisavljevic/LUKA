@@ -50,9 +50,9 @@ describe('Entwurfs-Vermerk-Steuerung', () => {
     }
   });
 
-  it('Sprachfächer mit kuratierten Grammatik-Katalogen zeigen den Vermerk', () => {
-    // Skill-Bereiche gesourct, aber Grammatik/Wortschatz noch Entwurf.
-    expect(fachHatEntwurf('englisch')).toBe(true);
-    expect(fachHatEntwurf('deutsch')).toBe(true);
+  it('alle Fächer sind nach der Stufen-Integration voll gesourct', () => {
+    for (const fach of ['englisch', 'deutsch', 'franzoesisch', 'spanisch', 'italienisch'] as const) {
+      expect(fachHatEntwurf(fach), `${fach} sollte keinen Entwurfs-Vermerk mehr zeigen`).toBe(false);
+    }
   });
 });

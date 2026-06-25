@@ -1,10 +1,30 @@
 import type { InhaltsModul } from '@lehrunterlagen/schema';
-import { geschichteInhaltsModule } from './geschichte';
+import { deutschInhaltsModule } from './deutsch';
+import { englischInhaltsModule } from './englisch';
+import { ethikInhaltsModule } from './ethik';
+import { franzoesischInhaltsModule } from './franzoesisch';
 import { geographieInhaltsModule } from './geographie';
+import { geschichteInhaltsModule } from './geschichte';
+import { italienischInhaltsModule } from './italienisch';
+import { lateinInhaltsModule } from './latein';
+import { philosophieInhaltsModule } from './philosophie';
+import { psychologieInhaltsModule } from './psychologie';
+import { religionInhaltsModule } from './religion';
+import { spanischInhaltsModule } from './spanisch';
 
 const MODULE: InhaltsModul[] = [
-  ...geschichteInhaltsModule,
+  ...deutschInhaltsModule,
+  ...englischInhaltsModule,
+  ...ethikInhaltsModule,
+  ...franzoesischInhaltsModule,
   ...geographieInhaltsModule,
+  ...geschichteInhaltsModule,
+  ...italienischInhaltsModule,
+  ...lateinInhaltsModule,
+  ...philosophieInhaltsModule,
+  ...psychologieInhaltsModule,
+  ...religionInhaltsModule,
+  ...spanischInhaltsModule,
 ];
 
 export function listInhaltsModule(

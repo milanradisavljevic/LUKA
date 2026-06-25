@@ -28,14 +28,14 @@ describe('inhaltskatalog integrity', () => {
     const s11 = listInhaltsModule('geschichte', 'oberstufe', 'at-lehrplan', 11);
     expect(s11.length).toBeGreaterThan(0);
     expect(s11.length).toBeLessThanOrEqual(allOberstufe.length);
-    expect(s11.some((m) => m.titel === 'Französische Revolution')).toBe(true);
+    expect(s11.some((m) => m.titel === 'Globalisierung und Gegenwart')).toBe(true);
   });
 
   it('returns undefined for unknown module', () => {
     expect(getInhaltsModul('does-not-exist')).toBeUndefined();
   });
 
-  it('returns empty array for fächer without modules', () => {
-    expect(listInhaltsModule('deutsch', 'oberstufe', 'at-lehrplan')).toEqual([]);
+  it('returns empty array for non-matching rahmenwerk', () => {
+    expect(listInhaltsModule('deutsch', 'oberstufe', 'ib-dp')).toEqual([]);
   });
 });
