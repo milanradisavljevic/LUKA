@@ -6,6 +6,7 @@ import { invoke } from '@tauri-apps/api/core';
 import type { AppState, AppAction } from '../lib/types';
 import { loadSettings } from '../lib/storage';
 import { getStoffItems } from '../lib/stoffkatalog';
+import { getInhaltsModul } from '../lib/inhaltskatalog';
 
 /** Baut die Stoff-Items für den Generator: Katalog-Items + optional ein synthetisches Item für Freitext. */
 function buildStoffItems(meta: AppState['meta']): StoffItem[] | undefined {
@@ -25,6 +26,16 @@ function buildStoffItems(meta: AppState['meta']): StoffItem[] | undefined {
     });
   }
   return items.length > 0 ? items : undefined;
+}
+
+/** Baut das optionale Inhalts-Modul für den Generator. */
+function buildInhaltsModul(meta: AppState['meta']): { titel: string; beschreibung: string } | undefined {
+  if (meta.modus !== 'kompetenz') return undefined;
+  const id = meta.inhaltsModulId;
+  if (!id) return undefined;
+  const modul = getInhaltsModul(id);
+  if (!modul) return undefined;
+  return { titel: modul.titel, beschreibung: modul.beschreibung };
 }
 
 // Phasen der Generierung — die UI (Kimi) zeigt daraus eine Fortschrittsanzeige.
@@ -331,6 +342,7 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
         quelltexte: modus === 'kompetenz' ? [] : state.quelltexte,
         bloecke: state.bloecke.map(blockToRequest),
         stoffItems: buildStoffItems(state.meta),
+        inhaltsModul: buildInhaltsModul(state.meta),
       };
       const judgeCfg = settings.judgeEnabled !== false ? {
         provider: 'deepseek',
@@ -404,6 +416,7 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
         quelltexte: modus === 'kompetenz' ? [] : doc.quelltexte,
         bloecke: [blockToRequest(ziel)],
         stoffItems: buildStoffItems(doc.meta),
+        inhaltsModul: buildInhaltsModul(doc.meta),
       };
       const ergebnis = await runAttempts(providerId, apiModel, input, { ...state, meta: doc.meta, quelltexte: modus === 'kompetenz' ? [] : doc.quelltexte }, hinweis);
       const neu = ergebnis.bloecke[0];

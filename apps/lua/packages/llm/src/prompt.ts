@@ -778,6 +778,9 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
       ? `Niveau: "${niveau}" — passe Satzkomplexitaet, Scaffolding und Item-Anzahl entsprechend an (siehe NIVEAU-STEUERUNG im System-Prompt). `
       : '';
     const systemContent = SYSTEM_KOMPETENZ + (input.meta.rahmenwerk === 'ib-dp' ? IB_HINWEIS : '');
+    const inhaltsModulHinweis = input.inhaltsModul
+      ? `Inhaltlicher Rahmen: "${input.inhaltsModul.titel}" — ${input.inhaltsModul.beschreibung}. Alle Beispiele/Szenarien muessen inhaltlich zu diesem Thema passen. `
+      : '';
     const kompetenzUser = {
       meta: input.meta,
       stoffItems: input.stoffItems ?? [],
@@ -798,6 +801,7 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
           maturaHinweis +
           lernzielHinweis +
           zielgruppeHinweis +
+          inhaltsModulHinweis +
           notizenHinweis +
           fokusThemenHinweis +
           'Jeder Block muss ein vollstaendiges Objekt mit id, typ, punkte, arbeitsanweisung und config sein (quelleId entfaellt im Kompetenz-Modus). ' +

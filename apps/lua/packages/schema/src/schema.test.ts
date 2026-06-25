@@ -27,6 +27,7 @@ import {
   DeskriptorSchema,
   StoffItemSchema,
   stufeFromSchulstufe,
+  InhaltsModulSchema,
   PROFILE,
   buildSkelett,
   baueWortbank,
@@ -252,6 +253,65 @@ describe('DeskriptorSchema + StoffItemSchema schulstufe', () => {
       kategorie: 'Historische Methodenkompetenz', titel: 'Quellenanalyse', deskriptorIds: ['d1'],
     });
     expect(result.success).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// InhaltsModul
+// ---------------------------------------------------------------------------
+
+describe('InhaltsModulSchema', () => {
+  it('accepts valid InhaltsModul', () => {
+    const result = InhaltsModulSchema.safeParse({
+      id: 'at-geschichte-franzoesische-revolution',
+      rahmenwerk: 'at-lehrplan',
+      fach: 'geschichte',
+      stufe: 'oberstufe',
+      schulstufe: 11,
+      titel: 'Französische Revolution',
+      beschreibung: 'Ursachen, Verlauf und Wirkung.',
+      quelle: 'Entwurf',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts InhaltsModul without schulstufe', () => {
+    const result = InhaltsModulSchema.safeParse({
+      id: 'at-geschichte-mittelalter',
+      rahmenwerk: 'at-lehrplan',
+      fach: 'geschichte',
+      stufe: 'unterstufe',
+      titel: 'Das Mittelalter',
+      beschreibung: '',
+      quelle: 'Entwurf',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects missing titel', () => {
+    const result = InhaltsModulSchema.safeParse({
+      id: 'at-geschichte-x',
+      rahmenwerk: 'at-lehrplan',
+      fach: 'geschichte',
+      stufe: 'oberstufe',
+      beschreibung: '',
+      quelle: '',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects invalid schulstufe', () => {
+    const result = InhaltsModulSchema.safeParse({
+      id: 'at-geschichte-x',
+      rahmenwerk: 'at-lehrplan',
+      fach: 'geschichte',
+      stufe: 'oberstufe',
+      schulstufe: 13,
+      titel: 'X',
+      beschreibung: '',
+      quelle: '',
+    });
+    expect(result.success).toBe(false);
   });
 });
 

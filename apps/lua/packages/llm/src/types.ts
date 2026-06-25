@@ -52,6 +52,7 @@ export interface GenerateInput {
   quelltexte: QuellText[];
   bloecke: BlockRequest[];
   stoffItems?: StoffItem[];
+  inhaltsModul?: { titel: string; beschreibung: string };
 }
 
 export interface GenerateOk {

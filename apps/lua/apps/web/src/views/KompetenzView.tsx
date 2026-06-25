@@ -4,6 +4,7 @@ import type { AppState, AppAction } from '../lib/types';
 import type { BlockTyp, Fach } from '@lehrunterlagen/schema';
 import { FACH_META, fachLabel, KOMPETENZBEREICHE, SCHULSTUFEN, stufeFromSchulstufe } from '@lehrunterlagen/schema';
 import { listStoffItems, fachHatEntwurf, getStoffItems } from '../lib/stoffkatalog';
+import { listInhaltsModule, getInhaltsModul } from '../lib/inhaltskatalog';
 import { BLOCK_TYPE_DEFS, STUFE_RULES } from '../lib/constants';
 import { buildSkelett } from '@lehrunterlagen/schema';
 import { useGenerate } from '../hooks/useGenerate';
@@ -39,6 +40,7 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
   const [stufe, setStufe] = useState<'oberstufe' | 'unterstufe'>('oberstufe');
   const [schulstufe, setSchulstufe] = useState<number | undefined>(undefined);
   const [stoffItemIds, setStoffItemIds] = useState<string[]>([]);
+  const [inhaltsModulId, setInhaltsModulId] = useState<string | undefined>(undefined);
   const [freieKompetenz, setFreieKompetenz] = useState('');
   const [thema, setThema] = useState('');
   const [niveau, setNiveau] = useState<'basis' | 'standard' | 'erweitert'>('standard');
@@ -50,6 +52,11 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
 
   const stoffItems = useMemo(
     () => listStoffItems(fach, stufe, rahmenwerk, schulstufe),
+    [fach, stufe, rahmenwerk, schulstufe],
+  );
+
+  const inhaltsModule = useMemo(
+    () => listInhaltsModule(fach, stufe, rahmenwerk, schulstufe),
     [fach, stufe, rahmenwerk, schulstufe],
   );
 
@@ -80,6 +87,17 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
 
       return next;
     });
+  };
+
+  const handleInhaltsModulChange = (id: string) => {
+    const nextId = id || undefined;
+    setInhaltsModulId(nextId);
+    if (nextId) {
+      const modul = getInhaltsModul(nextId);
+      if (modul && thema.trim() === '') {
+        setThema(modul.titel);
+      }
+    }
   };
 
   const toggleTyp = (typ: BlockTyp) => {
@@ -120,6 +138,7 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
       thema: themaFinal,
       stoffItemIds,
       schulstufe,
+      inhaltsModulId,
       freieKompetenz: hatFreitext ? freitext : undefined,
       kompetenzNiveau: niveau,
       punkteAusblenden: !punkteVergeben,
@@ -139,6 +158,7 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
       rahmenwerk,
       stoffItemIds,
       schulstufe,
+      inhaltsModulId,
       freieKompetenz: hatFreitext ? freitext : undefined,
       kompetenzNiveau: niveau,
       punkteAusblenden: !punkteVergeben,
@@ -380,6 +400,37 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
           </p>
         )}
       </section>
+
+      {/* Inhalts-Modul (nur bei vorhandenen Modul-Daten) */}
+      {inhaltsModule.length > 0 && (
+        <section style={{ marginBottom: '1.25rem' }}>
+          <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.875rem' }}>
+            Inhaltlicher Rahmen <span style={{ color: 'var(--color-text-secondary)', fontWeight: 400 }}>(optional)</span>
+          </label>
+          <select
+            value={inhaltsModulId ?? ''}
+            onChange={(e) => handleInhaltsModulChange(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '0.625rem 0.875rem',
+              borderRadius: 'var(--radius)',
+              border: '1px solid var(--color-border)',
+              fontSize: '0.875rem',
+              background: 'var(--color-bg-surface)',
+            }}
+          >
+            <option value="">— kein Inhalt —</option>
+            {inhaltsModule.map((modul) => (
+              <option key={modul.id} value={modul.id}>{modul.titel}</option>
+            ))}
+          </select>
+          {inhaltsModulId && getInhaltsModul(inhaltsModulId) && (
+            <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem' }}>
+              {getInhaltsModul(inhaltsModulId)?.beschreibung}
+            </p>
+          )}
+        </section>
+      )}
 
       {/* Thema */}
       <section style={{ marginBottom: '1.25rem' }}>
