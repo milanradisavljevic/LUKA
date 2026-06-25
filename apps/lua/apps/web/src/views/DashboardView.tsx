@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import {
   GraduationCap, AlertTriangle, Loader2, ClipboardCheck,
   ChevronRight, FileText, Timer, Files, Clock, Coins,
-  Grid3X3, Languages, Pencil, AlignLeft, Zap,
+  Grid3X3, Languages, Pencil, AlignLeft,
 } from 'lucide-react';
 import { useNatascha } from '../hooks/useNatascha';
 import { loadDocuments, loadTemplates } from '../lib/storage';
@@ -124,68 +124,45 @@ export function DashboardView({ onNavigate, onStartQuickExercise }: DashboardVie
 
       {/* ═══ HERO: Begrüßung + Zwei Türen ═══ */}
       <Hero greeting={greetTime()} subtitle="Was möchtest du erstellen?" subtitleScript>
-        {/* Zwei Türen — groß und präsent */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
-
-          {/* Tür 1: Aus Quelltext */}
-          <button
-            className="card card-clickable door-card"
-            onClick={() => onNavigate?.('wizard')}
-            aria-label="Aus Quelltext erstellen — Schularbeit oder Test zu einem Text"
-            style={{
-              padding: '1.75rem 1.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '1.5rem',
-              minHeight: 180,
-            }}
-          >
-            <Door variant="quelltext" />
-            <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
-              <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
-                Aus Quelltext
+        {/* Drei Türen — Aus Quelltext · Ohne Quelltext · Schnell-Übung */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(232px, 1fr))', gap: '1.25rem' }}>
+          {([
+            { variant: 'quelltext' as const, view: 'wizard' as const, title: 'Aus Quelltext', sub: 'Schularbeit / Test zu einem Text', desc: 'Quelltext hochladen, Aufgaben zusammenstellen, KI generiert Inhalte.', min: '~5 Min' },
+            { variant: 'kompetenz' as const, view: 'kompetenz' as const, title: 'Ohne Quelltext', sub: 'Übung aus Kompetenz & Lehrplan', desc: 'Schulstufe, Kompetenzen und Inhalt wählen — KI generiert passende Übungen.', min: '~2 Min' },
+            { variant: 'schnell' as const, view: 'quick' as const, title: 'Schnell-Übung', sub: 'Ein Aufgabentyp, sofort', desc: 'Thema, Fach, Stufe und Aufgabentyp wählen — direkt erstellen.', min: '~1 Min' },
+          ]).map((d) => (
+            <button
+              key={d.variant}
+              className="card card-clickable door-card"
+              onClick={() => onNavigate?.(d.view)}
+              aria-label={`${d.title} — ${d.sub}`}
+              style={{
+                padding: '1.5rem 1.25rem',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                textAlign: 'center',
+                gap: '1rem',
+                minHeight: 300,
+              }}
+            >
+              <Door variant={d.variant} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                  {d.title}
+                </div>
+                <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', marginTop: '0.125rem' }}>
+                  {d.sub}
+                </div>
+                <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', margin: '0.5rem 0 0.75rem', lineHeight: 1.5 }}>
+                  {d.desc}
+                </p>
+                <span className="badge badge-info">
+                  <Timer size={11} /> {d.min} Einrichtung
+                </span>
               </div>
-              <div style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', marginTop: '0.125rem' }}>
-                Schularbeit / Test zu einem Text
-              </div>
-              <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', margin: '0.625rem 0 0.75rem', lineHeight: 1.5 }}>
-                Quelltext hochladen, Aufgaben zusammenstellen, KI generiert Inhalte.
-              </p>
-              <span className="badge badge-info">
-                <Timer size={11} /> ~5 Min Einrichtung
-              </span>
-            </div>
-          </button>
-
-          {/* Tür 2: Ohne Quelltext */}
-          <button
-            className="card card-clickable door-card"
-            onClick={() => onNavigate?.('kompetenz')}
-            aria-label="Ohne Quelltext erstellen — Grammatik oder Übung aus Kompetenz"
-            style={{
-              padding: '1.75rem 1.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '1.5rem',
-              minHeight: 180,
-            }}
-          >
-            <Door variant="kompetenz" />
-            <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
-              <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
-                Ohne Quelltext
-              </div>
-              <div style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', marginTop: '0.125rem' }}>
-                Grammatik / Übung aus Kompetenz
-              </div>
-              <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', margin: '0.625rem 0 0.75rem', lineHeight: 1.5 }}>
-                Kompetenzrahmen wählen, Aufgabentypen auswählen, KI generiert Übungen.
-              </p>
-              <span className="badge badge-info">
-                <Timer size={11} /> ~2 Min Einrichtung
-              </span>
-            </div>
-          </button>
+            </button>
+          ))}
         </div>
       </Hero>
 
@@ -196,7 +173,7 @@ export function DashboardView({ onNavigate, onStartQuickExercise }: DashboardVie
             fontSize: '0.75rem', fontWeight: 500, color: 'var(--color-text-muted)',
             textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem',
           }}>
-            Schnell ohne Quelltext
+            Schnell-Vorlagen
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '0.5rem' }}>
             {([
@@ -215,14 +192,6 @@ export function DashboardView({ onNavigate, onStartQuickExercise }: DashboardVie
                 <span>{s.label}</span>
               </button>
             ))}
-            <button
-              className="tile"
-              onClick={() => onNavigate?.('quick')}
-              style={{ fontSize: '0.8125rem', textAlign: 'left', flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}
-            >
-              <Zap size={18} style={{ color: 'var(--color-accent)', flexShrink: 0 }} />
-              <span>Eigene Schnell-Übung</span>
-            </button>
           </div>
         </div>
       )}

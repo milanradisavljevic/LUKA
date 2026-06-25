@@ -133,6 +133,8 @@
   --door-quelltext-edge: #1F3A5A;
   --door-kompetenz: #E7DBBE;   /* warmes Pergament */
   --door-kompetenz-edge: #6E2C4A;
+  --door-schnell: #8C9A5B;     /* warmes Salbei-Oliv (Schnell-Übung) */
+  --door-schnell-edge: #5E6B38;
 
   /* Legacy-Aliase (Temporär) */
   --color-text: var(--color-text-primary);
@@ -188,6 +190,8 @@
   --door-quelltext-edge: #4E7E73;
   --door-kompetenz: #46402E;        /* warmes Pergament bleibt */
   --door-kompetenz-edge: #E8B7A0;
+  --door-schnell: #3D4A38;          /* tiefes Moos auf der Tafel */
+  --door-schnell-edge: #8C9A5B;
 
   /* Sidebar */
   --sidebar-bg: #1F3D37;
