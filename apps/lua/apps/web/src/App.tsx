@@ -37,7 +37,8 @@ import type { NataschaPrefill } from './lib/nataschaBridge';
 import { loadDocuments, upsertDocument, snapshotFromState, saveTemplate, deleteTemplate, loadTemplates, hydrateCache, isHydrated, setPersistErrorHandler, loadSettings, subscribeSettings } from './lib/storage';
 import { Toast, type ToastMessage } from './components/Toast';
 import { SettingsPanel } from './components/SettingsPanel';
-import { SubjectMural } from './components/SubjectMural';
+import { getMuralVars, getMuralMode } from './themes/subjectThemes';
+import { DEFAULT_SETTINGS } from './lib/storage';
 import { FEATURES } from './lib/features';
 import { PROVIDER_KEY_IDS } from './lib/constants';
 import './App.css';
@@ -416,8 +417,11 @@ if (hydrating) {
         </header>
 
         {/* Hauptbereich */}
-        <main className="app-main">
-          <SubjectMural fach={state.meta.fach} settings={settings} />
+        <main
+          className="app-main"
+          data-mural={getMuralMode(state.meta.fach, settings.ambientMuralsEnabled ?? DEFAULT_SETTINGS.ambientMuralsEnabled)}
+          style={getMuralVars(state.meta.fach)}
+        >
           <div className="app-main-content">
             {renderView()}
           </div>
