@@ -32,3 +32,26 @@ export function getSubjectTheme(fach: Fach): SubjectTheme | null {
 export function getMuralAsset(fach: Fach): string | null {
   return muralAssets[fach] ?? null;
 }
+
+/** CSS-Custom-Properties für das Mural als Hintergrund von .app-main. */
+export function getMuralVars(fach: Fach): Record<string, string> {
+  const theme = getSubjectTheme(fach);
+  const vars: Record<string, string> = {};
+  if (theme) {
+    vars['--mural-paper'] = theme.palette[0];
+    vars['--mural-wash'] = theme.palette[1];
+    vars['--mural-mid'] = theme.palette[2];
+    vars['--mural-ink'] = theme.palette[3];
+    vars['--mural-accent'] = theme.accentColor;
+  }
+  const asset = getMuralAsset(fach);
+  if (asset) vars['--mural-image'] = `url("${asset}")`;
+  return vars;
+}
+
+/** 'image' = Bild + Wash, 'wash' = nur Farb-Wash, 'off' = nichts. */
+export function getMuralMode(fach: Fach, ambientEnabled: boolean): 'image' | 'wash' | 'off' {
+  if (!ambientEnabled) return 'off';
+  if (getMuralAsset(fach)) return 'image';
+  return getSubjectTheme(fach) ? 'wash' : 'off';
+}
