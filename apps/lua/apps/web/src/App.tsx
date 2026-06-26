@@ -34,12 +34,14 @@ import { QuickExerciseView } from './views/QuickExerciseView';
 import { setPendingUebung } from './lib/korrekturBridge';
 import { createDefaultBlock } from './lib/blockDefaults';
 import type { NataschaPrefill } from './lib/nataschaBridge';
-import { loadDocuments, upsertDocument, snapshotFromState, saveTemplate, deleteTemplate, loadTemplates, hydrateCache, isHydrated, setPersistErrorHandler } from './lib/storage';
+import { loadDocuments, upsertDocument, snapshotFromState, saveTemplate, deleteTemplate, loadTemplates, hydrateCache, isHydrated, setPersistErrorHandler, loadSettings, subscribeSettings } from './lib/storage';
 import { Toast, type ToastMessage } from './components/Toast';
 import { SettingsPanel } from './components/SettingsPanel';
+import { SubjectMural } from './components/SubjectMural';
 import { FEATURES } from './lib/features';
 import { PROVIDER_KEY_IDS } from './lib/constants';
 import './App.css';
+import './styles/murals.css';
 
 function isTauri(): boolean {
   return typeof window !== 'undefined' && (window as any).__TAURI_INTERNALS__ !== undefined;
@@ -66,12 +68,18 @@ const VIEW_TITLES: Record<ActiveView, string> = {
 
 export default function App() {
   const [hydrating, setHydrating] = useState(!isHydrated());
+  const [settings, setSettings] = useState(() => loadSettings());
 
   useEffect(() => {
     if (!isHydrated()) {
-      hydrateCache().then(() => setHydrating(false));
+      hydrateCache().then(() => {
+        setSettings(loadSettings());
+        setHydrating(false);
+      });
     }
   }, []);
+
+  useEffect(() => subscribeSettings(setSettings), []);
 
   const { state, dispatch, goNext, goBack, goToStep, currentIndex } = useWizard();
   const { resolved: theme, toggle: toggleTheme } = useTheme();
@@ -408,8 +416,11 @@ if (hydrating) {
         </header>
 
         {/* Hauptbereich */}
-        <main style={{ flex: 1, overflow: 'auto', padding: '1.5rem', background: 'var(--color-bg-base)' }}>
-          {renderView()}
+        <main className="app-main">
+          <SubjectMural fach={state.meta.fach} settings={settings} />
+          <div className="app-main-content">
+            {renderView()}
+          </div>
         </main>
 
         {/* Footer-Navigation (nur im Assistenten) */}

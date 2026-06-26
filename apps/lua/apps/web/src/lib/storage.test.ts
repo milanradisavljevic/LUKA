@@ -131,8 +131,32 @@ describe('storage — Standard-Vorgaben', () => {
   });
 
   it('saveSettings + loadSettings sind roundtrip-fähig', () => {
-    saveSettings({ defaultProvider: 'deepseek', defaultModel: 'DeepSeek V4 Pro', defaultKreativitaet: 0.2, defaultAusgabeSprache: 'en', judgeEnabled: false, nataschaInboxDir: '', nataschaDir: '', pythonCommand: '' });
-    expect(loadSettings()).toEqual({ defaultProvider: 'deepseek', defaultModel: 'DeepSeek V4 Pro', defaultKreativitaet: 0.2, defaultAusgabeSprache: 'en', judgeEnabled: false, nataschaInboxDir: '', nataschaDir: '', pythonCommand: '' });
+    saveSettings({
+      defaultProvider: 'deepseek',
+      defaultModel: 'DeepSeek V4 Pro',
+      defaultKreativitaet: 0.2,
+      defaultAusgabeSprache: 'en',
+      judgeEnabled: false,
+      ambientMuralsEnabled: false,
+      reduceMotion: true,
+      reduceBackgroundEffects: true,
+      nataschaInboxDir: '',
+      nataschaDir: '',
+      pythonCommand: '',
+    });
+    expect(loadSettings()).toEqual({
+      defaultProvider: 'deepseek',
+      defaultModel: 'DeepSeek V4 Pro',
+      defaultKreativitaet: 0.2,
+      defaultAusgabeSprache: 'en',
+      judgeEnabled: false,
+      ambientMuralsEnabled: false,
+      reduceMotion: true,
+      reduceBackgroundEffects: true,
+      nataschaInboxDir: '',
+      nataschaDir: '',
+      pythonCommand: '',
+    });
   });
 });
 

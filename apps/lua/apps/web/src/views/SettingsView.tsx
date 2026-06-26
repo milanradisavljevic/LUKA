@@ -22,6 +22,57 @@ const LANGUAGES: { value: string; label: string }[] = [
   { value: 'en', label: 'Englisch' },
 ];
 
+function ToggleRow({
+  label,
+  description,
+  checked,
+  onChange,
+}: {
+  label: string;
+  description: string;
+  checked: boolean;
+  onChange: () => void;
+}) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.625rem 0' }}>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        onClick={onChange}
+        style={{
+          position: 'relative',
+          width: 44,
+          height: 24,
+          borderRadius: 12,
+          border: 'none',
+          background: checked ? 'var(--color-accent)' : 'var(--color-border)',
+          cursor: 'pointer',
+          transition: 'background 0.2s ease',
+          flexShrink: 0,
+        }}
+      >
+        <span style={{
+          position: 'absolute',
+          top: 2,
+          left: checked ? 22 : 2,
+          width: 20,
+          height: 20,
+          borderRadius: '50%',
+          background: 'white',
+          transition: 'left 0.2s ease',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+        }} />
+      </button>
+      <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>
+        <strong style={{ color: 'var(--color-text-primary)' }}>{label}</strong>
+        {' — '}
+        {description}
+      </span>
+    </div>
+  );
+}
+
 export function SettingsView() {
   const [settings, setSettings] = useState<AppSettings>(() => loadSettings());
   const [savedHint, setSavedHint] = useState(false);
@@ -205,7 +256,43 @@ export function SettingsView() {
         </div>
       </section>
 
-      {/* Abschnitt 2: NATASCHA-Brücke */}
+      {/* Abschnitt 2: Darstellung */}
+      <section style={{
+        padding: '1.25rem', border: '1px solid var(--color-border)',
+        borderRadius: 'var(--radius)', background: 'var(--color-bg-surface)', marginBottom: '1.5rem',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+          <h3 style={{ fontSize: '1rem', margin: 0 }}>Darstellung</h3>
+          {savedHint && (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', color: 'var(--color-success)' }}>
+              <Check size={14} /> Gespeichert
+            </span>
+          )}
+        </div>
+        <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', marginBottom: '0.75rem' }}>
+          Steuert die fachbezogene Atmosphäre im Hintergrund der Arbeitsfläche.
+        </p>
+        <ToggleRow
+          label="Ambient-Murals aktivieren"
+          description={settings.ambientMuralsEnabled ? 'Fachbezogene Hintergrundillustrationen sind sichtbar.' : 'Die App nutzt nur den ruhigen Papierhintergrund.'}
+          checked={settings.ambientMuralsEnabled}
+          onChange={() => update({ ambientMuralsEnabled: !settings.ambientMuralsEnabled })}
+        />
+        <ToggleRow
+          label="Bewegung reduzieren"
+          description="Stoppt subtile Parallax- und Driftbewegungen."
+          checked={settings.reduceMotion}
+          onChange={() => update({ reduceMotion: !settings.reduceMotion })}
+        />
+        <ToggleRow
+          label="Hintergrundeffekte reduzieren"
+          description="Reduziert Bilddetails und lässt nur eine sehr leichte Papierwaschung stehen."
+          checked={settings.reduceBackgroundEffects}
+          onChange={() => update({ reduceBackgroundEffects: !settings.reduceBackgroundEffects })}
+        />
+      </section>
+
+      {/* Abschnitt 3: NATASCHA-Brücke */}
       <section style={{
         padding: '1.25rem', border: '1px solid var(--color-border)',
         borderRadius: 'var(--radius)', background: 'var(--color-bg-surface)', marginBottom: '1.5rem',
@@ -264,7 +351,7 @@ export function SettingsView() {
         </div>
       </section>
 
-      {/* Abschnitt 3: Datenbank */}
+      {/* Abschnitt 4: Datenbank */}
       <section style={{
         padding: '1.25rem', border: '1px solid var(--color-border)',
         borderRadius: 'var(--radius)', background: 'var(--color-bg-surface)', marginBottom: '1.5rem',
@@ -289,7 +376,7 @@ export function SettingsView() {
         </div>
       </section>
 
-      {/* Abschnitt 4: API-Schluessel */}
+      {/* Abschnitt 5: API-Schluessel */}
       <section style={{
         padding: '1.25rem', border: '1px solid var(--color-border)',
         borderRadius: 'var(--radius)', background: 'var(--color-bg-surface)',

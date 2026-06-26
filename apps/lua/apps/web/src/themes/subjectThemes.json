@@ -1,0 +1,74 @@
+[
+  {
+    "id": "deutsch",
+    "displayName": "Deutsch",
+    "palette": ["#f4efe6", "#ddd3c2", "#b0a690", "#5b5347"],
+    "accentColor": "#3a3026"
+  },
+  {
+    "id": "englisch",
+    "displayName": "Englisch",
+    "palette": ["#f3efe6", "#d6cdbb", "#a99f8c", "#4a4636"],
+    "accentColor": "#2c4a6e"
+  },
+  {
+    "id": "franzoesisch",
+    "displayName": "Französisch",
+    "palette": ["#f6f0e8", "#e0d3c4", "#c4a98f", "#6e5a48"],
+    "accentColor": "#8a5a44"
+  },
+  {
+    "id": "spanisch",
+    "displayName": "Spanisch",
+    "palette": ["#f7efe2", "#e6cfae", "#c99e6e", "#7a5a38"],
+    "accentColor": "#b5662f"
+  },
+  {
+    "id": "italienisch",
+    "displayName": "Italienisch",
+    "palette": ["#f4ecdf", "#ddc9aa", "#c2a070", "#6f5235"],
+    "accentColor": "#9c5a34"
+  },
+  {
+    "id": "latein",
+    "displayName": "Latein",
+    "palette": ["#f4efe2", "#ddd2bc", "#b3a98c", "#5f5944"],
+    "accentColor": "#6b6a3a"
+  },
+  {
+    "id": "geschichte",
+    "displayName": "Geschichte",
+    "palette": ["#f4efe4", "#d8cab2", "#b09471", "#6e5640"],
+    "accentColor": "#8a6f54"
+  },
+  {
+    "id": "geographie",
+    "displayName": "Geographie",
+    "palette": ["#f1efe5", "#cfd6c8", "#9fb0a4", "#4f6356"],
+    "accentColor": "#3f6b63"
+  },
+  {
+    "id": "religion",
+    "displayName": "Religion",
+    "palette": ["#f5efe1", "#e2d4b4", "#c3a96f", "#5a513a"],
+    "accentColor": "#9a7b2e"
+  },
+  {
+    "id": "ethik",
+    "displayName": "Ethik",
+    "palette": ["#f3f1ea", "#d8d4c8", "#aaa597", "#5e5a50"],
+    "accentColor": "#5a6b6e"
+  },
+  {
+    "id": "psychologie",
+    "displayName": "Psychologie",
+    "palette": ["#f2f0ea", "#d2d2c4", "#a0a194", "#50514a"],
+    "accentColor": "#4a5a7a"
+  },
+  {
+    "id": "philosophie",
+    "displayName": "Philosophie",
+    "palette": ["#f6f1e7", "#d7cfbe", "#b6b0a3", "#7c766e"],
+    "accentColor": "#2c4a6e"
+  }
+]
