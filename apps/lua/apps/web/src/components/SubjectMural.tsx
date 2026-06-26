@@ -37,44 +37,24 @@ function paletteToStyle(theme: SubjectTheme | null): CSSProperties {
   } as CSSProperties;
 }
 
+/**
+ * Bewusst OHNE Dauer-Animation: das Bild ist vollflächig mit mix-blend-mode +
+ * Maske gerendert; eine fortlaufende Transform-/Maus-Animation darauf zwingt
+ * Software-Renderer (z. B. WSLg ohne GPU) zum Vollbild-Repaint pro Frame und
+ * hängt die App auf. Einzige Bewegung ist der einmalige Crossfade beim
+ * Fachwechsel (reine Opacity-Transition, kein Dauerzustand).
+ */
 export function SubjectMural({ fach, settings }: Props) {
   const theme = useSubjectTheme(fach);
-  const [systemReduceMotion, setSystemReduceMotion] = useState(prefersReducedMotion);
-  const [mouseOffset, setMouseOffset] = useState({ x: 0, y: 0 });
+  const [reduceMotion] = useState(prefersReducedMotion);
   const [frames, setFrames] = useState<MuralFrame[]>([]);
   const counter = useRef(0);
 
   const ambientEnabled = settings.ambientMuralsEnabled ?? DEFAULT_SETTINGS.ambientMuralsEnabled;
   const reducedEffects = settings.reduceBackgroundEffects ?? DEFAULT_SETTINGS.reduceBackgroundEffects;
-  const motionEnabled = !systemReduceMotion && !settings.reduceMotion && !reducedEffects;
+  const fadeDisabled = reducedEffects || reduceMotion || settings.reduceMotion;
 
   const rootStyle = useMemo(() => paletteToStyle(theme), [theme]);
-
-  // Systemweite reduced-motion-Präferenz live verfolgen
-  useEffect(() => {
-    const query = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const onChange = () => setSystemReduceMotion(query.matches);
-    query.addEventListener('change', onChange);
-    return () => query.removeEventListener('change', onChange);
-  }, []);
-
-  // Dezenter Ganzbild-Parallax über die Maus (max. ~6px)
-  useEffect(() => {
-    if (!motionEnabled) {
-      setMouseOffset({ x: 0, y: 0 });
-      return;
-    }
-    const onMove = (event: MouseEvent) => {
-      const width = window.innerWidth || 1;
-      const height = window.innerHeight || 1;
-      setMouseOffset({
-        x: ((event.clientX / width) - 0.5) * 6,
-        y: ((event.clientY / height) - 0.5) * 6,
-      });
-    };
-    window.addEventListener('mousemove', onMove, { passive: true });
-    return () => window.removeEventListener('mousemove', onMove);
-  }, [motionEnabled]);
 
   // Fachwechsel → neuen Frame oben auflegen (Crossfade)
   useEffect(() => {
@@ -97,41 +77,33 @@ export function SubjectMural({ fach, settings }: Props) {
     if (frames.length <= 1) return;
     const timer = setTimeout(() => {
       setFrames((prev) => prev.slice(-1));
-    }, reducedEffects ? 0 : FADE_MS);
+    }, fadeDisabled ? 0 : FADE_MS);
     return () => clearTimeout(timer);
-  }, [frames, reducedEffects]);
+  }, [frames, fadeDisabled]);
 
   if (!ambientEnabled || frames.length === 0) return null;
 
-  const frameTransform = `translate3d(${mouseOffset.x}px, ${mouseOffset.y}px, 0)`;
-
   return (
-    <div
-      className={`subject-mural ${reducedEffects ? 'subject-mural-reduced' : ''}`}
-      style={rootStyle}
-      aria-hidden="true"
-    >
+    <div className="subject-mural" style={rootStyle} aria-hidden="true">
       {frames.map((frame) => (
         <div
           key={frame.key}
           className="subject-mural-frame"
           style={{
             ...frame.paletteStyle,
-            transform: frameTransform,
-            animation: reducedEffects ? 'none' : `subject-mural-fade ${FADE_MS}ms ease-in-out forwards`,
-            opacity: reducedEffects ? 1 : undefined,
+            animation: fadeDisabled ? 'none' : `subject-mural-fade ${FADE_MS}ms ease-in-out forwards`,
+            opacity: fadeDisabled ? 1 : undefined,
           }}
         >
           <div className="subject-mural-wash" />
           {frame.asset && (
             <div
-              className={`subject-mural-image ${motionEnabled ? 'subject-mural-image-drift' : ''}`}
+              className="subject-mural-image"
               style={{ '--mural-image': `url("${frame.asset}")` } as CSSProperties}
             />
           )}
         </div>
       ))}
-      {motionEnabled && <div className="subject-mural-particles" />}
       <div className="subject-mural-center-veil" />
     </div>
   );
