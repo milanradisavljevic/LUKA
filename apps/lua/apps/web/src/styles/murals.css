@@ -1,0 +1,175 @@
+.app-main {
+  position: relative;
+  flex: 1;
+  overflow: auto;
+  padding: 1.5rem;
+  background:
+    radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--color-bg-surface) 46%, transparent), transparent 56%),
+    var(--color-bg-base);
+  isolation: isolate;
+}
+
+.app-main-content {
+  position: relative;
+  z-index: 2;
+}
+
+/* ── Mural-Bühne ───────────────────────────────────────────────────────── */
+.subject-mural {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  contain: paint;
+}
+
+/* Ein Stand des Hintergrunds. Beim Fachwechsel liegen kurz zwei übereinander
+   und blenden über (Crossfade via subject-mural-fade auf dem oberen). */
+.subject-mural-frame {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: transform 0.45s ease-out;
+  will-change: opacity, transform;
+}
+
+/* Sanfter Farb-Wash je Fach — trägt die Atmosphäre AUCH ohne Bild
+   (= das „allgemeine" Mural für Fächer ohne eigenes Komposit). */
+.subject-mural-wash {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 30% 60% at 15% 42%, color-mix(in srgb, var(--mural-wash) 36%, transparent), transparent 70%),
+    radial-gradient(ellipse 30% 60% at 85% 44%, color-mix(in srgb, var(--mural-wash) 32%, transparent), transparent 70%),
+    linear-gradient(90deg,
+      color-mix(in srgb, var(--mural-paper) 30%, transparent),
+      transparent 26%, transparent 74%,
+      color-mix(in srgb, var(--mural-paper) 30%, transparent));
+  opacity: 0.55;
+}
+
+/* Komposit-Bild: einmal vollflächig. Ränder ausgefedert, Mitte freigehalten,
+   damit Text/Formulare immer lesbar bleiben. */
+.subject-mural-image {
+  position: absolute;
+  inset: -4%;
+  background-image: var(--mural-image);
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+  opacity: 0.13;
+  filter: saturate(0.58) sepia(0.12);
+  mix-blend-mode: multiply;
+  -webkit-mask-image:
+    linear-gradient(to bottom, transparent 0%, #000 11%, #000 88%, transparent 100%),
+    radial-gradient(ellipse 60% 72% at center, transparent 16%, rgba(0, 0, 0, 0.5) 44%, #000 72%);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(to bottom, transparent 0%, #000 11%, #000 88%, transparent 100%),
+    radial-gradient(ellipse 60% 72% at center, transparent 16%, rgba(0, 0, 0, 0.5) 44%, #000 72%);
+  mask-composite: intersect;
+  will-change: transform;
+}
+
+/* Kaum wahrnehmbares „Atmen" des Bildes */
+.subject-mural-image-drift {
+  animation: subject-mural-drift 52s ease-in-out infinite alternate;
+}
+
+/* Mitten-Schleier: hält die Arbeitsfläche ruhig und kontrastreich */
+.subject-mural-center-veil {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at center,
+      color-mix(in srgb, var(--color-bg-base) 72%, transparent) 0%,
+      color-mix(in srgb, var(--color-bg-base) 56%, transparent) 34%,
+      transparent 70%),
+    linear-gradient(90deg, transparent 0%,
+      color-mix(in srgb, var(--color-bg-base) 50%, transparent) 32%,
+      color-mix(in srgb, var(--color-bg-base) 54%, transparent) 68%,
+      transparent 100%);
+}
+
+/* 1–2 langsam schwebende Staub-/Papierfaser-Partikel, fast unsichtbar */
+.subject-mural-particles {
+  position: absolute;
+  inset: 0;
+  opacity: 0.16;
+  background-image:
+    radial-gradient(circle, color-mix(in srgb, var(--mural-ink) 16%, transparent) 0 1px, transparent 1.6px),
+    radial-gradient(circle, color-mix(in srgb, var(--mural-accent) 12%, transparent) 0 0.8px, transparent 1.3px);
+  background-size: 210px 180px, 290px 240px;
+  background-position: 30px 22px, 130px 96px;
+  animation: subject-mural-dust 64s ease-in-out infinite alternate;
+}
+
+/* ── Reduzierte Effekte ────────────────────────────────────────────────── */
+.subject-mural-reduced .subject-mural-image {
+  opacity: 0.06;
+  filter: saturate(0.4) sepia(0.14);
+  animation: none;
+}
+
+.subject-mural-reduced .subject-mural-particles {
+  display: none;
+}
+
+/* ── Dark-Theme: aufhellen statt multiplizieren ────────────────────────── */
+:root[data-theme='dark'] .subject-mural-image {
+  opacity: 0.08;
+  mix-blend-mode: screen;
+  filter: saturate(0.4) brightness(1.05);
+}
+
+:root[data-theme='dark'] .subject-mural-wash {
+  opacity: 0.42;
+}
+
+:root[data-theme='dark'] .subject-mural-center-veil {
+  background:
+    radial-gradient(ellipse at center,
+      color-mix(in srgb, var(--color-bg-base) 80%, transparent) 0%,
+      color-mix(in srgb, var(--color-bg-base) 66%, transparent) 36%,
+      transparent 72%),
+    linear-gradient(90deg, transparent 0%,
+      color-mix(in srgb, var(--color-bg-base) 58%, transparent) 32%,
+      color-mix(in srgb, var(--color-bg-base) 60%, transparent) 68%,
+      transparent 100%);
+}
+
+/* ── Keyframes ─────────────────────────────────────────────────────────── */
+@keyframes subject-mural-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes subject-mural-drift {
+  from { transform: scale(1.02) translate3d(-4px, 0, 0); }
+  to { transform: scale(1.05) translate3d(4px, -6px, 0); }
+}
+
+@keyframes subject-mural-dust {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(7px, -6px, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .subject-mural-frame,
+  .subject-mural-image,
+  .subject-mural-particles {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Auf schmalen Fenstern weniger Bild, mehr Ruhe */
+@media (max-width: 720px) {
+  .subject-mural-image {
+    opacity: 0.08;
+  }
+  .subject-mural-particles {
+    display: none;
+  }
+}

@@ -30,6 +30,12 @@ export interface AppSettings {
   defaultKreativitaet: number;
   defaultAusgabeSprache: string;
   judgeEnabled?: boolean;
+  /** Fachbezogene Ambient-Murals im App-Hintergrund. */
+  ambientMuralsEnabled: boolean;
+  /** App-interne Bewegungen zusätzlich zu OS "reduced motion" reduzieren. */
+  reduceMotion: boolean;
+  /** Hintergrunddetails stark reduzieren, wenn maximale Ruhe/Lesbarkeit gewünscht ist. */
+  reduceBackgroundEffects: boolean;
   /** Ordner, in dem NATASCHA-Korrektur-Exporte liegen. Leer = Default (~/lehr-suite-bridge/inbox). */
   nataschaInboxDir?: string;
   /** Ordner der NATASCHA-App (enthält natascha.py). Leer = Auto-Erkennung (apps/natascha). */

@@ -12,6 +12,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   defaultKreativitaet: 0.4,
   defaultAusgabeSprache: 'de',
   judgeEnabled: true,
+  ambientMuralsEnabled: true,
+  reduceMotion: false,
+  reduceBackgroundEffects: false,
   nataschaInboxDir: '',
   nataschaDir: '',
   pythonCommand: '',
@@ -77,7 +80,7 @@ export async function hydrateCache(): Promise<void> {
   cache = {
     documents: result.documents.map(deserializeDoc),
     history: result.history.map(deserializeHistory),
-    settings: result.settings ?? { ...DEFAULT_SETTINGS },
+    settings: { ...DEFAULT_SETTINGS, ...(result.settings ?? {}) },
     templates: (result.templates as any[] ?? []).map(deserializeTemplate),
     klassen: result.klassen ?? [],
     dbPath: result.dbPath ?? '',
@@ -190,8 +193,19 @@ export function loadSettings(): AppSettings {
   return cache?.settings ?? loadSettingsFromLS();
 }
 
+const settingsListeners = new Set<(settings: AppSettings) => void>();
+
+export function subscribeSettings(listener: (settings: AppSettings) => void): () => void {
+  settingsListeners.add(listener);
+  return () => settingsListeners.delete(listener);
+}
+
 export function saveSettings(settings: AppSettings): void {
   if (cache) cache.settings = settings;
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  } catch { /* ignore */ }
+  settingsListeners.forEach((listener) => listener(settings));
   persist('db_save_settings', { settingsJson: JSON.stringify(settings) });
 }
 
