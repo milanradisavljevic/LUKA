@@ -1,8 +1,9 @@
+/* .app-main = nicht-scrollender Rahmen; das Mural liegt darin fix und bleibt
+   beim Scrollen stehen. Gescrollt wird NUR der Inhalt (.app-main-content). */
 .app-main {
   position: relative;
   flex: 1;
-  overflow: auto;
-  padding: 1.5rem;
+  overflow: hidden;
   background:
     radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--color-bg-surface) 46%, transparent), transparent 56%),
     var(--color-bg-base);
@@ -12,6 +13,9 @@
 .app-main-content {
   position: relative;
   z-index: 2;
+  height: 100%;
+  overflow: auto;
+  padding: 1.5rem;
 }
 
 /* ── Mural-Bühne ───────────────────────────────────────────────────────── */
@@ -56,9 +60,8 @@
   background-repeat: no-repeat;
   background-size: cover;
   background-position: center;
-  opacity: 0.13;
-  filter: saturate(0.58) sepia(0.12);
-  mix-blend-mode: multiply;
+  opacity: 0.16;
+  filter: saturate(0.62) sepia(0.14);
   -webkit-mask-image:
     linear-gradient(to bottom, transparent 0%, #000 11%, #000 88%, transparent 100%),
     radial-gradient(ellipse 60% 72% at center, transparent 16%, rgba(0, 0, 0, 0.5) 44%, #000 72%);
@@ -86,9 +89,8 @@
 
 /* ── Dark-Theme: aufhellen statt multiplizieren ────────────────────────── */
 :root[data-theme='dark'] .subject-mural-image {
-  opacity: 0.08;
-  mix-blend-mode: screen;
-  filter: saturate(0.4) brightness(1.05);
+  opacity: 0.1;
+  filter: saturate(0.42) brightness(1.15);
 }
 
 :root[data-theme='dark'] .subject-mural-wash {
