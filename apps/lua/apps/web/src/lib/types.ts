@@ -109,20 +109,20 @@ export interface HistoryEntry {
 }
 
 export const STEPS: { id: StepId; label: string }[] = [
-  { id: 'absicht', label: 'Absicht' },
-  { id: 'input', label: 'Quelltexte' },
-  { id: 'baukasten', label: 'Aufgabenblöcke' },
-  { id: 'llm', label: 'KI-Modell' },
-  { id: 'generate', label: 'Generieren' },
+  { id: 'absicht', label: 'Idee' },
+  { id: 'input', label: 'Material' },
+  { id: 'baukasten', label: 'Aufgaben' },
+  { id: 'llm', label: 'Anpassen' },
+  { id: 'generate', label: 'Erstellen' },
 ];
 
 /** Beschreibende Untertitel pro Wizard-Schritt (unter dem Stepper). */
 export const STEP_DESCRIPTIONS: Record<StepId, string> = {
   absicht: 'Was soll entstehen — und für wen?',
-  input: 'Textquelle hochladen oder einfügen',
-  baukasten: 'Aufgaben zusammenstellen und dosieren',
-  llm: 'KI-Modell und Kreativität wählen',
-  generate: 'Erstellen, prüfen, exportieren',
+  input: 'Textquelle einfügen oder hochladen',
+  baukasten: 'Aufgaben auswählen und anpassen',
+  llm: 'Modell, Stil und Kreativität wählen',
+  generate: 'Erstellen, prüfen und exportieren',
 };
 
 export type AppAction =

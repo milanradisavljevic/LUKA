@@ -7,6 +7,11 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Changed — Menschliche Wizard-Labels
+- `apps/lua/apps/web/src/lib/types.ts`: Step-Labels umbenannt in
+  „Idee", „Material", „Aufgaben", „Anpassen", „Erstellen" und
+  `STEP_DESCRIPTIONS` kürzer/menschlicher formuliert.
+
 ### Added — GIFT/Moodle-Export-Button in Step4_Generate
 - `apps/lua/apps/web/src/components/Step4_Generate.tsx`: `exportGift` aus
   `useExport()` verdrahtet; neuer Button „Als Moodle/GIFT exportieren" im
