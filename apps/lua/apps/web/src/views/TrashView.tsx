@@ -1,6 +1,8 @@
+import { Trash2 } from 'lucide-react';
 import { useDocuments } from '../hooks/useDocuments';
 import { ViewShell } from './_ViewShell';
 import { DocumentList } from './_DocumentList';
+import { EmptyState } from './_EmptyState';
 
 interface Props {
   onCreateNew?: () => void;
@@ -37,15 +39,21 @@ export function TrashView({ onCreateNew }: Props) {
         ) : undefined
       }
     >
-      <DocumentList
-        documents={deleted}
-        emptyMessage="Der Papierkorb ist leer."
-        emptyDescription="Gelöschte Dokumente erscheinen hier."
-        actionLabel={onCreateNew ? 'Neue Übung erstellen' : undefined}
-        onAction={onCreateNew}
-        onRestore={restore}
-        onPurge={handlePurge}
-      />
+      {deleted.length === 0 ? (
+        <EmptyState
+          icon={Trash2}
+          title="Papierkorb ist leer"
+          description="Gelöschte Dokumente erscheinen hier und können wiederhergestellt oder endgültig entfernt werden."
+          actionLabel={onCreateNew ? 'Neue Übung erstellen' : undefined}
+          onAction={onCreateNew}
+        />
+      ) : (
+        <DocumentList
+          documents={deleted}
+          onRestore={restore}
+          onPurge={handlePurge}
+        />
+      )}
     </ViewShell>
   );
 }

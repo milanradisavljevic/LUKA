@@ -47,8 +47,8 @@ export function HistoryView({ onCreateNew }: Props) {
       {sorted.length === 0 ? (
         <EmptyState
           icon={History}
-          title="Noch keine Exporte"
-          description="Der Verlauf füllt sich, sobald du ein Dokument als DOCX exportierst."
+          title="Noch kein Verlauf"
+          description="Hier findest du deine zuletzt erstellten und bearbeiteten Dokumente, sobald du welche exportierst."
           actionLabel={onCreateNew ? 'Neue Übung erstellen' : undefined}
           onAction={onCreateNew}
         />

@@ -13,7 +13,7 @@ function formatDate(iso: string): string {
 
 interface Props {
   documents: SavedDocument[];
-  emptyMessage: string;
+  emptyMessage?: string;
   emptyDescription?: string;
   actionLabel?: string;
   /** Klick auf „Öffnen" — lädt den Snapshot in den Wizard. */
@@ -54,7 +54,7 @@ export function DocumentList({
       }}>
         <FileX size={32} style={{ opacity: 0.5, marginBottom: '0.5rem' }} />
         <p style={{ fontSize: '0.9375rem', margin: '0 0 0.25rem', fontWeight: 600, color: 'var(--color-text-primary)' }}>
-          {emptyMessage}
+          {emptyMessage ?? 'Keine Einträge.'}
         </p>
         {emptyDescription && (
           <p style={{ fontSize: '0.8125rem', margin: '0 0 0.75rem', maxWidth: 420, marginInline: 'auto' }}>
