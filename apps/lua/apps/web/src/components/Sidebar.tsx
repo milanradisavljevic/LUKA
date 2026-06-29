@@ -24,22 +24,23 @@ interface NavItem {
   view?: ActiveView;
   action?: 'new';
   tooltip?: string;
+  gruppe?: 'Übersicht' | 'Unterrichten' | 'Korrigieren';
 }
 
 const NATASCHA_NAV_IDS = ['klassen', 'korrektur', 'schueler', 'erwartungshorizont'];
 
 const NAV_ITEMS: NavItem[] = [
-  { id: 'dashboard', label: 'Übersicht', Icon: LayoutDashboard, view: 'dashboard', tooltip: 'Klassen, Korrekturstand und Weiterarbeiten' },
-  { id: 'new', label: 'Neue erstellen', Icon: Plus, action: 'new', tooltip: 'Neues Arbeitsblatt erstellen' },
-  { id: 'kompetenz', label: 'Kompetenz-Übung', Icon: Target, view: 'kompetenz', tooltip: 'Übung ohne Quelltext aus Lehrplan-Kompetenzen' },
-  { id: 'quick', label: 'Schnell-Übung', Icon: Zap, view: 'quick', tooltip: 'Thema + Aufgabentyp → sofort Baukasten' },
-  { id: 'documents', label: 'Meine Unterlagen', Icon: FolderOpen, view: 'documents', tooltip: 'Gespeicherte Dokumente durchsuchen' },
-  { id: 'pool', label: 'Aufgaben-Pool', Icon: Database, view: 'pool', tooltip: 'Wiederverwendbare Aufgaben-Blöcke' },
-  { id: 'klassen', label: 'Meine Klassen', Icon: GraduationCap, view: 'klassen', tooltip: 'Klassenübersicht mit Notenverteilung' },
-  { id: 'korrektur', label: 'Korrektur (NATASCHA)', Icon: SpellCheck, view: 'korrektur', tooltip: 'Korrektur-Exporte aus NATASCHA einsehen' },
-  { id: 'schueler', label: 'Schüler', Icon: Users, view: 'schueler', tooltip: 'Einzelne Schüler/innen und deren Ergebnisse' },
-  { id: 'erwartungshorizont', label: 'Erwartungshorizont', Icon: ClipboardCheck, view: 'erwartungshorizont', tooltip: 'Lösungserwartungen und Bewertungsraster' },
-  { id: 'templates', label: 'Vorlagen', Icon: Files, view: 'templates', tooltip: 'Gespeicherte Aufgaben-Vorlagen laden' },
+  { id: 'dashboard', label: 'Übersicht', Icon: LayoutDashboard, view: 'dashboard', gruppe: 'Übersicht', tooltip: 'Klassen, Korrekturstand und Weiterarbeiten' },
+  { id: 'new', label: 'Neue erstellen', Icon: Plus, action: 'new', gruppe: 'Unterrichten', tooltip: 'Neues Arbeitsblatt erstellen' },
+  { id: 'kompetenz', label: 'Kompetenz-Übung', Icon: Target, view: 'kompetenz', gruppe: 'Unterrichten', tooltip: 'Übung ohne Quelltext aus Lehrplan-Kompetenzen' },
+  { id: 'quick', label: 'Schnell-Übung', Icon: Zap, view: 'quick', gruppe: 'Unterrichten', tooltip: 'Thema + Aufgabentyp → sofort Baukasten' },
+  { id: 'documents', label: 'Meine Unterlagen', Icon: FolderOpen, view: 'documents', gruppe: 'Unterrichten', tooltip: 'Gespeicherte Dokumente durchsuchen' },
+  { id: 'pool', label: 'Aufgaben-Pool', Icon: Database, view: 'pool', gruppe: 'Unterrichten', tooltip: 'Wiederverwendbare Aufgaben-Blöcke' },
+  { id: 'templates', label: 'Vorlagen', Icon: Files, view: 'templates', gruppe: 'Unterrichten', tooltip: 'Gespeicherte Aufgaben-Vorlagen laden' },
+  { id: 'klassen', label: 'Meine Klassen', Icon: GraduationCap, view: 'klassen', gruppe: 'Korrigieren', tooltip: 'Klassenübersicht mit Notenverteilung' },
+  { id: 'korrektur', label: 'Korrektur (NATASCHA)', Icon: SpellCheck, view: 'korrektur', gruppe: 'Korrigieren', tooltip: 'Korrektur-Exporte aus NATASCHA einsehen' },
+  { id: 'schueler', label: 'Schüler', Icon: Users, view: 'schueler', gruppe: 'Korrigieren', tooltip: 'Einzelne Schüler/innen und deren Ergebnisse' },
+  { id: 'erwartungshorizont', label: 'Erwartungshorizont', Icon: ClipboardCheck, view: 'erwartungshorizont', gruppe: 'Korrigieren', tooltip: 'Lösungserwartungen und Bewertungsraster' },
   { id: 'history', label: 'Verlauf', Icon: Clock, view: 'history', tooltip: 'Bisherige Generierungen und Exporte' },
   { id: 'favorites', label: 'Favoriten', Icon: Star, view: 'favorites', tooltip: 'Markierte Dokumente' },
   { id: 'trash', label: 'Papierkorb', Icon: Trash2, view: 'trash', tooltip: 'Gelöschte Dokumente wiederherstellen' },
@@ -126,7 +127,60 @@ export function Sidebar({ currentView, onViewChange, onNewDocument }: Props) {
 
       {/* Navigation */}
       <nav style={{ flex: 1, padding: '0.75rem 0', overflowY: 'auto' }}>
-        {visibleNavItems.map(renderNavItem)}
+        {(() => {
+          const byGroup = new Map<string | undefined, NavItem[]>();
+          for (const item of visibleNavItems) {
+            const key = item.gruppe;
+            let arr = byGroup.get(key);
+            if (!arr) {
+              arr = [];
+              byGroup.set(key, arr);
+            }
+            arr.push(item);
+          }
+
+          const groupOrder = ['Übersicht', 'Unterrichten', 'Korrigieren'];
+          const result = [];
+
+          for (const group of groupOrder) {
+            const items = byGroup.get(group);
+            if (!items || items.length === 0) continue;
+            if (!collapsed) {
+              result.push(
+                <div
+                  key={`h-${group}`}
+                  style={{
+                    padding: '0.5rem 1rem 0.25rem',
+                    fontSize: '0.6875rem',
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.04em',
+                    color: 'var(--sidebar-text)',
+                    opacity: 0.7,
+                  }}
+                >
+                  {group}
+                </div>,
+              );
+            }
+            result.push(...items.map(renderNavItem));
+          }
+
+          const ungrouped = byGroup.get(undefined);
+          if (ungrouped && ungrouped.length > 0) {
+            if (result.length > 0) {
+              result.push(
+                <div
+                  key="ungrouped-spacer"
+                  style={{ margin: '0.5rem 1rem', height: 1, background: 'var(--sidebar-border)' }}
+                />,
+              );
+            }
+            result.push(...ungrouped.map(renderNavItem));
+          }
+
+          return result;
+        })()}
 
         {/* Trennlinie */}
         <div style={{ margin: '0.75rem 1rem', height: 1, background: 'var(--sidebar-border)' }} />

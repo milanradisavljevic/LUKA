@@ -7,6 +7,14 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Changed — Sidebar in Bereiche gruppiert
+- `apps/lua/apps/web/src/components/Sidebar.tsx`: `NAV_ITEMS` um `gruppe`
+  erweitert; Items werden unter „Übersicht", „Unterrichten" und „Korrigieren"
+  gruppiert.
+- Gruppen-Header werden nur angezeigt, wenn nach NATASCHA-Gating mindestens ein
+  Item sichtbar ist → „Korrigieren" verschwindet im MVP vollständig.
+- Einstellungen + Hilfe bleiben unten ohne Gruppe.
+
 ### Changed — Menschliche Wizard-Labels
 - `apps/lua/apps/web/src/lib/types.ts`: Step-Labels umbenannt in
   „Idee", „Material", „Aufgaben", „Anpassen", „Erstellen" und
