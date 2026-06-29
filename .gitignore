@@ -39,3 +39,9 @@ Thumbs.db
 
 # --- Versehentlich angelegte Leerdateien ---
 docs/Textdokument (neu).txt
+
+# --- Lokale Beispiel-Exports / Mockups / Helfer (nicht ins Repo; samples/ + __fixtures__ bleiben) ---
+/*.docx
+/*.png
+/transformiere_jsons.py
+ChatGPT Image*.png

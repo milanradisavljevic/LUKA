@@ -419,7 +419,7 @@ if (hydrating) {
         {/* Hauptbereich */}
         <main
           className="app-main"
-          data-mural={getMuralMode(state.meta.fach, settings.ambientMuralsEnabled ?? DEFAULT_SETTINGS.ambientMuralsEnabled)}
+          data-mural={FEATURES.murals ? getMuralMode(state.meta.fach, settings.ambientMuralsEnabled ?? DEFAULT_SETTINGS.ambientMuralsEnabled) : 'off'}
           style={getMuralVars(state.meta.fach)}
         >
           <div className="app-main-content">
