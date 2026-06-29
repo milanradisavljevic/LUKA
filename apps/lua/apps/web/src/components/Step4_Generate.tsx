@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   Loader2, Sparkles, FileDown, ClipboardList, FileType, CheckCircle2,
   AlertTriangle, Timer, Bot, X, Palette, BookOpen, Target, ShieldCheck,
-  ChevronRight, ChevronDown, Layers, Wrench, ClipboardCheck,
+  ChevronRight, ChevronDown, Layers, Wrench, ClipboardCheck, FileQuestion,
 } from 'lucide-react';
 import type { AppState, AppAction } from '../lib/types';
 import type { Block } from '@lehrunterlagen/schema';
@@ -29,7 +29,7 @@ interface Props {
 
 export function Step4_Generate({ state, dispatch }: Props) {
   const { generate, regenerateBlock, pruefeLoesungen, cancel, generating, pruefend, stage, elapsedMs, aktiverProvider, error: generateError } = useGenerate(dispatch);
-  const { exportDocx, exportDocxOverride, exportKorrekturraster, exportKompetenzraster, exportSelbstlern, exportSelbsteinschaetzung, exporting, error: exportError, warnung: exportWarnung, lastSavedPaths } = useExport();
+  const { exportDocx, exportDocxOverride, exportKorrekturraster, exportKompetenzraster, exportSelbstlern, exportSelbsteinschaetzung, exportGift, exporting, error: exportError, warnung: exportWarnung, lastSavedPaths } = useExport();
   const pdfExport = usePdfExport();
   const isKompetenz = state.meta.modus === 'kompetenz';
   const isFrei = isKompetenz && !!state.generiertesDokument?.meta.freieKompetenz?.trim()
@@ -433,6 +433,18 @@ export function Step4_Generate({ state, dispatch }: Props) {
                       display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
                   >
                     <ClipboardCheck size={15} /> Selbsteinschätzungsbogen
+                  </button>
+                  <button
+                    className="btn-secondary"
+                    onClick={() => exportGift(state)}
+                    disabled={exporting || generating}
+                    title="Geschlossene Aufgaben als Quiz für Moodle (GIFT). Offene Aufgaben werden als Essay exportiert."
+                    style={{ padding: '0.5rem 1rem', fontSize: '0.8125rem', borderStyle: 'dashed',
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+                  >
+                    {exporting
+                      ? <><Loader2 size={15} className="spin" /> GIFT wird erstellt…</>
+                      : <><FileQuestion size={15} /> Als Moodle/GIFT exportieren</>}
                   </button>
                 </div>
               )}

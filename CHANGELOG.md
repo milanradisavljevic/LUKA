@@ -7,6 +7,18 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — GIFT/Moodle-Export-Button in Step4_Generate
+- `apps/lua/apps/web/src/components/Step4_Generate.tsx`: `exportGift` aus
+  `useExport()` verdrahtet; neuer Button „Als Moodle/GIFT exportieren" im
+  Akkordeon „Weitere Exporte & Werkzeuge" (nur bei `canExport`).
+- Button nutzt denselben Lade-/Disabled-Zustand wie die anderen Export-Buttons
+  und zeigt beim Exportieren „GIFT wird erstellt…".
+- Tooltip/Hilfetext: „Geschlossene Aufgaben als Quiz für Moodle (GIFT). Offene
+  Aufgaben werden als Essay exportiert."
+- Verifikation: `pnpm --filter "./packages/*" build && pnpm -r typecheck &&
+  `pnpm -r test` grün (Schema 145, LLM 126, Renderer 38, Input 17, QA 103,
+  Web 73, Export 20).
+
 ### Added — Freundliche Leerzustände in TrashView + HistoryView
 - `apps/lua/apps/web/src/views/TrashView.tsx`: Bei leerem Papierkorb wird ein
   `EmptyState` (Icon `Trash2`, Überschrift, erklärender Satz, optionaler
