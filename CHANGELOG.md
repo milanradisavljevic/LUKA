@@ -7,6 +7,27 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Freundliche Leerzustände in TrashView + HistoryView
+- `apps/lua/apps/web/src/views/TrashView.tsx`: Bei leerem Papierkorb wird ein
+  `EmptyState` (Icon `Trash2`, Überschrift, erklärender Satz, optionaler
+  „Neue Übung erstellen"-Button) angezeigt.
+- `apps/lua/apps/web/src/views/HistoryView.tsx`: Leerzustand-Text angepasst auf
+  „Noch kein Verlauf" mit passendem Hinweis.
+- `apps/lua/apps/web/src/views/_DocumentList.tsx`: `emptyMessage` optional,
+  damit `TrashView` den Leerzustand selbst rendern kann.
+- Verifikation: `pnpm --filter "./packages/*" build && pnpm -r typecheck &&
+  `pnpm -r test` grün (Schema 145, LLM 126, Renderer 38, Input 17, QA 103, Web 73).
+
+### Added — Subject Murals: Philosophie-Ambient-System
+- Neues Ambient-Mural-System für fachbezogene Arbeitsflächen-Hintergründe:
+  `SubjectMural`, `SubjectMuralLayer`, `subjectThemes`/JSON, `useSubjectTheme`
+  und `murals.css`.
+- Philosophie v1 nutzt die bereitgestellte Referenzgrafik als weich maskiertes
+  Papier-/Aquarell-Mural in linken und rechten Ambient-Zonen; die Mitte bleibt
+  durch Veil/Vignette ruhig und lesbar.
+- Einstellungen erweitert um „Ambient-Murals aktivieren", „Bewegung reduzieren"
+  und „Hintergrundeffekte reduzieren"; Änderungen wirken ohne Reload.
+
 ### Added — Daten-Integration: Stufen-Deskriptoren + Inhalts-Module (alle 12 Fächer)
 - `apps/lua/scripts/generate-stoffkatalog-from-research.mjs` um
   `<fach>_stufen.json`-Pfad erweitert: ersetzt grobe Deskriptoren pro Fach
