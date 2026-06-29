@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Check, Database, Download } from 'lucide-react';
 import type { AppSettings, LlmProvider } from '../lib/types';
 import { LLM_PROVIDERS } from '../lib/constants';
+import { FEATURES } from '../lib/features';
 import { CREATIVITY_PRESETS } from '../lib/creativity';
 import { loadSettings, saveSettings, getDbPath } from '../lib/storage';
 import { SettingsPanel } from '../components/SettingsPanel';
@@ -256,7 +257,8 @@ export function SettingsView() {
         </div>
       </section>
 
-      {/* Abschnitt 2: Darstellung */}
+      {/* Abschnitt 2: Darstellung (nur sichtbar, solange Murals aktiv sind) */}
+      {FEATURES.murals && (
       <section style={{
         padding: '1.25rem', border: '1px solid var(--color-border)',
         borderRadius: 'var(--radius)', background: 'var(--color-bg-surface)', marginBottom: '1.5rem',
@@ -291,6 +293,7 @@ export function SettingsView() {
           onChange={() => update({ reduceBackgroundEffects: !settings.reduceBackgroundEffects })}
         />
       </section>
+      )}
 
       {/* Abschnitt 3: NATASCHA-Brücke */}
       <section style={{
