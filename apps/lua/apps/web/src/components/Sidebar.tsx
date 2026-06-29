@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import type { ActiveView } from '../lib/types';
 import { FEATURES } from '../lib/features';
-import { NibMark, BrandSignature } from './BrandLogo';
+import { BrandMark, BrandSignature } from './BrandLogo';
 
 interface Props {
   currentView: ActiveView;
@@ -122,7 +122,7 @@ export function Sidebar({ currentView, onViewChange, onNewDocument }: Props) {
         display: 'flex', alignItems: 'center', gap: collapsed ? 0 : '0.625rem',
         justifyContent: collapsed ? 'center' : 'flex-start',
       }}>
-        {collapsed ? <NibMark size={34} /> : <BrandSignature size={38} />}
+        {collapsed ? <BrandMark size={34} /> : <BrandSignature size={38} />}
       </div>
 
       {/* Navigation */}
