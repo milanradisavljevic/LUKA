@@ -19,12 +19,20 @@ pub fn export_docx(
 ) -> Result<String, String> {
     let dir = dir.filter(|d| !d.trim().is_empty());
 
+    // Nur den reinen Dateinamen zulassen — kein Pfad, kein "..", kein absoluter
+    // Pfad. Verhindert Path-Traversal/Schreiben außerhalb des Zielordners, falls
+    // der IPC-Aufrufer einen manipulierten `filename` schickt.
+    let safe_name = std::path::Path::new(&filename)
+        .file_name()
+        .and_then(|n| n.to_str())
+        .ok_or_else(|| "Ungültiger Dateiname".to_string())?;
+
     let target: PathBuf = if !ask && dir.is_some() {
         let mut p = PathBuf::from(dir.unwrap());
-        p.push(&filename);
+        p.push(safe_name);
         p
     } else {
-        let mut builder = app.dialog().file().set_file_name(&filename);
+        let mut builder = app.dialog().file().set_file_name(safe_name);
         if let Some(d) = dir {
             builder = builder.set_directory(d);
         }
