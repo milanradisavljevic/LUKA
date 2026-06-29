@@ -316,7 +316,7 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
   };
 
   const resolveProvider = (state: AppState) => {
-    const uiProvider = state.llmProvider ?? 'claude';
+    const uiProvider = state.llmProvider ?? 'mistral';
     const providerId = PROVIDER_MAP[uiProvider as keyof typeof PROVIDER_MAP];
     if (!providerId) throw new Error(`Unbekannter Anbieter: ${uiProvider}`);
     return { providerId, apiModel: MODEL_MAP[state.modelName] ?? state.modelName };
