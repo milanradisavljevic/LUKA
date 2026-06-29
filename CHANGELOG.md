@@ -7,6 +7,14 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — „Wie zuletzt"-Schnellaktion auf dem Dashboard
+- `apps/lua/apps/web/src/views/DashboardView.tsx`: Neue Kachel „Wie zuletzt"
+  über dem letzten Dokument; zeigt Fach, Stufe und Unterlagentyp des letzten
+  Dokuments an und springt auf Klick in den Wizard.
+- `apps/lua/apps/web/src/components/Step0_Absicht.tsx`: Unterlagentyp (`typ`)
+  wird bereits aus den Metadaten des letzten Dokuments vorbefüllt, sodass der
+  „Wie zuletzt"-Fluss sofort mit denselben Einstellungen startet.
+
 ### Added — Sichtbare Such-/Befehlsleiste im Header
 - `apps/lua/apps/web/src/App.tsx`: Im Header ein als Suchfeld gestyltes,
   klickbares Element mit Lupe-Icon, Text „Suchen / Befehle…" und „⌘K"-Badge.
