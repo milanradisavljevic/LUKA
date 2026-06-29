@@ -3,7 +3,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   Plus, FolderOpen, Files, Clock, Star, Trash2, Settings, HelpCircle,
   ChevronLeft, ChevronRight, SpellCheck, GraduationCap, Users, ClipboardCheck, LayoutDashboard,
-  Target, Zap,
+  Target, Zap, Database,
 } from 'lucide-react';
 import type { ActiveView } from '../lib/types';
 import { FEATURES } from '../lib/features';
@@ -34,6 +34,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'kompetenz', label: 'Kompetenz-Übung', Icon: Target, view: 'kompetenz', tooltip: 'Übung ohne Quelltext aus Lehrplan-Kompetenzen' },
   { id: 'quick', label: 'Schnell-Übung', Icon: Zap, view: 'quick', tooltip: 'Thema + Aufgabentyp → sofort Baukasten' },
   { id: 'documents', label: 'Meine Unterlagen', Icon: FolderOpen, view: 'documents', tooltip: 'Gespeicherte Dokumente durchsuchen' },
+  { id: 'pool', label: 'Aufgaben-Pool', Icon: Database, view: 'pool', tooltip: 'Wiederverwendbare Aufgaben-Blöcke' },
   { id: 'klassen', label: 'Meine Klassen', Icon: GraduationCap, view: 'klassen', tooltip: 'Klassenübersicht mit Notenverteilung' },
   { id: 'korrektur', label: 'Korrektur (NATASCHA)', Icon: SpellCheck, view: 'korrektur', tooltip: 'Korrektur-Exporte aus NATASCHA einsehen' },
   { id: 'schueler', label: 'Schüler', Icon: Users, view: 'schueler', tooltip: 'Einzelne Schüler/innen und deren Ergebnisse' },

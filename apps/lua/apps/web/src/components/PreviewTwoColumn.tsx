@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { AlertTriangle, CheckCircle2, Check, Circle, Pencil, RefreshCw, FileText, KeyRound } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Check, Circle, Pencil, RefreshCw, FileText, KeyRound, Database } from 'lucide-react';
 import { istSprachfach, fachLabel } from '@lehrunterlagen/schema';
 import type { Block } from '@lehrunterlagen/schema';
 import type { AppState, AppAction } from '../lib/types';
 import { BlockPreview } from './BlockPreview';
 import { BLOCK_TYPE_DEFS } from '../lib/constants';
 import { useGenerate } from '../hooks/useGenerate';
+import { useAufgabenPool } from '../hooks/useAufgabenPool';
 
 interface Props {
   state: AppState;
@@ -45,9 +46,13 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [regenId, setRegenId] = useState<string | null>(null);
   const [editierteIds, setEditierteIds] = useState<Set<string>>(new Set());
+  const [poolDialogBlock, setPoolDialogBlock] = useState<Block | null>(null);
+  const [poolTags, setPoolTags] = useState('');
+  const [poolQuelle, setPoolQuelle] = useState('');
   const windowWidth = useWindowWidth();
   const isNarrow = windowWidth < 768;
   const { regenerateBlock, generating, stage } = useGenerate(dispatch);
+  const { add: addToPool } = useAufgabenPool();
 
   const JudgeBadge = ({ blockId }: { blockId: string }) => {
     if (!judge?.gepruefteIds.includes(blockId)) return null;
@@ -349,6 +354,27 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
                   >
                     <RefreshCw size={13} /> Neu generieren
                   </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPoolDialogBlock(block);
+                      setPoolTags('');
+                      setPoolQuelle('');
+                    }}
+                    style={{
+                      fontSize: '0.75rem',
+                      padding: '0.2rem 0.5rem',
+                      borderRadius: 'var(--radius)',
+                      border: '1px solid #cccccc',
+                      background: '#ffffff',
+                      cursor: 'pointer',
+                      color: PAPER_SECONDARY,
+                      display: 'inline-flex', alignItems: 'center', gap: '0.375rem',
+                    }}
+                    title="In Aufgaben-Pool speichern"
+                  >
+                    <Database size={13} /> In Pool
+                  </button>
                   {regenId === block.id && (
                     <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
                       {['Kürzer', 'Schwieriger', 'Andere Formulierung'].map((hint) => (
@@ -575,6 +601,89 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
       >
         {activeTab === 'schueler' ? renderSchuelerFassung() : renderLoesungsFassung()}
       </div>
+
+      {/* Pool-Speichern Dialog */}
+      {poolDialogBlock && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+            zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '1rem',
+          }}
+          onClick={() => setPoolDialogBlock(null)}
+        >
+          <div
+            style={{
+              background: 'var(--color-bg-surface)',
+              borderRadius: 'var(--radius)',
+              padding: '1.5rem',
+              maxWidth: 400,
+              width: '100%',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ margin: '0 0 1rem', fontSize: '1rem' }}>In Aufgaben-Pool speichern</h3>
+            <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>
+              Block: {BLOCK_TYPE_DEFS.find((d) => d.id === poolDialogBlock.typ)?.label ?? poolDialogBlock.typ}
+            </p>
+            <div style={{ marginBottom: '0.75rem' }}>
+              <label style={{ display: 'block', fontSize: '0.75rem', marginBottom: '0.25rem', color: 'var(--color-text-secondary)' }}>
+                Tags (optional, kommagetrennt)
+              </label>
+              <input
+                type="text"
+                value={poolTags}
+                onChange={(e) => setPoolTags(e.target.value)}
+                placeholder="z.B. Grammatik, Prüfungsvorbereitung"
+                style={{ width: '100%', fontSize: '0.875rem' }}
+              />
+            </div>
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontSize: '0.75rem', marginBottom: '0.25rem', color: 'var(--color-text-secondary)' }}>
+                Quelle/Hinweis (optional)
+              </label>
+              <input
+                type="text"
+                value={poolQuelle}
+                onChange={(e) => setPoolQuelle(e.target.value)}
+                placeholder="z.B. Aus Schularbeit 2024"
+                style={{ width: '100%', fontSize: '0.875rem' }}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+              <button
+                className="btn-secondary"
+                onClick={() => setPoolDialogBlock(null)}
+              >
+                Abbrechen
+              </button>
+              <button
+                className="btn-primary"
+                onClick={async () => {
+                  const tagsArray = poolTags.split(',').map((t) => t.trim()).filter(Boolean);
+                  const success = await addToPool({
+                    id: crypto.randomUUID(),
+                    fach: state.meta.fach,
+                    stufe: state.meta.stufe,
+                    schulstufe: state.meta.schulstufe ?? null,
+                    thema: state.meta.thema || null,
+                    aufgabentyp: poolDialogBlock.typ,
+                    tags: tagsArray.length > 0 ? JSON.stringify(tagsArray) : null,
+                    block: poolDialogBlock,
+                    quelleHinweis: poolQuelle || null,
+                  });
+                  if (success) {
+                    setPoolDialogBlock(null);
+                  }
+                }}
+              >
+                Speichern
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

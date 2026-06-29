@@ -11,6 +11,7 @@ export type ActiveView =
   | 'dashboard'
   | 'documents'
   | 'templates'
+  | 'pool'
   | 'history'
   | 'favorites'
   | 'trash'
