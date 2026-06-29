@@ -7,6 +7,11 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Empty-State für Aufgaben-Pool
+- `apps/lua/apps/web/src/views/PoolView.tsx`: Bei leerem Pool oder leerem
+  Filterergebnis wird ein `EmptyState` mit `Database`-Icon und erklärendem
+  Hinweis angezeigt (Stil wie TrashView/HistoryView).
+
 ### Changed — Sidebar in Bereiche gruppiert
 - `apps/lua/apps/web/src/components/Sidebar.tsx`: `NAV_ITEMS` um `gruppe`
   erweitert; Items werden unter „Übersicht", „Unterrichten" und „Korrigieren"
