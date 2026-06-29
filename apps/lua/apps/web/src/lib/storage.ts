@@ -18,6 +18,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   nataschaInboxDir: '',
   nataschaDir: '',
   pythonCommand: '',
+  exportDir: '',
+  exportAskEachTime: false,
 };
 
 export interface DbLoadAllResult {

@@ -3,7 +3,7 @@ import type { AppState } from '../lib/types';
 import type { DocumentV1 } from '@lehrunterlagen/schema';
 
 import { getBlockLabel } from '../lib/blockDefaults';
-import { appendHistoryEntry } from '../lib/storage';
+import { appendHistoryEntry, loadSettings } from '../lib/storage';
 import { computeCoverage } from '../lib/coverage';
 import { istEntwurfsQuelle } from '../lib/stoffkatalog';
 import { RENDER_TEMPLATES } from '@lehrunterlagen/renderer';
@@ -34,11 +34,12 @@ export function useExport() {
 
       // Nacheinander herunterladen mit Verzögerung, damit der Browser
       // beide Downloads akzeptiert (manche blockieren gleichzeitige Downloads)
-      downloadBlob(schueler, schuelerName);
+      const schuelerPfad = await saveBlob(schueler, schuelerName);
       await delay(600);
-      downloadBlob(loesung, loesungName);
+      const loesungPfad = await saveBlob(loesung, loesungName);
 
-      setLastSavedPaths([schuelerName, loesungName]);
+      const gespeichert = [schuelerPfad, loesungPfad].filter(Boolean);
+      setLastSavedPaths(gespeichert.length ? gespeichert : null);
 
       // Verlaufseintrag protokollieren (read-only Log in der Sidebar)
       appendHistoryEntry({
@@ -93,7 +94,7 @@ export function useExport() {
       const thema = state.generiertesDokument.meta.thema.replace(/\s+/g, '_').slice(0, 40);
       const datum = state.generiertesDokument.meta.datum;
 
-      downloadBlob(blob, `${datum}_${thema}_Korrekturraster.docx`);
+      await saveBlob(blob, `${datum}_${thema}_Korrekturraster.docx`);
       return true;
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unbekannter Fehler beim Raster-Export';
@@ -151,8 +152,8 @@ export function useExport() {
       const datum = state.generiertesDokument.meta.datum;
       const fileName = `${datum}_${thema}_Kompetenznachweis.docx`;
 
-      downloadBlob(blob, fileName);
-      setLastSavedPaths([fileName]);
+      const gespeichert = await saveBlob(blob, fileName);
+      setLastSavedPaths(gespeichert ? [gespeichert] : null);
 
       const dok = state.generiertesDokument;
       appendHistoryEntry({
@@ -198,8 +199,8 @@ export function useExport() {
       const datum = state.generiertesDokument.meta.datum;
       const fileName = `${datum}_${thema}_Uebung-mit-Loesung.docx`;
 
-      downloadBlob(blob, fileName);
-      setLastSavedPaths([fileName]);
+      const gespeichert = await saveBlob(blob, fileName);
+      setLastSavedPaths(gespeichert ? [gespeichert] : null);
 
       const dok = state.generiertesDokument;
       appendHistoryEntry({
@@ -260,10 +261,67 @@ export function useExport() {
     }
   }, []);
 
-  return { exportDocx, exportDocxOverride, exportKorrekturraster, exportKompetenzraster, exportSelbstlern, exportSelbsteinschaetzung, exporting, error, warnung, lastSavedPaths };
+  const exportGift = useCallback(async (state: AppState) => {
+    if (!state.generiertesDokument) {
+      setError('Bitte zuerst Inhalt generieren.');
+      return false;
+    }
+    setExporting(true);
+    setError(null);
+    setWarnung(null);
+    setLastSavedPaths(null);
+
+    try {
+      const { toGift } = await import('@lehrunterlagen/export');
+      const giftString = toGift(state.generiertesDokument);
+      const blob = new Blob([giftString], { type: 'text/plain;charset=utf-8' });
+
+      const thema = sanitizeFilename(state.generiertesDokument.meta.thema).slice(0, 40);
+      const datum = state.generiertesDokument.meta.datum;
+      const fileName = `${datum}_${thema}_quiz.gift`;
+
+      downloadBlob(blob, fileName);
+      setLastSavedPaths([fileName]);
+      return true;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unbekannter Fehler beim GIFT-Export';
+      setError(msg);
+      return false;
+    } finally {
+      setExporting(false);
+    }
+  }, []);
+
+  return { exportDocx, exportDocxOverride, exportKorrekturraster, exportKompetenzraster, exportSelbstlern, exportSelbsteinschaetzung, exportGift, exporting, error, warnung, lastSavedPaths };
 }
 
-function downloadBlob(blob: Blob, filename: string) {
+function isTauri(): boolean {
+  return typeof window !== 'undefined' && (window as any).__TAURI_INTERNALS__ !== undefined;
+}
+
+/**
+ * Speichert ein DOCX. In Tauri über den Rust-Command `export_docx`
+ * (Zielordner aus den Einstellungen bzw. „Speichern unter…"-Dialog) — Rückgabe =
+ * gespeicherter Pfad, '' bei Abbruch. Im Browser klassischer Download (Rückgabe = Dateiname).
+ */
+async function saveBlob(blob: Blob, filename: string): Promise<string> {
+  if (isTauri()) {
+    try {
+      const { invoke } = await import('@tauri-apps/api/core');
+      const s = loadSettings();
+      const bytes = Array.from(new Uint8Array(await blob.arrayBuffer()));
+      return await invoke<string>('export_docx', {
+        dir: s.exportDir ?? '',
+        filename,
+        bytes,
+        ask: s.exportAskEachTime ?? false,
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes('ABBRUCH')) return ''; // Dialog abgebrochen → kein Fehler
+      throw err;
+    }
+  }
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -273,6 +331,7 @@ function downloadBlob(blob: Blob, filename: string) {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+  return filename;
 }
 
 function delay(ms: number): Promise<void> {
