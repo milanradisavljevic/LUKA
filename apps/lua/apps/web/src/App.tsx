@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Save, Command, ArrowLeft, ArrowRight, Loader2, BookOpen } from 'lucide-react';
+import { Save, Search, ArrowLeft, ArrowRight, Loader2, BookOpen } from 'lucide-react';
 import type { AppAction, ActiveView, SavedDocument } from './lib/types';
 import { STEP_DESCRIPTIONS } from './lib/types';
 import { fachLabel } from '@lehrunterlagen/schema';
@@ -404,10 +404,45 @@ if (hydrating) {
             {saveMsg && (
               <span style={{ fontSize: '0.75rem', color: 'var(--color-success)' }}>{saveMsg}</span>
             )}
-            <button className="btn-secondary" onClick={() => setPaletteOpen(true)}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.75rem', padding: '0.375rem 0.625rem' }}
-              title="Befehl eingeben (Ctrl+K)">
-              <Command size={14} /> Befehle
+            <button
+              onClick={() => setPaletteOpen(true)}
+              title="Suchen / Befehle eingeben (Ctrl+K)"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.375rem 0.75rem',
+                background: 'var(--color-bg-surface)',
+                border: '1px solid var(--color-border)',
+                borderRadius: 'var(--radius)',
+                color: 'var(--color-text-secondary)',
+                fontSize: '0.8125rem',
+                cursor: 'pointer',
+                transition: 'border-color 0.15s, box-shadow 0.15s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'var(--color-accent)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'var(--color-border)';
+              }}
+            >
+              <Search size={16} />
+              <span style={{ color: 'var(--color-text-primary)' }}>Suchen / Befehle…</span>
+              <kbd
+                style={{
+                  marginLeft: '0.25rem',
+                  padding: '0.125rem 0.375rem',
+                  fontSize: '0.6875rem',
+                  fontFamily: 'inherit',
+                  background: 'var(--color-bg-elevated)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: '3px',
+                  color: 'var(--color-text-secondary)',
+                }}
+              >
+                ⌘K
+              </kbd>
             </button>
             {isWizard && (
               <>

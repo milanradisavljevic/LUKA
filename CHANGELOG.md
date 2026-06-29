@@ -7,6 +7,12 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Sichtbare Such-/Befehlsleiste im Header
+- `apps/lua/apps/web/src/App.tsx`: Im Header ein als Suchfeld gestyltes,
+  klickbares Element mit Lupe-Icon, Text „Suchen / Befehle…" und „⌘K"-Badge.
+  Klick öffnet die bestehende `CommandPalette`; Tastatur-Shortcut `Ctrl+K`
+  bleibt erhalten.
+
 ### Added — Empty-State für Aufgaben-Pool
 - `apps/lua/apps/web/src/views/PoolView.tsx`: Bei leerem Pool oder leerem
   Filterergebnis wird ein `EmptyState` mit `Database`-Icon und erklärendem
