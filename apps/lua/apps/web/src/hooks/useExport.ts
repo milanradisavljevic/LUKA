@@ -249,7 +249,7 @@ export function useExport() {
       const datum = state.generiertesDokument.meta.datum;
       const fileName = `${datum}_${thema}_Selbsteinschaetzung.docx`;
 
-      downloadBlob(blob, fileName);
+      await saveBlob(blob, fileName);
       setLastSavedPaths([fileName]);
       return true;
     } catch (err) {
@@ -280,7 +280,7 @@ export function useExport() {
       const datum = state.generiertesDokument.meta.datum;
       const fileName = `${datum}_${thema}_quiz.gift`;
 
-      downloadBlob(blob, fileName);
+      await saveBlob(blob, fileName);
       setLastSavedPaths([fileName]);
       return true;
     } catch (err) {
