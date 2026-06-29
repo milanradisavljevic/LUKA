@@ -7,8 +7,8 @@ const TEMPLATES_KEY = 'lehrunterlagen-templates';
 const MIGRATED_KEY = 'lehrunterlagen-migrated';
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  defaultProvider: 'claude',
-  defaultModel: 'Sonnet 4.6',
+  defaultProvider: 'mistral',
+  defaultModel: 'Mistral Medium 3.5',
   defaultKreativitaet: 0.4,
   defaultAusgabeSprache: 'de',
   judgeEnabled: true,
