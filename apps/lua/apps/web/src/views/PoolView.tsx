@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react';
-import { X, Search, Filter } from 'lucide-react';
+import { X, Search, Filter, Database } from 'lucide-react';
 import { fachLabel, FACH_META } from '@lehrunterlagen/schema';
 import type { Block, Fach, Stufe, BlockTyp } from '@lehrunterlagen/schema';
 import { useAufgabenPool } from '../hooks/useAufgabenPool';
 import { parsePoolBlock, parsePoolTags } from '../lib/pool';
 import { ViewShell } from './_ViewShell';
+import { EmptyState } from './_EmptyState';
 import { BLOCK_TYPE_DEFS } from '../lib/constants';
 
 const STUFE_LABEL: Record<string, string> = { oberstufe: 'Oberstufe', unterstufe: 'Unterstufe' };
@@ -128,11 +129,15 @@ export function PoolView({ onInsertBlock }: Props) {
       )}
 
       {!loading && !error && filteredEntries.length === 0 && (
-        <p style={{ color: 'var(--color-text-secondary)', textAlign: 'center', padding: '2rem 1rem', fontSize: '0.875rem' }}>
-          {entries.length === 0
-            ? 'Noch keine Aufgaben im Pool. Speichere Blöcke aus der Vorschau.'
-            : 'Keine Aufgaben gefunden für die gewählten Filter.'}
-        </p>
+        <EmptyState
+          icon={Database}
+          title={entries.length === 0 ? 'Aufgaben-Pool ist leer' : 'Keine passenden Aufgaben'}
+          description={
+            entries.length === 0
+              ? 'Hier erscheinen wiederverwendbare Aufgaben-Blöcke, die du aus der Vorschau speicherst.'
+              : 'Passe die Filter oder die Suche an, um passende Aufgaben zu finden.'
+          }
+        />
       )}
 
       {filteredEntries.length > 0 && (
