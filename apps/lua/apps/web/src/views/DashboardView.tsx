@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import {
   GraduationCap, AlertTriangle, Loader2, ClipboardCheck,
   ChevronRight, FileText, Timer, Files, Clock, Coins,
-  Grid3X3, Languages, Pencil, AlignLeft,
+  Grid3X3, Languages, Pencil, AlignLeft, Repeat,
 } from 'lucide-react';
 import { useNatascha } from '../hooks/useNatascha';
 import { loadDocuments, loadTemplates } from '../lib/storage';
@@ -112,6 +112,17 @@ export function DashboardView({ onNavigate, onStartQuickExercise }: DashboardVie
     return isNaN(dt.getTime()) ? d : dt.toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
+  const typLabel = (typ?: string) => {
+    switch (typ) {
+      case 'hausuebung': return 'Hausübung';
+      case 'test': return 'Test';
+      case 'schuluebung': return 'Schulübung';
+      case 'schularbeit': return 'Schularbeit';
+      case 'matura': return 'Matura';
+      default: return typ ?? 'Unterlage';
+    }
+  };
+
   const greetTime = () => {
     const h = new Date().getHours();
     if (h < 12) return 'Guten Morgen.';
@@ -193,6 +204,49 @@ export function DashboardView({ onNavigate, onStartQuickExercise }: DashboardVie
               </button>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* ═══ Wie zuletzt ═══ */}
+      {lastDocument && (
+        <div style={{ marginBottom: '2rem' }}>
+          <p style={{
+            fontSize: '0.75rem', fontWeight: 500, color: 'var(--color-text-muted)',
+            textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem',
+          }}>
+            Wie zuletzt
+          </p>
+          <button
+            className="card card-clickable"
+            onClick={() => onNavigate?.('wizard')}
+            aria-label={`Neue Unterlage wie zuletzt: ${lastDocument.title}`}
+            style={{
+              padding: '1rem 1.5rem',
+              textAlign: 'left',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '1rem',
+              width: '100%',
+            }}
+          >
+            <Repeat size={18} style={{ color: 'var(--color-text-muted)', flexShrink: 0 }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{
+                fontSize: '0.9375rem', fontWeight: 500, color: 'var(--color-text-primary)',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>
+                Wie zuletzt: {fachLabel(lastDocument.snapshot.meta.fach)}
+                {' '}·{' '}
+                {lastDocument.snapshot.meta.stufe === 'oberstufe' ? 'Oberstufe' : 'Unterstufe'}
+                {' '}·{' '}
+                {typLabel(lastDocument.snapshot.meta.typ)}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                Neue Unterlage mit denselben Einstellungen starten
+              </div>
+            </div>
+            <ChevronRight size={16} style={{ color: 'var(--color-text-muted)', flexShrink: 0 }} />
+          </button>
         </div>
       )}
 
