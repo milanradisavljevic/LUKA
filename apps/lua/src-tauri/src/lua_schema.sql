@@ -42,3 +42,20 @@ CREATE TABLE IF NOT EXISTS lua_templates (
     bloecke_json TEXT NOT NULL DEFAULT '[]',
     saved_at TEXT NOT NULL DEFAULT ''
 );
+
+CREATE TABLE IF NOT EXISTS aufgabe_pool (
+    id TEXT PRIMARY KEY,
+    fach TEXT NOT NULL,
+    stufe TEXT NOT NULL,
+    schulstufe INTEGER,
+    thema TEXT,
+    aufgabentyp TEXT NOT NULL,
+    tags TEXT,
+    block_json TEXT NOT NULL,
+    quelle_hinweis TEXT,
+    created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_pool_fach ON aufgabe_pool(fach);
+CREATE INDEX IF NOT EXISTS idx_pool_typ ON aufgabe_pool(aufgabentyp);
+CREATE INDEX IF NOT EXISTS idx_pool_thema ON aufgabe_pool(thema);

@@ -6,4 +6,5 @@ pub mod bridge;
 pub mod natascha;
 pub mod db;
 pub mod natascha_read;
+pub mod pool;
 pub mod export;

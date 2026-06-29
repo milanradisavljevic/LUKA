@@ -23,6 +23,7 @@ import { FavoritesView } from './views/FavoritesView';
 import { TrashView } from './views/TrashView';
 import { HistoryView } from './views/HistoryView';
 import { TemplatesView } from './views/TemplatesView';
+import { PoolView } from './views/PoolView';
 import { HelpView } from './views/HelpView';
 import { SettingsView } from './views/SettingsView';
 import { KorrekturView } from './views/KorrekturView';
@@ -55,6 +56,7 @@ const VIEW_TITLES: Record<ActiveView, string> = {
   kompetenz: 'Kompetenz-Übung',
   quick: 'Schnell-Übung',
   documents: 'Meine Unterlagen',
+  pool: 'Aufgaben-Pool',
   klassen: 'Meine Klassen',
   korrektur: 'Korrektur',
   schueler: 'Schüler',
@@ -282,7 +284,7 @@ export default function App() {
       case 'input':
         return <Step1_Input state={state} dispatch={dispatch} />;
       case 'baukasten':
-        return <Step2_Baukasten state={state} dispatch={dispatch} />;
+        return <Step2_Baukasten state={state} dispatch={dispatch} onNavigateToPool={() => setActiveView('pool')} />;
       case 'llm':
         return <Step3_LLMOptions state={state} dispatch={dispatch} onNavigateToSettings={() => setActiveView('settings')} />;
       case 'generate':
@@ -328,6 +330,12 @@ if (hydrating) {
         return <HistoryView onCreateNew={handleNewDocument} />;
       case 'templates':
         return <TemplatesView meta={state.meta} bloecke={state.bloecke} onLoad={handleLoadTemplate} />;
+      case 'pool':
+        return <PoolView onInsertBlock={(block) => {
+          dispatch({ type: 'ADD_BLOCK', block });
+          setActiveView('wizard');
+          goToStep('baukasten');
+        }} />;
       case 'korrektur':
         return <KorrekturView onOpenSchueler={handleOpenSchueler} />;
       case 'schueler':

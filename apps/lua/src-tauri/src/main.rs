@@ -70,6 +70,10 @@ fn main() {
             commands::natascha_read::db_export_noten_csv,
             commands::natascha_read::db_get_klassen_briefing,
             commands::natascha_read::db_get_schueler_profil,
+            commands::pool::pool_add,
+            commands::pool::pool_list,
+            commands::pool::pool_get,
+            commands::pool::pool_delete,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

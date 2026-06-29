@@ -11,7 +11,7 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { X } from 'lucide-react';
+import { X, Database } from 'lucide-react';
 import type { Block } from '@lehrunterlagen/schema';
 import type { AppState, AppAction } from '../lib/types';
 import { BLOCK_TYPE_DEFS, STUFE_RULES, SCHWIERIGKEIT_RULES } from '../lib/constants';
@@ -23,9 +23,10 @@ import { PointSummary } from './PointSummary';
 interface Props {
   state: AppState;
   dispatch: React.Dispatch<AppAction>;
+  onNavigateToPool?: () => void;
 }
 
-export function Step2_Baukasten({ state, dispatch }: Props) {
+export function Step2_Baukasten({ state, dispatch, onNavigateToPool }: Props) {
   const { addBlock, removeBlocksByType, reorderBlocks } = useBlocks(dispatch);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -205,6 +206,19 @@ export function Step2_Baukasten({ state, dispatch }: Props) {
           }
         `}</style>
       </div>
+
+      {/* Aus Pool einfügen */}
+      {onNavigateToPool && (
+        <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'center' }}>
+          <button
+            className="btn-secondary"
+            onClick={onNavigateToPool}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+          >
+            <Database size={16} /> Aus Aufgaben-Pool einfügen
+          </button>
+        </div>
+      )}
 
       <PointSummary totalPoints={totalPoints} blockCount={state.bloecke.length} totalMinutes={state.bloecke.length > 0 ? totalMinutes : undefined} />
 
