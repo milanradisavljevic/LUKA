@@ -42,6 +42,10 @@ export interface AppSettings {
   nataschaDir?: string;
   /** Python-Befehl zum Starten von NATASCHA. Leer = OS-Default (python/python3). */
   pythonCommand?: string;
+  /** Zielordner für DOCX-Exporte (Tauri). Leer = beim Export fragen. */
+  exportDir?: string;
+  /** Bei jedem Export einen „Speichern unter…"-Dialog zeigen (statt direkt in exportDir). */
+  exportAskEachTime?: boolean;
 }
 
 export interface AppState {

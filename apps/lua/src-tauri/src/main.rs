@@ -17,6 +17,7 @@ fn main() {
             commands::keys::delete_api_key,
             commands::pdf::convert_pdf,
             commands::pdf::libreoffice_available,
+            commands::export::export_docx,
             commands::web::fetch_url,
             commands::bridge::list_bridge_exports,
             commands::bridge::read_bridge_export,
