@@ -7,6 +7,14 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Fixed — GIFT-Header: Thema/Fach klebten in einer Zeile
+- `apps/lua/packages/export/src/index.ts` (`toGift`): Der Header trennte Thema
+  und Fach durch `\//` (→ `//`) statt `\n//` — der Zeilenumbruch fehlte, sodass
+  „Thema X// Fach:" in einer Zeile klebte. Korrigiert auf `\n// Fach:` (analog
+  den anderen Header-Zeilen).
+- `apps/lua/packages/export/src/export.test.ts`: neuer Test „toGift - Header"
+  sichert saubere Zeilen pro Metadatum (Regression-Wächter).
+
 ### Changed — Hilfe auf aktuellen Funktionsstand
 - `apps/lua/apps/web/src/views/HelpView.tsx`: Neue Sektionen **Aufgaben-Pool**
   (Block in Vorschau speichern, filtern/suchen/löschen, „Aus Pool einfügen"),

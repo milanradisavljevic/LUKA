@@ -169,7 +169,7 @@ function convertBlockToGift(block: Block): string {
 // ---------------------------------------------------------------------------
 
 export function toGift(doc: DocumentV1): string {
-  const header = `// GIFT Export aus LUKA\n// Thema: ${doc.meta.thema}\// Fach: ${doc.meta.fach} | Stufe: ${doc.meta.stufe}\n// Datum: ${doc.meta.datum}\n\n`;
+  const header = `// GIFT Export aus LUKA\n// Thema: ${doc.meta.thema}\n// Fach: ${doc.meta.fach} | Stufe: ${doc.meta.stufe}\n// Datum: ${doc.meta.datum}\n\n`;
 
   const questions = doc.bloecke
     .map((block, index) => {
