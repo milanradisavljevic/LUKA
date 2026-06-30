@@ -58,6 +58,8 @@ function wizardReducer(state: AppState, action: AppAction): AppState {
       return { ...state, generiertesDokument: action.dokument };
     case 'SET_RENDER_TEMPLATE':
       return { ...state, renderTemplate: action.template };
+    case 'SET_RENDER_LAYOUT':
+      return { ...state, renderLayout: action.layout };
     case 'UPDATE_GENERIERTER_BLOCK':
       if (!state.generiertesDokument) return state;
       return {
@@ -77,6 +79,7 @@ function wizardReducer(state: AppState, action: AppAction): AppState {
         step: action.snapshot.generiertesDokument ? 'generate' : 'baukasten',
         aktuelleDokumentId: action.documentId,
         renderTemplate: action.snapshot.renderTemplate ?? getDefaultTemplate(action.snapshot.meta.stufe).id,
+        renderLayout: action.snapshot.renderLayout ?? 'standard',
       };
     case 'SET_DOCUMENT_ID':
       return { ...state, aktuelleDokumentId: action.id };
@@ -101,6 +104,7 @@ function createInitialState(): AppState {
     ausgabeSprache: settings.defaultAusgabeSprache,
     aktuelleDokumentId: null,
     renderTemplate: getDefaultTemplate(meta.stufe).id,
+    renderLayout: 'standard',
   };
 }
 

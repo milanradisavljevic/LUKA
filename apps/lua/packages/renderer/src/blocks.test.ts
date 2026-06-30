@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { Paragraph, Table, TableRow, TableCell } from 'docx';
 import { RENDER_TEMPLATES } from './template.js';
+import { getDefaultLayout } from './layout.js';
 import {
   buildBlock,
   renderBlockChildren,
@@ -70,6 +71,7 @@ function ctx(over: Partial<RenderBlockCtx> = {}): RenderBlockCtx {
     index: 1,
     quelltextMap: new Map<string, QuellText>([['q1', baseQuelltext]]),
     fach: 'deutsch',
+    layout: getDefaultLayout(),
     ...over,
   };
 }

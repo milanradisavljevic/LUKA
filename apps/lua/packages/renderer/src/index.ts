@@ -25,6 +25,8 @@ import {
 import type { DocumentV1, Block, QuellText } from '@lehrunterlagen/schema';
 import type { RenderTemplate } from './template.js';
 import { RENDER_TEMPLATES, getDefaultTemplate } from './template.js';
+import type { RenderLayout, RenderLayoutId } from './layout.js';
+import { RENDER_LAYOUTS, getDefaultLayout } from './layout.js';
 import { baueWortbank, shuffle, baueKreuzwortgitter, baueWortgitter, bereinigeQuelltext, fachLabel as fachLabelOf } from '@lehrunterlagen/schema';
 
 const DEFAULT_TEMPLATE = RENDER_TEMPLATES.klassisch;
@@ -97,27 +99,27 @@ export interface KorrekturrasterDokument {
   notenschluessel: Notenstufe[];
 }
 
-export async function renderDocument(doc: DocumentV1, template: RenderTemplate = DEFAULT_TEMPLATE): Promise<RenderResult> {
+export async function renderDocument(doc: DocumentV1, template: RenderTemplate = DEFAULT_TEMPLATE, layout: RenderLayout = getDefaultLayout()): Promise<RenderResult> {
   const [schueler, loesung] = await Promise.all([
-    buildDocxPacked(Packer.toBuffer.bind(Packer), doc, 'schueler', template),
-    buildDocxPacked(Packer.toBuffer.bind(Packer), doc, 'loesung', template),
+    buildDocxPacked(Packer.toBuffer.bind(Packer), doc, 'schueler', template, layout),
+    buildDocxPacked(Packer.toBuffer.bind(Packer), doc, 'loesung', template, layout),
   ]);
   return { schueler, loesung };
 }
 
 /** Browser-native export — returns Blobs suitable for URL.createObjectURL(). */
-export async function renderDocumentToBlobs(doc: DocumentV1, template: RenderTemplate = DEFAULT_TEMPLATE): Promise<RenderResultBlobs> {
+export async function renderDocumentToBlobs(doc: DocumentV1, template: RenderTemplate = DEFAULT_TEMPLATE, layout: RenderLayout = getDefaultLayout()): Promise<RenderResultBlobs> {
   const [schueler, loesung] = await Promise.all([
-    buildDocxPacked(Packer.toBlob.bind(Packer), doc, 'schueler', template),
-    buildDocxPacked(Packer.toBlob.bind(Packer), doc, 'loesung', template),
+    buildDocxPacked(Packer.toBlob.bind(Packer), doc, 'schueler', template, layout),
+    buildDocxPacked(Packer.toBlob.bind(Packer), doc, 'loesung', template, layout),
   ]);
   return { schueler, loesung };
 }
 
 /** Browser-native export — ein DOCX mit Schülerfassung + Lösungsteil für Selbstlern/Hausübung. */
-export async function renderSelbstlernToBlob(doc: DocumentV1, template: RenderTemplate = DEFAULT_TEMPLATE): Promise<Blob> {
-  const schuelerChildren = buildDocumentChildren(doc, 'schueler', template);
-  const loesungChildren = buildDocumentChildren(doc, 'loesung', template);
+export async function renderSelbstlernToBlob(doc: DocumentV1, template: RenderTemplate = DEFAULT_TEMPLATE, layout: RenderLayout = getDefaultLayout()): Promise<Blob> {
+  const schuelerChildren = buildDocumentChildren(doc, 'schueler', template, layout);
+  const loesungChildren = buildDocumentChildren(doc, 'loesung', template, layout);
 
   const isEnglish = doc.meta.fach === 'englisch';
   const children: (Paragraph | Table)[] = [
@@ -688,6 +690,7 @@ function buildDocumentChildren(
   doc: DocumentV1,
   mode: Mode,
   template: RenderTemplate,
+  layout: RenderLayout = getDefaultLayout(),
 ): (Paragraph | Table)[] {
   const quelltextMap = new Map<string, QuellText>(
     doc.quelltexte.map((q) => [q.id, q]),
@@ -701,7 +704,7 @@ function buildDocumentChildren(
     ...buildMerkkasten(doc.didaktik?.merkkasten, template),
     ...buildQuelltexte(doc.quelltexte, template),
     ...doc.bloecke.flatMap((block, i) =>
-      buildBlock(block, { template, modus: mode, index: i + 1, quelltextMap, fach: doc.meta.fach, hidePunkte }),
+      buildBlock(block, { template, modus: mode, index: i + 1, quelltextMap, fach: doc.meta.fach, hidePunkte, layout }),
     ),
     ...(doc.didaktik?.transferaufgabe?.trim()
       ? buildTransferaufgabe(doc.didaktik.transferaufgabe.trim(), mode, template, doc.meta.fach)
@@ -714,8 +717,9 @@ async function buildDocxPacked<T>(
   doc: DocumentV1,
   mode: Mode,
   template: RenderTemplate,
+  layout: RenderLayout = getDefaultLayout(),
 ): Promise<T> {
-  const children = buildDocumentChildren(doc, mode, template);
+  const children = buildDocumentChildren(doc, mode, template, layout);
 
   const document = new Document({
     sections: [
@@ -1292,6 +1296,8 @@ export interface RenderBlockCtx {
   quelltextMap: Map<string, QuellText>;
   fach: DocumentV1['meta']['fach'];
   hidePunkte?: boolean;
+  /** Layout-Achse (Dichte/Schreibraum/Rahmen) — orthogonal zur Formatvorlage. */
+  layout: RenderLayout;
 }
 
 /**
@@ -1305,8 +1311,8 @@ export function renderBlockChildren(block: Block, ctx: RenderBlockCtx): (Paragra
     case 'lueckentext': return buildLueckentext(block, mode, template, fach);
     case 'matching': return buildMatching(block, mode, template, fach);
     case 'multipleChoice': return buildMultipleChoice(block, mode, template, fach);
-    case 'offeneVerstaendnisfrage': return buildOffeneVerstaendnisfrage(block, mode, template);
-    case 'offeneSchreibaufgabe': return buildOffeneSchreibaufgabe(block, mode, template, fach);
+    case 'offeneVerstaendnisfrage': return buildOffeneVerstaendnisfrage(block, mode, template, ctx.layout);
+    case 'offeneSchreibaufgabe': return buildOffeneSchreibaufgabe(block, mode, template, fach, ctx.layout);
     case 'markieraufgabe': return buildMarkieraufgabe(block, mode, quelltextMap, template);
     case 'wordScramble': return buildWordScramble(block, mode, template, fach);
     case 'kategorisierung': return buildKategorisierung(block, mode, template, fach);
@@ -1349,7 +1355,7 @@ export function buildBlock(block: Block, ctx: RenderBlockCtx): (Paragraph | Tabl
         top:    { style: BorderStyle.SINGLE, size: 6, color: template.color.text },
         bottom: { style: BorderStyle.SINGLE, size: 6, color: template.color.text },
       },
-      spacing: { before: needsPageBreak ? 0 : 280, after: 120 },
+      spacing: { before: needsPageBreak ? 0 : convertMillimetersToTwip(ctx.layout.blockSpacingMm), after: 120 },
       children: [
         run(`${taskLabel} ${index}  –  ${label}`, {
           font: template.font, size: template.fontSize.h2, ...headingProps(template),
@@ -1392,6 +1398,29 @@ export function buildBlock(block: Block, ctx: RenderBlockCtx): (Paragraph | Tabl
   }
 
   result.push(...renderBlockChildren(block, ctx));
+
+  // Layout 'gerahmt': den gesamten Block (Banner + Inhalt) in eine 1-zellige
+  // Rahmen-Tabelle wrappen — der Block-Abstand wird zum Außenabstand der Tabelle.
+  if (ctx.layout.frameBlocks) {
+    const frameBorder = { style: BorderStyle.SINGLE, size: 6, color: template.color.lightGray };
+    return [
+      new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        layout: TableLayoutType.FIXED,
+        borders: {
+          top: frameBorder, bottom: frameBorder, left: frameBorder, right: frameBorder,
+          insideHorizontal: { style: BorderStyle.NONE, size: 0, color: 'auto' },
+          insideVertical: { style: BorderStyle.NONE, size: 0, color: 'auto' },
+        },
+        margins: { top: 80, bottom: 80, left: 140, right: 140 },
+        rows: [
+          new TableRow({
+            children: [new TableCell({ children: result })],
+          }),
+        ],
+      }),
+    ];
+  }
 
   return result;
 }
@@ -2043,6 +2072,7 @@ function buildOffeneVerstaendnisfrage(
   block: Extract<Block, { typ: 'offeneVerstaendnisfrage' }>,
   mode: Mode,
   template: RenderTemplate,
+  layout: RenderLayout = getDefaultLayout(),
 ): (Paragraph | Table)[] {
   const result: (Paragraph | Table)[] = [];
 
@@ -2060,8 +2090,9 @@ function buildOffeneVerstaendnisfrage(
     );
 
     if (mode === 'schueler') {
-      for (let i = 0; i < frage.zeilen; i++) {
-        result.push(writingLine(i < frage.zeilen - 1, template));
+      const lineCount = Math.round(frage.zeilen * layout.answerLineFactor);
+      for (let i = 0; i < lineCount; i++) {
+        result.push(writingLine(i < lineCount - 1, template));
       }
     } else {
       result.push(
@@ -2086,6 +2117,7 @@ function buildOffeneSchreibaufgabe(
   mode: Mode,
   template: RenderTemplate,
   fach: DocumentV1['meta']['fach'] = 'deutsch',
+  layout: RenderLayout = getDefaultLayout(),
 ): (Paragraph | Table)[] {
   const result: (Paragraph | Table)[] = [];
   const cfg = block.config;
@@ -2137,7 +2169,7 @@ function buildOffeneSchreibaufgabe(
   }
 
   if (mode === 'schueler') {
-    const lineCount = Math.ceil(cfg.umfangWorte.max / 10);
+    const lineCount = Math.ceil((cfg.umfangWorte.max / 10) * layout.answerLineFactor);
     for (let i = 0; i < lineCount; i++) {
       result.push(writingLine(i < lineCount - 1, template));
     }
@@ -2962,3 +2994,5 @@ function chunkArray<T>(arr: T[], size: number): T[][] {
 
 export { RENDER_TEMPLATES, getDefaultTemplate };
 export type { RenderTemplate, RenderTemplateId } from './template.js';
+export type { RenderLayout, RenderLayoutId } from './layout.js';
+export { RENDER_LAYOUTS, getDefaultLayout } from './layout.js';

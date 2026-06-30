@@ -6,7 +6,7 @@ import { getBlockLabel } from '../lib/blockDefaults';
 import { appendHistoryEntry, loadSettings } from '../lib/storage';
 import { computeCoverage } from '../lib/coverage';
 import { istEntwurfsQuelle } from '../lib/stoffkatalog';
-import { RENDER_TEMPLATES } from '@lehrunterlagen/renderer';
+import { RENDER_TEMPLATES, RENDER_LAYOUTS } from '@lehrunterlagen/renderer';
 
 export function useExport() {
   const [exporting, setExporting] = useState(false);
@@ -23,7 +23,8 @@ export function useExport() {
     try {
       const { renderDocumentToBlobs } = await import('@lehrunterlagen/renderer');
       const template = RENDER_TEMPLATES[state.renderTemplate];
-      const { schueler, loesung } = await renderDocumentToBlobs(doc, template);
+      const layout = RENDER_LAYOUTS[state.renderLayout];
+      const { schueler, loesung } = await renderDocumentToBlobs(doc, template, layout);
 
       const thema = sanitizeFilename(doc.meta.thema).slice(0, 40);
       const datum = doc.meta.datum;
@@ -193,7 +194,8 @@ export function useExport() {
     try {
       const { renderSelbstlernToBlob } = await import('@lehrunterlagen/renderer');
       const template = RENDER_TEMPLATES[state.renderTemplate];
-      const blob = await renderSelbstlernToBlob(state.generiertesDokument, template);
+      const layout = RENDER_LAYOUTS[state.renderLayout];
+      const blob = await renderSelbstlernToBlob(state.generiertesDokument, template, layout);
 
       const thema = sanitizeFilename(state.generiertesDokument.meta.thema).slice(0, 40);
       const datum = state.generiertesDokument.meta.datum;
