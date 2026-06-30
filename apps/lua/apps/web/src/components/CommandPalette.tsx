@@ -1,8 +1,11 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Mic, X } from 'lucide-react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { Mic, X, Command, FileText, Files, Database, GraduationCap, Compass, CornerDownLeft } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import type { AppAction } from '../lib/types';
 import { useCommandParser } from '../hooks/useCommandParser';
 import { useVoiceCommand } from '../hooks/useVoiceCommand';
+import type { SearchIndex, SearchResult, SearchSection } from '../lib/search';
+import { searchIndex, groupResults } from '../lib/search';
 
 interface Props {
   open: boolean;
@@ -11,17 +14,48 @@ interface Props {
   onNavigate: (direction: 'next' | 'back') => void;
   onExport: () => void;
   blockCount: number;
+  /** Such-Index (aus App: Dokumente/Vorlagen/Pool/Klassen/Navigation/Befehle). */
+  index: SearchIndex;
+  /** Führt ein Inhalts-/Navigations-Ergebnis aus (Befehle laufen weiter intern). */
+  onExecuteResult: (result: SearchResult) => void;
 }
 
-export function CommandPalette({ open, onClose, onActions, onNavigate, onExport, blockCount }: Props) {
+/** Icon je Ergebnis-Art. */
+const KIND_ICON: Record<SearchResult['kind'], LucideIcon> = {
+  command: Command,
+  document: FileText,
+  template: Files,
+  pool: Database,
+  klasse: GraduationCap,
+  navigation: Compass,
+};
+
+/**
+ * Nicht-parametrisierte Befehle werden direkt ausgeführt, indem ihr kanonischer
+ * Trigger-Text an die Legacy-Logik geht. Parametrisierte Befehle (thema:, …)
+ * nutzen den aktuellen Eingabe-Text (Legacy-Fallback). App-seitig gelöste
+ * Befehle (z. B. „Neue erstellen") gehen an onExecuteResult.
+ */
+const NON_PARAMETRIC_TRIGGER: Record<string, string> = {
+  'nav-back': 'zurück',
+  'nav-next': 'weiter',
+  export: 'export',
+  'block-delete': 'block löschen',
+};
+
+const APP_HANDLED_COMMANDS = new Set(['new']);
+
+export function CommandPalette({ open, onClose, onActions, onNavigate, onExport, blockCount, index, onExecuteResult }: Props) {
   const [input, setInput] = useState('');
+  const [activeIndex, setActiveIndex] = useState(-1);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { parse, getSuggestions } = useCommandParser();
+  const listRef = useRef<HTMLDivElement>(null);
+  const { parse } = useCommandParser();
 
   const handleVoiceResult = useCallback((text: string) => {
     setInput(text.trim());
-    executeCommand(text.trim());
+    activate(null, text.trim());
   }, []);
 
   const voice = useVoiceCommand(handleVoiceResult);
@@ -29,8 +63,10 @@ export function CommandPalette({ open, onClose, onActions, onNavigate, onExport,
   useEffect(() => {
     if (open) {
       setInput('');
+      setActiveIndex(-1);
       setFeedback(null);
-      setTimeout(() => inputRef.current?.focus(), 50);
+      const t = setTimeout(() => inputRef.current?.focus(), 50);
+      return () => clearTimeout(t);
     }
   }, [open]);
 
@@ -40,7 +76,29 @@ export function CommandPalette({ open, onClose, onActions, onNavigate, onExport,
     return () => clearTimeout(timer);
   }, [feedback]);
 
-  const executeCommand = (text: string) => {
+  // Live-Ergebnisse + Gruppierung + flache Zeilenliste für Tastatur-Navigation.
+  const sections: SearchSection[] = useMemo(() => groupResults(searchIndex(index, input)), [index, input]);
+  const flatRows: SearchResult[] = useMemo(() => sections.flatMap((s) => s.items), [sections]);
+  const idToFlat = useMemo(() => {
+    const m = new Map<string, number>();
+    flatRows.forEach((r, i) => m.set(r.id, i));
+    return m;
+  }, [flatRows]);
+
+  // Eingabeänderung → Auswahl zurücksetzen.
+  useEffect(() => {
+    setActiveIndex(-1);
+  }, [input]);
+
+  // Aktivzeile im sichtbaren Bereich halten.
+  useEffect(() => {
+    if (activeIndex < 0) return;
+    const el = listRef.current?.querySelector('[aria-selected="true"]') as HTMLElement | null;
+    el?.scrollIntoView({ block: 'nearest' });
+  }, [activeIndex]);
+
+  // --- Legacy-Befehlsausführung (unverändert, für Fallback + parametrisierte Befehle) ---
+  const executeCommand = useCallback((text: string) => {
     const trimmed = text.trim();
     if (!trimmed) return;
 
@@ -109,135 +167,170 @@ export function CommandPalette({ open, onClose, onActions, onNavigate, onExport,
     } else {
       setFeedback({
         type: 'error',
-        text: 'Befehl nicht erkannt. Tippe "Hilfe" für verfügbare Befehle.',
+        text: 'Befehl nicht erkannt. Tippe z. B. „Thema: …" oder wähle einen Treffer.',
       });
     }
-  };
+  }, [blockCount, onActions, onNavigate, onExport, onClose, parse]);
 
-  const suggestions = input.trim() ? getSuggestions(input) : [];
+  // --- Ausführung eines ausgewählten Ergebnisses (Klick oder Enter auf Zeile) ---
+  const executeCommandResult = useCallback((sr: SearchResult) => {
+    if (sr.action.type === 'actions') {
+      onActions(sr.action.actions);
+      setFeedback({ type: 'success', text: sr.title });
+      onClose();
+      return;
+    }
+    if (sr.action.type === 'paletteCommand') {
+      const cid = sr.action.commandId;
+      if (APP_HANDLED_COMMANDS.has(cid)) {
+        onExecuteResult(sr);
+        onClose();
+        return;
+      }
+      const trigger = NON_PARAMETRIC_TRIGGER[cid];
+      // Nicht-parametrisch → kanonischer Trigger; parametrisch → aktueller Text.
+      executeCommand(trigger ?? input);
+      return;
+    }
+    // Sollte bei command-kind nicht vorkommen; sicherheitshalber delegieren.
+    onExecuteResult(sr);
+    onClose();
+  }, [executeCommand, input, onActions, onExecuteResult, onClose]);
+
+  /** Aktiviert ein Ergebnis (null = Legacy-Fallback auf den rohen Eingabe-Text). */
+  const activate = useCallback((sr: SearchResult | null, overrideText?: string) => {
+    if (!sr) {
+      executeCommand(overrideText ?? input);
+      return;
+    }
+    if (sr.kind === 'command') {
+      executeCommandResult(sr);
+    } else {
+      onExecuteResult(sr);
+      onClose();
+    }
+  }, [executeCommand, executeCommandResult, onExecuteResult, onClose, input]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
+      e.preventDefault();
       onClose();
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveIndex((i) => (i < flatRows.length - 1 ? i + 1 : i));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveIndex((i) => (i > -1 ? i - 1 : -1));
     } else if (e.key === 'Enter') {
-      executeCommand(input);
-      setInput('');
+      e.preventDefault();
+      const sr = activeIndex >= 0 ? flatRows[activeIndex] ?? null : null;
+      activate(sr);
     }
   };
 
   if (!open) return null;
 
+  const hasInput = input.trim().length > 0;
+
   return (
-    <div style={{
-      position: 'fixed', inset: 0, background: 'var(--color-overlay)',
-      display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
-      paddingTop: '12vh', zIndex: 2000,
-    }} onClick={onClose}>
-      <div style={{
-        width: 520, maxWidth: '90vw',
-        background: 'var(--color-bg-elevated)', borderRadius: 'var(--radius)',
-        boxShadow: '0 8px 32px var(--color-shadow)',
-        overflow: 'hidden',
-      }} onClick={(e) => e.stopPropagation()}>
-        <div style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid var(--color-border)' }}>
-          <input ref={inputRef}
+    <div
+      className="palette-overlay"
+      onClick={onClose}
+    >
+      <div
+        className="card palette-panel"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Eingabezeile */}
+        <div className="palette-input-row">
+          <Compass size={16} className="palette-input-icon" aria-hidden="true" />
+          <input
+            ref={inputRef}
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Befehl eingeben oder Mikrofon nutzen…"
-            style={{
-              flex: 1, border: 'none', borderRadius: 0, padding: '0.875rem 1rem',
-              fontSize: '0.9375rem', outline: 'none', background: 'var(--color-bg-elevated)', color: 'var(--color-text-primary)',
-            }} />
-          <div style={{ display: 'flex', gap: '0.25rem', paddingRight: '0.5rem' }}>
+            placeholder="Suchen oder Befehl eingeben (z. B. Thema: …)"
+            className="palette-input"
+            aria-label="Such- und Befehlseingabe"
+            autoComplete="off"
+            spellCheck={false}
+          />
+          <div className="palette-input-actions">
             {voice.supported && (
-              <button onClick={(e) => { e.stopPropagation(); voice.toggleListening(); }}
+              <button
+                onClick={(e) => { e.stopPropagation(); voice.toggleListening(); }}
                 title="Spracheingabe (deutsch)"
-                style={{
-                  width: 36, height: 36, borderRadius: '50%', border: 'none',
-                  background: voice.listening ? 'var(--color-error)' : 'var(--color-bg-hover)',
-                  color: voice.listening ? 'white' : 'var(--color-text-secondary)',
-                  cursor: 'pointer', display: 'flex', alignItems: 'center',
-                  justifyContent: 'center', fontSize: '1rem', transition: 'all 0.2s',
-                }}>
+                className={voice.listening ? 'palette-mic palette-mic-active' : 'palette-mic'}
+                aria-label={voice.listening ? 'Spracheingabe stoppen' : 'Spracheingabe starten'}
+              >
                 <Mic size={16} />
               </button>
             )}
-            <button onClick={onClose}
-              aria-label="Schließen"
-              style={{
-                width: 36, height: 36, borderRadius: '50%', border: 'none',
-                background: 'var(--color-bg-hover)', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: 'var(--color-text-secondary)', fontSize: '1rem',
-              }}>
+            <button onClick={onClose} aria-label="Schließen" className="palette-mic">
               <X size={16} />
             </button>
           </div>
         </div>
 
         {voice.listening && (
-          <div style={{
-            padding: '0.5rem 1rem', background: 'var(--color-warning-bg)',
-            fontSize: '0.8125rem', color: 'var(--color-warning)',
-          }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
-              <Mic size={14} /> Höre zu…{voice.interimTranscript && ` (${voice.interimTranscript})`}
-            </span>
+          <div className="palette-voice-banner">
+            <Mic size={14} /> Höre zu…{voice.interimTranscript && ` (${voice.interimTranscript})`}
           </div>
         )}
 
         {feedback && (
-          <div style={{
-            padding: '0.5rem 1rem',
-            background: feedback.type === 'success' ? 'var(--color-success-bg)' : 'var(--color-error-bg)',
-            color: feedback.type === 'success' ? 'var(--color-success)' : 'var(--color-error)',
-            fontSize: '0.8125rem',
-          }}>
+          <div className={feedback.type === 'success' ? 'palette-feedback palette-feedback-ok' : 'palette-feedback palette-feedback-err'}>
             {feedback.text}
           </div>
         )}
 
-        {suggestions.length > 0 && input.trim() && (
-          <div style={{ maxHeight: 240, overflow: 'auto', padding: '0.5rem 0' }}>
-            {suggestions.slice(0, 8).map((s) => (
-              <button key={s.id}
-                onClick={() => { setInput(s.label); executeCommand(s.label); }}
-                style={{
-                  display: 'block', width: '100%', textAlign: 'left',
-                  padding: '0.5rem 1rem', border: 'none', background: 'transparent',
-                  cursor: 'pointer', fontSize: '0.8125rem',
-                  fontFamily: 'var(--font)', color: 'var(--color-text-primary)',
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-bg-hover)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
-                <strong>{s.label}</strong>
-                <p style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)', marginTop: '0.125rem' }}>
-                  {s.description}
-                </p>
-              </button>
-            ))}
-          </div>
-        )}
+        {/* Ergebnisse */}
+        <div className="palette-results" ref={listRef}>
+          {sections.length === 0 ? (
+            hasInput && (
+              <div className="palette-empty">Keine Treffer — z. B. „Exportieren“ oder „Thema: …“ eingeben.</div>
+            )
+          ) : (
+            sections.map((section) => (
+              <div key={section.kind} className="palette-section">
+                <div className="palette-section-header">{section.label}</div>
+                {section.items.map((item) => {
+                  const flatIdx = idToFlat.get(item.id) ?? -1;
+                  const isActive = flatIdx === activeIndex;
+                  const Icon = KIND_ICON[item.kind];
+                  return (
+                    <button
+                      key={item.id}
+                      className="palette-row"
+                      aria-selected={isActive}
+                      onClick={() => activate(item)}
+                      onMouseMove={(e) => {
+                        // Maus über Zeile → als aktiv markieren (kein Hover-Style-Hack).
+                        if (flatIdx !== activeIndex) setActiveIndex(flatIdx);
+                        e.currentTarget.focus();
+                      }}
+                    >
+                      <Icon size={15} className="palette-row-icon" aria-hidden="true" />
+                      <span className="palette-row-text">
+                        <span className="palette-row-title">{item.title}</span>
+                        {item.subtitle && <span className="palette-row-sub">{item.subtitle}</span>}
+                      </span>
+                      {isActive && <CornerDownLeft size={13} className="palette-row-enter" aria-hidden="true" />}
+                    </button>
+                  );
+                })}
+              </div>
+            ))
+          )}
+        </div>
 
-        {!input.trim() && (
-          <div style={{ padding: '0.75rem 1rem', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
-            <strong>Verfügbare Befehle:</strong>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.25rem', marginTop: '0.375rem' }}>
-              <span>Schritt 1–4</span>
-              <span>Fach: Deutsch/Englisch</span>
-              <span>Stufe: Oberstufe/Unterstufe</span>
-              <span>Thema: &lt;Text&gt;</span>
-              <span>Füge Lückentext hinzu</span>
-              <span>Block löschen</span>
-              <span>Punkte: 10</span>
-              <span>Exportieren</span>
-              <span>Vorlage speichern als …</span>
-              <span>Zurück / Weiter</span>
-            </div>
-          </div>
-        )}
+        {/* Fußzeile / Tastaturhinweis */}
+        <div className="palette-footer">
+          <span><kbd>↑</kbd><kbd>↓</kbd> wählen</span>
+          <span><kbd>Enter</kbd> öffnen / ausführen</span>
+          <span><kbd>Esc</kbd> schließen</span>
+        </div>
       </div>
     </div>
   );
