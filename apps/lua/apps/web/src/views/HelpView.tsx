@@ -4,6 +4,7 @@ import {
   Workflow, Rocket, FilePlus2, SpellCheck, GraduationCap, Users,
   ClipboardCheck, LayoutDashboard, Keyboard, ShieldCheck, LifeBuoy,
   Lightbulb, CheckCircle2, Target, FolderOpen, Shapes, BookOpen,
+  Database, FileDown, Search,
 } from 'lucide-react';
 import { ViewShell } from './_ViewShell';
 
@@ -88,7 +89,7 @@ const SECTIONS: Section[] = [
         <P>Damit die KI-Funktionen (Generieren, Korrigieren) laufen, brauchst du einen API-Schlüssel deines KI-Anbieters.</P>
         <Steps items={[
           <>Öffne <strong>Einstellungen</strong> und trage deinen API-Schlüssel ein (z. B. Anthropic, OpenAI, Mistral, DeepSeek). Schlüssel werden sicher im Schlüsselspeicher des Betriebssystems abgelegt — nicht im Klartext.</>,
-          <>Wähle Standard-Anbieter und -Modell. Für günstige Tests eignet sich ein kleines Modell.</>,
+          <>Wähle Standard-Anbieter und -Modell (standardmäßig <strong>Mistral Medium 3.5</strong> — änderbar in den <strong>Einstellungen</strong>). Für günstige Tests eignet sich ein kleines Modell.</>,
           <>Zum gefahrlosen Ausprobieren ohne echte Schülerdaten: Testdaten laden (siehe <strong>Onboarding</strong> im README / Beispiel-Abgaben im Ordner <code>samples/</code>).</>,
           <>Lade in <strong>Korrektur</strong> eine erste Abgabe hoch und starte die Analyse.</>,
         ]} />
@@ -105,7 +106,7 @@ const SECTIONS: Section[] = [
       <>
         <P>Der Generator führt dich in fünf Schritten von der Absicht zum fertigen DOCX.</P>
         <Steps items={[
-          <><strong>Absicht</strong> — Schulstufe, Fach, Thema und Art der Unterlage festlegen. Notizen fließen als Wünsche in die Generierung ein.</>,
+          <><strong>Absicht</strong> — Schulstufe, Fach, Thema und Art der Unterlage festlegen (Schulübung, <strong>Matura (SRDP)</strong> oder Kompetenz-Übung). Notizen fließen als Wünsche in die Generierung ein.</>,
           <><strong>Quelltexte</strong> — Textgrundlage per Direkteingabe, Datei (TXT/DOCX/PDF/HTML) oder URL hinzufügen.</>,
           <><strong>Aufgabenblöcke</strong> — gewünschte Aufgabentypen zusammenstellen, Punkte und Arbeitsanweisungen festlegen. Beispieldaten sind grau und werden beim Generieren ersetzt.</>,
           <><strong>KI-Modell</strong> — Anbieter, Modell und Kreativitätsgrad (präzise bis kreativ) wählen.</>,
@@ -119,6 +120,39 @@ const SECTIONS: Section[] = [
         <P><strong>Schnell ohne Quelltext:</strong> Für kleine Übungen mit eigenen Inhalten brauchst du keine Textgrundlage. Wähle im Dashboard oder in Schritt „Absicht" einen der Schnellstarts (z. B. „Kreuzworträtsel", „Vokabeltest", „Fehlerkorrektur", „Lückentext"). Der Assistent springt direkt in den Baukasten; Quelltexte kannst du überspringen.</P>
         <P><strong>Selbsteinschätzungsbogen:</strong> Nach dem Generieren kannst du einen zusätzlichen Bogen exportieren, mit dem Schülerinnen und Schüler einschätzen, wie sicher sie sich bei den einzelnen Aufgaben fühlen. Er eignet sich besonders für differenzierte Rückmeldung und Selbstregulation.</P>
         <Tip>Einen ganzen Blocktyp wieder entfernen: im Baukasten oben rechts am Block auf das <strong>X</strong> klicken. Mehr Zuordnungs-Paare/MC-Antworten: im Block-Editor auf „+ Item" / „+ Option" / „+ Frage".</Tip>
+      </>
+    ),
+  },
+  {
+    id: 'pool',
+    title: 'Aufgaben-Pool',
+    Icon: Database,
+    body: (
+      <>
+        <P>Der <strong>Aufgaben-Pool</strong> sammelt wiederverwendbare Aufgaben-Blöcke — einmal gespeichert, beliebig oft wieder eingefügt.</P>
+        <Steps items={[
+          <>In der <strong>Vorschau</strong> (Schritt Erstellen) bei einem Block auf <strong>„In Pool speichern"</strong> — der Block wird mit Fach, Stufe, Thema und Tags abgelegt.</>,
+          <>In der Ansicht <strong>Aufgaben-Pool</strong> (Seitenleiste) filterst du nach Fach, Stufe und Aufgabentyp sowie per Volltextsuche; nicht mehr gebrauchte Einträge löschst du dort.</>,
+          <>Im <strong>Baukasten</strong> fügst du einen Pool-Eintrag über <strong>„Aus Pool einfügen"</strong> direkt als neuen Block ein — die Aufgabe inkl. Konfiguration und Lösung landet im aktuellen Dokument.</>,
+        ]} />
+        <Tip>Der Pool ist pro Rechner lokal. Ideal, um bewährte Aufgaben über mehrere Unterlagen hinweg wiederzuverwenden, ohne sie jedes Mal neu zu generieren.</Tip>
+      </>
+    ),
+  },
+  {
+    id: 'export',
+    title: 'Export & Dateien',
+    Icon: FileDown,
+    body: (
+      <>
+        <P>Beim Export entstehen pro Unterlage mehrere Dateien — wohin sie landen, stellst du in den <strong>Einstellungen → Export</strong> ein.</P>
+        <Steps items={[
+          <><strong>DOCX-Zielordner:</strong> In den Einstellungen legst du einen Ordner fest, in den alle DOCX geschrieben werden. Alternativ aktivierst du <strong>„Speichern unter…"</strong>, um bei jedem Export den Ort einzeln zu wählen. Ohne Tauri (Browser) landen die Dateien im Download-Ordner.</>,
+          <><strong>Beide Dokumente</strong> (Schülerfassung + Lösung) sowie <strong>Korrekturraster</strong> als DOCX; im Kompetenz-Modus zusätzlich der <strong>Kompetenznachweis</strong>; optional <strong>PDF</strong> (braucht LibreOffice).</>,
+          <><strong>Moodle/GIFT-Export:</strong> In Schritt Erstellen unter „Weitere Exporte" erzeugst du eine <code>.gift</code>-Datei zum Import in Moodle. Geschlossene Aufgaben (Multiple Choice, Matching, Lückentext …) werden zu Quizfragen, offene (Schreibaufgabe, Verständnisfrage) zu Essay-Fragen.</>,
+          <>Zusätzlich: <strong>Übung mit Lösungsteil</strong> (Schüler- und Lösungsteil in einem Dokument) und <strong>Selbsteinschätzungsbogen</strong> für die Schüler/innen.</>,
+        ]} />
+        <Tip>Vor dem DOCX-Export läuft ein <strong>Quality-Gate</strong> (Lernziel-Abdeckung, Wortzahl Schreibaufgabe) — nur Hinweise, kein Zwang. Jeder Export wird im <strong>Verlauf</strong> protokolliert.</Tip>
       </>
     ),
   },
@@ -168,7 +202,7 @@ const SECTIONS: Section[] = [
           <><strong>Geschlossen:</strong> Multiple Choice, Matching (Zuordnung), Lückentext (mit/ohne Wortbank), Kategorisierung, Wörter ordnen, Kreuzworträtsel, Wortgitter, Vokabelübung.</>,
           <><strong>Offen:</strong> Verständnisfrage, Schreibaufgabe, Markieraufgabe, Stilübung, Songanalyse.</>,
           <><strong>Sprachrichtigkeit:</strong> Fehlerkorrektur.</>,
-          <><strong>Sprechhandlung:</strong> Rollenspiel — kommunikative Situationen mit Rollenkarten, Redemitteln, Zeitvorgabe und Bewertungs-Checkliste. Ideal für authentisches Sprechen im Paar oder in der Gruppe.</>,
+          <><strong>Sprechhandlung:</strong> Rollenspiel — kommunikative Situationen mit Rollenkarten, Redemitteln, Zeitvorgabe und Bewertungs-Checkliste. Ideal für authentisches Sprechen im Paar oder in der Gruppe. Das <strong>Rollenkarten-Set</strong> ist die differenzierte Variante: jedes Paar bekommt ein eigenes Szenario als Karten-Set (Rollenhinweis, Inhalts-Stichpunkte, Sprachhinweis), sodass mehrere Paare gleichzeitig unterschiedliche Situationen spielen können.</>,
         ]} />
         <P>Die <strong>Schwierigkeit</strong> (leicht/mittel/schwer) steuert das kognitive Niveau <em>innerhalb</em> des Typs (Bloom; bei Englisch zusätzlich CEFR A2/B1/B2) — der Typ selbst bleibt erhalten.</P>
         <Tip>Ein Matching-Block = eine Aufgabe mit <em>mehreren</em> Paaren. Für mehr Paare „+ Item"/„+ Option" nutzen, nicht mehrere Matching-Blöcke anlegen.</Tip>
@@ -283,6 +317,30 @@ const SECTIONS: Section[] = [
           <strong> Handlungsbedarf</strong> (schwacher Notenschnitt) und pro Klasse eine Karte mit
           Notenschnitt, letzter Aktivität und Lehrer-Feedback-Quote. Ein Klick führt in die Klassen-Ansicht.
         </P>
+        <P>
+          <strong>Schnellstarts:</strong> Über die Übersicht legst du direkt los — <strong>„Wie zuletzt"</strong>
+          öffnet das letzte Dokument mit denselben Einstellungen (Fach, Stufe, Typ), und <strong>„Schnell-Übung"</strong>
+          springt mit Thema + Aufgabentyp direkt in den Baukasten, ohne Quelltext-Umweg.
+        </P>
+      </>
+    ),
+  },
+  {
+    id: 'suche',
+    title: 'Suche & Befehle',
+    Icon: Search,
+    body: (
+      <>
+        <P>
+          Die <strong>Such-/Befehlsleiste</strong> oben im Kopf (oder <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>K</kbd>)
+          durchsucht die gesamte App und führt Befehle aus — eine Eingabe, beides zugleich.
+        </P>
+        <Steps items={[
+          <><strong>Inhalte suchen:</strong> Tippe ein Thema, Fach, eine Klasse oder einen Vorlagennamen — Treffer aus Unterlagen, Vorlagen, Aufgaben-Pool, Klassen und Navigation erscheinen <strong>gruppiert</strong>.</>,
+          <><strong>Befehle ausführen:</strong> Slash-/Text-Befehle wie „Thema: …", „Exportieren", „Weiter/Zurück" funktionieren weiter; <kbd>Enter</kbd> <em>ohne</em> ausgewählte Zeile parst den getippten Text wie bisher.</>,
+          <>Navigation mit der Tastatur: <kbd>↑</kbd>/<kbd>↓</kbd> Zeile wählen, <kbd>Enter</kbd> öffnen/ausführen, <kbd>Esc</kbd> schließen.</>,
+        ]} />
+        <Tip>Die Suche läuft rein lokal über die schon geladenen Daten — kein Server, keine Verzögerung. Der Aufgaben-Pool wird beim Öffnen der Palette frisch geladen.</Tip>
       </>
     ),
   },
