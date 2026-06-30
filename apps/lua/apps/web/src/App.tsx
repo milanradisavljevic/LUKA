@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Save, Search, ArrowLeft, ArrowRight, Loader2, BookOpen } from 'lucide-react';
 import type { AppAction, ActiveView, SavedDocument } from './lib/types';
 import { STEP_DESCRIPTIONS } from './lib/types';
@@ -35,7 +35,13 @@ import { QuickExerciseView } from './views/QuickExerciseView';
 import { setPendingUebung } from './lib/korrekturBridge';
 import { createDefaultBlock } from './lib/blockDefaults';
 import type { NataschaPrefill } from './lib/nataschaBridge';
-import { loadDocuments, upsertDocument, snapshotFromState, saveTemplate, deleteTemplate, loadTemplates, hydrateCache, isHydrated, setPersistErrorHandler, loadSettings, subscribeSettings } from './lib/storage';
+import { loadDocuments, upsertDocument, snapshotFromState, saveTemplate, deleteTemplate, loadTemplates, hydrateCache, isHydrated, setPersistErrorHandler, loadSettings, subscribeSettings, getCache } from './lib/storage';
+import { buildSearchIndex } from './lib/search';
+import type { SearchIndex, SearchResult, SearchCommandSource } from './lib/search';
+import { visibleNavTargets } from './lib/navigation';
+import { COMMANDS } from './lib/commands';
+import { parsePoolBlock } from './lib/pool';
+import type { PoolEntry } from './lib/pool';
 import { Toast, type ToastMessage } from './components/Toast';
 import { SettingsPanel } from './components/SettingsPanel';
 import { getMuralVars, getMuralMode } from './themes/subjectThemes';
@@ -90,6 +96,59 @@ export default function App() {
   const [activeView, setActiveView] = useState<ActiveView>('dashboard');
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  // Such- + Befehls-Palette: Index aus gecachten Quellen + statischer Nav/Befehle.
+  const commandSources = useMemo<SearchCommandSource[]>(() => {
+    const fromCommands = COMMANDS.map((c) => ({
+      id: c.id,
+      label: c.label,
+      description: c.description,
+      action: { type: 'paletteCommand' as const, commandId: c.id },
+    }));
+    return [
+      { id: 'new', label: 'Neue erstellen', description: 'Frisches Dokument beginnen', action: { type: 'paletteCommand' as const, commandId: 'new' } },
+      ...fromCommands,
+    ];
+  }, []);
+
+  const [paletteIndex, setPaletteIndex] = useState<SearchIndex>(() =>
+    buildSearchIndex({ navigation: visibleNavTargets(), commands: commandSources }),
+  );
+  const poolRef = useRef<PoolEntry[]>([]);
+
+  // Index beim Öffnen der Palette frisch aufbauen (Dokumente/Vorlagen/Klassen
+  // aus dem Cache, Pool async über den bestehenden pool_list-Command).
+  useEffect(() => {
+    if (!paletteOpen) return;
+    const buildWith = (pool: PoolEntry[]) =>
+      buildSearchIndex({
+        documents: loadDocuments().filter((d) => !d.isDeleted),
+        templates: loadTemplates().map((t) => ({
+          id: t.id,
+          name: t.name,
+          savedAt: t.savedAt,
+          meta: t.meta as { fach?: string; stufe?: string } | null,
+        })),
+        pool,
+        klassen: isHydrated() ? getCache().klassen : [],
+        navigation: visibleNavTargets(),
+        commands: commandSources,
+      });
+    setPaletteIndex(buildWith(poolRef.current));
+    let cancelled = false;
+    (async () => {
+      try {
+        if (typeof window === 'undefined' || !(window as any).__TAURI_INTERNALS__) return;
+        const { invoke } = await import('@tauri-apps/api/core');
+        const entries = await invoke<PoolEntry[]>('pool_list', { filter: null });
+        if (cancelled) return;
+        poolRef.current = entries;
+        setPaletteIndex(buildWith(entries));
+      } catch {
+        /* Pool optional — bei Nicht-Tauri/Fehler leer */
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [paletteOpen, commandSources]);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const [toast, setToast] = useState<ToastMessage | null>(null);
   // Cross-Nav: aus der Korrektur zu einem bestimmten Schüler springen.
@@ -276,6 +335,43 @@ export default function App() {
     setPendingSchueler({ klasse, id });
     setActiveView('schueler');
   }, []);
+
+  // Führt ein Such-Ergebnis aus der Palette aus (Unterlagen/Vorlagen/Pool/
+  // Navigation/Befehl). Befehle laufen sonst weiter über die Legacy-Logik.
+  const handleExecuteResult = useCallback((sr: SearchResult) => {
+    const a = sr.action;
+    switch (a.type) {
+      case 'view':
+        setActiveView(a.view);
+        return;
+      case 'openDocument': {
+        const doc = loadDocuments().find((d) => d.id === a.docId && !d.isDeleted);
+        if (doc) handleOpenDocument(doc);
+        return;
+      }
+      case 'loadTemplate': {
+        const tpl = loadTemplates().find((t) => t.id === a.templateId);
+        if (tpl) handleLoadTemplate(tpl.meta as Meta, tpl.bloecke as Block[]);
+        return;
+      }
+      case 'insertPoolBlock': {
+        const entry = poolRef.current.find((p) => p.id === a.poolId);
+        const block = entry ? parsePoolBlock(entry) : null;
+        if (block) {
+          dispatch({ type: 'ADD_BLOCK', block });
+          setActiveView('wizard');
+          goToStep('baukasten');
+        }
+        return;
+      }
+      case 'paletteCommand':
+        if (a.commandId === 'new') handleNewDocument();
+        return;
+      case 'actions':
+        handlePaletteActions(a.actions);
+        return;
+    }
+  }, [dispatch, goToStep, handleOpenDocument, handleNewDocument, handleLoadTemplate, handlePaletteActions]);
 
   const renderStep = () => {
     switch (state.step) {
@@ -501,6 +597,8 @@ if (hydrating) {
         onNavigate={(dir) => dir === 'next' ? goNext() : goBack()}
         onExport={handlePaletteExport}
         blockCount={state.bloecke.length}
+        index={paletteIndex}
+        onExecuteResult={handleExecuteResult}
       />
 
       <Toast toast={toast} onClose={() => setToast(null)} />

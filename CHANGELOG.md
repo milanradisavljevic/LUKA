@@ -7,6 +7,37 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Globale Such- + Befehls-Palette (Raycast-/Linear-Stil)
+- `apps/lua/apps/web/src/lib/search.ts`: Reines, deterministisches Such- +
+  Fuzzy-Matching-Modul (kein UI, keine Deps). `buildSearchIndex()` baut aus
+  Dokumenten/Vorlagen/Pool/Klassen/Navigation/Befehlen eine flache Liste;
+  `searchIndex()` scored tiered (exact > prefix > substring > subsequence),
+  case-/umlaut-insensitiv, mit Rezenz-/Art-Tie-Breaks; leerer Query → Defaults.
+  `groupResults()` liefert Sektionen fester Reihenfolge.
+- `apps/lua/apps/web/src/lib/search.test.ts`: 30 Vitest-Tests (Ranking-Reihenfolge,
+  Umlaut-/Case-Insensitivität, leerer Query, alle Arten, Tie-Breaks,
+  Sonderzeichen, Determinismus).
+- `apps/lua/apps/web/src/lib/navigation.ts`: Einzelne Quelle der
+  Navigationsziele (Views + Labels), feature-gefiltert (NATASCHA), genutzt vom
+  Index-Builder.
+- `apps/lua/apps/web/src/components/CommandPalette.tsx`: Palette ist jetzt eine
+  echte Such- + Befehls-Palette — ein Eingabefeld durchsucht Befehle UND
+  Inhalte, Ergebnisse nach Art GRUPPIERT (Befehle/Unterlagen/Vorlagen/
+  Aufgaben-Pool/Klassen/Gehe zu …), Tastatur-Navigation ↑/↓, Enter führt aus
+  (Dokument laden, Vorlage laden, View öffnen, Befehl ausführen), Esc schließt.
+  Bestehende Befehlslogik (Slash-/Text-Befehle, Spracheingabe) bleibt erhalten;
+  parametrisierte Befehle laufen weiter über den Legacy-Fallback (Enter ohne
+  Auswahl parst den rohen Text).
+- `apps/lua/apps/web/src/App.tsx`: Index wird beim Öffnen der Palette aus dem
+  Cache (Dokumente/Vorlagen/Klassen) + statischer Nav/Befehle gebaut; der
+  Aufgaben-Pool wird async über den bestehenden `pool_list`-Command geladen
+  (kein neuer Rust/DB-Code). Enter-Aktionen sind an die vorhandenen Handler
+  gebunden (LOAD_SNAPSHOT+Wizard, Vorlagen-Ladepfad, setActiveView,
+  onActions/onExport). Header-Suchleiste bleibt der Auslöser.
+- `apps/lua/apps/web/src/index.css`: Palette-Stile im bestehenden Token-System
+  (`.palette-*`), aktive Zeile via `aria-selected` (keine Hover-onMouseEnter-
+  Hacks).
+
 ### Added — „Wie zuletzt"-Schnellaktion auf dem Dashboard
 - `apps/lua/apps/web/src/views/DashboardView.tsx`: Neue Kachel „Wie zuletzt"
   über dem letzten Dokument; zeigt Fach, Stufe und Unterlagentyp des letzten
