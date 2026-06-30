@@ -1,5 +1,5 @@
 import type { DocumentV1, Meta, QuellText, Block, Auftrag } from '@lehrunterlagen/schema';
-import type { RenderTemplateId } from '@lehrunterlagen/renderer';
+import type { RenderTemplateId, RenderLayoutId } from '@lehrunterlagen/renderer';
 
 export type StepId = 'absicht' | 'input' | 'baukasten' | 'llm' | 'generate';
 
@@ -65,6 +65,8 @@ export interface AppState {
   aktuelleDokumentId: string | null;
   /** Gewählte DOCX-Formatvorlage. */
   renderTemplate: RenderTemplateId;
+  /** Gewähltes Layout (Dichte/Schreibraum/Rahmen) — orthogonal zur Formatvorlage. */
+  renderLayout: RenderLayoutId;
 }
 
 /** Vollständiger Wizard-Zustand ohne UI-/Navigationsfelder — persistierbar. */
@@ -79,6 +81,7 @@ export interface DocumentSnapshot {
   kreativitaet: number;
   ausgabeSprache: string;
   renderTemplate: RenderTemplateId;
+  renderLayout: RenderLayoutId;
 }
 
 /** Ein in localStorage gespeichertes Dokument (Wizard-Snapshot + Metadaten). */
@@ -144,6 +147,7 @@ export type AppAction =
   | { type: 'SET_GENERIERTES_DOKUMENT'; dokument: DocumentV1 | null }
   | { type: 'UPDATE_GENERIERTER_BLOCK'; id: string; block: Partial<Block> }
   | { type: 'SET_RENDER_TEMPLATE'; template: RenderTemplateId }
+  | { type: 'SET_RENDER_LAYOUT'; layout: RenderLayoutId }
   | { type: 'RESET_STATE' }
   | { type: 'LOAD_SNAPSHOT'; snapshot: DocumentSnapshot; documentId: string }
   | { type: 'SET_DOCUMENT_ID'; id: string | null };

@@ -245,6 +245,7 @@ export function snapshotFromState(state: AppState): DocumentSnapshot {
     kreativitaet: state.kreativitaet,
     ausgabeSprache: state.ausgabeSprache,
     renderTemplate: state.renderTemplate,
+    renderLayout: state.renderLayout,
   };
 }
 

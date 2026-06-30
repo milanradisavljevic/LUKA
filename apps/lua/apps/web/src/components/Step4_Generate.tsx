@@ -14,7 +14,7 @@ import { usePdfExport } from '../hooks/usePdfExport';
 import { computeCoverage } from '../lib/coverage';
 import { checkLernzielCoverage, checkSchreibaufgabe } from '@lehrunterlagen/llm';
 import { fachLabel } from '@lehrunterlagen/schema';
-import { RENDER_TEMPLATES } from '@lehrunterlagen/renderer';
+import { RENDER_TEMPLATES, RENDER_LAYOUTS } from '@lehrunterlagen/renderer';
 import { transformiereLeicht, findeOffeneBlockIds } from '../lib/niveauTransform';
 
 
@@ -197,6 +197,33 @@ export function Step4_Generate({ state, dispatch }: Props) {
                 </span>
                 <span style={{ display: 'block', fontSize: '0.6875rem', color: 'var(--color-accent)', marginTop: '0.25rem' }}>
                   {tpl.font} · {tpl.color.accent !== '000000' ? 'Akzentfarbe' : 'Schwarz-Weiß'}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Layout (Dichte/Schreibraum/Rahmen) — orthogonal zur Formatvorlage */}
+      <div style={{ marginBottom: '1.5rem' }}>
+        <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.875rem' }}>
+          <Palette size={14} style={{ display: 'inline', verticalAlign: 'text-bottom', marginRight: 4 }} />
+          Layout
+        </label>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '0.5rem' }}>
+          {Object.values(RENDER_LAYOUTS).map((lay) => {
+            const aktiv = state.renderLayout === lay.id;
+            return (
+              <button
+                key={lay.id}
+                className="tile"
+                aria-pressed={aktiv}
+                onClick={() => dispatch({ type: 'SET_RENDER_LAYOUT', layout: lay.id })}
+                style={{ fontSize: '0.8125rem' }}
+              >
+                <strong style={{ fontSize: '0.875rem' }}>{lay.label}</strong>
+                <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.125rem' }}>
+                  {lay.description}
                 </span>
               </button>
             );
