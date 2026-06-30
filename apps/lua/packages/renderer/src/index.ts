@@ -701,7 +701,7 @@ function buildDocumentChildren(
     ...buildMerkkasten(doc.didaktik?.merkkasten, template),
     ...buildQuelltexte(doc.quelltexte, template),
     ...doc.bloecke.flatMap((block, i) =>
-      buildBlock(block, i + 1, mode, quelltextMap, template, hidePunkte, doc.meta.fach),
+      buildBlock(block, { template, modus: mode, index: i + 1, quelltextMap, fach: doc.meta.fach, hidePunkte }),
     ),
     ...(doc.didaktik?.transferaufgabe?.trim()
       ? buildTransferaufgabe(doc.didaktik.transferaufgabe.trim(), mode, template, doc.meta.fach)
@@ -1107,22 +1107,30 @@ function buildPunkteUebersicht(bloecke: Block[], template: RenderTemplate, fach:
 // Wandelt einen Quelltext (mit \n-Zeilen und \n\n-Absätzen/Strophen) in echte
 // Absatz-Paragraphen um. docx ignoriert \n innerhalb einer TextRun — Zeilenumbrüche
 // brauchen TextRun({ break: 1 }), Strophen-/Absatzabstand kommt über eigene Paragraphen.
-function quelltextAbsaetze(inhalt: string, template: RenderTemplate): Paragraph[] {
-  const zeilen = inhalt.replace(/\r\n/g, '\n').split('\n');
+/** Art einer Zeile im Quelltext-Nummerierungsplan. */
+export type QuelltextZeilenArt = 'blank' | 'heading' | 'line';
 
-  // Fallback: kein verwertbarer Inhalt → ein leerer Absatz.
-  if (zeilen.length === 0 || zeilen.every((z) => z.trim().length === 0)) {
-    return [new Paragraph({ children: [run('', { font: template.font, size: template.fontSize.body })] })];
-  }
+/** Eintrag des Nummerierungsplans (rein, docx-frei, discriminated union). */
+export type QuelltextZeile =
+  | { art: 'blank'; text: string; nr: null }
+  | { art: 'heading'; text: string; nr: null }
+  | { art: 'line'; text: string; nr: number };
 
-  const getrimmt = zeilen.map((z) => z.replace(/\s+$/g, ''));
-  const out: Paragraph[] = [];
+/**
+ * Reine, deterministische Zeilennummerierung: Inhaltszeilen erhalten fortlaufende
+ * Nummern (1, 2, …), Leerzeilen und als Zwischenüberschrift erkannte Zeilen
+ * erhalten keine Nummer (null) — die Nummerierung springt NICHT durch Leerzeilen.
+ * Eingabe: bereits in Zeilen gesplittelter Text (ohne \r).
+ */
+export function numbersForLines(lines: string[]): QuelltextZeile[] {
+  const getrimmt = lines.map((z) => z.replace(/\s+$/g, ''));
+  const out: QuelltextZeile[] = [];
   let nr = 0; // laufende Nummer NUR für Inhaltszeilen → keine Lücken durch Leerzeilen.
   for (let i = 0; i < getrimmt.length; i++) {
     const text = getrimmt[i] ?? '';
     const t = text.trim();
     if (t.length === 0) {
-      out.push(new Paragraph({ children: [run('', { font: template.font, size: template.fontSize.body })], spacing: { after: 60 } }));
+      out.push({ art: 'blank', text: '', nr: null });
       continue;
     }
     // Zwischenüberschrift-Heuristik (konservativ): die Zeile steht ALLEIN (Leerzeile/Rand
@@ -1134,19 +1142,44 @@ function quelltextAbsaetze(inhalt: string, template: RenderTemplate): Paragraph[
       prevBlank && nextBlank && t.length <= 55 && t.split(/\s+/).length <= 8
       && !/[.!?:;,]$/.test(t) && !/^[a-zäöüß]/.test(t);
     if (istUeberschrift) {
+      out.push({ art: 'heading', text: t, nr: null });
+      continue;
+    }
+    nr++;
+    out.push({ art: 'line', text, nr });
+  }
+  return out;
+}
+
+export function quelltextAbsaetze(inhalt: string, template: RenderTemplate): Paragraph[] {
+  const zeilen = inhalt.replace(/\r\n/g, '\n').split('\n');
+
+  // Fallback: kein verwertbarer Inhalt → ein leerer Absatz.
+  if (zeilen.length === 0 || zeilen.every((z) => z.trim().length === 0)) {
+    return [new Paragraph({ children: [run('', { font: template.font, size: template.fontSize.body })] })];
+  }
+
+  const plan = numbersForLines(zeilen);
+  const out: Paragraph[] = [];
+  for (const e of plan) {
+    if (e.art === 'blank') {
+      out.push(new Paragraph({ children: [run('', { font: template.font, size: template.fontSize.body })], spacing: { after: 60 } }));
+      continue;
+    }
+    if (e.art === 'heading') {
       out.push(new Paragraph({
-        children: [new TextRun({ text: t, font: template.font, size: template.fontSize.body, bold: true })],
+        children: [new TextRun({ text: e.text, font: template.font, size: template.fontSize.body, bold: true })],
         spacing: { before: 160, after: 40 },
         keepNext: true,
       }));
       continue;
     }
-    nr++;
+    // Inhaltszeile mit fortlaufender Nummer.
     out.push(new Paragraph({
       children: [
-        new TextRun({ text: `${nr}.`, font: template.font, size: template.fontSize.small, color: template.color.gray, bold: false }),
+        new TextRun({ text: `${e.nr}.`, font: template.font, size: template.fontSize.small, color: template.color.gray, bold: false }),
         new TextRun({ text: '  ', font: template.font, size: template.fontSize.body }),
-        new TextRun({ text, font: template.font, size: template.fontSize.body }),
+        new TextRun({ text: e.text, font: template.font, size: template.fontSize.body }),
       ],
       spacing: { after: 40 },
       indent: { left: 360 },
@@ -1252,15 +1285,47 @@ function blockLabels(fach: DocumentV1['meta']['fach']): Record<Block['typ'], str
   return fach === 'englisch' ? BLOCK_LABELS_EN : BLOCK_LABELS_DE;
 }
 
-function buildBlock(
-  block: Block,
-  index: number,
-  mode: Mode,
-  quelltextMap: Map<string, QuellText>,
-  template: RenderTemplate,
-  hidePunkte = false,
-  fach: DocumentV1['meta']['fach'] = 'deutsch',
-): (Paragraph | Table)[] {
+export interface RenderBlockCtx {
+  template: RenderTemplate;
+  modus: 'schueler' | 'loesung';
+  index: number;
+  quelltextMap: Map<string, QuellText>;
+  fach: DocumentV1['meta']['fach'];
+  hidePunkte?: boolean;
+}
+
+/**
+ * Typspezifische Block-Children OHNE Banner — reine, exportierte Funktionen,
+ * isoliert testbar. Der Banner (Überschrift + Arbeitsanweisung + Clue +
+ * Beispiel) wird von `buildBlock` darumgelegt.
+ */
+export function renderBlockChildren(block: Block, ctx: RenderBlockCtx): (Paragraph | Table)[] {
+  const { modus: mode, template, quelltextMap, fach } = ctx;
+  switch (block.typ) {
+    case 'lueckentext': return buildLueckentext(block, mode, template, fach);
+    case 'matching': return buildMatching(block, mode, template, fach);
+    case 'multipleChoice': return buildMultipleChoice(block, mode, template, fach);
+    case 'offeneVerstaendnisfrage': return buildOffeneVerstaendnisfrage(block, mode, template);
+    case 'offeneSchreibaufgabe': return buildOffeneSchreibaufgabe(block, mode, template, fach);
+    case 'markieraufgabe': return buildMarkieraufgabe(block, mode, quelltextMap, template);
+    case 'wordScramble': return buildWordScramble(block, mode, template, fach);
+    case 'kategorisierung': return buildKategorisierung(block, mode, template, fach);
+    case 'tabelle': return buildTabelle(block, mode, template);
+    case 'stiluebung': return buildStiluebung(block, mode, template);
+    case 'songanalyse': return buildSonganalyse(block, mode, template);
+    case 'kreuzwortraetsel': return buildKreuzwortraetsel(block, mode, template);
+    case 'wortgitter': return buildWortgitter(block, mode, template);
+    case 'vokabeluebung': return buildVokabeluebung(block, mode, template);
+    case 'umformung': return buildUmformung(block, mode, template);
+    case 'fehlerkorrektur': return buildFehlerkorrektur(block, mode, template, fach);
+    case 'roleplay': return buildRoleplay(block, mode, template, fach);
+    case 'rollenkartenSet': return buildRollenkartenSet(block, mode, template, fach);
+    default: return [];
+  }
+}
+
+export function buildBlock(block: Block, ctx: RenderBlockCtx): (Paragraph | Table)[] {
+  const { index, template, hidePunkte = false, fach } = ctx;
   const label = blockLabels(fach)[block.typ];
   const isEnglish = fach === 'englisch';
   const taskLabel = isEnglish ? 'Exercise' : 'Aufgabe';
@@ -1326,65 +1391,11 @@ function buildBlock(
     );
   }
 
-  switch (block.typ) {
-    case 'lueckentext':
-      result.push(...buildLueckentext(block, mode, template, fach));
-      break;
-    case 'matching':
-      result.push(...buildMatching(block, mode, template, fach));
-      break;
-    case 'multipleChoice':
-      result.push(...buildMultipleChoice(block, mode, template, fach));
-      break;
-    case 'offeneVerstaendnisfrage':
-      result.push(...buildOffeneVerstaendnisfrage(block, mode, template));
-      break;
-    case 'offeneSchreibaufgabe':
-      result.push(...buildOffeneSchreibaufgabe(block, mode, template, fach));
-      break;
-    case 'markieraufgabe':
-      result.push(...buildMarkieraufgabe(block, mode, quelltextMap, template));
-      break;
-    case 'wordScramble':
-      result.push(...buildWordScramble(block, mode, template, fach));
-      break;
-    case 'kategorisierung':
-      result.push(...buildKategorisierung(block, mode, template, fach));
-      break;
-    case 'tabelle':
-      result.push(...buildTabelle(block, mode, template));
-      break;
-    case 'stiluebung':
-      result.push(...buildStiluebung(block, mode, template));
-      break;
-    case 'songanalyse':
-      result.push(...buildSonganalyse(block, mode, template));
-      break;
-    case 'kreuzwortraetsel':
-      result.push(...buildKreuzwortraetsel(block, mode, template));
-      break;
-    case 'wortgitter':
-      result.push(...buildWortgitter(block, mode, template));
-      break;
-    case 'vokabeluebung':
-      result.push(...buildVokabeluebung(block, mode, template));
-      break;
-    case 'umformung':
-      result.push(...buildUmformung(block, mode, template));
-      break;
-    case 'fehlerkorrektur':
-      result.push(...buildFehlerkorrektur(block, mode, template, fach));
-      break;
-    case 'roleplay':
-      result.push(...buildRoleplay(block, mode, template, fach));
-      break;
-    case 'rollenkartenSet':
-      result.push(...buildRollenkartenSet(block, mode, template, fach));
-      break;
-  }
+  result.push(...renderBlockChildren(block, ctx));
 
   return result;
 }
+
 
 // ---------------------------------------------------------------------------
 // Block: umformung
