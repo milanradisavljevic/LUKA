@@ -7,6 +7,18 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Changed — Hilfe auf aktuellen Funktionsstand
+- `apps/lua/apps/web/src/views/HelpView.tsx`: Neue Sektionen **Aufgaben-Pool**
+  (Block in Vorschau speichern, filtern/suchen/löschen, „Aus Pool einfügen"),
+  **Export & Dateien** (DOCX-Zielordner/Speichern-unter, GIFT/Moodle-Export:
+  geschlossene → Quiz, offene → Essay, PDF/Raster/Selbstlern/Selbsteinschätzung)
+  und **Suche & Befehle** (Such-/Befehlsleiste / Ctrl+K, gruppierte Treffer,
+  ↑/↓/Enter/Esc). Matura (SRDP) bei „Unterlagen erstellen", Rollenkarten-Set
+  bei „Aufgabentypen", Mistral-Medium-3.5-Default bei „Erste Schritte" sowie
+  „Wie zuletzt"/„Schnell-Übung" auf der Übersicht erwähnt.
+- `docs/ANLEITUNG.md`: dieselben Inhalte als Markdown in gleicher Reihenfolge
+  wie die App-Hilfe gespiegelt.
+
 ### Changed — Renderer: Block-Builder als reine exportierte Funktionen + Struktur-Tests
 - `apps/lua/packages/renderer/src/index.ts`: Per-Blocktyp-Renderteil in reine,
   exportierte Funktionen faktorisiert (Verhalten/DOCX-Output unverändert):

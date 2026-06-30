@@ -26,7 +26,7 @@ Der Clou: Nach der Korrektur kennt die App die häufigsten Fehler einer Klasse o
 Damit die KI-Funktionen (Generieren, Korrigieren) laufen, brauchst du einen API-Schlüssel deines KI-Anbieters.
 
 1. Öffne **Einstellungen** und trage deinen API-Schlüssel ein (z. B. Anthropic, OpenAI, Mistral, DeepSeek). Schlüssel werden sicher im Schlüsselspeicher des Betriebssystems abgelegt – nicht im Klartext.
-2. Wähle Standard-Anbieter und -Modell. Für günstige Tests eignet sich ein kleines Modell.
+2. Wähle Standard-Anbieter und -Modell (standardmäßig **Mistral Medium 3.5** — änderbar in den **Einstellungen**). Für günstige Tests eignet sich ein kleines Modell.
 3. Zum gefahrlosen Ausprobieren ohne echte Schülerdaten: Testdaten laden (siehe **Onboarding** im README / Beispiel-Abgaben im Ordner `samples/`).
 4. Lade in **Korrektur** eine erste Abgabe hoch und starte die Analyse.
 
@@ -58,7 +58,7 @@ Du wählst das Fach in Schritt **Absicht** oder im **Kompetenz-Modus**. Daraufhi
 
 Der Generator führt dich in fünf Schritten von der Absicht zum fertigen DOCX.
 
-1. **Absicht** – Schulstufe, Fach, Thema und Art der Unterlage festlegen. Notizen fließen als Wünsche in die Generierung ein.
+1. **Absicht** – Schulstufe, Fach, Thema und Art der Unterlage festlegen (Schulübung, **Matura (SRDP)** oder Kompetenz-Übung). Notizen fließen als Wünsche in die Generierung ein.
 2. **Quelltexte** – Textgrundlage per Direkteingabe, Datei (TXT/DOCX/PDF/HTML) oder URL hinzufügen.
 3. **Aufgabenblöcke** – gewünschte Aufgabentypen zusammenstellen, Punkte und Arbeitsanweisungen festlegen. Beispieldaten sind grau und werden beim Generieren ersetzt.
 4. **KI-Modell** – Anbieter, Modell und Kreativitätsgrad (präzise bis kreativ) wählen.
@@ -79,6 +79,31 @@ Der Generator führt dich in fünf Schritten von der Absicht zum fertigen DOCX.
 **Selbsteinschätzungsbogen:** Nach dem Generieren kannst du einen zusätzlichen Bogen exportieren, mit dem Schülerinnen und Schüler einschätzen, wie sicher sie sich bei den einzelnen Aufgaben fühlen. Er eignet sich besonders für differenzierte Rückmeldung und Selbstregulation.
 
 > 💡 Einen ganzen Blocktyp wieder entfernen: im Baukasten oben rechts am Block auf das **X** klicken. Mehr Zuordnungs-Paare/MC-Antworten: im Block-Editor auf „+ Item" / „+ Option" / „+ Frage".
+
+---
+
+## Aufgaben-Pool
+
+Der **Aufgaben-Pool** sammelt wiederverwendbare Aufgaben-Blöcke — einmal gespeichert, beliebig oft wieder eingefügt.
+
+1. In der **Vorschau** (Schritt Erstellen) bei einem Block auf **„In Pool speichern"** — der Block wird mit Fach, Stufe, Thema und Tags abgelegt.
+2. In der Ansicht **Aufgaben-Pool** (Seitenleiste) filterst du nach Fach, Stufe und Aufgabentyp sowie per Volltextsuche; nicht mehr gebrauchte Einträge löschst du dort.
+3. Im **Baukasten** fügst du einen Pool-Eintrag über **„Aus Pool einfügen"** direkt als neuen Block ein — die Aufgabe inkl. Konfiguration und Lösung landet im aktuellen Dokument.
+
+> 💡 Der Pool ist pro Rechner lokal. Ideal, um bewährte Aufgaben über mehrere Unterlagen hinweg wiederzuverwenden, ohne sie jedes Mal neu zu generieren.
+
+---
+
+## Export & Dateien
+
+Beim Export entstehen pro Unterlage mehrere Dateien — wohin sie landen, stellst du in den **Einstellungen → Export** ein.
+
+1. **DOCX-Zielordner:** In den Einstellungen legst du einen Ordner fest, in den alle DOCX geschrieben werden. Alternativ aktivierst du **„Speichern unter…"**, um bei jedem Export den Ort einzeln zu wählen. Ohne Tauri (Browser) landen die Dateien im Download-Ordner.
+2. **Beide Dokumente** (Schülerfassung + Lösung) sowie **Korrekturraster** als DOCX; im Kompetenz-Modus zusätzlich der **Kompetenznachweis**; optional **PDF** (braucht LibreOffice).
+3. **Moodle/GIFT-Export:** In Schritt Erstellen unter „Weitere Exporte" erzeugst du eine `.gift`-Datei zum Import in Moodle. Geschlossene Aufgaben (Multiple Choice, Matching, Lückentext …) werden zu Quizfragen, offene (Schreibaufgabe, Verständnisfrage) zu Essay-Fragen.
+4. Zusätzlich: **Übung mit Lösungsteil** (Schüler- und Lösungsteil in einem Dokument) und **Selbsteinschätzungsbogen** für die Schüler/innen.
+
+> 💡 Vor dem DOCX-Export läuft ein **Quality-Gate** (Lernziel-Abdeckung, Wortzahl Schreibaufgabe) — nur Hinweise, kein Zwang. Jeder Export wird im **Verlauf** protokolliert.
 
 ---
 
@@ -132,7 +157,7 @@ Diese Blocktypen kannst du im Baukasten kombinieren (je nach Fach/Stufe sinnvoll
 1. **Geschlossen:** Multiple Choice, Matching (Zuordnung), Lückentext (mit/ohne Wortbank), Kategorisierung, Wörter ordnen, Kreuzworträtsel, Wortgitter, Vokabelübung.
 2. **Offen:** Verständnisfrage, Schreibaufgabe, Markieraufgabe, Stilübung, Songanalyse.
 3. **Sprachrichtigkeit:** Fehlerkorrektur.
-4. **Sprechhandlung:** Rollenspiel — kommunikative Situationen mit Rollenkarten, gemeinsamen und rollenspezifischen Redemitteln, Zeitvorgabe und Bewertungs-Checkliste. Ideal für authentisches Sprechen im Paar oder in der Gruppe.
+4. **Sprechhandlung:** Rollenspiel — kommunikative Situationen mit Rollenkarten, gemeinsamen und rollenspezifischen Redemitteln, Zeitvorgabe und Bewertungs-Checkliste. Ideal für authentisches Sprechen im Paar oder in der Gruppe. Das **Rollenkarten-Set** ist die differenzierte Variante: jedes Paar bekommt ein eigenes Szenario als Karten-Set (Rollenhinweis, Inhalts-Stichpunkte, Sprachhinweis), sodass mehrere Paare gleichzeitig unterschiedliche Situationen spielen können.
 
 Die **Schwierigkeit** (leicht/mittel/schwer) steuert das kognitive Niveau *innerhalb* des Typs (Bloom; bei Englisch zusätzlich CEFR A2/B1/B2) – der Typ selbst bleibt erhalten.
 
@@ -209,6 +234,20 @@ Im **Rubrik-Editor** (gleiche Ansicht) bearbeitest du die Bewertungsraster direk
 ## Übersicht (Dashboard)
 
 Die **Übersicht** ist deine Startseite: Anzahl Klassen und Abgaben, Klassen mit **Handlungsbedarf** (schwacher Notenschnitt) und pro Klasse eine Karte mit Notenschnitt, letzter Aktivität und Lehrer-Feedback-Quote. Ein Klick führt in die Klassen-Ansicht.
+
+**Schnellstarts:** Über die Übersicht legst du direkt los — **„Wie zuletzt"** öffnet das letzte Dokument mit denselben Einstellungen (Fach, Stufe, Typ), und **„Schnell-Übung"** springt mit Thema + Aufgabentyp direkt in den Baukasten, ohne Quelltext-Umweg.
+
+---
+
+## Suche & Befehle
+
+Die **Such-/Befehlsleiste** oben im Kopf (oder `Ctrl`/`Cmd`+`K`) durchsucht die gesamte App und führt Befehle aus — eine Eingabe, beides zugleich.
+
+1. **Inhalte suchen:** Tippe ein Thema, Fach, eine Klasse oder einen Vorlagennamen — Treffer aus Unterlagen, Vorlagen, Aufgaben-Pool, Klassen und Navigation erscheinen **gruppiert**.
+2. **Befehle ausführen:** Slash-/Text-Befehle wie „Thema: …", „Exportieren", „Weiter/Zurück" funktionieren weiter; `Enter` *ohne* ausgewählte Zeile parst den getippten Text wie bisher.
+3. Navigation mit der Tastatur: `↑`/`↓` Zeile wählen, `Enter` öffnen/ausführen, `Esc` schließen.
+
+> 💡 Die Suche läuft rein lokal über die schon geladenen Daten — kein Server, keine Verzögerung. Der Aufgaben-Pool wird beim Öffnen der Palette frisch geladen.
 
 ---
 
