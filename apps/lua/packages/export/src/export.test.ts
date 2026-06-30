@@ -600,3 +600,22 @@ describe('edge cases', () => {
     expect(gift).not.toContain('\n\n\n');
   });
 });
+
+// ---------------------------------------------------------------------------
+// GIFT: Header (Thema/Fach/Datum stehen in sauberen Zeilen)
+// ---------------------------------------------------------------------------
+
+describe('toGift - Header', () => {
+  it('Thema und Fach stehen je in eigener Zeile (kein \\/\\/ -Kleben)', () => {
+    const gift = toGift(makeDoc([]));
+    // Früher Bug: \// verschluckte den Zeilenumbruch → „Thema X// Fach:" klebte.
+    expect(gift).toContain('// Thema: Grammar Test\n// Fach: englisch');
+    expect(gift).not.toContain('Grammar Test// Fach');
+    // Alle Header-Zeilen beginnen mit „// " und die ersten vier Zeilen sind Header.
+    const lines = gift.split('\n');
+    expect(lines[0]).toBe('// GIFT Export aus LUKA');
+    expect(lines[1]).toBe('// Thema: Grammar Test');
+    expect(lines[2]).toBe('// Fach: englisch | Stufe: oberstufe');
+    expect(lines[3]).toBe('// Datum: 2026-06-29');
+  });
+});
