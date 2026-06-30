@@ -7,6 +7,23 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Changed — Renderer: Block-Builder als reine exportierte Funktionen + Struktur-Tests
+- `apps/lua/packages/renderer/src/index.ts`: Per-Blocktyp-Renderteil in reine,
+  exportierte Funktionen faktorisiert (Verhalten/DOCX-Output unverändert):
+  `export RenderBlockCtx`, `renderBlockChildren(block, ctx)` (typspezifische
+  Children ohne Banner), `buildBlock(block, ctx)` (Banner + Children), sowie
+  `numbersForLines(lines)` (reine, deterministische Quelltext-Zeilennummerierung
+  — Leerzeilen lassen die Nummerierung nicht springen); `quelltextAbsaetze`
+  konsumiert nur noch den Plan. Öffentliche Render-Funktionen unverändert.
+- `apps/lua/packages/renderer/src/blocks.test.ts`: Neue Vitest-Struktur-Suite
+  (58 Tests) gegen den docx-Objektbaum (Walker, kein Zip, keine neue Dep):
+  alle 18 Blocktypen, GENAU EINE Überschrift pro Block (Doppelkopf-Wächter),
+  matching-Struktur, multipleChoice ☑/☐-Modus, lueckentext-Varianten,
+  schueler-vs-loesung, Quelltext-Nummerierung, Sonderzeichen, E2E-Smoke.
+  Bestätigt: Doppelkopf & Nummern-Lücken im aktuellen Code nicht vorhanden
+  (Builder schon separiert, Numerierung schon lückenfrei) — Tests erstarren
+  die Invarianten. 38 bestehende renderer-Tests bleiben grün.
+
 ### Added — Globale Such- + Befehls-Palette (Raycast-/Linear-Stil)
 - `apps/lua/apps/web/src/lib/search.ts`: Reines, deterministisches Such- +
   Fuzzy-Matching-Modul (kein UI, keine Deps). `buildSearchIndex()` baut aus
