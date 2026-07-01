@@ -44,6 +44,7 @@ import { parsePoolBlock } from './lib/pool';
 import type { PoolEntry } from './lib/pool';
 import { Toast, type ToastMessage } from './components/Toast';
 import { SettingsPanel } from './components/SettingsPanel';
+import { SubjectAtmosphere } from './components/SubjectAtmosphere';
 import { getMuralVars, getMuralMode } from './themes/subjectThemes';
 import { DEFAULT_SETTINGS } from './lib/storage';
 import { FEATURES } from './lib/features';
@@ -561,6 +562,11 @@ if (hydrating) {
           data-mural={FEATURES.murals ? getMuralMode(state.meta.fach, settings.ambientMuralsEnabled ?? DEFAULT_SETTINGS.ambientMuralsEnabled) : 'off'}
           style={getMuralVars(state.meta.fach)}
         >
+          <SubjectAtmosphere
+            fach={state.meta.fach}
+            enabled={FEATURES.murals && (settings.ambientMuralsEnabled ?? DEFAULT_SETTINGS.ambientMuralsEnabled)}
+            reduced={settings.reduceBackgroundEffects}
+          />
           <div className="app-main-content">
             {renderView()}
           </div>

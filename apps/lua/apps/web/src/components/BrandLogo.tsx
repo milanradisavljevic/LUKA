@@ -50,16 +50,18 @@ export function BrandMark({ size = 36 }: { size?: number }) {
  */
 export function BrandSignature({
   size = 38,
-  tagline = 'Unterricht erstellen',
+  tagline = 'Unterlagen gestalten',
   showTagline = true,
+  showMark = true,
 }: {
   size?: number;
   tagline?: string;
   showTagline?: boolean;
+  showMark?: boolean;
 }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', minWidth: 0 }}>
-      <BrandMark size={size} />
+      {showMark && <BrandMark size={size} />}
       <div style={{ minWidth: 0 }}>
         <div style={{ ...WORDMARK_STYLE, fontSize: Math.round(size * 0.62), color: 'var(--sidebar-text)' }}>Luka</div>
         {showTagline && (

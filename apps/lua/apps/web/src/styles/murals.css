@@ -1,23 +1,19 @@
-/* Subject-Mural als HINTERGRUND von .app-main (Pseudo-Elemente, z-index:-1) —
-   bewusst KEINE eigene Ebene und KEIN mix-blend-mode: im WSLg-Software-Renderer
-   erzeugte ein separater absoluter Layer hinter transparentem, scrollendem
-   Inhalt Geister-Kacheln (stehengebliebene UI). So bleibt der Inhalt im
-   Haupt-Layer, der Hintergrund liegt fix dahinter.
-
-   .app-main = nicht-scrollender Rahmen; gescrollt wird nur .app-main-content,
-   das Mural bleibt dabei stehen. */
+/* Fachatmosphäre als Arbeitsflächen-Hintergrund.
+   Kuratierte Lineart-Assets und wenige Fallback-Glyphen sitzen am Rand; die
+   Mitte bleibt als Arbeitsfläche ruhig und lesbar. */
 .app-main {
   position: relative;
   flex: 1;
   overflow: hidden;
   isolation: isolate; /* Stacking-Kontext, damit z-index:-1 hinter dem Inhalt bleibt */
   background:
-    radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--color-bg-surface) 46%, transparent), transparent 56%),
+    radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--color-bg-surface) 62%, transparent), transparent 52%),
     var(--color-bg-base);
 }
 
 .app-main-content {
   position: relative;
+  z-index: 2;
   height: 100%;
   overflow: auto;
   padding: 1.5rem;
@@ -34,55 +30,226 @@
     radial-gradient(ellipse 30% 60% at 15% 42%, color-mix(in srgb, var(--mural-wash) 38%, transparent), transparent 70%),
     radial-gradient(ellipse 30% 60% at 85% 44%, color-mix(in srgb, var(--mural-wash) 34%, transparent), transparent 70%),
     linear-gradient(90deg,
-      color-mix(in srgb, var(--mural-paper) 32%, transparent),
+      color-mix(in srgb, var(--mural-wash) 34%, transparent),
       transparent 26%, transparent 74%,
-      color-mix(in srgb, var(--mural-paper) 32%, transparent));
-  opacity: 0.6;
+      color-mix(in srgb, var(--mural-wash) 34%, transparent));
+  opacity: 0.78;
 }
 
-/* Komposit-Bild: vollflächig, Ränder ausgefedert, Mitte freigehalten. */
+/* Legacy-Komposit-Bildpfad: nicht mehr aktiv; Fachsignatur kommt aus SVG-Glyphen. */
 .app-main::after {
-  content: '';
-  position: absolute;
-  inset: -4%;
-  z-index: -1;
-  pointer-events: none;
-  background-image: var(--mural-image);
-  background-repeat: no-repeat;
-  background-size: cover;
-  background-position: center;
-  opacity: 0.22;
-  filter: saturate(0.62) sepia(0.14);
-  -webkit-mask-image:
-    linear-gradient(to bottom, transparent 0%, #000 11%, #000 88%, transparent 100%),
-    radial-gradient(ellipse 60% 72% at center, transparent 16%, rgba(0, 0, 0, 0.5) 44%, #000 72%);
-  -webkit-mask-composite: source-in;
-  mask-image:
-    linear-gradient(to bottom, transparent 0%, #000 11%, #000 88%, transparent 100%),
-    radial-gradient(ellipse 60% 72% at center, transparent 16%, rgba(0, 0, 0, 0.5) 44%, #000 72%);
-  mask-composite: intersect;
+  display: none;
 }
 
 /* Modus-Schalter über data-mural (in App.tsx gesetzt) */
 .app-main[data-mural='off']::before,
-.app-main[data-mural='off']::after,
-.app-main[data-mural='wash']::after {
+.app-main[data-mural='off']::after {
   display: none;
 }
 
-/* Dark-Theme: Bild etwas heller, Wash dezenter */
-:root[data-theme='dark'] .app-main::after {
-  opacity: 0.12;
-  filter: saturate(0.42) brightness(1.18);
+.subject-atmosphere {
+  --subject-atmosphere-line: color-mix(in srgb, var(--mural-ink, var(--color-accent)) 62%, var(--mural-accent, var(--color-accent)));
+  --subject-atmosphere-flow: color-mix(in srgb, var(--mural-mid, currentColor) 58%, var(--mural-accent, currentColor));
+  --subject-atmosphere-hatch: color-mix(in srgb, var(--mural-ink, currentColor) 48%, transparent);
+
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  color: var(--subject-atmosphere-line);
+  opacity: 0.9;
+  mix-blend-mode: multiply;
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 1) 18%,
+    rgba(0, 0, 0, 0.28) 33%,
+    rgba(0, 0, 0, 0.08) 48%,
+    rgba(0, 0, 0, 0.08) 52%,
+    rgba(0, 0, 0, 0.28) 67%,
+    rgba(0, 0, 0, 1) 82%,
+    rgba(0, 0, 0, 1) 100%
+  );
+  mask-image: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 1) 18%,
+    rgba(0, 0, 0, 0.28) 33%,
+    rgba(0, 0, 0, 0.08) 48%,
+    rgba(0, 0, 0, 0.08) 52%,
+    rgba(0, 0, 0, 0.28) 67%,
+    rgba(0, 0, 0, 1) 82%,
+    rgba(0, 0, 0, 1) 100%
+  );
 }
 
+.subject-atmosphere--reduced {
+  opacity: 0.48;
+}
+
+.subject-atmosphere__field {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  fill: none;
+  stroke: var(--subject-atmosphere-flow);
+  stroke-width: 1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.22;
+}
+
+.subject-atmosphere[data-assets='true'] .subject-atmosphere__field {
+  opacity: 0.1;
+}
+
+.subject-atmosphere__asset {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+  max-width: none;
+  height: auto;
+  object-fit: contain;
+  opacity: 0.2;
+  filter: sepia(0.28) saturate(0.72);
+}
+
+.subject-atmosphere__asset--neutral {
+  opacity: 0.16;
+}
+
+.subject-atmosphere__asset--portrait {
+  opacity: 0.24;
+}
+
+.subject-atmosphere__motif {
+  position: absolute;
+  display: block;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.15;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  color: var(--subject-atmosphere-line);
+}
+
+.subject-atmosphere__motif--hero {
+  opacity: 0.56;
+}
+
+.subject-atmosphere__motif--support {
+  opacity: 0.38;
+}
+
+.subject-atmosphere__motif--trace {
+  opacity: 0.28;
+}
+
+.subject-atmosphere__hatch {
+  stroke: var(--subject-atmosphere-hatch);
+  stroke-width: 1.05;
+  opacity: 0.72;
+}
+
+/* Dark-Theme: eigene Kreide-/Tafel-Logik statt dunkler Papier-Tinte. */
 :root[data-theme='dark'] .app-main::before {
   opacity: 0.42;
+}
+
+:root[data-theme='dark'] .subject-atmosphere {
+  --subject-atmosphere-line: color-mix(in srgb, #dfd7c7 72%, var(--mural-accent, #b9d8ce) 28%);
+  --subject-atmosphere-flow: color-mix(in srgb, #9fb6ad 64%, var(--mural-accent, #b9d8ce) 36%);
+  --subject-atmosphere-hatch: color-mix(in srgb, #efe7d6 52%, transparent);
+
+  opacity: 0.74;
+  mix-blend-mode: screen;
+  filter: none;
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 0.98) 20%,
+    rgba(0, 0, 0, 0.24) 36%,
+    rgba(0, 0, 0, 0.1) 50%,
+    rgba(0, 0, 0, 0.24) 64%,
+    rgba(0, 0, 0, 0.98) 80%,
+    rgba(0, 0, 0, 1) 100%
+  );
+  mask-image: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 0.98) 20%,
+    rgba(0, 0, 0, 0.24) 36%,
+    rgba(0, 0, 0, 0.1) 50%,
+    rgba(0, 0, 0, 0.24) 64%,
+    rgba(0, 0, 0, 0.98) 80%,
+    rgba(0, 0, 0, 1) 100%
+  );
+}
+
+:root[data-theme='dark'] .subject-atmosphere__field {
+  opacity: 0.22;
+}
+
+:root[data-theme='dark'] .subject-atmosphere[data-assets='true'] .subject-atmosphere__field {
+  opacity: 0.1;
+}
+
+:root[data-theme='dark'] .subject-atmosphere__asset {
+  filter: invert(1) sepia(0.22) saturate(0.62) hue-rotate(346deg);
+  opacity: 0.19;
+}
+
+:root[data-theme='dark'] .subject-atmosphere__asset--neutral {
+  opacity: 0.15;
+}
+
+:root[data-theme='dark'] .subject-atmosphere__asset--portrait {
+  opacity: 0.22;
+}
+
+:root[data-theme='dark'] .subject-atmosphere__motif--hero {
+  opacity: 0.52;
+}
+
+:root[data-theme='dark'] .subject-atmosphere__motif--support {
+  opacity: 0.36;
+}
+
+:root[data-theme='dark'] .subject-atmosphere__motif--trace {
+  opacity: 0.26;
 }
 
 /* Auf schmalen Fenstern ruhiger */
 @media (max-width: 720px) {
   .app-main::after {
     opacity: 0.12;
+  }
+
+  .subject-atmosphere {
+    opacity: 0.48;
+    -webkit-mask-image: linear-gradient(90deg, #000 0%, rgba(0,0,0,0.18) 50%, #000 100%);
+    mask-image: linear-gradient(90deg, #000 0%, rgba(0,0,0,0.18) 50%, #000 100%);
+  }
+
+  .subject-atmosphere__motif--support,
+  .subject-atmosphere__motif--trace,
+  .subject-atmosphere__field {
+    display: none;
+  }
+
+  .subject-atmosphere__asset--neutral,
+  .subject-atmosphere__asset--portrait {
+    width: clamp(220px, 54vw, 360px) !important;
+  }
+
+  .subject-atmosphere__motif--hero {
+    width: clamp(118px, 26vw, 170px) !important;
   }
 }

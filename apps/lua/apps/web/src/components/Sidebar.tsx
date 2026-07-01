@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import type { ActiveView } from '../lib/types';
 import { FEATURES } from '../lib/features';
-import { BrandMark, BrandSignature } from './BrandLogo';
+import { BrandSignature, WORDMARK_STYLE } from './BrandLogo';
 
 interface Props {
   currentView: ActiveView;
@@ -121,8 +121,12 @@ export function Sidebar({ currentView, onViewChange, onNewDocument }: Props) {
         padding: '1.25rem 1rem', borderBottom: '1px solid var(--sidebar-border)',
         display: 'flex', alignItems: 'center', gap: collapsed ? 0 : '0.625rem',
         justifyContent: collapsed ? 'center' : 'flex-start',
-      }}>
-        {collapsed ? <BrandMark size={34} /> : <BrandSignature size={38} />}
+      }} title="Luka" aria-label="Luka">
+        {collapsed ? (
+          <span style={{ ...WORDMARK_STYLE, fontSize: 28, color: 'var(--sidebar-text)' }}>L</span>
+        ) : (
+          <BrandSignature size={42} showMark={false} showTagline={false} />
+        )}
       </div>
 
       {/* Navigation */}

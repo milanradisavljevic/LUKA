@@ -54,7 +54,7 @@ const quelltexte = [{
 }];
 
 const bloecke = [
-  { typ: 'wordScramble', punkte: 6, quelleId: 'q1', anzahlWoerter: 6 },
+  { typ: 'wordScramble', punkte: 6, quelleId: 'q1', anzahlSaetze: 3 },
   // wortbank nur bei Unterstufe erlaubt → hier (Oberstufe) false. Siehe Schema-Refinement.
   { typ: 'lueckentext', punkte: 5, quelleId: 'q1', anzahlLuecken: 5, wortbank: false, distraktoren: 0 },
   { typ: 'matching', punkte: 8, quelleId: 'q1', anzahlItems: 4 },
@@ -85,7 +85,7 @@ console.log(`  Blöcke erzeugt: ${doc.bloecke.length}`);
 for (const b of doc.bloecke) {
   // kompakter Inhalts-Check pro Typ
   let info = '';
-  if (b.typ === 'wordScramble') info = `wort="${b.config.wort}" → ${b.loesung.korrektAnordnung.length} Teile`;
+  if (b.typ === 'wordScramble') info = `${b.config.saetze.length} Sätze`;
   else if (b.typ === 'lueckentext') info = `${b.loesung.luecken.length} Lücken, wortbank=${b.config.wortbank}`;
   else if (b.typ === 'matching') info = `${Object.keys(b.loesung.zuordnung).length} Zuordnungen`;
   else if (b.typ === 'offeneSchreibaufgabe') info = `Musterlösung ${b.loesung.musterloesung.length} Zeichen`;
