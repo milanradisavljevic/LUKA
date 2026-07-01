@@ -7,6 +7,61 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Changed — Dashboard-Start und Fachgrafik-Feinschliff
+- **Deutsch**-Fachatmosphäre ersetzt: keine Theatermasken mehr; stattdessen
+  Goethe-/Schiller-Anmutung mit Buch-, Feder- und Manuskript-Lineart.
+- **Englisch**-Fachatmosphäre ersetzt und neu positioniert: Big Ben ist nun das
+  klare, sichtbare Hauptmotiv, ergänzt durch Globe-/Folio-/Kartenakzente.
+- **Französisch**, **Spanisch**, **Latein**, **Geschichte**, **Geographie**,
+  **Religion**, **Ethik**, **Psychologie** und **Philosophie** neu ausgerichtet:
+  die vorhandenen PNG-Motive werden nicht mehr weit aus der Bühne geschoben,
+  sodass zentrale Details wie Couch, Don Quijote/Pferd oder Philosophie-Motive
+  nicht hart abgeschnitten wirken.
+- `apps/lua/apps/web/src/views/DashboardView.tsx`: Dashboard-Hero fragt nun
+  „Was möchtest du vorbereiten?" und nutzt drei ruhige Workflow-Illustrationen
+  statt der bisherigen Türmetapher.
+- `apps/lua/apps/web/src/components/ui/StartActionIllustration.tsx` und
+  `apps/lua/apps/web/src/index.css`: neue gezeichnete Einstiegsgrafiken für
+  „Aus Quelltext", „Ohne Quelltext" und „Schnell-Übung".
+- Die alte `Door`-Startkomponente wurde entfernt, da das Dashboard nicht mehr
+  mit der Türmetapher arbeitet.
+- `apps/lua/apps/web/src/components/Sidebar.tsx`: Sidebar zeigt oben wieder nur
+  die Luka-Schreibschrift; das blaue App-Zeichen bleibt aus der Navigation
+  heraus und dient weiter als reine App-Icon-Komponente. Die interne
+  Standard-Tagline lautet nun „Unterlagen gestalten".
+
+### Added — Fachatmosphäre v4: kuratierte Lineart-Grafik je Fach
+- `apps/lua/apps/web/src/components/SubjectAtmosphere.tsx`: neuer codebasierter
+  Layer mit Asset-Unterstützung für hochwertige Fachillustrationen. Alle zwölf
+  Fächer nutzen nun je ein kuratiertes, transparentes Lineart-Cluster als
+  ruhige Fachsignatur statt verstreuter SVG-Doodles.
+- Bestehende Pilotgrafiken für **Deutsch**, **Geographie**, **Geschichte** und
+  **Philosophie** bleiben erhalten; Philosophie nutzt die gelungene
+  Höhlen/Eule/Denker-Komposition als neutrales Standardmotiv.
+- Neue Fachgrafiken für **Englisch**, **Französisch**, **Spanisch**,
+  **Italienisch**, **Latein**, **Religion**, **Ethik** und **Psychologie**:
+  Big Ben/Globe/Shakespeare, Eiffelturm/Marianne, Don Quijote/Alhambra, Dante/
+  Kolosseum, römische Tafel/Büste/Säulen, interreligiöse Architektur,
+  Waage/Brücke/Handshake sowie Gehirn/Neuron/Rubin-Vase.
+- `apps/lua/apps/web/src/assets/subject-atmospheres/`: neue normalisierte
+  PNG-Lineart-Assets aus der kuratierten Chroma-Key/Alpha-Pipeline.
+- `apps/lua/apps/web/src/styles/murals.css`: Rasterbild-Mural-Pfad deaktiviert;
+  sichtbare Fachidentität kommt jetzt aus einer ruhigen Randgalerie statt aus
+  verstreuten Mini-Glyphen. Asset-Motive werden separat getönt; Dark Mode
+  invertiert sie zu gedämpfter Kreide-Lineart.
+- Dark Mode nutzt für die Fachzeichen eine eigene helle Kreide-/Tafel-Farbwelt
+  statt dunkler Papier-Tinte; Fachakzente werden nur beigemischt, damit die
+  Randzeichen sichtbar bleiben, ohne neonhaft zu wirken.
+- `apps/lua/apps/web/src/themes/subjectThemes.ts`: Theme-Variablen treiben nur
+  noch Farb-Wash und SVG-Fachzeichen, keine PNG-Registrierung mehr.
+- `apps/lua/apps/web/src/lib/features.ts`: Fachatmosphäre für den Pilot
+  aktiviert; NATASCHA bleibt weiterhin gegated.
+- `apps/lua/apps/web/src/views/SettingsView.tsx`: Darstellungsschalter auf
+  „Fachzeichen aktivieren" umbenannt.
+- `apps/lua/scripts/llm-smoke.mjs`: `wordScramble`-Smoke auf die aktuelle
+  Mehrsatz-Struktur (`config.saetze`) angepasst, damit der Live-Smoke wieder
+  bis zum DOCX-Export durchläuft.
+
 ### Fixed — GIFT-Header: Thema/Fach klebten in einer Zeile
 - `apps/lua/packages/export/src/index.ts` (`toGift`): Der Header trennte Thema
   und Fach durch `\//` (→ `//`) statt `\n//` — der Zeilenumbruch fehlte, sodass

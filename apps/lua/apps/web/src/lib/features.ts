@@ -2,8 +2,7 @@
 // Phase 0 = Generator-only (kein NATASCHA).
 export const FEATURES = {
   natascha: false,
-  // Fachbezogene Ambient-Murals. AUS, bis echte Bilder je Fach vorliegen und im
-  // echten Windows-Build (WebView2+GPU) geprüft sind. In der WSLg-Dev-WebView
-  // (Software-Render) erzeugt der vollflächige Hintergrund Geisterbilder.
-  murals: false,
+  // Fachbezogene Atmosphäre: codebasierte Rand-Glyphen + Linienflüsse je Fach.
+  // Vor Release weiter im echten Windows-Build (WebView2+GPU) sichtprüfen.
+  murals: true,
 } as const;

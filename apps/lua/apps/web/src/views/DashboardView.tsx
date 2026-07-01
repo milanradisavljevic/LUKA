@@ -12,7 +12,7 @@ import { FEATURES } from '../lib/features';
 import { fachLabel } from '@lehrunterlagen/schema';
 import type { Block, Fach } from '@lehrunterlagen/schema';
 import { Hero } from '../components/ui/Hero';
-import { Door } from '../components/ui/Door';
+import { StartActionIllustration } from '../components/ui/StartActionIllustration';
 import { Tile } from '../components/ui/Tile';
 
 interface DashboardViewProps {
@@ -133,31 +133,31 @@ export function DashboardView({ onNavigate, onStartQuickExercise }: DashboardVie
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto' }}>
 
-      {/* ═══ HERO: Begrüßung + Zwei Türen ═══ */}
-      <Hero greeting={greetTime()} subtitle="Was möchtest du erstellen?" subtitleScript>
-        {/* Drei Türen — Aus Quelltext · Ohne Quelltext · Schnell-Übung */}
+      {/* ═══ HERO: Begrüßung + drei Startwege ═══ */}
+      <Hero greeting={greetTime()} subtitle="Was möchtest du vorbereiten?" subtitleScript>
+        {/* Drei Einstiegskarten — Aus Quelltext · Ohne Quelltext · Schnell-Übung */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(232px, 1fr))', gap: '1.25rem' }}>
           {([
-            { variant: 'quelltext' as const, view: 'wizard' as const, title: 'Aus Quelltext', sub: 'Schularbeit / Test zu einem Text', desc: 'Quelltext hochladen, Aufgaben zusammenstellen, KI generiert Inhalte.', min: '~5 Min' },
-            { variant: 'kompetenz' as const, view: 'kompetenz' as const, title: 'Ohne Quelltext', sub: 'Übung aus Kompetenz & Lehrplan', desc: 'Schulstufe, Kompetenzen und Inhalt wählen — KI generiert passende Übungen.', min: '~2 Min' },
-            { variant: 'schnell' as const, view: 'quick' as const, title: 'Schnell-Übung', sub: 'Ein Aufgabentyp, sofort', desc: 'Thema, Fach, Stufe und Aufgabentyp wählen — direkt erstellen.', min: '~1 Min' },
+            { variant: 'quelltext' as const, view: 'wizard' as const, title: 'Aus Quelltext', sub: 'Schularbeit / Test zu einem Text', desc: 'Material hochladen oder einfügen; daraus entstehen passende Aufgaben.', min: '~5 Min' },
+            { variant: 'kompetenz' as const, view: 'kompetenz' as const, title: 'Ohne Quelltext', sub: 'Übung aus Kompetenz & Lehrplan', desc: 'Fach, Schulstufe und Kompetenz wählen; LUKA baut eine Übung.', min: '~2 Min' },
+            { variant: 'schnell' as const, view: 'quick' as const, title: 'Schnell-Übung', sub: 'Ein Aufgabentyp, sofort', desc: 'Ein Thema, ein Aufgabentyp, sofort im Baukasten.', min: '~1 Min' },
           ]).map((d) => (
             <button
               key={d.variant}
-              className="card card-clickable door-card"
+              className="card card-clickable start-action-card"
               onClick={() => onNavigate?.(d.view)}
               aria-label={`${d.title} — ${d.sub}`}
               style={{
-                padding: '1.5rem 1.25rem',
+                padding: '1.35rem 1.2rem',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 textAlign: 'center',
-                gap: '1rem',
-                minHeight: 300,
+                gap: '0.875rem',
+                minHeight: 292,
               }}
             >
-              <Door variant={d.variant} />
+              <StartActionIllustration variant={d.variant} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
                   {d.title}

@@ -257,7 +257,7 @@ export function SettingsView() {
         </div>
       </section>
 
-      {/* Abschnitt 2: Darstellung (nur sichtbar, solange Murals aktiv sind) */}
+      {/* Abschnitt 2: Darstellung (nur sichtbar, solange Fachatmosphäre aktiv ist) */}
       {FEATURES.murals && (
       <section style={{
         padding: '1.25rem', border: '1px solid var(--color-border)',
@@ -275,8 +275,8 @@ export function SettingsView() {
           Steuert die fachbezogene Atmosphäre im Hintergrund der Arbeitsfläche.
         </p>
         <ToggleRow
-          label="Ambient-Murals aktivieren"
-          description={settings.ambientMuralsEnabled ? 'Fachbezogene Hintergrundillustrationen sind sichtbar.' : 'Die App nutzt nur den ruhigen Papierhintergrund.'}
+          label="Fachzeichen aktivieren"
+          description={settings.ambientMuralsEnabled ? 'Fachbezogene Linien und Symbole sind sichtbar.' : 'Die App nutzt nur den ruhigen Papierhintergrund.'}
           checked={settings.ambientMuralsEnabled}
           onChange={() => update({ ambientMuralsEnabled: !settings.ambientMuralsEnabled })}
         />

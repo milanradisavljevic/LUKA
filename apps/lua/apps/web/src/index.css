@@ -424,33 +424,122 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .x-remove { transition: background 0.15s, color 0.15s; }
 .x-remove:hover { background: var(--color-error) !important; color: #fff !important; }
 
-/* === Türen (Dashboard-Einstiege) === */
-.door-card {
-  /* setzt die Bühne für das perspektivische Öffnen des Türblatts */
-  perspective: 900px;
+/* === Dashboard-Einstiege === */
+.start-action-card {
+  position: relative;
+  overflow: hidden;
 }
-.door-leaf {
-  transform-origin: left center;
-  transition: transform 0.35s ease;
-}
-.door-card:hover .door-leaf,
-.door-card:focus-visible .door-leaf {
-  transform: rotateY(-22deg);
-}
-.door-icon {
-  transition: opacity 0.25s ease 0.1s;
-}
-.door-card:hover .door-icon,
-.door-card:focus-visible .door-icon {
+
+.start-action-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 18%,
+      color-mix(in srgb, var(--color-accent) 11%, transparent) 0,
+      transparent 58%),
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--color-bg-surface) 78%, transparent) 0%,
+      transparent 100%);
   opacity: 0;
+  transition: opacity 0.2s ease;
 }
-/* „Lichtschein" hinter der sich öffnenden Tür */
-.door-glow { opacity: 0; transition: opacity 0.35s ease; }
-.door-card:hover .door-glow,
-.door-card:focus-visible .door-glow { opacity: 1; }
+
+.start-action-card:hover::before,
+.start-action-card:focus-visible::before {
+  opacity: 1;
+}
+
+.start-action-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.start-action-illustration {
+  width: min(100%, 240px);
+  height: 150px;
+  color: var(--color-accent);
+  overflow: visible;
+  flex-shrink: 0;
+}
+
+.start-action-illustration__shape,
+.start-action-illustration__line,
+.start-action-illustration__flow,
+.start-action-illustration__accent {
+  vector-effect: non-scaling-stroke;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.start-action-illustration__shape {
+  fill: color-mix(in srgb, var(--color-bg-surface) 82%, transparent);
+  stroke: color-mix(in srgb, currentColor 58%, var(--color-text-muted));
+  stroke-width: 2;
+}
+
+.start-action-illustration__line {
+  stroke: color-mix(in srgb, currentColor 48%, var(--color-text-muted));
+  stroke-width: 1.55;
+}
+
+.start-action-illustration__flow {
+  stroke: color-mix(in srgb, currentColor 38%, transparent);
+  stroke-width: 1.4;
+  opacity: 0.5;
+}
+
+.start-action-illustration__flow--soft {
+  opacity: 0.28;
+}
+
+.start-action-illustration__accent {
+  fill: none;
+  stroke: color-mix(in srgb, currentColor 76%, var(--color-text-primary));
+  stroke-width: 2.2;
+}
+
+.start-action-illustration__accent-fill {
+  fill: color-mix(in srgb, currentColor 10%, var(--color-bg-surface));
+  stroke: color-mix(in srgb, currentColor 72%, var(--color-text-primary));
+  stroke-width: 2.05;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.start-action-illustration__dot {
+  fill: color-mix(in srgb, currentColor 72%, var(--color-bg-surface));
+}
+
+.start-action-illustration--quelltext {
+  color: var(--door-quelltext-edge);
+}
+
+.start-action-illustration--kompetenz {
+  color: var(--door-kompetenz-edge);
+}
+
+.start-action-illustration--schnell {
+  color: var(--door-schnell-edge);
+}
+
+:root[data-theme="dark"] .start-action-illustration__shape {
+  fill: color-mix(in srgb, var(--color-bg-surface) 58%, transparent);
+  stroke: color-mix(in srgb, currentColor 72%, var(--color-text-secondary));
+}
+
+:root[data-theme="dark"] .start-action-illustration__line {
+  stroke: color-mix(in srgb, currentColor 66%, var(--color-text-secondary));
+}
+
+:root[data-theme="dark"] .start-action-illustration__accent-fill {
+  fill: color-mix(in srgb, currentColor 16%, transparent);
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .door-leaf, .door-icon, .door-glow { transition: none; }
-  .door-card:hover .door-leaf, .door-card:focus-visible .door-leaf { transform: none; }
+  .start-action-card::before { transition: none; }
 }
 
 /* === Papier-Anmutung: feine, sehr dezente Faserung === */
