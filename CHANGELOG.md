@@ -7,6 +7,15 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Performance — Asset-Diät (PR 3)
+- 12 Fach-Atmosphäre-PNGs → WebP (q72, Alpha erhalten): **9,1 MB → 5,4 MB** (−41 %);
+  Imports in `components/SubjectAtmosphere.tsx` auf `.webp` umgestellt.
+- 10 Schriftschnitte (Ubuntu + PlaywriteAT) TTF → WOFF2: **3,1 MB → 1,15 MB** (−64 %);
+  `index.css` `@font-face` auf `.woff2`/`format('woff2')` umgestellt.
+- Verwaistes `assets/murals/philosophie.png` (2,1 MB, 0 Referenzen) gelöscht.
+- Gesamt: rund **10 MB weniger** Frontend-Assets. (Glyph-Subsetting der Fonts als
+  spätere Option offen.)
+
 ### Security — Spawn-Härtung + Key-Import räumt auf (PR 9)
 - `launch_natascha` (`src-tauri/src/commands/natascha.rs`) validiert den frei
   editierbaren `pythonCommand` (Whitelist `A-Za-z0-9 _ . : / \ -`) vor der

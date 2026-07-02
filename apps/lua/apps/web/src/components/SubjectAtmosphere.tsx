@@ -1,17 +1,17 @@
 import type { CSSProperties, ReactNode } from 'react';
 import type { Fach } from '@lehrunterlagen/schema';
-import deutschLiteratureLineart from '../assets/subject-atmospheres/deutsch/literature-goethe-schiller-lineart-cluster.png';
-import englischLineart from '../assets/subject-atmospheres/englisch/english-bigben-lineart-cluster.png';
-import ethikLineart from '../assets/subject-atmospheres/ethik/ethics-lineart-cluster.png';
-import franzoesischLineart from '../assets/subject-atmospheres/franzoesisch/french-lineart-cluster.png';
-import geographieAtlasLineart from '../assets/subject-atmospheres/geographie/atlas-lineart-cluster.png';
-import geschichteArchiveLineart from '../assets/subject-atmospheres/geschichte/archive-lineart-cluster.png';
-import italienischLineart from '../assets/subject-atmospheres/italienisch/italian-lineart-cluster.png';
-import lateinLineart from '../assets/subject-atmospheres/latein/latin-lineart-cluster.png';
-import philosophieNeutralLineart from '../assets/subject-atmospheres/philosophie/neutral-lineart-cluster.png';
-import psychologieLineart from '../assets/subject-atmospheres/psychologie/psychology-lineart-cluster.png';
-import religionLineart from '../assets/subject-atmospheres/religion/religion-lineart-cluster.png';
-import spanischLineart from '../assets/subject-atmospheres/spanisch/spanish-lineart-cluster.png';
+import deutschLiteratureLineart from '../assets/subject-atmospheres/deutsch/literature-goethe-schiller-lineart-cluster.webp';
+import englischLineart from '../assets/subject-atmospheres/englisch/english-bigben-lineart-cluster.webp';
+import ethikLineart from '../assets/subject-atmospheres/ethik/ethics-lineart-cluster.webp';
+import franzoesischLineart from '../assets/subject-atmospheres/franzoesisch/french-lineart-cluster.webp';
+import geographieAtlasLineart from '../assets/subject-atmospheres/geographie/atlas-lineart-cluster.webp';
+import geschichteArchiveLineart from '../assets/subject-atmospheres/geschichte/archive-lineart-cluster.webp';
+import italienischLineart from '../assets/subject-atmospheres/italienisch/italian-lineart-cluster.webp';
+import lateinLineart from '../assets/subject-atmospheres/latein/latin-lineart-cluster.webp';
+import philosophieNeutralLineart from '../assets/subject-atmospheres/philosophie/neutral-lineart-cluster.webp';
+import psychologieLineart from '../assets/subject-atmospheres/psychologie/psychology-lineart-cluster.webp';
+import religionLineart from '../assets/subject-atmospheres/religion/religion-lineart-cluster.webp';
+import spanischLineart from '../assets/subject-atmospheres/spanisch/spanish-lineart-cluster.webp';
 
 type FieldFamily = 'text' | 'language' | 'archive' | 'map' | 'logic' | 'values' | 'psyche' | 'sacred' | 'classic';
 
