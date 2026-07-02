@@ -65,6 +65,7 @@ fn main() {
             commands::natascha_read::db_delete_schueler,
             commands::natascha_read::db_get_schueler_laengsschnitt,
             commands::natascha_read::db_get_klassen_trend,
+            commands::natascha_read::db_get_fehler_trend,
             commands::natascha_read::db_get_klassen_kalibrierung,
             commands::natascha_read::db_get_fehler_detail,
             commands::natascha_read::db_export_noten_csv,

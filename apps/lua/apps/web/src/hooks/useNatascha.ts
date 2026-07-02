@@ -319,6 +319,14 @@ export function useNatascha() {
     }
   }, []);
 
+  const getFehlerTrend = useCallback(async (klasse: string): Promise<FehlerTrendPunkt[]> => {
+    try {
+      return await invoke<FehlerTrendPunkt[]>('db_get_fehler_trend', { klasse });
+    } catch {
+      return [];
+    }
+  }, []);
+
   const getKlassenKalibrierung = useCallback(async (klasse: string, aufgabe?: string): Promise<KalibrierungResult | null> => {
     try {
       return await invoke<KalibrierungResult>('db_get_klassen_kalibrierung', { klasse, aufgabe: aufgabe ?? null });
@@ -400,6 +408,7 @@ export function useNatascha() {
     listRubrics,
     getSchuelerLaengsschnitt,
     getKlassenTrend,
+    getFehlerTrend,
     getKlassenKalibrierung,
     getFehlerDetail,
     exportNotenCsv,
@@ -478,6 +487,16 @@ interface TrendPoint {
   avgNoteApp: number | null;
   avgNoteLehrer: number | null;
   nMitFeedback: number;
+}
+
+export interface FehlerTrendPunkt {
+  aufgabe: string;
+  datum: string | null;
+  nAbgaben: number;
+  /** typ → Gesamtanzahl (Codes wie in der DB, i. d. R. R/G/Z/A) */
+  fehler: Record<string, number>;
+  /** typ → Fehler pro Abgabe (normalisiert, 2 Dezimalen) */
+  fehlerProAbgabe: Record<string, number>;
 }
 
 interface KalibrierungResult {

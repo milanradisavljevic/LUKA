@@ -741,6 +741,71 @@ pub async fn db_get_klassen_trend(state: tauri::State<'_, DbState>, klasse: Stri
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct FehlerTrendPunkt {
+    pub aufgabe: String,
+    pub datum: Option<String>,
+    pub n_abgaben: i64,
+    /// typ → Gesamtanzahl (Schlüssel sind die DB-Typ-Codes, i. d. R. R/G/Z/A)
+    pub fehler: std::collections::BTreeMap<String, i64>,
+    /// typ → Fehler pro Abgabe (2 Dezimalen) — normalisiert, weil die
+    /// Abgabenzahl je Schularbeit schwankt und Rohzahlen sonst täuschen
+    pub fehler_pro_abgabe: std::collections::BTreeMap<String, f64>,
+}
+
+#[tauri::command]
+pub async fn db_get_fehler_trend(state: tauri::State<'_, DbState>, klasse: String) -> Result<Vec<FehlerTrendPunkt>, String> {
+    let guard = state.conn()?;
+    fehler_trend_impl(&guard, &klasse)
+}
+
+pub(crate) fn fehler_trend_impl(conn: &rusqlite::Connection, klasse: &str) -> Result<Vec<FehlerTrendPunkt>, String> {
+    // datum ist der Import-Zeitpunkt, nicht das Prüfungsdatum — gleiche
+    // Chronologie-Annahme wie db_get_klassen_trend.
+    let mut basis_stmt = conn.prepare(
+        "SELECT aufgabe, MIN(datum), COUNT(*) FROM abgabe WHERE klasse=?1 GROUP BY aufgabe"
+    ).map_err(|e| format!("prepare fehlertrend basis: {}", e))?;
+    let basis_rows = basis_stmt.query_map(rusqlite::params![klasse], |row| {
+        Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?, row.get::<_, i64>(2)?))
+    }).map_err(|e| format!("query fehlertrend basis: {}", e))?;
+
+    // Basis seedet auch Schularbeiten ohne Fehler (Punkt mit leeren Maps).
+    let mut punkte: std::collections::HashMap<String, FehlerTrendPunkt> = std::collections::HashMap::new();
+    for row in basis_rows.filter_map(|r| r.ok()) {
+        let (aufgabe, datum, n_abgaben) = row;
+        punkte.insert(aufgabe.clone(), FehlerTrendPunkt {
+            aufgabe,
+            datum,
+            n_abgaben,
+            fehler: std::collections::BTreeMap::new(),
+            fehler_pro_abgabe: std::collections::BTreeMap::new(),
+        });
+    }
+
+    let mut fehler_stmt = conn.prepare(
+        "SELECT a.aufgabe, f.typ, COUNT(*) FROM fehler_historie f JOIN abgabe a ON a.id=f.abgabe_id WHERE a.klasse=?1 GROUP BY a.aufgabe, f.typ"
+    ).map_err(|e| format!("prepare fehlertrend typen: {}", e))?;
+    let fehler_rows = fehler_stmt.query_map(rusqlite::params![klasse], |row| {
+        Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?, row.get::<_, i64>(2)?))
+    }).map_err(|e| format!("query fehlertrend typen: {}", e))?;
+
+    for row in fehler_rows.filter_map(|r| r.ok()) {
+        let (aufgabe, typ, anzahl) = row;
+        if let Some(punkt) = punkte.get_mut(&aufgabe) {
+            if punkt.n_abgaben > 0 {
+                let pro_abgabe = (anzahl as f64 / punkt.n_abgaben as f64 * 100.0).round() / 100.0;
+                punkt.fehler_pro_abgabe.insert(typ.clone(), pro_abgabe);
+            }
+            punkt.fehler.insert(typ, anzahl);
+        }
+    }
+
+    let mut result: Vec<FehlerTrendPunkt> = punkte.into_values().collect();
+    result.sort_by(|a, b| a.datum.cmp(&b.datum).then(a.aufgabe.cmp(&b.aufgabe)));
+    Ok(result)
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct KalibrierungResult {
     pub app_avg: Option<f64>,
     pub lehrer_avg: Option<f64>,
@@ -1038,5 +1103,59 @@ mod tests {
         assert!((hm[1].prozent - 25.0).abs() < 0.001);
         // leere Klasse → keine Einträge
         assert!(fehler_heatmap_impl(&conn, "9z".to_string(), None).unwrap().is_empty());
+    }
+
+    /// Seedet zwei Schularbeiten: SA1 (2 Abgaben, Fehler Z,Z,Z,Z,G),
+    /// SA2 (1 Abgabe, Fehler Z,G,X) und SA3 (1 Abgabe, keine Fehler).
+    fn seed_fehler_trend(conn: &Connection) {
+        let mut abgabe = |aufgabe: &str, datum: &str, hash: &str| -> i64 {
+            conn.execute(
+                "INSERT INTO abgabe (klasse, aufgabe, dateiname, datei_hash, datum) \
+                 VALUES ('8b', ?1, 'x.docx', ?2, ?3)",
+                rusqlite::params![aufgabe, hash, datum],
+            ).unwrap();
+            conn.last_insert_rowid()
+        };
+        let a1 = abgabe("SA1", "2026-01-10", "t1");
+        let a2 = abgabe("SA1", "2026-01-10", "t2");
+        let a3 = abgabe("SA2", "2026-03-01", "t3");
+        abgabe("SA3", "2026-05-01", "t4");
+        for (id, typ) in [(a1, "Z"), (a1, "Z"), (a2, "Z"), (a2, "Z"), (a1, "G"), (a3, "Z"), (a3, "G"), (a3, "X")] {
+            conn.execute(
+                "INSERT INTO fehler_historie (abgabe_id, typ) VALUES (?1, ?2)",
+                rusqlite::params![id, typ],
+            ).unwrap();
+        }
+    }
+
+    #[test]
+    fn fehler_trend_chronologie_und_normalisierung() {
+        let conn = setup();
+        seed_fehler_trend(&conn);
+        let trend = fehler_trend_impl(&conn, "8b").unwrap();
+        assert_eq!(trend.len(), 3);
+        // Chronologie via MIN(datum)
+        assert_eq!(trend[0].aufgabe, "SA1");
+        assert_eq!(trend[1].aufgabe, "SA2");
+        assert_eq!(trend[2].aufgabe, "SA3");
+        // SA1: 4×Z auf 2 Abgaben → 2.0 pro Abgabe; SA2: 1×Z auf 1 Abgabe → 1.0
+        assert_eq!(trend[0].n_abgaben, 2);
+        assert_eq!(trend[0].fehler["Z"], 4);
+        assert!((trend[0].fehler_pro_abgabe["Z"] - 2.0).abs() < 0.001);
+        assert!((trend[0].fehler_pro_abgabe["G"] - 0.5).abs() < 0.001);
+        assert!((trend[1].fehler_pro_abgabe["Z"] - 1.0).abs() < 0.001);
+        // unbekannter Code überlebt unverändert
+        assert_eq!(trend[1].fehler["X"], 1);
+        // Schularbeit ohne Fehler → Punkt existiert mit leeren Maps
+        assert_eq!(trend[2].n_abgaben, 1);
+        assert!(trend[2].fehler.is_empty());
+        assert!(trend[2].fehler_pro_abgabe.is_empty());
+    }
+
+    #[test]
+    fn fehler_trend_unbekannte_klasse_leer() {
+        let conn = setup();
+        seed_fehler_trend(&conn);
+        assert!(fehler_trend_impl(&conn, "9z").unwrap().is_empty());
     }
 }

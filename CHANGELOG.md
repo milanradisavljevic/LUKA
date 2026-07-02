@@ -7,6 +7,23 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Wirksamkeits-Ansicht: Fehlertrend je Klasse (PR B, Welle 1)
+- `apps/lua/src-tauri/src/commands/natascha_read.rs`: neuer Read-Command
+  `db_get_fehler_trend(klasse)` — Fehlerkategorien (R/G/Z/A) je Schularbeit,
+  normalisiert auf **Fehler pro Abgabe** (Abgabenzahl schwankt je SA; Rohzahlen
+  würden täuschen). Seedet auch fehlerfreie Schularbeiten als Punkte; unbekannte
+  Typ-Codes werden durchgereicht. Chronologie via `MIN(datum)` (Import-Zeitpunkt,
+  gleiche Annahme wie `db_get_klassen_trend`). Kein Schema-Change. 2 neue
+  Rust-Tests (Chronologie/Normalisierung, unbekannte Klasse).
+- `apps/lua/apps/web/src/hooks/useNatascha.ts`: `getFehlerTrend` +
+  exportiertes Interface `FehlerTrendPunkt`.
+- `apps/lua/apps/web/src/views/KlassenView.tsx`: neue Sektion „Wirksamkeit über
+  die Schularbeiten" im Statistik-Tab — LineChart (eine Linie je Kategorie,
+  Y = Fehler pro Abgabe, ab 2 Schularbeiten; bei einer SA Hinweistext) plus
+  Delta-Kacheln letzte vs. vorletzte SA (Rückgang grün/TrendingDown, Anstieg
+  rot/TrendingUp, „neu" bei vorher 0; absolute pro-Abgabe-Werte neben dem
+  Prozent) und Ehrlichkeits-Caption (Trend ≠ Kausalitätsbeweis).
+
 ### Changed — Übersicht-Startfläche
 - Dashboard-Hero in ein Bento-Layout umgebaut: „Aus Quelltext" ist jetzt der
   visuelle Hauptweg, „Ohne Quelltext" und „Schnell-Übung" bleiben kompakte

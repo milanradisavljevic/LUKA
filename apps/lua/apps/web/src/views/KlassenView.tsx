@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { GraduationCap, Users, BarChart3, AlertTriangle, TrendingUp, Download, Wand2, Sparkles, Loader2, School } from 'lucide-react';
+import { GraduationCap, Users, BarChart3, AlertTriangle, TrendingUp, TrendingDown, Download, Wand2, Sparkles, Loader2, School } from 'lucide-react';
 import { EmptyState } from './_EmptyState';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from 'recharts';
 import type { KlasseInfo } from '../lib/storage';
 import { useNatascha } from '../hooks/useNatascha';
-import type { KlassenBriefingRow } from '../hooks/useNatascha';
+import type { KlassenBriefingRow, FehlerTrendPunkt } from '../hooks/useNatascha';
 import { KATEGORIE_TO_BLOCKTYPEN, type NataschaPrefill } from '../lib/nataschaBridge';
 import type { BlockTyp } from '@lehrunterlagen/schema';
 import { ViewShell } from './_ViewShell';
@@ -82,8 +82,48 @@ const FEHLER_COLORS: Record<string, string> = { R: '#e74c3c', G: '#27ae60', Z: '
 
 type Tab = 'uebersicht' | 'statistik';
 
+const WIRKSAMKEIT_TYPEN = ['R', 'G', 'Z', 'A'] as const;
+
+interface WirksamkeitDelta {
+  typ: string;
+  label: string;
+  prev: number;
+  last: number;
+  /** null = Kategorie ist neu (vorher 0) */
+  prozent: number | null;
+}
+
+function buildWirksamkeit(punkte: FehlerTrendPunkt[]) {
+  const relevant = punkte.filter((p) => p.nAbgaben > 0);
+  const chartData = relevant.map((p) => ({
+    aufgabe: p.aufgabe,
+    R: p.fehlerProAbgabe.R ?? 0,
+    G: p.fehlerProAbgabe.G ?? 0,
+    Z: p.fehlerProAbgabe.Z ?? 0,
+    A: p.fehlerProAbgabe.A ?? 0,
+  }));
+  const deltas: WirksamkeitDelta[] = [];
+  const vorletzte = relevant[relevant.length - 2];
+  const letzte = relevant[relevant.length - 1];
+  if (vorletzte && letzte) {
+    for (const typ of WIRKSAMKEIT_TYPEN) {
+      const prev = vorletzte.fehlerProAbgabe[typ] ?? 0;
+      const last = letzte.fehlerProAbgabe[typ] ?? 0;
+      if (prev === 0 && last === 0) continue;
+      deltas.push({
+        typ,
+        label: HEATMAP_LABELS[typ] ?? typ,
+        prev,
+        last,
+        prozent: prev === 0 ? null : Math.round(((last - prev) / prev) * 100),
+      });
+    }
+  }
+  return { relevant, chartData, deltas };
+}
+
 export function KlassenView({ onGenerateUebung }: Props) {
-  const { listKlassen, listAufgaben, getAbgaben, getHeatmap, getKlassenStatistik, getKlassenTrend, getKlassenKalibrierung, getFehlerDetail, exportNotenCsv, generateKlassenBriefing, getKlassenBriefing, quelltextGet } = useNatascha();
+  const { listKlassen, listAufgaben, getAbgaben, getHeatmap, getKlassenStatistik, getKlassenTrend, getFehlerTrend, getKlassenKalibrierung, getFehlerDetail, exportNotenCsv, generateKlassenBriefing, getKlassenBriefing, quelltextGet } = useNatascha();
 
   const [tab, setTab] = useState<Tab>('uebersicht');
   const [klassen, setKlassen] = useState<KlasseInfo[]>([]);
@@ -94,6 +134,7 @@ export function KlassenView({ onGenerateUebung }: Props) {
   const [heatmap, setHeatmap] = useState<HeatmapEntry[]>([]);
   const [statistik, setStatistik] = useState<KlassenStatistik | null>(null);
   const [trend, setTrend] = useState<TrendPoint[]>([]);
+  const [fehlerTrend, setFehlerTrend] = useState<FehlerTrendPunkt[]>([]);
   const [kalibrierung, setKalibrierung] = useState<KalibrierungResult | null>(null);
   const [fehlerDetail, setFehlerDetail] = useState<{ typ: string; rows: FehlerDetailRow[] } | null>(null);
   const [loading, setLoading] = useState(false);
@@ -112,6 +153,7 @@ export function KlassenView({ onGenerateUebung }: Props) {
     setSelectedKlasse(klasse);
     setSelectedAufgabe(null);
     setFehlerDetail(null);
+    setFehlerTrend([]);
     setBriefing(null);
     setBriefingError(null);
     setLoading(true);
@@ -127,12 +169,13 @@ export function KlassenView({ onGenerateUebung }: Props) {
       } else {
         setAbgaben([]); setHeatmap([]); setStatistik(null);
       }
-      const [t, k] = await Promise.all([getKlassenTrend(klasse), getKlassenKalibrierung(klasse)]);
+      const [t, ft, k] = await Promise.all([getKlassenTrend(klasse), getFehlerTrend(klasse), getKlassenKalibrierung(klasse)]);
       setTrend(t as TrendPoint[]);
+      setFehlerTrend(ft);
       setKalibrierung(k as KalibrierungResult | null);
     } catch (e) { setError(String(e)); }
     finally { setLoading(false); }
-  }, [listAufgaben, getKlassenTrend, getKlassenKalibrierung]);
+  }, [listAufgaben, getKlassenTrend, getFehlerTrend, getKlassenKalibrierung]);
 
   const loadData = useCallback(async (klasse: string, aufgabe: string) => {
     setLoading(true);
@@ -420,7 +463,9 @@ export function KlassenView({ onGenerateUebung }: Props) {
             </>
           )}
 
-          {tab === 'statistik' && selectedKlasse && (
+          {tab === 'statistik' && selectedKlasse && (() => {
+            const wirksamkeit = buildWirksamkeit(fehlerTrend);
+            return (
             <>
               {trend.length > 1 && (
                 <div style={{ ...cardStyle, marginBottom: '1rem' }}>
@@ -438,6 +483,59 @@ export function KlassenView({ onGenerateUebung }: Props) {
                       <Line type="monotone" dataKey="avgNoteLehrer" name="Lehrernote" stroke="#e74c3c" strokeWidth={2} dot={{ r: 4 }} connectNulls />
                     </LineChart>
                   </ResponsiveContainer>
+                </div>
+              )}
+
+              {wirksamkeit.relevant.length >= 2 && (
+                <div style={{ ...cardStyle, marginBottom: '1rem' }}>
+                  <h4 style={{ fontSize: '0.875rem', margin: '0 0 0.75rem' }}>
+                    <TrendingDown size={16} style={{ verticalAlign: -2, marginRight: 6 }} /> Wirksamkeit über die Schularbeiten
+                  </h4>
+                  <ResponsiveContainer width="100%" height={240}>
+                    <LineChart data={wirksamkeit.chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                      <XAxis dataKey="aufgabe" tick={{ fontSize: 12 }} />
+                      <YAxis tick={{ fontSize: 12 }} label={{ value: 'Fehler pro Abgabe', angle: -90, position: 'insideLeft', style: { fontSize: 11 } }} />
+                      <Tooltip />
+                      <Legend />
+                      {WIRKSAMKEIT_TYPEN.map((typ) => (
+                        <Line key={typ} type="monotone" dataKey={typ} name={HEATMAP_LABELS[typ]} stroke={HEATMAP_COLORS[typ]} strokeWidth={2} dot={{ r: 4 }} />
+                      ))}
+                    </LineChart>
+                  </ResponsiveContainer>
+                  {wirksamkeit.deltas.length > 0 && (
+                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
+                      {wirksamkeit.deltas.map((d) => {
+                        const besser = d.last < d.prev;
+                        const gleich = d.last === d.prev;
+                        const farbe = gleich ? 'var(--color-text-secondary)' : besser ? 'var(--color-success, #27ae60)' : 'var(--color-danger, #c0392b)';
+                        const Icon = besser ? TrendingDown : TrendingUp;
+                        return (
+                          <div key={d.typ} style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', padding: '0.5rem 0.75rem', minWidth: 150 }}>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>{d.label}</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '1.125rem', fontWeight: 700, color: farbe }}>
+                              {!gleich && <Icon size={16} />}
+                              {d.prozent === null ? 'neu' : `${d.prozent > 0 ? '+' : ''}${d.prozent} %`}
+                            </div>
+                            <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)' }}>
+                              {d.prev.toFixed(2)} → {d.last.toFixed(2)} pro Abgabe
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <p style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)', margin: '0.75rem 0 0' }}>
+                    Zeigt die Entwicklung, keinen Beweis: ob deine Übungen die Ursache sind, lässt sich daraus nicht sicher ablesen.
+                  </p>
+                </div>
+              )}
+
+              {wirksamkeit.relevant.length === 1 && !loading && (
+                <div style={{ ...cardStyle, marginBottom: '1rem' }}>
+                  <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', textAlign: 'center', margin: 0 }}>
+                    Ab der zweiten Schularbeit siehst du hier, wie sich die Fehlerkategorien entwickeln.
+                  </p>
                 </div>
               )}
 
@@ -512,7 +610,8 @@ export function KlassenView({ onGenerateUebung }: Props) {
                 )}
               </div>
             </>
-          )}
+            );
+          })()}
 
           {!selectedKlasse && !error && tab === 'uebersicht' && (
             <div style={cardStyle}>
