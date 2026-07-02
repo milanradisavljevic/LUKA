@@ -74,3 +74,15 @@ jobs:
       # cli + tui Requirements: test_tui.py importiert das TUI-Modul (textual).
       - run: pip install -r requirements_cli.txt -r requirements_tui.txt pytest
       - run: pytest -q
+
+  schema-sync:
+    name: NATASCHA-Schema — Python ↔ Rust synchron
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      # Wächter: natascha_db.py SCHEMA_SQL vs. src-tauri natascha_schema.sql
+      # (E3). Stdlib-only, kein pip nötig.
+      - run: python3 scripts/check_natascha_schema_sync.py

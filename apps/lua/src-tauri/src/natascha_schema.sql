@@ -83,6 +83,16 @@ CREATE TABLE IF NOT EXISTS klassen_briefing (
     erstellt_am TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS aufgabe_quelltext (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    klasse TEXT NOT NULL,
+    aufgabe TEXT NOT NULL,
+    ausgangstext TEXT NOT NULL,
+    erstellt_am TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    geaendert_am TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(klasse, aufgabe)
+);
+
 CREATE INDEX IF NOT EXISTS idx_abgabe_hash ON abgabe(datei_hash);
 CREATE INDEX IF NOT EXISTS idx_abgabe_klasse ON abgabe(klasse);
 CREATE INDEX IF NOT EXISTS idx_abgabe_aufgabe ON abgabe(aufgabe);

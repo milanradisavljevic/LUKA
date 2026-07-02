@@ -7,6 +7,14 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Fixed / CI — NATASCHA-Schema-Sync-Wächter (PR 11)
+- Drift behoben: Tabelle `aufgabe_quelltext` fehlte im Rust-Spiegel
+  `src-tauri/src/natascha_schema.sql` (in `apps/natascha/natascha_db.py` vorhanden) →
+  ergänzt, beide Seiten wieder 1:1.
+- Neuer Wächter `scripts/check_natascha_schema_sync.py` (stdlib) vergleicht die
+  CREATE-TABLE-Definitionen beider Quellen normalisiert und bricht bei Drift mit
+  Exit 1 + Diff ab. Als CI-Job `schema-sync` in `.github/workflows/ci.yml` eingehängt.
+
 ### Changed — PDF-Export mit Datei-Dialog (PR 6)
 - Der PDF-Export verlangt keinen von Hand getippten Windows-Pfad mehr: das Modal in
   `Step4_Generate.tsx` bietet jetzt „DOCX-Datei wählen…" über den nativen Tauri-Datei-
