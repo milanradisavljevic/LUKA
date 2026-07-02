@@ -7,6 +7,13 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Changed — PDF-Export mit Datei-Dialog (PR 6)
+- Der PDF-Export verlangt keinen von Hand getippten Windows-Pfad mehr: das Modal in
+  `Step4_Generate.tsx` bietet jetzt „DOCX-Datei wählen…" über den nativen Tauri-Datei-
+  Dialog (`@tauri-apps/plugin-dialog` `open`, `dialog:allow-open`); gewählter Pfad wird
+  angezeigt, „PDF erstellen" ist erst nach Auswahl aktiv. Neuer `pickDocxFile` in
+  `hooks/usePdfExport.ts`, Default = zuletzt genutzter DOCX-Pfad.
+
 ### Fixed — Settings-Polish (PR 10)
 - `SettingsView`: Button „Testdaten laden (Dev)" wird nur noch in
   `import.meta.env.DEV` gerendert.

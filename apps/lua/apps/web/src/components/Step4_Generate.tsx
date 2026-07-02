@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   Loader2, Sparkles, FileDown, ClipboardList, FileType, CheckCircle2,
   AlertTriangle, Timer, Bot, X, Palette, BookOpen, Target, ShieldCheck,
-  ChevronRight, ChevronDown, Layers, Wrench, ClipboardCheck, FileQuestion,
+  ChevronRight, ChevronDown, Layers, Wrench, ClipboardCheck, FileQuestion, FolderOpen,
 } from 'lucide-react';
 import type { AppState, AppAction } from '../lib/types';
 import type { Block } from '@lehrunterlagen/schema';
@@ -756,18 +756,27 @@ export function Step4_Generate({ state, dispatch }: Props) {
           }} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ marginBottom: '0.5rem' }}>PDF aus DOCX erstellen</h3>
             <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>
-              Gib den vollständigen Pfad zur DOCX-Datei ein.
-              Beispiel: <code style={{ background: 'var(--color-bg-base)', padding: '0.125rem 0.25rem', borderRadius: '4px' }}>C:\Users\…\Downloads\Datei.docx</code>
+              Wähle die zuvor gespeicherte DOCX-Datei — LibreOffice erzeugt daraus eine PDF.
             </p>
 
-            <input
-              type="text"
-              value={pdfExport.docxPath}
-              onChange={(e) => pdfExport.setDocxPath(e.target.value)}
-              placeholder="Pfad zur DOCX-Datei…"
-              autoFocus
-              style={{ marginBottom: '0.75rem' }}
-            />
+            <button
+              className="btn-secondary"
+              onClick={pdfExport.pickDocxFile}
+              disabled={pdfExport.converting}
+              style={{ marginBottom: '0.75rem', padding: '0.5rem 0.9rem',
+                display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+            >
+              <FolderOpen size={15} /> DOCX-Datei wählen…
+            </button>
+
+            {pdfExport.docxPath && (
+              <div style={{
+                padding: '0.5rem 0.75rem', background: 'var(--color-bg-base)', borderRadius: 'var(--radius)',
+                marginBottom: '0.75rem', fontSize: '0.8125rem',
+              }}>
+                <code style={{ wordBreak: 'break-all' }}>{pdfExport.docxPath}</code>
+              </div>
+            )}
 
             {pdfExport.pdfPath && (
               <div style={{
@@ -794,7 +803,7 @@ export function Step4_Generate({ state, dispatch }: Props) {
               <button
                 className="btn-primary"
                 onClick={pdfExport.convertToPdf}
-                disabled={pdfExport.converting}
+                disabled={pdfExport.converting || !pdfExport.docxPath.trim()}
                 style={{ flex: 1, padding: '0.5rem',
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
               >

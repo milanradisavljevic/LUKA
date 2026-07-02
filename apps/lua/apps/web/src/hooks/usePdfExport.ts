@@ -47,6 +47,25 @@ export function usePdfExport() {
     setState((prev) => ({ ...prev, docxPath: path }));
   }, []);
 
+  /** Öffnet den nativen Datei-Dialog zur DOCX-Auswahl (statt Pfad-Tipperei). */
+  const pickDocxFile = useCallback(async () => {
+    try {
+      const { open } = await import('@tauri-apps/plugin-dialog');
+      const selected = await open({
+        multiple: false,
+        directory: false,
+        defaultPath: getLastDocxPath() || undefined,
+        filters: [{ name: 'Word-Dokument', extensions: ['docx'] }],
+      });
+      if (typeof selected === 'string') {
+        setState((prev) => ({ ...prev, docxPath: selected, error: null }));
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Datei-Auswahl fehlgeschlagen';
+      setState((prev) => ({ ...prev, error: msg }));
+    }
+  }, []);
+
   const convertToPdf = useCallback(async () => {
     if (!state.docxPath.trim()) {
       setState((prev) => ({ ...prev, error: 'Bitte gib den Pfad zur DOCX-Datei ein.' }));
@@ -92,6 +111,7 @@ export function usePdfExport() {
     libreOfficeAvailable,
     startPdfExport,
     setDocxPath,
+    pickDocxFile,
     convertToPdf,
     closePathInput,
     reset,
