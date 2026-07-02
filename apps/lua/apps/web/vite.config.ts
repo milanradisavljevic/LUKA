@@ -19,4 +19,16 @@ export default defineConfig({
       '@lehrunterlagen/input',
     ],
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // Schwere, selten/optional genutzte Libs in eigene Chunks — recharts wird nur
+        // von den NATASCHA-gegateten Klassen/Schüler-Views geladen, dnd-kit nur im Baukasten.
+        manualChunks: {
+          recharts: ['recharts'],
+          dndkit: ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities'],
+        },
+      },
+    },
+  },
 });

@@ -7,6 +7,15 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Performance — Code-Splitting (PR 7)
+- 14 sekundäre Views in `App.tsx` auf `React.lazy` + `Suspense` umgestellt
+  (DashboardView + Wizard-Schritte bleiben eager). `renderView()` in `<Suspense>`
+  mit dezentem Lade-Fallback.
+- `apps/web/vite.config.ts`: `manualChunks` für `recharts` und `@dnd-kit`.
+- Effekt: `recharts` (377 kB) und `@dnd-kit` (186 kB) verlassen das Haupt-Bundle
+  (Haupt-Chunk 1,96 MB → 1,25 MB). recharts lädt nur noch beim Öffnen der
+  NATASCHA-Klassen/Schüler-Views — im MVP (`FEATURES.natascha:false`) also nie.
+
 ### Performance — Asset-Diät (PR 3)
 - 12 Fach-Atmosphäre-PNGs → WebP (q72, Alpha erhalten): **9,1 MB → 5,4 MB** (−41 %);
   Imports in `components/SubjectAtmosphere.tsx` auf `.webp` umgestellt.

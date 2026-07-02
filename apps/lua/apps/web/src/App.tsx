@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
 import { Save, Search, ArrowLeft, ArrowRight, Loader2, BookOpen } from 'lucide-react';
 import type { AppAction, ActiveView, SavedDocument } from './lib/types';
 import { STEP_DESCRIPTIONS } from './lib/types';
@@ -17,21 +17,23 @@ import { TemplateManager } from './components/TemplateManager';
 import { CommandPalette } from './components/CommandPalette';
 import { Sidebar } from './components/Sidebar';
 import { ThemeToggle } from './components/ThemeToggle';
-import { KlassenView } from './views/KlassenView';
-import { DocumentsView } from './views/DocumentsView';
-import { FavoritesView } from './views/FavoritesView';
-import { TrashView } from './views/TrashView';
-import { HistoryView } from './views/HistoryView';
-import { TemplatesView } from './views/TemplatesView';
-import { PoolView } from './views/PoolView';
-import { HelpView } from './views/HelpView';
-import { SettingsView } from './views/SettingsView';
-import { KorrekturView } from './views/KorrekturView';
-import { SchuelerView } from './views/SchuelerView';
 import { DashboardView } from './views/DashboardView';
-import { ErwartungshorizontView } from './views/ErwartungshorizontView';
-import { KompetenzView } from './views/KompetenzView';
-import { QuickExerciseView } from './views/QuickExerciseView';
+// Sekundäre Views lazy geladen (Code-Splitting): halten recharts (nur Klassen/Schüler)
+// und dnd-freie Nebenansichten aus dem Haupt-Bundle. DashboardView bleibt eager (Landing).
+const KlassenView = lazy(() => import('./views/KlassenView').then((m) => ({ default: m.KlassenView })));
+const DocumentsView = lazy(() => import('./views/DocumentsView').then((m) => ({ default: m.DocumentsView })));
+const FavoritesView = lazy(() => import('./views/FavoritesView').then((m) => ({ default: m.FavoritesView })));
+const TrashView = lazy(() => import('./views/TrashView').then((m) => ({ default: m.TrashView })));
+const HistoryView = lazy(() => import('./views/HistoryView').then((m) => ({ default: m.HistoryView })));
+const TemplatesView = lazy(() => import('./views/TemplatesView').then((m) => ({ default: m.TemplatesView })));
+const PoolView = lazy(() => import('./views/PoolView').then((m) => ({ default: m.PoolView })));
+const HelpView = lazy(() => import('./views/HelpView').then((m) => ({ default: m.HelpView })));
+const SettingsView = lazy(() => import('./views/SettingsView').then((m) => ({ default: m.SettingsView })));
+const KorrekturView = lazy(() => import('./views/KorrekturView').then((m) => ({ default: m.KorrekturView })));
+const SchuelerView = lazy(() => import('./views/SchuelerView').then((m) => ({ default: m.SchuelerView })));
+const ErwartungshorizontView = lazy(() => import('./views/ErwartungshorizontView').then((m) => ({ default: m.ErwartungshorizontView })));
+const KompetenzView = lazy(() => import('./views/KompetenzView').then((m) => ({ default: m.KompetenzView })));
+const QuickExerciseView = lazy(() => import('./views/QuickExerciseView').then((m) => ({ default: m.QuickExerciseView })));
 import { setPendingUebung } from './lib/korrekturBridge';
 import { createDefaultBlock } from './lib/blockDefaults';
 import type { NataschaPrefill } from './lib/nataschaBridge';
@@ -568,7 +570,16 @@ if (hydrating) {
             reduced={settings.reduceBackgroundEffects}
           />
           <div className="app-main-content">
-            {renderView()}
+            <Suspense
+              fallback={
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '4rem', color: 'var(--color-text-secondary)' }}>
+                  <Loader2 size={22} className="spin" aria-hidden="true" />
+                  <span style={{ marginLeft: '0.5rem' }}>Wird geladen…</span>
+                </div>
+              }
+            >
+              {renderView()}
+            </Suspense>
           </div>
         </main>
 
