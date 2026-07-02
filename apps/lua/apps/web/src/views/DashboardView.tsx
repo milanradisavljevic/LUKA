@@ -11,7 +11,6 @@ import type { ActiveView, SavedDocument } from '../lib/types';
 import { FEATURES } from '../lib/features';
 import { fachLabel } from '@lehrunterlagen/schema';
 import type { Block, Fach } from '@lehrunterlagen/schema';
-import { Hero } from '../components/ui/Hero';
 import { StartActionIllustration } from '../components/ui/StartActionIllustration';
 import { Tile } from '../components/ui/Tile';
 
@@ -30,6 +29,39 @@ interface KlasseStat {
 }
 
 const HANDLUNGSBEDARF_AB = 3.5;
+
+const START_ACTIONS = [
+  {
+    variant: 'quelltext' as const,
+    view: 'wizard' as const,
+    title: 'Aus Quelltext',
+    sub: 'Schularbeit / Test zu einem Text',
+    desc: 'Material hochladen oder einfügen; daraus entstehen passende Aufgaben.',
+    min: '~5 Min',
+    cta: 'Material starten',
+    primary: true,
+  },
+  {
+    variant: 'kompetenz' as const,
+    view: 'kompetenz' as const,
+    title: 'Ohne Quelltext',
+    sub: 'Übung aus Kompetenz & Lehrplan',
+    desc: 'Fach, Schulstufe und Kompetenz wählen; LUKA baut eine Übung.',
+    min: '~2 Min',
+    cta: 'Kompetenz wählen',
+    primary: false,
+  },
+  {
+    variant: 'schnell' as const,
+    view: 'quick' as const,
+    title: 'Schnell-Übung',
+    sub: 'Ein Aufgabentyp, sofort',
+    desc: 'Ein Thema, ein Aufgabentyp, sofort im Baukasten.',
+    min: '~1 Min',
+    cta: 'Sofort bauen',
+    primary: false,
+  },
+];
 
 export function DashboardView({ onNavigate, onStartQuickExercise }: DashboardViewProps = {}) {
   const { listKlassen, getNotenverteilung, getKlassenTrend } = useNatascha();
@@ -134,48 +166,40 @@ export function DashboardView({ onNavigate, onStartQuickExercise }: DashboardVie
     <div style={{ maxWidth: 1200, margin: '0 auto' }}>
 
       {/* ═══ HERO: Begrüßung + drei Startwege ═══ */}
-      <Hero greeting={greetTime()} subtitle="Was möchtest du vorbereiten?" subtitleScript>
-        {/* Drei Einstiegskarten — Aus Quelltext · Ohne Quelltext · Schnell-Übung */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(232px, 1fr))', gap: '1.25rem' }}>
-          {([
-            { variant: 'quelltext' as const, view: 'wizard' as const, title: 'Aus Quelltext', sub: 'Schularbeit / Test zu einem Text', desc: 'Material hochladen oder einfügen; daraus entstehen passende Aufgaben.', min: '~5 Min' },
-            { variant: 'kompetenz' as const, view: 'kompetenz' as const, title: 'Ohne Quelltext', sub: 'Übung aus Kompetenz & Lehrplan', desc: 'Fach, Schulstufe und Kompetenz wählen; LUKA baut eine Übung.', min: '~2 Min' },
-            { variant: 'schnell' as const, view: 'quick' as const, title: 'Schnell-Übung', sub: 'Ein Aufgabentyp, sofort', desc: 'Ein Thema, ein Aufgabentyp, sofort im Baukasten.', min: '~1 Min' },
-          ]).map((d) => (
+      <section className="paper dashboard-start" aria-labelledby="dashboard-start-title">
+        <div className="dashboard-start__header">
+          <div>
+            <h1 id="dashboard-start-title" className="font-script ink-underline dashboard-start__greeting">
+              {greetTime()}
+            </h1>
+            <p className="font-script dashboard-start__subtitle">Was möchtest du vorbereiten?</p>
+          </div>
+        </div>
+
+        <div className="dashboard-actions">
+          {START_ACTIONS.map((d) => (
             <button
               key={d.variant}
-              className="card card-clickable start-action-card"
+              className={`card card-clickable start-action-card start-action-card--${d.variant} ${d.primary ? 'start-action-card--primary' : 'start-action-card--secondary'}`}
               onClick={() => onNavigate?.(d.view)}
               aria-label={`${d.title} — ${d.sub}`}
-              style={{
-                padding: '1.35rem 1.2rem',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                textAlign: 'center',
-                gap: '0.875rem',
-                minHeight: 292,
-              }}
             >
               <StartActionIllustration variant={d.variant} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
-                  {d.title}
-                </div>
-                <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', marginTop: '0.125rem' }}>
-                  {d.sub}
-                </div>
-                <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', margin: '0.5rem 0 0.75rem', lineHeight: 1.5 }}>
-                  {d.desc}
-                </p>
-                <span className="badge badge-info">
+              <div className="start-action-card__body">
+                <span className="badge badge-info start-action-card__time">
                   <Timer size={11} /> {d.min} Einrichtung
+                </span>
+                <h2 className="start-action-card__title">{d.title}</h2>
+                <p className="start-action-card__sub">{d.sub}</p>
+                <p className="start-action-card__desc">{d.desc}</p>
+                <span className="start-action-card__cta">
+                  {d.cta} <ChevronRight size={15} />
                 </span>
               </div>
             </button>
           ))}
         </div>
-      </Hero>
+      </section>
 
       {/* ═══ Schnell-Übungen ═══ */}
       {onStartQuickExercise && (

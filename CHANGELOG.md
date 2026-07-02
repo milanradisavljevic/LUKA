@@ -7,6 +7,14 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Changed — Übersicht-Startfläche
+- Dashboard-Hero in ein Bento-Layout umgebaut: „Aus Quelltext" ist jetzt der
+  visuelle Hauptweg, „Ohne Quelltext" und „Schnell-Übung" bleiben kompakte
+  Alternativen.
+- Einstiegskarten mit feineren SVG-Liniengrafiken, eigenen Light-/Dark-Styles,
+  klarer CTA-Zeile und responsiver Stapelung überarbeitet.
+- Nicht mehr verwendete generische `Hero`-Komponente entfernt.
+
 ### Fixed / CI — NATASCHA-Schema-Sync-Wächter (PR 11)
 - Drift behoben: Tabelle `aufgabe_quelltext` fehlte im Rust-Spiegel
   `src-tauri/src/natascha_schema.sql` (in `apps/natascha/natascha_db.py` vorhanden) →
