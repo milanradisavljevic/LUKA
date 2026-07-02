@@ -337,22 +337,26 @@ export function SettingsView() {
         <div style={{ paddingTop: '1rem', borderTop: '1px solid var(--color-border)' }}>
           <label style={labelStyle}>Gemeinsame Datenbank</label>
           <DbPath />
-          <button
-            onClick={handleSeed}
-            disabled={seedBusy}
-            style={{
-              marginTop: '0.75rem', fontSize: '0.8125rem', padding: '0.4rem 0.75rem',
-              border: '1px solid var(--color-border)', borderRadius: 'var(--radius)',
-              background: 'var(--color-bg-base)', cursor: seedBusy ? 'wait' : 'pointer',
-            }}
-          >
-            {seedBusy ? 'Lädt …' : 'Testdaten laden (Dev)'}
-          </button>
-          {seedMsg && (
-            <p style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', marginTop: '0.5rem', marginBottom: 0, color: 'var(--color-text-secondary)' }}>
-              {seedMsg.startsWith('Testdaten geladen') && <Check size={13} aria-hidden="true" style={{ color: 'var(--color-success)' }} />}
-              {seedMsg}
-            </p>
+          {import.meta.env.DEV && (
+            <>
+              <button
+                onClick={handleSeed}
+                disabled={seedBusy}
+                style={{
+                  marginTop: '0.75rem', fontSize: '0.8125rem', padding: '0.4rem 0.75rem',
+                  border: '1px solid var(--color-border)', borderRadius: 'var(--radius)',
+                  background: 'var(--color-bg-base)', cursor: seedBusy ? 'wait' : 'pointer',
+                }}
+              >
+                {seedBusy ? 'Lädt …' : 'Testdaten laden (Dev)'}
+              </button>
+              {seedMsg && (
+                <p style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', marginTop: '0.5rem', marginBottom: 0, color: 'var(--color-text-secondary)' }}>
+                  {seedMsg.startsWith('Testdaten geladen') && <Check size={13} aria-hidden="true" style={{ color: 'var(--color-success)' }} />}
+                  {seedMsg}
+                </p>
+              )}
+            </>
           )}
         </div>
       </section>

@@ -94,7 +94,7 @@ export default function App() {
   useEffect(() => subscribeSettings(setSettings), []);
 
   const { state, dispatch, goNext, goBack, goToStep, currentIndex } = useWizard();
-  const { resolved: theme, toggle: toggleTheme } = useTheme();
+  const { preference: themePreference, resolved: theme, toggle: toggleTheme } = useTheme();
   const { zoom, reset: resetZoom } = useZoom();
   const [activeView, setActiveView] = useState<ActiveView>('dashboard');
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
@@ -554,7 +554,7 @@ if (hydrating) {
                 <TemplateManager meta={state.meta} bloecke={state.bloecke} onLoad={handleLoadTemplate} />
               </>
             )}
-            <ThemeToggle theme={theme} onToggle={toggleTheme} />
+            <ThemeToggle preference={themePreference} resolvedTheme={theme} onToggle={toggleTheme} />
           </div>
         </header>
 

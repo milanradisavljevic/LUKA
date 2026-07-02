@@ -7,6 +7,16 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Fixed — Settings-Polish (PR 10)
+- `SettingsView`: Button „Testdaten laden (Dev)" wird nur noch in
+  `import.meta.env.DEV` gerendert.
+- `useTheme`/`ThemeToggle`: Header-Toggle rotiert jetzt
+  Hell → Dunkel → System, zeigt den aktuellen Modus per Icon/Titel und
+  aktualisiert System-Theme-Wechsel live.
+- `SettingsPanel`: API-Key-Felder zeigen provider-spezifische Prefix-Hinweise;
+  untypische Prefixe erzeugen nur eine sanfte Warnung und blockieren das
+  Speichern nicht.
+
 ### Changed — CI und Dependency-Wächter (PR 8)
 - `.github/workflows/ci.yml`: Web-Job ergänzt `pnpm audit --prod` als
   non-blocking Report; neuer Rust-Job installiert Tauri-Linux-Abhängigkeiten und

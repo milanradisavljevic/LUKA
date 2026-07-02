@@ -38,17 +38,21 @@ export function useTheme() {
   useEffect(() => {
     if (preference !== 'system') return;
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const handler = () => setResolved(getSystemTheme());
+    const handler = () => {
+      const next = getSystemTheme();
+      setResolved(next);
+      document.documentElement.setAttribute('data-theme', next);
+    };
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);
   }, [preference]);
 
   const toggle = useCallback(() => {
-    setResolved((prev) => {
-      const next = prev === 'light' ? 'dark' : 'light';
-      setPreference(next);
-      return next;
-    });
+    setPreference((prev) => (
+      prev === 'light' ? 'dark' :
+      prev === 'dark' ? 'system' :
+      'light'
+    ));
   }, []);
 
   return { preference, resolved, setPreference, toggle };

@@ -10,6 +10,15 @@ interface SettingsPanelProps {
   onKeySaved?: () => void;
 }
 
+const KEY_HINTS: Record<string, { placeholder: string; prefix?: string; label: string }> = {
+  claude: { placeholder: 'sk-ant-...', prefix: 'sk-ant-', label: 'Claude-Keys beginnen meist mit sk-ant-' },
+  chatgpt: { placeholder: 'sk-...', prefix: 'sk-', label: 'OpenAI-Keys beginnen meist mit sk-' },
+  deepseek: { placeholder: 'sk-...', prefix: 'sk-', label: 'DeepSeek-Keys beginnen meist mit sk-' },
+  mistral: { placeholder: 'Mistral API-Key eingeben', label: 'Mistral-Keys haben je nach Konto kein stabiles Prefix.' },
+  qwen: { placeholder: 'sk-...', prefix: 'sk-', label: 'Qwen-Keys beginnen meist mit sk-' },
+  kimi: { placeholder: 'sk-...', prefix: 'sk-', label: 'Kimi/Moonshot-Keys beginnen meist mit sk-' },
+};
+
 export function SettingsPanel({ onKeySaved }: SettingsPanelProps) {
   const [keys, setKeys] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState<Record<string, boolean>>({});
@@ -98,7 +107,14 @@ export function SettingsPanel({ onKeySaved }: SettingsPanelProps) {
       </p>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        {LLM_PROVIDERS.map((provider) => (
+        {LLM_PROVIDERS.map((provider) => {
+          const hint = KEY_HINTS[provider.id];
+          const value = keys[provider.id]?.trim() ?? '';
+          const prefixWarning = hint?.prefix && value && !value.startsWith(hint.prefix)
+            ? `Hinweis: ${hint.label}. Du kannst trotzdem speichern, falls dein Key anders aussieht.`
+            : null;
+
+          return (
             <div key={provider.id} style={{
               padding: '1rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)',
             }}>
@@ -110,7 +126,7 @@ export function SettingsPanel({ onKeySaved }: SettingsPanelProps) {
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                 <input
                   type="password"
-                  placeholder="sk-... oder API-Key eingeben"
+                  placeholder={hint?.placeholder ?? 'API-Key eingeben'}
                   value={keys[provider.id] ?? ''}
                   onChange={(e) => setKeys((prev) => ({ ...prev, [provider.id]: e.target.value }))}
                   disabled={!tauriAvailable}
@@ -142,6 +158,12 @@ export function SettingsPanel({ onKeySaved }: SettingsPanelProps) {
                 </button>
               </div>
 
+              {(prefixWarning || hint?.label) && (
+                <div style={{ color: prefixWarning ? 'var(--color-warning)' : 'var(--color-text-muted)', fontSize: '0.75rem', marginTop: '0.4rem' }}>
+                  {prefixWarning ?? hint?.label}
+                </div>
+              )}
+
               {saved[provider.id] && (
                 <div style={{ color: 'var(--color-success)', fontSize: '0.8125rem', marginTop: '0.5rem' }}>
                   Schlüssel gespeichert.
@@ -163,7 +185,8 @@ export function SettingsPanel({ onKeySaved }: SettingsPanelProps) {
                 </div>
               )}
             </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
