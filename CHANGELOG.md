@@ -7,6 +7,16 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Security — Spawn-Härtung + Key-Import räumt auf (PR 9)
+- `launch_natascha` (`src-tauri/src/commands/natascha.rs`) validiert den frei
+  editierbaren `pythonCommand` (Whitelist `A-Za-z0-9 _ . : / \ -`) vor der
+  Interpolation in den `cmd`/`osascript`-String — verhindert Command-Injection aus
+  einem präparierten Settings-JSON. Der CLI-Sidecar-Pfad war schon argv-basiert.
+- `bin/import_keys`: löscht die Klartext-Quelldatei nach erfolgreichem Keyring-Import,
+  statt sie nach `.env.local` umzubenennen (keine dauerhafte Klartext-Kopie mehr).
+- Rust-Unit-Tests: gültige Interpreter ok; `python & calc`, `; rm`, `$()`, Backticks,
+  leer → je Err.
+
 ### Security — Bridge-Read gehärtet (PR 5)
 - `read_bridge_export` (`src-tauri/src/commands/bridge.rs`): liest nur noch `.json`
   **unterhalb des aufgelösten Inbox-Ordners** (Pfad-Canonicalize + `starts_with`),

@@ -51,10 +51,21 @@ fn main() {
 
     println!("\n{} Keys erfolgreich importiert.", imported);
 
-    let local_env = Path::new("src-tauri/.env.local");
-    if let Err(e) = fs::rename(env_file, local_env) {
-        eprintln!("Warnung: Konnte ENV-Datei nicht verschieben: {}", e);
+    // Keys liegen jetzt im OS-Keyring (Produktionspfad). Die Klartext-Quelldatei
+    // wird gelöscht statt nach .env.local umbenannt — sonst bliebe eine dauerhafte
+    // Klartext-Kopie auf der Platte liegen (S1 aus docs/PLAN-review-2026-07-02.md).
+    if imported > 0 {
+        match fs::remove_file(env_file) {
+            Ok(_) => println!(
+                "Klartext-Quelldatei '{}' gelöscht (Keys nur noch im Keyring).",
+                env_file.display()
+            ),
+            Err(e) => eprintln!(
+                "Warnung: Quelldatei '{}' konnte nicht gelöscht werden: {} — bitte manuell entfernen.",
+                env_file.display(), e
+            ),
+        }
     } else {
-        println!("ENV-Datei nach 'src-tauri/.env.local' verschoben.");
+        eprintln!("Keine Keys importiert — Quelldatei bleibt unverändert.");
     }
 }

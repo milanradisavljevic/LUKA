@@ -48,6 +48,25 @@ fn resolve_python(python: &str) -> String {
     }
 }
 
+/// Validiert den Python-Befehl gegen eine Whitelist, bevor er (in `launch_natascha`)
+/// in einen `cmd`-/`osascript`-String interpoliert wird. Ein präpariertes Settings-JSON
+/// könnte sonst beliebige Kommandos ausführen. Erlaubt sind nur Zeichen, die in echten
+/// Interpreter-Pfaden vorkommen: Buchstaben, Ziffern und `_ . : / \ - ` (Leerzeichen).
+fn validate_python_command(py: &str) -> Result<(), String> {
+    let ok = !py.is_empty()
+        && py.chars().all(|c| {
+            c.is_ascii_alphanumeric() || matches!(c, '_' | '.' | ':' | '/' | '\\' | ' ' | '-')
+        });
+    if ok {
+        Ok(())
+    } else {
+        Err(format!(
+            "Ungültiger Python-Befehl: {py:?}. Erlaubt sind nur Buchstaben, Ziffern und _ . : / \\ - \
+             (keine Shell-Sonderzeichen). Bitte den Python-Befehl in den Einstellungen korrigieren."
+        ))
+    }
+}
+
 // --- Phase 3a: TUI in Terminal starten ---
 
 #[cfg(target_os = "windows")]
@@ -98,6 +117,7 @@ fn spawn_terminal(work: &PathBuf, py: &str) -> std::io::Result<()> {
 pub async fn launch_natascha(dir: String, python: String) -> Result<(), String> {
     let work = resolve_dir(&dir)?;
     let py = resolve_python(&python);
+    validate_python_command(&py)?;
     spawn_terminal(&work, &py).map_err(|e| {
         format!(
             "Terminal konnte nicht gestartet werden: {e}. Starte NATASCHA manuell: \
@@ -465,4 +485,28 @@ pub async fn natascha_schueler_profil(
     if let Some(ref v) = provider { cmd.arg("--provider").arg(v); }
     if let Some(ref v) = model { cmd.arg("--model").arg(v); }
     run_cli_and_capture(cmd)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn python_command_accepts_real_interpreters() {
+        assert!(validate_python_command("python").is_ok());
+        assert!(validate_python_command("python3").is_ok());
+        assert!(validate_python_command("py").is_ok());
+        assert!(validate_python_command("/usr/bin/python3").is_ok());
+        assert!(validate_python_command("C:\\Python311\\python.exe").is_ok());
+    }
+
+    #[test]
+    fn python_command_rejects_injection() {
+        assert!(validate_python_command("python & calc").is_err());
+        assert!(validate_python_command("python; rm -rf /").is_err());
+        assert!(validate_python_command("python$(whoami)").is_err());
+        assert!(validate_python_command("python`id`").is_err());
+        assert!(validate_python_command("python && start").is_err());
+        assert!(validate_python_command("").is_err());
+    }
 }
