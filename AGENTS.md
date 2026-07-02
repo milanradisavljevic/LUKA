@@ -82,16 +82,18 @@ cd apps/natascha && python3 seed_testdaten.py && python3 natascha_bridge.py TEST
 ## Roadmap
 
 - **Phase 1 — Datei-Brücke (MVP): DONE.** Siehe CHANGELOG 2026-06-08.
-- **Phase 2 — Gemeinsame SQLite (geplant).** Ausführbares Design:
-  **`docs/phase2-shared-db.md`**. Größter Brocken: LUA von `localStorage`
-  (`apps/web/src/lib/storage.ts`) auf SQLite via Tauri-Rust-Command umstellen
-  ohne API-Bruch (sync→async: Hydrate-Cache). Schema-Eigentümer: NATASCHA; LUA
-  migriert additiv dagegen. Backup-Pflicht vor erstem LUA-Schreibzugriff.
+- **Phase 2 — Gemeinsame SQLite: DONE.** Ist-Architektur:
+  **`docs/phase2-shared-db.md`**. LUA initialisiert die gemeinsame DB
+  `~/lehr-suite-bridge/lehr-suite.db` über `apps/lua/src-tauri/src/db.rs`
+  aus `natascha_schema.sql` + `lua_schema.sql`; `apps/web/src/lib/storage.ts`
+  nutzt einen Hydrate-Cache mit SQLite-Persistenz und Browser/localStorage-
+  Fallback. NATASCHA bleibt Schema-Eigentümer; LUA spiegelt das NATASCHA-Schema
+  additiv und reicht für Headless-Sidecar-Aufrufe immer `--db-path` weiter.
 - **Phase 3 — Korrektur-UI integrieren.** Design + Wege A/B/C:
   **`docs/phase3-correction-ui.md`**. **Phase 3a erledigt:** Sidebar „Korrektur
   (NATASCHA)" startet die TUI in einem Terminal (`commands/natascha.rs`,
   `launch_natascha`; Windows-Spawn noch ungetestet).
 - **Phase 3c — voller Port (freigegeben).** NATASCHA komplett nativ in die LUA-UX:
   Python-Core als headless Sidecar, alle ~15 Screens in React. Bauplan +
-  Wellen 0–4: **`docs/phase3c-natascha-port-plan.md`**. Erster Bau-Schritt =
-  Welle 0 = Phase 2 (gemeinsame DB).
+  Wellen 0–4: **`docs/phase3c-natascha-port-plan.md`**. Welle 0 = Phase 2
+  (gemeinsame DB) ist erledigt; nächste Schritte sind die React-Port-Wellen.
