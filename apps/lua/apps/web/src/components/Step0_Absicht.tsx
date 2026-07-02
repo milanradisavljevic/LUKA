@@ -166,7 +166,7 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
       setNataschaBusy(true);
       try {
         const { invoke } = await import('@tauri-apps/api/core');
-        const raw = await invoke<string>('read_bridge_export', { path: meta.pfad });
+        const raw = await invoke<string>('read_bridge_export', { path: meta.pfad, dir: nataschaInboxDir });
         const ex = parseBridgeExport(raw);
         const p = mapBridgeToPrefill(ex);
         setTyp('schuluebung');

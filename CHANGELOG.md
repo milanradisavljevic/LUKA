@@ -7,6 +7,24 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Security — Bridge-Read gehärtet (PR 5)
+- `read_bridge_export` (`src-tauri/src/commands/bridge.rs`): liest nur noch `.json`
+  **unterhalb des aufgelösten Inbox-Ordners** (Pfad-Canonicalize + `starts_with`),
+  ≤ 5 MB (DoS-Schutz gegen Riesen-JSON aus dem fremd-beschreibbaren Inbox), mit
+  gültiger `schemaVersion` (1|2, sonst freundliche Ablehnung mit Grund). Neuer
+  `dir`-Parameter (Frontend reicht die Inbox aus den Einstellungen mit).
+- `list_bridge_exports` überspringt Dateien > 5 MB, statt sie einzulesen.
+- Rust-Unit-Tests: Pfad außerhalb Inbox → Err, > 5 MB → Err, `schemaVersion 99` → Err.
+
+### Changed — Doku: Phase 2 ist gebaut
+- `AGENTS.md`: Roadmap korrigiert — Phase 2 „Gemeinsame SQLite" ist nicht mehr
+  geplant, sondern erledigt. Dokumentiert sind jetzt `~/lehr-suite-bridge/lehr-suite.db`,
+  `db.rs`, `natascha_schema.sql`/`lua_schema.sql`, Hydrate-Cache und `--db-path`
+  für NATASCHA-Sidecar-Aufrufe.
+- `docs/phase2-shared-db.md`: vom alten Ausführungsdesign auf Ist-Architektur
+  umgestellt, inklusive aktueller Tabellen, Tauri-Commands, localStorage-
+  Migration und Verifikationshinweisen.
+
 ### Changed — Dashboard-Start und Fachgrafik-Feinschliff
 - **Deutsch**-Fachatmosphäre ersetzt: keine Theatermasken mehr; stattdessen
   Goethe-/Schiller-Anmutung mit Buch-, Feder- und Manuskript-Lineart.
