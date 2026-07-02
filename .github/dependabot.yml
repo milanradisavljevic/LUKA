@@ -1,0 +1,16 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /apps/lua
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: cargo
+    directory: /apps/lua/src-tauri
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: pip
+    directory: /apps/natascha
+    schedule:
+      interval: weekly

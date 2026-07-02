@@ -7,6 +7,14 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Changed — CI und Dependency-Wächter (PR 8)
+- `.github/workflows/ci.yml`: Web-Job ergänzt `pnpm audit --prod` als
+  non-blocking Report; neuer Rust-Job installiert Tauri-Linux-Abhängigkeiten und
+  führt `cargo check`, `cargo test` sowie `cargo audit` als non-blocking Report
+  aus.
+- `.github/dependabot.yml`: wöchentliche Updates für npm (`apps/lua`), Cargo
+  (`apps/lua/src-tauri`) und pip (`apps/natascha`) ergänzt.
+
 ### Fixed — UI-Symbole und Anrede (PR 4)
 - Web-UI: verbliebene Emoji-/Symbol-Markierungen durch `lucide-react`-Icons
   ersetzt (`Lightbulb`, `AlertTriangle`, `Check`), damit die Tauri/WebView2-App
