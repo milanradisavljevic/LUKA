@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
-import { ArrowRight, Clock, FolderOpen, BookOpen, ClipboardCheck, Target, Grid3X3, Languages, Pencil } from 'lucide-react';
+import { ArrowRight, Clock, FolderOpen, BookOpen, ClipboardCheck, Target, Grid3X3, Languages, Pencil, AlertTriangle } from 'lucide-react';
 import type { AppState, AppAction } from '../lib/types';
 import { BLOCK_TYPE_DEFS, SCHWIERIGKEIT_RULES, UNTERLAGENTYP_MINUTEN } from '../lib/constants';
 import { buildSkelett, FACH_META, fachLabel, istSprachfach, type Auftrag, type Fach } from '@lehrunterlagen/schema';
@@ -145,7 +145,7 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
       if (list.length === 0) {
         setNataschaInfo(
           `Keine Korrektur-Exporte gefunden${pfad ? ` in ${pfad}` : ''}. ` +
-            'Exportiere in NATASCHA im Heatmap-Tab über „🎯 Für Übungs-Tool". ' +
+            'Exportiere in NATASCHA im Heatmap-Tab über „Für Übungs-Tool". ' +
             'Den Ordner kannst du in den Einstellungen ändern.',
         );
       }
@@ -751,7 +751,7 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
                 <bt.Icon size={15} style={{ color: bt.color, opacity: isDiscouraged && !aktiv ? 0.5 : 1 }} />
                 <span>{bt.label}</span>
                 {isDiscouraged && !aktiv && (
-                  <span style={{ fontSize: '0.625rem', color: 'var(--color-warning, #f59e0b)' }}>⚠</span>
+                  <AlertTriangle size={13} aria-label="Hinweis" style={{ color: 'var(--color-warning, #f59e0b)' }} />
                 )}
               </button>
             );

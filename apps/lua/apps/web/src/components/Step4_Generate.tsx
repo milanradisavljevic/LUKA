@@ -495,7 +495,7 @@ export function Step4_Generate({ state, dispatch }: Props) {
                 ))}
               </ul>
               <p style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', margin: '0.25rem 0 0 0' }}>
-                Suchen Sie im Ordner "Downloads" Ihres Computers.
+                Schau im Ordner "Downloads" deines Computers nach.
               </p>
             </div>
           )}
@@ -729,9 +729,9 @@ export function Step4_Generate({ state, dispatch }: Props) {
               Um eine PDF zu erhalten:
             </p>
             <ol style={{ fontSize: '0.875rem', lineHeight: 1.6, paddingLeft: '1.25rem', marginBottom: '1.25rem' }}>
-              <li>Laden Sie die DOCX-Datei herunter.</li>
-              <li>Öffnen Sie sie in <strong>Microsoft Word</strong> oder <strong>LibreOffice Writer</strong>.</li>
-              <li>Wählen Sie <em>Datei &rsaquo; Als PDF exportieren</em> (oder Drucken &rsaquo; Als PDF speichern).</li>
+              <li>Lade die DOCX-Datei herunter.</li>
+              <li>Öffne sie in <strong>Microsoft Word</strong> oder <strong>LibreOffice Writer</strong>.</li>
+              <li>Wähle <em>Datei &rsaquo; Als PDF exportieren</em> (oder Drucken &rsaquo; Als PDF speichern).</li>
             </ol>
             <button
               className="btn-primary"
@@ -756,7 +756,7 @@ export function Step4_Generate({ state, dispatch }: Props) {
           }} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ marginBottom: '0.5rem' }}>PDF aus DOCX erstellen</h3>
             <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>
-              Geben Sie den vollständigen Pfad zur DOCX-Datei ein.
+              Gib den vollständigen Pfad zur DOCX-Datei ein.
               Beispiel: <code style={{ background: 'var(--color-bg-base)', padding: '0.125rem 0.25rem', borderRadius: '4px' }}>C:\Users\…\Downloads\Datei.docx</code>
             </p>
 

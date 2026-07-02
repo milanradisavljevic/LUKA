@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Users, TrendingUp, AlertTriangle, Loader2, BarChart3, ChevronRight, Trash2, UserPlus, Sparkles, Wand2, FileUp, User, School } from 'lucide-react';
+import { Users, TrendingUp, AlertTriangle, Loader2, BarChart3, ChevronRight, Trash2, UserPlus, Sparkles, Wand2, FileUp, User, School, Check } from 'lucide-react';
 import { EmptyState } from './_EmptyState';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, Legend, CartesianGrid } from 'recharts';
 import { useNatascha } from '../hooks/useNatascha';
@@ -62,7 +62,7 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
     try {
       try { await addKlasse(klasse); } catch { /* Klasse existiert evtl. schon — ok */ }
       const res = await addAufgabe(klasse, aufLabel.trim(), { fach: aufFach, schulstufe: aufStufe, rubric: aufRubric });
-      setAufMsg(`✓ Aufgabe „${res.aufgabe}" in ${klasse} angelegt (Rubrik: ${res.rubric || '—'}).`);
+      setAufMsg(`Aufgabe „${res.aufgabe}" in ${klasse} angelegt (Rubrik: ${res.rubric || '—'}).`);
       setAufLabel('');
       await listKlassen().then(setKlassen);
     } catch (e) {
@@ -352,7 +352,12 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
               style={{ width: '100%', fontSize: '0.75rem', padding: '0.35rem' }}>
               {aufBusy ? 'Anlegen …' : 'Aufgabe + Rubrik anlegen'}
             </button>
-            {aufMsg && <p style={{ fontSize: '0.7rem', marginTop: 4, marginBottom: 0, color: 'var(--color-text-secondary)' }}>{aufMsg}</p>}
+            {aufMsg && (
+              <p style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.7rem', marginTop: 4, marginBottom: 0, color: 'var(--color-text-secondary)' }}>
+                {aufMsg.startsWith('Aufgabe') && <Check size={13} aria-hidden="true" style={{ color: 'var(--color-success)' }} />}
+                {aufMsg}
+              </p>
+            )}
           </div>
         </div>
 

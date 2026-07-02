@@ -7,6 +7,15 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Fixed — UI-Symbole und Anrede (PR 4)
+- Web-UI: verbliebene Emoji-/Symbol-Markierungen durch `lucide-react`-Icons
+  ersetzt (`Lightbulb`, `AlertTriangle`, `Check`), damit die Tauri/WebView2-App
+  konsistent rendert.
+- Texte in `Step4_Generate`, PDF-Hinweis und PDF-Fehlerpfad auf die sonstige
+  Du-Ansprache vereinheitlicht.
+- Statusmeldungen in Settings, Erwartungshorizont und Schüleransicht zeigen
+  Erfolg jetzt per Icon statt per `✓`-Textzeichen.
+
 ### Performance — Code-Splitting (PR 7)
 - 14 sekundäre Views in `App.tsx` auf `React.lazy` + `Suspense` umgestellt
   (DashboardView + Wizard-Schritte bleiben eager). `renderView()` in `<Suspense>`

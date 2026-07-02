@@ -48,7 +48,7 @@ export function ErwartungshorizontView() {
     setRubricSaving(true); setRubricMsg(null);
     try {
       const r = await saveRubric(rubricName, rubricContent);
-      setRubricMsg(`✓ Gespeichert (${r.name}, ${r.bytes} Bytes).`);
+      setRubricMsg(`Gespeichert (${r.name}, ${r.bytes} Bytes).`);
       await listRubricFiles().then(setRubricFiles);
     } catch (e) {
       setRubricMsg(typeof e === 'string' ? e : e instanceof Error ? e.message : 'Speichern fehlgeschlagen.');
@@ -62,7 +62,7 @@ export function ErwartungshorizontView() {
     setSaving(true); setSaveMsg(null);
     try {
       const r = await saveErwartungshorizont(klasse.trim(), aufgabe.trim(), result);
-      setSaveMsg(`✓ Gespeichert (${r.datei}) — wird bei der Korrektur von ${r.klasse} · ${r.aufgabe} automatisch genutzt.`);
+      setSaveMsg(`Gespeichert (${r.datei}) — wird bei der Korrektur von ${r.klasse} · ${r.aufgabe} automatisch genutzt.`);
     } catch (e) {
       setSaveMsg(typeof e === 'string' ? e : e instanceof Error ? e.message : 'Speichern fehlgeschlagen.');
     } finally {
@@ -185,7 +185,10 @@ export function ErwartungshorizontView() {
             }}
           />
           {saveMsg && (
-            <p style={{ fontSize: '0.75rem', marginTop: '0.5rem', marginBottom: 0, color: 'var(--color-text-secondary)', whiteSpace: 'pre-wrap' }}>{saveMsg}</p>
+            <p style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', marginTop: '0.5rem', marginBottom: 0, color: 'var(--color-text-secondary)', whiteSpace: 'pre-wrap' }}>
+              {saveMsg.startsWith('Gespeichert') && <Check size={13} aria-hidden="true" style={{ color: 'var(--color-success)' }} />}
+              {saveMsg}
+            </p>
           )}
         </section>
       )}
@@ -232,7 +235,12 @@ export function ErwartungshorizontView() {
               >
                 <Save size={14} /> {rubricSaving ? 'Speichere …' : 'Rubrik speichern'}
               </button>
-              {rubricMsg && <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>{rubricMsg}</span>}
+              {rubricMsg && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+                  {rubricMsg.startsWith('Gespeichert') && <Check size={13} aria-hidden="true" style={{ color: 'var(--color-success)' }} />}
+                  {rubricMsg}
+                </span>
+              )}
             </div>
           </>
         )}

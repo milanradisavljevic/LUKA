@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { AlertTriangle, CheckCircle2, Check, Circle, Pencil, RefreshCw, FileText, KeyRound, Database } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Check, Circle, Pencil, RefreshCw, FileText, KeyRound, Database, Lightbulb } from 'lucide-react';
 import { istSprachfach, fachLabel } from '@lehrunterlagen/schema';
 import type { Block } from '@lehrunterlagen/schema';
 import type { AppState, AppAction } from '../lib/types';
@@ -210,7 +210,12 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
                     {item.use && item.use.map((u, j) => <div key={j}>{u}</div>)}
                     {item.signalWords && item.signalWords.length > 0 && <div><strong>Signal words:</strong> <em>{item.signalWords.join(', ')}</em></div>}
                     {item.example && <div><strong>Example:</strong> <em>{item.example}</em></div>}
-                    {item.tip && <div>💡 <strong>Tip:</strong> {item.tip}</div>}
+                    {item.tip && (
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <Lightbulb size={12} aria-hidden="true" />
+                        <strong>Tipp:</strong> {item.tip}
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}

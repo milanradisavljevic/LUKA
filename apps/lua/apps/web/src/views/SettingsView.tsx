@@ -103,7 +103,7 @@ export function SettingsView() {
       await invoke<string>('natascha_seed_testdaten', {
         dir: settings.nataschaDir ?? '', python: settings.pythonCommand ?? '',
       });
-      setSeedMsg('✓ Testdaten geladen. „Meine Klassen"/„Schüler" erneut öffnen.');
+      setSeedMsg('Testdaten geladen. „Meine Klassen"/„Schüler" erneut öffnen.');
     } catch (e) {
       setSeedMsg(typeof e === 'string' ? e : e instanceof Error ? e.message : 'Seed fehlgeschlagen.');
     } finally { setSeedBusy(false); }
@@ -123,7 +123,7 @@ export function SettingsView() {
       });
       if (!target) return;
       await invoke('db_backup', { targetPath: target });
-      setBackupMsg(`✓ Sicherung gespeichert: ${target}`);
+      setBackupMsg(`Sicherung gespeichert: ${target}`);
     } catch (e) {
       setBackupMsg(typeof e === 'string' ? e : e instanceof Error ? e.message : 'Backup fehlgeschlagen.');
     }
@@ -349,7 +349,10 @@ export function SettingsView() {
             {seedBusy ? 'Lädt …' : 'Testdaten laden (Dev)'}
           </button>
           {seedMsg && (
-            <p style={{ fontSize: '0.75rem', marginTop: '0.5rem', marginBottom: 0, color: 'var(--color-text-secondary)' }}>{seedMsg}</p>
+            <p style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', marginTop: '0.5rem', marginBottom: 0, color: 'var(--color-text-secondary)' }}>
+              {seedMsg.startsWith('Testdaten geladen') && <Check size={13} aria-hidden="true" style={{ color: 'var(--color-success)' }} />}
+              {seedMsg}
+            </p>
           )}
         </div>
       </section>
@@ -374,7 +377,12 @@ export function SettingsView() {
             <Download size={14} /> Datensicherung exportieren
           </button>
           <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', margin: '0.5rem 0 0' }}>
-            {backupMsg ?? 'Schreibt eine kompakte Kopie der Datenbank an einen Ort deiner Wahl.'}
+            {backupMsg ? (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                {backupMsg.startsWith('Sicherung gespeichert') && <Check size={13} aria-hidden="true" style={{ color: 'var(--color-success)' }} />}
+                {backupMsg}
+              </span>
+            ) : 'Schreibt eine kompakte Kopie der Datenbank an einen Ort deiner Wahl.'}
           </p>
         </div>
       </section>

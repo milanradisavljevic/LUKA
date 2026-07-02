@@ -1008,7 +1008,7 @@ export function BlockConfigPanel({ block, stufe, onConfigChange }: Props) {
 
         <ConfigField label="Gemeinsame Redemittel (eine Phrase pro Zeile)">
           <textarea rows={3} value={redemittel.join('\n')}
-            placeholder={modus === 'ki' ? 'wird von der KI ergänzt' : 'Ich hätte gerne ...\nKönnten Sie mir bitte ...?'}
+            placeholder={modus === 'ki' ? 'wird von der KI ergänzt' : 'Ich hätte gerne ...\nKannst du mir bitte ...?'}
             onChange={(e) => setRedemittel(e.target.value)} />
         </ConfigField>
 

@@ -49,7 +49,7 @@ export function usePdfExport() {
 
   const convertToPdf = useCallback(async () => {
     if (!state.docxPath.trim()) {
-      setState((prev) => ({ ...prev, error: 'Bitte geben Sie den Pfad zur DOCX-Datei ein.' }));
+      setState((prev) => ({ ...prev, error: 'Bitte gib den Pfad zur DOCX-Datei ein.' }));
       return;
     }
 
