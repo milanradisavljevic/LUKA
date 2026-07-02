@@ -69,6 +69,14 @@ export const KATEGORIE_TO_BLOCKTYPEN: Record<BridgeHeatmapEintrag['typ'], BlockT
   A: ['stiluebung', 'wordScramble'],
 };
 
+/** Kurze Kategoriecodes aus NATASCHA → lesbare Schwerpunkte. */
+export const KATEGORIE_LABEL: Record<string, string> = {
+  R: 'Rechtschreibung',
+  G: 'Grammatik',
+  Z: 'Zeichensetzung',
+  A: 'Ausdruck',
+};
+
 export interface NataschaPrefill {
   thema: string;
   fach: Fach;
@@ -80,6 +88,52 @@ export interface NataschaPrefill {
   ausgangstext?: string;
   /** v2: Strukturierte Schülerfehler → editierbare Kurations-Liste in Step0. */
   fehler?: BridgeBeispiel[];
+}
+
+interface HeatmapPrefillEntry {
+  typ: string;
+  anzahl: number;
+}
+
+interface BuildPrefillFromHeatmapArgs {
+  klasse: string;
+  aufgabe?: string;
+  heatmap: HeatmapPrefillEntry[];
+  ausgangstext?: string;
+}
+
+/** Baut eine Generator-Vorbefüllung direkt aus SQLite-Heatmap-Daten. */
+export function buildPrefillFromHeatmap({
+  klasse,
+  aufgabe,
+  heatmap,
+  ausgangstext,
+}: BuildPrefillFromHeatmapArgs): NataschaPrefill | null {
+  const top = [...heatmap]
+    .filter((h) => h.anzahl > 0)
+    .sort((a, b) => b.anzahl - a.anzahl)
+    .slice(0, 3);
+
+  if (top.length === 0) return null;
+
+  const fokusThemen = top.map((h) => KATEGORIE_LABEL[h.typ] ?? h.typ);
+  const gewuenschteAufgabenarten: BlockTyp[] = [];
+  for (const h of top) {
+    for (const t of (KATEGORIE_TO_BLOCKTYPEN[h.typ as BridgeHeatmapEintrag['typ']] ?? [])) {
+      if (!gewuenschteAufgabenarten.includes(t)) gewuenschteAufgabenarten.push(t);
+    }
+  }
+
+  return {
+    thema: `Übung zu Fehlerschwerpunkten – ${klasse}${aufgabe ? ' · ' + aufgabe : ''}`,
+    // V1-Limitierung: NATASCHA-Heatmaps kommen aktuell aus Deutsch-Korrekturen; Stufe wird in Step 0 anpassbar.
+    fach: 'deutsch',
+    stufe: 'oberstufe',
+    fokusThemen,
+    gewuenschteAufgabenarten,
+    notizen: `Automatisch aus der Korrektur-Heatmap der Klasse ${klasse} erzeugt. Schwerpunkte: ${fokusThemen.join(', ')}.`,
+    ausgangstext: ausgangstext?.trim() || undefined,
+  };
 }
 
 /**

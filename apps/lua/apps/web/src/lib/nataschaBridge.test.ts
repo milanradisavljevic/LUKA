@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  buildPrefillFromHeatmap,
   parseBridgeExport,
   mapBridgeToPrefill,
   type BridgeExport,
@@ -90,5 +91,68 @@ describe('mapBridgeToPrefill', () => {
     void schulstufe;
     const p = mapBridgeToPrefill(ohneStufe as BridgeExport);
     expect(p.stufe).toBe('oberstufe');
+  });
+});
+
+describe('buildPrefillFromHeatmap', () => {
+  it('nimmt Top 3 nach Anzahl und dedupliziert Aufgabenarten', () => {
+    const p = buildPrefillFromHeatmap({
+      klasse: '7a',
+      aufgabe: 'SA2',
+      heatmap: [
+        { typ: 'R', anzahl: 2 },
+        { typ: 'G', anzahl: 9 },
+        { typ: 'Z', anzahl: 7 },
+        { typ: 'A', anzahl: 6 },
+      ],
+      ausgangstext: '  Ausgangstext  ',
+    });
+
+    expect(p).not.toBeNull();
+    expect(p?.fokusThemen).toEqual(['Grammatik', 'Zeichensetzung', 'Ausdruck']);
+    expect(p?.gewuenschteAufgabenarten).toEqual([
+      'lueckentext',
+      'offeneVerstaendnisfrage',
+      'offeneSchreibaufgabe',
+      'markieraufgabe',
+      'stiluebung',
+      'wordScramble',
+    ]);
+    expect(p?.thema).toBe('Übung zu Fehlerschwerpunkten – 7a · SA2');
+    expect(p?.ausgangstext).toBe('Ausgangstext');
+  });
+
+  it('gibt null zurück, wenn keine Fehler vorhanden sind', () => {
+    expect(buildPrefillFromHeatmap({
+      klasse: '7a',
+      heatmap: [
+        { typ: 'R', anzahl: 0 },
+        { typ: 'G', anzahl: -1 },
+      ],
+    })).toBeNull();
+  });
+
+  it('nutzt bei unbekanntem Typ den rohen Code und crasht nicht', () => {
+    const p = buildPrefillFromHeatmap({
+      klasse: '7a',
+      aufgabe: 'SA3',
+      heatmap: [{ typ: 'X', anzahl: 4 }],
+    });
+
+    expect(p).not.toBeNull();
+    expect(p?.fokusThemen).toEqual(['X']);
+    expect(p?.gewuenschteAufgabenarten).toEqual([]);
+    expect(p?.notizen).toContain('Schwerpunkte: X');
+  });
+
+  it('funktioniert ohne Aufgabe und Ausgangstext', () => {
+    const p = buildPrefillFromHeatmap({
+      klasse: '7a',
+      heatmap: [{ typ: 'Z', anzahl: 3 }],
+    });
+
+    expect(p).not.toBeNull();
+    expect(p?.thema).toBe('Übung zu Fehlerschwerpunkten – 7a');
+    expect(p?.ausgangstext).toBeUndefined();
   });
 });

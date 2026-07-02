@@ -1,22 +1,28 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   GraduationCap, AlertTriangle, Loader2, ClipboardCheck,
   ChevronRight, FileText, Timer, Files, Clock, Coins,
-  Grid3X3, Languages, Pencil, AlignLeft, Repeat,
+  Grid3X3, Languages, Pencil, AlignLeft, Repeat, Wand2,
 } from 'lucide-react';
 import { useNatascha } from '../hooks/useNatascha';
 import { loadDocuments, loadTemplates } from '../lib/storage';
 import { BLOCK_TYPE_DEFS } from '../lib/constants';
-import type { ActiveView, SavedDocument } from '../lib/types';
+import type { ActiveView } from '../lib/types';
 import { FEATURES } from '../lib/features';
 import { fachLabel } from '@lehrunterlagen/schema';
 import type { Block, Fach } from '@lehrunterlagen/schema';
 import { StartActionIllustration } from '../components/ui/StartActionIllustration';
 import { Tile } from '../components/ui/Tile';
+import {
+  buildPrefillFromHeatmap,
+  KATEGORIE_LABEL,
+  type NataschaPrefill,
+} from '../lib/nataschaBridge';
 
 interface DashboardViewProps {
   onNavigate?: (view: ActiveView) => void;
   onStartQuickExercise?: (config: { fach: 'deutsch' | 'englisch'; stufe: 'unterstufe' | 'oberstufe'; typ: Block['typ']; thema: string }) => void;
+  onGenerateUebung?: (prefill: NataschaPrefill) => void;
 }
 
 interface KlasseStat {
@@ -24,11 +30,36 @@ interface KlasseStat {
   anzahlAbgaben: number;
   durchschnitt: number | null;
   letztesDatum: string | null;
+  letzteAufgabe: string | null;
   abgaben: number;
   mitFeedback: number;
 }
 
+interface DashboardHeatmapEntry {
+  typ: string;
+  anzahl: number;
+  prozent?: number;
+}
+
+interface EmpfehlungDesTages {
+  klasse: string;
+  aufgabe: string;
+  heatmap: DashboardHeatmapEntry[];
+  topLabel: string;
+  topAnzahl: number;
+}
+
 const HANDLUNGSBEDARF_AB = 3.5;
+
+function isTauriRuntime(): boolean {
+  return typeof window !== 'undefined' && (window as any).__TAURI_INTERNALS__ !== undefined;
+}
+
+function trendDatumTime(d: string | null): number {
+  if (!d) return 0;
+  const t = new Date(d).getTime();
+  return Number.isNaN(t) ? 0 : t;
+}
 
 const START_ACTIONS = [
   {
@@ -63,19 +94,23 @@ const START_ACTIONS = [
   },
 ];
 
-export function DashboardView({ onNavigate, onStartQuickExercise }: DashboardViewProps = {}) {
-  const { listKlassen, getNotenverteilung, getKlassenTrend } = useNatascha();
+export function DashboardView({ onNavigate, onStartQuickExercise, onGenerateUebung }: DashboardViewProps = {}) {
+  const { listKlassen, getNotenverteilung, getKlassenTrend, getHeatmap, quelltextGet } = useNatascha();
   const [rows, setRows] = useState<KlasseStat[]>([]);
+  const [empfehlung, setEmpfehlung] = useState<EmpfehlungDesTages | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!FEATURES.natascha) {
+    if (!FEATURES.natascha || !isTauriRuntime()) {
+      setRows([]);
+      setEmpfehlung(null);
       setLoading(false);
       return;
     }
     let cancelled = false;
     (async () => {
       setLoading(true);
+      setEmpfehlung(null);
       const ks = await listKlassen();
       const stats = await Promise.all(ks.map(async (k) => {
         const [nv, trend] = await Promise.all([
@@ -92,12 +127,39 @@ export function DashboardView({ onNavigate, onStartQuickExercise }: DashboardVie
           letztesDatum: last?.datum ?? null,
           abgaben,
           mitFeedback,
+          letzteAufgabe: last?.aufgabe ?? null,
         } as KlasseStat;
       }));
-      if (!cancelled) { setRows(stats); setLoading(false); }
+
+      const newest = stats
+        .filter((s) => s.letztesDatum)
+        .sort((a, b) => trendDatumTime(b.letztesDatum) - trendDatumTime(a.letztesDatum))[0];
+
+      let nextEmpfehlung: EmpfehlungDesTages | null = null;
+      if (newest?.letzteAufgabe) {
+        try {
+          const heatmap = await getHeatmap(newest.klasse, newest.letzteAufgabe);
+          const top = [...heatmap]
+            .filter((h) => h.anzahl > 0)
+            .sort((a, b) => b.anzahl - a.anzahl)[0];
+          if (top) {
+            nextEmpfehlung = {
+              klasse: newest.klasse,
+              aufgabe: newest.letzteAufgabe,
+              heatmap,
+              topLabel: KATEGORIE_LABEL[top.typ] ?? top.typ,
+              topAnzahl: top.anzahl,
+            };
+          }
+        } catch {
+          nextEmpfehlung = null;
+        }
+      }
+
+      if (!cancelled) { setRows(stats); setEmpfehlung(nextEmpfehlung); setLoading(false); }
     })();
     return () => { cancelled = true; };
-  }, [listKlassen, getNotenverteilung, getKlassenTrend]);
+  }, [listKlassen, getNotenverteilung, getKlassenTrend, getHeatmap]);
 
   const lastDocument = useMemo(() => {
     const docs = loadDocuments().filter((d) => !d.isDeleted);
@@ -161,6 +223,23 @@ export function DashboardView({ onNavigate, onStartQuickExercise }: DashboardVie
     if (h < 18) return 'Guten Tag.';
     return 'Guten Abend.';
   };
+
+  const handleGenerateEmpfehlung = useCallback(async () => {
+    if (!empfehlung || !onGenerateUebung) return;
+    let ausgangstext = '';
+    try {
+      ausgangstext = await quelltextGet(empfehlung.klasse, empfehlung.aufgabe);
+    } catch {
+      ausgangstext = '';
+    }
+    const prefill = buildPrefillFromHeatmap({
+      klasse: empfehlung.klasse,
+      aufgabe: empfehlung.aufgabe,
+      heatmap: empfehlung.heatmap,
+      ausgangstext,
+    });
+    if (prefill) onGenerateUebung(prefill);
+  }, [empfehlung, onGenerateUebung, quelltextGet]);
 
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto' }}>
@@ -370,6 +449,48 @@ export function DashboardView({ onNavigate, onStartQuickExercise }: DashboardVie
         </div>
       ) : rows.length > 0 && (
         <div>
+          {empfehlung && onGenerateUebung && (
+            <section
+              className="card"
+              aria-label="Empfehlung des Tages"
+              style={{
+                padding: '1rem 1.15rem',
+                marginBottom: '1.5rem',
+                borderColor: 'color-mix(in srgb, var(--color-accent) 38%, var(--color-border))',
+                background: 'linear-gradient(135deg, color-mix(in srgb, var(--color-info-bg) 72%, var(--color-bg-surface)) 0%, var(--color-bg-surface) 72%)',
+              }}
+            >
+              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+                <div style={{ minWidth: 240, flex: '1 1 420px' }}>
+                  <p style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    color: 'var(--color-accent)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    marginBottom: '0.35rem',
+                  }}>
+                    Empfehlung des Tages
+                  </p>
+                  <h2 style={{ fontSize: '1rem', marginBottom: '0.25rem' }}>
+                    {empfehlung.klasse}: häufigster Fehler in {empfehlung.aufgabe} war {empfehlung.topLabel} ({empfehlung.topAnzahl}×).
+                  </h2>
+                  <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem', margin: 0 }}>
+                    Ein Klick, und LUKA baut dir ein passendes Übungsblatt.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={handleGenerateEmpfehlung}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', whiteSpace: 'nowrap' }}
+                >
+                  <Wand2 size={16} /> Gezielte Übung erstellen
+                </button>
+              </div>
+            </section>
+          )}
+
           <h2 className="ink-underline" style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '1.25rem' }}>
             Klassenübersicht
           </h2>

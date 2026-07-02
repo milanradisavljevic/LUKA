@@ -7,6 +7,13 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Empfehlung des Tages (PR A, Welle 1)
+- `FEATURES.natascha` aktiviert die NATASCHA-Views im Hauptmenü.
+- `nataschaBridge`: `KATEGORIE_LABEL` und `buildPrefillFromHeatmap(...)`
+  erzeugen aus Heatmap-Schwerpunkten eine Generator-Vorbefüllung.
+- Dashboard zeigt bei vorhandenen Korrekturdaten eine „Empfehlung des Tages"
+  und startet per Klick ein gezieltes Übungsblatt mit optionalem Ausgangstext.
+
 ### Added — Wirksamkeits-Ansicht: Fehlertrend je Klasse (PR B, Welle 1)
 - `apps/lua/src-tauri/src/commands/natascha_read.rs`: neuer Read-Command
   `db_get_fehler_trend(klasse)` — Fehlerkategorien (R/G/Z/A) je Schularbeit,

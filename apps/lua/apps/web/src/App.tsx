@@ -394,7 +394,7 @@ export default function App() {
   const renderView = () => {
     const nataschaViews: ActiveView[] = ['klassen', 'korrektur', 'schueler', 'erwartungshorizont'];
     if (!FEATURES.natascha && nataschaViews.includes(activeView)) {
-      return <DashboardView onNavigate={(v) => setActiveView(v)} onStartQuickExercise={handleStartQuickExercise} />;
+      return <DashboardView onNavigate={(v) => setActiveView(v)} onStartQuickExercise={handleStartQuickExercise} onGenerateUebung={handleGenerateUebung} />;
     }
 
     switch (activeView) {
@@ -418,7 +418,7 @@ if (hydrating) {
           </div>
         );
       case 'dashboard':
-        return <DashboardView onNavigate={(v) => setActiveView(v)} onStartQuickExercise={handleStartQuickExercise} />;
+        return <DashboardView onNavigate={(v) => setActiveView(v)} onStartQuickExercise={handleStartQuickExercise} onGenerateUebung={handleGenerateUebung} />;
       case 'documents':
         return <DocumentsView onOpenDocument={handleOpenDocument} onNavigate={(v) => setActiveView(v)} />;
       case 'favorites':
