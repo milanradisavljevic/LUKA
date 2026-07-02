@@ -7,6 +7,17 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Tafel-Modus (PR D, Welle 1)
+- Neuer Vollbild-Beamer-Modus für Unterlagen: Quelltext-Folien zuerst, danach
+  Aufgabenblöcke read-only mit Lösungsschalter, Tastatursteuerung (Pfeile,
+  Leertaste, L, +/- und Esc) und Scroll-Lock.
+- `lib/tafel.ts` kapselt Slide-Aufbau und Schriftgrößen-Clamping; neue Tests
+  decken Reihenfolge, leere Quelltexte und Grenzwerte ab.
+- Step 4 erhält einen „Tafel-Modus"-Button; die Befehlspalette startet ihn per
+  „tafel", „beamer" oder „präsentation".
+- `.tafel-overlay` nutzt lokal dieselben Kreide-Farbvariablen wie das Dark-Theme,
+  ohne das App-Theme umzuschalten.
+
 ### Added — Empfehlung des Tages (PR A, Welle 1)
 - `FEATURES.natascha` aktiviert die NATASCHA-Views im Hauptmenü.
 - `nataschaBridge`: `KATEGORIE_LABEL` und `buildPrefillFromHeatmap(...)`

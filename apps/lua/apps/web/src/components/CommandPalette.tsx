@@ -43,7 +43,7 @@ const NON_PARAMETRIC_TRIGGER: Record<string, string> = {
   'block-delete': 'block löschen',
 };
 
-const APP_HANDLED_COMMANDS = new Set(['new']);
+const APP_HANDLED_COMMANDS = new Set(['new', 'tafel-modus']);
 
 export function CommandPalette({ open, onClose, onActions, onNavigate, onExport, blockCount, index, onExecuteResult }: Props) {
   const [input, setInput] = useState('');
@@ -160,6 +160,19 @@ export function CommandPalette({ open, onClose, onActions, onNavigate, onExport,
     }
 
     const result = parse(trimmed);
+    if (result.commandId && APP_HANDLED_COMMANDS.has(result.commandId)) {
+      onExecuteResult({
+        id: `command:${result.commandId}`,
+        kind: 'command',
+        title: result.label,
+        keywords: [trimmed],
+        score: 0,
+        action: { type: 'paletteCommand', commandId: result.commandId },
+      });
+      setFeedback({ type: 'success', text: result.label });
+      onClose();
+      return;
+    }
     if (result.action) {
       onActions(result.action);
       setFeedback({ type: 'success', text: result.label });
@@ -170,7 +183,7 @@ export function CommandPalette({ open, onClose, onActions, onNavigate, onExport,
         text: 'Befehl nicht erkannt. Tippe z. B. „Thema: …" oder wähle einen Treffer.',
       });
     }
-  }, [blockCount, onActions, onNavigate, onExport, onClose, parse]);
+  }, [blockCount, onActions, onNavigate, onExport, onExecuteResult, onClose, parse]);
 
   // --- Ausführung eines ausgewählten Ergebnisses (Klick oder Enter auf Zeile) ---
   const executeCommandResult = useCallback((sr: SearchResult) => {

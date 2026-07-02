@@ -134,6 +134,13 @@ export const COMMANDS: CommandDef[] = [
     pattern: /^(export(ieren)?|generieren|dokumente?\s+erstellen|download)$/i,
     parse: () => ({ type: 'SET_STEP', step: 'generate' }), // handled specially
   },
+  {
+    id: 'tafel-modus',
+    label: 'Tafel-Modus starten',
+    description: 'Öffnet die aktuelle Unterlage im Vollbild für den Beamer',
+    pattern: /^(tafel(-?modus)?|beamer|pr(ä|ae)sentation)$/i,
+    parse: () => null,
+  },
 
   // ---- Vorlagen ----
   {

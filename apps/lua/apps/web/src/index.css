@@ -148,6 +148,7 @@
 }
 
 /* === DARK — Tafel & Kreide (Blackboard, RAL Design 180 30 15) === */
+/* Bei Dark-Theme-Änderungen auch .tafel-overlay anpassen (Tafel-Modus). */
 :root[data-theme="dark"] {
   color-scheme: dark;
 
@@ -199,6 +200,155 @@
   --sidebar-text-active: #ffffff;
   --sidebar-border: rgba(255,255,255,0.08);
   --sidebar-accent: #9BD2BF;
+}
+
+.tafel-overlay {
+  /* Bei Dark-Theme-Änderungen auch .tafel-overlay anpassen (Tafel-Modus). */
+  --color-bg-base: #1C3530;
+  --color-bg-surface: #244640;
+  --color-bg-elevated: #2C534B;
+  --color-bg-input: #1F3D37;
+  --color-bg-hover: #2E544C;
+  --color-bg-selected: rgba(155,210,191,0.16);
+  --color-bg-backdrop: rgba(28,53,48,0.96);
+
+  --color-text-primary: #ECEDE6;
+  --color-text-secondary: #B4C2BB;
+  --color-text-muted: #7E928A;
+
+  --color-border: #3C5C54;
+  --color-border-focus: #9BD2BF;
+  --color-accent: #9BD2BF;
+  --color-accent-hover: #B6E2D2;
+
+  --color-error: #ff8a80;
+  --color-error-bg: #3a2422;
+  --color-success: #8BD9A8;
+  --color-success-bg: #1f3d2e;
+  --color-warning: #ffd166;
+  --color-warning-bg: #3a3320;
+  --color-info: #9BD2BF;
+  --color-info-bg: rgba(155,210,191,0.12);
+  --color-shadow: rgba(0,0,0,0.45);
+  --color-overlay: rgba(0,0,0,0.6);
+  --color-highlight: #E8B7A0;
+  --color-highlight-bg: rgba(232,183,160,0.14);
+
+  background:
+    radial-gradient(circle at 22% 18%, rgba(155,210,191,0.10), transparent 28rem),
+    radial-gradient(circle at 82% 72%, rgba(232,183,160,0.08), transparent 26rem),
+    var(--color-bg-base);
+  color: var(--color-text-primary);
+}
+
+.tafel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+  background: rgba(28,53,48,0.86);
+  backdrop-filter: blur(12px);
+}
+
+.tafel-header-title {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  color: var(--color-text-primary);
+}
+
+.tafel-header-title strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 1rem;
+}
+
+.tafel-header-title span {
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.8125rem;
+}
+
+.tafel-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.tafel-header-actions .btn-secondary {
+  min-height: 2.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  background: rgba(44,83,75,0.78);
+  color: var(--color-text-primary);
+  border-color: var(--color-border);
+}
+
+.tafel-stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(1rem, 4vw, 3rem);
+  overflow: hidden;
+}
+
+.tafel-slide {
+  width: min(900px, calc(100vw - 2rem));
+  max-width: 900px;
+  max-height: 100%;
+  overflow-y: auto;
+  padding: clamp(1.25rem, 3vw, 2.5rem);
+  border: 1px solid rgba(155,210,191,0.28);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01)),
+    rgba(36,70,64,0.86);
+  box-shadow: 0 24px 80px rgba(0,0,0,0.34);
+}
+
+.tafel-kicker {
+  margin-bottom: 0.4rem;
+  color: var(--color-accent);
+  font-size: 0.8em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.tafel-quelltext h2 {
+  margin-bottom: 1.25rem;
+  color: var(--color-text-primary);
+  font-size: 1.35em;
+  line-height: 1.2;
+}
+
+.tafel-quelltext p {
+  color: var(--color-text-primary);
+  line-height: 1.75;
+  white-space: pre-wrap;
+}
+
+.tafel-quelltext p + p {
+  margin-top: 1rem;
+}
+
+.tafel-block {
+  color: var(--color-text-primary);
+}
+
+.tafel-block h3,
+.tafel-block h4 {
+  color: var(--color-text-primary);
 }
 
 html {

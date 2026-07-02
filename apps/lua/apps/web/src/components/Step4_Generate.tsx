@@ -3,6 +3,7 @@ import {
   Loader2, Sparkles, FileDown, ClipboardList, FileType, CheckCircle2,
   AlertTriangle, Timer, Bot, X, Palette, BookOpen, Target, ShieldCheck,
   ChevronRight, ChevronDown, Layers, Wrench, ClipboardCheck, FileQuestion, FolderOpen,
+  Presentation,
 } from 'lucide-react';
 import type { AppState, AppAction } from '../lib/types';
 import type { Block } from '@lehrunterlagen/schema';
@@ -25,9 +26,10 @@ function isTauri(): boolean {
 interface Props {
   state: AppState;
   dispatch: React.Dispatch<AppAction>;
+  onOpenTafel?: () => void;
 }
 
-export function Step4_Generate({ state, dispatch }: Props) {
+export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
   const { generate, regenerateBlock, pruefeLoesungen, cancel, generating, pruefend, stage, elapsedMs, aktiverProvider, error: generateError } = useGenerate(dispatch);
   const { exportDocx, exportDocxOverride, exportKorrekturraster, exportKompetenzraster, exportSelbstlern, exportSelbsteinschaetzung, exportGift, exporting, error: exportError, warnung: exportWarnung, lastSavedPaths } = useExport();
   const pdfExport = usePdfExport();
@@ -73,6 +75,7 @@ export function Step4_Generate({ state, dispatch }: Props) {
   const error = generateError ?? exportError ?? pdfExport.error;
 
   const totalPunkte = state.bloecke.reduce((s, b) => s + b.punkte, 0);
+  const previewBloecke = state.generiertesDokument?.bloecke ?? state.bloecke;
 
   const runExportWithQualityGate = async () => {
     if (!state.generiertesDokument) return;
@@ -699,16 +702,42 @@ export function Step4_Generate({ state, dispatch }: Props) {
       {/* Zweispaltige Vorschau */}
       {state.bloecke.length > 0 && (
         <div style={{ borderTop: '2px solid var(--color-border)', paddingTop: '1rem' }}>
-          <h3 style={{ fontSize: '0.9375rem', marginBottom: '0.75rem' }}>
-            Vorschau
-            {state.generiertesDokument && (
-              <span style={{ fontSize: '0.75rem', color: 'var(--color-accent)',
-                marginLeft: '0.75rem', fontWeight: 400,
-                display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                <CheckCircle2 size={13} /> mit generiertem Inhalt
-              </span>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '0.75rem',
+            marginBottom: '0.75rem',
+          }}>
+            <h3 style={{ fontSize: '0.9375rem', margin: 0 }}>
+              Vorschau
+              {state.generiertesDokument && (
+                <span style={{ fontSize: '0.75rem', color: 'var(--color-accent)',
+                  marginLeft: '0.75rem', fontWeight: 400,
+                  display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                  <CheckCircle2 size={13} /> mit generiertem Inhalt
+                </span>
+              )}
+            </h3>
+            {onOpenTafel && previewBloecke.length > 0 && (
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={onOpenTafel}
+                title="Vollbild für den Beamer — Pfeiltasten blättern, L zeigt die Lösung"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  padding: '0.45rem 0.75rem',
+                  fontSize: '0.8125rem',
+                  flexShrink: 0,
+                }}
+              >
+                <Presentation size={15} /> Tafel-Modus
+              </button>
             )}
-          </h3>
+          </div>
           <PreviewTwoColumn state={state} dispatch={dispatch} judge={judge ?? undefined} />
         </div>
       )}

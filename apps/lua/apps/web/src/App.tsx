@@ -15,6 +15,7 @@ import { Step3_LLMOptions } from './components/Step3_LLMOptions';
 import { Step4_Generate } from './components/Step4_Generate';
 import { TemplateManager } from './components/TemplateManager';
 import { CommandPalette } from './components/CommandPalette';
+import { TafelModus } from './components/TafelModus';
 import { Sidebar } from './components/Sidebar';
 import { ThemeToggle } from './components/ThemeToggle';
 import { DashboardView } from './views/DashboardView';
@@ -99,6 +100,7 @@ export default function App() {
   const [activeView, setActiveView] = useState<ActiveView>('dashboard');
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [tafelOpen, setTafelOpen] = useState(false);
   // Such- + Befehls-Palette: Index aus gecachten Quellen + statischer Nav/Befehle.
   const commandSources = useMemo<SearchCommandSource[]>(() => {
     const fromCommands = COMMANDS.map((c) => ({
@@ -117,6 +119,9 @@ export default function App() {
     buildSearchIndex({ navigation: visibleNavTargets(), commands: commandSources }),
   );
   const poolRef = useRef<PoolEntry[]>([]);
+  const tafelBloecke = state.generiertesDokument?.bloecke ?? state.bloecke;
+  const tafelQuelltexte = state.generiertesDokument?.quelltexte ?? state.quelltexte;
+  const tafelMeta = state.generiertesDokument?.meta ?? state.meta;
 
   // Index beim Öffnen der Palette frisch aufbauen (Dokumente/Vorlagen/Klassen
   // aus dem Cache, Pool async über den bestehenden pool_list-Command).
@@ -297,6 +302,12 @@ export default function App() {
     setActiveView('wizard');
   }, [state.bloecke.length, state.generiertesDokument, dispatch]);
 
+  const handleOpenTafel = useCallback(() => {
+    if (tafelBloecke.length > 0) {
+      setTafelOpen(true);
+    }
+  }, [tafelBloecke.length]);
+
   const handleStartQuickExercise = useCallback((config: { fach: 'deutsch' | 'englisch'; stufe: 'unterstufe' | 'oberstufe'; typ: Block['typ']; thema: string }) => {
     const hasWork = state.bloecke.length > 0 || state.generiertesDokument !== null;
     if (hasWork && !window.confirm('Aktuellen Stand verwerfen und eine schnelle Übung beginnen?')) {
@@ -368,13 +379,28 @@ export default function App() {
         return;
       }
       case 'paletteCommand':
-        if (a.commandId === 'new') handleNewDocument();
+        if (a.commandId === 'new') {
+          handleNewDocument();
+        }
+        if (a.commandId === 'tafel-modus') {
+          if (tafelBloecke.length > 0) {
+            setActiveView('wizard');
+            goToStep('generate');
+            setTafelOpen(true);
+          } else {
+            setToast({
+              id: Date.now(),
+              text: 'Noch kein Dokument da — generiere zuerst eine Unterlage.',
+              kind: 'error',
+            });
+          }
+        }
         return;
       case 'actions':
         handlePaletteActions(a.actions);
         return;
     }
-  }, [dispatch, goToStep, handleOpenDocument, handleNewDocument, handleLoadTemplate, handlePaletteActions]);
+  }, [dispatch, goToStep, handleOpenDocument, handleNewDocument, handleLoadTemplate, handlePaletteActions, tafelBloecke.length]);
 
   const renderStep = () => {
     switch (state.step) {
@@ -387,7 +413,7 @@ export default function App() {
       case 'llm':
         return <Step3_LLMOptions state={state} dispatch={dispatch} onNavigateToSettings={() => setActiveView('settings')} />;
       case 'generate':
-        return <Step4_Generate state={state} dispatch={dispatch} />;
+        return <Step4_Generate state={state} dispatch={dispatch} onOpenTafel={handleOpenTafel} />;
     }
   };
 
@@ -617,6 +643,15 @@ if (hydrating) {
         index={paletteIndex}
         onExecuteResult={handleExecuteResult}
       />
+
+      {tafelOpen && tafelBloecke.length > 0 && (
+        <TafelModus
+          meta={tafelMeta}
+          bloecke={tafelBloecke}
+          quelltexte={tafelQuelltexte}
+          onClose={() => setTafelOpen(false)}
+        />
+      )}
 
       <Toast toast={toast} onClose={() => setToast(null)} />
 
