@@ -89,7 +89,7 @@ Distraktoren (die falschen Optionen / Ablenker) muessen drei didaktische Mindest
    Negativbeispiel: korrekt "Photosynthese" → Distraktor "Tischlerarbeit" (völlig anderes Wortfeld, sofort als falsch erkennbar).
    Positivbeispiel (Matching): korrekt "Hyperbel" → Distraktor "Ironie" (beides rhetorische Stilmittel).
    Negativbeispiel (Matching): korrekt "Hyperbel" → Distraktor "Sonntagsbraten" (kein rhetorisches Mittel).
-2. LaeNGEN- ae HNLIChKEIT: Distraktoren sind ungefaehr gleich lang wie die korrekte Antwort.
+2. LAENGEN-AEHNLICHKEIT: Distraktoren sind ungefaehr gleich lang wie die korrekte Antwort.
    Die Loesung darf NICHT durch auffaellig groessere Textlaenge, Ausrufezeichen oder Fachchinesisch verraten werden.
 3. TYPISCHE SCHUeLERFEHLER: Distraktoren bilden haeufige Fehlvorstellungen ab (Verwechslung zweier aehnlicher Begriffe,
    halbrichtige Aussagen, Uebergeneralisierung). KEINE absurd falschen, offensichtlich unsinnigen oder lustigen Optionen.
@@ -125,6 +125,12 @@ multipleChoice:
 offeneVerstaendnisfrage:
 - Musterantworten knapp und schuelergerecht.
 - WICHTIG: Jede Frage hat ein Feld "musterantwort" mit der erwarteten Antwort.
+- TEXTSPEZIFITAET (nur bei vorhandenem Quelltext): Jede Frage muss OHNE den Quelltext unbeantwortbar sein —
+  sie fragt nach konkreten Aussagen, Begruendungen oder Zusammenhaengen DIESES Textes, nicht nach Allgemeinwissen.
+  Negativbeispiel (verboten, weil zu jedem Text passend): "Was ist die Hauptaussage des Textes?".
+  Positivbeispiel: "Welche zwei Gegenargumente nennt die Autorin in Absatz 3?".
+- Bei nummerierten Absaetzen ([Absatz N] bzw. [Paragraph N]): verankere die Fragen sichtbar im Text —
+  Absatzbezug in der Frage ODER praezise Textstelle in der musterantwort.
 
 offeneSchreibaufgabe:
 - config.situation MUSS eine ausfuehrliche, schuelergerichtete Schreibsituation enthalten: Wer schreibt? An wen? Zu welchem
@@ -250,6 +256,27 @@ rollenkartenSet (differenziertes Rollenkarten-Set fuer die ganze Klasse; Loesung
   Geruest-Eintrag in einer anderen Sprache kommt (z. B. deutsche Platzhalter wie "Rolle A", "Du beginnst",
   "Sprich ueber:"), uebersetze ihn sinngemaess in die Zielsprache statt ihn woertlich zu uebernehmen.
 
+ARBEITSANWEISUNGEN & OPERATOREN (didaktischer Standard fuer ALLE Bloecke):
+- Jede Aufgabenstellung nennt einen klaren Operator UND den konkreten Gegenstand: "Nenne ...", "Beschreibe ...",
+  "Erklaere ...", "Vergleiche ...", "Analysiere ...", "Begruende ...", "Eroertere ...", "Interpretiere ...".
+  KEINE Leerformeln ohne Gegenstand ("Bearbeite die Aufgabe", "Loese die Uebung").
+- Bei Frage-Containern (multipleChoice, offeneVerstaendnisfrage) traegt jede EINZELNE Frage den Operator;
+  die arbeitsanweisung des Blocks beschreibt dann die Handlung ("Kreuze die richtige Antwort an.",
+  "Beantworte in ganzen Saetzen.").
+- Kopple den Operator an das kognitive Niveau (Anforderungsbereiche):
+  Bereich I — Reproduktion (nenne, gib wieder, fasse zusammen) fuer "leicht";
+  Bereich II — Reorganisation und Transfer (erklaere, vergleiche, ordne zu, analysiere) fuer "mittel";
+  Bereich III — Reflexion und Bewertung (beurteile, begruende, eroertere, nimm Stellung) fuer "schwer".
+- In Fremdsprachen-Unterlagen entsprechend zielsprachige Operatoren (name, describe, explain, compare,
+  analyse, discuss, justify).
+
+OESTERREICHISCHES DEUTSCH: Deutschsprachige Inhalte folgen der oesterreichischen Standardvarietaet.
+- Schul- und Alltagsterminologie: Matura (nicht Abitur), Schularbeit (nicht Klassenarbeit/Klausur),
+  Jaenner, heuer, AHS-Klassenzaehlung ("5. Klasse AHS").
+- Erfundene Szenarien, Orte, Institutionen und Medien spielen in Oesterreich, sofern Thema oder
+  Quelltext nichts anderes vorgeben.
+- Oesterreichische Standardvarianten sind korrekt und werden in Loesungen NICHT als Fehler behandelt.
+
 Ausgabe-Vertrag (ein einziges JSON-Array):
 
 BEISPIEL fuer multipleChoice:
@@ -315,9 +342,9 @@ BEISPIEL fuer offeneVerstaendnisfrage:
       "fragen": [
         {
           "nr": 1,
-          "frage": "Welche Hauptthese vertritt der Autor?",
+          "frage": "Welche Hauptthese vertritt der Autor in Absatz 1, und mit welchem Beispiel stuetzt er sie?",
           "zeilen": 4,
-          "musterantwort": "Der Autor argumentiert, dass digitale Medien sowohl Chancen als auch Risiken fuer Jugendliche bieten."
+          "musterantwort": "Der Autor argumentiert in Absatz 1, dass digitale Medien sowohl Chancen als auch Risiken fuer Jugendliche bieten; als Beleg nennt er die Doppelrolle sozialer Netzwerke."
         },
         {
           "nr": 2,

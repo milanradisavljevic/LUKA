@@ -7,6 +7,23 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Changed — Prompt-Didaktik P1: Operatoren, Österreich-Register, Textspezifität
+- `apps/lua/packages/llm/src/prompt.ts` (Audit `docs/AUDIT-prompts-didaktik.md`):
+  - Neuer Abschnitt **ARBEITSANWEISUNGEN & OPERATOREN** in den geteilten
+    BLOCK_REGELN (Text- UND Kompetenz-Modus): Operator + Gegenstand Pflicht,
+    Anforderungsbereiche I–III an die Bloom-Schwierigkeit gekoppelt,
+    zielsprachige Operatoren in Fremdsprachen (A1).
+  - Neuer Abschnitt **OESTERREICHISCHES DEUTSCH**: österreichische
+    Standardvarietät als Zielnorm (Matura/Schularbeit/Jänner), Szenarien
+    spielen in Österreich, Varianten gelten nicht als Fehler (A2).
+  - **TEXTSPEZIFITAET**-Regel für offene Verständnisfragen: ohne Quelltext
+    unbeantwortbar, Absatz-Verankerung; Negativ-/Positivbeispiel; das
+    Beispiel-JSON demonstriert jetzt den Absatzbezug (A3).
+  - Verstümmelte Überschrift „LaeNGEN- ae HNLIChKEIT" → „LAENGEN-AEHNLICHKEIT"
+    im Distraktor-Abschnitt repariert (A4, Test-Pin mitgezogen).
+- `prompt.test.ts`: 3 neue Pin-Tests (Operatoren inkl. Kompetenz-Modus,
+  Österreich-Register, Textspezifität). llm-Suite: 129 Tests grün.
+
 ### Added — Tafel-Modus (PR D, Welle 1)
 - Neuer Vollbild-Beamer-Modus für Unterlagen: Quelltext-Folien zuerst, danach
   Aufgabenblöcke read-only mit Lösungsschalter, Tastatursteuerung (Pfeile,

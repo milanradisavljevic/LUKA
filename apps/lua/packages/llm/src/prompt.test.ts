@@ -140,7 +140,7 @@ describe('buildMessages — Didaktik Runde 1 Regeln', () => {
     const system = messages.find((m) => m.role === 'system')!;
     expect(system.content).toContain('DISTRAKTOR-QUALITAET');
     expect(system.content).toContain('THEMATISCHE NAeHE');
-    expect(system.content).toContain('LaeNGEN- ae HNLIChKEIT');
+    expect(system.content).toContain('LAENGEN-AEHNLICHKEIT');
     expect(system.content).toContain('TYPISCHE SCHUeLERFEHLER');
     expect(system.content).toContain('Photosynthese');
     expect(system.content).toContain('Zellatmung');
@@ -169,6 +169,33 @@ describe('buildMessages — Didaktik Runde 1 Regeln', () => {
     expect(system.content).toContain('COVERAGE');
     expect(system.content).toContain('ALLE Abschnitte');
     expect(system.content).toContain('Absatz');
+  });
+
+  it('System-Prompt enthaelt Operatoren-Standard mit Anforderungsbereichen (Audit A1)', () => {
+    const messages = buildMessages(input());
+    const system = messages.find((m) => m.role === 'system')!;
+    expect(system.content).toContain('ARBEITSANWEISUNGEN & OPERATOREN');
+    expect(system.content).toContain('Anforderungsbereiche');
+    expect(system.content).toContain('Eroertere');
+    // gilt auch im Kompetenz-Modus (BLOCK_REGELN sind geteilt)
+    const kompetenz = buildMessages(input({ modus: 'kompetenz' }));
+    expect(kompetenz.find((m) => m.role === 'system')!.content).toContain('ARBEITSANWEISUNGEN & OPERATOREN');
+  });
+
+  it('System-Prompt enthaelt Oesterreich-Register-Regel (Audit A2)', () => {
+    const messages = buildMessages(input());
+    const system = messages.find((m) => m.role === 'system')!;
+    expect(system.content).toContain('OESTERREICHISCHES DEUTSCH');
+    expect(system.content).toContain('Jaenner');
+    expect(system.content).toContain('Matura (nicht Abitur)');
+  });
+
+  it('System-Prompt erzwingt Textspezifitaet bei offenen Verstaendnisfragen (Audit A3)', () => {
+    const messages = buildMessages(input());
+    const system = messages.find((m) => m.role === 'system')!;
+    expect(system.content).toContain('TEXTSPEZIFITAET');
+    expect(system.content).toContain('OHNE den Quelltext unbeantwortbar');
+    expect(system.content).toContain('Was ist die Hauptaussage des Textes?');
   });
 });
 
