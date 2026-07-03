@@ -7,6 +7,27 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Changed — Prompt-Didaktik P2: NATASCHA-Korrektur-Prompt gehärtet
+- `apps/natascha/natascha_core.py` (Audit `docs/AUDIT-prompts-didaktik.md`):
+  - **Fixture-Pin (N1):** `load_example_fixture()` lädt jetzt explizit
+    `beispiel_deutsch_kommentar.json` — neue Fixture-Dateien können das
+    Live-Prompt-Beispiel nicht mehr still verändern.
+  - **Skalen-Klarheit (N2):** SRDP-Detail-Prompt grenzt seine 0–4-Subkriterien-
+    Skala explizit von den 1–5-Rubrikstufen der Hauptanalyse ab.
+  - **A-Label kanonisch (N3):** „A=Ausdruck/Stil" in Prompt + Schema-Description
+    (feedback_schema.json) mit Kreuzverweis.
+  - **Austriazismen-Schutz (N4):** österreichisches Standarddeutsch (Jänner,
+    heuer, „bin gesessen", Marille) darf nicht als R/G/A-Fehler markiert werden
+    — falsche Fehler würden Heatmap, Empfehlung des Tages und Wirksamkeits-Trend
+    vergiften.
+  - **Fehler-Regeln fach-konditioniert (N5):** gemeinsamer Baustein
+    `_fehler_anweisungen(fach, wortanzahl)` für Text- UND Vision-Prompt;
+    Nachsuch-Checkliste sprachspezifisch (Deutsch: Kommata/das-dass ·
+    Englisch: tenses/3rd-person-s/False Friends), Fehler-Erwartung an die
+    Wortanzahl gekoppelt (≈1 je 25–40 Wörter) statt Pauschalspanne „15–30".
+- `tests/test_llm_pipeline.py`: 5 neue Tests (Fach-Konditionierung, Vision ohne
+  Zahlenanker, Fixture-Pin, Skalen-Hinweis). pytest: 125 grün.
+
 ### Changed — Prompt-Didaktik P1: Operatoren, Österreich-Register, Textspezifität
 - `apps/lua/packages/llm/src/prompt.ts` (Audit `docs/AUDIT-prompts-didaktik.md`):
   - Neuer Abschnitt **ARBEITSANWEISUNGEN & OPERATOREN** in den geteilten

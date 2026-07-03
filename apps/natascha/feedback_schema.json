@@ -103,7 +103,7 @@
           "typ": {
             "type": "string",
             "enum": ["R", "G", "Z", "A"],
-            "description": "R=Rechtschreibung, G=Grammatik, Z=Zeichensetzung, A=Ausdruck"
+            "description": "R=Rechtschreibung, G=Grammatik, Z=Zeichensetzung, A=Ausdruck/Stil (kanonisches Wording: _fehler_anweisungen in natascha_core.py)"
           },
           "erklaerung": {
             "type": "string",

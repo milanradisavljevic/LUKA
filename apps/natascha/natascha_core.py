@@ -424,10 +424,83 @@ def load_schema(config: dict[str, Any]) -> dict[str, Any]:
 
 def load_example_fixture() -> str:
     fixtures_dir = PROJECT_ROOT / "tests" / "fixtures"
+    # Bewusst gepinnt: das Beispiel-JSON landet in JEDEM Live-Korrektur-Prompt.
+    # Ohne Pin würde eine neu abgelegte, alphabetisch frühere Fixture-Datei das
+    # Modellverhalten still verändern (Audit N1, docs/AUDIT-prompts-didaktik.md).
+    pinned = fixtures_dir / "beispiel_deutsch_kommentar.json"
+    if pinned.exists():
+        return pinned.read_text(encoding="utf-8")
     candidates = sorted(fixtures_dir.glob("*.json"))
     if not candidates:
         return "{}"
     return candidates[0].read_text(encoding="utf-8")
+
+
+def _fehler_anweisungen(fach: str, wortanzahl: int = 0) -> str:
+    """Gemeinsame 'fehler'-Regeln für Text- und Vision-Prompt (Audit N3/N4/N5).
+
+    Fach-konditioniert (die Nachsuch-Checkliste ist sprachspezifisch) und mit
+    an die Textlänge gekoppelter Fehler-Erwartung statt Pauschalspanne.
+    wortanzahl=0 (Vision: Text unbekannt) lässt den Zahlen-Anker weg.
+    """
+    ist_englisch = fach.strip().lower().startswith("engl")
+    kopf = (
+        "- 'fehler': VOLLSTÄNDIGE Liste ALLER Sprachfehler im Schülertext. KEIN LIMIT.\n"
+        "  Jeder Eintrag: 'zitat' (1–6 Wörter, wortgetreu), 'korrektur' (korrekte Fassung),\n"
+        "  'typ' (R=Rechtschreibung, G=Grammatik, Z=Zeichensetzung, A=Ausdruck/Stil — Register, Wortwahl),\n"
+        "  'erklaerung' (optional, 1 Satz Regelhinweis).\n"
+    )
+    if ist_englisch:
+        beispiele = (
+            "  Beispiele:\n"
+            "  {\"zitat\":\"he go\",\"korrektur\":\"he goes\",\"typ\":\"G\",\"erklaerung\":\"3rd person singular -s\"}\n"
+            "  {\"zitat\":\"informations\",\"korrektur\":\"information\",\"typ\":\"G\",\"erklaerung\":\"uncountable noun\"}\n"
+            "  {\"zitat\":\"make a photo\",\"korrektur\":\"take a photo\",\"typ\":\"A\",\"erklaerung\":\"Kollokation\"}\n"
+        )
+        checkliste = (
+            "  Zeitformen und Aspekt (past simple vs. present perfect), Subjekt-Verb-Kongruenz\n"
+            "  (3rd person -s), Wortstellung (SVO, Adverbien), Präpositionen, Artikel,\n"
+            "  False Friends und Kollokationen.\n"
+        )
+        austria = ""
+    else:
+        beispiele = (
+            "  Beispiele:\n"
+            "  {\"zitat\":\"dem lesen\",\"korrektur\":\"dem Lesen\",\"typ\":\"R\",\"erklaerung\":\"Substantivierter Infinitiv wird großgeschrieben\"}\n"
+            "  {\"zitat\":\"Regale die sich\",\"korrektur\":\"Regale, die sich\",\"typ\":\"Z\",\"erklaerung\":\"Komma vor Relativsatz\"}\n"
+            "  {\"zitat\":\"bei Seite legen\",\"korrektur\":\"beiseitelegen\",\"typ\":\"R\",\"erklaerung\":\"Zusammenschreibung bei übertragener Bedeutung\"}\n"
+        )
+        checkliste = (
+            "  Kommas vor Nebensätzen (dass, weil, obwohl, wenn, da, ob),\n"
+            "  Kommas vor Relativsätzen (der, die, das, welcher),\n"
+            "  Groß-/Kleinschreibung bei Substantivierungen,\n"
+            "  das/dass-Unterscheidung, Subjekt-Verb-Kongruenz.\n"
+        )
+        austria = (
+            "  ÖSTERREICHISCHES STANDARDDEUTSCH ist KEIN Fehler: Wörter wie Jänner, heuer,\n"
+            "  Marille, Paradeiser sowie das Perfekt mit 'sein' bei Positionsverben\n"
+            "  ('bin gesessen', 'bin gestanden') sind korrekt und dürfen NICHT als\n"
+            "  R/G/A-Fehler markiert werden.\n"
+        )
+    if wortanzahl > 0:
+        erwartung = (
+            f"  Der Schülertext hat etwa {wortanzahl} Wörter. Faustregel bei Schularbeiten:\n"
+            "  ungefähr ein Sprachfehler je 25–40 Wörter. Findest du deutlich weniger,\n"
+            "  lies den Text nochmals und suche gezielt nach:\n"
+        )
+    else:
+        erwartung = (
+            "  Findest du auffällig wenige Fehler, lies den Text nochmals und suche gezielt nach:\n"
+        )
+    return (
+        kopf
+        + beispiele
+        + "  WICHTIG: ALLE Fehler erfassen — bei 25 Kommafehlern 25 Einträge mit typ=Z.\n"
+        "  Die Lehrkraft verlässt sich auf Vollständigkeit. Kein Limit.\n"
+        + erwartung
+        + checkliste
+        + austria
+    )
 
 
 def load_schema_for_mode(config: dict[str, Any], bewertungsmodus: str) -> dict[str, Any]:
@@ -527,23 +600,8 @@ def build_analysis_prompt(
         "  'kommentar': kurze direkte Anmerkung dazu, wie eine Randnotiz einer Lehrerin\n"
         "  Beispiel: {\"zitat\": \"mega geil\", \"kommentar\": \"Register überdenken — zu umgangssprachlich\"}\n"
         "  WICHTIG: 'zitat' darf NIE länger als 5 Wörter sein. Keine ganzen Sätze als Zitat!\n"
-        "- 'fehler': VOLLSTÄNDIGE Liste ALLER Sprachfehler im Schülertext. KEIN LIMIT.\n"
-        "  Jeder Eintrag: 'zitat' (1–6 Wörter, wortgetreu), 'korrektur' (korrekte Fassung),\n"
-        "  'typ' (R=Rechtschreibung, G=Grammatik, Z=Zeichensetzung, A=Ausdruck/Register),\n"
-        "  'erklaerung' (optional, 1 Satz Regelhinweis).\n"
-        "  Beispiele:\n"
-        "  {\"zitat\":\"dem lesen\",\"korrektur\":\"dem Lesen\",\"typ\":\"R\",\"erklaerung\":\"Substantivierter Infinitiv wird großgeschrieben\"}\n"
-        "  {\"zitat\":\"Regale die sich\",\"korrektur\":\"Regale, die sich\",\"typ\":\"Z\",\"erklaerung\":\"Komma vor Relativsatz\"}\n"
-        "  {\"zitat\":\"bei Seite legen\",\"korrektur\":\"beiseitelegen\",\"typ\":\"R\",\"erklaerung\":\"Zusammenschreibung bei übertragener Bedeutung\"}\n"
-        "  WICHTIG: ALLE Fehler erfassen — bei 25 Kommafehlern 25 Einträge mit typ=Z.\n"
-        "  Die Lehrkraft verlässt sich auf Vollständigkeit. Kein Limit.\n"
-        "  Bei einer typischen Oberstufen-Schularbeit sind 15–30 Sprachfehler normal.\n"
-        "  Wenn du weniger als 10 findest, lies den Text nochmals und suche gezielt nach:\n"
-        "  Kommas vor Nebensätzen (dass, weil, obwohl, wenn, da, ob),\n"
-        "  Kommas vor Relativsätzen (der, die, das, welcher),\n"
-        "  Groß-/Kleinschreibung bei Substantivierungen,\n"
-        "  das/dass-Unterscheidung, Subjekt-Verb-Kongruenz.\n"
-        "ACHTUNG: Trage Sprachfehler AUSSCHLIESSLICH im Top-Level-Array 'fehler' ein. "
+        + _fehler_anweisungen(fach, len(docx_text.split()))
+        + "ACHTUNG: Trage Sprachfehler AUSSCHLIESSLICH im Top-Level-Array 'fehler' ein. "
         "Verwende NICHT 'fehler_detail' oder 'fehlerschwerpunkte' innerhalb der Kriterien. "
         "Diese Felder sind veraltet und werden vom System ignoriert.\n"
         "KEINE KI-Floskeln ('Es wäre ratsam', 'Man könnte', 'Es lässt sich feststellen'). "
@@ -653,23 +711,8 @@ def build_vision_prompt(
         "  'kommentar': kurze direkte Anmerkung dazu, wie eine Randnotiz einer Lehrerin\n"
         "  Beispiel: {\"zitat\": \"mega geil\", \"kommentar\": \"Register überdenken — zu umgangssprachlich\"}\n"
         "  WICHTIG: 'zitat' darf NIE länger als 5 Wörter sein. Keine ganzen Sätze als Zitat!\n"
-        "- 'fehler': VOLLSTÄNDIGE Liste ALLER Sprachfehler im Schülertext. KEIN LIMIT.\n"
-        "  Jeder Eintrag: 'zitat' (1–6 Wörter, wortgetreu), 'korrektur' (korrekte Fassung),\n"
-        "  'typ' (R=Rechtschreibung, G=Grammatik, Z=Zeichensetzung, A=Ausdruck/Register),\n"
-        "  'erklaerung' (optional, 1 Satz Regelhinweis).\n"
-        "  Beispiele:\n"
-        "  {\"zitat\":\"dem lesen\",\"korrektur\":\"dem Lesen\",\"typ\":\"R\",\"erklaerung\":\"Substantivierter Infinitiv wird großgeschrieben\"}\n"
-        "  {\"zitat\":\"Regale die sich\",\"korrektur\":\"Regale, die sich\",\"typ\":\"Z\",\"erklaerung\":\"Komma vor Relativsatz\"}\n"
-        "  {\"zitat\":\"bei Seite legen\",\"korrektur\":\"beiseitelegen\",\"typ\":\"R\",\"erklaerung\":\"Zusammenschreibung bei übertragener Bedeutung\"}\n"
-        "  WICHTIG: ALLE Fehler erfassen — bei 25 Kommafehlern 25 Einträge mit typ=Z.\n"
-        "  Die Lehrkraft verlässt sich auf Vollständigkeit. Kein Limit.\n"
-        "  Bei einer typischen Oberstufen-Schularbeit sind 15–30 Sprachfehler normal.\n"
-        "  Wenn du weniger als 10 findest, lies den Text nochmals und suche gezielt nach:\n"
-        "  Kommas vor Nebensätzen (dass, weil, obwohl, wenn, da, ob),\n"
-        "  Kommas vor Relativsätzen (der, die, das, welcher),\n"
-        "  Groß-/Kleinschreibung bei Substantivierungen,\n"
-        "  das/dass-Unterscheidung, Subjekt-Verb-Kongruenz.\n"
-        "ACHTUNG: Trage Sprachfehler AUSSCHLIESSLICH im Top-Level-Array 'fehler' ein. "
+        + _fehler_anweisungen(fach)
+        + "ACHTUNG: Trage Sprachfehler AUSSCHLIESSLICH im Top-Level-Array 'fehler' ein. "
         "Verwende NICHT 'fehler_detail' oder 'fehlerschwerpunkte' innerhalb der Kriterien. "
         "Diese Felder sind veraltet und werden vom System ignoriert.\n"
         "KEINE KI-Floskeln ('Es wäre ratsam', 'Man könnte', 'Es lässt sich feststellen'). "
@@ -1190,7 +1233,11 @@ def generate_srdp_detail(
         "Erstelle eine Detailbewertung nach dem SRDP-Beurteilungsraster. "
         "Für jedes der folgenden 15 Kriterien:\n"
         "- Eine Stufe (0-4)\n"
-        "- Eine Begründung (2-4 Sätze mit konkreten Textbelegen)\n\n"
+        "- Eine Begründung (2-4 Sätze mit konkreten Textbelegen)\n"
+        "SKALEN-HINWEIS: Die Detailskala 0-4 ist die offizielle SRDP-Subkriterien-Skala\n"
+        "(0 = nicht erfüllt … 4 = weit über das Wesentliche hinausgehend). Sie ist NICHT\n"
+        "identisch mit den 1-5-Stufen des Bewertungsrasters aus der Hauptanalyse —\n"
+        "übernimm deren Werte nicht.\n\n"
         "Antworte als JSON mit diesem Schema:\n"
         '{\n'
         '  "gesamteindruck": "3-5 Sätze Gesamteinschätzung",\n'

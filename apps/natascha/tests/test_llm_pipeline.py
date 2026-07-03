@@ -450,3 +450,59 @@ def test_extract_json_handles_nested_braces():
         assert call_count[0] == 3  # 2 Analyse-Versuche + 1 SRDP-Detail-Call
         assert data is not None
         assert data["schueler"] == "Mia Muster"
+
+
+# =====================================================================
+# Prompt-Didaktik-Audit P2 (docs/AUDIT-prompts-didaktik.md)
+# =====================================================================
+
+class TestFehlerAnweisungen:
+    """_fehler_anweisungen: fach-konditioniert + längengekoppelt (N3/N4/N5)."""
+
+    def test_deutsch_enthaelt_austriazismen_schutz_und_checkliste(self) -> None:
+        text = nc._fehler_anweisungen("Deutsch", wortanzahl=300)
+        assert "ÖSTERREICHISCHES STANDARDDEUTSCH" in text
+        assert "Jänner" in text
+        assert "bin gesessen" in text
+        assert "das/dass-Unterscheidung" in text
+        # Längenkopplung statt Pauschalspanne
+        assert "etwa 300 Wörter" in text
+        assert "je 25–40 Wörter" in text
+        assert "15–30 Sprachfehler" not in text
+        # kanonisches A-Label (N3)
+        assert "A=Ausdruck/Stil" in text
+
+    def test_englisch_ohne_deutsche_checkliste(self) -> None:
+        text = nc._fehler_anweisungen("Englisch", wortanzahl=250)
+        assert "3rd person" in text
+        assert "False Friends" in text
+        assert "das/dass" not in text
+        assert "ÖSTERREICHISCHES STANDARDDEUTSCH" not in text
+
+    def test_vision_ohne_wortanzahl_ohne_zahlenanker(self) -> None:
+        text = nc._fehler_anweisungen("Deutsch")
+        assert "auffällig wenige Fehler" in text
+        assert "Wörter. Faustregel" not in text
+
+
+def test_example_fixture_ist_gepinnt() -> None:
+    """N1: Das Live-Prompt-Beispiel bleibt beispiel_deutsch_kommentar.json,
+    auch wenn alphabetisch frühere Fixture-Dateien existieren."""
+    pinned = (FIXTURES / "beispiel_deutsch_kommentar.json").read_text(encoding="utf-8")
+    assert nc.load_example_fixture() == pinned
+
+
+def test_srdp_detail_prompt_nennt_skalenhinweis(monkeypatch) -> None:
+    """N2: Der SRDP-Detail-Call grenzt seine 0-4-Skala explizit von den
+    1-5-Rubrikstufen ab."""
+    captured: dict = {}
+
+    def fake_api(prompt: str, config: dict, cancel_event=None, **kwargs) -> str:
+        captured["prompt"] = prompt
+        raise RuntimeError("stop")
+
+    monkeypatch.setattr(nc, "run_llm_api", fake_api)
+    nc.generate_srdp_detail("Text", {"bewertung": {}}, {}, textsorte="Kommentar")
+    assert "SKALEN-HINWEIS" in captured["prompt"]
+    assert "0-4" in captured["prompt"]
+    assert "NICHT" in captured["prompt"]
