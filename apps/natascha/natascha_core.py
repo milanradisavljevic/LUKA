@@ -1056,6 +1056,7 @@ def run_llm_analysis(
         # Halluzinationsfilter: Fehler-Zitate gegen Originaltext prüfen
         if data.get("fehler") and docx_text and not vision_mode:
             data["fehler"] = verify_fehler_against_text(data["fehler"], docx_text)
+            data["fehler"] = drop_satzzeichen_anhaengsel(data["fehler"], docx_text)
             data["fehler"] = filter_title_false_positives(data["fehler"], docx_text)
 
         # Konsistenzcheck: Fehleranzahl vs. Sprachrichtigkeit-Note
@@ -1183,6 +1184,50 @@ def drop_unbrauchbare_fehler(fehler_list: list[dict]) -> list[dict]:
         behalten.append(fehler)
     if entfernt:
         logging.warning("Fehler-Einträge ohne sichtbare Korrektur entfernt: %d", entfernt)
+    return behalten
+
+
+_SATZZEICHEN = ".,;:!?…"
+
+
+def drop_satzzeichen_anhaengsel(fehler_list: list[dict], schuelertext: str) -> list[dict]:
+    """Entfernt Pseudo-Korrekturen der Form korrektur == zitat + Satzzeichen,
+    wenn im Originaltext direkt nach dem Zitat bereits ein Satzzeichen steht.
+
+    Live-Eval P2c-Finale (2026-07-04): Modelle zitieren einen Satz OHNE sein
+    Schluss-Satzzeichen und "korrigieren" durch Anhängen ("leer ist" →
+    "leer ist.", obwohl der Punkt im Text steht). Folgt im Text dagegen ein
+    Wort, kann das angehängte Komma legitim sein → Eintrag bleibt.
+    """
+    if not fehler_list or not schuelertext:
+        return fehler_list or []
+    norm_text = " ".join(schuelertext.lower().split())
+    behalten: list[dict] = []
+    entfernt = 0
+    for fehler in fehler_list:
+        zitat = " ".join((fehler.get("zitat") or "").split())
+        korrektur = " ".join((fehler.get("korrektur") or "").split())
+        angehaengt = (
+            len(korrektur) == len(zitat) + 1
+            and korrektur[:-1] == zitat
+            and korrektur[-1] in _SATZZEICHEN
+        )
+        if angehaengt:
+            nz = zitat.lower()
+            pos = norm_text.find(nz)
+            folgt_satzzeichen = False
+            while pos != -1:
+                nach = norm_text[pos + len(nz):pos + len(nz) + 1]
+                if nach and nach in _SATZZEICHEN:
+                    folgt_satzzeichen = True
+                    break
+                pos = norm_text.find(nz, pos + 1)
+            if folgt_satzzeichen:
+                entfernt += 1
+                continue
+        behalten.append(fehler)
+    if entfernt:
+        logging.warning("Satzzeichen-Anhängsel-Halluzinationen entfernt: %d", entfernt)
     return behalten
 
 

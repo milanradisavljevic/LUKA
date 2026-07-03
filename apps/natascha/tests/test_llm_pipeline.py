@@ -539,3 +539,26 @@ class TestFehlerFilterP2c:
         # R-Fehler, Zitat ohne die Anführungszeichen des Texts → toleranter Match bleibt
         fehler = [{"zitat": "das war super", "korrektur": "dass war super", "typ": "R"}]
         assert len(nc.verify_fehler_against_text(fehler, text)) == 1
+
+
+class TestSatzzeichenAnhaengsel:
+    """P2c-Finale: korrektur == zitat + Satzzeichen, das im Text schon steht."""
+
+    TEXT = "Das Buffet ist oft leer. Unsere Schule zeigt heuer, dass es geht. Mehr Auswahl weil alle kommen."
+
+    def test_punkt_steht_schon_im_text(self) -> None:
+        fehler = [{"zitat": "ist oft leer", "korrektur": "ist oft leer.", "typ": "Z"}]
+        assert nc.drop_satzzeichen_anhaengsel(fehler, self.TEXT) == []
+
+    def test_komma_steht_schon_im_text(self) -> None:
+        fehler = [{"zitat": "Schule zeigt heuer", "korrektur": "Schule zeigt heuer,", "typ": "Z"}]
+        assert nc.drop_satzzeichen_anhaengsel(fehler, self.TEXT) == []
+
+    def test_legitimes_anhaengsel_vor_wort_bleibt(self) -> None:
+        # Nach "Mehr Auswahl" folgt " weil" → angehängtes Komma kann legitim sein
+        fehler = [{"zitat": "Mehr Auswahl", "korrektur": "Mehr Auswahl,", "typ": "Z"}]
+        assert len(nc.drop_satzzeichen_anhaengsel(fehler, self.TEXT)) == 1
+
+    def test_normale_korrekturen_unberuehrt(self) -> None:
+        fehler = [{"zitat": "Auswahl weil", "korrektur": "Auswahl, weil", "typ": "Z"}]
+        assert len(nc.drop_satzzeichen_anhaengsel(fehler, self.TEXT)) == 1
