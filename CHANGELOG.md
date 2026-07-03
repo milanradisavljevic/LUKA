@@ -7,6 +7,22 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Changed — Prompt-Didaktik P2b/P2c: Live-Eval-Härtung der Fehlerliste
+- Live-Eval mit DeepSeek + Mistral (echter Schülertext mit 8 geplanteten Fehlern
+  und 7 Austriazismen) zeigte: Mistral befolgt die Prompt-Regeln sauber,
+  DeepSeek liefert weiter Einträge ohne sichtbare Korrektur und listet
+  Austriazismen; Mistral halluzinierte dafür Satzzeichen-Fehler, die im Text
+  gar nicht vorhanden sind.
+- **P2b (Prompt):** `_fehler_anweisungen` verbietet Austriazismen-Einträge jeder
+  Art (auch als Ausdruck/Stil ohne Änderung) und verlangt sichtbare Korrekturen
+  (zitat ≠ korrektur; Satzzeichen gehören INS Zitat-Fenster).
+- **P2c (deterministisch, modellunabhängig):** neuer Filter
+  `drop_unbrauchbare_fehler` (zitat == korrektur → raus, läuft auch im
+  Vision-Modus) und `verify_fehler_against_text` verschärft: der
+  satzzeichen-tolerante Fallback gilt nicht mehr für typ=Z — ein
+  Zeichensetzungs-Zitat, das nur ohne Satzzeichen matcht, ist eine
+  Halluzination. 3 neue Tests; pytest 128 grün.
+
 ### Fixed — Export-Freeze: Deadlock im Speichern-Dialog
 - `apps/lua/src-tauri/src/commands/export.rs`: `export_docx` war ein synchroner
   Command — synchrone Tauri-Commands laufen auf dem Main-Thread, und

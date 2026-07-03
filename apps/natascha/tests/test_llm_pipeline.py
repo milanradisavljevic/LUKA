@@ -506,3 +506,36 @@ def test_srdp_detail_prompt_nennt_skalenhinweis(monkeypatch) -> None:
     assert "SKALEN-HINWEIS" in captured["prompt"]
     assert "0-4" in captured["prompt"]
     assert "NICHT" in captured["prompt"]
+
+
+class TestFehlerFilterP2c:
+    """Deterministische Filterschicht nach Live-Eval P2b (Modelle umgehen Prompt-Regeln)."""
+
+    def test_drop_nullnummern_case_sensitiv(self) -> None:
+        fehler = [
+            {"zitat": "Beim lesen", "korrektur": "Beim Lesen", "typ": "R"},   # echte Korrektur (Case!)
+            {"zitat": "dort gesessen", "korrektur": "dort gesessen", "typ": "A"},  # Nullnummer
+            {"zitat": "leer ist.", "korrektur": "leer  ist.", "typ": "Z"},    # nur Whitespace → Nullnummer
+            {"zitat": "", "korrektur": "x", "typ": "R"},                      # leeres Zitat
+        ]
+        out = nc.drop_unbrauchbare_fehler(fehler)
+        assert len(out) == 1
+        assert out[0]["korrektur"] == "Beim Lesen"
+
+    def test_z_fehler_ohne_satzzeichen_match_ist_halluzination(self) -> None:
+        text = "Wir gehen aus der Region. Das ist gut. Die Lebensmittel die jetzt kommen."
+        fehler = [
+            # Halluzination: Zitat lässt den Punkt weg, der im Text steht
+            {"zitat": "aus der Region Das ist", "korrektur": "aus der Region. Das ist", "typ": "Z"},
+            # Legitim: Zitat entspricht dem Text (fehlendes Komma wird ergänzt)
+            {"zitat": "Lebensmittel die jetzt", "korrektur": "Lebensmittel, die jetzt", "typ": "Z"},
+        ]
+        out = nc.verify_fehler_against_text(fehler, text)
+        assert len(out) == 1
+        assert out[0]["zitat"] == "Lebensmittel die jetzt"
+
+    def test_nicht_z_fehler_behalten_toleranten_fallback(self) -> None:
+        text = 'Er sagte "das war super" zu mir.'
+        # R-Fehler, Zitat ohne die Anführungszeichen des Texts → toleranter Match bleibt
+        fehler = [{"zitat": "das war super", "korrektur": "dass war super", "typ": "R"}]
+        assert len(nc.verify_fehler_against_text(fehler, text)) == 1

@@ -479,8 +479,9 @@ def _fehler_anweisungen(fach: str, wortanzahl: int = 0) -> str:
         austria = (
             "  ÖSTERREICHISCHES STANDARDDEUTSCH ist KEIN Fehler: Wörter wie Jänner, heuer,\n"
             "  Marille, Paradeiser sowie das Perfekt mit 'sein' bei Positionsverben\n"
-            "  ('bin gesessen', 'bin gestanden') sind korrekt und dürfen NICHT als\n"
-            "  R/G/A-Fehler markiert werden.\n"
+            "  ('bin gesessen', 'bin gestanden') sind korrekt. Nimm solche Formen ÜBERHAUPT\n"
+            "  NICHT in die 'fehler'-Liste auf — auch nicht als Ausdruck/Stil-Eintrag oder\n"
+            "  als Eintrag ohne Änderung.\n"
         )
     if wortanzahl > 0:
         erwartung = (
@@ -497,6 +498,10 @@ def _fehler_anweisungen(fach: str, wortanzahl: int = 0) -> str:
         + beispiele
         + "  WICHTIG: ALLE Fehler erfassen — bei 25 Kommafehlern 25 Einträge mit typ=Z.\n"
         "  Die Lehrkraft verlässt sich auf Vollständigkeit. Kein Limit.\n"
+        "  JEDER Eintrag muss eine SICHTBARE Korrektur enthalten: 'korrektur' unterscheidet\n"
+        "  sich vom 'zitat' (fehlende Satzzeichen gehören INS Zitat-Fenster: zitat=\"Auswahl weil\",\n"
+        "  korrektur=\"Auswahl, weil\"). Einträge mit identischem zitat und korrektur sind\n"
+        "  UNGÜLTIG — reine Beobachtungen ohne Korrektur gehören in 'hinweise'.\n"
         + erwartung
         + checkliste
         + austria
@@ -1044,6 +1049,10 @@ def run_llm_analysis(
         if ausgangstext_text:
             data["ausgangstext"] = ausgangstext_text
 
+        # Nullnummern-Filter: Einträge ohne sichtbare Korrektur raus (auch Vision).
+        if data.get("fehler"):
+            data["fehler"] = drop_unbrauchbare_fehler(data["fehler"])
+
         # Halluzinationsfilter: Fehler-Zitate gegen Originaltext prüfen
         if data.get("fehler") and docx_text and not vision_mode:
             data["fehler"] = verify_fehler_against_text(data["fehler"], docx_text)
@@ -1153,6 +1162,30 @@ def run_llm_analysis(
     return None, errors
 
 
+def drop_unbrauchbare_fehler(fehler_list: list[dict]) -> list[dict]:
+    """Entfernt Fehler-Einträge ohne sichtbare Korrektur (zitat == korrektur).
+
+    Live-Eval P2b (2026-07-04): Modelle (v. a. DeepSeek) liefern trotz
+    Prompt-Verbot Einträge, deren Korrektur identisch mit dem Zitat ist —
+    unbrauchbar fürs Feedback und Gift für die Heatmap. Case-SENSITIV
+    vergleichen: "lesen"→"Lesen" ist eine echte Korrektur.
+    """
+    if not fehler_list:
+        return []
+    behalten: list[dict] = []
+    entfernt = 0
+    for fehler in fehler_list:
+        zitat = " ".join((fehler.get("zitat") or "").split())
+        korrektur = " ".join((fehler.get("korrektur") or "").split())
+        if not zitat or zitat == korrektur:
+            entfernt += 1
+            continue
+        behalten.append(fehler)
+    if entfernt:
+        logging.warning("Fehler-Einträge ohne sichtbare Korrektur entfernt: %d", entfernt)
+    return behalten
+
+
 def verify_fehler_against_text(fehler_list: list[dict], schuelertext: str) -> list[dict]:
     """Entfernt halluzinierte Fehler deren Zitat nicht im Text vorkommt."""
     if not fehler_list or not schuelertext:
@@ -1174,11 +1207,16 @@ def verify_fehler_against_text(fehler_list: list[dict], schuelertext: str) -> li
             verified.append(fehler)
             continue
 
-        stripped_zitat = re.sub(r"[^\w\s]", "", normalized_zitat)
-        stripped_text = re.sub(r"[^\w\s]", "", normalized_text)
-        if stripped_zitat and stripped_zitat in stripped_text:
-            verified.append(fehler)
-            continue
+        # Toleranter Fallback ohne Satzzeichen — aber NICHT für Zeichensetzungs-
+        # Fehler: bei typ=Z ist das Satzzeichen die Substanz des Zitats. Ein
+        # Z-Zitat, das nur ohne Satzzeichen matcht, ist eine Halluzination
+        # (Live-Eval P2b: Mistral erfand fehlende Punkte, die im Text stehen).
+        if fehler.get("typ") != "Z":
+            stripped_zitat = re.sub(r"[^\w\s]", "", normalized_zitat)
+            stripped_text = re.sub(r"[^\w\s]", "", normalized_text)
+            if stripped_zitat and stripped_zitat in stripped_text:
+                verified.append(fehler)
+                continue
 
         removed.append(zitat)
 
