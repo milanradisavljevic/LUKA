@@ -7,6 +7,19 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Fixed — Export-Freeze: Deadlock im Speichern-Dialog
+- `apps/lua/src-tauri/src/commands/export.rs`: `export_docx` war ein synchroner
+  Command — synchrone Tauri-Commands laufen auf dem Main-Thread, und
+  `blocking_save_file()` deadlockt dort den Event-Loop. Folge: Klick auf
+  „Beide Dokumente exportieren" fror die ganze App ein, sobald der Dialog-Zweig
+  lief (Export-Ordner leer oder „jedes Mal fragen"). Betraf ALLE Plattformen,
+  auch die Windows-EXE. Fix: Command ist jetzt `async` (Threadpool) + Warnkommentar.
+- Neu: Bei `ask=false` ohne konfigurierten Export-Ordner wird direkt in den
+  **Downloads-Ordner** geschrieben statt einen Dialog zu erzwingen (konsistent
+  mit Browser-Fallback und Erfolgsmeldung). `downloads_dir()` + Test.
+- Headless-Gegenprobe: Renderer über 13 Fixtures × 5 Templates × 4 Layouts
+  (+ undefined-Layout) ohne Hänger — Ursache lag eindeutig im Command-Threading.
+
 ### Changed — Prompt-Didaktik P2: NATASCHA-Korrektur-Prompt gehärtet
 - `apps/natascha/natascha_core.py` (Audit `docs/AUDIT-prompts-didaktik.md`):
   - **Fixture-Pin (N1):** `load_example_fixture()` lädt jetzt explizit
