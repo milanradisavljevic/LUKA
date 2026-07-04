@@ -697,12 +697,13 @@ function buildDocumentChildren(
   );
 
   const hidePunkte = doc.meta.punkteAusblenden === true;
+  const hideQuelltexte = doc.meta.quelltextAusblenden === true;
   return [
     ...buildDocumentHeader(doc, mode, template),
     buildSchuelerkopf(doc.meta, template),
     ...(hidePunkte ? [] : buildPunkteUebersicht(doc.bloecke, template, doc.meta.fach)),
     ...buildMerkkasten(doc.didaktik?.merkkasten, template),
-    ...buildQuelltexte(doc.quelltexte, template),
+    ...(hideQuelltexte ? [] : buildQuelltexte(doc.quelltexte, template)),
     ...doc.bloecke.flatMap((block, i) =>
       buildBlock(block, { template, modus: mode, index: i + 1, quelltextMap, fach: doc.meta.fach, hidePunkte, layout }),
     ),

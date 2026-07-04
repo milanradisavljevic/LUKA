@@ -252,8 +252,10 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
     );
   };
 
+  // Wie zeigePunkte: Vorschau muss dem DOCX entsprechen (Renderer:
+  // meta.quelltextAusblenden lässt die Quelltext-Sektion weg).
   const renderQuelltexte = () =>
-    quelltexte.length > 0 ? (
+    quelltexte.length > 0 && meta.quelltextAusblenden !== true ? (
       <div style={{ marginBottom: '1.5rem' }}>
         <strong style={{ fontSize: '12pt', color: PAPER_TEXT }}>Quelltext{quelltexte.length > 1 ? 'e' : ''}</strong>
         {quelltexte.map((qt, i) => (

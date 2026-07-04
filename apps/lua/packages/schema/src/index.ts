@@ -154,6 +154,9 @@ export const MetaSchema = z.object({
   freieKompetenz: z.string().optional(),
   // Punkte komplett ausblenden (kein "/ X", keine Punkte-Spalte) — für einfache Übungen.
   punkteAusblenden: z.boolean().optional(),
+  // Quelltext-Sektion nicht im Arbeitsblatt abdrucken (Text liegt separat auf /
+  // steht an der Tafel). Aufgabenbezüge auf den Text bleiben unverändert.
+  quelltextAusblenden: z.boolean().optional(),
 });
 
 export type Meta = z.infer<typeof MetaSchema>;

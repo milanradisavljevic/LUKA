@@ -77,6 +77,24 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
   const totalPunkte = state.bloecke.reduce((s, b) => s + b.punkte, 0);
   const previewBloecke = state.generiertesDokument?.bloecke ?? state.bloecke;
 
+  // Quelltext-Abdruck (wie punkteAusblenden): Meta-Toggle, wirkt auf Vorschau + DOCX.
+  // Nach der Generierung muss auch das eingefrorene Dokument-Meta mitgezogen werden.
+  const quelltextAusblenden =
+    (state.generiertesDokument?.meta.quelltextAusblenden ?? state.meta.quelltextAusblenden) === true;
+  const toggleQuelltextAbdruck = () => {
+    const next = !quelltextAusblenden;
+    dispatch({ type: 'SET_META', meta: { quelltextAusblenden: next } });
+    if (state.generiertesDokument) {
+      dispatch({
+        type: 'SET_GENERIERTES_DOKUMENT',
+        dokument: {
+          ...state.generiertesDokument,
+          meta: { ...state.generiertesDokument.meta, quelltextAusblenden: next },
+        },
+      });
+    }
+  };
+
   const runExportWithQualityGate = async () => {
     if (!state.generiertesDokument) return;
     const issues = [
@@ -233,6 +251,33 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
           })}
         </div>
       </div>
+
+      {/* Quelltext-Abdruck: Text liegt oft separat auf / steht an der Tafel */}
+      {state.quelltexte.length > 0 && (
+        <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={!quelltextAusblenden}
+            onClick={toggleQuelltextAbdruck}
+            style={{
+              position: 'relative', width: 44, height: 24, borderRadius: 12, border: 'none',
+              background: !quelltextAusblenden ? 'var(--color-accent)' : 'var(--color-border)',
+              cursor: 'pointer', transition: 'background 0.2s ease', flexShrink: 0,
+            }}
+          >
+            <span style={{
+              position: 'absolute', top: 2, left: !quelltextAusblenden ? 22 : 2,
+              width: 20, height: 20, borderRadius: '50%', background: 'white',
+              transition: 'left 0.2s ease', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+            }} />
+          </button>
+          <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>
+            <strong style={{ color: 'var(--color-text-primary)' }}>Quelltext im Arbeitsblatt abdrucken</strong>
+            {' — '}aus, wenn der Text separat aufliegt oder an der Tafel steht. Wirkt auf Vorschau und DOCX.
+          </span>
+        </div>
+      )}
 
       {/* Export-Transparenz */}
       <div className="card" style={{ padding: '0.875rem 1rem', marginBottom: '1.5rem' }}>

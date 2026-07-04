@@ -93,6 +93,16 @@ export function SettingsView() {
     update({ defaultProvider: provider, defaultModel: model });
   };
 
+  const handlePickExportDir = async () => {
+    try {
+      const { open } = await import('@tauri-apps/plugin-dialog');
+      const dir = await open({ directory: true, title: 'Export-Zielordner wählen' });
+      if (typeof dir === 'string' && dir) update({ exportDir: dir });
+    } catch {
+      // Browser-Modus: kein Dialog verfügbar — Feld bleibt unverändert.
+    }
+  };
+
   const [seedBusy, setSeedBusy] = useState(false);
   const [seedMsg, setSeedMsg] = useState<string | null>(null);
 
@@ -359,6 +369,30 @@ export function SettingsView() {
             </>
           )}
         </div>
+      </section>
+
+      {/* Abschnitt: Export */}
+      <section style={{
+        padding: '1.25rem', border: '1px solid var(--color-border)',
+        borderRadius: 'var(--radius)', background: 'var(--color-bg-surface)', marginBottom: '1.5rem',
+      }}>
+        <h3 style={{ fontSize: '1rem', margin: '0 0 0.75rem' }}>Export</h3>
+        <label style={labelStyle}>Zielordner</label>
+        <p style={{ fontSize: '0.8125rem', margin: '0.25rem 0 0.5rem', color: settings.exportDir ? 'var(--color-text-primary)' : 'var(--color-text-secondary)' }}>
+          {settings.exportDir || 'Downloads-Ordner (Standard)'}
+        </p>
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+          <button className="btn-secondary" onClick={handlePickExportDir}>Ordner wählen …</button>
+          {settings.exportDir && (
+            <button className="btn-secondary" onClick={() => update({ exportDir: undefined })}>Auf Standard zurücksetzen</button>
+          )}
+        </div>
+        <ToggleRow
+          label="Vor jedem Export fragen"
+          description="öffnet bei jedem Export den Speichern-unter-Dialog statt direkt in den Zielordner zu schreiben."
+          checked={settings.exportAskEachTime === true}
+          onChange={() => update({ exportAskEachTime: !settings.exportAskEachTime })}
+        />
       </section>
 
       {/* Abschnitt 4: Datenbank */}

@@ -474,6 +474,15 @@ describe('renderDocument: Dokument-Qualität (Layout)', () => {
     expect(xml).toContain('>Quelltext<');
   });
 
+  it('meta.quelltextAusblenden lässt die Quelltext-Sektion weg (Aufgaben bleiben)', async () => {
+    const doc = lyricsDoc();
+    doc.meta = { ...doc.meta, quelltextAusblenden: true };
+    const { schueler } = await renderDocument(doc);
+    const xml = extractDocumentXml(schueler);
+    expect(xml).not.toContain('>Quelltext<');
+    expect(xml).toContain('Aufgabenübersicht');
+  });
+
   it('Schüler- und Lösungsfassung bleiben paargleich erzeugt', async () => {
     const { schueler, loesung } = await renderDocument(lyricsDoc());
     expect(isDocx(schueler)).toBe(true);

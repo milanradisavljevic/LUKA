@@ -7,6 +7,19 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Export-Einstellungen + Quelltext-Abdruck-Toggle
+- `apps/lua/apps/web/src/views/SettingsView.tsx`: neue Sektion **Export** —
+  Zielordner per Ordner-Dialog wählbar (`exportDir`, bisher ohne UI!), Anzeige
+  „Downloads-Ordner (Standard)" bei leerem Feld, Zurücksetzen-Button, Toggle
+  „Vor jedem Export fragen" (`exportAskEachTime`).
+- **Quelltext-Abdruck-Toggle** (analog `punkteAusblenden`): neues optionales
+  Meta-Feld `quelltextAusblenden` (`packages/schema`), Renderer lässt die
+  Quelltext-Sektion im DOCX weg (`packages/renderer`, +1 Struktur-Test),
+  Vorschau bleibt deckungsgleich (`PreviewTwoColumn`), Schalter in Schritt 4
+  unter der Layout-Wahl („Quelltext im Arbeitsblatt abdrucken") — wirkt auch
+  nachträglich auf ein bereits generiertes Dokument.
+- Tests: Renderer 109, Web 112, Schema 145 — alle grün.
+
 ### Changed — Prompt-Didaktik P2b/P2c: Live-Eval-Härtung der Fehlerliste
 - Live-Eval mit DeepSeek + Mistral (echter Schülertext mit 8 geplanteten Fehlern
   und 7 Austriazismen) zeigte: Mistral befolgt die Prompt-Regeln sauber,
