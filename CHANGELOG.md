@@ -7,6 +7,15 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Changed — Übersicht-Startkarten: Asset-basierte Lineart
+- Die drei Dashboard-Einstiege verwenden keine handgebauten Inline-SVGs mehr,
+  sondern neue transparente Lineart-Assets im Stil der Fachatmosphären.
+- `StartActionIllustration` rendert Bildassets für Quelltext, Kompetenz und
+  Schnell-Übung; CSS-Layout, Light-/Dark-Filter und responsive Größen wurden
+  auf stabile Kartenflächen umgestellt.
+- Visueller Smoke: Desktop hell/dunkel und Mobile geprüft; alle Assets laden
+  und bleiben innerhalb ihrer Karten.
+
 ### Added — Export-Einstellungen + Quelltext-Abdruck-Toggle
 - `apps/lua/apps/web/src/views/SettingsView.tsx`: neue Sektion **Export** —
   Zielordner per Ordner-Dialog wählbar (`exportDir`, bisher ohne UI!), Anzeige
