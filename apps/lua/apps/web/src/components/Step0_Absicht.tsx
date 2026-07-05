@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo, useEffect } from 'react';
 import { ArrowRight, Clock, FolderOpen, BookOpen, ClipboardCheck, Target, Grid3X3, Languages, Pencil, AlertTriangle } from 'lucide-react';
 import type { AppState, AppAction } from '../lib/types';
 import { BLOCK_TYPE_DEFS, SCHWIERIGKEIT_RULES, UNTERLAGENTYP_MINUTEN } from '../lib/constants';
-import { buildSkelett, FACH_META, fachLabel, istSprachfach, type Auftrag, type Fach } from '@lehrunterlagen/schema';
+import { buildSkelett, FACH_META, fachLabel, istSprachfach, SCHULSTUFEN, stufeFromSchulstufe, type Auftrag, type Fach } from '@lehrunterlagen/schema';
 import { EXAMPLE_ABSICHTEN } from '../lib/exampleAbsichten';
 import { loadDocuments, loadSettings } from '../lib/storage';
 import { FEATURES } from '../lib/features';
@@ -10,6 +10,7 @@ import { consumePendingUebung } from '../lib/korrekturBridge';
 import { getDefaultTemplate } from '@lehrunterlagen/renderer';
 import { Tile } from './ui/Tile';
 import { SectionLabel } from './ui/SectionLabel';
+import { InfoDot } from './ui/InfoDot';
 import { FehlerKuration, fehlerNotiz, type KurierterFehler } from './FehlerKuration';
 import {
   parseBridgeExport,
@@ -55,6 +56,7 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
   const [typ, setTyp] = useState<NonNullable<Auftrag['typ']>>(lastMeta?.typ ?? 'schularbeit');
   const [fach, setFach] = useState<NonNullable<Auftrag['fach']>>(lastMeta?.fach ?? 'deutsch');
   const [stufe, setStufe] = useState<NonNullable<Auftrag['stufe']>>(lastMeta?.stufe ?? 'oberstufe');
+  const [schulstufe, setSchulstufe] = useState<number | undefined>(lastMeta?.schulstufe);
   const [thema, setThema] = useState(lastMeta?.thema ?? '');
   const [datum, setDatum] = useState(lastMeta?.datum ?? new Date().toISOString().slice(0, 10));
   const [klasse, setKlasse] = useState(lastMeta?.klasse ?? '');
@@ -211,6 +213,7 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
       typ,
       fach,
       stufe,
+      schulstufe,
       thema: thema.trim(),
       datum,
       klasse: klasse.trim() || undefined,
@@ -241,6 +244,7 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
         type: 'SET_META',
         meta: {
           stufe,
+          schulstufe,
           fach,
           thema: thema.trim(),
           datum,
@@ -498,6 +502,90 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
         </div>
       )}
 
+      {/* Fach & Schulstufe — die Grundentscheidung, daher zuerst und hervorgehoben:
+          steuert Zielsprache, Aufgabentypen-Filter, Kompetenzkataloge und Fachatmosphäre. */}
+      <section
+        style={{
+          marginBottom: '1.25rem',
+          padding: '1rem 1.15rem',
+          border: '1px solid color-mix(in srgb, var(--color-accent) 45%, var(--color-border))',
+          borderRadius: 'var(--radius)',
+          background: 'color-mix(in srgb, var(--color-info-bg) 45%, var(--color-bg-surface))',
+          display: 'grid',
+          gridTemplateColumns: 'minmax(220px, 1fr) 1.6fr',
+          gap: '1rem',
+        }}
+      >
+        <div>
+          <SectionLabel>
+            Fach
+            <InfoDot text="Die Grundentscheidung: bestimmt die Zielsprache der Aufgaben, die verfügbaren Aufgabentypen und die Kompetenzkataloge." />
+          </SectionLabel>
+          <select
+            value={fach}
+            onChange={(e) => setFach(e.target.value as Fach)}
+            style={{ width: '100%', padding: '0.625rem 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)', background: 'var(--color-bg-base)', fontSize: '0.9375rem', fontWeight: 600 }}
+          >
+            <optgroup label="Sprachfächer">
+              {Object.entries(FACH_META)
+                .filter(([, m]) => m.sprachfach)
+                .map(([f, m]) => (
+                  <option key={f} value={f}>{m.label}</option>
+                ))}
+            </optgroup>
+            <optgroup label="Sachfächer">
+              {Object.entries(FACH_META)
+                .filter(([, m]) => !m.sprachfach)
+                .map(([f, m]) => (
+                  <option key={f} value={f}>{m.label}</option>
+                ))}
+            </optgroup>
+          </select>
+        </div>
+        <div>
+          <SectionLabel>
+            Schulstufe
+            <InfoDot text="Steuert Wortschatz, Satzkomplexität und Beispiele. Eine konkrete Schulstufe (z. B. 7) ist präziser als ganze Unter-/Oberstufe." />
+          </SectionLabel>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+            {SCHULSTUFEN.map((s) => {
+              const aktiv = schulstufe === s;
+              return (
+                <button
+                  key={s}
+                  className="tile"
+                  aria-pressed={aktiv}
+                  onClick={() => {
+                    setSchulstufe(s);
+                    const neueStufe = stufeFromSchulstufe(s);
+                    setStufe(neueStufe);
+                    dispatch({ type: 'SET_RENDER_TEMPLATE', template: getDefaultTemplate(neueStufe).id });
+                  }}
+                  style={{ padding: '0.45rem 0.7rem', alignItems: 'center', fontSize: '0.875rem', minWidth: 40, justifyContent: 'center' }}
+                >
+                  {s}.
+                </button>
+              );
+            })}
+            {(['unterstufe', 'oberstufe'] as const).map((s) => (
+              <button
+                key={s}
+                className="tile"
+                aria-pressed={schulstufe === undefined && stufe === s}
+                onClick={() => {
+                  setSchulstufe(undefined);
+                  setStufe(s);
+                  dispatch({ type: 'SET_RENDER_TEMPLATE', template: getDefaultTemplate(s).id });
+                }}
+                style={{ padding: '0.45rem 0.7rem', alignItems: 'center', fontSize: '0.8125rem', justifyContent: 'center' }}
+              >
+                ganze {s === 'oberstufe' ? 'Oberstufe' : 'Unterstufe'}
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Typ */}
       <section style={{ marginBottom: '1.25rem' }}>
         <SectionLabel>Unterlagentyp</SectionLabel>
@@ -526,52 +614,6 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
               </button>
             );
           })}
-        </div>
-      </section>
-
-      {/* Fach & Stufe */}
-      <section style={{ marginBottom: '1.25rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-        <div>
-          <SectionLabel>Fach</SectionLabel>
-          <select
-            value={fach}
-            onChange={(e) => setFach(e.target.value as Fach)}
-            style={{ width: '100%', padding: '0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)', background: 'var(--color-bg-base)', fontSize: '0.875rem' }}
-          >
-            <optgroup label="Sprachfächer">
-              {Object.entries(FACH_META)
-                .filter(([, m]) => m.sprachfach)
-                .map(([f, m]) => (
-                  <option key={f} value={f}>{m.label}</option>
-                ))}
-            </optgroup>
-            <optgroup label="Sachfächer">
-              {Object.entries(FACH_META)
-                .filter(([, m]) => !m.sprachfach)
-                .map(([f, m]) => (
-                  <option key={f} value={f}>{m.label}</option>
-                ))}
-            </optgroup>
-          </select>
-        </div>
-        <div>
-          <SectionLabel>Stufe</SectionLabel>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            {(['unterstufe', 'oberstufe'] as const).map((s) => (
-              <button
-                key={s}
-                className="tile"
-                aria-pressed={stufe === s}
-                onClick={() => {
-                  setStufe(s);
-                  dispatch({ type: 'SET_RENDER_TEMPLATE', template: getDefaultTemplate(s).id });
-                }}
-                style={{ flex: 1, padding: '0.5rem', alignItems: 'center', justifyContent: 'center', fontSize: '0.875rem' }}
-              >
-                {s === 'oberstufe' ? 'Oberstufe' : 'Unterstufe'}
-              </button>
-            ))}
-          </div>
         </div>
       </section>
 
@@ -613,7 +655,10 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
           />
         </div>
         <div>
-          <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.875rem' }}>Klasse (optional)</label>
+          <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.875rem' }}>
+            Klasse (optional)
+            <InfoDot text="Ordnet die Unterlage einer Klasse zu — nützlich für den Korrektur-Kreislauf mit NATASCHA (Heatmap, Empfehlungen)." />
+          </label>
           <input
             type="text"
             value={klasse}
@@ -683,7 +728,10 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
           />
         </div>
         <div>
-          <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.875rem' }}>Schwierigkeit</label>
+          <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.875rem' }}>
+            Schwierigkeit
+            <InfoDot text="Steuert das Denkniveau innerhalb der Aufgabentypen: leicht = Wiedergeben/Verstehen, mittel = Anwenden/Analysieren, schwer = Bewerten/eigene Texte. In Fremdsprachen: ≈ A2 / B1 / B2." />
+          </label>
           <select
             value={schwierigkeit}
             onChange={(e) => setSchwierigkeit(e.target.value as NonNullable<Auftrag['schwierigkeit']>)}

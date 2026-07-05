@@ -1176,3 +1176,44 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   border-radius: 3px;
   color: var(--color-text-secondary);
 }
+
+/* === InfoDot: Info-„i" mit Hover-/Fokus-Erklärblase (components/ui/InfoDot.tsx) === */
+.info-dot {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.35rem;
+  color: var(--color-text-muted);
+  cursor: help;
+  vertical-align: middle;
+  border-radius: 50%;
+}
+.info-dot:hover,
+.info-dot:focus-visible {
+  color: var(--color-accent);
+  outline: none;
+}
+.info-dot:focus-visible {
+  box-shadow: 0 0 0 2px var(--color-border-focus);
+}
+.info-dot-bubble {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  width: max-content;
+  max-width: 280px;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.5;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--color-text-primary);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 16px var(--color-shadow);
+  pointer-events: none;
+}

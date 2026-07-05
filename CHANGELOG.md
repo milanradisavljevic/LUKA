@@ -7,6 +7,21 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Changed — Schritt „Absicht": Fach & Schulstufe zuerst, Info-Tooltips
+- `apps/lua/apps/web/src/components/Step0_Absicht.tsx`: **Fach & Schulstufe**
+  stehen jetzt VOR dem Unterlagentyp in einer akzentuierten Karte — die
+  Grundentscheidung (steuert Zielsprache, Aufgabentypen, Kataloge) kommt
+  zuerst statt unter der Falz.
+- **Konkrete Schulstufe (5.–12.)** wählbar wie im Kompetenz-Modus
+  (Chips + „ganze Unterstufe/Oberstufe" als Fallback, `SCHULSTUFEN`/
+  `stufeFromSchulstufe` aus dem Schema wiederverwendet). `meta.schulstufe`
+  fließt damit erstmals aus dem Haupt-Wizard in den Prompt (altersgerechte
+  Wortwahl: „(schulstufe−4). Klasse AHS" existierte dort schon ungenutzt).
+- Neu: `components/ui/InfoDot.tsx` — kleines Info-„i" mit Hover-/Fokus-
+  Erklärblase (tastaturbedienbar, keine Dauer-Animation). Eingesetzt bei
+  Fach, Schulstufe, Schwierigkeit (Bloom/CEFR-Erklärung) und Klasse
+  (Korrektur-Kreislauf-Hinweis). Web-Typecheck + 112 Tests grün.
+
 ### Added — Audit-Abschluss A5 + P4: Judge im Text-Modus, Zeitbudget im Prompt
 - **A5:** `umformung`/`fehlerkorrektur` tragen KI-erfundene Musterlösungen, die
   das Quelltext-Grounding im Text-Modus nicht prüft. Der Kompetenz-Judge läuft
