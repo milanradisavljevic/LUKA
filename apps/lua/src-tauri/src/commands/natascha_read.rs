@@ -1112,7 +1112,7 @@ mod tests {
     /// Seedet zwei Schularbeiten: SA1 (2 Abgaben, Fehler Z,Z,Z,Z,G),
     /// SA2 (1 Abgabe, Fehler Z,G,X) und SA3 (1 Abgabe, keine Fehler).
     fn seed_fehler_trend(conn: &Connection) {
-        let mut abgabe = |aufgabe: &str, datum: &str, hash: &str| -> i64 {
+        let abgabe = |aufgabe: &str, datum: &str, hash: &str| -> i64 {
             conn.execute(
                 "INSERT INTO abgabe (klasse, aufgabe, dateiname, datei_hash, datum) \
                  VALUES ('8b', ?1, 'x.docx', ?2, ?3)",

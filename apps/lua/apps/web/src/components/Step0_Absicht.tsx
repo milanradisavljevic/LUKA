@@ -8,6 +8,7 @@ import { loadDocuments, loadSettings } from '../lib/storage';
 import { FEATURES } from '../lib/features';
 import { consumePendingUebung } from '../lib/korrekturBridge';
 import { getDefaultTemplate } from '@lehrunterlagen/renderer';
+import { useKlassenMeta } from '../hooks/useKlassenMeta';
 import { Tile } from './ui/Tile';
 import { SectionLabel } from './ui/SectionLabel';
 import { InfoDot } from './ui/InfoDot';
@@ -73,6 +74,29 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
   const [punkteVergeben, setPunkteVergeben] = useState<boolean>((lastMeta?.typ ?? 'schularbeit') !== 'schuluebung');
   // Sinnvoller Default je Unterlagentyp; manuell überschreibbar.
   useEffect(() => { setPunkteVergeben(typ !== 'schuluebung'); }, [typ]);
+
+  // Klassen-Verwaltung: bekannte Klassen als Datalist; bei exaktem Namenstreffer
+  // Fach/Schulstufe automatisch übernehmen (Lehrkraft kann danach überschreiben).
+  const { klassen: bekannteKlassen } = useKlassenMeta();
+  const [klasseAutoHinweis, setKlasseAutoHinweis] = useState<string | null>(null);
+  const handleKlasseChange = useCallback((wert: string) => {
+    setKlasse(wert);
+    const treffer = bekannteKlassen.find((k) => k.name === wert.trim());
+    if (treffer && (treffer.fach || treffer.schulstufe)) {
+      if (treffer.fach) setFach(treffer.fach as Fach);
+      if (treffer.schulstufe) {
+        setSchulstufe(treffer.schulstufe);
+        const neueStufe = stufeFromSchulstufe(treffer.schulstufe);
+        setStufe(neueStufe);
+        dispatch({ type: 'SET_RENDER_TEMPLATE', template: getDefaultTemplate(neueStufe).id });
+      } else if (treffer.stufe) {
+        setStufe(treffer.stufe as NonNullable<Auftrag['stufe']>);
+      }
+      setKlasseAutoHinweis(`Fach/Stufe von „${wert}" übernommen`);
+    } else {
+      setKlasseAutoHinweis(null);
+    }
+  }, [bekannteKlassen, dispatch]);
   // Matura (SRDP) → nüchternes SRDP-Template vorwählen.
   useEffect(() => { if (typ === 'matura') dispatch({ type: 'SET_RENDER_TEMPLATE', template: 'srdp' }); }, [typ, dispatch]);
 
@@ -661,8 +685,9 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
           </label>
           <input
             type="text"
+            list="klasse-optionen"
             value={klasse}
-            onChange={(e) => setKlasse(e.target.value)}
+            onChange={(e) => handleKlasseChange(e.target.value)}
             placeholder="z. B. 7A"
             style={{
               width: '100%',
@@ -672,6 +697,12 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
               fontSize: '0.875rem',
             }}
           />
+          <datalist id="klasse-optionen">
+            {bekannteKlassen.map((k) => <option key={k.name} value={k.name} />)}
+          </datalist>
+          {klasseAutoHinweis && (
+            <p style={{ fontSize: '0.75rem', color: 'var(--color-accent)', margin: '0.25rem 0 0' }}>{klasseAutoHinweis}</p>
+          )}
         </div>
       </section>
 

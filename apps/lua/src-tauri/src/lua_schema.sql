@@ -59,3 +59,20 @@ CREATE TABLE IF NOT EXISTS aufgabe_pool (
 CREATE INDEX IF NOT EXISTS idx_pool_fach ON aufgabe_pool(fach);
 CREATE INDEX IF NOT EXISTS idx_pool_typ ON aufgabe_pool(aufgabentyp);
 CREATE INDEX IF NOT EXISTS idx_pool_thema ON aufgabe_pool(thema);
+
+-- LUA-eigene Klassen-Metadaten (Fach/Stufe/Schuljahr) zur Klasse-STRING wie sie
+-- in den NATASCHA-Tabellen (abgabe.klasse, schueler.klasse, …) verwendet wird.
+-- Bewusst KEIN Fremdschlüssel dorthin: die NATASCHA-Tabellen gehören NATASCHA,
+-- dieses Schema wird vom Schema-Sync-Wächter (scripts/check_natascha_schema_sync.py)
+-- nicht geprüft. Umbenennen einer Klasse hier ändert NICHTS an existierenden
+-- NATASCHA-Datensätzen — die UI muss das kommunizieren.
+CREATE TABLE IF NOT EXISTS lua_klassen (
+    name TEXT PRIMARY KEY,
+    fach TEXT,
+    stufe TEXT,
+    schulstufe INTEGER,
+    schuljahr TEXT,
+    notizen TEXT,
+    archiviert INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);

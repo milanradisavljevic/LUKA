@@ -75,6 +75,9 @@ fn main() {
             commands::pool::pool_list,
             commands::pool::pool_get,
             commands::pool::pool_delete,
+            commands::klassen::klassen_meta_list,
+            commands::klassen::klassen_meta_upsert,
+            commands::klassen::klassen_meta_delete,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

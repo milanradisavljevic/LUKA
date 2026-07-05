@@ -11,6 +11,7 @@ import type { BlockTyp, Fach } from '@lehrunterlagen/schema';
 import { ViewShell } from './_ViewShell';
 import { KiTextBlock } from '../components/KiTextBlock';
 import { InfoDot } from '../components/ui/InfoDot';
+import { useKlassenMeta } from '../hooks/useKlassenMeta';
 
 const FEHLER_LABELS: Record<string, string> = { R: 'Rechtschreibung', G: 'Grammatik', Z: 'Zeichensetzung', A: 'Ausdruck' };
 
@@ -25,6 +26,7 @@ interface SchuelerViewProps {
 
 export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }: SchuelerViewProps = {}) {
   const { listKlassen, listSchueler, insertSchueler, deleteSchueler, addKlasse, addAufgabe, listRubrics, getSchuelerLaengsschnitt, generateSchuelerProfil, getSchuelerProfil, quelltextGet } = useNatascha();
+  const { klassen: bekannteKlassen } = useKlassenMeta();
 
   const [klassen, setKlassen] = useState<KlasseInfo[]>([]);
   const [selectedKlasse, setSelectedKlasse] = useState<string | null>(null);
@@ -318,7 +320,13 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
               <UserPlus size={14} /> Schüler anlegen
             </div>
             <input value={neuKlasse || selectedKlasse || ''} onChange={(e) => setNeuKlasse(e.target.value)} placeholder="Klasse (z.B. 7a)"
+              list="schueler-klasse-optionen"
               style={{ width: '100%', boxSizing: 'border-box', marginBottom: 4, fontSize: '0.75rem', padding: '0.25rem 0.4rem' }} />
+            <datalist id="schueler-klasse-optionen">
+              {[...new Set([...klassen.map((k) => k.klasse), ...bekannteKlassen.map((k) => k.name)])].map((name) => (
+                <option key={name} value={name} />
+              ))}
+            </datalist>
             <input value={neuVorname} onChange={(e) => setNeuVorname(e.target.value)} placeholder="Vorname"
               style={{ width: '100%', boxSizing: 'border-box', marginBottom: 4, fontSize: '0.75rem', padding: '0.25rem 0.4rem' }} />
             <input value={neuNachname} onChange={(e) => setNeuNachname(e.target.value)} placeholder="Nachname (optional)"

@@ -7,6 +7,34 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Klassen-Verwaltung: Fach/Schulstufe/Schuljahr je Klasse (U3)
+- Bislang war „Klasse" nur ein freier Textstring, den NATASCHA in
+  `abgabe.klasse`/`schueler.klasse` verwendet — keine Metadaten, keine
+  Wiederverwendung im Wizard. Neue **LUA-eigene** Tabelle `lua_klassen`
+  (`lua_schema.sql`) ergänzt Fach/Stufe/Schulstufe/Schuljahr/Archiviert-Flag
+  zu jedem Klassennamen. Bewusst **kein Fremdschlüssel** auf die
+  NATASCHA-Tabellen — die gehören NATASCHA, der Schema-Sync-Wächter
+  (`scripts/check_natascha_schema_sync.py`) prüft nur deren Tabellen und
+  bleibt unberührt. Umbenennen/Löschen der Metadaten ändert nichts an
+  bestehenden Abgaben/Schülern.
+- Neue Rust-Commands `commands/klassen.rs`: `klassen_meta_list`,
+  `klassen_meta_upsert` (Insert-or-Update über Primärschlüssel `name`),
+  `klassen_meta_delete`. 4 neue Rust-Tests.
+- Neuer Hook `hooks/useKlassenMeta.ts` (Muster: `useAufgabenPool.ts`).
+- **KlassenView:** „Klasse anlegen"-Panel in der Sidebar (Fach-Dropdown,
+  Schulstufen-Chips, Schuljahr-Feld); Klassenliste zeigt jetzt eine
+  Meta-Zeile („Deutsch · 7. Klasse · 2026/27"); Archivieren/Wiederherstellen
+  und Metadaten-Löschen (mit Bestätigung, betrifft nur die Metadaten) je
+  Klasse; archivierte Klassen standardmäßig ausgeblendet, per Klick einblendbar.
+  Auch Klassen ohne NATASCHA-Abgaben (frisch angelegt) erscheinen bereits.
+- **Wizard (Step0_Absicht):** Klasse-Feld ist jetzt eine Datalist über
+  bekannte Klassen; bei exaktem Namenstreffer werden Fach und Schulstufe
+  automatisch übernommen (weiterhin überschreibbar), mit kurzem Hinweistext.
+- **SchuelerView „Schüler anlegen":** Klasse-Feld nutzt dieselbe Datalist
+  (NATASCHA-Klassen ∪ LUA-Metadaten) statt reinem Freitext.
+- Rust: 43 Tests grün (4 neu). Web: Typecheck + 126 Tests grün.
+  Schema-Sync-Wächter grün (nur LUA-Schema erweitert).
+
 ### Added — InfoDot-Tooltips in der Korrektur-Suite (U2)
 - `InfoDot` (bereits in Step0_Absicht eingeführt) an 8 erklärungsbedürftigen
   Stellen ergänzt: KlassenView (Fehler-Heatmap, Wirksamkeit, Kalibrierung,

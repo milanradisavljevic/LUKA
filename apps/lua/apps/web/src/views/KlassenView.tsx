@@ -1,11 +1,13 @@
-import { useState, useEffect, useCallback } from 'react';
-import { GraduationCap, Users, BarChart3, AlertTriangle, TrendingUp, TrendingDown, Download, Wand2, Sparkles, Loader2, School } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { GraduationCap, Users, BarChart3, AlertTriangle, TrendingUp, TrendingDown, Download, Wand2, Sparkles, Loader2, School, Plus, Archive, ArchiveRestore, Pencil, Trash2, X } from 'lucide-react';
 import { EmptyState } from './_EmptyState';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from 'recharts';
 import type { KlasseInfo } from '../lib/storage';
 import { useNatascha } from '../hooks/useNatascha';
 import type { KlassenBriefingRow, FehlerTrendPunkt } from '../hooks/useNatascha';
+import { useKlassenMeta, type KlasseMeta } from '../hooks/useKlassenMeta';
 import { KATEGORIE_TO_BLOCKTYPEN, type NataschaPrefill } from '../lib/nataschaBridge';
+import { FACH_META, SCHULSTUFEN, stufeFromSchulstufe } from '@lehrunterlagen/schema';
 import type { BlockTyp } from '@lehrunterlagen/schema';
 import { ViewShell } from './_ViewShell';
 import { KiTextBlock } from '../components/KiTextBlock';
@@ -127,6 +129,7 @@ function buildWirksamkeit(punkte: FehlerTrendPunkt[]) {
 
 export function KlassenView({ onGenerateUebung }: Props) {
   const { listKlassen, listAufgaben, getAbgaben, getHeatmap, getKlassenStatistik, getKlassenTrend, getFehlerTrend, getKlassenKalibrierung, getFehlerDetail, exportNotenCsv, generateKlassenBriefing, getKlassenBriefing, quelltextGet } = useNatascha();
+  const { klassen: klassenMeta, upsert: upsertKlasseMeta, remove: removeKlasseMeta } = useKlassenMeta();
 
   const [tab, setTab] = useState<Tab>('uebersicht');
   const [klassen, setKlassen] = useState<KlasseInfo[]>([]);
@@ -146,11 +149,78 @@ export function KlassenView({ onGenerateUebung }: Props) {
   const [briefingBusy, setBriefingBusy] = useState(false);
   const [briefingError, setBriefingError] = useState<string | null>(null);
 
+  // Klasse anlegen/bearbeiten — LUA-eigene Metadaten (Fach/Schulstufe/Schuljahr)
+  // zusätzlich zum reinen Klasse-String, den NATASCHA verwendet.
+  const [zeigeKlasseForm, setZeigeKlasseForm] = useState(false);
+  const [formName, setFormName] = useState('');
+  const [formFach, setFormFach] = useState('deutsch');
+  const [formSchulstufe, setFormSchulstufe] = useState<number | undefined>(undefined);
+  const [formSchuljahr, setFormSchuljahr] = useState('');
+  const [formBusy, setFormBusy] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [formNameLocked, setFormNameLocked] = useState(false);
+  const [zeigeArchivierte, setZeigeArchivierte] = useState(false);
+
   useEffect(() => {
     listKlassen().then(setKlassen).catch(() => {
       setError('Datenbank nicht erreichbar.');
     });
   }, [listKlassen]);
+
+  // Merge: NATASCHA-Klassen (haben Abgaben) ∪ LUA-Metadaten (auch ganz neue,
+  // noch abgabenlose Klassen sollen im Wizard bereits nutzbar sein).
+  const klassenListe = useMemo(() => {
+    const metaByName = new Map(klassenMeta.map((m) => [m.name, m]));
+    const namen = new Set<string>([...klassen.map((k) => k.klasse), ...klassenMeta.map((m) => m.name)]);
+    const liste = [...namen].map((name) => ({
+      name,
+      anzahlAbgaben: klassen.find((k) => k.klasse === name)?.anzahlAbgaben ?? 0,
+      meta: metaByName.get(name),
+    }));
+    liste.sort((a, b) => {
+      const aArch = a.meta?.archiviert ?? false;
+      const bArch = b.meta?.archiviert ?? false;
+      if (aArch !== bArch) return aArch ? 1 : -1;
+      return a.name.localeCompare(b.name);
+    });
+    return zeigeArchivierte ? liste : liste.filter((k) => !(k.meta?.archiviert ?? false));
+  }, [klassen, klassenMeta, zeigeArchivierte]);
+
+  const archivierteAnzahl = klassenMeta.filter((m) => m.archiviert).length;
+
+  const oeffneKlasseForm = useCallback((vorhandene?: KlasseMeta, nameFest?: boolean) => {
+    setFormError(null);
+    setFormName(vorhandene?.name ?? '');
+    setFormFach(vorhandene?.fach ?? 'deutsch');
+    setFormSchulstufe(vorhandene?.schulstufe ?? undefined);
+    setFormSchuljahr(vorhandene?.schuljahr ?? '');
+    setFormNameLocked(!!nameFest);
+    setZeigeKlasseForm(true);
+  }, []);
+
+  const handleSaveKlasseMeta = useCallback(async () => {
+    const name = formName.trim();
+    if (!name) { setFormError('Bitte einen Klassennamen eingeben.'); return; }
+    setFormBusy(true);
+    setFormError(null);
+    const bestehende = klassenMeta.find((m) => m.name === name);
+    const ok = await upsertKlasseMeta({
+      name,
+      fach: formFach,
+      stufe: formSchulstufe ? stufeFromSchulstufe(formSchulstufe) : (bestehende?.stufe ?? 'oberstufe'),
+      schulstufe: formSchulstufe ?? null,
+      schuljahr: formSchuljahr.trim() || null,
+      notizen: bestehende?.notizen ?? null,
+      archiviert: bestehende?.archiviert ?? false,
+      createdAt: '',
+    });
+    setFormBusy(false);
+    if (ok) { setZeigeKlasseForm(false); } else { setFormError('Speichern fehlgeschlagen.'); }
+  }, [formName, formFach, formSchulstufe, formSchuljahr, klassenMeta, upsertKlasseMeta]);
+
+  const handleToggleArchiv = useCallback(async (meta: KlasseMeta) => {
+    await upsertKlasseMeta({ ...meta, archiviert: !meta.archiviert });
+  }, [upsertKlasseMeta]);
 
   const loadKlasse = useCallback(async (klasse: string) => {
     setSelectedKlasse(klasse);
@@ -288,27 +358,131 @@ export function KlassenView({ onGenerateUebung }: Props) {
 
       <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: '1.25rem' }}>
         <div style={cardStyle}>
-          <h3 style={{ fontSize: '0.875rem', margin: '0 0 0.75rem', fontWeight: 700 }}>
-            <GraduationCap size={16} style={{ verticalAlign: -2, marginRight: 6 }} /> Klassen
-          </h3>
-          {klassen.length === 0 && !error && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+            <h3 style={{ fontSize: '0.875rem', margin: 0, fontWeight: 700 }}>
+              <GraduationCap size={16} style={{ verticalAlign: -2, marginRight: 6 }} /> Klassen
+            </h3>
+            <button
+              onClick={() => oeffneKlasseForm()}
+              title="Klasse anlegen"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-accent)', display: 'flex' }}
+            >
+              <Plus size={18} />
+            </button>
+          </div>
+
+          {zeigeKlasseForm && (
+            <div style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', padding: '0.625rem', marginBottom: '0.75rem', background: 'var(--color-bg-base)' }}>
+              <input
+                type="text"
+                placeholder="Klassenname (z. B. 7A)"
+                value={formName}
+                onChange={(e) => setFormName(e.target.value)}
+                disabled={formNameLocked}
+                style={{ width: '100%', boxSizing: 'border-box', marginBottom: '0.4rem', fontSize: '0.8125rem' }}
+              />
+              <select value={formFach} onChange={(e) => setFormFach(e.target.value)} style={{ width: '100%', marginBottom: '0.4rem', fontSize: '0.8125rem' }}>
+                {Object.entries(FACH_META).map(([f, m]) => <option key={f} value={f}>{m.label}</option>)}
+              </select>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginBottom: '0.4rem' }}>
+                {SCHULSTUFEN.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => setFormSchulstufe(s)}
+                    style={{
+                      padding: '0.2rem 0.4rem', fontSize: '0.7rem', borderRadius: 'var(--radius)',
+                      border: formSchulstufe === s ? '2px solid var(--color-accent)' : '1px solid var(--color-border)',
+                      background: 'var(--color-bg-surface)', cursor: 'pointer',
+                    }}
+                  >
+                    {s}.
+                  </button>
+                ))}
+              </div>
+              <input
+                type="text"
+                placeholder="Schuljahr (z. B. 2026/27)"
+                value={formSchuljahr}
+                onChange={(e) => setFormSchuljahr(e.target.value)}
+                style={{ width: '100%', boxSizing: 'border-box', marginBottom: '0.5rem', fontSize: '0.8125rem' }}
+              />
+              {formError && <p style={{ color: 'var(--color-danger, #c0392b)', fontSize: '0.75rem', margin: '0 0 0.4rem' }}>{formError}</p>}
+              <div style={{ display: 'flex', gap: '0.4rem' }}>
+                <button className="btn-primary" onClick={handleSaveKlasseMeta} disabled={formBusy} style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }}>
+                  Speichern
+                </button>
+                <button className="btn-secondary" onClick={() => setZeigeKlasseForm(false)} style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }}>
+                  Abbrechen
+                </button>
+              </div>
+            </div>
+          )}
+
+          {klassenListe.length === 0 && !error && !zeigeKlasseForm && (
             <EmptyState
               icon={School}
               title="Noch keine Klassen"
-              description="Sobald du Schüler anlegst oder Korrekturen analysierst, erscheinen hier die Klassen."
+              description="Lege eine Klasse an oder warte, bis Schüler/Korrekturen erste Daten liefern."
               bordered={false}
             />
           )}
-          {klassen.map((k) => (
-            <button key={k.klasse} onClick={() => loadKlasse(k.klasse)} style={{
-              display: 'block', width: '100%', textAlign: 'left', padding: '0.5rem 0.75rem', marginBottom: '0.25rem',
-              background: selectedKlasse === k.klasse ? 'var(--color-highlight-bg)' : 'none',
-              border: selectedKlasse === k.klasse ? '2px solid var(--color-accent)' : '1px solid transparent',
-              borderRadius: 'var(--radius)', cursor: 'pointer', fontSize: '0.8125rem',
-            }}>
-              {k.klasse} <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.75rem' }}>({k.anzahlAbgaben})</span>
-            </button>
+          {klassenListe.map((k) => (
+            <div key={k.name} style={{ marginBottom: '0.25rem' }}>
+              <button onClick={() => loadKlasse(k.name)} style={{
+                display: 'block', width: '100%', textAlign: 'left', padding: '0.5rem 0.75rem',
+                background: selectedKlasse === k.name ? 'var(--color-highlight-bg)' : 'none',
+                border: selectedKlasse === k.name ? '2px solid var(--color-accent)' : '1px solid transparent',
+                borderRadius: 'var(--radius)', cursor: 'pointer', fontSize: '0.8125rem',
+                opacity: k.meta?.archiviert ? 0.55 : 1,
+              }}>
+                {k.name} <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.75rem' }}>({k.anzahlAbgaben})</span>
+                {k.meta && (
+                  <span style={{ display: 'block', fontSize: '0.6875rem', color: 'var(--color-text-secondary)' }}>
+                    {[FACH_META[k.meta.fach as keyof typeof FACH_META]?.label ?? k.meta.fach, k.meta.schulstufe ? `${k.meta.schulstufe}. Klasse` : null, k.meta.schuljahr]
+                      .filter(Boolean).join(' · ')}
+                  </span>
+                )}
+              </button>
+              <div style={{ display: 'flex', gap: '0.3rem', paddingLeft: '0.75rem' }}>
+                <button
+                  onClick={() => oeffneKlasseForm(k.meta ?? { name: k.name, archiviert: false, createdAt: '' }, true)}
+                  title="Metadaten bearbeiten"
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-secondary)', padding: 2 }}
+                >
+                  <Pencil size={12} />
+                </button>
+                {k.meta && (
+                  <>
+                    <button
+                      onClick={() => handleToggleArchiv(k.meta!)}
+                      title={k.meta.archiviert ? 'Aus Archiv holen' : 'Archivieren'}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-secondary)', padding: 2 }}
+                    >
+                      {k.meta.archiviert ? <ArchiveRestore size={12} /> : <Archive size={12} />}
+                    </button>
+                    <button
+                      onClick={() => { if (window.confirm(`Metadaten zu „${k.name}" entfernen? (Nur Fach/Stufe/Schuljahr — Abgaben/Schüler bleiben unberührt.)`)) removeKlasseMeta(k.name); }}
+                      title="Metadaten entfernen"
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-secondary)', padding: 2 }}
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
           ))}
+
+          {archivierteAnzahl > 0 && (
+            <button
+              onClick={() => setZeigeArchivierte((v) => !v)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-secondary)', fontSize: '0.7rem', padding: '0.25rem 0', display: 'flex', alignItems: 'center', gap: 4 }}
+            >
+              {zeigeArchivierte ? <X size={12} /> : <Archive size={12} />}
+              {zeigeArchivierte ? 'Archivierte ausblenden' : `${archivierteAnzahl} archiviert anzeigen`}
+            </button>
+          )}
 
           {aufgaben.length > 0 && (
             <div style={{ marginTop: '0.75rem', borderTop: '1px solid var(--color-border)', paddingTop: '0.5rem' }}>

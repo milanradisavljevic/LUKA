@@ -8,3 +8,4 @@ pub mod db;
 pub mod natascha_read;
 pub mod pool;
 pub mod export;
+pub mod klassen;
