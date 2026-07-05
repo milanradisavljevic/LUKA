@@ -237,11 +237,15 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
       chatMessages.push({ role: 'user', content: `Zusätzliche Anweisung für diesen Block: ${extraHinweis.trim()}` });
     }
 
-    // Judge nur im Kompetenz-Modus aktiv (Kosten-Guard): erfundene Übungen ohne
-    // Quelltext brauchen die grammatik-/inhaltsbewusste Prüfung. Text-Modus bleibt
-    // unverändert (kein zusätzlicher Judge-Call pro Schularbeit).
+    // Judge-Kosten-Guard: Kompetenz-Modus immer (erfundene Übungen brauchen die
+    // grammatik-/inhaltsbewusste Prüfung). Im Text-Modus nur, wenn fehleranfällige
+    // Musterlösungs-Typen angefordert sind (Audit A5: umformung/fehlerkorrektur) —
+    // sonst weiterhin kein zusätzlicher Judge-Call pro Schularbeit.
     const modus = input.meta.modus ?? 'text';
-    const judgeAktiv = modus === 'kompetenz' && judgeCfg?.enabled !== false;
+    const hatMusterloesungsRisiko = input.bloecke.some(
+      (b) => b.typ === 'fehlerkorrektur' || b.typ === 'umformung',
+    );
+    const judgeAktiv = (modus === 'kompetenz' || hatMusterloesungsRisiko) && judgeCfg?.enabled !== false;
     const judgeComplete: ((msgs: ChatMessage[]) => Promise<string>) | undefined = judgeAktiv
       ? async (msgs) => {
           const sys = msgs.find((m) => m.role === 'system');

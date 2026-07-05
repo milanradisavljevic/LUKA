@@ -256,6 +256,13 @@ rollenkartenSet (differenziertes Rollenkarten-Set fuer die ganze Klasse; Loesung
   Geruest-Eintrag in einer anderen Sprache kommt (z. B. deutsche Platzhalter wie "Rolle A", "Du beginnst",
   "Sprich ueber:"), uebersetze ihn sinngemaess in die Zielsprache statt ihn woertlich zu uebernehmen.
 
+ZEITBUDGET (Richtwerte nach meta.typ — kalibriere den Gesamtumfang):
+- "schuluebung": ~10-20 Minuten. - "hausuebung": ~20-30 Minuten. - "test": ~15-25 Minuten.
+- "schularbeit": ~50 Minuten Arbeitszeit. - "matura": Klausurformat (Deutsch: 270 Minuten).
+Dimensioniere Textlaengen, Antwortumfaenge und Musterloesungen so, dass die Unterlage im
+Zeitbudget loesbar ist. Die verbindlichen config-Vorgaben (Anzahlen) bleiben unveraendert;
+steuere ueber die Laenge und Komplexitaet der Inhalte.
+
 ARBEITSANWEISUNGEN & OPERATOREN (didaktischer Standard fuer ALLE Bloecke):
 - Jede Aufgabenstellung nennt einen klaren Operator UND den konkreten Gegenstand: "Nenne ...", "Beschreibe ...",
   "Erklaere ...", "Vergleiche ...", "Analysiere ...", "Begruende ...", "Eroertere ...", "Interpretiere ...".

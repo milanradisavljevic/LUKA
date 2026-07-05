@@ -447,6 +447,14 @@ export async function runQualityChecks(
     ...checkSchreibaufgabe(doc, quelltexte),
     ...checkLernzielCoverage(doc, meta ?? {}),
   ];
+  // Audit A5: umformung/fehlerkorrektur tragen KI-erfundene Musterlösungen auch im
+  // Text-Modus (Quelltext-Grounding greift dort nicht). Der Kompetenz-Judge prüft
+  // genau diese Blocktypen; ohne solche Blöcke macht er keine Calls. ADVISORY:
+  // Befunde werden zu Warnungen herabgestuft und blockieren nie.
+  if (judgeCfg?.enabled !== false && complete) {
+    const kjIssues = await runKompetenzJudge(doc, { fach: meta?.fach }, complete);
+    issues.push(...kjIssues.map((i) => ({ ...i, severity: 'warning' as const })));
+  }
   const judge = await llmJudgeHook(doc, quelltexte, judgeCfg, complete);
   return { issues, judge };
 }

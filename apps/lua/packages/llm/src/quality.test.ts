@@ -263,6 +263,68 @@ describe('runQualityChecks', () => {
     expect(issues).toHaveLength(0);
     expect(judge).toEqual({ score: 1, issues: [] });
   });
+
+  it('Text-Modus: Kompetenz-Judge prueft fehlerkorrektur und liefert Befunde als Warnung (Audit A5)', async () => {
+    const doc: DocumentV1 = {
+      schemaVersion: '0.1.0',
+      meta: mockMeta,
+      quelltexte: mockQuelltexte,
+      bloecke: [
+        {
+          id: 'b1',
+          typ: 'fehlerkorrektur',
+          punkte: 4,
+          arbeitsanweisung: 'Finde und korrigiere die Fehler.',
+          config: { saetze: [{ nr: 1, satz: 'Das ist ein test.', anzahlFehler: 1 }] },
+          loesung: {
+            korrekturen: [
+              { nr: 1, korrigierterSatz: 'Das ist ein Test.', fehler: [{ stelle: 'test', art: 'R' }] },
+            ],
+          },
+        },
+      ],
+    };
+    const calls: string[] = [];
+    const complete = async (msgs: { role: string; content: string }[]) => {
+      calls.push(msgs[msgs.length - 1]!.content);
+      return JSON.stringify({ fehler: [{ schwere: 'hart', grund: 'Musterloesung grammatisch falsch' }] });
+    };
+    const { issues } = await runQualityChecks(
+      doc, mockQuelltexte, { modus: 'text' }, { provider: 'deepseek', enabled: true }, complete,
+    );
+    expect(calls.length).toBe(1);
+    const kj = issues.filter((i) => i.message.includes('Kompetenz-Judge:'));
+    expect(kj).toHaveLength(1);
+    // advisory: auch "harte" Befunde werden im Text-Modus zu Warnungen herabgestuft
+    expect(kj[0]!.severity).toBe('warning');
+  });
+
+  it('Text-Modus: ohne Musterloesungs-Risiko-Typen macht der Kompetenz-Judge keine Calls', async () => {
+    const doc: DocumentV1 = {
+      schemaVersion: '0.1.0',
+      meta: mockMeta,
+      quelltexte: mockQuelltexte,
+      bloecke: [
+        {
+          id: 'b1',
+          typ: 'wortgitter',
+          punkte: 4,
+          arbeitsanweisung: 'Finde die Woerter.',
+          config: { anzahlWoerter: 2, woerter: ['Photosynthese', 'Chlorophyll'] },
+        },
+      ],
+    };
+    let calls = 0;
+    const complete = async () => {
+      calls++;
+      return JSON.stringify({ fehler: [] });
+    };
+    const { issues } = await runQualityChecks(
+      doc, mockQuelltexte, { modus: 'text' }, { provider: 'deepseek', enabled: true }, complete,
+    );
+    expect(calls).toBe(0);
+    expect(issues.filter((i) => i.message.includes('Kompetenz-Judge:'))).toHaveLength(0);
+  });
 });
 
 describe('checkGrounding (erweiterte Loesungs-Felder)', () => {

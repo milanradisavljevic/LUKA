@@ -171,6 +171,14 @@ describe('buildMessages — Didaktik Runde 1 Regeln', () => {
     expect(system.content).toContain('Absatz');
   });
 
+  it('System-Prompt enthaelt Zeitbudget-Richtwerte je Unterlagentyp (Audit P4)', () => {
+    const messages = buildMessages(input());
+    const system = messages.find((m) => m.role === 'system')!;
+    expect(system.content).toContain('ZEITBUDGET');
+    expect(system.content).toContain('~50 Minuten');
+    expect(system.content).toContain('270 Minuten');
+  });
+
   it('System-Prompt enthaelt Operatoren-Standard mit Anforderungsbereichen (Audit A1)', () => {
     const messages = buildMessages(input());
     const system = messages.find((m) => m.role === 'system')!;

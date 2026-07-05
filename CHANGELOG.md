@@ -7,6 +7,19 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Audit-Abschluss A5 + P4: Judge im Text-Modus, Zeitbudget im Prompt
+- **A5:** `umformung`/`fehlerkorrektur` tragen KI-erfundene Musterlösungen, die
+  das Quelltext-Grounding im Text-Modus nicht prüft. Der Kompetenz-Judge läuft
+  jetzt auch dort (`packages/llm/src/quality.ts`), advisory (nur Warnungen,
+  blockiert nie). Kosten-Guard bleibt: `useGenerate` aktiviert den Judge im
+  Text-Modus nur, wenn solche Blöcke angefordert sind — sonst weiterhin kein
+  zusätzlicher LLM-Call pro Schularbeit. 2 neue Tests (Befund wird Warnung;
+  ohne Risiko-Typen null Judge-Calls).
+- **P4:** neuer Prompt-Abschnitt **ZEITBUDGET** (`packages/llm/src/prompt.ts`):
+  Richtwerte je `meta.typ` (Schulübung ~10–20 min … Matura 270 min), Umfang
+  wird über Länge/Komplexität gesteuert, config-Vorgaben bleiben verbindlich.
+  1 neuer Test-Pin. llm-Suite: 132 Tests grün.
+
 ### Changed — Übersicht-Startkarten: Asset-basierte Lineart
 - Die drei Dashboard-Einstiege verwenden keine handgebauten Inline-SVGs mehr,
   sondern neue transparente Lineart-Assets im Stil der Fachatmosphären.
