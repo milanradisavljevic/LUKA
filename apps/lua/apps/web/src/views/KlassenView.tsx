@@ -10,6 +10,7 @@ import type { BlockTyp } from '@lehrunterlagen/schema';
 import { ViewShell } from './_ViewShell';
 import { KiTextBlock } from '../components/KiTextBlock';
 import { anzeigeName } from '../lib/anzeigeName';
+import { InfoDot } from '../components/ui/InfoDot';
 
 interface Props {
   /** Closed Loop: aus der Heatmap ein Übungsblatt im LUA-Generator starten. */
@@ -374,7 +375,10 @@ export function KlassenView({ onGenerateUebung }: Props) {
                 </div>
 
                 <div style={cardStyle}>
-                  <h4 style={{ fontSize: '0.875rem', margin: '0 0 0.75rem' }}><AlertTriangle size={16} style={{ verticalAlign: -2, marginRight: 6 }} /> Fehler-Heatmap</h4>
+                  <h4 style={{ fontSize: '0.875rem', margin: '0 0 0.75rem' }}>
+                    <AlertTriangle size={16} style={{ verticalAlign: -2, marginRight: 6 }} /> Fehler-Heatmap
+                    <InfoDot text="Häufigkeit der Fehlerkategorien (Rechtschreibung/Grammatik/Zeichensetzung/Ausdruck) über alle Abgaben. Klick auf eine Kategorie zeigt Beispielstellen." />
+                  </h4>
                   {heatmap.length === 0 ? (
                     <EmptyState
                       icon={AlertTriangle}
@@ -492,6 +496,7 @@ export function KlassenView({ onGenerateUebung }: Props) {
                 <div style={{ ...cardStyle, marginBottom: '1rem' }}>
                   <h4 style={{ fontSize: '0.875rem', margin: '0 0 0.75rem' }}>
                     <TrendingDown size={16} style={{ verticalAlign: -2, marginRight: 6 }} /> Wirksamkeit über die Schularbeiten
+                    <InfoDot text="Fehler pro Abgabe je Kategorie über die Schularbeiten hinweg. Sinkt eine Linie nach gezielter Übung, war sie vermutlich wirksam." />
                   </h4>
                   <ResponsiveContainer width="100%" height={240}>
                     <LineChart data={wirksamkeit.chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
@@ -543,7 +548,10 @@ export function KlassenView({ onGenerateUebung }: Props) {
 
               {kalibrierung && (
                 <div style={{ ...cardStyle, marginBottom: '1rem' }}>
-                  <h4 style={{ fontSize: '0.875rem', margin: '0 0 0.75rem' }}>Kalibrierung (KI vs. Lehrer)</h4>
+                  <h4 style={{ fontSize: '0.875rem', margin: '0 0 0.75rem' }}>
+                    Kalibrierung (KI vs. Lehrer)
+                    <InfoDot text="Vergleicht die KI-Note mit deiner tatsächlich vergebenen Note bei Abgaben, die du überschrieben hast. Zeigt, ob die KI im Schnitt strenger oder milder benotet als du." />
+                  </h4>
                   <div style={{ display: 'flex', gap: '2rem' }}>
                     <div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>KI-Durchschnitt</div>
@@ -586,6 +594,7 @@ export function KlassenView({ onGenerateUebung }: Props) {
                   <h4 style={{ fontSize: '0.875rem', margin: 0 }}>
                     <Sparkles size={15} style={{ verticalAlign: -2, marginRight: 6, color: 'var(--color-accent)' }} />
                     KI-Klassen-Briefing
+                    <InfoDot text="Fasst Notenverteilung, Fehler-Heatmap und Trend aggregiert zusammen — ohne Schülernamen oder Textzitate." />
                   </h4>
                   <button
                     className="btn-primary"

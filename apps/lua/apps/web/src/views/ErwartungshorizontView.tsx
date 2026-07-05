@@ -3,6 +3,7 @@ import { Loader2, Sparkles, AlertTriangle, Copy, Check, FileText, Save } from 'l
 import { useNatascha } from '../hooks/useNatascha';
 import type { KlasseInfo } from '../lib/storage';
 import { ViewShell } from './_ViewShell';
+import { InfoDot } from '../components/ui/InfoDot';
 
 export function ErwartungshorizontView() {
   const { listKlassen, listAufgaben, generateErwartungshorizont, saveErwartungshorizont, listRubricFiles, readRubric, saveRubric } = useNatascha();
@@ -117,7 +118,10 @@ export function ErwartungshorizontView() {
             </select>
           </div>
           <div>
-            <label style={labelStyle}>Aufgabe</label>
+            <label style={labelStyle}>
+              Aufgabe
+              <InfoDot text="Erzeugt aus Angabe + Textbeilage einen Erwartungsraster als Korrekturgrundlage — ein KI-Entwurf, den du vor der Verwendung prüfen solltest." />
+            </label>
             <input
               list="eh-aufgaben"
               value={aufgabe}
@@ -203,7 +207,10 @@ export function ErwartungshorizontView() {
         </p>
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'end', flexWrap: 'wrap' }}>
           <div>
-            <label style={labelStyle}>Rubrik</label>
+            <label style={labelStyle}>
+              Rubrik
+              <InfoDot text="Dateiname der Bewertungsraster-Datei (Ordner rubrics/). Der Name selbst hat keine Bedeutung — entscheidend ist der Inhalt darunter." />
+            </label>
             <select value={rubricName} onChange={(e) => loadRubric(e.target.value)} style={{ minWidth: 260 }}>
               <option value="">— wählen —</option>
               {rubricFiles.map((f) => <option key={f} value={f}>{f}</option>)}

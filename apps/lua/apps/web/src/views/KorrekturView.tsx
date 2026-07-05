@@ -4,6 +4,7 @@ import { loadSettings } from '../lib/storage';
 import { useNatascha } from '../hooks/useNatascha';
 import { ViewShell } from './_ViewShell';
 import { anzeigeName } from '../lib/anzeigeName';
+import { InfoDot } from '../components/ui/InfoDot';
 
 function isTauri(): boolean {
   return typeof window !== 'undefined' && (window as any).__TAURI_INTERNALS__ !== undefined;
@@ -465,7 +466,10 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
                     <thead>
                       <tr style={{ borderBottom: '2px solid var(--color-border)' }}>
                         <th style={{ textAlign: 'left', padding: '0.375rem 0.5rem' }}>Schüler/in</th>
-                        <th style={{ textAlign: 'center', padding: '0.375rem 0.5rem' }}>KI-Note</th>
+                        <th style={{ textAlign: 'center', padding: '0.375rem 0.5rem' }}>
+                          KI-Note
+                          <InfoDot text="Notenvorschlag der KI-Analyse — ein Ausgangspunkt, keine endgültige Note." />
+                        </th>
                         <th style={{ textAlign: 'center', padding: '0.375rem 0.5rem' }}>Lehrer</th>
                         <th style={{ textAlign: 'left', padding: '0.375rem 0.5rem' }}>Textsorte</th>
                       </tr>
@@ -530,7 +534,10 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
                         </div>
                       )}
                       <div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>Gesamtstufe</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+                          Gesamtstufe
+                          <InfoDot text="SRDP-Kompetenzstufe (1–5), nicht die Schulnote — die Note wird daraus berechnet." />
+                        </div>
                         <div style={{ fontSize: '1.125rem', fontWeight: 600 }}>
                           {selectedAbgabe.abgabe.gesamtstufe !== null ? selectedAbgabe.abgabe.gesamtstufe.toFixed(2) : '—'}
                         </div>

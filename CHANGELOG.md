@@ -7,6 +7,16 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — InfoDot-Tooltips in der Korrektur-Suite (U2)
+- `InfoDot` (bereits in Step0_Absicht eingeführt) an 8 erklärungsbedürftigen
+  Stellen ergänzt: KlassenView (Fehler-Heatmap, Wirksamkeit, Kalibrierung,
+  KI-Klassen-Briefing), KorrekturView (KI-Note-Spalte, Gesamtstufe vs.
+  Schulnote), ErwartungshorizontView (Generieren-Erklärung, Rubrik-
+  Dateiname-Kontext), SchuelerView (K1/K3-Legende am Notenverlauf-Chart).
+  Bewusst NICHT gesetzt bei Retro-Import- und Übungsblatt-Button — die haben
+  bereits ein erklärendes `title`-Attribut, ein InfoDot wäre dort Redundanz.
+- Web: Typecheck grün, 126 Tests grün (unverändert, reine UI-Ergänzung).
+
 ### Fixed — Korrektur-Suite: Roh-JSON, Lösch-Dialog, sinnlose Trend-Chips, Wizard-Badge, Dateinamen (U1)
 - **KI-Text-Rendering:** Neue Komponente `components/KiTextBlock.tsx` ersetzt
   das rohe `whiteSpace:pre-wrap`-JSON in `SchuelerView.tsx` (KI-Schüler-Profil)

@@ -10,6 +10,7 @@ import { FACH_META, fachLabel } from '@lehrunterlagen/schema';
 import type { BlockTyp, Fach } from '@lehrunterlagen/schema';
 import { ViewShell } from './_ViewShell';
 import { KiTextBlock } from '../components/KiTextBlock';
+import { InfoDot } from '../components/ui/InfoDot';
 
 const FEHLER_LABELS: Record<string, string> = { R: 'Rechtschreibung', G: 'Grammatik', Z: 'Zeichensetzung', A: 'Ausdruck' };
 
@@ -434,6 +435,7 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
                 <div style={{ ...cardStyle, marginBottom: '1rem' }}>
                   <h5 style={{ fontSize: '0.875rem', margin: '0 0 0.75rem' }}>
                     <BarChart3 size={16} style={{ verticalAlign: -2, marginRight: 6 }} /> Notenverlauf
+                    <InfoDot text="K1 = Inhalt & Textstruktur, K3 = Stil, Ausdruck & Sprachrichtigkeit (SRDP-Kompetenzbereiche)." />
                   </h5>
                   <ResponsiveContainer width="100%" height={220}>
                     <LineChart data={laengsschnitt.verlauf} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
