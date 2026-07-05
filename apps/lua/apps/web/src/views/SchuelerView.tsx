@@ -9,6 +9,7 @@ import { KATEGORIE_TO_BLOCKTYPEN, type NataschaPrefill, type BridgeBeispiel } fr
 import { FACH_META, fachLabel } from '@lehrunterlagen/schema';
 import type { BlockTyp, Fach } from '@lehrunterlagen/schema';
 import { ViewShell } from './_ViewShell';
+import { KiTextBlock } from '../components/KiTextBlock';
 
 const FEHLER_LABELS: Record<string, string> = { R: 'Rechtschreibung', G: 'Grammatik', Z: 'Zeichensetzung', A: 'Ausdruck' };
 
@@ -212,7 +213,19 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
   }, [neuKlasse, selectedKlasse, insertSchueler, listKlassen, loadSchueler]);
 
   const handleDeleteSchueler = useCallback(async (id: number, name: string) => {
-    if (!window.confirm(`Schüler „${name}" löschen? (Abgaben bleiben erhalten.)`)) return;
+    // Ehrlicher Dialog statt Pauschal-Beruhigung: FK-Verhalten der DB ist
+    // ON DELETE CASCADE für schueler_profil, ON DELETE SET NULL für abgabe/
+    // lehrer_feedback (natascha_schema.sql) — das KI-Profil geht also wirklich
+    // verloren, Abgaben bleiben nur anonymisiert (schueler_id → NULL) erhalten.
+    const abgabenHinweis = selectedSchuelerId === id && laengsschnitt
+      ? `${laengsschnitt.anzahlAbgaben} Abgabe${laengsschnitt.anzahlAbgaben === 1 ? '' : 'n'} bleiben anonymisiert erhalten`
+      : 'vorhandene Abgaben bleiben anonymisiert erhalten';
+    if (!window.confirm(
+      `Schüler „${name}" endgültig löschen?\n\n` +
+      `Das KI-Schüler-Profil wird gelöscht. ${abgabenHinweis} ` +
+      `(ohne Namenszuordnung, weiter in Klassenauswertungen sichtbar).\n\n` +
+      `Für ein Backup vorher: Einstellungen → Datensicherung.`
+    )) return;
     setError(null);
     try {
       await deleteSchueler(id);
@@ -391,21 +404,29 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
                   </div>
                 </div>
 
-                {/* Trend summary */}
-                <div style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-muted)', marginBottom: '0.375rem' }}>
-                  Entwicklung über {laengsschnitt.anzahlAbgaben} {laengsschnitt.anzahlAbgaben === 1 ? 'Arbeit' : 'Arbeiten'}
-                </div>
-                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                  {Object.entries(laengsschnitt.trend as Record<string, { start: number | null; ende: number | null; richtung: string }>).map(([key, t]) => (
-                    <div key={key} style={{ padding: '0.375rem 0.75rem', background: 'var(--color-bg-base)', borderRadius: 'var(--radius)', fontSize: '0.8125rem' }}>
-                      <span style={{ fontWeight: 600 }}>{key === 'noteApp' ? 'KI-Note' : key === 'noteLehrer' ? 'Lehrernote' : key}</span>{' '}
-                      {trendIcon(t.richtung)}{' '}
-                      <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.75rem' }}>
-                        {t.start !== null ? t.start.toFixed(1) : '—'} → {t.ende !== null ? t.ende.toFixed(1) : '—'}
-                      </span>
+                {/* Trend summary — erst ab 2 Abgaben sinnvoll (sonst "3.0 → 3.0") */}
+                {laengsschnitt.anzahlAbgaben >= 2 ? (
+                  <>
+                    <div style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-muted)', marginBottom: '0.375rem' }}>
+                      Entwicklung über {laengsschnitt.anzahlAbgaben} Arbeiten
                     </div>
-                  ))}
-                </div>
+                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                      {Object.entries(laengsschnitt.trend as Record<string, { start: number | null; ende: number | null; richtung: string }>).map(([key, t]) => (
+                        <div key={key} style={{ padding: '0.375rem 0.75rem', background: 'var(--color-bg-base)', borderRadius: 'var(--radius)', fontSize: '0.8125rem' }}>
+                          <span style={{ fontWeight: 600 }}>{key === 'noteApp' ? 'KI-Note' : key === 'noteLehrer' ? 'Lehrernote' : key}</span>{' '}
+                          {trendIcon(t.richtung)}{' '}
+                          <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.75rem' }}>
+                            {t.start !== null ? t.start.toFixed(1) : '—'} → {t.ende !== null ? t.ende.toFixed(1) : '—'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: 0 }}>
+                    Ab der zweiten Arbeit siehst du hier die Entwicklung.
+                  </p>
+                )}
               </div>
 
               {/* Notenverlauf Chart */}
@@ -519,8 +540,8 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
                   <p style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)', margin: '0 0 0.5rem' }}>
                     {profil.erstelltAm && `${profil.erstelltAm} · `}{profil.modell || 'Modell unbekannt'}
                   </p>
-                  <div style={{ maxHeight: '40vh', overflowY: 'auto', fontSize: '0.8125rem', lineHeight: 1.6, whiteSpace: 'pre-wrap', background: 'var(--color-bg-base)', padding: '0.75rem', borderRadius: 'var(--radius)' }}>
-                    {profil.text}
+                  <div style={{ maxHeight: '40vh', overflowY: 'auto', fontSize: '0.8125rem', lineHeight: 1.6, background: 'var(--color-bg-base)', padding: '0.75rem', borderRadius: 'var(--radius)' }}>
+                    <KiTextBlock text={profil.text} />
                   </div>
                 </>
               ) : (

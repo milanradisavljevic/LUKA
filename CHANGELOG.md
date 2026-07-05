@@ -7,6 +7,43 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Fixed — Korrektur-Suite: Roh-JSON, Lösch-Dialog, sinnlose Trend-Chips, Wizard-Badge, Dateinamen (U1)
+- **KI-Text-Rendering:** Neue Komponente `components/KiTextBlock.tsx` ersetzt
+  das rohe `whiteSpace:pre-wrap`-JSON in `SchuelerView.tsx` (KI-Schüler-Profil)
+  und `KlassenView.tsx` (KI-Klassen-Briefing). Root Cause: `natascha_cli.py`
+  speichert die vom Prompt geforderte JSON-Antwort unverändert als
+  `{"text": <JSON-String>}`; das Frontend zeigte diesen String 1:1 an.
+  `KiTextBlock` parst `text` und rendert strukturiert (kurzbild, Stärken,
+  Förderbereiche/Schwerpunkte, Unterrichtsempfehlungen, Matura-Bezug);
+  Prosa/kaputtes JSON fällt unverändert auf die alte pre-wrap-Darstellung
+  zurück (Alt-Daten bleiben lesbar). Frontend-only, kein Schema-/CLI-Touch.
+  6 neue Tests (`KiTextBlock.test.ts`).
+- **FK-Verhalten verifiziert:** `PRAGMA foreign_keys=ON` war in `db.rs:38`
+  bereits gesetzt — neuer Rust-Test belegt jetzt explizit, dass Schüler-Löschen
+  `schueler_profil` per CASCADE entfernt, `abgabe.schueler_id` aber per SET
+  NULL nur entkoppelt (Abgabe bleibt anonymisiert erhalten). Test-`setup()`
+  in `natascha_read.rs` spiegelt jetzt denselben PRAGMA-Haushalt wie
+  `db::open_db()` (vorher liefen alle FK-Tests ohne Constraint-Durchsetzung).
+- **Lösch-Dialog präzisiert:** `SchuelerView.tsx` — der Dialog nennt jetzt die
+  echte Konsequenz (KI-Profil weg, N Abgaben anonymisiert erhalten, Hinweis
+  auf Einstellungen→Datensicherung) statt der pauschalen Beruhigung
+  „Abgaben bleiben erhalten".
+- **Trend-Chips-Gate:** „Entwicklung über 1 Arbeit" mit sinnlosen
+  „3.0 → 3.0"-Chips ersetzt durch Hinweistext bei nur einer Abgabe
+  (Muster: bestehendes Chart-Gate).
+- **Wizard-Badge kontextualisiert:** Der Header-Badge „Fach · Stufe · Klasse"
+  (Wizard-Meta) blendet sich jetzt in den 4 NATASCHA-Views aus — dort gilt
+  eine andere Klassen-Auswahl, das Badge zeigte bislang irreführend den
+  Wizard-Kontext. `NATASCHA_VIEWS` aus `lib/navigation.ts` exportiert und
+  App.tsx-Duplikat darauf umgestellt.
+- **Anzeigename statt Rohdateiname:** neuer Helper `lib/anzeigeName.ts` —
+  zeigt `vorname nachname`, wenn die Abgabe mit einem Schüler verknüpft ist,
+  sonst einen bereinigten Dateinamen (Endung weg, `_`/`-` → Leerzeichen)
+  statt z. B. „Neuer_Booktok_trend-TamaraEbner.docx". Eingesetzt in
+  `KorrekturView.tsx` und `KlassenView.tsx`; Original-Dateiname bleibt als
+  `title`-Tooltip abrufbar. 8 neue Tests (`anzeigeName.test.ts`).
+- Web: Typecheck grün, 126 Tests grün (14 neu). Rust: 40 Tests grün (1 neu).
+
 ### Changed — Schritt „Absicht": Fach & Schulstufe zuerst, Info-Tooltips
 - `apps/lua/apps/web/src/components/Step0_Absicht.tsx`: **Fach & Schulstufe**
   stehen jetzt VOR dem Unterlagentyp in einer akzentuierten Karte — die

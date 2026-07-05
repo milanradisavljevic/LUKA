@@ -8,6 +8,8 @@ import type { KlassenBriefingRow, FehlerTrendPunkt } from '../hooks/useNatascha'
 import { KATEGORIE_TO_BLOCKTYPEN, type NataschaPrefill } from '../lib/nataschaBridge';
 import type { BlockTyp } from '@lehrunterlagen/schema';
 import { ViewShell } from './_ViewShell';
+import { KiTextBlock } from '../components/KiTextBlock';
+import { anzeigeName } from '../lib/anzeigeName';
 
 interface Props {
   /** Closed Loop: aus der Heatmap ein Übungsblatt im LUA-Generator starten. */
@@ -419,8 +421,8 @@ export function KlassenView({ onGenerateUebung }: Props) {
                       <div key={i} style={{ padding: '0.375rem 0', borderBottom: '1px solid var(--color-border)', fontSize: '0.8125rem' }}>
                         {f.zitat && <span style={{ fontStyle: 'italic' }}>"{f.zitat}"</span>}
                         {f.korrektur && <span> → {f.korrektur}</span>}
-                        <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.75rem', marginLeft: '0.5rem' }}>
-                          {f.vorname ?? f.dateiname}
+                        <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.75rem', marginLeft: '0.5rem' }} title={f.dateiname}>
+                          {anzeigeName(f)}
                         </span>
                         {f.erklaerung && <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>{f.erklaerung}</div>}
                       </div>
@@ -448,7 +450,7 @@ export function KlassenView({ onGenerateUebung }: Props) {
                       <tbody>
                         {abgaben.map((a) => (
                           <tr key={a.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                            <td style={{ padding: '0.375rem 0.5rem' }}>{[a.vorname, a.nachname].filter(Boolean).join(' ') || a.dateiname}</td>
+                            <td style={{ padding: '0.375rem 0.5rem' }} title={a.dateiname}>{anzeigeName(a)}</td>
                             <td style={{ padding: '0.375rem 0.5rem' }}>{noteLabel(a.note)}</td>
                             <td style={{ padding: '0.375rem 0.5rem' }}>{a.hatLehrerFeedback ? <strong>{noteLabel(a.noteFinal)}</strong> : '—'}</td>
                             <td style={{ padding: '0.375rem 0.5rem' }}>{a.textsorte ?? '—'}</td>
@@ -601,8 +603,8 @@ export function KlassenView({ onGenerateUebung }: Props) {
                     <p style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)', margin: '0 0 0.5rem' }}>
                       {briefing.erstelltAm && `${briefing.erstelltAm} · `}{briefing.modell || 'Modell unbekannt'}
                     </p>
-                    <div style={{ maxHeight: '40vh', overflowY: 'auto', fontSize: '0.8125rem', lineHeight: 1.6, whiteSpace: 'pre-wrap', background: 'var(--color-bg-base)', padding: '0.75rem', borderRadius: 'var(--radius)' }}>
-                      {briefing.text}
+                    <div style={{ maxHeight: '40vh', overflowY: 'auto', fontSize: '0.8125rem', lineHeight: 1.6, background: 'var(--color-bg-base)', padding: '0.75rem', borderRadius: 'var(--radius)' }}>
+                      <KiTextBlock text={briefing.text} />
                     </div>
                   </>
                 ) : (

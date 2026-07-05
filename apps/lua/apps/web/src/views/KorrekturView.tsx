@@ -3,6 +3,7 @@ import { SpellCheck, FileText, GraduationCap, Save, AlertTriangle, Loader2, Uplo
 import { loadSettings } from '../lib/storage';
 import { useNatascha } from '../hooks/useNatascha';
 import { ViewShell } from './_ViewShell';
+import { anzeigeName } from '../lib/anzeigeName';
 
 function isTauri(): boolean {
   return typeof window !== 'undefined' && (window as any).__TAURI_INTERNALS__ !== undefined;
@@ -342,7 +343,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     borderRadius: 'var(--radius)', background: 'var(--color-bg-surface)',
   } as const;
 
-  const schuelerName = (a: AbgabeDetail['abgabe']) => [a.vorname, a.nachname].filter(Boolean).join(' ') || a.dateiname;
+  const schuelerName = (a: AbgabeDetail['abgabe']) => anzeigeName(a);
 
   return (
     <ViewShell
@@ -476,7 +477,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
                           onClick={() => loadDetail(a.id)}
                           style={{ borderBottom: '1px solid var(--color-border)', cursor: 'pointer', background: selectedAbgabe?.abgabe.id === a.id ? 'var(--color-highlight-bg)' : 'transparent' }}
                         >
-                          <td style={{ padding: '0.375rem 0.5rem' }}>{schuelerName(a)}</td>
+                          <td style={{ padding: '0.375rem 0.5rem' }} title={a.dateiname}>{schuelerName(a)}</td>
                           <td style={{ textAlign: 'center', padding: '0.375rem 0.5rem' }}>{a.note !== null ? a.note.toFixed(1) : '—'}</td>
                           <td style={{ textAlign: 'center', padding: '0.375rem 0.5rem' }}>
                             {a.hatLehrerFeedback ? <strong>{a.noteFinal !== null ? a.noteFinal.toFixed(1) : '—'}</strong> : '—'}

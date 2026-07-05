@@ -41,7 +41,7 @@ import type { NataschaPrefill } from './lib/nataschaBridge';
 import { loadDocuments, upsertDocument, snapshotFromState, saveTemplate, deleteTemplate, loadTemplates, hydrateCache, isHydrated, setPersistErrorHandler, loadSettings, subscribeSettings, getCache } from './lib/storage';
 import { buildSearchIndex } from './lib/search';
 import type { SearchIndex, SearchResult, SearchCommandSource } from './lib/search';
-import { visibleNavTargets } from './lib/navigation';
+import { visibleNavTargets, NATASCHA_VIEWS } from './lib/navigation';
 import { COMMANDS } from './lib/commands';
 import { parsePoolBlock } from './lib/pool';
 import type { PoolEntry } from './lib/pool';
@@ -418,8 +418,7 @@ export default function App() {
   };
 
   const renderView = () => {
-    const nataschaViews: ActiveView[] = ['klassen', 'korrektur', 'schueler', 'erwartungshorizont'];
-    if (!FEATURES.natascha && nataschaViews.includes(activeView)) {
+    if (!FEATURES.natascha && NATASCHA_VIEWS.includes(activeView)) {
       return <DashboardView onNavigate={(v) => setActiveView(v)} onStartQuickExercise={handleStartQuickExercise} onGenerateUebung={handleGenerateUebung} />;
     }
 
@@ -511,19 +510,23 @@ if (hydrating) {
                 {VIEW_TITLES[activeView]}
               </h1>
             </div>
-            <button
-              className="badge badge-context"
-              onClick={() => { setActiveView('wizard'); goToStep('absicht'); }}
-              title="Zur Absicht (Fach, Stufe, Klasse \u00E4ndern)"
-              style={{ border: 'none', cursor: 'pointer' }}
-            >
-              <BookOpen size={12} />
-              {fachLabel(state.meta.fach)}
-              {' '}&middot;{' '}
-              {state.meta.stufe === 'oberstufe' ? 'Oberstufe' : 'Unterstufe'}
-              {state.meta.klasse ? ` \u00B7 ${state.meta.klasse}` : ''}
-              {state.meta.modus === 'kompetenz' ? ' \u00B7 Kompetenz' : ''}
-            </button>
+            {/* Zeigt die Wizard-Absicht (Fach/Stufe/Klasse) \u2014 in NATASCHA-Views
+                irref\u00FChrend, da die dort gew\u00E4hlte Klasse eine andere ist. */}
+            {!NATASCHA_VIEWS.includes(activeView) && (
+              <button
+                className="badge badge-context"
+                onClick={() => { setActiveView('wizard'); goToStep('absicht'); }}
+                title="Zur Absicht (Fach, Stufe, Klasse \u00E4ndern)"
+                style={{ border: 'none', cursor: 'pointer' }}
+              >
+                <BookOpen size={12} />
+                {fachLabel(state.meta.fach)}
+                {' '}&middot;{' '}
+                {state.meta.stufe === 'oberstufe' ? 'Oberstufe' : 'Unterstufe'}
+                {state.meta.klasse ? ` \u00B7 ${state.meta.klasse}` : ''}
+                {state.meta.modus === 'kompetenz' ? ' \u00B7 Kompetenz' : ''}
+              </button>
+            )}
           </div>
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
             {saveMsg && (

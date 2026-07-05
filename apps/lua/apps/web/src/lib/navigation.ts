@@ -13,7 +13,7 @@ export interface NavTarget {
 }
 
 /** Views, die erst mit NATASCHA-Integration sichtbar werden. */
-const NATASCHA_VIEWS: ActiveView[] = ['klassen', 'korrektur', 'schueler', 'erwartungshorizont'];
+export const NATASCHA_VIEWS: ActiveView[] = ['klassen', 'korrektur', 'schueler', 'erwartungshorizont'];
 
 export const NAV_TARGETS: NavTarget[] = [
   { view: 'dashboard', label: 'Übersicht', description: 'Klassen, Korrekturstand und Weiterarbeiten' },

@@ -1044,6 +1044,10 @@ mod tests {
 
     fn setup() -> Connection {
         let conn = Connection::open_in_memory().unwrap();
+        // Muss den PRAGMA-Haushalt von db::open_db() spiegeln (foreign_keys=ON),
+        // sonst testen wir ON DELETE SET NULL/CASCADE gegen ein Verhalten,
+        // das die echte App nie hat.
+        conn.execute_batch("PRAGMA foreign_keys=ON;").unwrap();
         conn.execute_batch(crate::db::NATASCHA_SCHEMA_SQL).unwrap();
         conn
     }
@@ -1157,5 +1161,44 @@ mod tests {
         let conn = setup();
         seed_fehler_trend(&conn);
         assert!(fehler_trend_impl(&conn, "9z").unwrap().is_empty());
+    }
+
+    /// Lösch-Dialog (SchuelerView) behauptet: Profil weg, Abgaben/Fehler bleiben
+    /// anonymisiert. Das gilt nur, wenn foreign_keys=ON greift (ON DELETE CASCADE
+    /// bei schueler_profil, ON DELETE SET NULL bei abgabe) — hier verifiziert.
+    #[test]
+    fn delete_schueler_cascaded_profil_aber_abgabe_bleibt_anonymisiert() {
+        let conn = setup();
+        // seed() legt Mona (s1) + Max an, Abgabe SA1 gehört Mona.
+        let s1 = insert_schueler_impl(&conn, "7a", "Mona", Some("Muster")).unwrap();
+        conn.execute(
+            "INSERT INTO abgabe (schueler_id, klasse, aufgabe, dateiname, datei_hash, note) \
+             VALUES (?1,'7a','SA1','mona.docx','h1',2.0)",
+            rusqlite::params![s1],
+        ).unwrap();
+        let abgabe_id: i64 = conn.query_row(
+            "SELECT id FROM abgabe WHERE schueler_id=?1", rusqlite::params![s1], |r| r.get(0),
+        ).unwrap();
+        conn.execute(
+            "INSERT INTO schueler_profil (schueler_id, profil_json, basis_anzahl_abgaben) VALUES (?1, '{}', 1)",
+            rusqlite::params![s1],
+        ).unwrap();
+
+        delete_schueler_impl(&conn, s1).unwrap();
+
+        let profil_count: i64 = conn.query_row(
+            "SELECT COUNT(*) FROM schueler_profil WHERE schueler_id=?1", rusqlite::params![s1], |r| r.get(0),
+        ).unwrap();
+        assert_eq!(profil_count, 0, "Profil muss per CASCADE gelöscht sein");
+
+        let abgabe_existiert: i64 = conn.query_row(
+            "SELECT COUNT(*) FROM abgabe WHERE id=?1", rusqlite::params![abgabe_id], |r| r.get(0),
+        ).unwrap();
+        assert_eq!(abgabe_existiert, 1, "Abgabe muss erhalten bleiben");
+
+        let schueler_id_null: Option<i64> = conn.query_row(
+            "SELECT schueler_id FROM abgabe WHERE id=?1", rusqlite::params![abgabe_id], |r| r.get(0),
+        ).unwrap();
+        assert_eq!(schueler_id_null, None, "abgabe.schueler_id muss per SET NULL entkoppelt sein");
     }
 }
