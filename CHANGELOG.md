@@ -7,6 +7,33 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Aufgabenpool-Draft-Review für Medien/Demokratie und Informatik/KI (Phase C, Review)
+- Bulk-Pipeline (`scripts/generate-aufgabenpool-draft.mjs`) real gegen beide
+  LLM-Provider gefahren: DeepSeek 12/12 Kombis (14 PoolEntries), Mistral nur
+  3/12 (reproduzierbares Hard-Rate-Limit nach exakt 3 Requests, siehe Review).
+  Rohdateien bewusst nicht committet (`scripts/out/` via `.gitignore`).
+- Kritischer Review-Bericht: **`docs/REVIEW-aufgabenpool-neue-faecher-2026-07.md`**.
+  Zwei strukturelle Funde vor dem nächsten Seeding-Lauf zu fixen: (1)
+  Kompetenz-Modus verwirft `quelltexte` komplett (`prompt.ts` `kompetenzUser`
+  hat kein `quelltexte`-Feld) → quelltextgebundene Kombis (`markieraufgabe`/
+  `offeneVerstaendnisfrage`) erzeugen inhaltlich inkonsistente Blöcke; (2)
+  `spracheHinweis` greift nur bei `istSprachfach(fach) === true` → für die
+  neuen Nicht-Sprachfächer fehlt jede „schreib auf Deutsch"-Instruktion, was
+  bei `rollenkartenSet`/`roleplay` zu Englisch-Leck führt (Beleg bei beiden
+  Providern). Fachliche Trace-Tabelle bei informatikki rutscht bereits jetzt
+  in echte Code-Syntax (`print(a)`, `a = a + b`) — frühes Signal für die
+  V2-Entscheidung „eigener Code-Blocktyp". Renderer selbst fehlerfrei
+  (2 Test-DOCX über `scripts/render-pool-draft-sample.mjs`, neu, crashfrei).
+
+### Added — Fachatmosphäre für Medien/Demokratie und Informatik/KI
+- Neue Lineart-Cluster-Assets für `mediendemokratie` und `informatikki`
+  ergänzt und in `SubjectAtmosphere` verdrahtet. Die Motive bleiben im
+  bestehenden ruhigen Mural-Stil: Medien/Demokratie als Quellenprüfung,
+  Öffentlichkeit und demokratische Debatte; Informatik/KI als Algorithmik,
+  Datenstrukturen, KI-Netz und Datenschutz.
+- `subjectThemes.json` um eigene gedämpfte Fachpaletten erweitert, damit beide
+  neuen Fächer nicht mehr nur das generische Feldlinien-Fallback verwenden.
+
 ### Added — Recherche-Content für Medien/Demokratie und Informatik/KI (Codex)
 - `docs/lehrplan-quellen/{mediendemokratie,informatikki}_stufen.json` ergänzt:
   schulstufengenaue Arbeitsentwürfe für die AHS-Oberstufe (9.–12. Schulstufe)
