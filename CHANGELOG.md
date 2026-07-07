@@ -7,6 +7,16 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Recherche-Content für Medien/Demokratie und Informatik/KI (Codex)
+- `docs/lehrplan-quellen/{mediendemokratie,informatikki}_stufen.json` ergänzt:
+  schulstufengenaue Arbeitsentwürfe für die AHS-Oberstufe (9.–12. Schulstufe)
+  mit den bindenden Kompetenzbereich-Namen aus dem Schema. Alle Deskriptoren
+  sind bewusst als nicht-amtlicher LUKA-Arbeitsentwurf markiert, da die
+  Lehrplan-Verordnung bei Erstellung noch ausstand (07/2026).
+- Stoffkataloge für beide Fächer aus den Recherche-Dateien generiert und im
+  Kompetenz-Modus registriert; keine `*_oberstufe.json`-Duplikate und keine
+  Aufgabenpool-Seeding-Schritte in dieser Phase.
+
 ### Added — Fundament für zwei neue AHS-Pflichtfächer 2026/27 (Phase A + C, Sonnet)
 - Kontext: Nationalrat hat am 07.07.2026 die Pflichtfächer **„Medien und
   Demokratie"** (`mediendemokratie`) und **„Informatik und Künstliche

@@ -1,0 +1,111 @@
+{
+  "fach": "mediendemokratie",
+  "quelle": "Arbeitsentwurf LUKA-Team, keine amtliche Quelle — Verordnung stand bei Erstellung noch aus (07/2026)",
+  "quelleUrl": "https://www.parlament.gv.at/",
+  "stufen": [
+    {
+      "schulstufe": 9,
+      "bereiche": [
+        {
+          "bereich": "Medienkompetenz & Quellenkritik",
+          "deskriptoren": [
+            {"id": "at-mediendemokratie-s9-medien-1", "code": "", "text": "Die Schülerinnen und Schüler können Nachrichten, Kommentare, Werbung und persönliche Meinungen in digitalen und analogen Medien unterscheiden."},
+            {"id": "at-mediendemokratie-s9-medien-2", "code": "", "text": "Die Schülerinnen und Schüler können bei Medienbeiträgen Urheber, Plattform, Veröffentlichungsdatum und erkennbare Absicht benennen."}
+          ]
+        },
+        {
+          "bereich": "Politische Bildung & Demokratieverständnis",
+          "deskriptoren": [
+            {"id": "at-mediendemokratie-s9-demokratie-1", "code": "", "text": "Die Schülerinnen und Schüler können grundlegende demokratische Prinzipien wie Meinungsfreiheit, Pluralismus, Wahlen und Rechtsstaatlichkeit erklären."},
+            {"id": "at-mediendemokratie-s9-demokratie-2", "code": "", "text": "Die Schülerinnen und Schüler können beschreiben, warum unabhängige Medien für demokratische Öffentlichkeit bedeutsam sind."}
+          ]
+        },
+        {
+          "bereich": "Kommunikation & Meinungsbildung",
+          "deskriptoren": [
+            {"id": "at-mediendemokratie-s9-kommunikation-1", "code": "", "text": "Die Schülerinnen und Schüler können eigene Mediennutzung reflektieren und einfache Regeln für respektvolle Online-Kommunikation anwenden."},
+            {"id": "at-mediendemokratie-s9-kommunikation-2", "code": "", "text": "Die Schülerinnen und Schüler können in kurzen Stellungnahmen zwischen persönlicher Meinung und begründetem Argument unterscheiden."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 10,
+      "bereiche": [
+        {
+          "bereich": "Medienkompetenz & Quellenkritik",
+          "deskriptoren": [
+            {"id": "at-mediendemokratie-s10-medien-1", "code": "", "text": "Die Schülerinnen und Schüler können einfache Fact-Checking-Schritte anwenden, indem sie Aussagen mit mehreren verlässlichen Quellen vergleichen."},
+            {"id": "at-mediendemokratie-s10-medien-2", "code": "", "text": "Die Schülerinnen und Schüler können typische Merkmale von Desinformation, Clickbait und manipulativem Bild- oder Videomaterial erkennen."}
+          ]
+        },
+        {
+          "bereich": "Politische Bildung & Demokratieverständnis",
+          "deskriptoren": [
+            {"id": "at-mediendemokratie-s10-demokratie-1", "code": "", "text": "Die Schülerinnen und Schüler können Funktionen von Parlament, Regierung, Opposition und Medien in demokratischen Entscheidungsprozessen darstellen."},
+            {"id": "at-mediendemokratie-s10-demokratie-2", "code": "", "text": "Die Schülerinnen und Schüler können erklären, wie politische Informationen über Medien verbreitet, gefiltert und bewertet werden."}
+          ]
+        },
+        {
+          "bereich": "Kommunikation & Meinungsbildung",
+          "deskriptoren": [
+            {"id": "at-mediendemokratie-s10-kommunikation-1", "code": "", "text": "Die Schülerinnen und Schüler können kontroverse Positionen zu gesellschaftlichen Fragen fair zusammenfassen und eigene Standpunkte begründet formulieren."},
+            {"id": "at-mediendemokratie-s10-kommunikation-2", "code": "", "text": "Die Schülerinnen und Schüler können Leserbrief, Kommentar und Social-Media-Post als unterschiedliche Formen öffentlicher Meinungsäußerung vergleichen."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 11,
+      "bereiche": [
+        {
+          "bereich": "Medienkompetenz & Quellenkritik",
+          "deskriptoren": [
+            {"id": "at-mediendemokratie-s11-medien-1", "code": "", "text": "Die Schülerinnen und Schüler können Medienbeiträge multiperspektivisch analysieren und Interessen, Zielgruppen sowie Auslassungen herausarbeiten."},
+            {"id": "at-mediendemokratie-s11-medien-2", "code": "", "text": "Die Schülerinnen und Schüler können algorithmische Auswahlmechanismen, Filterblasen und Plattformlogiken als Faktoren der Informationswahrnehmung beschreiben."}
+          ]
+        },
+        {
+          "bereich": "Politische Bildung & Demokratieverständnis",
+          "deskriptoren": [
+            {"id": "at-mediendemokratie-s11-demokratie-1", "code": "", "text": "Die Schülerinnen und Schüler können Chancen und Risiken digitaler Beteiligungsformen für demokratische Prozesse analysieren."},
+            {"id": "at-mediendemokratie-s11-demokratie-2", "code": "", "text": "Die Schülerinnen und Schüler können den Einfluss von Medienberichterstattung auf Wahlkämpfe, Protestbewegungen und politische Agenda-Setting-Prozesse erläutern."}
+          ]
+        },
+        {
+          "bereich": "Kommunikation & Meinungsbildung",
+          "deskriptoren": [
+            {"id": "at-mediendemokratie-s11-kommunikation-1", "code": "", "text": "Die Schülerinnen und Schüler können argumentativ auf polarisierende Medienbeiträge reagieren und dabei demokratische Gesprächsregeln einhalten."},
+            {"id": "at-mediendemokratie-s11-kommunikation-2", "code": "", "text": "Die Schülerinnen und Schüler können eigene Kommunikationsstrategien für sachliche Online-Debatten und schulische Öffentlichkeitsarbeit entwickeln."}
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 12,
+      "bereiche": [
+        {
+          "bereich": "Medienkompetenz & Quellenkritik",
+          "deskriptoren": [
+            {"id": "at-mediendemokratie-s12-medien-1", "code": "", "text": "Die Schülerinnen und Schüler können komplexe Medienereignisse anhand journalistischer Standards, Quellenlage und gesellschaftlicher Wirkung kritisch beurteilen."},
+            {"id": "at-mediendemokratie-s12-medien-2", "code": "", "text": "Die Schülerinnen und Schüler können Desinformationskampagnen, Deepfakes und koordinierte Online-Manipulation als Herausforderungen demokratischer Öffentlichkeit bewerten."}
+          ]
+        },
+        {
+          "bereich": "Politische Bildung & Demokratieverständnis",
+          "deskriptoren": [
+            {"id": "at-mediendemokratie-s12-demokratie-1", "code": "", "text": "Die Schülerinnen und Schüler können Medienfreiheit, Regulierung, Plattformverantwortung und Grundrechte in demokratischen Konfliktlagen gegeneinander abwägen."},
+            {"id": "at-mediendemokratie-s12-demokratie-2", "code": "", "text": "Die Schülerinnen und Schüler können die Wirkung medialer Öffentlichkeit auf Vertrauen, Partizipation und demokratische Institutionen reflektiert bewerten."}
+          ]
+        },
+        {
+          "bereich": "Kommunikation & Meinungsbildung",
+          "deskriptoren": [
+            {"id": "at-mediendemokratie-s12-kommunikation-1", "code": "", "text": "Die Schülerinnen und Schüler können begründete öffentliche Stellungnahmen zu medienpolitischen Fragen verfassen und Gegenargumente sachlich einbeziehen."},
+            {"id": "at-mediendemokratie-s12-kommunikation-2", "code": "", "text": "Die Schülerinnen und Schüler können eigene Verantwortung als Produzentinnen und Produzenten digitaler Öffentlichkeit reflektieren und Handlungsoptionen ableiten."}
+          ]
+        }
+      ]
+    }
+  ]
+}

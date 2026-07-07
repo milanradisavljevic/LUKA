@@ -7,8 +7,10 @@ import { italienischDeskriptoren, italienischStoffItems } from './italienisch';
 import { lateinDeskriptoren, lateinStoffItems } from './latein';
 import { geschichteDeskriptoren, geschichteStoffItems } from './geschichte';
 import { geographieDeskriptoren, geographieStoffItems } from './geographie';
+import { informatikkiDeskriptoren, informatikkiStoffItems } from './informatikki';
 import { religionDeskriptoren, religionStoffItems } from './religion';
 import { ethikDeskriptoren, ethikStoffItems } from './ethik';
+import { mediendemokratieDeskriptoren, mediendemokratieStoffItems } from './mediendemokratie';
 import { psychologieDeskriptoren, psychologieStoffItems } from './psychologie';
 import { philosophieDeskriptoren, philosophieStoffItems } from './philosophie';
 
@@ -27,8 +29,10 @@ const DESKRIPTOREN: Deskriptor[] = [
   ...lateinDeskriptoren,
   ...geschichteDeskriptoren,
   ...geographieDeskriptoren,
+  ...informatikkiDeskriptoren,
   ...religionDeskriptoren,
   ...ethikDeskriptoren,
+  ...mediendemokratieDeskriptoren,
   ...psychologieDeskriptoren,
   ...philosophieDeskriptoren,
 ];
@@ -42,8 +46,10 @@ const STOFF_ITEMS: StoffItem[] = [
   ...lateinStoffItems,
   ...geschichteStoffItems,
   ...geographieStoffItems,
+  ...informatikkiStoffItems,
   ...religionStoffItems,
   ...ethikStoffItems,
+  ...mediendemokratieStoffItems,
   ...psychologieStoffItems,
   ...philosophieStoffItems,
 ];
