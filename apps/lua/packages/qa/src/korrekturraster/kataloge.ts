@@ -83,6 +83,22 @@ export const SACHERORTERUNG: KriterienKatalog[] = [
 ];
 
 // ---------------------------------------------------------------------------
+// Sachfach -- Medien und Demokratie: Medienquellen-/Post-Analyse
+// (Wortlaut-Adaption von QUELLENANALYSE: "Quelle" -> "Medienquelle/Post",
+// "Autor/in" -> "Urheber/Plattform" -- neues AHS-Pflichtfach ab 2026/27,
+// Lehrplan-Verordnung stand bei Anlage noch aus, siehe docs/PLAN-neue-faecher-2026-07.md)
+// ---------------------------------------------------------------------------
+
+export const MEDIENQUELLENANALYSE: KriterienKatalog[] = [
+  { kriterium: 'Medienquellenbeschreibung', beschreibung: 'Medienart, Urheber/Plattform, Entstehungszeit und -kontext korrekt benannt', maxPunkte: 6 },
+  { kriterium: 'Inhaltserfassung', beschreibung: 'Kernaussagen der Medienquelle/des Posts korrekt herausgearbeitet und in eigenen Worten wiedergegeben', maxPunkte: 8 },
+  { kriterium: 'Analyse / Einordnung', beschreibung: 'Medienquelle/Post in den gesellschaftlich-politischen Kontext eingeordnet; Intention/Perspektive erkannt', maxPunkte: 10 },
+  { kriterium: 'Sach- und Werturteil', beschreibung: 'Begründetes Urteil zu Aussagekraft und Glaubwürdigkeit der Medienquelle/des Posts', maxPunkte: 6 },
+  { kriterium: 'Fachsprache', beschreibung: 'Korrekte medien- und politikwissenschaftliche Fachbegriffe; sachliches Register', maxPunkte: 4 },
+  { kriterium: 'Sprachrichtigkeit', beschreibung: 'Grammatik, Rechtschreibung, Zeichensetzung', maxPunkte: 4 },
+];
+
+// ---------------------------------------------------------------------------
 // Deutsch -- SRDP-Matura-Klausur (K1 Inhalt+Textstruktur / K3 Ausdruck+Sprachnormen)
 // ---------------------------------------------------------------------------
 

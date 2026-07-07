@@ -283,6 +283,17 @@ const SUBJECT_ATMOSPHERES: Record<Fach, SubjectAtmosphereSpec> = {
       },
     ],
   },
+  // Neue AHS-Pflichtfächer ab 2026/27 -- noch keine eigene Lineart-Illustration
+  // (Entwurfsstand, siehe docs/PLAN-neue-faecher-2026-07.md); nur das Feld-Linienmuster,
+  // keine Assets, bis eigenes Artwork existiert.
+  mediendemokratie: {
+    field: 'archive',
+    motifs: [],
+  },
+  informatikki: {
+    field: 'logic',
+    motifs: [],
+  },
 };
 
 const FALLBACK: SubjectAtmosphereSpec = {

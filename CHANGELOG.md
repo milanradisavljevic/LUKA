@@ -7,6 +7,66 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Fundament für zwei neue AHS-Pflichtfächer 2026/27 (Phase A + C, Sonnet)
+- Kontext: Nationalrat hat am 07.07.2026 die Pflichtfächer **„Medien und
+  Demokratie"** (`mediendemokratie`) und **„Informatik und Künstliche
+  Intelligenz"** (`informatikki`) beschlossen (Start Schuljahr 2026/27);
+  Lehrplan-Verordnung existiert noch nicht. Details/Aufteilung:
+  `docs/PLAN-neue-faecher-2026-07.md`. Diese Änderung ist **Phase A + C**
+  (Architektur/Fundament + Bulk-Pool-Pipeline); Phase B (Recherche-Content)
+  folgt separat durch Codex und referenziert die hier festgelegten
+  Kompetenzbereich-Namen wortgleich.
+- `packages/schema/src/index.ts`: `FachSchema` um beide Fächer erweitert,
+  `FACH_META`-Einträge (`sprachfach: false`, `zielsprache: 'Deutsch'`).
+  **Bindende** `KOMPETENZBEREICHE`-Namen (nicht mehr ändern, Codex referenziert
+  sie wortgleich):
+  - `mediendemokratie`: „Medienkompetenz & Quellenkritik", „Politische Bildung
+    & Demokratieverständnis", „Kommunikation & Meinungsbildung"
+  - `informatikki`: „Algorithmisches Denken", „KI-Grundlagen & Ethik",
+    „Datenschutz & Cybersecurity"
+- `packages/qa/src/korrekturraster/{kataloge.ts,builder.ts}`: neuer Katalog
+  `MEDIENQUELLENANALYSE` (Wortlaut-Adaption von `QUELLENANALYSE`: „Quelle" →
+  „Medienquelle/Post", „Autor/in" → „Urheber/Plattform") für
+  `fach === 'mediendemokratie'` bei `offeneSchreibaufgabe`. `informatikki`
+  nutzt bewusst den bestehenden generischen Fallback (kein eigener Zweig).
+- `scripts/generate-stoffkatalog-from-research.mjs`: `FACH_CODE`-Map um `md`
+  (mediendemokratie) und `ik` (informatikki) erweitert. Hinweis (vorbestehend,
+  nicht durch diese Änderung verursacht): der Skript-Default für `--input`
+  löst auf das Repo-Root auf, nicht auf `docs/lehrplan-quellen/` — Aufruf
+  ohne `--input ../../docs/lehrplan-quellen` findet aktuell **keine**
+  Recherche-Dateien (auch nicht die 12 bestehenden). Mit explizitem
+  `--input`-Flag laufen alle 12 bestehenden Fächer unverändert durch
+  (Regeneration ist byte-identisch zum committeten Stand); die zwei neuen
+  Fächer werden mangels JSON-Datei einfach übersprungen (kein Crash,
+  kein Datenverlust — Codex liefert die Recherche-JSONs separat nach).
+- `apps/web/src/components/SubjectAtmosphere.tsx`: minimale Pflicht-Einträge
+  für beide neuen Fächer im exhaustiven `Record<Fach, SubjectAtmosphereSpec>`
+  ergänzt (nur Feld-Linienmuster `archive`/`logic`, keine Assets — es existiert
+  noch keine eigene Lineart-Illustration). War nötig, damit `apps/web` weiter
+  typechecked/baut.
+- Neu: `scripts/generate-aufgabenpool-draft.mjs` — Bulk-Pipeline (Muster:
+  `scripts/llm-smoke.mjs` für Env/Key-Loading). Ruft `generateDocument` im
+  Kompetenz-Modus (kein Quelltext-Pflicht, ein synthetisches StoffItem statt
+  Katalog-Referenz) für 12 kuratierte Fach/Schulstufe/Thema/Aufgabentyp-Kombis
+  auf (6 je neuem Fach, aus Plan-Phase B) und schreibt die erzeugten Blöcke als
+  `PoolEntry`-JSON-Array (`quelleHinweis: "LLM-Entwurf, ungeprüft"`) nach
+  `scripts/out/aufgabenpool-draft.json`. Provider/Modell per Env
+  (`LLM_PROVIDER`/`LLM_MODEL`, Default `deepseek`); `--dry-run` prüft alle
+  Kombis ohne API-Calls, `--only <fach>` filtert. Verifiziert per `--dry-run`
+  und eigenständigem `buildMessages()`-Check (alle 12 Kombis erzeugen gültige
+  Prompts) — noch **nicht** live mit echten API-Calls gelaufen (kostet Geld,
+  nicht Teil der Pflicht-Verifikation); Review-Pass folgt vor dem Seeding.
+- Neu: `src-tauri/src/bin/seed_pool.rs` — eigenständiges Rust-Binary (Muster:
+  `src/bin/import_keys.rs`), liest einen reviewten PoolEntry-JSON-Pfad aus
+  argv, öffnet die DB via `db::open_db()` (optional `--db-path` zum Testen/
+  Sidecar-Aufruf) und INSERT OR REPLACE je Eintrag in `aufgabe_pool`. Manuell
+  gegen eine isolierte Test-DB verifiziert (2 Test-Einträge korrekt inseriert,
+  inkl. NULL-Felder). `cargo build` + `cargo test` grün (43 Tests, 2 ignoriert
+  wie zuvor).
+- Verifikation: Schema 145 Tests, Web 126 Tests, QA 103 Tests grün. Rust:
+  `cargo build` + `cargo test` grün. `check_natascha_schema_sync.py` grün
+  (nur LUA-eigenes `aufgabe_pool`/Schema berührt, NATASCHA-Schema unangetastet).
+
 ### Added — Klassen-Verwaltung: Fach/Schulstufe/Schuljahr je Klasse (U3)
 - Bislang war „Klasse" nur ein freier Textstring, den NATASCHA in
   `abgabe.klasse`/`schueler.klasse` verwendet — keine Metadaten, keine

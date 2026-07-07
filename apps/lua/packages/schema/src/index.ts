@@ -26,6 +26,9 @@ export const FachSchema = z.enum([
   'deutsch', 'englisch', 'franzoesisch', 'spanisch', 'italienisch', 'latein',
   // Sachfächer (deutschsprachig, textbasiert)
   'geschichte', 'geographie', 'religion', 'ethik', 'psychologie', 'philosophie',
+  // Neue AHS-Pflichtfächer ab 2026/27 (Nationalratsbeschluss 07.07.2026) — Lehrplan-
+  // Verordnung stand bei Anlage noch aus, siehe Entwurfs-Vermerk in den Deskriptor-Quellen.
+  'mediendemokratie', 'informatikki',
 ]);
 export type Fach = z.infer<typeof FachSchema>;
 
@@ -43,6 +46,8 @@ export const FACH_META: Record<Fach, { label: string; sprachfach: boolean; ziels
   ethik:       { label: 'Ethik',       sprachfach: false, zielsprache: 'Deutsch' },
   psychologie: { label: 'Psychologie', sprachfach: false, zielsprache: 'Deutsch' },
   philosophie: { label: 'Philosophie', sprachfach: false, zielsprache: 'Deutsch' },
+  mediendemokratie: { label: 'Medien und Demokratie',              sprachfach: false, zielsprache: 'Deutsch' },
+  informatikki:     { label: 'Informatik und Künstliche Intelligenz', sprachfach: false, zielsprache: 'Deutsch' },
 };
 
 /** Sprachfach = Inhalt soll in der Zielsprache stehen (Englisch, Französisch, …). */
@@ -125,6 +130,10 @@ export const KOMPETENZBEREICHE: Record<Fach, string[]> = {
   ethik:       ['Wahrnehmen & Beschreiben', 'Analysieren & Argumentieren', 'Urteilen & Reflektieren', 'Perspektivenwechsel'],
   psychologie: ['Fachwissen', 'Methoden- & Erkenntniskompetenz', 'Reflexions- & Urteilskompetenz', 'Anwendung & Transfer'],
   philosophie: ['Begriffs- & Theoriekompetenz', 'Argumentations- & Reflexionskompetenz', 'Anwendung & Transfer'],
+  // Arbeitstitel-Kompetenzbereiche (Lehrplan-Verordnung stand bei Anlage noch aus, 07/2026) —
+  // diese Strings sind bindend fuer Deskriptor.bereich/StoffItem.kategorie, siehe docs/PLAN-neue-faecher-2026-07.md.
+  mediendemokratie: ['Medienkompetenz & Quellenkritik', 'Politische Bildung & Demokratieverständnis', 'Kommunikation & Meinungsbildung'],
+  informatikki: ['Algorithmisches Denken', 'KI-Grundlagen & Ethik', 'Datenschutz & Cybersecurity'],
 };
 
 export const MetaSchema = z.object({

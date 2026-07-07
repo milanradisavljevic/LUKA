@@ -48,6 +48,8 @@ const FACH_CODE = {
   ethik: 'et',
   psychologie: 'ps',
   philosophie: 'ph',
+  mediendemokratie: 'md',
+  informatikki: 'ik',
 };
 
 const STUFE_ABBR = { unterstufe: 'un', oberstufe: 'ob' };

@@ -11,6 +11,7 @@ import {
   QUELLENANALYSE,
   MATERIALINTERPRETATION,
   SACHERORTERUNG,
+  MEDIENQUELLENANALYSE,
   readingComprehension,
   WORD_SCRAMBLE,
   KATEGORISIERUNG,
@@ -68,6 +69,9 @@ function waehleKatalog(block: Block, fach: DocumentV1['meta']['fach'], typ?: Doc
       if (fach === 'geschichte') return QUELLENANALYSE;
       if (fach === 'geographie') return MATERIALINTERPRETATION;
       if (fach === 'religion' || fach === 'ethik' || fach === 'psychologie' || fach === 'philosophie') return SACHERORTERUNG;
+      if (fach === 'mediendemokratie') return MEDIENQUELLENANALYSE;
+      // informatikki: kein eigener Zweig -- faellt auf den generischen Textsorte-Fallback
+      // unten durch (Deutsch-Logik als Default fuer noch nicht spezialisierte Sachfaecher).
       // Deutsch: nach Textsorte
       if (textsorte.includes('zusammenfassung')) return ZUSAMMENFASSUNG;
       if (textsorte.includes('erörterung') || textsorte.includes('erorterung') || textsorte.includes('stellungnahme')) return ERORTERUNG;
