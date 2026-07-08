@@ -7,6 +7,12 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Changed — App-Name trägt jetzt die Marke
+- `productName`: „Lehrunterlagen-Tool" → **„LUKA - Lehrunterlagen-Tool"**
+  (Windows-Appliste/Startmenü/Installer). `identifier` bleibt unverändert
+  (`com.lehrunterlagen.tool`) → App-Daten/DB-Pfad bleiben erhalten.
+  Alte „Lehrunterlagen-Tool"-Installation (0.1.0) bitte manuell deinstallieren.
+
 ### Added — Auto-Updater + Release-Pipeline (Roadmap-Punkt 1, Lean-Strategie)
 - In-App-Updater (`tauri-plugin-updater` + `tauri-plugin-process`): App prüft
   5 s nach Start still auf neue GitHub-Releases (signiert, Pubkey in
