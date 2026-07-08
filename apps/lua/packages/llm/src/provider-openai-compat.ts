@@ -1,5 +1,27 @@
 import type { ChatMessage, Provider, ProviderConfig, ProviderId } from './types.js';
 
+const MAX_RETRIES = 3;
+const INITIAL_BACKOFF_MS = 2000;
+
+function shouldRetry(status: number): boolean {
+  return status === 429 || status >= 500;
+}
+
+function retryDelayMs(res: Response, attempt: number): number {
+  const retryAfter = res.headers.get('retry-after');
+  if (retryAfter) {
+    const seconds = Number.parseFloat(retryAfter);
+    if (Number.isFinite(seconds) && seconds >= 0) {
+      return seconds * 1000;
+    }
+  }
+  return INITIAL_BACKOFF_MS * 2 ** attempt;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 // Fabrik fuer OpenAI-kompatible Anbieter (gleiches /chat/completions-Schema,
 // nur andere Base-URL + Default-Modell + Env-Key). Spiegelt die Rust-Adapter
 // in src-tauri/src/adapters/openai_compat.rs.
@@ -19,20 +41,29 @@ export function makeOpenAiCompatProvider(opts: {
 
       const oaiMessages = messages.map((m) => ({ role: m.role, content: m.content }));
 
-      const res = await fetch(`${opts.baseUrl}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: cfg.model ?? opts.defaultModel,
-          max_tokens: 16000,
-          temperature: cfg.kreativitaet ?? 0.4,
-          response_format: { type: 'json_object' },
-          messages: oaiMessages,
-        }),
-      });
+      let res!: Response;
+      for (let attempt = 0; ; attempt++) {
+        res = await fetch(`${opts.baseUrl}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: cfg.model ?? opts.defaultModel,
+            max_tokens: 16000,
+            temperature: cfg.kreativitaet ?? 0.4,
+            response_format: { type: 'json_object' },
+            messages: oaiMessages,
+          }),
+        });
+
+        if (res.ok || !shouldRetry(res.status) || attempt >= MAX_RETRIES) {
+          break;
+        }
+
+        await sleep(retryDelayMs(res, attempt));
+      }
 
       if (!res.ok) {
         const detail = await res.text().catch(() => '');
