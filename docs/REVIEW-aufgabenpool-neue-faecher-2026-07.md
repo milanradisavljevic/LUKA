@@ -255,6 +255,26 @@ gefunden — das bestätigt, dass A1–A6 reine Content-/Prompt-Fragen sind, kei
 
 ---
 
+## Nachtrag: A1 + A2 gefixt und live verifiziert (2026-07-08)
+
+Commit `0ac7616` behebt A1 (`generate-aufgabenpool-draft.mjs`: `modus` dynamisch
+nach `kombi.quelltext`) und A2 (`prompt.ts`: `spracheHinweis` auch für
+Nicht-Sprachfächer). Validierungslauf `LLM_PROVIDER=deepseek node
+scripts/generate-aufgabenpool-draft.mjs --only mediendemokratie` (6/6 Kombis):
+
+- **A1 bestätigt behoben:** `markieraufgabe`/`offeneVerstaendnisfrage` der
+  Quellenkritik-Kombi zitieren jetzt den echten Skript-Quelltext wortgleich
+  ("SKANDAL!", "Teilt diesen Post, damit es alle wissen!") statt einen
+  erfundenen Text über Stadt-Kriminalität.
+- **A2 bestätigt behoben:** Die Nationalratsdebatte (`rollenkartenSet`) ist
+  jetzt durchgehend Deutsch — `sprachhinweis` liefert deutsche Redeaufbau-
+  Signalwörter ("meiner Meinung nach", "dafür spricht") statt englischer
+  Grammatik-Fachbegriffe ("present simple", "because").
+
+A3–A7 (Verbesserungen/Kür) bleiben offen für den menschlichen Review-Pass vor
+dem produktiven `seed_pool`-Lauf. Empfehlung: vollen 12-Kombi-Lauf (beide
+Fächer, DeepSeek) mit den Fixes neu ziehen, dann A4–A7 gezielt gegenlesen.
+
 ## Priorisierte Aktionsliste
 
 Schweregrade wie `docs/AUDIT-prompts-didaktik.md`: **K** = kritisch (vor Seeding fixen) · **V** =
