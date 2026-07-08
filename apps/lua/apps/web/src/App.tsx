@@ -94,6 +94,16 @@ export default function App() {
 
   useEffect(() => subscribeSettings(setSettings), []);
 
+  // Update-Check verzögert nach Start (nur Desktop-App): stört den Aufbau nicht,
+  // scheitert still bei offline — Logik in lib/updater.ts.
+  useEffect(() => {
+    if (!isTauri()) return;
+    const t = window.setTimeout(() => {
+      void import('./lib/updater').then((m) => m.checkForUpdatesSilently());
+    }, 5000);
+    return () => window.clearTimeout(t);
+  }, []);
+
   const { state, dispatch, goNext, goBack, goToStep, currentIndex } = useWizard();
   const { preference: themePreference, resolved: theme, toggle: toggleTheme } = useTheme();
   const { zoom, reset: resetZoom } = useZoom();

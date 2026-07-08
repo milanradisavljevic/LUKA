@@ -7,6 +7,19 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Auto-Updater + Release-Pipeline (Roadmap-Punkt 1, Lean-Strategie)
+- In-App-Updater (`tauri-plugin-updater` + `tauri-plugin-process`): App prüft
+  5 s nach Start still auf neue GitHub-Releases (signiert, Pubkey in
+  `tauri.conf.json`), fragt auf Deutsch nach, installiert, bietet Neustart an.
+  Fehler (offline etc.) werden bewusst verschluckt (`apps/web/src/lib/updater.ts`).
+- Release-Workflow `.github/workflows/release.yml`: Versions-Tag (`v*`) pushen →
+  Windows-NSIS-Installer wird gebaut, Update-Artefakte signiert
+  (Secret `TAURI_SIGNING_PRIVATE_KEY`), GitHub Release + `latest.json`
+  veröffentlicht. Bewusst nur NSIS (MSI kann nicht in-place updaten).
+- Version vereinheitlicht auf **1.0.0** (`tauri.conf.json` + `Cargo.toml` waren
+  0.1.0, Sidebar zeigte hartkodiert „v1.0.0-beta") — Sidebar liest die Version
+  jetzt live via `getVersion()` aus Tauri, Fallback „dev" im Browser.
+
 ### Fixed — A7 Mistral-Rate-Limit-Backoff
 - `packages/llm/src/provider-openai-compat.ts`: OpenAI-kompatible Provider
   (Mistral/DeepSeek/Qwen) retryen HTTP 429 und 5xx jetzt mit maximal drei

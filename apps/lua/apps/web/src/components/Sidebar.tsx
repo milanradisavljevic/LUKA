@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
   Plus, FolderOpen, Files, Clock, Star, Trash2, Settings, HelpCircle,
@@ -53,6 +53,16 @@ const SETTINGS_ITEMS: NavItem[] = [
 
 export function Sidebar({ currentView, onViewChange, onNewDocument }: Props) {
   const [collapsed, setCollapsed] = useState(false);
+  // Echte App-Version aus Tauri (tauri.conf.json) statt hartkodiertem String;
+  // 'dev' als Fallback im Browser-Dev-Modus ohne Tauri-Kontext.
+  const [version, setVersion] = useState('dev');
+  useEffect(() => {
+    if (typeof window === 'undefined' || !(window as any).__TAURI_INTERNALS__) return;
+    void import('@tauri-apps/api/app')
+      .then((m) => m.getVersion())
+      .then(setVersion)
+      .catch(() => {});
+  }, []);
 
   const visibleNavItems = NAV_ITEMS.filter(
     (item) => FEATURES.natascha || !NATASCHA_NAV_IDS.includes(item.id),
@@ -215,7 +225,7 @@ export function Sidebar({ currentView, onViewChange, onNewDocument }: Props) {
 
       {/* Version */}
       <div style={{ padding: '0.5rem 1rem', fontSize: '0.6875rem', color: 'var(--sidebar-text)', textAlign: collapsed ? 'center' : 'left' }}>
-        {collapsed ? 'v1' : 'v1.0.0-beta'}
+        {collapsed ? 'v1' : `v${version}`}
       </div>
     </aside>
   );

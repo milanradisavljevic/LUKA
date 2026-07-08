@@ -1,0 +1,63 @@
+name: Release
+
+# Windows-Release bei Versions-Tag: baut NSIS-Installer, signiert die
+# Update-Artefakte (TAURI_SIGNING_PRIVATE_KEY aus den Repo-Secrets) und
+# veröffentlicht GitHub Release inkl. latest.json für den In-App-Updater.
+#
+# Auslösen: Version in apps/lua/src-tauri/tauri.conf.json + Cargo.toml erhöhen,
+# committen, dann:  git tag v1.0.1 && git push origin v1.0.1
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release-windows:
+    name: Windows-Installer bauen & veröffentlichen
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    defaults:
+      run:
+        working-directory: apps/lua
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: apps/lua/pnpm-lock.yaml
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/lua/src-tauri
+
+      - run: pnpm install --frozen-lockfile
+
+      # Workspace-Pakete bauen (dist/*.d.ts, gitignored) — gleiche Begründung
+      # wie in ci.yml: frische CI-Umgebung braucht die Cross-Paket-Typen.
+      - run: pnpm --filter "./packages/*" build
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
+        with:
+          projectPath: apps/lua
+          tagName: ${{ github.ref_name }}
+          releaseName: "Luka ${{ github.ref_name }}"
+          releaseBody: "Siehe CHANGELOG.md für Details."
+          releaseDraft: false
+          prerelease: false
+          # nur NSIS: MSI (WiX) kann nicht patchen/updaten wie NSIS und
+          # verdoppelt Build-Zeit; Erstinstallation + Updates laufen über NSIS.
+          args: --bundles nsis

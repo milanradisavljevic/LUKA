@@ -9,6 +9,8 @@ fn main() {
     let conn = db_core::open_db().expect("Datenbank konnte nicht geöffnet werden");
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .manage(commands::db::DbState(Mutex::new(conn)))
         .invoke_handler(tauri::generate_handler![
             commands::llm::llm_complete,

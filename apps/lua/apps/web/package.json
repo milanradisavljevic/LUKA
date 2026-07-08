@@ -19,6 +19,8 @@
     "@lehrunterlagen/schema": "workspace:*",
     "@tauri-apps/api": "^2.11.0",
     "@tauri-apps/plugin-dialog": "^2.7.1",
+    "@tauri-apps/plugin-process": "^2.3.1",
+    "@tauri-apps/plugin-updater": "^2.10.1",
     "buffer": "^6.0.3",
     "lucide-react": "^1.17.0",
     "mammoth": "^1.8.0",
@@ -31,9 +33,9 @@
     "@types/react": "^18.0.0",
     "@types/react-dom": "^18.0.0",
     "@vitejs/plugin-react": "^4.0.0",
+    "js-tokens": "^4.0.0",
     "typescript": "^5.4.0",
     "vite": "^5.0.0",
-    "vitest": "^2.0.0",
-    "js-tokens": "^4.0.0"
+    "vitest": "^2.0.0"
   }
 }
