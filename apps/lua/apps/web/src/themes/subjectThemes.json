@@ -70,5 +70,17 @@
     "displayName": "Philosophie",
     "palette": ["#f6f1e7", "#d7cfbe", "#b6b0a3", "#7c766e"],
     "accentColor": "#2c4a6e"
+  },
+  {
+    "id": "mediendemokratie",
+    "displayName": "Medien und Demokratie",
+    "palette": ["#f4efe6", "#d5d0c4", "#a5abb0", "#525a5d"],
+    "accentColor": "#3f6575"
+  },
+  {
+    "id": "informatikki",
+    "displayName": "Informatik und Künstliche Intelligenz",
+    "palette": ["#f2f0e8", "#ccd8d1", "#93aaa4", "#485a59"],
+    "accentColor": "#356d67"
   }
 ]

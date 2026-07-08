@@ -6,8 +6,10 @@ import ethikLineart from '../assets/subject-atmospheres/ethik/ethics-lineart-clu
 import franzoesischLineart from '../assets/subject-atmospheres/franzoesisch/french-lineart-cluster.webp';
 import geographieAtlasLineart from '../assets/subject-atmospheres/geographie/atlas-lineart-cluster.webp';
 import geschichteArchiveLineart from '../assets/subject-atmospheres/geschichte/archive-lineart-cluster.webp';
+import informatikkiLineart from '../assets/subject-atmospheres/informatikki/informatics-ai-lineart-cluster.webp';
 import italienischLineart from '../assets/subject-atmospheres/italienisch/italian-lineart-cluster.webp';
 import lateinLineart from '../assets/subject-atmospheres/latein/latin-lineart-cluster.webp';
+import mediendemokratieLineart from '../assets/subject-atmospheres/mediendemokratie/media-democracy-lineart-cluster.webp';
 import philosophieNeutralLineart from '../assets/subject-atmospheres/philosophie/neutral-lineart-cluster.webp';
 import psychologieLineart from '../assets/subject-atmospheres/psychologie/psychology-lineart-cluster.webp';
 import religionLineart from '../assets/subject-atmospheres/religion/religion-lineart-cluster.webp';
@@ -283,16 +285,39 @@ const SUBJECT_ATMOSPHERES: Record<Fach, SubjectAtmosphereSpec> = {
       },
     ],
   },
-  // Neue AHS-Pflichtfächer ab 2026/27 -- noch keine eigene Lineart-Illustration
-  // (Entwurfsstand, siehe docs/PLAN-neue-faecher-2026-07.md); nur das Feld-Linienmuster,
-  // keine Assets, bis eigenes Artwork existiert.
   mediendemokratie: {
     field: 'archive',
     motifs: [],
+    assets: [
+      {
+        src: mediendemokratieLineart,
+        alt: '',
+        role: 'neutral',
+        style: {
+          right: 'clamp(-250px, -11vw, -120px)',
+          bottom: 'clamp(-28px, -2.6vh, 14px)',
+          width: 'clamp(680px, 56vw, 1040px)',
+          transform: 'rotate(0.5deg)',
+        },
+      },
+    ],
   },
   informatikki: {
     field: 'logic',
     motifs: [],
+    assets: [
+      {
+        src: informatikkiLineart,
+        alt: '',
+        role: 'neutral',
+        style: {
+          right: 'clamp(-250px, -11vw, -120px)',
+          bottom: 'clamp(-28px, -2.6vh, 14px)',
+          width: 'clamp(680px, 56vw, 1040px)',
+          transform: 'rotate(0.4deg)',
+        },
+      },
+    ],
   },
 };
 
