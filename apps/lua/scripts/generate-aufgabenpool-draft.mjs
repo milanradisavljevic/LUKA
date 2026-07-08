@@ -230,7 +230,12 @@ function buildInput(kombi) {
     datum: heute(),
     klasse: '',
     notizen: '',
-    modus: 'kompetenz',
+    // Kompetenz-Modus verwirft quelltexte architektonisch (packages/llm/src/prompt.ts:
+    // "KOMPETENZ-MODUS: Es gibt KEINE Quelltexte. Du ERFINDEST die Inhalte selbst").
+    // Kombis mit vorgegebenem Quelltext (quelleId-tragende Bloecke wie markieraufgabe)
+    // MUESSEN daher im Text-Modus laufen, sonst ignoriert das Modell den Quelltext und
+    // erfindet einen eigenen — Befund docs/REVIEW-aufgabenpool-neue-faecher-2026-07.md, A1.
+    modus: kombi.quelltext ? 'text' : 'kompetenz',
     rahmenwerk: 'at-lehrplan',
     schulstufe: kombi.schulstufe,
     kompetenzNiveau: 'standard',

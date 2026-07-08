@@ -7,6 +7,27 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Fixed — Review-Funde A1+A2 aus docs/REVIEW-aufgabenpool-neue-faecher-2026-07.md
+- **A1 (kritisch):** `scripts/generate-aufgabenpool-draft.mjs` setzte für ALLE Kombis
+  `modus: 'kompetenz'`, auch für die eine Kombi mit vorgegebenem Quelltext
+  ("Quellenkritik an einem Beispieltext", mediendemokratie). Kompetenz-Modus
+  verwirft `quelltexte` architektonisch (`packages/llm/src/prompt.ts`: „Es gibt
+  KEINE Quelltexte, du ERFINDEST die Inhalte selbst") — das Modell ignorierte den
+  vorgegebenen Text komplett und erfand einen anderen. Fix: `modus` jetzt dynamisch
+  (`kombi.quelltext ? 'text' : 'kompetenz'`).
+- **A2 (kritisch):** `packages/llm/src/prompt.ts` — `spracheHinweis` griff nur bei
+  `istSprachfach(fach)`. Für Nicht-Sprachfächer (alle Sachfächer inkl. der zwei
+  neuen) gab es NIE eine explizite „Schreib auf Deutsch"-Instruktion; das englische
+  Beispiel in `BLOCK_REGELN` (rollenkartenSet) wirkte ohne Gegenanweisung als
+  Sprach-Anker. Folge im Live-Test: ein kompletter englischsprachiger
+  `roleplay`-Block (informatikki) und englische Redemittel in einer
+  Nationalratsdebatte (mediendemokratie). Fix: expliziter Deutsch-Hinweis auch für
+  Nicht-Sprachfächer (bislang stillschweigend auf German-by-default verlassen —
+  betrifft potenziell auch bestehende Sachfächer bei fachfremd/englisch-kodierten
+  Themen, nicht nur die zwei neuen Fächer).
+- Verifiziert: llm-Paket build + 132/132 Tests grün (keine gepinnte Assertion
+  betroffen), Generator-Dry-Run weiterhin 12/12 Kombis strukturell sauber.
+
 ### Added — Aufgabenpool-Draft-Review für Medien/Demokratie und Informatik/KI (Phase C, Review)
 - Bulk-Pipeline (`scripts/generate-aufgabenpool-draft.mjs`) real gegen beide
   LLM-Provider gefahren: DeepSeek 12/12 Kombis (14 PoolEntries), Mistral nur

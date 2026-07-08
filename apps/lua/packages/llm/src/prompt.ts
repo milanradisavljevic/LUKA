@@ -786,7 +786,13 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
         + `arbeitsanweisung, Fragen, Antwortoptionen, Lueckensaetze, Schreibaufgaben-Situationen, Aspekte, Titel `
         + `und Verweise auf den Text (z. B. "Absatz N" in der Zielsprache, nicht auf Deutsch). Die deutschen Beispiele unten `
         + `zeigen NUR die Struktur, nicht die Sprache. Loesungen/Musterantworten ebenfalls auf ${zielsprache}. `
-      : '';
+      // Nicht-Sprachfach: kein automatischer Deutsch-Anker. Ohne diese Instruktion rutschen
+      // Rollenspiel-/Debatte-Bloecke bei fachfremden, englisch-kodierten Themen (z. B. KI, Cybersecurity)
+      // bzw. bei neuen, dem Modell unbekannten Faechern ins Englische — das rollenkartenSet-Beispiel in
+      // BLOCK_REGELN ist selbst englischsprachig und wirkt ohne Gegenanweisung als Sprach-Anker.
+      // Befund: docs/REVIEW-aufgabenpool-neue-faecher-2026-07.md, Fund A2.
+      : `SPRACHE: JEDER schuelerseitige Inhalt MUSS auf Deutsch sein — arbeitsanweisung, Fragen, Antwortoptionen, `
+        + `Rollenbeschreibungen, Redemittel, Musterdialoge, Titel. Das ist kein Fremdsprachenfach. `;
   const maturaHinweis =
     input.meta.typ === 'matura'
       ? (istSprachfach(input.meta.fach)
