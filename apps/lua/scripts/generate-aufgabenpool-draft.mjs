@@ -75,10 +75,21 @@ const KOMBIS = [
   {
     fach: 'mediendemokratie',
     schulstufe: 10,
-    thema: 'Nationalratsdebatte-Simulation',
+    thema: 'Nationalratsdebatte-Simulation: Gesetzgebungsweg und Plenardebatte',
     kategorie: 'Politische Bildung & Demokratieverständnis',
     bloecke: [
-      { typ: 'rollenkartenSet', punkte: 0, rahmen: 'Plenardebatte im Nationalrat zu einem aktuellen gesellschaftspolitischen Thema', zeitMinuten: 10, anzahlSzenarien: 4 },
+      {
+        typ: 'rollenkartenSet',
+        punkte: 0,
+        rahmen:
+          'Plenardebatte im Nationalrat zu einem aktuellen gesellschaftspolitischen Thema. ' +
+          'Die Szenarien muessen echte Parlamentsmechanik sichtbar machen: Gesetzgebungsweg ' +
+          '(Erste Lesung, Ausschuss, Zweite/Dritte Lesung), Redeordnung und Redezeitbegrenzung, ' +
+          'Leitung durch die Nationalratspraesidentin bzw. den Nationalratspraesidenten, ' +
+          'Klubs/Klubzwang sowie das tatsaechliche Abstimmungsprozedere.',
+        zeitMinuten: 10,
+        anzahlSzenarien: 4,
+      },
     ],
   },
   {

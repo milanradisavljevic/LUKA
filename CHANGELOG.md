@@ -7,6 +7,20 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Fixed — A7 Mistral-Rate-Limit-Backoff
+- `packages/llm/src/provider-openai-compat.ts`: OpenAI-kompatible Provider
+  (Mistral/DeepSeek/Qwen) retryen HTTP 429 und 5xx jetzt mit maximal drei
+  Wiederholungen, exponentiellem Backoff (2s/4s/8s) und `Retry-After`-Respekt.
+  Fehlertexte nach ausgeschöpften Versuchen bleiben unverändert. Siehe
+  `docs/REVIEW-aufgabenpool-neue-faecher-2026-07.md` Fund A7.
+
+### Changed — A6 Nationalratsdebatte mit Parlamentsmechanik
+- `scripts/generate-aufgabenpool-draft.mjs`: Die Kombi
+  `Nationalratsdebatte-Simulation` fordert jetzt echte Nationalratsmechanik ein
+  (Lesungen, Ausschuss, Redeordnung/Redezeit, Präsident:in, Klubs/Klubzwang,
+  Abstimmung), statt nur eine generische Pro/Contra-Debatte zu rahmen. Siehe
+  `docs/REVIEW-aufgabenpool-neue-faecher-2026-07.md` Fund A6.
+
 ### Added — Strategie-Beschluss Lean-Nebenerwerb + erster Windows-Build
 - `docs/STRATEGIE-lean-nebenerwerb-2026-07.md`: beschlossene Leitplanken
   (App gratis+BYOK+lokal, Monetarisierung über Content-Fachpakete via
