@@ -7,6 +7,17 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Strategie-Beschluss Lean-Nebenerwerb + erster Windows-Build
+- `docs/STRATEGIE-lean-nebenerwerb-2026-07.md`: beschlossene Leitplanken
+  (App gratis+BYOK+lokal, Monetarisierung über Content-Fachpakete via
+  Merchant-of-Record, SaaS/Pool-API verworfen), Roadmap 1–6 mit Arbeitsteilung,
+  fertiger Codex-Prompt für A6/A7 (Mistral-429-Backoff, Parlamentsmechanik
+  in der Debatten-Kombi).
+- Erster erfolgreicher Windows-Build: NSIS-Setup + MSI via WSL→Windows-Interop
+  (`powershell.exe`), VS Build Tools per winget nachinstalliert. Echtes
+  App-Icon (kursives L, Playwrite AT) hatte 1×1-Platzhalter ersetzt,
+  `bundle.icon`-Array in `tauri.conf.json` ergänzt (Commit `3e3c3a3`).
+
 ### Fixed — Review-Funde A1+A2 aus docs/REVIEW-aufgabenpool-neue-faecher-2026-07.md
 - **A1 (kritisch):** `scripts/generate-aufgabenpool-draft.mjs` setzte für ALLE Kombis
   `modus: 'kompetenz'`, auch für die eine Kombi mit vorgegebenem Quelltext
