@@ -272,8 +272,23 @@ scripts/generate-aufgabenpool-draft.mjs --only mediendemokratie` (6/6 Kombis):
   Grammatik-Fachbegriffe ("present simple", "because").
 
 A3–A7 (Verbesserungen/Kür) bleiben offen für den menschlichen Review-Pass vor
-dem produktiven `seed_pool`-Lauf. Empfehlung: vollen 12-Kombi-Lauf (beide
-Fächer, DeepSeek) mit den Fixes neu ziehen, dann A4–A7 gezielt gegenlesen.
+dem produktiven `seed_pool`-Lauf.
+
+## Finaler Regen mit Fixes (2026-07-08)
+
+Voller 12-Kombi-Lauf nach A1+A2-Fix:
+- **DeepSeek** (`scripts/out/deepseek-final.json`): **12/12 Kombis, 14 PoolEntries** —
+  automatischer Sprachleck-Scan über alle 14 Einträge: **0 verdächtig** (A2-Fix
+  hält über den vollen Lauf, nicht nur die Stichprobe).
+- **Mistral** (`scripts/out/mistral-final.json`): **4/12**, Rest erneut hartes
+  `429 Rate limit exceeded` (A7 reproduzierbar bestätigt, zweiter unabhängiger
+  Lauf mit identischem Muster). Kein Blocker für V1 — DeepSeek bleibt Pool-Default.
+
+**Status: bereit für den menschlichen Review-Pass.** Beide Dateien liegen unter
+`apps/lua/scripts/out/` (gitignored, lokal reproduzierbar per obigen Befehlen).
+Review-Checkliste für Milan/Kimi vor `seed_pool`: A4 (politische Fakten-Szenarien
+gegenlesen), A5 (Fakt/Meinung/Fake-Grenzfälle vereinheitlichen), A6
+(Nationalratsdebatte-Szenarien um echte Parlamentsmechanik ergänzen, optional).
 
 ## Priorisierte Aktionsliste
 
