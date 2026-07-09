@@ -1,9 +1,11 @@
 import { useState, useMemo } from 'react';
-import { X, Search, Filter, Database } from 'lucide-react';
+import { X, Search, Filter, Database, Upload, Download } from 'lucide-react';
 import { fachLabel, FACH_META } from '@lehrunterlagen/schema';
 import type { Block, Fach, Stufe, BlockTyp } from '@lehrunterlagen/schema';
 import { useAufgabenPool } from '../hooks/useAufgabenPool';
 import { parsePoolBlock, parsePoolTags } from '../lib/pool';
+import { importPoolPaket, exportPoolPaket } from '../lib/poolTransfer';
+import { Toast, type ToastMessage } from '../components/Toast';
 import { ViewShell } from './_ViewShell';
 import { EmptyState } from './_EmptyState';
 import { BLOCK_TYPE_DEFS } from '../lib/constants';
@@ -20,6 +22,40 @@ export function PoolView({ onInsertBlock }: Props) {
   const [filterFach, setFilterFach] = useState<string>('');
   const [filterStufe, setFilterStufe] = useState<string>('');
   const [filterTyp, setFilterTyp] = useState<string>('');
+  const [toast, setToast] = useState<ToastMessage | null>(null);
+  const [transferLaeuft, setTransferLaeuft] = useState(false);
+
+  const handleImport = async () => {
+    setTransferLaeuft(true);
+    try {
+      const { abgebrochen, report } = await importPoolPaket();
+      if (!abgebrochen && report) {
+        await refresh();
+        const teile = [`${report.eingefuegt} neu`];
+        if (report.ersetzt > 0) teile.push(`${report.ersetzt} ersetzt`);
+        if (report.uebersprungen > 0) teile.push(`${report.uebersprungen} übersprungen`);
+        setToast({ id: Date.now(), kind: 'info', text: `Fachpaket importiert: ${teile.join(', ')}.` });
+      }
+    } catch (e) {
+      setToast({ id: Date.now(), kind: 'error', text: `Import fehlgeschlagen: ${e instanceof Error ? e.message : String(e)}` });
+    } finally {
+      setTransferLaeuft(false);
+    }
+  };
+
+  const handleExport = async () => {
+    setTransferLaeuft(true);
+    try {
+      const anzahl = await exportPoolPaket();
+      if (anzahl !== null) {
+        setToast({ id: Date.now(), kind: 'info', text: `${anzahl} Aufgabe(n) als Fachpaket exportiert.` });
+      }
+    } catch (e) {
+      setToast({ id: Date.now(), kind: 'error', text: `Export fehlgeschlagen: ${e instanceof Error ? e.message : String(e)}` });
+    } finally {
+      setTransferLaeuft(false);
+    }
+  };
 
   const filteredEntries = useMemo(() => {
     return entries.filter((entry) => {
@@ -59,6 +95,28 @@ export function PoolView({ onInsertBlock }: Props) {
     <ViewShell
       title="Aufgaben-Pool"
       description="Wiederverwendbare Aufgaben-Blöcke. Speichere einzelne Blöcke aus der Vorschau und füge sie hier wieder ein."
+      action={
+        <div style={{ display: 'flex', gap: '0.375rem' }}>
+          <button
+            className="btn-secondary"
+            onClick={handleImport}
+            disabled={transferLaeuft}
+            title="Fachpaket (JSON-Datei) in den lokalen Pool importieren — mit Vorschau vor dem Import"
+            style={{ fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}
+          >
+            <Upload size={13} /> Importieren
+          </button>
+          <button
+            className="btn-secondary"
+            onClick={handleExport}
+            disabled={transferLaeuft || entries.length === 0}
+            title="Gesamten Pool als teilbare Fachpaket-Datei (JSON) exportieren"
+            style={{ fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}
+          >
+            <Download size={13} /> Exportieren
+          </button>
+        </div>
+      }
     >
       {/* Filter */}
       <div style={{
@@ -207,6 +265,8 @@ export function PoolView({ onInsertBlock }: Props) {
           })}
         </div>
       )}
+
+      <Toast toast={toast} onClose={() => setToast(null)} />
     </ViewShell>
   );
 }

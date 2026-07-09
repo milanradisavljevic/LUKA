@@ -7,6 +7,26 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Fachpaket-Import/Export im Aufgaben-Pool (Roadmap: Pilot-Verteilung)
+- Aufgaben-Pool hat jetzt „Importieren"/„Exportieren"-Buttons: Fachpakete
+  (JSON, gleiches Format wie `seed_pool`/Generator-Skripte) lassen sich ohne
+  Terminal einspielen und teilen. Import zeigt VOR dem Schreiben eine Vorschau
+  (Anzahl, Fächer, Herkunftsvermerke, Duplikate); bei Duplikaten wählt die
+  Lehrkraft explizit „Ersetzen" oder „Behalten".
+- Neue Tauri-Commands `pool_import_preview`/`pool_import`/`pool_export`
+  (`commands/pool.rs`), Kernlogik als testbare Funktionen — 5 neue Rust-Tests
+  (Vorschau-Zählung, Duplikat-Verhalten beide Modi, Datei-Roundtrip,
+  Fehlertext bei kaputter Datei). Frontend: `lib/poolTransfer.ts` + PoolView.
+
+### Added — First-Run-Onboarding mit API-Key-Provider-Test
+- First-Run-Gate in LUA führt jetzt durch API-Key-Eingabe plus echten
+  Provider-Verbindungstest via bestehendem `llm_complete`-Command; das Gate
+  schließt erst nach erfolgreichem Test. Die Einstellungen trennen
+  „Gespeicherten Key anzeigen" und „Verbindung testen" klarer.
+- Provider-Key-Mapping vereinheitlicht: Claude speichert/testet runtime-seitig
+  unter `anthropic`; alte unter `claude` gespeicherte Keys werden beim Setup
+  bzw. im LLM-Schritt still auf die neue ID migriert.
+
 ### Changed — Version 1.0.1 für Updater-Test
 - App-Version in `tauri.conf.json`, `Cargo.toml` und `Cargo.lock` auf `1.0.1`
   erhöht, damit GitHub Release/Updater-Artefakte per Tag `v1.0.1` gebaut

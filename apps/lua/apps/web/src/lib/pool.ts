@@ -32,6 +32,20 @@ export interface PoolEntryInput {
   quelleHinweis: string | null;
 }
 
+export interface PoolImportPreview {
+  gesamt: number;
+  /** [Fach-Key, Anzahl] — absteigend nach Anzahl */
+  jeFach: [string, number][];
+  duplikate: number;
+  mitQuelle: number;
+}
+
+export interface PoolImportReport {
+  eingefuegt: number;
+  ersetzt: number;
+  uebersprungen: number;
+}
+
 export function parsePoolBlock(entry: PoolEntry): Block | null {
   try {
     return JSON.parse(entry.blockJson) as Block;
