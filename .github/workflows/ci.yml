@@ -58,8 +58,8 @@ jobs:
         run: |
           set -o pipefail
           cargo check 2>&1 | tee /tmp/cargo-check.log || {
-            msg=$(grep -B1 -A6 -E "^error" /tmp/cargo-check.log | head -c 1800 | sed ':a;N;$!ba;s/\n/%0A/g')
-            echo "::error title=cargo check::${msg}"
+            tail -c 2400 /tmp/cargo-check.log | base64 -w0 | fold -w 800 | \
+              while read -r chunk; do echo "::error title=cargo-b64::${chunk}"; done
             exit 1
           }
       - run: cargo test
