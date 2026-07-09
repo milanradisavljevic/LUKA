@@ -7,6 +7,11 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Changed — Version 1.0.1 für Updater-Test
+- App-Version in `tauri.conf.json`, `Cargo.toml` und `Cargo.lock` auf `1.0.1`
+  erhöht, damit GitHub Release/Updater-Artefakte per Tag `v1.0.1` gebaut
+  werden können.
+
 ### Fixed — CI: Tauri-cargo-check baut Frontend-Dist vor Rust-Check
 - `.github/workflows/ci.yml`: Der Rust-Job installiert jetzt Node/pnpm und baut
   `@lehrunterlagen/web`, bevor `cargo check` startet. Tauri
