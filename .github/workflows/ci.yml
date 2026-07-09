@@ -61,9 +61,10 @@ jobs:
           CARGO_INCREMENTAL: "0"
         run: |
           set -o pipefail
-          echo "::warning title=df-vor::$(df -h / /tmp | base64 -w0)"
-          cargo check 2>&1 | tee /tmp/cargo-check.log || {
-            echo "::error title=df-nach::$(df -h / /tmp | base64 -w0)"
+          # -j 2: Log bricht mitten im Stream ab, Platte ist frei (87 GB) →
+          # OOM-Kill der parallelen rustc-Prozesse. Weniger Jobs = weniger RAM.
+          cargo check -j 2 2>&1 | tee /tmp/cargo-check.log || {
+            echo "::error title=oom-b64::$(sudo dmesg 2>/dev/null | grep -iE 'killed process|out of memory' | tail -3 | base64 -w0)"
             tail -c 2400 /tmp/cargo-check.log | base64 -w0 | fold -w 800 | \
               while read -r chunk; do echo "::error title=cargo-b64::${chunk}"; done
             exit 1
