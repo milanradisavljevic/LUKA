@@ -55,9 +55,15 @@ jobs:
       # Fehlertext als Annotation ausgeben — Annotations sind auch ohne
       # Repo-Admin-Rechte über die API lesbar (Log-Download ist es nicht).
       - name: cargo check
+        env:
+          # Incremental bringt in CI nichts und verdoppelt das target-Verzeichnis —
+          # Verdacht: Runner-Platte läuft voll (Log bricht mitten im Stream ab).
+          CARGO_INCREMENTAL: "0"
         run: |
           set -o pipefail
+          echo "::warning title=df-vor::$(df -h / /tmp | base64 -w0)"
           cargo check 2>&1 | tee /tmp/cargo-check.log || {
+            echo "::error title=df-nach::$(df -h / /tmp | base64 -w0)"
             tail -c 2400 /tmp/cargo-check.log | base64 -w0 | fold -w 800 | \
               while read -r chunk; do echo "::error title=cargo-b64::${chunk}"; done
             exit 1
