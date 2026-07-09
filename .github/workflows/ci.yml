@@ -52,7 +52,16 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: apps/lua/src-tauri
-      - run: cargo check
+      # Fehlertext als Annotation ausgeben — Annotations sind auch ohne
+      # Repo-Admin-Rechte über die API lesbar (Log-Download ist es nicht).
+      - name: cargo check
+        run: |
+          set -o pipefail
+          cargo check 2>&1 | tee /tmp/cargo-check.log || {
+            msg=$(grep -B1 -A6 -E "^error" /tmp/cargo-check.log | head -c 1800 | sed ':a;N;$!ba;s/\n/%0A/g')
+            echo "::error title=cargo check::${msg}"
+            exit 1
+          }
       - run: cargo test
       - name: cargo audit (report only)
         run: |
