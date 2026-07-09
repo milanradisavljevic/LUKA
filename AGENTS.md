@@ -15,6 +15,14 @@ bevor du Code änderst.
    nicht raten.
 4. **Snapshot-Charakter respektieren.** `apps/lua` und `apps/natascha` sind
    Kopien eigenständiger Apps; sie sollen je für sich lauffähig bleiben.
+5. **Interne Docs nicht committen.** Das Repo ist **öffentlich**. Arbeits- und
+   Planungsdokumente (`docs/PLAN-*`, `MASTERPLAN-*`, `STRATEGIE-*`, `REVIEW-*`,
+   `AUDIT-*`, `SPEC-*`, `TESTPLAN-*`, Handoffs, Phasen-Pläne …) bleiben lokal —
+   `docs/*` ist per `.gitignore` ausgeschlossen. Versioniert sind nur echte
+   Doku-Dateien (Whitelist in `.gitignore`): `docs/ANLEITUNG.md`,
+   `docs/DATENSCHUTZ.md`, `docs/invarianten.md`, `docs/szenarien.md` und
+   `docs/lehrplan-quellen/` (Input der Stoffkatalog-Generierung). Neue echte
+   Doku ausdrücklich in die Whitelist aufnehmen, nicht `docs/*` aufweichen.
 
 ## Struktur
 

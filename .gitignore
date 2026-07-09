@@ -37,6 +37,16 @@ bridge/inbox/*.json
 .DS_Store
 Thumbs.db
 
+# --- Interne Arbeits-/Planungsdokumente: bewusst NICHT im (öffentlichen) Repo ---
+# Repo ist public — Pläne, Strategien, Reviews, Handoffs bleiben lokal.
+# Nur echte Doku bleibt versioniert. Regel + Begründung: AGENTS.md.
+docs/*
+!docs/lehrplan-quellen/
+!docs/ANLEITUNG.md
+!docs/DATENSCHUTZ.md
+!docs/invarianten.md
+!docs/szenarien.md
+
 # --- Versehentlich angelegte Leerdateien ---
 docs/Textdokument (neu).txt
 

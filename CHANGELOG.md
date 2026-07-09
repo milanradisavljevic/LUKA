@@ -7,6 +7,15 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Changed — docs-Hygiene: interne Dokumente nicht mehr im öffentlichen Repo
+- `docs/*` ist jetzt gitignored (Whitelist: `ANLEITUNG.md`, `DATENSCHUTZ.md`,
+  `invarianten.md`, `szenarien.md`, `lehrplan-quellen/`) — Pläne, Strategien,
+  Reviews und Handoffs bleiben lokal, das Repo ist öffentlich. 31 bisher
+  versionierte Arbeitsdokumente wurden aus dem Index entfernt (Dateien bleiben
+  lokal erhalten; Historie enthält sie weiterhin). Regel: `AGENTS.md`,
+  Goldene Regel 5. Neue Produktwellen-Pläne (Masterplan Profile/Community/
+  CH/DE/IB, Stand 2026-07-09) liegen entsprechend nur noch lokal in `docs/`.
+
 ### Changed — App-Name trägt jetzt die Marke
 - `productName`: „Lehrunterlagen-Tool" → **„LUKA - Lehrunterlagen-Tool"**
   (Windows-Appliste/Startmenü/Installer). `identifier` bleibt unverändert
