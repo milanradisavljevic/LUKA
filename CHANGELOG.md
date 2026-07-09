@@ -7,6 +7,14 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Fixed — CI: Tauri-cargo-check baut Frontend-Dist vor Rust-Check
+- `.github/workflows/ci.yml`: Der Rust-Job installiert jetzt Node/pnpm und baut
+  `@lehrunterlagen/web`, bevor `cargo check` startet. Tauri
+  `tauri::generate_context!()` validiert `frontendDist`
+  (`apps/lua/apps/web/dist`) bereits beim Kompilieren; ein nackter frischer
+  Checkout ohne Web-Build bricht deshalb mit
+  "`frontendDist` ... but this path doesn't exist" ab.
+
 ### Changed — docs-Hygiene: interne Dokumente nicht mehr im öffentlichen Repo
 - `docs/*` ist jetzt gitignored (Whitelist: `ANLEITUNG.md`, `DATENSCHUTZ.md`,
   `invarianten.md`, `szenarien.md`, `lehrplan-quellen/`) — Pläne, Strategien,
