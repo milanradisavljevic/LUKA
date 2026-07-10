@@ -23,6 +23,11 @@ bevor du Code änderst.
    `docs/DATENSCHUTZ.md`, `docs/invarianten.md`, `docs/szenarien.md` und
    `docs/lehrplan-quellen/` (Input der Stoffkatalog-Generierung). Neue echte
    Doku ausdrücklich in die Whitelist aufnehmen, nicht `docs/*` aufweichen.
+6. **CHANGELOG vor Release-Tag lehrkraft-tauglich.** Vor jedem Versions-Tag
+   muss der CHANGELOG-Abschnitt der Version existieren und die
+   nutzersichtbaren Punkte so formulieren, dass eine Lehrkraft sie versteht
+   (kurz, ohne Implementierungsdetail) — die App zeigt diese Notes im
+   Update-Dialog an (`releaseBody` → `latest.json` → `update.body`).
 
 ## Struktur
 

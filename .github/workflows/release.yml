@@ -46,6 +46,16 @@ jobs:
       # wie in ci.yml: frische CI-Umgebung braucht die Cross-Paket-Typen.
       - run: pnpm --filter "./packages/*" build
 
+      # Release-Notes aus dem obersten CHANGELOG-Abschnitt (zwischen der
+      # ersten und zweiten "## "-Überschrift) für den In-App-Update-Dialog.
+      # Läuft im Repo-Root (working-directory-Override), da CHANGELOG.md dort
+      # liegt, nicht unter apps/lua. Fallback bei leerem/fehlendem Abschnitt:
+      # "Details im CHANGELOG." (siehe extract-release-notes.mjs).
+      - name: Release-Notes aus CHANGELOG.md extrahieren
+        id: release_notes
+        working-directory: .
+        run: node .github/scripts/extract-release-notes.mjs
+
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -55,7 +65,7 @@ jobs:
           projectPath: apps/lua
           tagName: ${{ github.ref_name }}
           releaseName: "Luka ${{ github.ref_name }}"
-          releaseBody: "Siehe CHANGELOG.md für Details."
+          releaseBody: ${{ steps.release_notes.outputs.body }}
           releaseDraft: false
           prerelease: false
           # nur NSIS: MSI (WiX) kann nicht patchen/updaten wie NSIS und

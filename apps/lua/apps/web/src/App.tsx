@@ -7,6 +7,7 @@ import type { Meta, Block } from '@lehrunterlagen/schema';
 import { useWizard } from './hooks/useWizard';
 import { useTheme } from './hooks/useTheme';
 import { useZoom } from './hooks/useZoom';
+import { useUpdater } from './hooks/useUpdater';
 import { WizardStepper } from './components/WizardStepper';
 import { Step0_Absicht } from './components/Step0_Absicht';
 import { Step1_Input } from './components/Step1_Input';
@@ -46,6 +47,7 @@ import { COMMANDS } from './lib/commands';
 import { parsePoolBlock } from './lib/pool';
 import type { PoolEntry } from './lib/pool';
 import { Toast, type ToastMessage } from './components/Toast';
+import { UpdateDialog } from './components/UpdateDialog';
 import { SettingsPanel } from './components/SettingsPanel';
 import { SubjectAtmosphere } from './components/SubjectAtmosphere';
 import { getMuralVars, getMuralMode } from './themes/subjectThemes';
@@ -96,14 +98,8 @@ export default function App() {
   useEffect(() => subscribeSettings(setSettings), []);
 
   // Update-Check verzögert nach Start (nur Desktop-App): stört den Aufbau nicht,
-  // scheitert still bei offline — Logik in lib/updater.ts.
-  useEffect(() => {
-    if (!isTauri()) return;
-    const t = window.setTimeout(() => {
-      void import('./lib/updater').then((m) => m.checkForUpdatesSilently());
-    }, 5000);
-    return () => window.clearTimeout(t);
-  }, []);
+  // scheitert still bei offline — Logik + Dialog-State in hooks/useUpdater.ts.
+  const updater = useUpdater();
 
   const { state, dispatch, goNext, goBack, goToStep, currentIndex } = useWizard();
   const { preference: themePreference, resolved: theme, toggle: toggleTheme } = useTheme();
@@ -693,6 +689,8 @@ if (hydrating) {
       )}
 
       <Toast toast={toast} onClose={() => setToast(null)} />
+
+      <UpdateDialog updater={updater} />
 
       {/* First-Run-Onboarding: API-Key-Gate */}
       {keyGateState !== 'ready' && (

@@ -7,6 +7,26 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Eigener Update-Dialog + Release-Notes im Updater
+- Native `ask()`/`message()`-Dialoge beim Auto-Update ersetzt durch
+  `UpdateDialog` im App-Design („Tinte & Papier"): zeigt Version, Release-
+  Notes (`update.body`, kleines eigenes Markdown-Subset — Absätze,
+  `- `-Listen, `**fett**` — kein npm-Paket), Fortschrittsbalken beim
+  Herunterladen (`downloadAndInstall`-Events Started/Progress/Finished) und
+  danach „Jetzt neu starten?" oder „Beim nächsten Start". Update-Logik jetzt
+  als State-Maschine in `hooks/useUpdater.ts` (ersetzt `lib/updater.ts`);
+  App.tsx rendert nur noch `<UpdateDialog updater={updater} />`.
+  Update-Check-Fehler bleiben wie bisher bewusst stumm (nur console.warn) —
+  ein fehlgeschlagener Check darf den Unterricht nie stören. Fehler beim
+  aktiven Download werden dagegen im Dialog angezeigt (kurz, deutsch, mit
+  Schließen-Option).
+- Release-Workflow (`.github/workflows/release.yml`) extrahiert vor der
+  `tauri-action` den obersten CHANGELOG-Abschnitt
+  (`.github/scripts/extract-release-notes.mjs`) und übergibt ihn als
+  `releaseBody`; tauri-action schreibt ihn als `notes` in `latest.json`, der
+  Updater liefert das als `update.body` an den neuen Dialog. Fallback bei
+  leerem/fehlendem Abschnitt: „Details im CHANGELOG."
+
 ### Changed — Generator-only-Pilot (Version 1.0.2)
 - `FEATURES.natascha` auf `false`: Sidebar, Dashboard-Karten, Befehlspalette,
   Hilfe-Kapitel und Einstellungen blenden die NATASCHA-Bereiche (Klassen,
