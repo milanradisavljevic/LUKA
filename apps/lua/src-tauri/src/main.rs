@@ -14,6 +14,7 @@ fn main() {
         .manage(commands::db::DbState(Mutex::new(conn)))
         .invoke_handler(tauri::generate_handler![
             commands::llm::llm_complete,
+            commands::llm::test_provider_connection,
             commands::keys::save_api_key,
             commands::keys::load_api_key,
             commands::keys::delete_api_key,

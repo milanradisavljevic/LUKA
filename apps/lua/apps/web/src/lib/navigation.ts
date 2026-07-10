@@ -16,7 +16,7 @@ export interface NavTarget {
 export const NATASCHA_VIEWS: ActiveView[] = ['klassen', 'korrektur', 'schueler', 'erwartungshorizont'];
 
 export const NAV_TARGETS: NavTarget[] = [
-  { view: 'dashboard', label: 'Übersicht', description: 'Klassen, Korrekturstand und Weiterarbeiten' },
+  { view: 'dashboard', label: 'Übersicht', description: 'Unterlagen, Schnellstarts und Weiterarbeiten' },
   { view: 'wizard', label: 'Assistent', description: 'Zum Aktuellen Dokument zurück' },
   { view: 'kompetenz', label: 'Kompetenz-Übung', description: 'Übung ohne Quelltext aus Lehrplan-Kompetenzen' },
   { view: 'quick', label: 'Schnell-Übung', description: 'Thema + Aufgabentyp → sofort Baukasten' },
@@ -35,6 +35,6 @@ export const NAV_TARGETS: NavTarget[] = [
 ];
 
 /** Navigationsziele, passend zum Feature-Stand (NATASCHA ggf. ausgeblendet). */
-export function visibleNavTargets(): NavTarget[] {
-  return NAV_TARGETS.filter((t) => FEATURES.natascha || !NATASCHA_VIEWS.includes(t.view));
+export function visibleNavTargets(nataschaEnabled: boolean = FEATURES.natascha): NavTarget[] {
+  return NAV_TARGETS.filter((t) => nataschaEnabled || !NATASCHA_VIEWS.includes(t.view));
 }

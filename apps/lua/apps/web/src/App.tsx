@@ -51,7 +51,8 @@ import { SubjectAtmosphere } from './components/SubjectAtmosphere';
 import { getMuralVars, getMuralMode } from './themes/subjectThemes';
 import { DEFAULT_SETTINGS } from './lib/storage';
 import { FEATURES } from './lib/features';
-import { PROVIDER_KEY_IDS } from './lib/constants';
+import { LLM_PROVIDERS } from './lib/constants';
+import { ensurePrimaryProviderKey, getVerifiedProviders, shouldOpenProviderSetup } from './lib/providerSetup';
 import './App.css';
 import './styles/murals.css';
 
@@ -147,7 +148,7 @@ export default function App() {
           meta: t.meta as { fach?: string; stufe?: string } | null,
         })),
         pool,
-        klassen: isHydrated() ? getCache().klassen : [],
+        klassen: FEATURES.natascha && isHydrated() ? getCache().klassen : [],
         navigation: visibleNavTargets(),
         commands: commandSources,
       });
@@ -172,7 +173,9 @@ export default function App() {
   // Cross-Nav: aus der Korrektur zu einem bestimmten Schüler springen.
   const [pendingSchueler, setPendingSchueler] = useState<{ klasse: string; id: number } | null>(null);
   // First-Run-Onboarding: mindestens ein API-Key nötig, bevor die App bedienbar ist.
-  const [keyGateOpen, setKeyGateOpen] = useState(false);
+  const [keyGateState, setKeyGateState] = useState<'checking' | 'required' | 'ready' | 'error'>(() => isTauri() ? 'checking' : 'ready');
+  const [keyGateRetry, setKeyGateRetry] = useState(0);
+  const [showFirstRunWizardHint, setShowFirstRunWizardHint] = useState(false);
 
   // Stille DB-Write-Fehler sichtbar machen (vorher nur console.error).
   useEffect(() => {
@@ -195,24 +198,30 @@ export default function App() {
     (async () => {
       try {
         const { invoke } = await import('@tauri-apps/api/core');
-        const keyIds = [...new Set(Object.values(PROVIDER_KEY_IDS))];
         const keys = await Promise.all(
-          keyIds.map((id) => invoke<string>('load_api_key', { provider: id }).catch(() => '')),
+          LLM_PROVIDERS.map((provider) =>
+            ensurePrimaryProviderKey(
+              provider.id,
+              (id) => invoke<string>('load_api_key', { provider: id }),
+              (id, key) => invoke<void>('save_api_key', { provider: id, key }),
+            )
+              .then((entry) => entry ? { provider: provider.id, key: entry.key } : null)
+              .catch(() => null),
+          ),
         );
-        if (!cancelled && keys.every((k) => !k)) {
-          setKeyGateOpen(true);
-        }
+        if (!cancelled) setKeyGateState(shouldOpenProviderSetup(keys, getVerifiedProviders()) ? 'required' : 'ready');
       } catch {
-        // ignore
+        if (!cancelled) setKeyGateState('error');
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [keyGateRetry]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
+        if (keyGateState !== 'ready') return;
         setPaletteOpen((p) => !p);
       }
       if (e.key === 'Escape' && paletteOpen) {
@@ -221,7 +230,15 @@ export default function App() {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [paletteOpen]);
+  }, [keyGateState, paletteOpen]);
+
+  const handleFirstRunContinue = useCallback(() => {
+    setKeyGateState('ready');
+    setShowFirstRunWizardHint(true);
+    dispatch({ type: 'RESET_STATE' });
+    setActiveView('wizard');
+    goToStep('absicht');
+  }, [dispatch, goToStep]);
 
   const handlePaletteActions = useCallback((actions: AppAction | AppAction[]) => {
     const arr = Array.isArray(actions) ? actions : [actions];
@@ -415,7 +432,16 @@ export default function App() {
   const renderStep = () => {
     switch (state.step) {
       case 'absicht':
-        return <Step0_Absicht state={state} dispatch={dispatch} onNavigateToTemplates={() => setActiveView('templates')} onNavigateToKompetenz={() => setActiveView('kompetenz')} />;
+        return (
+          <Step0_Absicht
+            state={state}
+            dispatch={dispatch}
+            firstRunHint={showFirstRunWizardHint}
+            onDismissFirstRunHint={() => setShowFirstRunWizardHint(false)}
+            onNavigateToTemplates={() => setActiveView('templates')}
+            onNavigateToKompetenz={() => setActiveView('kompetenz')}
+          />
+        );
       case 'input':
         return <Step1_Input state={state} dispatch={dispatch} />;
       case 'baukasten':
@@ -427,12 +453,12 @@ export default function App() {
     }
   };
 
-  const renderView = () => {
-    if (!FEATURES.natascha && NATASCHA_VIEWS.includes(activeView)) {
-      return <DashboardView onNavigate={(v) => setActiveView(v)} onStartQuickExercise={handleStartQuickExercise} onGenerateUebung={handleGenerateUebung} />;
-    }
+  const effectiveActiveView: ActiveView = !FEATURES.natascha && NATASCHA_VIEWS.includes(activeView)
+    ? 'dashboard'
+    : activeView;
 
-    switch (activeView) {
+  const renderView = () => {
+    switch (effectiveActiveView) {
       case 'wizard':
 if (hydrating) {
     return (
@@ -495,13 +521,13 @@ if (hydrating) {
     }
   };
 
-  const isWizard = activeView === 'wizard';
+  const isWizard = effectiveActiveView === 'wizard';
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       {!isMobile && (
         <Sidebar
-          currentView={activeView}
+          currentView={effectiveActiveView}
           onViewChange={setActiveView}
           onNewDocument={handleNewDocument}
         />
@@ -517,12 +543,12 @@ if (hydrating) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <div>
               <h1 style={{ fontSize: '1.125rem', fontWeight: 700, margin: 0, color: 'var(--color-text-primary)' }}>
-                {VIEW_TITLES[activeView]}
+                {VIEW_TITLES[effectiveActiveView]}
               </h1>
             </div>
             {/* Zeigt die Wizard-Absicht (Fach/Stufe/Klasse) \u2014 in NATASCHA-Views
                 irref\u00FChrend, da die dort gew\u00E4hlte Klasse eine andere ist. */}
-            {!NATASCHA_VIEWS.includes(activeView) && (
+            {!NATASCHA_VIEWS.includes(effectiveActiveView) && (
               <button
                 className="badge badge-context"
                 onClick={() => { setActiveView('wizard'); goToStep('absicht'); }}
@@ -647,7 +673,7 @@ if (hydrating) {
       </div>
 
       <CommandPalette
-        open={paletteOpen}
+        open={keyGateState === 'ready' && paletteOpen}
         onClose={() => setPaletteOpen(false)}
         onActions={handlePaletteActions}
         onNavigate={(dir) => dir === 'next' ? goNext() : goBack()}
@@ -669,22 +695,40 @@ if (hydrating) {
       <Toast toast={toast} onClose={() => setToast(null)} />
 
       {/* First-Run-Onboarding: API-Key-Gate */}
-      {keyGateOpen && (
+      {keyGateState !== 'ready' && (
         <div style={{
           position: 'fixed', inset: 0, background: 'var(--color-bg-base)',
-          zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem',
+          zIndex: 5000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem',
         }}>
           <div style={{
             maxWidth: 720, width: '100%', maxHeight: '90vh', overflow: 'auto',
             background: 'var(--color-bg-surface)', borderRadius: 'var(--radius)',
             border: '1px solid var(--color-border)', padding: '1.5rem', boxShadow: 'var(--shadow)',
-          }}>
-            <h2 style={{ marginBottom: '0.5rem' }}>Willkommen bei LUKA</h2>
+          }} role="dialog" aria-modal="true" aria-labelledby="first-run-title">
+            {keyGateState === 'checking' ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <Loader2 size={24} className="spin" />
+                <span id="first-run-title">Gespeicherte Anbieter werden geprüft …</span>
+              </div>
+            ) : keyGateState === 'error' ? (
+              <div>
+                <h2 id="first-run-title">Einrichtung konnte nicht geprüft werden</h2>
+                <p style={{ color: 'var(--color-text-secondary)' }}>Der System-Schlüsselspeicher ist momentan nicht erreichbar. Die App bleibt zu deinem Schutz gesperrt.</p>
+                <button className="btn-primary" onClick={() => { setKeyGateState('checking'); setKeyGateRetry((value) => value + 1); }}>
+                  Erneut prüfen
+                </button>
+              </div>
+            ) : (
+              <>
+            <h2 id="first-run-title" style={{ marginBottom: '0.5rem' }}>Willkommen bei LUKA</h2>
             <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', marginBottom: '1.25rem' }}>
-              Um die KI-Funktionen nutzen zu können, hinterlege mindestens einen API-Key.
-              Der Schlüssel bleibt lokal im System-Keyring und verlässt niemals den Rechner.
+              Hinterlege mindestens einen API-Key und teste die Verbindung zum Anbieter.
+              Erst nach einem erfolgreichen Test wird die App freigegeben. Der Schlüssel
+              wird lokal im System-Keyring gespeichert und bei API-Aufrufen direkt an den Anbieter übertragen.
             </p>
-            <SettingsPanel onKeySaved={() => setKeyGateOpen(false)} />
+            <SettingsPanel mode="firstRun" onVerifiedContinue={handleFirstRunContinue} />
+              </>
+            )}
           </div>
         </div>
       )}

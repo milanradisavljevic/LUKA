@@ -5,6 +5,85 @@ use std::time::Duration;
 const MAX_RETRIES: u32 = 3;
 const REQUEST_TIMEOUT: u64 = 180; // 3 Minuten fuer grosse Modelle
 const BASE_DELAY_MS: u64 = 1000;
+const CONNECTION_TEST_TIMEOUT: u64 = 20;
+
+fn compact_connection_test_body(mut body: serde_json::Value) -> serde_json::Value {
+    if let Some(map) = body.as_object_mut() {
+        if map.contains_key("max_completion_tokens") {
+            map.insert("max_completion_tokens".to_string(), serde_json::json!(16));
+        } else {
+            map.insert("max_tokens".to_string(), serde_json::json!(16));
+        }
+    }
+    body
+}
+
+/// Prüft einen übergebenen Key mit einem kurzen, kostenarmen Request, ohne ihn
+/// vorher im Keyring zu speichern. So ersetzt ein Tippfehler keinen gültigen Key.
+#[tauri::command]
+pub async fn test_provider_connection(
+    provider: String,
+    model: String,
+    api_key: String,
+) -> Result<(), String> {
+    if !matches!(provider.as_str(), "anthropic" | "openai" | "mistral" | "deepseek" | "kimi" | "qwen") {
+        return Err("Unbekannter KI-Anbieter.".to_string());
+    }
+    if api_key.trim().is_empty() {
+        return Err("Kein API-Schlüssel angegeben.".to_string());
+    }
+
+    let req = LlmRequest {
+        provider: provider.clone(),
+        model,
+        system: "Du bist ein Verbindungstest. Antworte nur mit {\"ok\":true}.".to_string(),
+        messages: vec![ChatMessage {
+            role: "user".to_string(),
+            content: "Antworte jetzt.".to_string(),
+        }],
+        temperature: 0.0,
+        api_key,
+    };
+    let adapter: Box<dyn Adapter + Send + Sync> = match provider.as_str() {
+        "anthropic" => Box::new(AnthropicAdapter::new()),
+        _ => Box::new(OpenAiCompatAdapter::new(&provider)),
+    };
+    let (url, headers, body) = adapter.build_request(&req)?;
+    let body = compact_connection_test_body(body);
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(CONNECTION_TEST_TIMEOUT))
+        .build()
+        .map_err(|e| format!("HTTP-Client-Fehler: {}", e))?;
+    let mut request = client.post(&url);
+    for (key, value) in &headers {
+        request = request.header(key.as_str(), value.as_str());
+    }
+    let response = request.json(&body).send().await.map_err(|e| {
+        if e.is_timeout() {
+            "Zeitüberschreitung beim Verbindungstest.".to_string()
+        } else if e.is_connect() {
+            "Keine Internetverbindung. Bitte Verbindung prüfen.".to_string()
+        } else {
+            format!("Netzwerkfehler: {}", e)
+        }
+    })?;
+    let status = response.status();
+    let response_text = response.text().await.unwrap_or_default();
+    if !status.is_success() {
+        return Err(match status.as_u16() {
+            401 | 403 => "API-Schlüssel ungültig. Bitte in den Einstellungen prüfen.".to_string(),
+            402 | 429 => "Rate-Limit, Guthaben oder Abrechnung blockiert den Test.".to_string(),
+            _ => format!("HTTP-Fehler ({}): {}", status, response_text.chars().take(500).collect::<String>()),
+        });
+    }
+    let response_body: serde_json::Value = serde_json::from_str(&response_text)
+        .map_err(|e| format!("Ungültige Provider-Antwort: {}", e))?;
+    let content = adapter.parse_response(&response_body)?;
+    if content.trim().is_empty() {
+        return Err("Der Anbieter hat leer geantwortet.".to_string());
+    }
+    Ok(())
+}
 
 #[tauri::command]
 pub async fn llm_complete(
@@ -128,4 +207,17 @@ pub async fn llm_complete(
     }
 
     Err(format!("Maximale Wiederholungen erreicht. Letzter Fehler: {}", last_error))
+}
+
+#[cfg(test)]
+mod connection_tests {
+    use super::*;
+
+    #[test]
+    fn connection_test_reduziert_token_budget() {
+        let body = serde_json::json!({"max_tokens": 16000, "model": "test"});
+        assert_eq!(compact_connection_test_body(body)["max_tokens"], 16);
+        let body = serde_json::json!({"max_completion_tokens": 16000, "model": "test"});
+        assert_eq!(compact_connection_test_body(body)["max_completion_tokens"], 16);
+    }
 }

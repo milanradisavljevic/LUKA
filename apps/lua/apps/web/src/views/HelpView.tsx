@@ -6,6 +6,7 @@ import {
   Lightbulb, CheckCircle2, Target, FolderOpen, Shapes, BookOpen,
   Database, FileDown, Search,
 } from 'lucide-react';
+import { FEATURES } from '../lib/features';
 import { ViewShell } from './_ViewShell';
 
 /* ---------- kleine Bausteine für ein konsistentes Handbuch-Layout ---------- */
@@ -50,20 +51,23 @@ interface Section {
 const SECTIONS: Section[] = [
   {
     id: 'ueberblick',
-    title: 'Überblick & Closed Loop',
+    title: FEATURES.natascha ? 'Überblick & Closed Loop' : 'Überblick',
     Icon: Workflow,
     body: (
       <>
-        <P>
-          LUKA verbindet zwei Lehrer-Werkzeuge zu <strong>einem</strong> durchgängigen Kreislauf:
-          Unterlagen <strong>erstellen</strong>, Schülerabgaben <strong>korrigieren</strong> und daraus
-          gezielt <strong>üben</strong> lassen — alles in einer App, mit gemeinsamer Datenbank.
-        </P>
+        <P>{FEATURES.natascha ? (
+          <>LUKA verbindet Unterlagen erstellen, Schülerabgaben korrigieren und gezieltes Üben zu einem durchgängigen Kreislauf.</>
+        ) : (
+          <>Dieser Pilot konzentriert sich auf das <strong>Erstellen hochwertiger Lehrunterlagen</strong>: vom Thema oder Quelltext bis zu DOCX, Lösung und Korrekturraster.</>
+        )}</P>
         <div style={{
           display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center',
           margin: '0.75rem 0', fontSize: '0.8125rem',
         }}>
-          {['Unterlagen erstellen', '→', 'Abgaben korrigieren', '→', 'Fehler-Heatmap', '→', 'gezieltes Übungsblatt', '↺'].map((t, i) => (
+          {(FEATURES.natascha
+            ? ['Unterlagen erstellen', '→', 'Abgaben korrigieren', '→', 'Fehler-Heatmap', '→', 'gezieltes Übungsblatt', '↺']
+            : ['Absicht festlegen', '→', 'Aufgaben erstellen', '→', 'Qualität prüfen', '→', 'DOCX/PDF exportieren']
+          ).map((t, i) => (
             <span key={i} style={{
               padding: t.length > 2 ? '0.3rem 0.6rem' : '0.3rem 0.2rem',
               background: t.length > 2 ? 'var(--color-bg-base)' : 'none',
@@ -72,11 +76,7 @@ const SECTIONS: Section[] = [
             }}>{t}</span>
           ))}
         </div>
-        <P>
-          Der Clou: Nach der Korrektur kennt die App die häufigsten Fehler einer Klasse oder
-          eines einzelnen Schülers — und erzeugt mit einem Klick ein passendes Übungsblatt dazu.
-        </P>
-        <Tip>Wenn du neu bist, lies <strong>Erste Schritte</strong> und spiele danach den Closed Loop einmal komplett durch — das dauert keine 5 Minuten.</Tip>
+        <Tip>Wenn du neu bist, lies <strong>Erste Schritte</strong> und erstelle anschließend eine kleine Schnell-Übung zum Ausprobieren.</Tip>
       </>
     ),
   },
@@ -86,12 +86,11 @@ const SECTIONS: Section[] = [
     Icon: Rocket,
     body: (
       <>
-        <P>Damit die KI-Funktionen (Generieren, Korrigieren) laufen, brauchst du einen API-Schlüssel deines KI-Anbieters.</P>
+        <P>Damit die KI-Generierung läuft, brauchst du einen API-Schlüssel deines KI-Anbieters.</P>
         <Steps items={[
           <>Öffne <strong>Einstellungen</strong> und trage deinen API-Schlüssel ein (z. B. Anthropic, OpenAI, Mistral, DeepSeek). Schlüssel werden sicher im Schlüsselspeicher des Betriebssystems abgelegt — nicht im Klartext.</>,
           <>Wähle Standard-Anbieter und -Modell (standardmäßig <strong>Mistral Medium 3.5</strong> — änderbar in den <strong>Einstellungen</strong>). Für günstige Tests eignet sich ein kleines Modell.</>,
-          <>Zum gefahrlosen Ausprobieren ohne echte Schülerdaten: Testdaten laden (siehe <strong>Onboarding</strong> im README / Beispiel-Abgaben im Ordner <code>samples/</code>).</>,
-          <>Lade in <strong>Korrektur</strong> eine erste Abgabe hoch und starte die Analyse.</>,
+          <>Starte über <strong>Neue erstellen</strong>, <strong>Kompetenz-Übung</strong> oder <strong>Schnell-Übung</strong> und exportiere eine erste Schüler- und Lösungsfassung.</>,
         ]} />
         <P><strong>Kein-Key-Hinweis:</strong> Wählst du in Schritt „KI-Modell" einen Anbieter, für den noch kein Schlüssel hinterlegt ist, zeigt die App dort einen Hinweis mit Direkt-Link zu den Einstellungen — so scheiterst du nicht erst beim Generieren.</P>
         <Tip>Ohne hinterlegten Schlüssel schlagen Analyse/Generierung fehl. Die Fehlermeldung nennt dann meist „Key/Provider prüfen".</Tip>
@@ -313,9 +312,8 @@ const SECTIONS: Section[] = [
     body: (
       <>
         <P>
-          Die <strong>Übersicht</strong> ist deine Startseite: Anzahl Klassen und Abgaben, Klassen mit
-          <strong> Handlungsbedarf</strong> (schwacher Notenschnitt) und pro Klasse eine Karte mit
-          Notenschnitt, letzter Aktivität und Lehrer-Feedback-Quote. Ein Klick führt in die Klassen-Ansicht.
+          Die <strong>Übersicht</strong> ist deine Startseite: Sie führt zu den Generator-Einstiegen,
+          zuletzt verwendeten Unterlagen und den wichtigsten nächsten Aktionen.
         </P>
         <P>
           <strong>Schnellstarts:</strong> Über die Übersicht legst du direkt los — <strong>„Wie zuletzt"</strong>
@@ -370,10 +368,9 @@ const SECTIONS: Section[] = [
     body: (
       <>
         <P>
-          <strong>Wichtig:</strong> Bei Korrektur, Erwartungshorizont und Schüler-Profil wird der
-          jeweilige <strong>Text an den gewählten KI-Anbieter übertragen</strong> (z. B. Anthropic,
-          OpenAI, DeepSeek). Verwende daher möglichst <strong>pseudonymisierte</strong> Abgaben —
-          keine vollen Klarnamen in den Dokumenten.
+          <strong>Wichtig:</strong> Bei der Generierung werden Thema, Anweisungen und bereitgestellte
+          Quelltexte an den gewählten KI-Anbieter übertragen. Verwende keine personenbezogenen
+          Schülerdaten in Themen, Notizen oder Quelltexten.
         </P>
         <P>
           Alles andere bleibt <strong>lokal</strong>: Datenbank und Exporte liegen auf deinem Rechner und
@@ -400,10 +397,13 @@ const SECTIONS: Section[] = [
   },
 ];
 
+const NATASCHA_HELP_IDS = new Set(['korrigieren', 'klassen', 'schueler', 'erwartungshorizont']);
+const AVAILABLE_SECTIONS = SECTIONS.filter((section) => FEATURES.natascha || !NATASCHA_HELP_IDS.has(section.id));
+
 /* ----------------------------------- View ----------------------------------- */
 
 export function HelpView() {
-  const [activeId, setActiveId] = useState(SECTIONS[0]!.id);
+  const [activeId, setActiveId] = useState(AVAILABLE_SECTIONS[0]!.id);
 
   useEffect(() => {
     const obs = new IntersectionObserver(
@@ -415,7 +415,7 @@ export function HelpView() {
       },
       { rootMargin: '-12% 0px -70% 0px', threshold: 0 },
     );
-    SECTIONS.forEach((s) => {
+    AVAILABLE_SECTIONS.forEach((s) => {
       const el = document.getElementById(s.id);
       if (el) obs.observe(el);
     });
@@ -429,13 +429,15 @@ export function HelpView() {
   return (
     <ViewShell
       title="Hilfe & Handbuch"
-      description="Alle Bereiche der App — vom ersten API-Schlüssel bis zum Closed Loop."
+      description={FEATURES.natascha
+        ? 'Alle Bereiche der App — vom ersten API-Schlüssel bis zum Closed Loop.'
+        : 'Der Generator-only-Pilot — vom ersten API-Schlüssel bis zum fertigen Export.'}
       maxWidth={1200}
     >
       <div className="help-grid" style={{ display: 'grid', gridTemplateColumns: '230px 1fr', gap: '2rem', alignItems: 'start' }}>
         {/* Inhaltsverzeichnis (sticky) */}
         <nav className="help-toc" style={{ position: 'sticky', top: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {SECTIONS.map((s) => {
+          {AVAILABLE_SECTIONS.map((s) => {
             const active = s.id === activeId;
             return (
               <button
@@ -461,7 +463,7 @@ export function HelpView() {
 
         {/* Inhalt */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem', minWidth: 0 }}>
-          {SECTIONS.map((s) => (
+          {AVAILABLE_SECTIONS.map((s) => (
             <section key={s.id} id={s.id} style={{ scrollMarginTop: '1rem' }}>
               <h3 style={{ fontSize: '1.0625rem', margin: '0 0 0.5rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
                 <s.Icon size={18} style={{ color: 'var(--color-accent)' }} /> {s.title}

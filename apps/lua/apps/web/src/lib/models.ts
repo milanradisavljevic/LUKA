@@ -122,7 +122,7 @@ export const MODELS: ModelInfo[] = [
   },
 
   // --- Mistral ---
-  // Quelle: https://docs.mistral.ai/getting-started/pricing/, Stand 2026-06-01
+  // Quelle: https://docs.mistral.ai/models/model-cards/mistral-small-4-0-26-03, Stand 2026-07-10
   {
     label: 'Mistral Medium 3.5',
     apiName: 'mistral-medium-3-5',
@@ -131,17 +131,17 @@ export const MODELS: ModelInfo[] = [
     kostenInputProMioToken: 1.5,
     kostenOutputProMioToken: 7.5,
     region: 'EU (Mistral, Frankreich)',
-    datenschutz: 'EU-Anbieter — DSGVO-konform',
+    datenschutz: 'EU-Anbieter — Datenschutzbedingungen des Kontos prüfen',
   },
   {
     label: 'Mistral Small 4',
-    apiName: 'mistral-small-4',
+    apiName: 'mistral-small-2603',
     provider: 'mistral',
     staerken: ['Schnell', 'Günstig', 'Code und Reasoning'],
-    kostenInputProMioToken: 0.1,
-    kostenOutputProMioToken: 0.3,
+    kostenInputProMioToken: 0.15,
+    kostenOutputProMioToken: 0.6,
     region: 'EU (Mistral, Frankreich)',
-    datenschutz: 'EU-Anbieter — DSGVO-konform',
+    datenschutz: 'EU-Anbieter — Datenschutzbedingungen des Kontos prüfen',
   },
 
   // --- Qwen (Alibaba Cloud / DashScope) ---
@@ -159,7 +159,7 @@ export const MODELS: ModelInfo[] = [
     datenschutz: 'Chinesischer Anbieter — nur für selbst verfasste Inhalte',
   },
   {
-    label: 'Qwen 3.6 Plus',
+    label: 'Qwen 3.5 Plus',
     apiName: 'qwen3.5-plus',
     provider: 'qwen',
     staerken: ['Gutes Preis-Leistungs-Verhältnis', 'Vielseitig'],

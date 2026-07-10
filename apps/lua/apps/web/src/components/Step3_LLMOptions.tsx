@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { Circle, Info, KeyRound } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import type { AppState, AppAction } from '../lib/types';
-import { LLM_PROVIDERS, PROVIDER_KEY_IDS } from '../lib/constants';
+import { LLM_PROVIDERS } from '../lib/constants';
 import { getModelInfo } from '../lib/models';
+import { ensurePrimaryProviderKey } from '../lib/providerSetup';
 import { CREATIVITY_PRESETS, getCreativityLabel } from '../lib/creativity';
 import { ProviderLogo } from './ProviderLogos';
 
@@ -31,9 +32,12 @@ export function Step3_LLMOptions({ state, dispatch, onNavigateToSettings }: Prop
     let abbruch = false;
     if (!state.llmProvider || !isTauri()) { setKeyState('unbekannt'); return; }
     setKeyState('unbekannt');
-    const keyId = PROVIDER_KEY_IDS[state.llmProvider] ?? state.llmProvider;
-    invoke<string>('load_api_key', { provider: keyId })
-      .then((key) => { if (!abbruch) setKeyState(key && key.trim().length > 0 ? 'vorhanden' : 'fehlt'); })
+    ensurePrimaryProviderKey(
+      state.llmProvider,
+      (id) => invoke<string>('load_api_key', { provider: id }),
+      (id, key) => invoke<void>('save_api_key', { provider: id, key }),
+    )
+      .then((stored) => { if (!abbruch) setKeyState(stored?.key.trim() ? 'vorhanden' : 'fehlt'); })
       .catch(() => { if (!abbruch) setKeyState('fehlt'); });
     return () => { abbruch = true; };
   }, [state.llmProvider]);

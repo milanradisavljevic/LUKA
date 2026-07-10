@@ -30,7 +30,7 @@ interface NavItem {
 const NATASCHA_NAV_IDS = ['klassen', 'korrektur', 'schueler', 'erwartungshorizont'];
 
 const NAV_ITEMS: NavItem[] = [
-  { id: 'dashboard', label: 'Übersicht', Icon: LayoutDashboard, view: 'dashboard', gruppe: 'Übersicht', tooltip: 'Klassen, Korrekturstand und Weiterarbeiten' },
+  { id: 'dashboard', label: 'Übersicht', Icon: LayoutDashboard, view: 'dashboard', gruppe: 'Übersicht', tooltip: 'Unterlagen, Schnellstarts und Weiterarbeiten' },
   { id: 'new', label: 'Neue erstellen', Icon: Plus, action: 'new', gruppe: 'Unterrichten', tooltip: 'Neues Arbeitsblatt erstellen' },
   { id: 'kompetenz', label: 'Kompetenz-Übung', Icon: Target, view: 'kompetenz', gruppe: 'Unterrichten', tooltip: 'Übung ohne Quelltext aus Lehrplan-Kompetenzen' },
   { id: 'quick', label: 'Schnell-Übung', Icon: Zap, view: 'quick', gruppe: 'Unterrichten', tooltip: 'Thema + Aufgabentyp → sofort Baukasten' },

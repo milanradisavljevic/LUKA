@@ -306,6 +306,7 @@ export function SettingsView() {
       )}
 
       {/* Abschnitt 3: NATASCHA-Brücke */}
+      {FEATURES.natascha && (
       <section style={{
         padding: '1.25rem', border: '1px solid var(--color-border)',
         borderRadius: 'var(--radius)', background: 'var(--color-bg-surface)', marginBottom: '1.5rem',
@@ -370,6 +371,7 @@ export function SettingsView() {
           )}
         </div>
       </section>
+      )}
 
       {/* Abschnitt: Export */}
       <section style={{
@@ -402,8 +404,8 @@ export function SettingsView() {
       }}>
         <h3 style={{ fontSize: '1rem', margin: '0 0 0.75rem' }}>Datenbank</h3>
         <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', marginTop: 0, marginBottom: '0.75rem' }}>
-          Die gemeinsame SQLite-Datenbank speichert Dokumente, Verlauf und Einstellungen.
-          Wenn NATASCHA korrigiert hat, liest LUA die Klassen und Abgaben aus derselben Datei.
+          Die lokale SQLite-Datenbank speichert Dokumente, Verlauf und Einstellungen.
+          {FEATURES.natascha && ' Bei aktivierter Korrektur nutzen LUA und NATASCHA dieselbe Datei.'}
         </p>
         <DbPath />
         <div style={{ marginTop: '0.875rem' }}>
