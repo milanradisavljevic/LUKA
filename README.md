@@ -2,19 +2,19 @@
 
 # LUKA
 
-**L**ehr**U**nterlagen &amp; **K**orrektur-**A**ssistent
+**Lehrunterlagen mit KI — in Minuten statt Abenden.**
 
-*Eine Desktop-App, die den ganzen Kreislauf des Unterrichtens schließt:*
-**Unterlagen erstellen → Abgaben korrigieren → gezielt üben lassen.**
+*Eine Desktop-App für Lehrkräfte: Arbeitsblätter, Übungen und Schularbeiten
+erstellen und als sauber formatierte DOCX exportieren — alles lokal, mit dem
+eigenen KI-Schlüssel.*
 
 ![Tauri](https://img.shields.io/badge/Tauri-2-24C8DB?logo=tauri&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
 ![Rust](https://img.shields.io/badge/Rust-stable-000000?logo=rust&logoColor=white)
-![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-lokal-003B57?logo=sqlite&logoColor=white)
-![Status](https://img.shields.io/badge/Status-Beta%20%C2%B7%20im%20Test-orange)
+![Status](https://img.shields.io/badge/Status-Pilot-orange)
 
-![LUKA — Übersicht im „Tinte &amp; Papier"-Design: zwei Türen, Klassen-Status, Handlungsbedarf](screenshots/uebersicht-hell.png)
+![LUKA — Übersicht im „Tinte & Papier"-Design: Startseite mit drei Wegen zur neuen Unterlage](screenshots/Übersicht.png)
 
 </div>
 
@@ -22,25 +22,32 @@
 
 ## Was ist LUKA?
 
-LUKA vereint zwei Lehrer-Werkzeuge in **einer** App mit **gemeinsamer Datenbank**:
+LUKA ist ein **Unterlagen-Generator** für den textbasierten Unterricht: Von der
+Absicht („Schularbeit Englisch, Oberstufe, zu diesem Zeitungsartikel") bis zum
+fertigen DOCX-Paket — **Schülerfassung, Lösung und Korrekturraster** — führt ein
+Assistent in fünf Schritten. Drei Wege stehen offen:
 
-- **Unterlagen-Generator** (vormals *Lehrunterlagen-Tool*) — erzeugt Arbeitsblätter,
-  Übungen und Schularbeiten mit KI, exportiert sauber formatierte DOCX (Schülerfassung,
-  Lösung, Korrekturraster).
-- **Korrektur-Assistent** (vormals *NATASCHA*) — analysiert Schülerabgaben anhand von
-  Rubriken, erzeugt Noten­empfehlung, Fehler-Heatmaps und Lern-Längsschnitte.
+- **Aus Quelltext** — Material hochladen oder einfügen (TXT/DOCX/PDF/HTML/URL);
+  daraus entstehen passende Aufgaben.
+- **Ohne Quelltext** — Übung aus Lehrplan-Kompetenz oder freiem Thema.
+- **Schnell-Übung** — ein Thema, ein Aufgabentyp, sofort im Baukasten.
 
-Der eigentliche Mehrwert ist die **Verbindung** beider Seiten: Aus den Korrekturen weiß
-die App, **woran** eine Klasse oder einzelne Schüler:innen scheitern — und erstellt mit
-einem Klick **passgenaue Übungsblätter** dazu.
+Alles läuft **lokal**: keine Accounts, kein Server, keine Cloud-Datenbank. Die KI
+sprichst du mit deinem **eigenen API-Schlüssel** an (Mistral, Anthropic, OpenAI,
+DeepSeek u. a.) — beim ersten Start führt dich die App durch Einrichtung und
+Verbindungstest.
 
 ```mermaid
 flowchart LR
-  A[Unterlagen erstellen] --> B[Abgaben korrigieren]
-  B --> C[Fehler-Heatmap &amp; Längsschnitt]
-  C --> D[gezieltes Übungsblatt]
-  D -. übt .-> B
+  A[Absicht] --> B[Quelltext optional]
+  B --> C[Aufgaben-Baukasten]
+  C --> D[KI generiert]
+  D --> E[DOCX: Schülerfassung · Lösung · Raster]
 ```
+
+> **In Entwicklung:** ein integrierter Korrektur-Assistent (Schülerabgaben
+> analysieren, Fehler-Heatmaps, Lern-Längsschnitte). Er ist im Repo enthalten,
+> aber in der aktuellen Pilot-Version **noch nicht aktiviert**.
 
 ---
 
@@ -48,26 +55,62 @@ flowchart LR
 
 | Bereich | Was es kann |
 |---|---|
-| **Generator** | Wizard von der Absicht zum DOCX; Baukasten aus Aufgabentypen; Quelltexte per Datei/URL/Direkteingabe |
-| **Korrektur** | KI-Analyse einzelner Abgaben **und Batch** (ganze Klasse); Fehler nach **R/G/Z/A**; markierter Schülertext als A4-Vorschau; Lehrernote + Feedback-DOCX |
-| **Klassen** | Fehler-Heatmap, Notenverteilung, Trend, Kalibrierung (KI vs. Lehrer), KI-Klassen-Briefing, Noten-CSV-Export |
-| **Schüler** | Längsschnitt über mehrere Aufgaben, KI-Schüler-Profil, CSV-Import |
-| **Erwartungshorizont &amp; Rubrik-Editor** | Musterlösungen generieren/speichern, Bewertungsraster in-app bearbeiten |
-| **Übersicht** | Dashboard mit Kennzahlen und Klassen mit Handlungsbedarf |
-| **Closed Loop** | Aus Heatmap **oder** Schüler-Schwächen → Übungsblatt im Generator (Fokus vorbefüllt) |
+| **Fächer** | Deutsch, Englisch, Französisch, Spanisch, Italienisch, Latein sowie Geschichte, Geographie, Religion, Ethik, Psychologie, Philosophie — und die neuen Fächer **Medien & Demokratie** und **Informatik & KI** |
+| **Aufgabentypen** | Multiple Choice, Matching, Lückentext, Kategorisierung, Kreuzworträtsel, Wortgitter, Vokabelübung, Verständnisfrage, Schreibaufgabe, Fehlerkorrektur, Rollenspiel mit Rollenkarten u. v. m. |
+| **Differenzierung** | Leichtere/schwerere Varianten auf Knopfdruck; Schwierigkeit nach Bloom, bei Fremdsprachen CEFR A2–B2 |
+| **Aufgaben-Pool & Fachpakete** | Bewährte Aufgaben speichern, filtern, wiederverwenden — und als **Fachpaket (JSON) exportieren/importieren**, mit Vorschau und Duplikat-Kontrolle. Kuratiertes Startpaket liegt bei (`samples/fachpakete/`) |
+| **Export** | DOCX (Schülerfassung, Lösung, Korrekturraster, Kompetenznachweis, Selbsteinschätzungsbogen), PDF (via LibreOffice), **Moodle/GIFT** |
+| **Qualität** | Quality-Gate vor dem Export (Lernziel-Abdeckung, Wortzahl); einzelne Blöcke gezielt neu generieren |
+| **Komfort** | Befehlspalette (`Ctrl+K`), Vorlagen, Verlauf, Favoriten, Dark-Mode, automatische Updates |
 
 ### Einblicke
 
 | | |
 |:--:|:--:|
-| ![Generator: Absicht erfassen](screenshots/mit%20Quelltext.png) | ![Übung ohne Quelltext aus Kompetenzen](screenshots/Kompetenzaufgabe.png) |
-| *Generator „Aus Quelltext": Absicht erfassen — Unterlagentyp, Stufe/Fach, Aufgabentypen* | *„Ohne Quelltext": Übung aus Lehrplan-Kompetenz oder freiem Thema* |
-| ![Übersicht im Dark-Mode](screenshots/Darkmode.png) | |
-| *Dieselbe Übersicht im warmen Dark-Mode (Papier bei Nacht)* | |
+| ![Generator „Aus Quelltext": Absicht erfassen](screenshots/mit%20Quelltext.png) | ![Schnell-Übung: ein Thema, ein Aufgabentyp](screenshots/Schnellübung.png) |
+| *„Aus Quelltext": Absicht erfassen — Unterlagentyp, Fach/Stufe, Thema* | *Schnell-Übung: ein Thema, ein Aufgabentyp, sofort im Baukasten* |
+| ![Wahl von KI-Anbieter und Modell](screenshots/LLM-Auswahl.png) | ![Generierung läuft](screenshots/Wartescreen.png) |
+| *KI-Anbieter, Modell und Kreativitätsgrad wählen — BYOK, Schlüssel bleibt im OS-Schlüsselspeicher* | *Die KI formuliert — mit Fortschritt, Zeitangabe und Abbrechen* |
+| ![Fertig generierte Aufgaben in der A4-Vorschau](screenshots/ausgearbeitete%20Aufgaben.png) | ![Übersicht im Dark-Mode](screenshots/Darkmode.png) |
+| *Fertige Aufgaben in der A4-Vorschau — pro Block „Neu generieren" oder „In Pool"* | *Dieselbe App im warmen Dark-Mode (Papier bei Nacht)* |
 
-> Design „Tinte &amp; Papier": warmer Papiergrund, Tinten-Akzent, handschriftliche Wortmarke;
-> Light **und** Dark gleichwertig. Weitere Aufnahmen siehe
-> [`screenshots/README.md`](screenshots/README.md).
+> Design „Tinte & Papier": warmer Papiergrund, Tinten-Akzent, handschriftliche
+> Wortmarke, fachbezogene Randillustrationen; Light **und** Dark gleichwertig.
+> Bildliste: [`screenshots/README.md`](screenshots/README.md).
+
+---
+
+## Installation (Windows)
+
+1. Neueste `LUKA.-.Lehrunterlagen-Tool_*_x64-setup.exe` von den
+   [**Releases**](https://github.com/milanradisavljevic/LUKA/releases/latest) laden
+   und ausführen.
+2. **SmartScreen-Hinweis:** Windows warnt bei neuen, (noch) nicht
+   zertifikats-signierten Programmen. Über **„Weitere Informationen" →
+   „Trotzdem ausführen"** geht es weiter — die App ist quelloffen, dieser Code
+   hier ist genau das, was installiert wird.
+3. Beim ersten Start: KI-Anbieter wählen, API-Schlüssel eintragen, Verbindung
+   testen — fertig.
+
+Updates holt sich die App danach **automatisch** (signierte Update-Artefakte,
+Nachfrage vor der Installation).
+
+> Schritt-für-Schritt-Handbuch: **In-App-Hilfe** (Sidebar → *Hilfe*) oder
+> [`docs/ANLEITUNG.md`](docs/ANLEITUNG.md).
+
+---
+
+## Aus dem Quellcode starten (Entwicklung)
+
+**Voraussetzungen:** Node ≥ 20, [pnpm](https://pnpm.io), Rust-Toolchain (stable).
+Unter Windows zusätzlich die
+[Tauri-Voraussetzungen](https://tauri.app/start/prerequisites/) (WebView2, MSVC Build Tools).
+
+```bash
+cd apps/lua
+pnpm install
+pnpm tauri:dev        # startet die Desktop-App
+```
 
 ---
 
@@ -76,80 +119,41 @@ flowchart LR
 ```
 LUKA/  (Repo: LUKA)
   apps/
-    lua/        Generator + native Korrektur-/Klassen-/Schüler-Oberfläche
-                TypeScript · React · Vite · Tauri (pnpm-Monorepo)
-    natascha/   Korrektur-Kern als headless Python-Sidecar (natascha_cli.py)
-                + eigenständige Textual-TUI (optional)
-  bridge/       (intern) Datei-Brücke-Vertrag aus der Frühphase
-  docs/         Testplan, Datenschutz, Screenshot-Liste
-  samples/      synthetische Beispiel-Abgaben zum Testen
+    lua/        Desktop-App: TypeScript · React · Vite · Tauri (pnpm-Monorepo)
+                packages/ schema · llm · input · renderer · qa · export
+    natascha/   Korrektur-Kern (Python) — in Entwicklung, im Pilot deaktiviert
+  docs/         Anleitung, Datenschutz, Invarianten, Szenarien
+  samples/      synthetische Beispieldaten + kuratierte Fachpakete
 ```
 
 ```mermaid
 flowchart LR
   UI["React-UI · Vite"] <--> Tauri["Rust / Tauri-Befehle"]
-  Tauri <--> CLI["Python-Sidecar · natascha_cli.py"]
-  Tauri <--> DB[("SQLite · lehr-suite.db")]
-  CLI <--> DB
-  CLI <--> LLM["KI-Anbieter · API"]
+  Tauri <--> DB[("SQLite · lokal")]
+  Tauri <--> LLM["KI-Anbieter · eigener API-Schlüssel"]
 ```
 
-Die React-UI ruft Rust/Tauri-Befehle auf; Rust ist die **alleinige Quelle** für den
-DB-Pfad und reicht ihn an den Python-Sidecar weiter. Beide Seiten teilen **eine**
-SQLite-Datei (`~/lehr-suite-bridge/lehr-suite.db`).
-
----
-
-## Aus dem Quellcode starten
-
-> Die Test-Version läuft aus dem Quellcode (kein Installer). Für den späteren
-> Windows-Build / Installer siehe Roadmap unten.
-
-**Voraussetzungen:** Node ≥ 20, [pnpm](https://pnpm.io), Rust-Toolchain (stable),
-Python ≥ 3.11. Unter Windows zusätzlich die
-[Tauri-Voraussetzungen](https://tauri.app/start/prerequisites/) (WebView2, MSVC Build Tools).
-
-**1 · App (LUA):**
-```bash
-cd apps/lua
-pnpm install
-pnpm tauri:dev        # startet die Desktop-App
-```
-
-**2 · Korrektur-Sidecar (Python):**
-```bash
-cd apps/natascha
-python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -r requirements_cli.txt
-python seed_testdaten.py          # optionale Test-DB (Klasse TEST-7a)
-```
-
-**3 · In der App einrichten** (*Einstellungen*):
-- **API-Schlüssel** des KI-Anbieters hinterlegen (sicher im OS-Schlüsselspeicher).
-- **Python-Befehl** und **NATASCHA-Ordner** setzen, damit die App den Sidecar findet.
-
-**4 · Loslegen:** In *Korrektur* eine Datei aus `samples/` hochladen → analysieren →
-in *Klassen* die Heatmap ansehen → „Übungsblatt zu Top-Fehlern". Fertig ist der Closed Loop.
-
-> Komplette Schritt-für-Schritt-Anleitung: **In-App-Hilfe** (Sidebar → *Hilfe*) sowie
-> [`docs/TESTPLAN.md`](docs/TESTPLAN.md).
+Die React-UI ruft Rust/Tauri-Befehle auf; Rust verwaltet Datenbank,
+Schlüsselspeicher und die KI-Anfragen. Alles liegt in **einer** lokalen
+SQLite-Datei.
 
 ---
 
 ## Datenschutz
 
-Bei Korrektur, Erwartungshorizont und Schüler-Profil wird der jeweilige **Text an den
-gewählten KI-Anbieter übertragen**. Daher: möglichst **pseudonymisierte** Abgaben
-verwenden (keine Klarnamen). Alles andere bleibt **lokal** — Datenbank und Exporte
-liegen auf dem Rechner, echte Schülerdaten sind per `.gitignore` ausgeschlossen.
-Details: [`docs/DATENSCHUTZ.md`](docs/DATENSCHUTZ.md).
+Beim Generieren werden **Thema, Notizen und Quelltexte an den gewählten
+KI-Anbieter übertragen** — sonst nichts. Daher: keine Klarnamen von
+Schüler:innen in Quelltexten und Notizen. Datenbank und Exporte bleiben
+**lokal** auf dem Rechner; echte Schülerdaten sind per `.gitignore` vom Repo
+ausgeschlossen. Details: [`docs/DATENSCHUTZ.md`](docs/DATENSCHUTZ.md).
 
 ## Lizenz
 
 Veröffentlicht unter der **MIT-Lizenz** — siehe [`LICENSE`](LICENSE).
 © 2026 Milan Radisavljević.
 
-## Roadmap (nach der Testphase)
+## Roadmap
 
-Windows-Build/Installer · Python-Bündelung (PyInstaller-Sidecar, ohne Python-Installation
-nutzbar) · automatisches Öffnen erzeugter DOCX · robustere Anbieter-Auswahl/Fallback.
+Kuratierte **Fachpakete** für weitere Fächer · lokales **Lehrerprofil** mit
+Wizard-Defaults · **Korrektur-Assistent** produktionsreif machen
+(Python-Sidecar-Bündelung) · Community-Einreichungen nach dem Pilotfeedback.

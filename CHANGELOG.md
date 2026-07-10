@@ -7,6 +7,44 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Changed — Generator-only-Pilot (Version 1.0.2)
+- `FEATURES.natascha` auf `false`: Sidebar, Dashboard-Karten, Befehlspalette,
+  Hilfe-Kapitel und Einstellungen blenden die NATASCHA-Bereiche (Klassen,
+  Korrektur, Schüler, Erwartungshorizont) für den Pilot aus; direkte Navigation
+  auf verborgene Views fällt auf eine verfügbare Ansicht zurück.
+  `visibleNavTargets()` ist jetzt parametrisierbar und per Test abgesichert
+  (Flag aus → keine NATASCHA-Ziele, Flag an → wieder vollständig). Der
+  Python-Korrekturport bleibt vollständig erhalten und wird später reaktiviert.
+- `docs/ANLEITUNG.md` auf den Generator-Pilot umgeschrieben: kein Versprechen
+  einer integrierten Korrektur mehr (nur ehrlicher „in Entwicklung"-Ausblick),
+  Erste Schritte folgen dem neuen First-Run-Dialog, Startpaket- und
+  Fachpaket-Import/Export dokumentiert, Datenschutz-Hinweis auf den
+  Generierungs-Datenfluss angepasst.
+- App-Version auf `1.0.2` (tauri.conf.json, Cargo.toml, Cargo.lock) für den
+  nächsten Release-Tag `v1.0.2`; `.pnpm-store/` gitignored.
+
+### Changed — README neu geschnitten + aktuelle Screenshots
+- `README.md` auf den Generator-Pilot ausgerichtet: Installer-Download von den
+  GitHub-Releases inkl. ehrlichem SmartScreen-Hinweis (kein Zertifikat im
+  Pilot), Auto-Update erklärt, Highlights/Architektur/Datenschutz auf den
+  Generierungs-Datenfluss aktualisiert; Korrektur-Assistent nur noch als
+  „in Entwicklung"-Ausblick. Neue Screenshot-Galerie (7 Aufnahmen der
+  aktuellen UI, `screenshots/`), Bildliste in `screenshots/README.md` gepflegt.
+
+### Added — Kuratiertes Startpaket „Medien & Demokratie / Informatik & KI"
+- `samples/fachpakete/luka-startpaket-medien-demokratie-informatik-ki-v1.json`:
+  8 redaktionell geprüfte Aufgaben (5× Informatik und KI, 3× Medien und
+  Demokratie) im `PoolEntry`-Format, direkt über „Aufgaben-Pool → Importieren"
+  einspielbar. Herkunftsvermerk ehrlich als überarbeiteter KI-Entwurf
+  deklariert, keine amtliche Lehrplankonformität behauptet.
+
+### Fixed — Deutsch im Fach-Dropdown als Sprachfach gruppiert
+- „Mit Quelltext" (Schritt Absicht) und Kompetenz-Übung zeigten Deutsch unter
+  „Sachfächer". Deutsch steht jetzt in beiden Dropdowns unter „Sprachfächer";
+  das Schema-Flag `sprachfach` bleibt bewusst `false`, weil es die
+  Zielsprachen-Generierung (Prompts, Korrekturraster) steuert und Deutsch dort
+  wie bisher deutschsprachig behandelt wird.
+
 ### Added — Fachpaket-Import/Export im Aufgaben-Pool (Roadmap: Pilot-Verteilung)
 - Aufgaben-Pool hat jetzt „Importieren"/„Exportieren"-Buttons: Fachpakete
   (JSON, gleiches Format wie `seed_pool`/Generator-Skripte) lassen sich ohne
@@ -20,12 +58,24 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ### Added — First-Run-Onboarding mit API-Key-Provider-Test
 - First-Run-Gate in LUA führt jetzt durch API-Key-Eingabe plus echten
-  Provider-Verbindungstest via bestehendem `llm_complete`-Command; das Gate
-  schließt erst nach erfolgreichem Test. Die Einstellungen trennen
-  „Gespeicherten Key anzeigen" und „Verbindung testen" klarer.
+  Provider-Verbindungstest; das Gate schließt erst nach erfolgreichem Test und
+  startet fail-closed. Der Test läuft über den neuen dedizierten Command
+  `test_provider_connection` (20-Sekunden-Timeout, 16-Token-Budget) und prüft
+  den eingegebenen Key, **bevor** er gespeichert wird — ein Tippfehler
+  überschreibt keinen gültigen Key mehr; Verifikation gilt pro Provider. Die
+  Einstellungen trennen „Gespeicherten Key anzeigen" und „Verbindung testen"
+  klarer.
 - Provider-Key-Mapping vereinheitlicht: Claude speichert/testet runtime-seitig
   unter `anthropic`; alte unter `claude` gespeicherte Keys werden beim Setup
   bzw. im LLM-Schritt still auf die neue ID migriert.
+- First-Run-Flow pilot-tauglicher gemacht: Mistral wird als EU-Startanbieter
+  empfohlen, jede Provider-Karte verlinkt zur Key-Erstellung, der Test nutzt
+  explizite Testmodelle und unterscheidet Key-, Netzwerk-, Rate-Limit/Guthaben-
+  und Modellfehler. Nach erfolgreichem Test erscheint ein „LUKA ist bereit"-
+  Abschluss statt eines abrupten Schließens.
+- Der Abschluss führt jetzt direkt in den Wizard „Neue Unterlage" und zeigt dort
+  eine kurze Erststart-Orientierung für Thema, Fach/Stufe und Material, statt
+  die Lehrkraft nach dem Key-Setup in der Übersicht stehenzulassen.
 
 ### Changed — Version 1.0.1 für Updater-Test
 - App-Version in `tauri.conf.json`, `Cargo.toml` und `Cargo.lock` auf `1.0.1`

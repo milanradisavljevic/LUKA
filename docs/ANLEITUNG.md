@@ -1,36 +1,32 @@
 # LUKA – Anleitung
 
-LUKA vereint zwei Lehrer-Werkzeuge in **einer** App mit **gemeinsamer Datenbank**:
+LUKA ist ein **Unterlagen-Generator** für Lehrkräfte: Er erzeugt Arbeitsblätter, Übungen und Schularbeiten mit KI und exportiert sauber formatierte DOCX (Schülerfassung, Lösung, Korrekturraster zum Selbst-Korrigieren).
 
-- **Unterlagen-Generator** – erzeugt Arbeitsblätter, Übungen und Schularbeiten mit KI und exportiert sauber formatierte DOCX (Schülerfassung, Lösung, Korrekturraster).
-- **Korrektur-Assistent** – analysiert Schülerabgaben anhand von Rubriken, erzeugt Notenempfehlung, Fehler-Heatmaps und Lern-Längsschnitte.
-
-Der eigentliche Mehrwert ist die **Verbindung** beider Seiten: Aus den Korrekturen weiß die App, **woran** eine Klasse oder einzelne Schüler:innen scheitern – und erstellt mit einem Klick **passgenaue Übungsblätter** dazu.
+Alles läuft **lokal auf deinem Rechner** mit deinem eigenen API-Schlüssel — keine Accounts, kein Server, keine Cloud-Datenbank.
 
 ---
 
-## Überblick & Closed Loop
+## Überblick
 
-LUKA verbindet zwei Lehrer-Werkzeuge zu **einem** durchgängigen Kreislauf: Unterlagen **erstellen**, Schülerabgaben **korrigieren** und daraus gezielt **üben** lassen – alles in einer App, mit gemeinsamer Datenbank.
+Der Ablauf im Überblick: **Absicht festlegen → Quelltext (optional) → Aufgaben zusammenstellen → generieren → DOCX exportieren.**
 
-Der Ablauf im Überblick: **Unterlagen erstellen → Abgaben korrigieren → Fehler-Heatmap → gezieltes Übungsblatt ↺**
+Dazu kommen der **Aufgaben-Pool** (bewährte Aufgaben speichern, wiederverwenden und als Fachpaket mit Kolleg:innen teilen) sowie **Vorlagen**, **Verlauf** und **Favoriten** für die Organisation.
 
-Der Clou: Nach der Korrektur kennt die App die häufigsten Fehler einer Klasse oder eines einzelnen Schülers – und erzeugt mit einem Klick ein passendes Übungsblatt dazu.
-
-> 💡 Wenn du neu bist, lies **Erste Schritte** und spiele danach den Closed Loop einmal komplett durch – das dauert keine 5 Minuten.
+> 💡 Wenn du neu bist, lies **Erste Schritte** und erstelle danach eine erste Schnell-Übung – das dauert keine 5 Minuten.
+>
+> **Ausblick:** Ein integrierter Korrektur-Assistent (Schülerabgaben analysieren, Fehler-Heatmaps, Längsschnitte) ist in Entwicklung, aber **in dieser Version noch nicht enthalten**.
 
 ---
 
 ## Erste Schritte
 
-Damit die KI-Funktionen (Generieren, Korrigieren) laufen, brauchst du einen API-Schlüssel deines KI-Anbieters.
+Damit das Generieren läuft, brauchst du einen API-Schlüssel deines KI-Anbieters. Beim ersten Start führt dich die App durch die Einrichtung inklusive Verbindungstest.
 
-1. Öffne **Einstellungen** und trage deinen API-Schlüssel ein (z. B. Anthropic, OpenAI, Mistral, DeepSeek). Schlüssel werden sicher im Schlüsselspeicher des Betriebssystems abgelegt – nicht im Klartext.
-2. Wähle Standard-Anbieter und -Modell (standardmäßig **Mistral Medium 3.5** — änderbar in den **Einstellungen**). Für günstige Tests eignet sich ein kleines Modell.
-3. Zum gefahrlosen Ausprobieren ohne echte Schülerdaten: Testdaten laden (siehe **Onboarding** im README / Beispiel-Abgaben im Ordner `samples/`).
-4. Lade in **Korrektur** eine erste Abgabe hoch und starte die Analyse.
+1. Beim **ersten Start** wählst du einen Anbieter (empfohlen: Mistral, EU-Anbieter), trägst deinen API-Schlüssel ein und testest die Verbindung direkt im Dialog. Schlüssel werden sicher im Schlüsselspeicher des Betriebssystems abgelegt – nicht im Klartext.
+2. Später änderst du Anbieter und Standard-Modell jederzeit in den **Einstellungen**. Für günstige Tests eignet sich ein kleines Modell.
+3. Zum schnellen Loslegen mit fertigen Aufgaben: das mitgelieferte **Startpaket** (Ordner `samples/fachpakete/`) über **Aufgaben-Pool → Importieren** einspielen.
 
-> 💡 Ohne hinterlegten Schlüssel schlagen Analyse/Generierung fehl. Die Fehlermeldung nennt dann meist „Key/Provider prüfen".
+> 💡 Ohne hinterlegten Schlüssel schlägt die Generierung fehl. Die Fehlermeldung nennt dann meist „Key/Provider prüfen".
 
 **Kein-Key-Hinweis:** Wählst du in Schritt „KI-Modell" einen Anbieter, für den noch kein Schlüssel hinterlegt ist, zeigt die App dort einen Hinweis mit Direkt-Link zu den Einstellungen — so scheiterst du nicht erst beim Generieren.
 
@@ -44,7 +40,7 @@ LUKA unterstützt alle textbasierten AHS-Fächer in einer Codebase:
   - Inhalte werden in der Zielsprache erzeugt.
   - Für lebende Fremdsprachen fließen CEFR-Niveaus (A2–B2) ein.
   - Latein wird als Sprachfach behandelt, aber ohne CEFR-Bezug.
-- **Sachfächer:** Geschichte, Geographie, Religion, Ethik, Psychologie, Philosophie.
+- **Sachfächer:** Geschichte, Geographie, Religion, Ethik, Psychologie, Philosophie, Medien und Demokratie, Informatik und Künstliche Intelligenz.
   - Inhalte werden deutschsprachig erzeugt.
   - Textsorten und Bewertungskataloge orientieren sich vorerst am Deutsch-Modell.
 
@@ -89,8 +85,9 @@ Der **Aufgaben-Pool** sammelt wiederverwendbare Aufgaben-Blöcke — einmal gesp
 1. In der **Vorschau** (Schritt Erstellen) bei einem Block auf **„In Pool speichern"** — der Block wird mit Fach, Stufe, Thema und Tags abgelegt.
 2. In der Ansicht **Aufgaben-Pool** (Seitenleiste) filterst du nach Fach, Stufe und Aufgabentyp sowie per Volltextsuche; nicht mehr gebrauchte Einträge löschst du dort.
 3. Im **Baukasten** fügst du einen Pool-Eintrag über **„Aus Pool einfügen"** direkt als neuen Block ein — die Aufgabe inkl. Konfiguration und Lösung landet im aktuellen Dokument.
+4. **Fachpakete teilen:** Über **„Exportieren"** speicherst du deinen Pool als JSON-Datei und gibst sie an Kolleg:innen weiter; über **„Importieren"** spielst du eine erhaltene Datei ein. Vor dem Import zeigt die App eine **Vorschau** (Anzahl, Fächer, Herkunftsvermerke, Duplikate) — bei Duplikaten entscheidest du, ob bestehende Einträge ersetzt oder behalten werden.
 
-> 💡 Der Pool ist pro Rechner lokal. Ideal, um bewährte Aufgaben über mehrere Unterlagen hinweg wiederzuverwenden, ohne sie jedes Mal neu zu generieren.
+> 💡 Der Pool ist pro Rechner lokal. Ideal, um bewährte Aufgaben über mehrere Unterlagen hinweg wiederzuverwenden, ohne sie jedes Mal neu zu generieren. Ein kuratiertes Startpaket für **Medien und Demokratie** sowie **Informatik und KI** liegt in `samples/fachpakete/`.
 
 ---
 
@@ -178,62 +175,9 @@ Erstellte Unterlagen und Konfigurationen verwaltest du über die Seitenleiste:
 
 ---
 
-## Korrigieren (NATASCHA)
-
-Im Bereich **Korrektur** analysiert die KI Schülerabgaben anhand einer Rubrik: Kriterien-Bewertung, Notenempfehlung und einzelne Fehler – farbcodiert nach **R**echtschreibung, **G**rammatik, **Z**eichensetzung und **A**usdruck.
-
-1. Klasse und Aufgabe links wählen, dann „Neue Analyse" und eine Datei (DOCX/PDF/TXT) hochladen.
-2. Nach der Analyse zeigt die Detailansicht links die Bewertung (Note, Kriterien, Fehlerliste) und rechts den **markierten Schülertext** als A4-Vorschau.
-3. Eigene **Lehrernote** und einen Kommentar erfassen und speichern – die App vergleicht deine Note später mit der KI-Note (Kalibrierung).
-4. Mit „Feedback-DOCX" ein Rückmelde-Dokument für die Schülerin/den Schüler erzeugen.
-
-**Batch-Korrektur:** Im Analyse-Dialog „Mehrere wählen …" → ganze Klasse auf einmal. Ein Fortschrittsbalken zeigt den Lauf; „Abbrechen" stoppt nach der laufenden Datei. Duplikate werden übersprungen, nicht abgebrochen.
-
-**Retro-Import:** Bereits außerhalb der App korrigierte Abgaben (vorhandene Analyse-JSONs) holst du über „Retro-Import" im Abgaben-Kopf nachträglich in die Datenbank.
-
-> 💡 Über den Schülernamen in der Detailansicht springst du direkt zum Längsschnitt dieses Schülers.
-
----
-
-## Klassen-Auswertung
-
-Der Bereich **Meine Klassen** verdichtet alle Korrekturen einer Klasse zu Auswertungen:
-
-1. **Fehler-Heatmap** – welche Fehlerarten dominieren.
-2. **Notenverteilung** und **Trend** über mehrere Aufgaben.
-3. **Kalibrierung** – wie stark KI-Note und Lehrernote auseinanderliegen.
-4. **KI-Klassen-Briefing** – eine generierte Zusammenfassung mit Handlungsempfehlungen.
-
-**Closed Loop:** „Übungsblatt zu Top-Fehlern generieren" springt direkt in den Generator – die häufigsten Fehlerschwerpunkte der Klasse sind bereits als Fokus vorbefüllt.
-
-> 💡 Du kannst die Noten einer Klasse als CSV exportieren (z. B. fürs Notenbuch).
-
----
-
-## Schüler-Längsschnitt
-
-Im Bereich **Schüler** verfolgst du die Entwicklung einzelner Lernender über mehrere Aufgaben.
-
-1. Klasse und Schüler wählen → Notenverlauf, Trend (K1/K3), Fehlerschwerpunkte und Kalibrierung.
-2. **KI-Schüler-Profil** generieren – eine individuelle Einschätzung auf Basis des Längsschnitts.
-3. **Closed Loop pro Schüler:** „Übungsblatt zu Schwächen" erzeugt ein Arbeitsblatt, das auf die persönlichen Fehlerschwerpunkte zugeschnitten ist.
-4. **CSV-Import:** mehrere Schüler auf einmal anlegen – eine Zeile pro Person (Vorname, Nachname).
-
----
-
-## Erwartungshorizont & Rubrik-Editor
-
-Ein **Erwartungshorizont** ist eine KI-generierte Musterlösung für eine Aufgabe. Generieren, im Textfeld bearbeiten und „Akzeptieren & speichern" – danach nutzt die Korrektur dieser Aufgabe ihn automatisch als Maßstab.
-
-Im **Rubrik-Editor** (gleiche Ansicht) bearbeitest du die Bewertungsraster direkt: Rubrik wählen, Markdown anpassen, speichern. Änderungen wirken bei der nächsten Korrektur mit dieser Rubrik.
-
-> 💡 So steuerst du die Bewertung gezielt – z. B. strengere oder fachspezifische Kriterien.
-
----
-
 ## Übersicht (Dashboard)
 
-Die **Übersicht** ist deine Startseite: Anzahl Klassen und Abgaben, Klassen mit **Handlungsbedarf** (schwacher Notenschnitt) und pro Klasse eine Karte mit Notenschnitt, letzter Aktivität und Lehrer-Feedback-Quote. Ein Klick führt in die Klassen-Ansicht.
+Die **Übersicht** ist deine Startseite mit deinen zuletzt bearbeiteten Unterlagen und Schnellstarts.
 
 **Schnellstarts:** Über die Übersicht legst du direkt los — **„Wie zuletzt"** öffnet das letzte Dokument mit denselben Einstellungen (Fach, Stufe, Typ), und **„Schnell-Übung"** springt mit Thema + Aufgabentyp direkt in den Baukasten, ohne Quelltext-Umweg.
 
@@ -243,7 +187,7 @@ Die **Übersicht** ist deine Startseite: Anzahl Klassen und Abgaben, Klassen mit
 
 Die **Such-/Befehlsleiste** oben im Kopf (oder `Ctrl`/`Cmd`+`K`) durchsucht die gesamte App und führt Befehle aus — eine Eingabe, beides zugleich.
 
-1. **Inhalte suchen:** Tippe ein Thema, Fach, eine Klasse oder einen Vorlagennamen — Treffer aus Unterlagen, Vorlagen, Aufgaben-Pool, Klassen und Navigation erscheinen **gruppiert**.
+1. **Inhalte suchen:** Tippe ein Thema, Fach oder einen Vorlagennamen — Treffer aus Unterlagen, Vorlagen, Aufgaben-Pool und Navigation erscheinen **gruppiert**.
 2. **Befehle ausführen:** Slash-/Text-Befehle wie „Thema: …", „Exportieren", „Weiter/Zurück" funktionieren weiter; `Enter` *ohne* ausgewählte Zeile parst den getippten Text wie bisher.
 3. Navigation mit der Tastatur: `↑`/`↓` Zeile wählen, `Enter` öffnen/ausführen, `Esc` schließen.
 
@@ -263,7 +207,7 @@ Die **Such-/Befehlsleiste** oben im Kopf (oder `Ctrl`/`Cmd`+`K`) durchsucht die 
 
 ## Datenschutz
 
-**Wichtig:** Bei Korrektur, Erwartungshorizont und Schüler-Profil wird der jeweilige **Text an den gewählten KI-Anbieter übertragen** (z. B. Anthropic, OpenAI, DeepSeek). Verwende daher möglichst **pseudonymisierte** Abgaben – keine vollen Klarnamen in den Dokumenten.
+**Wichtig:** Beim Generieren werden **Thema, Notizen und Quelltexte an den gewählten KI-Anbieter übertragen** (z. B. Mistral, Anthropic, OpenAI, DeepSeek). Verwende in Quelltexten und Notizen daher **keine Klarnamen** von Schüler:innen.
 
 Alles andere bleibt **lokal**: Datenbank und Exporte liegen auf deinem Rechner und sind nicht in der Cloud. Details im Dokument `docs/DATENSCHUTZ.md`.
 
@@ -271,13 +215,13 @@ Alles andere bleibt **lokal**: Datenbank und Exporte liegen auf deinem Rechner u
 
 ## Bekannte Einschränkungen & Hilfe
 
-1. **„Analyse fehlgeschlagen"** → API-Schlüssel und Anbieter in den Einstellungen prüfen; ggf. anderes Modell wählen.
+1. **„Generierung fehlgeschlagen"** → API-Schlüssel und Anbieter in den Einstellungen prüfen („Verbindung testen"); ggf. anderes Modell wählen.
 2. **Erzeugtes DOCX öffnet sich nicht automatisch** (in der Entwicklungs-/WSL-Umgebung bekannt) → Datei manuell im Ausgabeordner öffnen.
-3. **Selten unvollständige KI-Antwort** bei sehr günstigen Modellen (z. B. abgeschnittenes JSON) → Analyse erneut starten oder hochwertigeres Modell wählen.
+3. **Selten unvollständige KI-Antwort** bei sehr günstigen Modellen (z. B. abgeschnittenes JSON) → Generierung erneut starten oder hochwertigeres Modell wählen.
 4. **Daten nach Neustart weg?** Sollte nicht passieren – falls doch, bitte als Fehler melden (siehe README / Testplan).
 
 > 💡 Speicherfehler werden seit Kurzem als Hinweis (Toast) unten rechts angezeigt – wenn so einer auftaucht, bitte mit Screenshot melden.
 
 ---
 
-Mehr Details im Repo: `docs/TESTPLAN.md` und `README.md`.
+Mehr Details im Repo: `README.md` und `docs/DATENSCHUTZ.md`.
