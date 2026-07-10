@@ -5,7 +5,15 @@ Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 (auch andere Coding-Agents) — siehe `AGENTS.md`.
 
-## [Unreleased]
+## Version 1.0.3 — 2026-07-10
+
+**Das ist neu:**
+
+- **Mein Profil** (Einstellungen): Gib einmal deine Fächer, Schulstufen und
+  bevorzugten Einstellungen an — neue Unterlagen, das KI-Modell und der
+  Aufgaben-Pool richten sich danach. Alles bleibt auf deinem Rechner.
+- **Neues Update-Fenster:** Updates erscheinen jetzt im LUKA-Design und
+  zeigen — so wie hier — was neu ist.
 
 ### Added — Lokales Lehrerprofil (Phase 1)
 - Neues lokal gespeichertes Lehrerprofil in der LUA-SQLite-Datenbank:
