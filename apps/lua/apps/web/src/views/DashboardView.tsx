@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useNatascha } from '../hooks/useNatascha';
 import { loadDocuments, loadTemplates } from '../lib/storage';
+import { loadTeacherProfile } from '../lib/profile';
 import { BLOCK_TYPE_DEFS } from '../lib/constants';
 import type { ActiveView } from '../lib/types';
 import { FEATURES } from '../lib/features';
@@ -99,6 +100,17 @@ export function DashboardView({ onNavigate, onStartQuickExercise, onGenerateUebu
   const [rows, setRows] = useState<KlasseStat[]>([]);
   const [empfehlung, setEmpfehlung] = useState<EmpfehlungDesTages | null>(null);
   const [loading, setLoading] = useState(true);
+  const [displayName, setDisplayName] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    loadTeacherProfile().then((profil) => {
+      if (!cancelled && profil?.displayName?.trim()) {
+        setDisplayName(profil.displayName.trim());
+      }
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     if (!FEATURES.natascha || !isTauriRuntime()) {
@@ -219,9 +231,8 @@ export function DashboardView({ onNavigate, onStartQuickExercise, onGenerateUebu
 
   const greetTime = () => {
     const h = new Date().getHours();
-    if (h < 12) return 'Guten Morgen.';
-    if (h < 18) return 'Guten Tag.';
-    return 'Guten Abend.';
+    const gruss = h < 12 ? 'Guten Morgen' : h < 18 ? 'Guten Tag' : 'Guten Abend';
+    return displayName ? `${gruss}, ${displayName}.` : `${gruss}.`;
   };
 
   const handleGenerateEmpfehlung = useCallback(async () => {

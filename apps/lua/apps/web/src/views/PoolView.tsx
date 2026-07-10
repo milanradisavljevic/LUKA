@@ -1,10 +1,11 @@
-import { useState, useMemo } from 'react';
-import { X, Search, Filter, Database, Upload, Download } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { X, Search, Filter, Database, Upload, Download, Star } from 'lucide-react';
 import { fachLabel, FACH_META } from '@lehrunterlagen/schema';
 import type { Block, Fach, Stufe, BlockTyp } from '@lehrunterlagen/schema';
 import { useAufgabenPool } from '../hooks/useAufgabenPool';
 import { parsePoolBlock, parsePoolTags } from '../lib/pool';
 import { importPoolPaket, exportPoolPaket } from '../lib/poolTransfer';
+import { loadTeacherProfile } from '../lib/profile';
 import { Toast, type ToastMessage } from '../components/Toast';
 import { ViewShell } from './_ViewShell';
 import { EmptyState } from './_EmptyState';
@@ -24,6 +25,15 @@ export function PoolView({ onInsertBlock }: Props) {
   const [filterTyp, setFilterTyp] = useState<string>('');
   const [toast, setToast] = useState<ToastMessage | null>(null);
   const [transferLaeuft, setTransferLaeuft] = useState(false);
+  const [profilFaecher, setProfilFaecher] = useState<string[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    loadTeacherProfile().then((profil) => {
+      if (active && profil) setProfilFaecher(profil.faecher);
+    }).catch(() => {});
+    return () => { active = false; };
+  }, []);
 
   const handleImport = async () => {
     setTransferLaeuft(true);
@@ -215,9 +225,16 @@ export function PoolView({ onInsertBlock }: Props) {
                   <strong style={{ fontSize: '0.9375rem' }}>
                     {entry.thema || 'Ohne Titel'}
                   </strong>
-                  <p style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)', margin: '0.25rem 0 0' }}>
-                    {fachLabel(entry.fach as Fach)} · {STUFE_LABEL[entry.stufe] ?? entry.stufe}
-                    {' · '}{blockTypeLabel(entry.aufgabentyp)}
+                  <p style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)', margin: '0.25rem 0 0', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.3rem' }}>
+                    <span>
+                      {fachLabel(entry.fach as Fach)} · {STUFE_LABEL[entry.stufe] ?? entry.stufe}
+                      {' · '}{blockTypeLabel(entry.aufgabentyp)}
+                    </span>
+                    {profilFaecher.includes(entry.fach) && (
+                      <span className="badge badge-context" title="Fach aus deinem Profil">
+                        <Star size={10} /> Dein Fach
+                      </span>
+                    )}
                   </p>
                   {tags.length > 0 && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginTop: '0.375rem' }}>

@@ -94,7 +94,7 @@ function ProfileSection() {
         <div>
           <h3 style={{ fontSize: '1rem', margin: 0 }}>Mein Profil</h3>
           <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: '0.35rem 0 1rem' }}>
-            Deine Angaben bleiben lokal auf diesem Gerät und werden nicht übertragen.
+            Dein Profil bleibt lokal auf diesem Gerät und wird nicht übertragen. Es setzt Vorgaben für neue Unterlagen (Fach, Stufe, KI-Modell, Export) und hebt deine Fächer im Aufgaben-Pool hervor — bestehende Dokumente und manuelle Eingaben bleiben unberührt.
           </p>
         </div>
         {loading && <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>Lade Profil …</span>}

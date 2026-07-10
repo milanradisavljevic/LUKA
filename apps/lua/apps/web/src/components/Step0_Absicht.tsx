@@ -84,6 +84,9 @@ export function Step0_Absicht({
   const [punkteVergeben, setPunkteVergeben] = useState<boolean>((lastMeta?.typ ?? 'schularbeit') !== 'schuluebung');
   const profileDefaultsApplied = useRef(false);
   const profileBaseline = useRef({ fach, stufe, schulstufe });
+  // Herkunftshinweis: zeigt an, dass Fach/Stufe gerade vom Profil übernommen wurden.
+  const [profilHinweis, setProfilHinweis] = useState(false);
+  const profilAngewandteWerte = useRef<{ fach: Fach; stufe: NonNullable<Auftrag['stufe']>; schulstufe?: number } | null>(null);
   // Sinnvoller Default je Unterlagentyp; manuell überschreibbar.
   useEffect(() => { setPunkteVergeben(typ !== 'schuluebung'); }, [typ]);
 
@@ -95,17 +98,41 @@ export function Step0_Absicht({
       profileDefaultsApplied.current = true;
       // Eine bereits begonnene manuelle Eingabe hat Vorrang vor dem Profil.
       if (fach === profileBaseline.current.fach && stufe === profileBaseline.current.stufe && schulstufe === profileBaseline.current.schulstufe) {
+        let angewandt = false;
+        let neuesFach = fach;
+        let neueStufe = stufe;
+        let neueSchulstufe = schulstufe;
         const preferredFach = profile.faecher[0];
-        if (preferredFach && preferredFach in FACH_META) setFach(preferredFach as Fach);
+        if (preferredFach && preferredFach in FACH_META) {
+          setFach(preferredFach as Fach);
+          neuesFach = preferredFach as Fach;
+          angewandt = true;
+        }
         const preferredStufe = profile.schulstufen[0];
         if (preferredStufe) {
+          neueStufe = stufeFromSchulstufe(preferredStufe);
           setSchulstufe(preferredStufe);
-          setStufe(stufeFromSchulstufe(preferredStufe));
+          setStufe(neueStufe);
+          neueSchulstufe = preferredStufe;
+          angewandt = true;
+        }
+        if (angewandt) {
+          profilAngewandteWerte.current = { fach: neuesFach, stufe: neueStufe, schulstufe: neueSchulstufe };
+          setProfilHinweis(true);
         }
       }
     }).catch(() => { /* Profil ist optional; globale Defaults bleiben aktiv. */ });
     return () => { active = false; };
   }, [fach, lastDoc, schulstufe, stufe]);
+
+  // Hinweis verschwindet, sobald Fach oder Schulstufe manuell verändert werden.
+  useEffect(() => {
+    const w = profilAngewandteWerte.current;
+    if (!w) return;
+    if (fach !== w.fach || stufe !== w.stufe || schulstufe !== w.schulstufe) {
+      setProfilHinweis(false);
+    }
+  }, [fach, stufe, schulstufe]);
 
   // Klassen-Verwaltung: bekannte Klassen als Datalist; bei exaktem Namenstreffer
   // Fach/Schulstufe automatisch übernehmen (Lehrkraft kann danach überschreiben).
@@ -682,6 +709,11 @@ export function Step0_Absicht({
             ))}
           </div>
         </div>
+        {profilHinweis && (
+          <p style={{ gridColumn: '1 / -1', margin: 0, fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+            Fach und Stufe aus deinem Profil übernommen.
+          </p>
+        )}
       </section>
 
       {/* Typ */}

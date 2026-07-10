@@ -23,6 +23,11 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
   Community-Übertragung. Einstellungen haben dafür einen Abschnitt „Mein
   Profil", Wizard/Provider/Export übernehmen Profilwerte nur als Defaults für
   neue Unterlagen, und der Aufgaben-Pool sortiert Profilfächer stabil nach vorn.
+- Sichtbarkeit der Profil-Wirkung nachgezogen: Dashboard-Begrüßung nennt den
+  Anzeigenamen, Step 0 zeigt einen dezenten Hinweis, wenn Fach/Stufe vom
+  Profil übernommen wurden, der Aufgaben-Pool markiert Einträge aus den
+  Profil-Fächern mit „Dein Fach", und der Profil-Abschnitt in den
+  Einstellungen erklärt kurz, was das Profil bewirkt.
 
 ### Added — Eigener Update-Dialog + Release-Notes im Updater
 - Native `ask()`/`message()`-Dialoge beim Auto-Update ersetzt durch
