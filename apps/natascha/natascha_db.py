@@ -313,6 +313,14 @@ def get_abgabe_by_hash(db_path: Path | str, datei_hash: str) -> dict[str, Any] |
         return dict(row) if row else None
 
 
+def get_abgabe_by_id(db_path: Path | str, abgabe_id: int) -> dict[str, Any] | None:
+    """Liest eine einzelne Abgabe per Primaerschluessel."""
+    with sqlite3.connect(str(db_path)) as conn:
+        conn.row_factory = sqlite3.Row
+        row = conn.execute("SELECT * FROM abgabe WHERE id = ?", (abgabe_id,)).fetchone()
+        return dict(row) if row else None
+
+
 def get_abgaben_by_schueler(
     db_path: Path | str, schueler_id: int
 ) -> list[dict[str, Any]]:

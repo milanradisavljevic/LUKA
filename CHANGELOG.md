@@ -5,6 +5,14 @@ Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 (auch andere Coding-Agents) — siehe `AGENTS.md`.
 
+## [Unreleased]
+
+- NATASCHA erhält einen dokumentierten Headless-CLI-/Sidecar-Build mit
+  synthetischem E2E-Test.
+- Der CLI-Zugriff nutzt die gemeinsame Rust-definierte Datenbank, behebt
+  `srdp-detail` per Abgabe-ID und bereitet Fortschritt, Timeout und Abbruch
+  für die spätere NATASCHA-Aktivierung vor.
+
 ## Version 1.0.3 — 2026-07-10
 
 **Das ist neu:**

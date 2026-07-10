@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import sys
+import argparse
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -184,9 +185,17 @@ def _hash(vorname: str, nachname: str, aufgabe: str) -> str:
     return hashlib.sha256(f"{KLASSE}-{vorname}-{nachname}-{aufgabe}".encode()).hexdigest()
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Synthetische NATASCHA-Testdaten seeden.")
+    parser.add_argument(
+        "--db-path",
+        default=None,
+        help="SQLite-Zieldatenbank. Wird von LUA/Rust gesetzt, damit beide dieselbe DB nutzen.",
+    )
+    args = parser.parse_args(argv)
+
     config = nc.load_config()
-    db_path = db.get_db_path(config)
+    db_path = Path(args.db_path).expanduser() if args.db_path else db.get_db_path(config)
     db.init_db(db_path)
 
     for schueler_data in SCHUELER:

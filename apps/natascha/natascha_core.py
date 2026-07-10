@@ -2076,6 +2076,8 @@ def open_file(path: Path) -> bool:
 
 def run_agent_sync(cmd_template: str, prompt: str, timeout: int) -> str:
     parts = cmd_template.split()
+    if os.name == "nt" and parts == ["cat"]:
+        parts = ["cmd", "/C", "more"]
     try:
         result = subprocess.run(
             parts,

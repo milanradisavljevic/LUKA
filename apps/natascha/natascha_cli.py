@@ -24,6 +24,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import time
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent
@@ -52,13 +53,19 @@ def _json_out(data):
     sys.stdout.write("\n")
 
 
+def _progress(stage: str, message: str) -> None:
+    print(json.dumps({"stage": stage, "message": message}, ensure_ascii=False), file=sys.stderr)
+
+
 def cmd_analyze(args):
+    _progress("start", "Analyse wird vorbereitet")
     nc, ndb, config, db_path = _load_env_and_config()
     file_path = Path(args.file).resolve()
     if not file_path.is_file():
         print(f"Datei nicht gefunden: {file_path}", file=sys.stderr)
         return 1
 
+    _progress("input", "Rubrik und Abgabe werden gelesen")
     rubric = nc.load_rubric_for_aufgabe(config, args.klasse, args.aufgabe)
     docx_text = nc.read_docx_text(file_path)
 
@@ -77,7 +84,10 @@ def cmd_analyze(args):
     if args.cancel_timeout:
         import threading
         cancel_event = threading.Event()
+        threading.Timer(args.cancel_timeout, cancel_event.set).start()
 
+    started = time.monotonic()
+    _progress("llm", "LLM-Analyse läuft")
     data, errors = nc.run_llm_analysis(
         docx_text=docx_text,
         rubric_content=rubric,
@@ -103,6 +113,7 @@ def cmd_analyze(args):
             print(f"  {e}", file=sys.stderr)
         return 1
 
+    _progress("done", f"Analyse abgeschlossen ({time.monotonic() - started:.1f}s)")
     if not args.quiet:
         for e in errors:
             print(f"Hinweis: {e}", file=sys.stderr)
@@ -116,21 +127,14 @@ def cmd_analyze(args):
 
 def cmd_srdp_detail(args):
     nc, ndb, config, db_path = _load_env_and_config()
-    abgabe = ndb.get_abgaben_by_klasse_aufgabe(db_path, "", "")
-    data_row = None
-    for row in abgabe:
-        if row["id"] == args.abgabe_id:
-            data_row = row
-            break
+    data_row = ndb.get_abgabe_by_id(db_path, args.abgabe_id)
     if not data_row:
-        from natascha_db import get_abgabe_by_hash
         print(f"Abgabe-ID {args.abgabe_id} nicht gefunden", file=sys.stderr)
         return 1
 
-    import threading
     result = nc.generate_srdp_detail(
         schuelertext=data_row.get("rohtext", ""),
-        hauptanalyse={},
+        hauptanalyse={"bewertung": {}},
         config=config,
         cancel_event=None,
         textsorte=data_row.get("textsorte", ""),
