@@ -23,6 +23,8 @@ import {
 interface Props {
   state: AppState;
   dispatch: React.Dispatch<AppAction>;
+  firstRunHint?: boolean;
+  onDismissFirstRunHint?: () => void;
   onNavigateToTemplates?: () => void;
   onNavigateToKompetenz?: () => void;
 }
@@ -50,7 +52,14 @@ function getLastDocumentDefaults() {
   return last;
 }
 
-export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNavigateToKompetenz }: Props) {
+export function Step0_Absicht({
+  state,
+  dispatch,
+  firstRunHint = false,
+  onDismissFirstRunHint,
+  onNavigateToTemplates,
+  onNavigateToKompetenz,
+}: Props) {
   const lastDoc = useMemo(() => getLastDocumentDefaults(), []);
   const lastMeta = lastDoc?.snapshot.meta;
 
@@ -283,11 +292,12 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
           fokusThemen: fokusThemen.length > 0 ? fokusThemen : undefined,
         },
       });
+      onDismissFirstRunHint?.();
       dispatch({ type: 'SET_STEP', step: schnellOhneQuelltext ? 'baukasten' : 'input' });
     } catch (err) {
       setFehler(err instanceof Error ? err.message : 'Fehler beim Erstellen des Skeletts.');
     }
-  }, [typ, fach, stufe, thema, datum, klasse, dauerMinuten, schwierigkeit, gewuenschteAufgabenarten, gesamtpunkteZiel, punkteVergeben, notizen, lernzieleRaw, fokusThemen, nataschaFehler, state.quelltexte, state.bloecke, dispatch]);
+  }, [typ, fach, stufe, thema, datum, klasse, dauerMinuten, schwierigkeit, gewuenschteAufgabenarten, gesamtpunkteZiel, punkteVergeben, notizen, lernzieleRaw, fokusThemen, nataschaFehler, state.quelltexte, state.bloecke, dispatch, onDismissFirstRunHint]);
 
   const fachLabelCurrent = fachLabel(fach);
   const stufeLabel = stufe === 'oberstufe' ? 'Oberstufe' : 'Unterstufe';
@@ -298,6 +308,45 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
       <p style={{ color: 'var(--color-text-secondary)', margin: '0 0 1.25rem', fontSize: '0.875rem' }}>
         Beschreibe, was du brauchst. Die App baut daraus automatisch das passende Skelett.
       </p>
+
+      {firstRunHint && (
+        <section
+          style={{
+            marginBottom: '1.25rem',
+            padding: '0.95rem 1rem',
+            border: '1px solid color-mix(in srgb, var(--color-success) 38%, var(--color-border))',
+            borderRadius: 'var(--radius)',
+            background: 'color-mix(in srgb, var(--color-success-bg) 55%, var(--color-bg-surface))',
+            display: 'grid',
+            gridTemplateColumns: 'auto minmax(0, 1fr) auto',
+            gap: '0.85rem',
+            alignItems: 'start',
+          }}
+        >
+          <BookOpen size={20} style={{ color: 'var(--color-success)', marginTop: '0.1rem' }} />
+          <div>
+            <strong style={{ display: 'block', marginBottom: '0.25rem' }}>
+              Bereit für die erste Unterlage
+            </strong>
+            <p style={{ margin: '0 0 0.6rem', fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>
+              Starte schlank: Thema eintragen, Fach und Schulstufe prüfen, dann mit „Weiter" Quelltext oder eigenes Material ergänzen.
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+              <span className="badge">1 · Thema</span>
+              <span className="badge">2 · Fach/Stufe</span>
+              <span className="badge">3 · Material</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={onDismissFirstRunHint}
+            style={{ fontSize: '0.75rem', padding: '0.35rem 0.6rem' }}
+          >
+            Ausblenden
+          </button>
+        </section>
+      )}
 
       {/* Kontinuität — Weitermachen, Vorlagen & Kompetenz */}
       {(lastDoc || onNavigateToTemplates || onNavigateToKompetenz) && (
@@ -550,16 +599,18 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
             onChange={(e) => setFach(e.target.value as Fach)}
             style={{ width: '100%', padding: '0.625rem 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)', background: 'var(--color-bg-base)', fontSize: '0.9375rem', fontWeight: 600 }}
           >
+            {/* Deutsch gehört in der Anzeige zu den Sprachfächern; das Schema-Flag
+                `sprachfach` bleibt false, weil es die Zielsprachen-Generierung steuert. */}
             <optgroup label="Sprachfächer">
               {Object.entries(FACH_META)
-                .filter(([, m]) => m.sprachfach)
+                .filter(([f, m]) => m.sprachfach || f === 'deutsch')
                 .map(([f, m]) => (
                   <option key={f} value={f}>{m.label}</option>
                 ))}
             </optgroup>
             <optgroup label="Sachfächer">
               {Object.entries(FACH_META)
-                .filter(([, m]) => !m.sprachfach)
+                .filter(([f, m]) => !m.sprachfach && f !== 'deutsch')
                 .map(([f, m]) => (
                   <option key={f} value={f}>{m.label}</option>
                 ))}
@@ -681,7 +732,9 @@ export function Step0_Absicht({ state, dispatch, onNavigateToTemplates, onNaviga
         <div>
           <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.875rem' }}>
             Klasse (optional)
-            <InfoDot text="Ordnet die Unterlage einer Klasse zu — nützlich für den Korrektur-Kreislauf mit NATASCHA (Heatmap, Empfehlungen)." />
+            <InfoDot text={FEATURES.natascha
+              ? 'Ordnet die Unterlage einer Klasse zu — nützlich für Heatmap und Empfehlungen im Korrektur-Kreislauf.'
+              : 'Ordnet und benennt die Unterlage für deine spätere Ablage.'} />
           </label>
           <input
             type="text"

@@ -267,13 +267,15 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
             onChange={(e) => setFach(e.target.value as Fach)}
             style={{ width: '100%', padding: '0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)', background: 'var(--color-bg-base)', fontSize: '0.875rem' }}
           >
+            {/* Deutsch gehört in der Anzeige zu den Sprachfächern; das Schema-Flag
+                `sprachfach` bleibt false, weil es die Zielsprachen-Generierung steuert. */}
             <optgroup label="Sprachfächer">
-              {FAECHER.filter((f) => FACH_META[f.id].sprachfach).map((f) => (
+              {FAECHER.filter((f) => FACH_META[f.id].sprachfach || f.id === 'deutsch').map((f) => (
                 <option key={f.id} value={f.id}>{f.label}</option>
               ))}
             </optgroup>
             <optgroup label="Sachfächer">
-              {FAECHER.filter((f) => !FACH_META[f.id].sprachfach).map((f) => (
+              {FAECHER.filter((f) => !FACH_META[f.id].sprachfach && f.id !== 'deutsch').map((f) => (
                 <option key={f.id} value={f.id}>{f.label}</option>
               ))}
             </optgroup>
