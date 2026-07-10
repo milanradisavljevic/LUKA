@@ -6,6 +6,20 @@ on:
   pull_request:
 
 jobs:
+  changes:
+    name: Änderungen erkennen
+    runs-on: ubuntu-latest
+    outputs:
+      natascha: ${{ steps.filter.outputs.natascha }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            natascha:
+              - 'apps/natascha/**'
+
   web:
     name: LUA — typecheck & test
     runs-on: ubuntu-latest
@@ -90,6 +104,8 @@ jobs:
           cargo audit || true
 
   natascha:
+    needs: changes
+    if: needs.changes.outputs.natascha == 'true'
     name: NATASCHA — pytest
     runs-on: ubuntu-latest
     defaults:

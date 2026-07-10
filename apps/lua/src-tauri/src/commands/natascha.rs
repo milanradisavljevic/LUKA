@@ -4,8 +4,45 @@
 //! Welle 1: Ruft die Headless-CLI als Sidecar auf (analyze, heatmap, etc.).
 //! Langlaeufer (analyze) mit Fortschritts-Events und Cancel.
 
+use once_cell::sync::Lazy;
+use serde::Serialize;
 use std::path::PathBuf;
-use std::process::Command;
+use std::process::{Command as StdCommand, Stdio};
+use std::sync::Mutex;
+use tauri::{AppHandle, Emitter};
+use tokio::io::AsyncWriteExt;
+use tokio::process::Command;
+use tokio::time::{timeout, Duration};
+
+const NATASCHA_CLI_TIMEOUT_SECS: u64 = 10 * 60;
+
+static ACTIVE_PROCESS: Lazy<Mutex<Option<(u32, u64)>>> = Lazy::new(|| Mutex::new(None));
+static NEXT_JOB_ID: Lazy<Mutex<u64>> = Lazy::new(|| Mutex::new(1));
+
+#[derive(Clone, Serialize)]
+struct NataschaProgress {
+    job_id: Option<u64>,
+    stage: &'static str,
+    message: String,
+}
+
+fn emit_progress(
+    app: Option<&AppHandle>,
+    job_id: Option<u64>,
+    stage: &'static str,
+    message: impl Into<String>,
+) {
+    if let Some(app) = app {
+        let _ = app.emit(
+            "natascha://progress",
+            NataschaProgress {
+                job_id,
+                stage,
+                message: message.into(),
+            },
+        );
+    }
+}
 
 /// Sucht `apps/natascha/` ausgehend vom Programmpfad aufwaerts.
 fn find_natascha_dir() -> Option<PathBuf> {
@@ -36,8 +73,62 @@ fn resolve_dir(dir: &str) -> Result<PathBuf, String> {
     Ok(path)
 }
 
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NataschaStatus {
+    pub mode: &'static str,
+    pub label: &'static str,
+}
+
+fn next_job_id() -> u64 {
+    let mut id = NEXT_JOB_ID.lock().expect("job id mutex poisoned");
+    let current = *id;
+    *id = current.saturating_add(1);
+    current
+}
+
+fn bundled_cli() -> Option<PathBuf> {
+    let exe = std::env::current_exe().ok()?;
+    let filename = if cfg!(windows) {
+        "natascha-cli-x86_64-pc-windows-msvc.exe"
+    } else {
+        "natascha-cli"
+    };
+    let mut candidates = Vec::new();
+    if let Some(parent) = exe.parent() {
+        candidates.push(parent.join(filename));
+        candidates.push(parent.join("resources").join(filename));
+        candidates.push(parent.join("Resources").join(filename));
+        candidates.push(parent.join(r"..\Resources").join(filename));
+    }
+    candidates.into_iter().find(|path| path.is_file())
+}
+
+fn natascha_status(dir: &str, _python: &str) -> NataschaStatus {
+    if bundled_cli().is_some() {
+        return NataschaStatus {
+            mode: "bundled",
+            label: "Gebündeltes NATASCHA-Sidecar",
+        };
+    }
+    if resolve_dir(dir).is_ok() {
+        return NataschaStatus {
+            mode: "python",
+            label: "Python-Fallback",
+        };
+    }
+    NataschaStatus {
+        mode: "unavailable",
+        label: "Nicht verfügbar",
+    }
+}
+
 fn default_python() -> &'static str {
-    if cfg!(windows) { "python" } else { "python3" }
+    if cfg!(windows) {
+        "python"
+    } else {
+        "python3"
+    }
 }
 
 fn resolve_python(python: &str) -> String {
@@ -71,7 +162,7 @@ fn validate_python_command(py: &str) -> Result<(), String> {
 
 #[cfg(target_os = "windows")]
 fn spawn_terminal(work: &PathBuf, py: &str) -> std::io::Result<()> {
-    Command::new("cmd")
+    StdCommand::new("cmd")
         .args(["/C", "start", "NATASCHA", "cmd", "/K"])
         .arg(format!("{} natascha.py", py))
         .current_dir(work)
@@ -85,7 +176,10 @@ fn spawn_terminal(work: &PathBuf, py: &str) -> std::io::Result<()> {
         "tell application \"Terminal\" to do script \"cd {:?} && {} natascha.py\"",
         work, py
     );
-    Command::new("osascript").args(["-e", &script]).spawn().map(|_| ())
+    StdCommand::new("osascript")
+        .args(["-e", &script])
+        .spawn()
+        .map(|_| ())
 }
 
 #[cfg(not(any(target_os = "windows", target_os = "macos")))]
@@ -97,19 +191,24 @@ fn spawn_terminal(work: &PathBuf, py: &str) -> std::io::Result<()> {
     // "fontpack.cc: No suitable files for '9x18' found"). x-terminal-emulator
     // deshalb zuletzt.
     let candidates: [(&str, Vec<&str>); 4] = [
-        ("xterm", vec!["-fa", "Monospace", "-fs", "11", "-e", "bash", "-c", &inner]),
+        (
+            "xterm",
+            vec!["-fa", "Monospace", "-fs", "11", "-e", "bash", "-c", &inner],
+        ),
         ("gnome-terminal", vec!["--", "bash", "-c", &inner]),
         ("konsole", vec!["-e", "bash", "-c", &inner]),
         ("x-terminal-emulator", vec!["-e", "bash", "-c", &inner]),
     ];
     let mut last_err: Option<std::io::Error> = None;
     for (term, args) in candidates {
-        match Command::new(term).args(&args).current_dir(work).spawn() {
+        match StdCommand::new(term).args(&args).current_dir(work).spawn() {
             Ok(_) => return Ok(()),
             Err(e) => last_err = Some(e),
         }
     }
-    Err(last_err.unwrap_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "kein Terminal gefunden")))
+    Err(last_err.unwrap_or_else(|| {
+        std::io::Error::new(std::io::ErrorKind::NotFound, "kein Terminal gefunden")
+    }))
 }
 
 /// Startet die NATASCHA-TUI in einem Terminalfenster.
@@ -122,7 +221,8 @@ pub async fn launch_natascha(dir: String, python: String) -> Result<(), String> 
         format!(
             "Terminal konnte nicht gestartet werden: {e}. Starte NATASCHA manuell: \
              cd {} && {} natascha.py",
-            work.display(), py
+            work.display(),
+            py
         )
     })
 }
@@ -132,37 +232,149 @@ pub async fn launch_natascha(dir: String, python: String) -> Result<(), String> 
 /// Helper: Baut den Basis-Command für natascha_cli.py. Übergibt IMMER den
 /// kanonischen DB-Pfad (`db::resolve_db_path`), damit Python in dieselbe DB
 /// schreibt, die LUA liest (Single Source of Truth = Rust).
-fn build_cli_command(natascha_dir: &PathBuf, python: &str) -> Command {
-    let py = resolve_python(python);
+fn build_cli_command(dir: &str, python: &str) -> Result<Command, String> {
     let db_path = crate::db::resolve_db_path();
+    if let Some(sidecar) = bundled_cli() {
+        let mut cmd = Command::new(sidecar);
+        cmd.arg("--db-path").arg(db_path.as_os_str());
+        if let Some(parent) = std::env::current_exe()
+            .ok()
+            .and_then(|p| p.parent().map(PathBuf::from))
+        {
+            cmd.current_dir(parent);
+        }
+        return Ok(cmd);
+    }
+    let natascha_dir = resolve_dir(dir)?;
+    let py = resolve_python(python);
     let mut cmd = Command::new(&py);
     cmd.arg(natascha_dir.join("natascha_cli.py"))
         .arg("--db-path")
         .arg(db_path.as_os_str())
         .current_dir(natascha_dir);
-    cmd
+    Ok(cmd)
 }
 
 /// Helper: Führt die CLI aus, gibt stdout (JSON) zurück. Bei Fehler eine
 /// kategorisierte, lesbare Meldung statt rohem stderr/Traceback.
-fn run_cli_and_capture(mut cmd: Command) -> Result<String, String> {
-    let output = cmd.output().map_err(|e| {
+async fn run_cli_and_capture(
+    mut cmd: Command,
+    app: Option<&AppHandle>,
+    label: &'static str,
+) -> Result<String, String> {
+    let job_id = next_job_id();
+    emit_progress(app, Some(job_id), "start", format!("{label} gestartet"));
+    cmd.stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .kill_on_drop(true);
+    let child = cmd.spawn().map_err(|e| {
         format!(
             "Python konnte nicht gestartet werden: {e}. Ist Python installiert? \
              Ggf. den Python-Befehl in den Einstellungen setzen."
         )
     })?;
-    if !output.status.success() {
-        return Err(categorize_cli_error(&String::from_utf8_lossy(&output.stderr)));
+    let pid = child
+        .id()
+        .ok_or_else(|| "NATASCHA-Prozess hat keine PID.".to_string())?;
+    {
+        let mut active = ACTIVE_PROCESS.lock().expect("process mutex poisoned");
+        *active = Some((pid, job_id));
     }
+    let output = match timeout(
+        Duration::from_secs(NATASCHA_CLI_TIMEOUT_SECS),
+        child.wait_with_output(),
+    )
+    .await
+    {
+        Ok(result) => result.map_err(|e| format!("CLI-Aufruf fehlgeschlagen: {e}"))?,
+        Err(_) => {
+            emit_progress(
+                app,
+                Some(job_id),
+                "timeout",
+                format!("{label} nach Timeout abgebrochen"),
+            );
+            let _ = terminate_process(job_id);
+            return Err(format!(
+                "{label} hat laenger als {} Minuten gedauert und wurde abgebrochen.",
+                NATASCHA_CLI_TIMEOUT_SECS / 60
+            ));
+        }
+    };
+    ACTIVE_PROCESS
+        .lock()
+        .expect("process mutex poisoned")
+        .take();
+    if !output.status.success() {
+        emit_progress(
+            app,
+            Some(job_id),
+            "error",
+            format!("{label} fehlgeschlagen"),
+        );
+        return Err(categorize_cli_error(&String::from_utf8_lossy(
+            &output.stderr,
+        )));
+    }
+    emit_progress(app, Some(job_id), "done", format!("{label} abgeschlossen"));
     Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+}
+
+fn terminate_process(job_id: u64) -> Result<(), String> {
+    let pid = ACTIVE_PROCESS
+        .lock()
+        .map_err(|_| "Prozessstatus nicht verfügbar".to_string())?
+        .filter(|(_, id)| *id == job_id)
+        .map(|(pid, _)| pid)
+        .ok_or_else(|| "Kein laufender NATASCHA-Prozess gefunden.".to_string())?;
+    #[cfg(windows)]
+    let result = StdCommand::new("taskkill")
+        .args(["/PID", &pid.to_string(), "/T", "/F"])
+        .status();
+    #[cfg(not(windows))]
+    let result = StdCommand::new("kill")
+        .args(["-TERM", &pid.to_string()])
+        .status();
+    result.map_err(|e| format!("NATASCHA-Prozess konnte nicht beendet werden: {e}"))?;
+    ACTIVE_PROCESS
+        .lock()
+        .expect("process mutex poisoned")
+        .take();
+    Ok(())
+}
+
+#[tauri::command]
+pub fn natascha_get_status(dir: String, python: String) -> NataschaStatus {
+    natascha_status(&dir, &python)
+}
+
+#[tauri::command]
+pub fn natascha_cancel(app: AppHandle, job_id: Option<u64>) -> Result<(), String> {
+    let current = ACTIVE_PROCESS
+        .lock()
+        .map_err(|_| "Prozessstatus nicht verfügbar".to_string())?
+        .clone();
+    let id = job_id
+        .or_else(|| current.map(|(_, id)| id))
+        .ok_or_else(|| "Kein laufender NATASCHA-Prozess.".to_string())?;
+    terminate_process(id)?;
+    emit_progress(
+        Some(&app),
+        Some(id),
+        "cancelled",
+        "NATASCHA-Auftrag abgebrochen",
+    );
+    Ok(())
 }
 
 /// Übersetzt typische CLI/LLM-Fehler in verständliche Meldungen (statt Traceback).
 fn categorize_cli_error(stderr: &str) -> String {
     let s = stderr.to_lowercase();
     let hint = if s.contains("api")
-        && (s.contains("key") || s.contains("401") || s.contains("authentication") || s.contains("unauthorized"))
+        && (s.contains("key")
+            || s.contains("401")
+            || s.contains("authentication")
+            || s.contains("unauthorized"))
     {
         "API-Key fehlt oder ist ungültig — bitte in den Einstellungen hinterlegen."
     } else if s.contains("datei nicht gefunden") || s.contains("no such file") {
@@ -192,6 +404,7 @@ fn categorize_cli_error(stderr: &str) -> String {
 /// Fuehrt `natascha_cli.py analyze` als Sidecar aus. Gibt das Analyse-JSON zurueck.
 #[tauri::command]
 pub async fn natascha_analyze(
+    app: AppHandle,
     dir: String,
     python: String,
     file_path: String,
@@ -206,21 +419,38 @@ pub async fn natascha_analyze(
     erwartungshorizont: Option<String>,
     rubric: Option<String>,
 ) -> Result<String, String> {
-    let nat_dir = resolve_dir(&dir)?;
-    let mut cmd = build_cli_command(&nat_dir, &python);
+    let mut cmd = build_cli_command(&dir, &python)?;
     cmd.arg("analyze")
         .arg(&file_path)
-        .arg("--klasse").arg(&klasse)
-        .arg("--aufgabe").arg(&aufgabe);
-    if let Some(ref v) = fach { cmd.arg("--fach").arg(v); }
-    if let Some(ref v) = schulstufe { cmd.arg("--schulstufe").arg(v); }
-    if let Some(ref v) = textsorte { cmd.arg("--textsorte").arg(v); }
-    if let Some(ref v) = schueler { cmd.arg("--schueler").arg(v); }
-    if let Some(ref v) = bewertungsmodus { cmd.arg("--bewertungsmodus").arg(v); }
-    if let Some(ref v) = ausgangstext { cmd.arg("--ausgangstext").arg(v); }
-    if let Some(ref v) = erwartungshorizont { cmd.arg("--erwartungshorizont").arg(v); }
-    if let Some(ref v) = rubric { cmd.arg("--rubric").arg(v); }
-    run_cli_and_capture(cmd)
+        .arg("--klasse")
+        .arg(&klasse)
+        .arg("--aufgabe")
+        .arg(&aufgabe);
+    if let Some(ref v) = fach {
+        cmd.arg("--fach").arg(v);
+    }
+    if let Some(ref v) = schulstufe {
+        cmd.arg("--schulstufe").arg(v);
+    }
+    if let Some(ref v) = textsorte {
+        cmd.arg("--textsorte").arg(v);
+    }
+    if let Some(ref v) = schueler {
+        cmd.arg("--schueler").arg(v);
+    }
+    if let Some(ref v) = bewertungsmodus {
+        cmd.arg("--bewertungsmodus").arg(v);
+    }
+    if let Some(ref v) = ausgangstext {
+        cmd.arg("--ausgangstext").arg(v);
+    }
+    if let Some(ref v) = erwartungshorizont {
+        cmd.arg("--erwartungshorizont").arg(v);
+    }
+    if let Some(ref v) = rubric {
+        cmd.arg("--rubric").arg(v);
+    }
+    run_cli_and_capture(cmd, Some(&app), "NATASCHA-Analyse").await
 }
 
 // Hinweis: Lese-Befehle (Klassen/Aufgaben/Abgaben/Heatmap/Notenverteilung/
@@ -237,12 +467,15 @@ pub async fn natascha_feedback_docx(
     output: Option<String>,
     bewertungsmodus: Option<String>,
 ) -> Result<String, String> {
-    let nat_dir = resolve_dir(&dir)?;
-    let mut cmd = build_cli_command(&nat_dir, &python);
+    let mut cmd = build_cli_command(&dir, &python)?;
     cmd.arg("feedback-docx").arg(abgabe_id.to_string());
-    if let Some(ref v) = output { cmd.arg("--output").arg(v); }
-    if let Some(ref v) = bewertungsmodus { cmd.arg("--bewertungsmodus").arg(v); }
-    run_cli_and_capture(cmd)
+    if let Some(ref v) = output {
+        cmd.arg("--output").arg(v);
+    }
+    if let Some(ref v) = bewertungsmodus {
+        cmd.arg("--bewertungsmodus").arg(v);
+    }
+    run_cli_and_capture(cmd, None, "NATASCHA-DOCX").await
 }
 
 /// Generiert einen Erwartungshorizont via CLI.
@@ -255,14 +488,19 @@ pub async fn natascha_erwartungshorizont(
     provider: Option<String>,
     model: Option<String>,
 ) -> Result<String, String> {
-    let nat_dir = resolve_dir(&dir)?;
-    let mut cmd = build_cli_command(&nat_dir, &python);
+    let mut cmd = build_cli_command(&dir, &python)?;
     cmd.arg("erwartungshorizont")
-        .arg("--klasse").arg(&klasse)
-        .arg("--aufgabe").arg(&aufgabe);
-    if let Some(ref v) = provider { cmd.arg("--provider").arg(v); }
-    if let Some(ref v) = model { cmd.arg("--model").arg(v); }
-    run_cli_and_capture(cmd)
+        .arg("--klasse")
+        .arg(&klasse)
+        .arg("--aufgabe")
+        .arg(&aufgabe);
+    if let Some(ref v) = provider {
+        cmd.arg("--provider").arg(v);
+    }
+    if let Some(ref v) = model {
+        cmd.arg("--model").arg(v);
+    }
+    run_cli_and_capture(cmd, None, "NATASCHA-Erwartungshorizont").await
 }
 
 /// Dev-Hilfe: lädt synthetische Testdaten in die gemeinsame DB
@@ -273,13 +511,19 @@ pub async fn natascha_seed_testdaten(dir: String, python: String) -> Result<Stri
     let py = resolve_python(&python);
     let output = Command::new(&py)
         .arg(nat_dir.join("seed_testdaten.py"))
+        .arg("--db-path")
+        .arg(crate::db::resolve_db_path().as_os_str())
         .current_dir(&nat_dir)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .kill_on_drop(true)
         .output()
-        .map_err(|e| {
-            format!("Python konnte nicht gestartet werden: {e}. Python-Befehl ggf. in den Einstellungen setzen.")
-        })?;
+        .await
+        .map_err(|e| format!("Python konnte nicht gestartet werden: {e}. Python-Befehl ggf. in den Einstellungen setzen."))?;
     if !output.status.success() {
-        return Err(categorize_cli_error(&String::from_utf8_lossy(&output.stderr)));
+        return Err(categorize_cli_error(&String::from_utf8_lossy(
+            &output.stderr,
+        )));
     }
     Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
 }
@@ -288,11 +532,14 @@ pub async fn natascha_seed_testdaten(dir: String, python: String) -> Result<Stri
 
 /// Legt eine neue Klasse in der NATASCHA-Config an.
 #[tauri::command]
-pub async fn natascha_add_klasse(dir: String, python: String, name: String) -> Result<String, String> {
-    let nat_dir = resolve_dir(&dir)?;
-    let mut cmd = build_cli_command(&nat_dir, &python);
+pub async fn natascha_add_klasse(
+    dir: String,
+    python: String,
+    name: String,
+) -> Result<String, String> {
+    let mut cmd = build_cli_command(&dir, &python)?;
     cmd.arg("add-klasse").arg(&name);
-    run_cli_and_capture(cmd)
+    run_cli_and_capture(cmd, None, "NATASCHA-Klasse").await
 }
 
 /// Legt eine neue Aufgabe (mit Rubrik-Zuordnung) an.
@@ -307,14 +554,21 @@ pub async fn natascha_add_aufgabe(
     textsorte: Option<String>,
     rubric: Option<String>,
 ) -> Result<String, String> {
-    let nat_dir = resolve_dir(&dir)?;
-    let mut cmd = build_cli_command(&nat_dir, &python);
+    let mut cmd = build_cli_command(&dir, &python)?;
     cmd.arg("add-aufgabe").arg(&klasse).arg(&label);
-    if let Some(ref v) = fach { cmd.arg("--fach").arg(v); }
-    if let Some(ref v) = schulstufe { cmd.arg("--schulstufe").arg(v); }
-    if let Some(ref v) = textsorte { cmd.arg("--textsorte").arg(v); }
-    if let Some(ref v) = rubric { cmd.arg("--rubric").arg(v); }
-    run_cli_and_capture(cmd)
+    if let Some(ref v) = fach {
+        cmd.arg("--fach").arg(v);
+    }
+    if let Some(ref v) = schulstufe {
+        cmd.arg("--schulstufe").arg(v);
+    }
+    if let Some(ref v) = textsorte {
+        cmd.arg("--textsorte").arg(v);
+    }
+    if let Some(ref v) = rubric {
+        cmd.arg("--rubric").arg(v);
+    }
+    run_cli_and_capture(cmd, None, "NATASCHA-Aufgabe").await
 }
 
 /// Listet verfügbare Rubriken (gefiltert nach Fach/Schulstufe).
@@ -325,12 +579,15 @@ pub async fn natascha_list_rubrics(
     fach: Option<String>,
     schulstufe: Option<String>,
 ) -> Result<String, String> {
-    let nat_dir = resolve_dir(&dir)?;
-    let mut cmd = build_cli_command(&nat_dir, &python);
+    let mut cmd = build_cli_command(&dir, &python)?;
     cmd.arg("list-rubrics");
-    if let Some(ref v) = fach { cmd.arg("--fach").arg(v); }
-    if let Some(ref v) = schulstufe { cmd.arg("--schulstufe").arg(v); }
-    run_cli_and_capture(cmd)
+    if let Some(ref v) = fach {
+        cmd.arg("--fach").arg(v);
+    }
+    if let Some(ref v) = schulstufe {
+        cmd.arg("--schulstufe").arg(v);
+    }
+    run_cli_and_capture(cmd, None, "NATASCHA-Rubriken").await
 }
 
 /// Importiert bestehende Analyse-JSONs (output/.../feedback_data) in die DB.
@@ -341,11 +598,12 @@ pub async fn natascha_retro_import(
     klasse: String,
     aufgabe: Option<String>,
 ) -> Result<String, String> {
-    let nat_dir = resolve_dir(&dir)?;
-    let mut cmd = build_cli_command(&nat_dir, &python);
+    let mut cmd = build_cli_command(&dir, &python)?;
     cmd.arg("retro-import").arg("--klasse").arg(&klasse);
-    if let Some(ref v) = aufgabe { cmd.arg("--aufgabe").arg(v); }
-    run_cli_and_capture(cmd)
+    if let Some(ref v) = aufgabe {
+        cmd.arg("--aufgabe").arg(v);
+    }
+    run_cli_and_capture(cmd, None, "NATASCHA-Retro-Import").await
 }
 
 /// Liest den gespeicherten Ausgangstext einer Aufgabe (für die In-App-Übung-
@@ -358,24 +616,21 @@ pub async fn natascha_quelltext_get(
     klasse: String,
     aufgabe: String,
 ) -> Result<String, String> {
-    let nat_dir = resolve_dir(&dir)?;
-    let mut cmd = build_cli_command(&nat_dir, &python);
+    let mut cmd = build_cli_command(&dir, &python)?;
     cmd.arg("quelltext-get")
-        .arg("--klasse").arg(&klasse)
-        .arg("--aufgabe").arg(&aufgabe);
-    run_cli_and_capture(cmd)
+        .arg("--klasse")
+        .arg(&klasse)
+        .arg("--aufgabe")
+        .arg(&aufgabe);
+    run_cli_and_capture(cmd, None, "NATASCHA-Ausgangstext").await
 }
 
 /// Listet alle Rubrik-Markdown-Dateien (roh) für den Editor.
 #[tauri::command]
-pub async fn natascha_list_rubric_files(
-    dir: String,
-    python: String,
-) -> Result<String, String> {
-    let nat_dir = resolve_dir(&dir)?;
-    let mut cmd = build_cli_command(&nat_dir, &python);
+pub async fn natascha_list_rubric_files(dir: String, python: String) -> Result<String, String> {
+    let mut cmd = build_cli_command(&dir, &python)?;
     cmd.arg("list-rubric-files");
-    run_cli_and_capture(cmd)
+    run_cli_and_capture(cmd, None, "NATASCHA-Rubrikdateien").await
 }
 
 /// Liest den Roh-Markdown einer Rubrik.
@@ -385,10 +640,9 @@ pub async fn natascha_read_rubric(
     python: String,
     name: String,
 ) -> Result<String, String> {
-    let nat_dir = resolve_dir(&dir)?;
-    let mut cmd = build_cli_command(&nat_dir, &python);
+    let mut cmd = build_cli_command(&dir, &python)?;
     cmd.arg("read-rubric").arg("--name").arg(&name);
-    run_cli_and_capture(cmd)
+    run_cli_and_capture(cmd, None, "NATASCHA-Rubrik").await
 }
 
 /// Speichert (überschreibt/legt an) eine Rubrik (Markdown via stdin).
@@ -399,10 +653,10 @@ pub async fn natascha_save_rubric(
     name: String,
     content: String,
 ) -> Result<String, String> {
-    use std::io::Write;
-    let nat_dir = resolve_dir(&dir)?;
-    let mut cmd = build_cli_command(&nat_dir, &python);
-    cmd.arg("save-rubric").arg("--name").arg(&name)
+    let mut cmd = build_cli_command(&dir, &python)?;
+    cmd.arg("save-rubric")
+        .arg("--name")
+        .arg(&name)
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped());
@@ -410,11 +664,22 @@ pub async fn natascha_save_rubric(
         format!("Python konnte nicht gestartet werden: {e}. Python-Befehl ggf. in den Einstellungen setzen.")
     })?;
     if let Some(mut stdin) = child.stdin.take() {
-        stdin.write_all(content.as_bytes()).map_err(|e| format!("stdin-Schreibfehler: {e}"))?;
+        stdin
+            .write_all(content.as_bytes())
+            .await
+            .map_err(|e| format!("stdin-Schreibfehler: {e}"))?;
     }
-    let output = child.wait_with_output().map_err(|e| format!("CLI-Aufruf fehlgeschlagen: {e}"))?;
+    let output = timeout(
+        Duration::from_secs(NATASCHA_CLI_TIMEOUT_SECS),
+        child.wait_with_output(),
+    )
+    .await
+    .map_err(|_| "Rubrik-Speichern hat zu lange gedauert und wurde abgebrochen.".to_string())?
+    .map_err(|e| format!("CLI-Aufruf fehlgeschlagen: {e}"))?;
     if !output.status.success() {
-        return Err(categorize_cli_error(&String::from_utf8_lossy(&output.stderr)));
+        return Err(categorize_cli_error(&String::from_utf8_lossy(
+            &output.stderr,
+        )));
     }
     Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
 }
@@ -429,12 +694,12 @@ pub async fn natascha_save_erwartungshorizont(
     aufgabe: String,
     text: String,
 ) -> Result<String, String> {
-    use std::io::Write;
-    let nat_dir = resolve_dir(&dir)?;
-    let mut cmd = build_cli_command(&nat_dir, &python);
+    let mut cmd = build_cli_command(&dir, &python)?;
     cmd.arg("erwartungshorizont-save")
-        .arg("--klasse").arg(&klasse)
-        .arg("--aufgabe").arg(&aufgabe)
+        .arg("--klasse")
+        .arg(&klasse)
+        .arg("--aufgabe")
+        .arg(&aufgabe)
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped());
@@ -442,11 +707,24 @@ pub async fn natascha_save_erwartungshorizont(
         format!("Python konnte nicht gestartet werden: {e}. Python-Befehl ggf. in den Einstellungen setzen.")
     })?;
     if let Some(mut stdin) = child.stdin.take() {
-        stdin.write_all(text.as_bytes()).map_err(|e| format!("stdin-Schreibfehler: {e}"))?;
+        stdin
+            .write_all(text.as_bytes())
+            .await
+            .map_err(|e| format!("stdin-Schreibfehler: {e}"))?;
     }
-    let output = child.wait_with_output().map_err(|e| format!("CLI-Aufruf fehlgeschlagen: {e}"))?;
+    let output = timeout(
+        Duration::from_secs(NATASCHA_CLI_TIMEOUT_SECS),
+        child.wait_with_output(),
+    )
+    .await
+    .map_err(|_| {
+        "Erwartungshorizont-Speichern hat zu lange gedauert und wurde abgebrochen.".to_string()
+    })?
+    .map_err(|e| format!("CLI-Aufruf fehlgeschlagen: {e}"))?;
     if !output.status.success() {
-        return Err(categorize_cli_error(&String::from_utf8_lossy(&output.stderr)));
+        return Err(categorize_cli_error(&String::from_utf8_lossy(
+            &output.stderr,
+        )));
     }
     Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
 }
@@ -461,13 +739,18 @@ pub async fn natascha_klassen_briefing(
     provider: Option<String>,
     model: Option<String>,
 ) -> Result<String, String> {
-    let nat_dir = resolve_dir(&dir)?;
-    let mut cmd = build_cli_command(&nat_dir, &python);
+    let mut cmd = build_cli_command(&dir, &python)?;
     cmd.arg("klassen-briefing").arg("--klasse").arg(&klasse);
-    if let Some(ref v) = aufgabe { cmd.arg("--aufgabe").arg(v); }
-    if let Some(ref v) = provider { cmd.arg("--provider").arg(v); }
-    if let Some(ref v) = model { cmd.arg("--model").arg(v); }
-    run_cli_and_capture(cmd)
+    if let Some(ref v) = aufgabe {
+        cmd.arg("--aufgabe").arg(v);
+    }
+    if let Some(ref v) = provider {
+        cmd.arg("--provider").arg(v);
+    }
+    if let Some(ref v) = model {
+        cmd.arg("--model").arg(v);
+    }
+    run_cli_and_capture(cmd, None, "NATASCHA-Klassenbriefing").await
 }
 
 /// Generiert ein KI-Schüler-Profil via CLI und speichert es in der DB.
@@ -479,12 +762,17 @@ pub async fn natascha_schueler_profil(
     provider: Option<String>,
     model: Option<String>,
 ) -> Result<String, String> {
-    let nat_dir = resolve_dir(&dir)?;
-    let mut cmd = build_cli_command(&nat_dir, &python);
-    cmd.arg("schueler-profil").arg("--schueler-id").arg(schueler_id.to_string());
-    if let Some(ref v) = provider { cmd.arg("--provider").arg(v); }
-    if let Some(ref v) = model { cmd.arg("--model").arg(v); }
-    run_cli_and_capture(cmd)
+    let mut cmd = build_cli_command(&dir, &python)?;
+    cmd.arg("schueler-profil")
+        .arg("--schueler-id")
+        .arg(schueler_id.to_string());
+    if let Some(ref v) = provider {
+        cmd.arg("--provider").arg(v);
+    }
+    if let Some(ref v) = model {
+        cmd.arg("--model").arg(v);
+    }
+    run_cli_and_capture(cmd, None, "NATASCHA-Schuelerprofil").await
 }
 
 #[cfg(test)]

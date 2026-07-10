@@ -35,3 +35,35 @@ Diese Datei setzt nur `bundle.externalBin` auf `../../natascha/dist/natascha-cli
 ```powershell
 apps\natascha\dist\natascha-cli\natascha-cli-x86_64-pc-windows-msvc.exe --help
 ```
+
+## Lokaler E2E-Test ohne vendored Dependencies
+
+Die Tests verwenden keine im Repository abgelegten Abhängigkeiten. Auf
+Windows wird ein lokales virtuelles Environment empfohlen:
+
+```powershell
+cd apps/natascha
+py -3.11 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements_cli.txt -r requirements_tui.txt pytest
+.\.venv\Scripts\python.exe -m pytest -q
+```
+
+Auf Linux/macOS entsprechend `python3.11 -m venv .venv` und
+`.venv/bin/python -m pytest -q` verwenden. `.pytest_deps` und andere
+vendored Dependency-Verzeichnisse gehören nicht ins Repository.
+
+## Abnahmekriterien für die spätere Aktivierung
+
+Die separate `tauri.natascha-sidecar.conf.json` bleibt bis zur Freigabe des
+vollständigen NATASCHA-Rollouts der einzige Sidecar-Build. Vor einer
+Reaktivierung von `FEATURES.natascha` müssen auf einem sauberen Windows-System
+ohne Python-Installation nachgewiesen sein:
+
+- Installation und Start der gebündelten CLI ohne Python.
+- Analyse einer einzelnen und mehrerer Abgaben.
+- Abbruch stoppt nach der aktuell laufenden Datei und setzt kein weiteres
+  Batch-Element an.
+- Progress-, Timeout-, Abbruch- und Fehlermeldungen sind im UI sichtbar.
+- Feedback-DOCX wird erzeugt und kann geöffnet werden.
+- Der gemeinsame Rust-definierte DB-Pfad wird auch bei Seed und Sidecar
+  verwendet.

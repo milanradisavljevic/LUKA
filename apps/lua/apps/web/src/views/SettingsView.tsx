@@ -190,6 +190,17 @@ function ToggleRow({
 export function SettingsView() {
   const [settings, setSettings] = useState<AppSettings>(() => loadSettings());
   const [savedHint, setSavedHint] = useState(false);
+  const [nataschaMode, setNataschaMode] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!FEATURES.natascha) return;
+    void import('@tauri-apps/api/core').then(({ invoke }) =>
+      invoke<{ label: string }>('natascha_get_status', {
+        dir: settings.nataschaDir ?? '',
+        python: settings.pythonCommand ?? '',
+      }).then((status) => setNataschaMode(status.label)).catch(() => setNataschaMode('Nicht verfügbar')),
+    );
+  }, [settings.nataschaDir, settings.pythonCommand]);
 
   const update = (patch: Partial<AppSettings>) => {
     const next = { ...settings, ...patch };
@@ -426,6 +437,9 @@ export function SettingsView() {
         borderRadius: 'var(--radius)', background: 'var(--color-bg-surface)', marginBottom: '1.5rem',
       }}>
         <h3 style={{ fontSize: '1rem', margin: '0 0 0.75rem' }}>NATASCHA</h3>
+        <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', marginTop: 0 }}>
+          Aktiver Modus: <strong>{nataschaMode ?? 'Wird geprüft …'}</strong>
+        </p>
         <label style={labelStyle}>Inbox-Ordner für Korrektur-Exporte</label>
         <input
           type="text"

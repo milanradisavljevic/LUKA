@@ -114,6 +114,15 @@ export function useNatascha() {
     }
   }, []);
 
+  const cancel = useCallback(async (jobId?: number): Promise<boolean> => {
+    try {
+      await invoke('natascha_cancel', { jobId: jobId ?? null });
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
+
   const listKlassen = useCallback(async (): Promise<KlasseInfo[]> => {
     try {
       const result = await invoke<DbLoadAllResult>('db_load_all');
@@ -389,6 +398,7 @@ export function useNatascha() {
     analyzing,
     analyzeError,
     analyze,
+    cancel,
     listKlassen,
     listAufgaben,
     getAbgaben,

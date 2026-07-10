@@ -1,0 +1,7 @@
+{
+  "bundle": {
+    "externalBin": [
+      "../../natascha/dist/natascha-cli/natascha-cli"
+    ]
+  }
+}

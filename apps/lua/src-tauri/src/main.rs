@@ -26,6 +26,8 @@ fn main() {
             commands::bridge::read_bridge_export,
             commands::bridge::resolve_bridge_inbox,
             commands::natascha::launch_natascha,
+            commands::natascha::natascha_get_status,
+            commands::natascha::natascha_cancel,
             commands::natascha::natascha_analyze,
             commands::natascha::natascha_feedback_docx,
             commands::natascha::natascha_erwartungshorizont,
