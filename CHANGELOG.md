@@ -5,14 +5,6 @@ Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 (auch andere Coding-Agents) — siehe `AGENTS.md`.
 
-## [Unreleased]
-
-- NATASCHA erhält einen dokumentierten Headless-CLI-/Sidecar-Build mit
-  synthetischem E2E-Test.
-- Der CLI-Zugriff nutzt die gemeinsame Rust-definierte Datenbank, behebt
-  `srdp-detail` per Abgabe-ID und bereitet Fortschritt, Timeout und Abbruch
-  für die spätere NATASCHA-Aktivierung vor.
-
 ## Version 1.0.3 — 2026-07-10
 
 **Das ist neu:**
@@ -22,6 +14,15 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
   Aufgaben-Pool richten sich danach. Alles bleibt auf deinem Rechner.
 - **Neues Update-Fenster:** Updates erscheinen jetzt im LUKA-Design und
   zeigen — so wie hier — was neu ist.
+
+### Added — NATASCHA-Sidecar vorbereitet (im Pilot inaktiv)
+- NATASCHA erhält einen dokumentierten Headless-CLI-/Sidecar-Build
+  (PyInstaller, `build_sidecar.ps1`, `SIDECAR_BUILD.md`) mit synthetischem
+  E2E-Test; der normale Generator-Build bleibt davon unberührt
+  (`FEATURES.natascha` bleibt aus, externalBin nur über separate Config).
+- Der CLI-Zugriff nutzt die gemeinsame Rust-definierte Datenbank, behebt
+  `srdp-detail` per Abgabe-ID und bereitet Fortschritt, Timeout und Abbruch
+  für die spätere NATASCHA-Aktivierung vor.
 
 ### Fixed — Neutrale Übersichts-Grafik (kein Fach gewählt) freigestellt
 - Das Schreibtisch-Stillleben für „kein Fach ausgewählt" war ein JPG mit
