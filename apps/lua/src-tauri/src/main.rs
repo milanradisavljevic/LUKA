@@ -84,6 +84,8 @@ fn main() {
             commands::klassen::klassen_meta_list,
             commands::klassen::klassen_meta_upsert,
             commands::klassen::klassen_meta_delete,
+            commands::profil::profil_get,
+            commands::profil::profil_save,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

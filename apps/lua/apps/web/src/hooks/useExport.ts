@@ -14,7 +14,7 @@ export function useExport() {
   const [warnung, setWarnung] = useState<string | null>(null);
   const [lastSavedPaths, setLastSavedPaths] = useState<string[] | null>(null);
 
-  const exportDocxOverride = useCallback(async (state: AppState, doc: DocumentV1, suffix?: string) => {
+  const exportDocxOverride = useCallback(async (state: AppState, doc: DocumentV1, suffix?: string, includeSolution = true) => {
     setExporting(true);
     setError(null);
     setWarnung(null);
@@ -37,9 +37,9 @@ export function useExport() {
       // beide Downloads akzeptiert (manche blockieren gleichzeitige Downloads)
       const schuelerPfad = await saveBlob(schueler, schuelerName);
       await delay(600);
-      const loesungPfad = await saveBlob(loesung, loesungName);
+      const loesungPfad = includeSolution ? await saveBlob(loesung, loesungName) : null;
 
-      const gespeichert = [schuelerPfad, loesungPfad].filter(Boolean);
+      const gespeichert = [schuelerPfad, loesungPfad].filter((path): path is string => Boolean(path));
       setLastSavedPaths(gespeichert.length ? gespeichert : null);
 
       // Verlaufseintrag protokollieren (read-only Log in der Sidebar)
@@ -53,7 +53,7 @@ export function useExport() {
         modelName: state.modelName,
         blockCount: doc.bloecke.length,
         totalPunkte: doc.bloecke.reduce((sum, b) => sum + (b.punkte ?? 0), 0),
-        exportedFiles: [schuelerName, loesungName],
+        exportedFiles: includeSolution ? [schuelerName, loesungName] : [schuelerName],
         savedDocumentId: state.aktuelleDokumentId,
       });
 
@@ -67,12 +67,12 @@ export function useExport() {
     }
   }, []);
 
-  const exportDocx = useCallback(async (state: AppState) => {
+  const exportDocx = useCallback(async (state: AppState, includeSolution = true) => {
     if (!state.generiertesDokument) {
       setError('Bitte zuerst Inhalt generieren.');
       return false;
     }
-    return exportDocxOverride(state, state.generiertesDokument);
+    return exportDocxOverride(state, state.generiertesDokument, undefined, includeSolution);
   }, [exportDocxOverride]);
 
   const exportKorrekturraster = useCallback(async (state: AppState) => {

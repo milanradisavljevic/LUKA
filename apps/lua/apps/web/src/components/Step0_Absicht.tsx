@@ -1,10 +1,11 @@
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { ArrowRight, Clock, FolderOpen, BookOpen, ClipboardCheck, Target, Grid3X3, Languages, Pencil, AlertTriangle } from 'lucide-react';
 import type { AppState, AppAction } from '../lib/types';
 import { BLOCK_TYPE_DEFS, SCHWIERIGKEIT_RULES, UNTERLAGENTYP_MINUTEN } from '../lib/constants';
 import { buildSkelett, FACH_META, fachLabel, istSprachfach, SCHULSTUFEN, stufeFromSchulstufe, type Auftrag, type Fach } from '@lehrunterlagen/schema';
 import { EXAMPLE_ABSICHTEN } from '../lib/exampleAbsichten';
 import { loadDocuments, loadSettings } from '../lib/storage';
+import { loadTeacherProfile } from '../lib/profile';
 import { FEATURES } from '../lib/features';
 import { consumePendingUebung } from '../lib/korrekturBridge';
 import { getDefaultTemplate } from '@lehrunterlagen/renderer';
@@ -81,8 +82,30 @@ export function Step0_Absicht({
   const [schnellOhneQuelltext, setSchnellOhneQuelltext] = useState(false);
   // Punkte vergeben? Schulübung standardmäßig ohne Punkte, sonst mit.
   const [punkteVergeben, setPunkteVergeben] = useState<boolean>((lastMeta?.typ ?? 'schularbeit') !== 'schuluebung');
+  const profileDefaultsApplied = useRef(false);
+  const profileBaseline = useRef({ fach, stufe, schulstufe });
   // Sinnvoller Default je Unterlagentyp; manuell überschreibbar.
   useEffect(() => { setPunkteVergeben(typ !== 'schuluebung'); }, [typ]);
+
+  useEffect(() => {
+    if (lastDoc || profileDefaultsApplied.current) return;
+    let active = true;
+    loadTeacherProfile().then((profile) => {
+      if (!active || !profile || profileDefaultsApplied.current) return;
+      profileDefaultsApplied.current = true;
+      // Eine bereits begonnene manuelle Eingabe hat Vorrang vor dem Profil.
+      if (fach === profileBaseline.current.fach && stufe === profileBaseline.current.stufe && schulstufe === profileBaseline.current.schulstufe) {
+        const preferredFach = profile.faecher[0];
+        if (preferredFach && preferredFach in FACH_META) setFach(preferredFach as Fach);
+        const preferredStufe = profile.schulstufen[0];
+        if (preferredStufe) {
+          setSchulstufe(preferredStufe);
+          setStufe(stufeFromSchulstufe(preferredStufe));
+        }
+      }
+    }).catch(() => { /* Profil ist optional; globale Defaults bleiben aktiv. */ });
+    return () => { active = false; };
+  }, [fach, lastDoc, schulstufe, stufe]);
 
   // Klassen-Verwaltung: bekannte Klassen als Datalist; bei exaktem Namenstreffer
   // Fach/Schulstufe automatisch übernehmen (Lehrkraft kann danach überschreiben).

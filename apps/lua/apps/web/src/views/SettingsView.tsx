@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Check, Database, Download } from 'lucide-react';
 import type { AppSettings, LlmProvider } from '../lib/types';
-import { LLM_PROVIDERS } from '../lib/constants';
+import { BLOCK_TYPE_DEFS, LLM_PROVIDERS } from '../lib/constants';
 import { FEATURES } from '../lib/features';
 import { CREATIVITY_PRESETS } from '../lib/creativity';
 import { loadSettings, saveSettings, getDbPath } from '../lib/storage';
+import { DEFAULT_LEHRER_PROFIL, loadTeacherProfile, saveTeacherProfile, type LehrerProfil, type ProfileLand } from '../lib/profile';
+import { FACH_META, SCHULSTUFEN } from '@lehrunterlagen/schema';
 import { SettingsPanel } from '../components/SettingsPanel';
 import { ViewShell } from './_ViewShell';
 
@@ -22,6 +24,117 @@ const LANGUAGES: { value: string; label: string }[] = [
   { value: 'de', label: 'Deutsch' },
   { value: 'en', label: 'Englisch' },
 ];
+
+const REGION_AT = ['Burgenland', 'Kärnten', 'Niederösterreich', 'Oberösterreich', 'Salzburg', 'Steiermark', 'Tirol', 'Vorarlberg', 'Wien'];
+const SCHULFORMEN = [
+  { value: 'ahs', label: 'AHS' },
+  { value: 'mittelschule', label: 'Mittelschule' },
+  { value: 'bhs', label: 'BHS' },
+  { value: 'berufsschule', label: 'Berufsschule' },
+  { value: 'sonstige', label: 'Sonstige' },
+];
+const PROFILE_EXPORT_OPTIONS = [
+  { key: 'exportDocx', label: 'DOCX' },
+  { key: 'exportPdf', label: 'PDF' },
+  { key: 'exportLoesung', label: 'Lösung' },
+  { key: 'exportErwartungshorizont', label: 'Erwartungshorizont (später)' },
+] as const;
+
+function ProfileSection() {
+  const desktopAvailable = typeof window !== 'undefined' && (window as any).__TAURI_INTERNALS__ !== undefined;
+  const [profile, setProfile] = useState<LehrerProfil>({ ...DEFAULT_LEHRER_PROFIL });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    if (!desktopAvailable) {
+      setLoading(false);
+      return () => { active = false; };
+    }
+    loadTeacherProfile()
+      .then((loaded) => { if (active && loaded) setProfile({ ...DEFAULT_LEHRER_PROFIL, ...loaded }); })
+      .catch((err) => { if (active) setError(err instanceof Error ? err.message : String(err)); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, []);
+
+  const update = (patch: Partial<LehrerProfil>) => {
+    setProfile((current) => ({ ...current, ...patch }));
+    setMessage(null);
+    setError(null);
+  };
+  const toggle = (key: 'faecher' | 'schulstufen' | 'aufgabenformate', value: string | number) => {
+    const values = profile[key] as Array<string | number>;
+    const next = values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
+    update({ [key]: next } as Partial<LehrerProfil>);
+  };
+  const save = async () => {
+    if (!desktopAvailable) {
+      setError('Das Profil wird in dieser Phase nur in der Desktop-App gespeichert.');
+      return;
+    }
+    setSaving(true); setMessage(null); setError(null);
+    try {
+      await saveTeacherProfile(profile);
+      setMessage('Profil gespeichert. Es bleibt auf diesem Gerät.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally { setSaving(false); }
+  };
+  const labelStyle = { display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.375rem' } as const;
+  const groupStyle = { display: 'flex', flexWrap: 'wrap', gap: '0.375rem 0.75rem', padding: '0.625rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)' } as const;
+  const checkLabel = { display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', cursor: 'pointer' } as const;
+
+  return (
+    <section style={{ padding: '1.25rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', background: 'var(--color-bg-surface)', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '1rem', flexWrap: 'wrap' }}>
+        <div>
+          <h3 style={{ fontSize: '1rem', margin: 0 }}>Mein Profil</h3>
+          <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: '0.35rem 0 1rem' }}>
+            Deine Angaben bleiben lokal auf diesem Gerät und werden nicht übertragen.
+          </p>
+        </div>
+        {loading && <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>Lade Profil …</span>}
+      </div>
+      {!desktopAvailable && (
+        <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.8125rem', margin: '0 0 1rem' }}>
+          Profil-Speichern ist eine Desktop-Funktion. Im Browser bleiben die bisherigen Standardwerte aktiv.
+        </p>
+      )}
+      {!loading && (
+        <fieldset disabled={!desktopAvailable || saving} style={{ display: 'grid', gap: '1rem', border: 0, padding: 0, margin: 0 }}>
+          <div style={{ display: 'grid', gap: '0.75rem', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+            <div><label style={labelStyle}>Anzeigename oder Kürzel</label><input value={profile.displayName} onChange={(e) => update({ displayName: e.target.value })} placeholder="z. B. Frau M." style={{ width: '100%', boxSizing: 'border-box' }} /></div>
+            <div><label style={labelStyle}>Land</label><select value={profile.land} onChange={(e) => update({ land: e.target.value as ProfileLand })} style={{ width: '100%' }}><option value="AT">Österreich</option><option value="CH">Schweiz</option><option value="DE">Deutschland</option></select></div>
+            <div><label style={labelStyle}>Schulform</label><select value={profile.schulform} onChange={(e) => update({ schulform: e.target.value })} style={{ width: '100%' }}><option value="">— auswählen —</option>{SCHULFORMEN.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></div>
+            <div><label style={labelStyle}>Österreichisches Bundesland</label><select value={profile.regionAt} onChange={(e) => update({ regionAt: e.target.value })} style={{ width: '100%' }}><option value="">— nicht angegeben —</option>{REGION_AT.map((region) => <option key={region} value={region}>{region}</option>)}</select></div>
+            <div><label style={labelStyle}>Schweizer Kanton (später)</label><input value={profile.regionCh} onChange={(e) => update({ regionCh: e.target.value })} placeholder="optional" style={{ width: '100%', boxSizing: 'border-box' }} /></div>
+            <div><label style={labelStyle}>Deutsches Bundesland (später)</label><input value={profile.regionDe} onChange={(e) => update({ regionDe: e.target.value })} placeholder="optional" style={{ width: '100%', boxSizing: 'border-box' }} /></div>
+          </div>
+
+          <div><label style={labelStyle}>Meine Fächer</label><div style={groupStyle}>{Object.entries(FACH_META).map(([fach, meta]) => <label key={fach} style={checkLabel}><input type="checkbox" checked={profile.faecher.includes(fach)} onChange={() => toggle('faecher', fach)} />{meta.label}</label>)}</div></div>
+          <div><label style={labelStyle}>Meine Schulstufen/Jahrgänge</label><div style={groupStyle}>{SCHULSTUFEN.map((stufe) => <label key={stufe} style={checkLabel}><input type="checkbox" checked={profile.schulstufen.includes(stufe)} onChange={() => toggle('schulstufen', stufe)} />{stufe}. Schulstufe</label>)}</div></div>
+          <div><label style={labelStyle}>Bevorzugte Aufgabenformate</label><div style={groupStyle}>{BLOCK_TYPE_DEFS.map((format) => <label key={format.id} style={checkLabel}><input type="checkbox" checked={profile.aufgabenformate.includes(format.id)} onChange={() => toggle('aufgabenformate', format.id)} />{format.label}</label>)}</div></div>
+
+          <div style={{ display: 'grid', gap: '0.75rem', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))' }}>
+            <div><label style={labelStyle}>Standard-Anbieter</label><select value={profile.standardProvider} onChange={(e) => { const provider = LLM_PROVIDERS.find((item) => item.id === e.target.value); update({ standardProvider: e.target.value as LlmProvider, standardModel: provider?.models[0] ?? profile.standardModel }); }} style={{ width: '100%' }}>{LLM_PROVIDERS.map((provider) => <option key={provider.id} value={provider.id}>{provider.label}</option>)}</select></div>
+            <div><label style={labelStyle}>Standard-Modell</label><select value={profile.standardModel} onChange={(e) => update({ standardModel: e.target.value })} style={{ width: '100%' }}>{(LLM_PROVIDERS.find((provider) => provider.id === profile.standardProvider)?.models ?? []).map((model) => <option key={model} value={model}>{model}</option>)}</select></div>
+          </div>
+          <div><label style={labelStyle}>Standard-Kreativität</label><div style={groupStyle}>{CREATIVITY_PRESETS.map((preset) => <button key={preset.id} type="button" className={Math.abs(profile.standardKreativitaet - preset.value) < 0.001 ? 'btn-primary' : 'btn-secondary'} onClick={() => update({ standardKreativitaet: preset.value })} style={{ fontSize: '0.75rem', padding: '0.35rem 0.6rem' }}>{preset.label}</button>)}</div></div>
+
+          <div><label style={labelStyle}>Exportvorgaben für neue Unterlagen</label><div style={groupStyle}>{PROFILE_EXPORT_OPTIONS.map(({ key, label }) => <label key={key} style={checkLabel}><input type="checkbox" checked={profile[key]} onChange={(e) => update({ [key]: e.target.checked })} />{label}</label>)}</div></div>
+
+          {error && <p style={{ color: 'var(--color-error)', fontSize: '0.8125rem', margin: 0 }}>{error}</p>}
+          {message && <p style={{ color: 'var(--color-success)', fontSize: '0.8125rem', margin: 0 }}>{message}</p>}
+          <div><button className="btn-primary" onClick={save} disabled={saving || !desktopAvailable}>{saving ? 'Speichere …' : 'Profil speichern'}</button></div>
+        </fieldset>
+      )}
+    </section>
+  );
+}
 
 function ToggleRow({
   label,
@@ -147,6 +260,7 @@ export function SettingsView() {
       title="Einstellungen"
       description="API-Schlüssel und die Standard-Vorgaben für neue Dokumente."
     >
+      <ProfileSection />
       {/* Abschnitt 1: Standard-Vorgaben */}
       <section style={{
         padding: '1.25rem', border: '1px solid var(--color-border)',

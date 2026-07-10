@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Circle, Info, KeyRound } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import type { AppState, AppAction } from '../lib/types';
 import { LLM_PROVIDERS } from '../lib/constants';
 import { getModelInfo } from '../lib/models';
 import { ensurePrimaryProviderKey } from '../lib/providerSetup';
+import { loadTeacherProfile } from '../lib/profile';
+import { loadSettings } from '../lib/storage';
 import { CREATIVITY_PRESETS, getCreativityLabel } from '../lib/creativity';
 import { ProviderLogo } from './ProviderLogos';
 
@@ -28,6 +30,20 @@ export function Step3_LLMOptions({ state, dispatch, onNavigateToSettings }: Prop
   // Prüft, ob für den gewählten Provider ein API-Key hinterlegt ist. Verhindert,
   // dass die Lehrkraft erst beim Generieren (Schritt 5) am fehlenden Key scheitert.
   const [keyState, setKeyState] = useState<'unbekannt' | 'vorhanden' | 'fehlt'>('unbekannt');
+  const profileApplied = useRef(false);
+  useEffect(() => {
+    if (state.auftrag || profileApplied.current) return;
+    let active = true;
+    const appDefaults = loadSettings();
+    loadTeacherProfile().then((profile) => {
+      if (!active || !profile || profileApplied.current) return;
+      profileApplied.current = true;
+      if (state.llmProvider === appDefaults.defaultProvider) dispatch({ type: 'SET_LLM_PROVIDER', provider: profile.standardProvider as AppState['llmProvider'] });
+      if (state.modelName === appDefaults.defaultModel) dispatch({ type: 'SET_MODEL_NAME', name: profile.standardModel });
+      if (Math.abs(state.kreativitaet - appDefaults.defaultKreativitaet) < 0.001) dispatch({ type: 'SET_KREATIVITAET', value: profile.standardKreativitaet });
+    }).catch(() => { /* globale Defaults bleiben aktiv. */ });
+    return () => { active = false; };
+  }, [dispatch, state.auftrag, state.kreativitaet, state.llmProvider, state.modelName]);
   useEffect(() => {
     let abbruch = false;
     if (!state.llmProvider || !isTauri()) { setKeyState('unbekannt'); return; }

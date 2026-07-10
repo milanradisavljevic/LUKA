@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import type { PoolEntry, PoolFilter, PoolEntryInput } from '../lib/pool';
+import { loadTeacherProfile, sortPoolByProfileSubjects } from '../lib/profile';
 
 async function invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
   const { invoke: tauriInvoke } = await import('@tauri-apps/api/core');
@@ -16,7 +17,8 @@ export function useAufgabenPool() {
     setError(null);
     try {
       const result = await invoke<PoolEntry[]>('pool_list', { filter: filter ?? null });
-      setEntries(result);
+      const profile = await loadTeacherProfile();
+      setEntries(sortPoolByProfileSubjects(result, profile?.faecher ?? []));
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       setError(msg);

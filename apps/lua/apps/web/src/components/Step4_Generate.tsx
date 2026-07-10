@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Loader2, Sparkles, FileDown, ClipboardList, FileType, CheckCircle2,
   AlertTriangle, Timer, Bot, X, Palette, BookOpen, Target, ShieldCheck,
@@ -17,6 +17,7 @@ import { checkLernzielCoverage, checkSchreibaufgabe } from '@lehrunterlagen/llm'
 import { fachLabel } from '@lehrunterlagen/schema';
 import { RENDER_TEMPLATES, RENDER_LAYOUTS } from '@lehrunterlagen/renderer';
 import { transformiereLeicht, findeOffeneBlockIds } from '../lib/niveauTransform';
+import { DEFAULT_LEHRER_PROFIL, loadTeacherProfile } from '../lib/profile';
 
 
 function isTauri(): boolean {
@@ -48,6 +49,21 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
   const [showWeitere, setShowWeitere] = useState(false);
   const [niveauLeicht, setNiveauLeicht] = useState(false);
   const [niveauSchwer, setNiveauSchwer] = useState(false);
+  const [exportOptions, setExportOptions] = useState({
+    docx: DEFAULT_LEHRER_PROFIL.exportDocx,
+    pdf: DEFAULT_LEHRER_PROFIL.exportPdf,
+    loesung: DEFAULT_LEHRER_PROFIL.exportLoesung,
+    erwartungshorizont: DEFAULT_LEHRER_PROFIL.exportErwartungshorizont,
+  });
+  useEffect(() => {
+    let active = true;
+    loadTeacherProfile().then((profile) => {
+      if (!active || !profile) return;
+      setExportOptions({ docx: profile.exportDocx, pdf: profile.exportPdf, loesung: profile.exportLoesung, erwartungshorizont: profile.exportErwartungshorizont });
+      if (profile.exportPdf) setShowWeitere(true);
+    }).catch(() => { /* bestehende Exportdefaults bleiben aktiv. */ });
+    return () => { active = false; };
+  }, []);
 
   // Fortschritts-Anzeige je Stage
   const stageMeta: Record<string, { label: string; step: number }> = {
@@ -73,6 +89,7 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
     && (isKompetenz || state.quelltexte.length > 0);
   const canExport = !!state.generiertesDokument;
   const error = generateError ?? exportError ?? pdfExport.error;
+  const exportButtonLabel = exportOptions.loesung ? 'Beide Dokumente exportieren' : 'Schülerfassung exportieren';
 
   const totalPunkte = state.bloecke.reduce((s, b) => s + b.punkte, 0);
   const previewBloecke = state.generiertesDokument?.bloecke ?? state.bloecke;
@@ -105,11 +122,12 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
       setPendingExportIssues(issues);
       return;
     }
-    await exportDocx(state);
+    if (!exportOptions.docx) return;
+    await exportDocx(state, exportOptions.loesung);
   };
   const confirmExport = async () => {
     setPendingExportIssues(null);
-    await exportDocx(state);
+    await exportDocx(state, exportOptions.loesung);
   };
 
   // Exportiert nur die angehakten Zusatz-Niveaus (Mittel = Haupt-Export „Beide Dokumente").
@@ -284,12 +302,12 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
         <p style={{ fontSize: '0.8125rem', margin: 0, color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
           Beim Export entstehen:{' '}
           <span className="badge badge-info">Schülerfassung (DOCX)</span>{' '}
-          <span className="badge badge-info">Lösung (DOCX)</span>{' '}
+          {exportOptions.loesung && <span className="badge badge-info">Lösung (DOCX)</span>}{' '}
           <span className="badge badge-info">Korrekturraster</span>
           {isKompetenz && !isFrei && (
             <>{' '}<span className="badge badge-info">Kompetenznachweis</span></>
           )}{' '}
-          <span className="badge badge-info">optional PDF</span>
+          {exportOptions.pdf && <span className="badge badge-info">PDF vorgemerkt</span>}
         </p>
       </div>
 
@@ -303,6 +321,14 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
           padding: '1rem', border: '1px solid var(--color-border)',
           borderRadius: 'var(--radius)',
         }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem 0.9rem', padding: '0.5rem 0.65rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', fontSize: '0.75rem' }}>
+            <strong style={{ width: '100%' }}>Exportvorgaben für diese Unterlage</strong>
+            <label><input type="checkbox" checked={exportOptions.docx} onChange={(e) => setExportOptions((old) => ({ ...old, docx: e.target.checked }))} /> DOCX</label>
+            <label><input type="checkbox" checked={exportOptions.loesung} onChange={(e) => setExportOptions((old) => ({ ...old, loesung: e.target.checked }))} /> Lösung</label>
+            <label><input type="checkbox" checked={exportOptions.pdf} onChange={(e) => { setExportOptions((old) => ({ ...old, pdf: e.target.checked })); if (e.target.checked) setShowWeitere(true); }} /> PDF als Zusatzaktion vormerken</label>
+            <label title="Wird in einer späteren generator-nativen Funktion aktiviert"><input type="checkbox" checked={exportOptions.erwartungshorizont} onChange={(e) => setExportOptions((old) => ({ ...old, erwartungshorizont: e.target.checked }))} /> Erwartungshorizont (später)</label>
+          </div>
+
           <h3 style={{ marginBottom: '0.75rem', fontSize: '0.8125rem' }}>Zusammenfassung</h3>
           <table style={{ width: '100%', fontSize: '0.75rem', borderCollapse: 'collapse' }}>
             <tbody>
@@ -346,15 +372,15 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
           <button
             className="btn-secondary"
             onClick={runExportWithQualityGate}
-            disabled={!canExport || exporting || generating}
-            aria-label="Schülerfassung und Lösung als DOCX exportieren"
+            disabled={!canExport || !exportOptions.docx || exporting || generating}
+            aria-label={exportOptions.loesung ? 'Schülerfassung und Lösung als DOCX exportieren' : 'Schülerfassung als DOCX exportieren'}
             style={{ padding: '0.65rem 1.25rem', fontSize: '0.9375rem',
               opacity: canExport ? 1 : 0.45,
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
           >
             {exporting
               ? <><Loader2 size={16} className="spin" /> Exportiere…</>
-              : <><FileDown size={16} /> Beide Dokumente exportieren</>}
+              : <><FileDown size={16} /> {exportButtonLabel}</>}
           </button>
 
           {/* — Differenzierung (Akkordeon) — Mittel ist der Haupt-Export oben — */}
@@ -550,7 +576,7 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
 
           {canExport && !lastSavedPaths && (
             <p style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', textAlign: 'center', margin: 0 }}>
-              Schülerfassung + Lösung als DOCX · weitere unter „Weitere Exporte"
+              {exportOptions.loesung ? 'Schülerfassung + Lösung als DOCX' : 'Schülerfassung als DOCX'} · weitere unter „Weitere Exporte"
             </p>
           )}
 

@@ -76,3 +76,25 @@ CREATE TABLE IF NOT EXISTS lua_klassen (
     archiviert INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+-- Lokales Lehrerprofil. Singleton (id=1), bewusst ohne Netzwerk-/Account-Bezug.
+CREATE TABLE IF NOT EXISTS lua_lehrerprofil (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    display_name TEXT NOT NULL DEFAULT '',
+    land TEXT NOT NULL DEFAULT 'AT',
+    region_at TEXT NOT NULL DEFAULT '',
+    region_ch TEXT NOT NULL DEFAULT '',
+    region_de TEXT NOT NULL DEFAULT '',
+    schulform TEXT NOT NULL DEFAULT '',
+    faecher_json TEXT NOT NULL DEFAULT '[]',
+    schulstufen_json TEXT NOT NULL DEFAULT '[]',
+    aufgabenformate_json TEXT NOT NULL DEFAULT '[]',
+    standard_provider TEXT NOT NULL DEFAULT 'mistral',
+    standard_model TEXT NOT NULL DEFAULT 'Mistral Medium 3.5',
+    standard_kreativitaet REAL NOT NULL DEFAULT 0.4,
+    export_docx INTEGER NOT NULL DEFAULT 1,
+    export_pdf INTEGER NOT NULL DEFAULT 0,
+    export_loesung INTEGER NOT NULL DEFAULT 1,
+    export_erwartungshorizont INTEGER NOT NULL DEFAULT 0,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);

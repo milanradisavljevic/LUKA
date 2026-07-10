@@ -7,6 +7,15 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Lokales Lehrerprofil (Phase 1)
+- Neues lokal gespeichertes Lehrerprofil in der LUA-SQLite-Datenbank:
+  Anzeigename/Kürzel, Land/Region, Schulform, Fächer, Schulstufen,
+  Aufgabenformate, Standard-Provider/-Modell/-Kreativität und Exportvorgaben.
+  Die Angaben bleiben auf dem Gerät; es gibt keinen Opt-in-Rückkanal und keine
+  Community-Übertragung. Einstellungen haben dafür einen Abschnitt „Mein
+  Profil", Wizard/Provider/Export übernehmen Profilwerte nur als Defaults für
+  neue Unterlagen, und der Aufgaben-Pool sortiert Profilfächer stabil nach vorn.
+
 ### Added — Eigener Update-Dialog + Release-Notes im Updater
 - Native `ask()`/`message()`-Dialoge beim Auto-Update ersetzt durch
   `UpdateDialog` im App-Design („Tinte & Papier"): zeigt Version, Release-
