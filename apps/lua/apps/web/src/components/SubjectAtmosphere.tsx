@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react';
 import type { Fach } from '@lehrunterlagen/schema';
+import teacherDeskLineart from '../assets/subject-atmospheres/neutral/teacher-desk-lineart-cluster.webp';
 import deutschLiteratureLineart from '../assets/subject-atmospheres/deutsch/literature-goethe-schiller-lineart-cluster.webp';
 import englischLineart from '../assets/subject-atmospheres/englisch/english-bigben-lineart-cluster.webp';
 import ethikLineart from '../assets/subject-atmospheres/ethik/ethics-lineart-cluster.webp';
@@ -44,7 +45,7 @@ type Motif =
   | 'topography';
 
 type MotifRole = 'hero' | 'support' | 'trace';
-type AssetRole = 'neutral' | 'portrait' | 'support';
+type AssetRole = 'neutral' | 'start' | 'portrait' | 'support';
 
 interface MotifPlacement {
   motif: Motif;
@@ -66,8 +67,10 @@ interface SubjectAtmosphereSpec {
   assets?: AssetPlacement[];
 }
 
+type AtmosphereSubject = Fach | 'neutral';
+
 interface SubjectAtmosphereProps {
-  fach: Fach;
+  fach: AtmosphereSubject;
   enabled: boolean;
   reduced?: boolean;
 }
@@ -79,6 +82,26 @@ const SMALL = 'clamp(82px, 8vw, 132px)';
 const EDGE_SAFE_OFFSET = 'clamp(-96px, -4.5vw, -32px)';
 const EDGE_SAFE_BOTTOM = 'clamp(12px, 1.8vh, 34px)';
 const EDGE_SAFE_WIDTH = 'clamp(700px, 58vw, 1040px)';
+
+const NEUTRAL_ATMOSPHERE: SubjectAtmosphereSpec = {
+  field: 'text',
+  motifs: [],
+  assets: [
+    {
+      // Freigestelltes Bleistift-Stillleben (transparentes WebP, Tinte schwarz
+      // wie die Fach-Assets — Sepia/Dark-Mode kommen aus murals.css).
+      // Unten rechts verankert, blutet leicht über den Rand.
+      src: teacherDeskLineart,
+      alt: '',
+      role: 'start',
+      style: {
+        right: 'clamp(-140px, -5vw, -32px)',
+        bottom: 'clamp(-24px, -1.5vh, 0px)',
+        width: 'clamp(680px, 56vw, 1060px)',
+      },
+    },
+  ],
+};
 
 const SUBJECT_ATMOSPHERES: Record<Fach, SubjectAtmosphereSpec> = {
   deutsch: {
@@ -332,7 +355,7 @@ const FALLBACK: SubjectAtmosphereSpec = {
 export function SubjectAtmosphere({ fach, enabled, reduced = false }: SubjectAtmosphereProps) {
   if (!enabled) return null;
 
-  const spec = SUBJECT_ATMOSPHERES[fach] ?? FALLBACK;
+  const spec = fach === 'neutral' ? NEUTRAL_ATMOSPHERE : (SUBJECT_ATMOSPHERES[fach] ?? FALLBACK);
   const motifs = reduced
     ? spec.motifs.filter((motif) => motif.role === 'hero').slice(0, 1)
     : spec.motifs;

@@ -15,6 +15,15 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 - **Neues Update-Fenster:** Updates erscheinen jetzt im LUKA-Design und
   zeigen — so wie hier — was neu ist.
 
+### Fixed — Neutrale Übersichts-Grafik (kein Fach gewählt) freigestellt
+- Das Schreibtisch-Stillleben für „kein Fach ausgewählt" war ein JPG mit
+  eingebackenem Papierhintergrund — sichtbare Rechteckkante, verwaschen,
+  im Dark Mode ein invertierter Kasten. Jetzt freigestelltes transparentes
+  WebP (Luminanz→Alpha, schwarze Tinte wie die Fach-Assets, Papierkorn per
+  Rauschschwelle entfernt, auf das Motiv beschnitten), unten rechts verankert
+  statt mittig schwebend. Sepia/Dark-Mode-Behandlung kommt unverändert aus
+  `murals.css`.
+
 ### Added — Lokales Lehrerprofil (Phase 1)
 - Neues lokal gespeichertes Lehrerprofil in der LUA-SQLite-Datenbank:
   Anzeigename/Kürzel, Land/Region, Schulform, Fächer, Schulstufen,
