@@ -7,6 +7,21 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Zweites Fachpaket „Medien & Demokratie" (v2)
+- `samples/fachpakete/luka-fachpaket-medien-demokratie-v2.json`: 6 kuratierte
+  Oberstufen-Aufgaben (Stufe 9–12) — personalisierte Feeds, Quellencheck,
+  Medienformate, politische Online-Werbung, Redaktionskonferenz
+  (Rollenkarten) und demokratische Beteiligung. Import wie gehabt über
+  „Fachpaket importieren".
+
+### Fixed — Fachpaket-Qualität
+- Antwortmuster in beiden Paketen durchmischt (Multiple-Choice-Lösungen
+  waren teils durchgängig „A", Matching-Zuordnungen liefen 1→A…6→F der
+  Reihe nach — für Schüler:innen ratbar).
+- v2-Paket: Musterlösung der Schreibaufgabe war wegen falsch escapter
+  Zeilenumbrüche nicht ladbar; Rollenkarten-Set auf das Schema-Maximum von
+  3 Rollen reduziert („Publikum" in die Chefredaktion gefaltet).
+
 ### Added — macOS-Build (unsigniert) in der Release-Pipeline
 - `release.yml` baut jetzt per Matrix zusätzlich ein universelles
   macOS-Bundle (Intel + Apple Silicon, `--target universal-apple-darwin`)
