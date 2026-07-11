@@ -23,6 +23,10 @@ jobs:
     name: ${{ matrix.name }} bauen & veröffentlichen
     strategy:
       fail-fast: false
+      # Beide Plattformen aktualisieren dasselbe GitHub-Release und dieselbe
+      # latest.json. Nacheinander verhindert, dass tauri-action parallel
+      # dasselbe Release anlegt oder seine Assets überschreibt.
+      max-parallel: 1
       matrix:
         include:
           - os: windows-latest

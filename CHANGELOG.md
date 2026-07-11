@@ -55,6 +55,8 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 - README und `docs/ANLEITUNG.md`: neuer Installations-Abschnitt mit
   Gatekeeper-Anleitung (macOS 15: Systemeinstellungen → Datenschutz &
   Sicherheit → „Dennoch öffnen").
+- Die Windows- und macOS-Builds aktualisieren das gemeinsame Release nun
+  nacheinander, damit beide Plattformen zuverlässig veröffentlicht werden.
 
 **Das ist neu:**
 
