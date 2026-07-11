@@ -20,6 +20,13 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
   erscheint als zweizeilige Herkunftszeile auf der Karte, voller Text per
   Tooltip. Selbst gespeicherte Aufgaben bleiben unverändert.
 
+### Added — Fachpaket-Validator (Tooling + CI)
+- `scripts/validate-fachpakete.mjs` prüft `samples/fachpakete/*.json` gegen
+  das Block-Schema (Pflichtfelder, doppelte ids, tags/blockJson-Parse mit
+  Escaping-Hinweis, `typ`-Abgleich) und warnt bei ratbaren Antwortmustern.
+  Läuft pfad-gefiltert in CI (`ci.yml`); AGENTS.md Goldene Regel 7 verlangt
+  den Lauf vor jedem Fachpaket-Commit.
+
 ### Fixed — Fachpaket-Qualität
 - Antwortmuster in beiden Paketen durchmischt (Multiple-Choice-Lösungen
   waren teils durchgängig „A", Matching-Zuordnungen liefen 1→A…6→F der

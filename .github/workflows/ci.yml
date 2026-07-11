@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       natascha: ${{ steps.filter.outputs.natascha }}
+      fachpakete: ${{ steps.filter.outputs.fachpakete }}
     steps:
       - uses: actions/checkout@v4
       - id: filter
@@ -19,6 +20,10 @@ jobs:
           filters: |
             natascha:
               - 'apps/natascha/**'
+            fachpakete:
+              - 'samples/fachpakete/**'
+              - 'apps/lua/packages/schema/src/**'
+              - 'scripts/validate-fachpakete.mjs'
 
   web:
     name: LUA — typecheck & test
@@ -132,3 +137,28 @@ jobs:
       # Wächter: natascha_db.py SCHEMA_SQL vs. src-tauri natascha_schema.sql
       # (E3). Stdlib-only, kein pip nötig.
       - run: python3 scripts/check_natascha_schema_sync.py
+
+  fachpakete:
+    needs: changes
+    if: needs.changes.outputs.fachpakete == 'true'
+    name: Fachpakete — Block-Schema validieren
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/lua
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: apps/lua/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      # validate-fachpakete.mjs importiert BlockSchema aus dist/ → erst bauen.
+      - run: pnpm --filter "./packages/*" build
+      - name: Fachpaket-Pools validieren
+        working-directory: .
+        run: node scripts/validate-fachpakete.mjs

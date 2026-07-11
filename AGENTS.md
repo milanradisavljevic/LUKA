@@ -28,6 +28,15 @@ bevor du Code änderst.
    nutzersichtbaren Punkte so formulieren, dass eine Lehrkraft sie versteht
    (kurz, ohne Implementierungsdetail) — die App zeigt diese Notes im
    Update-Dialog an (`releaseBody` → `latest.json` → `update.body`).
+7. **Fachpaket-JSONs vor dem Commit validieren.** `samples/fachpakete/*.json`
+   werden vom Rust-Import **nicht** gegen das Block-Schema geprüft — Fehler
+   fallen sonst erst beim Laden in der App auf. Vor jedem Commit an diesen
+   Dateien: `node scripts/validate-fachpakete.mjs` (braucht ein gebautes
+   `packages/schema`, siehe oben) muss ohne FAIL durchlaufen; dieselbe Prüfung
+   läuft auch in CI. Wichtigste Stolperfalle: `blockJson`-Strings brauchen
+   **doppelt** escapte Zeilenumbrüche (`\\n`, nicht `\n`), da sie selbst JSON
+   innerhalb von JSON sind. Schema-Limits (z. B. max. Rollen bei
+   `rollenkartenSet`) stehen in `apps/lua/packages/schema/src/index.ts`.
 
 ## Struktur
 
