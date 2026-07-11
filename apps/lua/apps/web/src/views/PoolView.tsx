@@ -56,9 +56,9 @@ export function PoolView({ onInsertBlock }: Props) {
   const handleExport = async () => {
     setTransferLaeuft(true);
     try {
-      const anzahl = await exportPoolPaket();
-      if (anzahl !== null) {
-        setToast({ id: Date.now(), kind: 'info', text: `${anzahl} Aufgabe(n) als Fachpaket exportiert.` });
+      const ergebnis = await exportPoolPaket();
+      if (ergebnis !== null) {
+        setToast({ id: Date.now(), kind: 'info', text: `${ergebnis.anzahl} Aufgabe(n) als Fachpaket exportiert: ${ergebnis.pfad}` });
       }
     } catch (e) {
       setToast({ id: Date.now(), kind: 'error', text: `Export fehlgeschlagen: ${e instanceof Error ? e.message : String(e)}` });

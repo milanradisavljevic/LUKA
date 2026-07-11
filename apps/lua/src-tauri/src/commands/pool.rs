@@ -203,6 +203,15 @@ fn lese_pool_datei(path: &str) -> Result<Vec<PoolEntry>, String> {
         .map_err(|e| format!("Kein gültiges Pool-Paket (erwartet JSON-Array von Aufgaben): {}", e))
 }
 
+/// Liest ein Pool-Paket für die Frontend-Validierung, ohne in die DB zu schreiben.
+#[tauri::command]
+pub async fn pool_read_entries(path: String) -> Result<serde_json::Value, String> {
+    let raw = std::fs::read_to_string(&path)
+        .map_err(|e| format!("Datei nicht lesbar: {}", e))?;
+    serde_json::from_str::<serde_json::Value>(&raw)
+        .map_err(|e| format!("Datei enthält kein gültiges JSON: {}", e))
+}
+
 pub(crate) fn import_preview_impl(
     conn: &rusqlite::Connection,
     entries: &[PoolEntry],
@@ -286,6 +295,16 @@ pub async fn pool_import_preview(
     import_preview_impl(&guard, &entries)
 }
 
+/// Vorschau für bereits gelesene und im Frontend validierte Einträge.
+#[tauri::command]
+pub async fn pool_import_preview_entries(
+    state: tauri::State<'_, DbState>,
+    entries: Vec<PoolEntry>,
+) -> Result<PoolImportPreview, String> {
+    let guard = state.conn()?;
+    import_preview_impl(&guard, &entries)
+}
+
 #[tauri::command]
 pub async fn pool_import(
     state: tauri::State<'_, DbState>,
@@ -293,6 +312,17 @@ pub async fn pool_import(
     ueberschreiben: bool,
 ) -> Result<PoolImportReport, String> {
     let entries = lese_pool_datei(&path)?;
+    let guard = state.conn()?;
+    import_impl(&guard, &entries, ueberschreiben)
+}
+
+/// Importiert die Einträge, die zuvor im Frontend gegen das Block-Schema geprüft wurden.
+#[tauri::command]
+pub async fn pool_import_entries(
+    state: tauri::State<'_, DbState>,
+    entries: Vec<PoolEntry>,
+    ueberschreiben: bool,
+) -> Result<PoolImportReport, String> {
     let guard = state.conn()?;
     import_impl(&guard, &entries, ueberschreiben)
 }

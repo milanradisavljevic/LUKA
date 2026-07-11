@@ -7,6 +7,16 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+## Version 1.0.3 — 2026-07-11
+
+### Added — Drittes Fachpaket und robuster Fachpaket-Import
+- Das neue Fachpaket „Informatik & KI — Ausbaupaket" ergänzt sieben Aufgaben
+  zu Passwörtern, Bias, Algorithmen, Datenspuren, Promptkritik und KI-Inhalten.
+- Fachpaket-Dateien werden vor dem Import vollständig geprüft. Fehler werden
+  verständlich angezeigt; ungültige Pakete verändern den lokalen Pool nicht.
+- Der Export zeigt jetzt Anzahl und Speicherpfad an und bleibt mit dem
+  bestehenden Pool-JSON-Format kompatibel.
+
 ### Added — Zweites Fachpaket „Medien & Demokratie" (v2)
 - `samples/fachpakete/luka-fachpaket-medien-demokratie-v2.json`: 6 kuratierte
   Oberstufen-Aufgaben (Stufe 9–12) — personalisierte Feeds, Quellencheck,
@@ -45,8 +55,6 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 - README und `docs/ANLEITUNG.md`: neuer Installations-Abschnitt mit
   Gatekeeper-Anleitung (macOS 15: Systemeinstellungen → Datenschutz &
   Sicherheit → „Dennoch öffnen").
-
-## Version 1.0.3 — 2026-07-10
 
 **Das ist neu:**
 

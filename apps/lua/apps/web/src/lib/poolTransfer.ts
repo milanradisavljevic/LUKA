@@ -1,6 +1,7 @@
 import { fachLabel } from '@lehrunterlagen/schema';
 import type { Fach } from '@lehrunterlagen/schema';
 import type { PoolImportPreview, PoolImportReport } from './pool';
+import { formatPoolValidationIssues, validatePoolEntries } from './poolValidation';
 
 async function invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
   const { invoke: tauriInvoke } = await import('@tauri-apps/api/core');
@@ -10,6 +11,12 @@ async function invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T
 export interface ImportErgebnis {
   abgebrochen: boolean;
   report?: PoolImportReport;
+  dateiname?: string;
+}
+
+export interface ExportErgebnis {
+  anzahl: number;
+  pfad: string;
 }
 
 /**
@@ -27,11 +34,24 @@ export async function importPoolPaket(): Promise<ImportErgebnis> {
   });
   if (typeof pfad !== 'string') return { abgebrochen: true };
 
-  const preview = await invoke<PoolImportPreview>('pool_import_preview', { path: pfad });
+  const dateiname = pfad.split(/[\\/]/).pop() ?? pfad;
+  const geleseneEintraege = await invoke<unknown>('pool_read_entries', { path: pfad });
+  const validierung = validatePoolEntries(geleseneEintraege);
+  if (!validierung.valid) {
+    await message(
+      'Datei: ' + dateiname + '\n\nDas Fachpaket wurde nicht importiert, weil es ' + validierung.issues.length +
+        ' Fehler enthält:\n\n' + formatPoolValidationIssues(validierung.issues),
+      { title: 'Fachpaket abgelehnt', kind: 'error' },
+    );
+    return { abgebrochen: true, dateiname };
+  }
+
+  const entries = validierung.entries;
+  const preview = await invoke<PoolImportPreview>('pool_import_preview_entries', { entries });
 
   if (preview.gesamt === 0) {
-    await message('Die Datei enthält keine Aufgaben.', { title: 'Fachpaket leer', kind: 'warning' });
-    return { abgebrochen: true };
+    await message('Die Datei „' + dateiname + '" enthält keine Aufgaben.', { title: 'Fachpaket leer', kind: 'warning' });
+    return { abgebrochen: true, dateiname };
   }
 
   const fachZeilen = preview.jeFach
@@ -43,25 +63,25 @@ export async function importPoolPaket(): Promise<ImportErgebnis> {
   const weiter = await ask(
     `${preview.gesamt} Aufgabe(n) gefunden:\n${fachZeilen}\n` +
       `${preview.mitQuelle} mit Herkunftsvermerk.${dupZeile}\n\nJetzt importieren?`,
-    { title: 'Fachpaket importieren', kind: 'info', okLabel: 'Importieren', cancelLabel: 'Abbrechen' },
+    { title: 'Fachpaket importieren: ' + dateiname, kind: 'info', okLabel: 'Importieren', cancelLabel: 'Abbrechen' },
   );
-  if (!weiter) return { abgebrochen: true };
+  if (!weiter) return { abgebrochen: true, dateiname };
 
   let ueberschreiben = false;
   if (preview.duplikate > 0) {
     ueberschreiben = await ask(
       `${preview.duplikate} Aufgabe(n) existieren bereits.\n\n` +
         'Vorhandene durch die Paket-Version ersetzen? („Nein" behält deine lokalen Versionen.)',
-      { title: 'Duplikate gefunden', kind: 'warning', okLabel: 'Ersetzen', cancelLabel: 'Behalten' },
+      { title: 'Duplikate in ' + dateiname, kind: 'warning', okLabel: 'Ersetzen', cancelLabel: 'Behalten' },
     );
   }
 
-  const report = await invoke<PoolImportReport>('pool_import', { path: pfad, ueberschreiben });
-  return { abgebrochen: false, report };
+  const report = await invoke<PoolImportReport>('pool_import_entries', { entries, ueberschreiben });
+  return { abgebrochen: false, report, dateiname };
 }
 
 /** Exportiert den gesamten lokalen Pool als teilbare Fachpaket-Datei. */
-export async function exportPoolPaket(): Promise<number | null> {
+export async function exportPoolPaket(): Promise<ExportErgebnis | null> {
   const { save } = await import('@tauri-apps/plugin-dialog');
 
   const datum = new Date().toISOString().slice(0, 10);
@@ -72,5 +92,6 @@ export async function exportPoolPaket(): Promise<number | null> {
   });
   if (typeof pfad !== 'string') return null;
 
-  return invoke<number>('pool_export', { path: pfad });
+  const anzahl = await invoke<number>('pool_export', { path: pfad });
+  return { anzahl, pfad };
 }
