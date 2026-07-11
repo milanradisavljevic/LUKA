@@ -43,6 +43,39 @@ pub fn open_db() -> Result<Connection, String> {
 pub fn init_schema(conn: &Connection) -> Result<(), String> {
     conn.execute_batch(NATASCHA_SCHEMA_SQL).map_err(|e| format!("NATASCHA-Schema fehlgeschlagen: {}", e))?;
     conn.execute_batch(LUA_SCHEMA_SQL).map_err(|e| format!("LUA-Schema fehlgeschlagen: {}", e))?;
+    migrate_pool_local_metadata(conn)?;
+    Ok(())
+}
+
+/// Ergänzt lokale Pool-Metadaten auch in bereits vorhandenen Datenbanken.
+/// Diese Felder gehören nicht zum exportierten PoolEntry-Format.
+fn migrate_pool_local_metadata(conn: &Connection) -> Result<(), String> {
+    let mut stmt = conn
+        .prepare("PRAGMA table_info(aufgabe_pool)")
+        .map_err(|e| format!("Pool-Migration vorbereiten fehlgeschlagen: {}", e))?;
+    let columns: std::collections::HashSet<String> = stmt
+        .query_map([], |row| row.get::<_, String>(1))
+        .map_err(|e| format!("Pool-Migration lesen fehlgeschlagen: {}", e))?
+        .collect::<Result<_, _>>()
+        .map_err(|e| format!("Pool-Migration auswerten fehlgeschlagen: {}", e))?;
+
+    if !columns.contains("is_favorite") {
+        conn.execute_batch("ALTER TABLE aufgabe_pool ADD COLUMN is_favorite INTEGER NOT NULL DEFAULT 0;")
+            .map_err(|e| format!("Pool-Migration Favorit fehlgeschlagen: {}", e))?;
+    }
+    if !columns.contains("quality_status") {
+        conn.execute_batch("ALTER TABLE aufgabe_pool ADD COLUMN quality_status TEXT NOT NULL DEFAULT 'unbewertet';")
+            .map_err(|e| format!("Pool-Migration Status fehlgeschlagen: {}", e))?;
+    }
+    if !columns.contains("last_used_at") {
+        conn.execute_batch("ALTER TABLE aufgabe_pool ADD COLUMN last_used_at TEXT;")
+            .map_err(|e| format!("Pool-Migration Nutzung fehlgeschlagen: {}", e))?;
+    }
+    conn.execute_batch(
+        "CREATE INDEX IF NOT EXISTS idx_pool_quality_status ON aufgabe_pool(quality_status);
+         CREATE INDEX IF NOT EXISTS idx_pool_last_used ON aufgabe_pool(last_used_at);",
+    )
+    .map_err(|e| format!("Pool-Migration Indizes fehlgeschlagen: {}", e))?;
     Ok(())
 }
 
@@ -117,4 +150,35 @@ pub fn migrate_from_localstorage(conn: &Connection, payload: &serde_json::Value)
         }
     }
     Ok(count)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn pool_metadata_migration_ergaenzt_alte_datenbank() {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(
+            "CREATE TABLE aufgabe_pool (
+                id TEXT PRIMARY KEY, fach TEXT NOT NULL, stufe TEXT NOT NULL,
+                schulstufe INTEGER, thema TEXT, aufgabentyp TEXT NOT NULL,
+                tags TEXT, block_json TEXT NOT NULL, quelle_hinweis TEXT,
+                created_at TEXT NOT NULL
+            );",
+        ).unwrap();
+
+        init_schema(&conn).unwrap();
+
+        let columns: std::collections::HashSet<String> = conn
+            .prepare("PRAGMA table_info(aufgabe_pool)")
+            .unwrap()
+            .query_map([], |row| row.get::<_, String>(1))
+            .unwrap()
+            .collect::<Result<_, _>>()
+            .unwrap();
+        assert!(columns.contains("is_favorite"));
+        assert!(columns.contains("quality_status"));
+        assert!(columns.contains("last_used_at"));
+    }
 }

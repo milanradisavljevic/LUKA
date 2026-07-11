@@ -72,7 +72,7 @@ export function clearTeacherProfileCache(): void {
 }
 
 /** Stable Sortierung: Profilfächer zuerst, bestehende Reihenfolge sonst unverändert. */
-export function sortPoolByProfileSubjects(entries: PoolEntry[], subjects: string[]): PoolEntry[] {
+export function sortPoolByProfileSubjects<T extends PoolEntry>(entries: T[], subjects: string[]): T[] {
   if (subjects.length === 0) return entries;
   const preferred = new Set(subjects);
   return entries

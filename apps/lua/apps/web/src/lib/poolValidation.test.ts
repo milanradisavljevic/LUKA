@@ -46,8 +46,8 @@ describe('Pool-Paket-Validierung', () => {
 
   it('lehnt kein Array, ungültige Tags und kaputtes blockJson ab', () => {
     expect(validatePoolEntries({}).valid).toBe(false);
-    expect(validatePoolEntries([entry({ tags: 'kaputt' })]).issues[0].message).toContain('tags');
-    expect(validatePoolEntries([entry({ blockJson: '{ kaputt' })]).issues[0].message).toContain('blockJson');
+    expect(validatePoolEntries([entry({ tags: 'kaputt' })]).issues[0]?.message ?? '').toContain('tags');
+    expect(validatePoolEntries([entry({ blockJson: '{ kaputt' })]).issues[0]?.message ?? '').toContain('blockJson');
   });
 
   it('prüft typ-Abgleich und Block-Schema', () => {

@@ -13,6 +13,16 @@ export interface PoolEntry {
   createdAt: string;
 }
 
+export type PoolQualityStatus = 'unbewertet' | 'getestet' | 'empfohlen' | 'zurueckgestellt';
+
+/** PoolEntry plus lokale Organisationsdaten aus der App-Datenbank.
+ * Diese Zusatzfelder gehören bewusst nicht zum teilbaren Pool-JSON. */
+export interface PoolRecord extends PoolEntry {
+  isFavorite: boolean;
+  qualityStatus: PoolQualityStatus;
+  lastUsedAt: string | null;
+}
+
 export interface PoolFilter {
   fach?: string;
   stufe?: string;

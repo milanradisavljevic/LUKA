@@ -1,9 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
-import { X, Search, Filter, Database, Upload, Download, Star, BadgeCheck } from 'lucide-react';
+import { X, Search, Database, Upload, Download, Star, BadgeCheck } from 'lucide-react';
 import { fachLabel, FACH_META } from '@lehrunterlagen/schema';
 import type { Block, Fach, Stufe, BlockTyp } from '@lehrunterlagen/schema';
 import { useAufgabenPool } from '../hooks/useAufgabenPool';
 import { parsePoolBlock, parsePoolTags, isKuratiert } from '../lib/pool';
+import type { PoolQualityStatus } from '../lib/pool';
 import { importPoolPaket, exportPoolPaket } from '../lib/poolTransfer';
 import { loadTeacherProfile } from '../lib/profile';
 import { Toast, type ToastMessage } from '../components/Toast';
@@ -18,11 +19,14 @@ interface Props {
 }
 
 export function PoolView({ onInsertBlock }: Props) {
-  const { entries, loading, error, refresh, remove } = useAufgabenPool();
+  const { entries, loading, error, refresh, remove, toggleFavorite, setQualityStatus, markUsed } = useAufgabenPool();
   const [search, setSearch] = useState('');
   const [filterFach, setFilterFach] = useState<string>('');
   const [filterStufe, setFilterStufe] = useState<string>('');
   const [filterTyp, setFilterTyp] = useState<string>('');
+  const [filterHerkunft, setFilterHerkunft] = useState<'alle' | 'kuratiert' | 'lokal'>('alle');
+  const [filterStatus, setFilterStatus] = useState<PoolQualityStatus | 'alle'>('alle');
+  const [sortierung, setSortierung] = useState<'neueste' | 'zuletztVerwendet' | 'empfohlen'>('neueste');
   const [toast, setToast] = useState<ToastMessage | null>(null);
   const [transferLaeuft, setTransferLaeuft] = useState(false);
   const [profilFaecher, setProfilFaecher] = useState<string[]>([]);
@@ -67,11 +71,15 @@ export function PoolView({ onInsertBlock }: Props) {
     }
   };
 
-  const filteredEntries = useMemo(() => {
-    return entries.filter((entry) => {
+  const visibleEntries = useMemo(() => {
+    const filtered = entries.filter((entry) => {
       if (filterFach && entry.fach !== filterFach) return false;
       if (filterStufe && entry.stufe !== filterStufe) return false;
       if (filterTyp && entry.aufgabentyp !== filterTyp) return false;
+      const kuratiert = isKuratiert(parsePoolTags(entry.tags));
+      if (filterHerkunft === 'kuratiert' && !kuratiert) return false;
+      if (filterHerkunft === 'lokal' && kuratiert) return false;
+      if (filterStatus !== 'alle' && entry.qualityStatus !== filterStatus) return false;
       if (search) {
         const s = search.toLowerCase();
         const tags = parsePoolTags(entry.tags).join(' ').toLowerCase();
@@ -82,7 +90,19 @@ export function PoolView({ onInsertBlock }: Props) {
       }
       return true;
     });
-  }, [entries, search, filterFach, filterStufe, filterTyp]);
+    return [...filtered].sort((a, b) => {
+      if (sortierung === 'zuletztVerwendet') {
+        return (b.lastUsedAt ?? '').localeCompare(a.lastUsedAt ?? '') || b.createdAt.localeCompare(a.createdAt);
+      }
+      if (sortierung === 'empfohlen') {
+        const statusRank = (status: PoolQualityStatus) => status === 'empfohlen' ? 2 : status === 'getestet' ? 1 : 0;
+        return statusRank(b.qualityStatus) - statusRank(a.qualityStatus) || Number(b.isFavorite) - Number(a.isFavorite) || b.createdAt.localeCompare(a.createdAt);
+      }
+      return b.createdAt.localeCompare(a.createdAt);
+    });
+  }, [entries, search, filterFach, filterStufe, filterTyp, filterHerkunft, filterStatus, sortierung]);
+
+  const filterAktiv = Boolean(filterFach || filterStufe || filterTyp || filterHerkunft !== 'alle' || filterStatus !== 'alle' || search);
 
   const handleDelete = async (id: string, thema: string | null) => {
     if (!window.confirm(`Aufgabe „${thema ?? 'Ohne Titel'}" löschen?`)) return;
@@ -92,6 +112,7 @@ export function PoolView({ onInsertBlock }: Props) {
   const handleInsert = (entry: typeof entries[0]) => {
     const block = parsePoolBlock(entry);
     if (block && onInsertBlock) {
+      void markUsed(entry.id);
       onInsertBlock(block);
     }
   };
@@ -173,10 +194,27 @@ export function PoolView({ onInsertBlock }: Props) {
             <option key={def.id} value={def.id}>{def.label}</option>
           ))}
         </select>
-        {(filterFach || filterStufe || filterTyp || search) && (
+        <select value={filterHerkunft} onChange={(e) => setFilterHerkunft(e.target.value as typeof filterHerkunft)} style={{ fontSize: '0.8125rem', minWidth: '125px' }}>
+          <option value="alle">Alle Herkünfte</option>
+          <option value="kuratiert">Kuratiert</option>
+          <option value="lokal">Eigene Aufgaben</option>
+        </select>
+        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value as typeof filterStatus)} style={{ fontSize: '0.8125rem', minWidth: '135px' }}>
+          <option value="alle">Alle Status</option>
+          <option value="unbewertet">Unbewertet</option>
+          <option value="getestet">Getestet</option>
+          <option value="empfohlen">Empfohlen</option>
+          <option value="zurueckgestellt">Zurückgestellt</option>
+        </select>
+        <select value={sortierung} onChange={(e) => setSortierung(e.target.value as typeof sortierung)} style={{ fontSize: '0.8125rem', minWidth: '145px' }}>
+          <option value="neueste">Neueste zuerst</option>
+          <option value="zuletztVerwendet">Zuletzt verwendet</option>
+          <option value="empfohlen">Empfohlen zuerst</option>
+        </select>
+        {filterAktiv && (
           <button
             className="btn-secondary"
-            onClick={() => { setFilterFach(''); setFilterStufe(''); setFilterTyp(''); setSearch(''); }}
+            onClick={() => { setFilterFach(''); setFilterStufe(''); setFilterTyp(''); setFilterHerkunft('alle'); setFilterStatus('alle'); setSearch(''); }}
             style={{ fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
           >
             <X size={12} /> Filter löschen
@@ -196,7 +234,7 @@ export function PoolView({ onInsertBlock }: Props) {
         </p>
       )}
 
-      {!loading && !error && filteredEntries.length === 0 && (
+      {!loading && !error && visibleEntries.length === 0 && (
         <EmptyState
           icon={Database}
           title={entries.length === 0 ? 'Aufgaben-Pool ist leer' : 'Keine passenden Aufgaben'}
@@ -208,9 +246,9 @@ export function PoolView({ onInsertBlock }: Props) {
         />
       )}
 
-      {filteredEntries.length > 0 && (
+      {visibleEntries.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '0.75rem' }}>
-          {filteredEntries.map((entry) => {
+          {visibleEntries.map((entry) => {
             const tags = parsePoolTags(entry.tags);
             const kuratiert = isKuratiert(tags);
             return (
@@ -242,6 +280,11 @@ export function PoolView({ onInsertBlock }: Props) {
                         title={entry.quelleHinweis ?? 'Redaktionell kuratierte Fachpaket-Aufgabe'}
                       >
                         <BadgeCheck size={10} /> Kuratiert
+                      </span>
+                    )}
+                    {entry.isFavorite && (
+                      <span className="badge badge-context" title="Als Favorit markiert">
+                        <Star size={10} fill="currentColor" /> Favorit
                       </span>
                     )}
                   </p>
@@ -281,9 +324,32 @@ export function PoolView({ onInsertBlock }: Props) {
                   )}
                   <p style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', margin: '0.375rem 0 0' }}>
                     {new Date(entry.createdAt).toLocaleDateString('de-DE')}
+                    {entry.lastUsedAt && <> · zuletzt {new Date(entry.lastUsedAt).toLocaleDateString('de-DE')}</>}
                   </p>
                 </div>
                 <div style={{ display: 'flex', gap: '0.375rem' }}>
+                  <button
+                    className="btn-secondary"
+                    onClick={() => { void toggleFavorite(entry.id, !entry.isFavorite); }}
+                    aria-label={entry.isFavorite ? 'Favorit entfernen' : 'Als Favorit markieren'}
+                    title={entry.isFavorite ? 'Favorit entfernen' : 'Als Favorit markieren'}
+                    aria-pressed={entry.isFavorite}
+                    style={{ display: 'inline-flex', alignItems: 'center', padding: '0.375rem 0.5rem' }}
+                  >
+                    <Star size={15} {...(entry.isFavorite ? { fill: 'currentColor' } : {})} />
+                  </button>
+                  <select
+                    value={entry.qualityStatus}
+                    onChange={(e) => { void setQualityStatus(entry.id, e.target.value as PoolQualityStatus); }}
+                    aria-label={`Status für ${entry.thema ?? 'Aufgabe'}`}
+                    title="Lokalen Qualitätsstatus setzen"
+                    style={{ fontSize: '0.7rem', minWidth: '112px' }}
+                  >
+                    <option value="unbewertet">Unbewertet</option>
+                    <option value="getestet">Getestet</option>
+                    <option value="empfohlen">Empfohlen</option>
+                    <option value="zurueckgestellt">Zurückgestellt</option>
+                  </select>
                   {onInsertBlock && (
                     <button
                       className="btn-primary"

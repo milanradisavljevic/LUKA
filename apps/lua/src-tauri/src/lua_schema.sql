@@ -53,7 +53,10 @@ CREATE TABLE IF NOT EXISTS aufgabe_pool (
     tags TEXT,
     block_json TEXT NOT NULL,
     quelle_hinweis TEXT,
-    created_at TEXT NOT NULL
+    created_at TEXT NOT NULL,
+    is_favorite INTEGER NOT NULL DEFAULT 0,
+    quality_status TEXT NOT NULL DEFAULT 'unbewertet',
+    last_used_at TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_pool_fach ON aufgabe_pool(fach);

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import type { PoolEntry, PoolFilter, PoolEntryInput } from '../lib/pool';
+import type { PoolEntry, PoolFilter, PoolEntryInput, PoolQualityStatus, PoolRecord } from '../lib/pool';
 import { loadTeacherProfile, sortPoolByProfileSubjects } from '../lib/profile';
 
 async function invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
@@ -8,7 +8,7 @@ async function invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T
 }
 
 export function useAufgabenPool() {
-  const [entries, setEntries] = useState<PoolEntry[]>([]);
+  const [entries, setEntries] = useState<PoolRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -16,7 +16,7 @@ export function useAufgabenPool() {
     setLoading(true);
     setError(null);
     try {
-      const result = await invoke<PoolEntry[]>('pool_list', { filter: filter ?? null });
+      const result = await invoke<PoolRecord[]>('pool_list', { filter: filter ?? null });
       const profile = await loadTeacherProfile();
       setEntries(sortPoolByProfileSubjects(result, profile?.faecher ?? []));
     } catch (e) {
@@ -67,9 +67,48 @@ export function useAufgabenPool() {
     }
   }, []);
 
-  const get = useCallback(async (id: string): Promise<PoolEntry | null> => {
+  const toggleFavorite = useCallback(async (id: string, isFavorite: boolean): Promise<boolean> => {
+    setError(null);
     try {
-      return await invoke<PoolEntry | null>('pool_get', { id });
+      const success = await invoke<boolean>('pool_toggle_favorite', { id, isFavorite });
+      if (success) setEntries((prev) => prev.map((entry) => entry.id === id ? { ...entry, isFavorite } : entry));
+      return success;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(msg);
+      return false;
+    }
+  }, []);
+
+  const setQualityStatus = useCallback(async (id: string, qualityStatus: PoolQualityStatus): Promise<boolean> => {
+    setError(null);
+    try {
+      const success = await invoke<boolean>('pool_set_quality_status', { id, qualityStatus });
+      if (success) setEntries((prev) => prev.map((entry) => entry.id === id ? { ...entry, qualityStatus } : entry));
+      return success;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(msg);
+      return false;
+    }
+  }, []);
+
+  const markUsed = useCallback(async (id: string): Promise<boolean> => {
+    setError(null);
+    try {
+      const lastUsedAt = await invoke<string | null>('pool_mark_used', { id });
+      if (lastUsedAt) setEntries((prev) => prev.map((entry) => entry.id === id ? { ...entry, lastUsedAt } : entry));
+      return Boolean(lastUsedAt);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(msg);
+      return false;
+    }
+  }, []);
+
+  const get = useCallback(async (id: string): Promise<PoolRecord | null> => {
+    try {
+      return await invoke<PoolRecord | null>('pool_get', { id });
     } catch {
       return null;
     }
@@ -87,5 +126,8 @@ export function useAufgabenPool() {
     add,
     remove,
     get,
+    toggleFavorite,
+    setQualityStatus,
+    markUsed,
   };
 }

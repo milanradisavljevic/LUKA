@@ -17,6 +17,24 @@ pub struct PoolEntry {
     pub created_at: String,
 }
 
+#[derive(Serialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct PoolRecord {
+    pub id: String,
+    pub fach: String,
+    pub stufe: String,
+    pub schulstufe: Option<i32>,
+    pub thema: Option<String>,
+    pub aufgabentyp: String,
+    pub tags: Option<String>,
+    pub block_json: String,
+    pub quelle_hinweis: Option<String>,
+    pub created_at: String,
+    pub is_favorite: bool,
+    pub quality_status: String,
+    pub last_used_at: Option<String>,
+}
+
 #[derive(Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct PoolFilter {
@@ -59,14 +77,14 @@ pub async fn pool_add(
 pub async fn pool_list(
     state: tauri::State<'_, DbState>,
     filter: Option<PoolFilter>,
-) -> Result<Vec<PoolEntry>, String> {
+) -> Result<Vec<PoolRecord>, String> {
     let guard = state.conn()?;
     let conn = &*guard;
 
     let filter = filter.unwrap_or_default();
 
     let mut sql = String::from(
-        "SELECT id, fach, stufe, schulstufe, thema, aufgabentyp, tags, block_json, quelle_hinweis, created_at
+        "SELECT id, fach, stufe, schulstufe, thema, aufgabentyp, tags, block_json, quelle_hinweis, created_at, is_favorite, quality_status, last_used_at
          FROM aufgabe_pool WHERE 1=1",
     );
     let mut params: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
@@ -98,7 +116,7 @@ pub async fn pool_list(
     let params_ref: Vec<&dyn rusqlite::types::ToSql> = params.iter().map(|p| p.as_ref()).collect();
     let rows = stmt
         .query_map(params_ref.as_slice(), |row| {
-            Ok(PoolEntry {
+            Ok(PoolRecord {
                 id: row.get(0)?,
                 fach: row.get(1)?,
                 stufe: row.get(2)?,
@@ -109,6 +127,9 @@ pub async fn pool_list(
                 block_json: row.get(7)?,
                 quelle_hinweis: row.get(8)?,
                 created_at: row.get(9)?,
+                is_favorite: row.get::<_, i64>(10)? != 0,
+                quality_status: row.get(11)?,
+                last_used_at: row.get(12)?,
             })
         })
         .map_err(|e| format!("pool_list query: {}", e))?;
@@ -125,20 +146,20 @@ pub async fn pool_list(
 pub async fn pool_get(
     state: tauri::State<'_, DbState>,
     id: String,
-) -> Result<Option<PoolEntry>, String> {
+) -> Result<Option<PoolRecord>, String> {
     let guard = state.conn()?;
     let conn = &*guard;
 
     let mut stmt = conn
         .prepare(
-            "SELECT id, fach, stufe, schulstufe, thema, aufgabentyp, tags, block_json, quelle_hinweis, created_at
+            "SELECT id, fach, stufe, schulstufe, thema, aufgabentyp, tags, block_json, quelle_hinweis, created_at, is_favorite, quality_status, last_used_at
              FROM aufgabe_pool WHERE id = ?1",
         )
         .map_err(|e| format!("pool_get prepare: {}", e))?;
 
     let result = stmt
         .query_row(rusqlite::params![id], |row| {
-            Ok(PoolEntry {
+            Ok(PoolRecord {
                 id: row.get(0)?,
                 fach: row.get(1)?,
                 stufe: row.get(2)?,
@@ -149,6 +170,9 @@ pub async fn pool_get(
                 block_json: row.get(7)?,
                 quelle_hinweis: row.get(8)?,
                 created_at: row.get(9)?,
+                is_favorite: row.get::<_, i64>(10)? != 0,
+                quality_status: row.get(11)?,
+                last_used_at: row.get(12)?,
             })
         })
         .optional()
@@ -170,6 +194,58 @@ pub async fn pool_delete(
         .map_err(|e| format!("pool_delete: {}", e))?;
 
     Ok(affected > 0)
+}
+
+const POOL_QUALITY_STATUSES: [&str; 4] = ["unbewertet", "getestet", "empfohlen", "zurueckgestellt"];
+
+fn validate_quality_status(status: &str) -> Result<(), String> {
+    if POOL_QUALITY_STATUSES.contains(&status) {
+        Ok(())
+    } else {
+        Err(format!("Unbekannter Pool-Status: {}", status))
+    }
+}
+
+#[tauri::command]
+pub async fn pool_toggle_favorite(
+    state: tauri::State<'_, DbState>,
+    id: String,
+    is_favorite: bool,
+) -> Result<bool, String> {
+    let guard = state.conn()?;
+    let affected = guard
+        .execute("UPDATE aufgabe_pool SET is_favorite = ?1 WHERE id = ?2", rusqlite::params![is_favorite as i64, id])
+        .map_err(|e| format!("pool_toggle_favorite: {}", e))?;
+    Ok(affected > 0)
+}
+
+#[tauri::command]
+pub async fn pool_set_quality_status(
+    state: tauri::State<'_, DbState>,
+    id: String,
+    quality_status: String,
+) -> Result<bool, String> {
+    validate_quality_status(&quality_status)?;
+    let guard = state.conn()?;
+    let affected = guard
+        .execute("UPDATE aufgabe_pool SET quality_status = ?1 WHERE id = ?2", rusqlite::params![quality_status, id])
+        .map_err(|e| format!("pool_set_quality_status: {}", e))?;
+    Ok(affected > 0)
+}
+
+#[tauri::command]
+pub async fn pool_mark_used(
+    state: tauri::State<'_, DbState>,
+    id: String,
+) -> Result<Option<String>, String> {
+    let guard = state.conn()?;
+    let timestamp: String = guard
+        .query_row("SELECT datetime('now')", [], |row| row.get(0))
+        .map_err(|e| format!("pool_mark_used timestamp: {}", e))?;
+    let affected = guard
+        .execute("UPDATE aufgabe_pool SET last_used_at = ?1 WHERE id = ?2", rusqlite::params![timestamp, id])
+        .map_err(|e| format!("pool_mark_used: {}", e))?;
+    Ok((affected > 0).then_some(timestamp))
 }
 
 /// Vorschau vor dem Import: was steckt in der Datei, was kollidiert mit der DB?
@@ -249,8 +325,11 @@ pub(crate) fn import_impl(
     ueberschreiben: bool,
 ) -> Result<PoolImportReport, String> {
     let sql = if ueberschreiben {
-        "INSERT OR REPLACE INTO aufgabe_pool (id, fach, stufe, schulstufe, thema, aufgabentyp, tags, block_json, quelle_hinweis, created_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)"
+        "INSERT INTO aufgabe_pool (id, fach, stufe, schulstufe, thema, aufgabentyp, tags, block_json, quelle_hinweis, created_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)
+         ON CONFLICT(id) DO UPDATE SET fach=excluded.fach, stufe=excluded.stufe, schulstufe=excluded.schulstufe,
+         thema=excluded.thema, aufgabentyp=excluded.aufgabentyp, tags=excluded.tags, block_json=excluded.block_json,
+         quelle_hinweis=excluded.quelle_hinweis, created_at=excluded.created_at"
     } else {
         "INSERT OR IGNORE INTO aufgabe_pool (id, fach, stufe, schulstufe, thema, aufgabentyp, tags, block_json, quelle_hinweis, created_at)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)"
@@ -446,6 +525,32 @@ mod tests {
     }
 
     #[test]
+    fn import_mit_ueberschreiben_erhaelt_lokale_metadaten() {
+        let conn = setup();
+        import_impl(&conn, &[entry("a", "deutsch")], false).unwrap();
+        conn.execute(
+            "UPDATE aufgabe_pool SET is_favorite = 1, quality_status = 'empfohlen', last_used_at = '2026-07-11 10:00:00' WHERE id = 'a'",
+            [],
+        ).unwrap();
+
+        import_impl(&conn, &[entry("a", "geschichte")], true).unwrap();
+
+        let local: (i64, String, String) = conn.query_row(
+            "SELECT is_favorite, quality_status, last_used_at FROM aufgabe_pool WHERE id='a'",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        ).unwrap();
+        assert_eq!(local, (1, "empfohlen".into(), "2026-07-11 10:00:00".into()));
+    }
+
+    #[test]
+    fn status_validierung_bleibt_auf_lokale_werte_begrenzt() {
+        assert!(validate_quality_status("unbewertet").is_ok());
+        assert!(validate_quality_status("empfohlen").is_ok());
+        assert!(validate_quality_status("eingereicht").is_err());
+    }
+
+    #[test]
     fn export_import_roundtrip_ueber_datei() {
         let conn = setup();
         import_impl(&conn, &[entry("a", "deutsch"), entry("b", "informatikki")], false).unwrap();
@@ -469,7 +574,11 @@ mod tests {
         let dir = std::env::temp_dir().join("luka-pool-test");
         std::fs::create_dir_all(&dir).unwrap();
         let pfad = dir.join("roundtrip.json");
-        std::fs::write(&pfad, serde_json::to_string_pretty(&entries).unwrap()).unwrap();
+        let json = serde_json::to_string_pretty(&entries).unwrap();
+        assert!(!json.contains("is_favorite"));
+        assert!(!json.contains("quality_status"));
+        assert!(!json.contains("last_used_at"));
+        std::fs::write(&pfad, json).unwrap();
 
         // frische DB, Datei wieder einlesen (kompletter lese_pool_datei-Pfad)
         let conn2 = setup();

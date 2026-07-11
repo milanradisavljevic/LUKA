@@ -7,6 +7,14 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Lokale Organisation im Aufgaben-Pool
+- Der Aufgaben-Pool kann jetzt nach Herkunft und Qualitätsstatus gefiltert
+  sowie nach Neuigkeit, letzter Verwendung oder Empfehlung sortiert werden.
+- Aufgaben lassen sich lokal als Favorit markieren, als getestet/empfohlen
+  kennzeichnen und beim Einfügen als zuletzt verwendet speichern.
+- Diese Organisationsdaten bleiben lokal und werden nicht in das teilbare
+  Pool-JSON exportiert. Beim Ersetzen eines Duplikats bleiben sie erhalten.
+
 ## Version 1.0.3 — 2026-07-11
 
 ### Added — Drittes Fachpaket und robuster Fachpaket-Import
