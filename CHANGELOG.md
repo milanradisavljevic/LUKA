@@ -5,6 +5,19 @@ Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 (auch andere Coding-Agents) — siehe `AGENTS.md`.
 
+## [Unreleased]
+
+### Added — macOS-Build (unsigniert) in der Release-Pipeline
+- `release.yml` baut jetzt per Matrix zusätzlich ein universelles
+  macOS-Bundle (Intel + Apple Silicon, `--target universal-apple-darwin`)
+  und veröffentlicht es im selben GitHub-Release; tauri-action merged die
+  Plattform-Einträge in der `latest.json`. Windows-Build unverändert.
+- Bewusst ohne Apple-Signing/Notarization (99 €/Jahr erst bei mehr
+  Mac-Nachfrage); Updater-Artefakte bleiben minisign-signiert.
+- README und `docs/ANLEITUNG.md`: neuer Installations-Abschnitt mit
+  Gatekeeper-Anleitung (macOS 15: Systemeinstellungen → Datenschutz &
+  Sicherheit → „Dennoch öffnen").
+
 ## Version 1.0.3 — 2026-07-10
 
 **Das ist neu:**

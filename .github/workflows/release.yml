@@ -1,8 +1,14 @@
 name: Release
 
-# Windows-Release bei Versions-Tag: baut NSIS-Installer, signiert die
+# Windows- und macOS-Release bei Versions-Tag: baut NSIS-Installer (Windows)
+# bzw. ein universelles, unsigniertes App-/DMG-Bundle (macOS), signiert die
 # Update-Artefakte (TAURI_SIGNING_PRIVATE_KEY aus den Repo-Secrets) und
 # veröffentlicht GitHub Release inkl. latest.json für den In-App-Updater.
+# Beide Runner veröffentlichen auf dasselbe Tag-Release; tauri-action merged
+# die Plattform-Einträge in der latest.json automatisch zusammen.
+#
+# macOS-Build ist bewusst unsigniert (kein Apple-Zertifikat/Notarization) —
+# siehe Gatekeeper-Hinweis in README.md / docs/ANLEITUNG.md.
 #
 # Auslösen: Version in apps/lua/src-tauri/tauri.conf.json + Cargo.toml erhöhen,
 # committen, dann:  git tag v1.0.1 && git push origin v1.0.1
@@ -13,9 +19,24 @@ on:
       - "v*"
 
 jobs:
-  release-windows:
-    name: Windows-Installer bauen & veröffentlichen
-    runs-on: windows-latest
+  release:
+    name: ${{ matrix.name }} bauen & veröffentlichen
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: Windows-Installer
+            # nur NSIS: MSI (WiX) kann nicht patchen/updaten wie NSIS und
+            # verdoppelt Build-Zeit; Erstinstallation + Updates laufen über NSIS.
+            args: --bundles nsis
+            rustTargets: ""
+          - os: macos-latest
+            name: macOS-Bundle (universal, unsigniert)
+            # Universal-Binary für Intel- und Apple-Silicon-Macs in einem Bundle.
+            args: --target universal-apple-darwin
+            rustTargets: aarch64-apple-darwin,x86_64-apple-darwin
+    runs-on: ${{ matrix.os }}
     permissions:
       contents: write
     defaults:
@@ -35,6 +56,8 @@ jobs:
           cache-dependency-path: apps/lua/pnpm-lock.yaml
 
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rustTargets }}
 
       - uses: Swatinem/rust-cache@v2
         with:
@@ -68,6 +91,6 @@ jobs:
           releaseBody: ${{ steps.release_notes.outputs.body }}
           releaseDraft: false
           prerelease: false
-          # nur NSIS: MSI (WiX) kann nicht patchen/updaten wie NSIS und
-          # verdoppelt Build-Zeit; Erstinstallation + Updates laufen über NSIS.
-          args: --bundles nsis
+          # Windows: nur NSIS (siehe Kommentar oben in der Matrix).
+          # macOS: universelles App-/DMG-Bundle, unsigniert.
+          args: ${{ matrix.args }}

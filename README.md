@@ -80,7 +80,9 @@ flowchart LR
 
 ---
 
-## Installation (Windows)
+## Installation
+
+### Windows
 
 1. Neueste `LUKA.-.Lehrunterlagen-Tool_*_x64-setup.exe` von den
    [**Releases**](https://github.com/milanradisavljevic/LUKA/releases/latest) laden
@@ -89,6 +91,24 @@ flowchart LR
    zertifikats-signierten Programmen. Über **„Weitere Informationen" →
    „Trotzdem ausführen"** geht es weiter — die App ist quelloffen, dieser Code
    hier ist genau das, was installiert wird.
+3. Beim ersten Start: KI-Anbieter wählen, API-Schlüssel eintragen, Verbindung
+   testen — fertig.
+
+### macOS
+
+1. Neueste `LUKA.-.Lehrunterlagen-Tool_*_universal.dmg` von den
+   [**Releases**](https://github.com/milanradisavljevic/LUKA/releases/latest) laden,
+   öffnen und die App in **Programme** ziehen.
+2. **Gatekeeper-Hinweis:** Die App ist (noch) nicht mit einem Apple-Entwickler-
+   zertifikat signiert. Beim ersten Öffnen meldet macOS „App ist beschädigt"
+   oder „kann nicht überprüft werden" — das ist normal bei quelloffener
+   Software ohne kostenpflichtiges Apple-Zertifikat, kein Hinweis auf Malware.
+   Seit macOS 15 gibt es den früheren Rechtsklick-„Öffnen"-Trick nicht mehr.
+   So geht's stattdessen:
+   1. App einmal normal per Doppelklick öffnen — die Warnung wegklicken.
+   2. **Systemeinstellungen → Datenschutz & Sicherheit** öffnen, ganz nach
+      unten scrollen und **„Dennoch öffnen"** klicken.
+   3. Nochmal öffnen und bestätigen — ab jetzt startet LUKA normal.
 3. Beim ersten Start: KI-Anbieter wählen, API-Schlüssel eintragen, Verbindung
    testen — fertig.
 

@@ -18,6 +18,36 @@ Dazu kommen der **Aufgaben-Pool** (bewährte Aufgaben speichern, wiederverwenden
 
 ---
 
+## Installation
+
+### Windows
+
+Neueste `LUKA.-.Lehrunterlagen-Tool_*_x64-setup.exe` von den
+[Releases](https://github.com/milanradisavljevic/LUKA/releases/latest) laden und
+ausführen. Windows warnt dabei per **SmartScreen**, weil das Programm (noch)
+nicht mit einem teuren Zertifikat signiert ist — über **„Weitere
+Informationen" → „Trotzdem ausführen"** geht es weiter. Das ist bei
+quelloffener Software ohne Firmen-Zertifikat normal.
+
+### macOS
+
+Neueste `LUKA.-.Lehrunterlagen-Tool_*_universal.dmg` von den
+[Releases](https://github.com/milanradisavljevic/LUKA/releases/latest) laden,
+öffnen und LUKA in **Programme** ziehen.
+
+Auch hier ist die App (noch) nicht mit einem Apple-Entwicklerzertifikat
+signiert: Beim ersten Öffnen meldet **Gatekeeper** „App ist beschädigt" oder
+„kann nicht überprüft werden". Kein Grund zur Sorge — nur kein
+kostenpflichtiges Apple-Zertifikat. Seit macOS 15 fehlt der frühere
+Rechtsklick-„Öffnen"-Trick, deshalb so:
+
+1. App einmal ganz normal per Doppelklick öffnen und die Warnung wegklicken.
+2. **Systemeinstellungen → Datenschutz & Sicherheit** öffnen, nach unten
+   scrollen, **„Dennoch öffnen"** anklicken.
+3. Noch einmal öffnen und bestätigen — danach startet LUKA wie gewohnt.
+
+---
+
 ## Erste Schritte
 
 Damit das Generieren läuft, brauchst du einen API-Schlüssel deines KI-Anbieters. Beim ersten Start führt dich die App durch die Einrichtung inklusive Verbindungstest.
