@@ -64,3 +64,11 @@ export function parsePoolTags(tags: string | null): string[] {
     return tags.split(',').map((t) => t.trim()).filter(Boolean);
   }
 }
+
+/** Tag, mit dem redaktionell kuratierte Fachpaket-Aufgaben markiert sind (im Unterschied zu selbst gespeicherten Wizard-Aufgaben). */
+export const KURATIERT_TAG = 'redaktionell-kuratiert';
+
+/** Erkennt anhand der geparsten Tags, ob eine Pool-Aufgabe redaktionell kuratiert ist (Fachpaket-Herkunft). */
+export function isKuratiert(tags: string[]): boolean {
+  return tags.includes(KURATIERT_TAG);
+}

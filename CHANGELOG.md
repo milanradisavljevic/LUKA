@@ -14,6 +14,12 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
   (Rollenkarten) und demokratische Beteiligung. Import wie gehabt über
   „Fachpaket importieren".
 
+### Added — Herkunft im Aufgaben-Pool sichtbar
+- Kuratierte Fachpaket-Aufgaben tragen in der Pool-Ansicht ein „Kuratiert"-
+  Badge (Tag `redaktionell-kuratiert`); der Herkunftsvermerk (`quelleHinweis`)
+  erscheint als zweizeilige Herkunftszeile auf der Karte, voller Text per
+  Tooltip. Selbst gespeicherte Aufgaben bleiben unverändert.
+
 ### Fixed — Fachpaket-Qualität
 - Antwortmuster in beiden Paketen durchmischt (Multiple-Choice-Lösungen
   waren teils durchgängig „A", Matching-Zuordnungen liefen 1→A…6→F der

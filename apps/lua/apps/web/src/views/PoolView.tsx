@@ -1,9 +1,9 @@
 import { useState, useMemo, useEffect } from 'react';
-import { X, Search, Filter, Database, Upload, Download, Star } from 'lucide-react';
+import { X, Search, Filter, Database, Upload, Download, Star, BadgeCheck } from 'lucide-react';
 import { fachLabel, FACH_META } from '@lehrunterlagen/schema';
 import type { Block, Fach, Stufe, BlockTyp } from '@lehrunterlagen/schema';
 import { useAufgabenPool } from '../hooks/useAufgabenPool';
-import { parsePoolBlock, parsePoolTags } from '../lib/pool';
+import { parsePoolBlock, parsePoolTags, isKuratiert } from '../lib/pool';
 import { importPoolPaket, exportPoolPaket } from '../lib/poolTransfer';
 import { loadTeacherProfile } from '../lib/profile';
 import { Toast, type ToastMessage } from '../components/Toast';
@@ -212,6 +212,7 @@ export function PoolView({ onInsertBlock }: Props) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '0.75rem' }}>
           {filteredEntries.map((entry) => {
             const tags = parsePoolTags(entry.tags);
+            const kuratiert = isKuratiert(tags);
             return (
               <div
                 key={entry.id}
@@ -235,7 +236,31 @@ export function PoolView({ onInsertBlock }: Props) {
                         <Star size={10} /> Dein Fach
                       </span>
                     )}
+                    {kuratiert && (
+                      <span
+                        className="badge badge-info"
+                        title={entry.quelleHinweis ?? 'Redaktionell kuratierte Fachpaket-Aufgabe'}
+                      >
+                        <BadgeCheck size={10} /> Kuratiert
+                      </span>
+                    )}
                   </p>
+                  {entry.quelleHinweis && (
+                    <p
+                      title={entry.quelleHinweis}
+                      style={{
+                        fontSize: '0.6875rem',
+                        color: 'var(--color-text-secondary)',
+                        margin: '0.25rem 0 0',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {entry.quelleHinweis}
+                    </p>
+                  )}
                   {tags.length > 0 && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginTop: '0.375rem' }}>
                       {tags.map((tag, i) => (
