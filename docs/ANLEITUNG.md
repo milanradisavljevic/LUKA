@@ -54,7 +54,7 @@ Damit das Generieren läuft, brauchst du einen API-Schlüssel deines KI-Anbieter
 
 1. Beim **ersten Start** wählst du einen Anbieter (empfohlen: Mistral, EU-Anbieter), trägst deinen API-Schlüssel ein und testest die Verbindung direkt im Dialog. Schlüssel werden sicher im Schlüsselspeicher des Betriebssystems abgelegt – nicht im Klartext.
 2. Später änderst du Anbieter und Standard-Modell jederzeit in den **Einstellungen**. Für günstige Tests eignet sich ein kleines Modell.
-3. Zum schnellen Loslegen mit fertigen Aufgaben: eines der vier mitgelieferten **Fachpakete** (Ordner `samples/fachpakete/`) über **Aufgaben-Pool → Importieren** einspielen. Verfügbar sind das Startpaket **Medien und Demokratie / Informatik und KI**, **Medien und Demokratie**, **Informatik und KI** sowie **Deutsch – Textsorten-Training Oberstufe**.
+3. Zum schnellen Loslegen mit fertigen Aufgaben: eines der fünf mitgelieferten **Fachpakete** (Ordner `samples/fachpakete/`) über **Aufgaben-Pool → Importieren** einspielen. Verfügbar sind das Startpaket **Medien und Demokratie / Informatik und KI**, **Medien und Demokratie**, **Informatik und KI**, **Deutsch – Textsorten-Training Oberstufe** sowie **Englisch Oberstufe (CEFR B1–B2)**.
 
 > 💡 Ohne hinterlegten Schlüssel schlägt die Generierung fehl. Die Fehlermeldung nennt dann meist „Key/Provider prüfen".
 
@@ -94,7 +94,9 @@ Der Generator führt dich in fünf Schritten von der Absicht zum fertigen DOCX.
 
 **Einzelne Aufgabe neu generieren:** In der Vorschau bei einem Block auf „Neu generieren" – mit optionalem Hinweis (kürzer, schwieriger, andere Formulierung). Nur dieser Block wird ersetzt.
 
-**Export-Varianten:** „Beide Dokumente" (Schülerfassung + Lösung), „Korrekturraster", im Kompetenz-Modus zusätzlich „Kompetenznachweis", sowie „Als PDF". Vor dem Export prüft ein **Quality-Gate** Lernziel-Abdeckung und Wortzahl der Schreibaufgaben – bei Auffälligkeiten kannst du „Nochmal prüfen" oder „Trotzdem exportieren".
+**Qualität schärfen:** Nach der Generierung kannst du den Qualitätspass einmal bewusst starten. Dein gewählter KI-Anbieter prüft das eigene Dokument als strenger Fachkollege gegen konkrete Schreibsituationen, Textbezug, beobachtbare Erwartungshorizonte sowie Niveau und Punkte. Er liefert eine verbesserte Fassung und zwei bis drei Änderungsnotizen. Dafür wird ein weiterer API-Aufruf deines Anbieters verwendet; Blockstruktur, IDs und Textbeilagen-Verweise bleiben unverändert.
+
+**Export-Varianten:** „Beide Dokumente" (Schülerfassung + Lösung), „Korrekturraster", im Kompetenz-Modus zusätzlich „Kompetenznachweis", sowie „Als PDF". Für PDF exportierst du zuerst die Schülerfassung als DOCX und wählst danach den Speicherort im nativen Datei-Dialog; dafür muss LibreOffice installiert sein. Vor dem Export prüft ein **Quality-Gate** Lernziel-Abdeckung und Wortzahl der Schreibaufgaben – bei Auffälligkeiten kannst du „Nochmal prüfen" oder „Trotzdem exportieren".
 
 **Differenzierung (leichter / schwerer):** Im Akkordeon „Differenzierung" (nach dem Generieren) erzeugst du zusätzlich zur Standardfassung (mittel = „Beide Dokumente") gezielt eine *leichtere* und/oder *schwerere* Variante: Häkchen setzen, dann „Variante(n) erstellen & exportieren". *Leicht* vereinfacht offene Aufgaben ohne KI-Kosten; *schwer* generiert die offenen Aufgaben anspruchsvoller neu. Dateinamen tragen `_leicht`/`_schwer`.
 
@@ -132,7 +134,7 @@ Der **Aufgaben-Pool** sammelt wiederverwendbare Aufgaben-Blöcke — einmal gesp
 5. **Fachpakete teilen:** Über **„Exportieren"** speicherst du den gesamten lokalen Pool als teilbare JSON-Datei. Favoriten, Qualitätsstatus und letzte Verwendung bleiben lokal und werden nicht exportiert.
 6. **Fachpaket importieren:** Über **„Importieren"** wählst du eine JSON-Datei. LUKA validiert sie vollständig, bevor sie den lokalen Pool verändert. Die Vorschau zeigt Anzahl, Fächer, Herkunftsvermerke und Duplikate. Bei gleichen IDs entscheidest du zwischen **„Ersetzen"** und **„Behalten"**. Nach dem Import meldet die App neue, ersetzte und übersprungene Aufgaben; eine ungültige Datei wird abgelehnt und verändert den Pool nicht.
 
-> 💡 Der Pool ist pro Rechner lokal. Beim Ersetzen eines Duplikats bleiben deine lokalen Organisationsdaten erhalten — ideal, um kuratierte Inhalte zu übernehmen und eigene Bewertungen weiterzuführen. Vier kuratierte Pakete liegen in `samples/fachpakete/`: das Startpaket **Medien und Demokratie / Informatik und KI**, **Medien und Demokratie**, **Informatik und KI** sowie **Deutsch – Textsorten-Training Oberstufe**.
+> 💡 Der Pool ist pro Rechner lokal. Beim Ersetzen eines Duplikats bleiben deine lokalen Organisationsdaten erhalten — ideal, um kuratierte Inhalte zu übernehmen und eigene Bewertungen weiterzuführen. Fünf kuratierte Pakete liegen in `samples/fachpakete/`: das Startpaket **Medien und Demokratie / Informatik und KI**, **Medien und Demokratie**, **Informatik und KI**, **Deutsch – Textsorten-Training Oberstufe** sowie **Englisch Oberstufe (CEFR B1–B2)**.
 
 ---
 
@@ -141,7 +143,7 @@ Der **Aufgaben-Pool** sammelt wiederverwendbare Aufgaben-Blöcke — einmal gesp
 Beim Export entstehen pro Unterlage mehrere Dateien — wohin sie landen, stellst du in den **Einstellungen → Export** ein.
 
 1. **DOCX-Zielordner:** In den Einstellungen legst du einen Ordner fest, in den alle DOCX geschrieben werden. Alternativ aktivierst du **„Speichern unter…"**, um bei jedem Export den Ort einzeln zu wählen. Ohne Tauri (Browser) landen die Dateien im Download-Ordner.
-2. **Beide Dokumente** (Schülerfassung + Lösung) sowie **Korrekturraster** als DOCX; im Kompetenz-Modus zusätzlich der **Kompetenznachweis**; optional **PDF** (braucht LibreOffice).
+2. **Beide Dokumente** (Schülerfassung + Lösung) sowie **Korrekturraster** als DOCX; im Kompetenz-Modus zusätzlich der **Kompetenznachweis**; optional **PDF** über den nativen Speicher-Dialog (braucht LibreOffice).
 3. **Moodle/GIFT-Export:** In Schritt Erstellen unter „Weitere Exporte" erzeugst du eine `.gift`-Datei zum Import in Moodle. Geschlossene Aufgaben (Multiple Choice, Matching, Lückentext …) werden zu Quizfragen, offene (Schreibaufgabe, Verständnisfrage) zu Essay-Fragen.
 4. Zusätzlich: **Übung mit Lösungsteil** (Schüler- und Lösungsteil in einem Dokument) und **Selbsteinschätzungsbogen** für die Schüler/innen.
 
