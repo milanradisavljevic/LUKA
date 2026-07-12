@@ -80,6 +80,16 @@ export async function importPoolPaket(): Promise<ImportErgebnis> {
   return { abgebrochen: false, report, dateiname };
 }
 
+/**
+ * Übernimmt die vier mit der App ausgelieferten Fachpakete ("Startpaket", 29
+ * Aufgaben) in den lokalen Pool. Kein Dateidialog, keine Vorschau nötig — die
+ * Pakete sind fest mit der App gebündelt und bereits geprüft. Bestehende
+ * Aufgaben (gleiche ID) werden nie überschrieben.
+ */
+export async function importStartpaket(): Promise<PoolImportReport> {
+  return invoke<PoolImportReport>('pool_import_startpaket');
+}
+
 /** Exportiert den gesamten lokalen Pool als teilbare Fachpaket-Datei. */
 export async function exportPoolPaket(): Promise<ExportErgebnis | null> {
   const { save } = await import('@tauri-apps/plugin-dialog');

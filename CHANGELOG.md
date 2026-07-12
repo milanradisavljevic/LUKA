@@ -7,6 +7,15 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Startpaket an Bord: 29 Aufgaben per Klick in den Pool
+- Die vier kuratierten Fachpakete reisen jetzt in der App mit (zur Build-Zeit
+  eingebettet, Quelle bleibt `samples/fachpakete/`). Ist der Aufgaben-Pool
+  leer, bietet er die Übernahme an: „29 geprüfte Aufgaben zum Start" — ein
+  Klick, Erfolgsmeldung mit Anzahl, fertig.
+- Kein Auto-Import, kein wiederkehrender Hinweis: Das Angebot erscheint nur
+  bei leerem Pool; vorhandene Aufgaben werden nie überschrieben
+  (INSERT OR IGNORE über den bestehenden, validierenden Import-Pfad).
+
 ### Changed — Hilfe und Anleitung auf aktuellen Feature-Stand (2026-07-12)
 - Die Hilfe erklärt jetzt das Matura-Training im SRDP-Format für Deutsch/Oberstufe.
 - Aufgaben-Pool-Organisation mit Favoriten, Qualitätsstatus, Herkunft, Filtern und Sortierung ist dokumentiert.

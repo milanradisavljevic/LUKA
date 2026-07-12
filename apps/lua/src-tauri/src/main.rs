@@ -88,6 +88,7 @@ fn main() {
             commands::pool::pool_import_preview_entries,
             commands::pool::pool_import,
             commands::pool::pool_import_entries,
+            commands::pool::pool_import_startpaket,
             commands::pool::pool_export,
             commands::klassen::klassen_meta_list,
             commands::klassen::klassen_meta_upsert,

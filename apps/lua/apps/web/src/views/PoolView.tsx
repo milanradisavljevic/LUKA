@@ -1,11 +1,11 @@
 import { useState, useMemo, useEffect } from 'react';
-import { X, Search, Database, Upload, Download, Star, BadgeCheck } from 'lucide-react';
+import { X, Search, Database, Upload, Download, Star, BadgeCheck, Sparkles, Loader2 } from 'lucide-react';
 import { fachLabel, FACH_META } from '@lehrunterlagen/schema';
 import type { Block, Fach, Stufe, BlockTyp } from '@lehrunterlagen/schema';
 import { useAufgabenPool } from '../hooks/useAufgabenPool';
 import { parsePoolBlock, parsePoolTags, isKuratiert } from '../lib/pool';
 import type { PoolQualityStatus } from '../lib/pool';
-import { importPoolPaket, exportPoolPaket } from '../lib/poolTransfer';
+import { importPoolPaket, exportPoolPaket, importStartpaket } from '../lib/poolTransfer';
 import { loadTeacherProfile } from '../lib/profile';
 import { Toast, type ToastMessage } from '../components/Toast';
 import { ViewShell } from './_ViewShell';
@@ -29,6 +29,7 @@ export function PoolView({ onInsertBlock }: Props) {
   const [sortierung, setSortierung] = useState<'neueste' | 'zuletztVerwendet' | 'empfohlen'>('neueste');
   const [toast, setToast] = useState<ToastMessage | null>(null);
   const [transferLaeuft, setTransferLaeuft] = useState(false);
+  const [startpaketLaeuft, setStartpaketLaeuft] = useState(false);
   const [profilFaecher, setProfilFaecher] = useState<string[]>([]);
 
   useEffect(() => {
@@ -68,6 +69,20 @@ export function PoolView({ onInsertBlock }: Props) {
       setToast({ id: Date.now(), kind: 'error', text: `Export fehlgeschlagen: ${e instanceof Error ? e.message : String(e)}` });
     } finally {
       setTransferLaeuft(false);
+    }
+  };
+
+  const handleStartpaket = async () => {
+    setStartpaketLaeuft(true);
+    try {
+      const report = await importStartpaket();
+      await refresh();
+      const zusatz = report.uebersprungen > 0 ? `, ${report.uebersprungen} bereits vorhanden` : '';
+      setToast({ id: Date.now(), kind: 'info', text: `Startpaket übernommen: ${report.eingefuegt} neue Aufgabe(n)${zusatz}.` });
+    } catch (e) {
+      setToast({ id: Date.now(), kind: 'error', text: `Startpaket-Übernahme fehlgeschlagen: ${e instanceof Error ? e.message : String(e)}` });
+    } finally {
+      setStartpaketLaeuft(false);
     }
   };
 
@@ -234,15 +249,40 @@ export function PoolView({ onInsertBlock }: Props) {
         </p>
       )}
 
-      {!loading && !error && visibleEntries.length === 0 && (
+      {!loading && !error && entries.length === 0 && (
+        <div
+          style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.625rem',
+            textAlign: 'center', padding: '2rem 1.5rem', border: '1px solid var(--color-border)',
+            borderRadius: 'var(--radius)', background: 'var(--color-bg-surface)',
+          }}
+        >
+          <Sparkles size={28} style={{ color: 'var(--color-accent)' }} />
+          <strong style={{ fontSize: '0.9375rem' }}>29 geprüfte Aufgaben zum Start</strong>
+          <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: 0, maxWidth: 460 }}>
+            Kuratierte Fachpakete für Medien und Demokratie, Informatik und Künstliche Intelligenz sowie Deutsch
+            (Oberstufe). In deinen Pool übernehmen?
+          </p>
+          <button
+            className="btn-primary"
+            onClick={handleStartpaket}
+            disabled={startpaketLaeuft}
+            style={{ fontSize: '0.8125rem', display: 'inline-flex', alignItems: 'center', gap: '0.375rem', marginTop: '0.25rem' }}
+          >
+            {startpaketLaeuft ? (
+              <><Loader2 size={14} className="spin" /> Wird übernommen …</>
+            ) : (
+              <><Sparkles size={14} /> Startpaket übernehmen</>
+            )}
+          </button>
+        </div>
+      )}
+
+      {!loading && !error && entries.length > 0 && visibleEntries.length === 0 && (
         <EmptyState
           icon={Database}
-          title={entries.length === 0 ? 'Aufgaben-Pool ist leer' : 'Keine passenden Aufgaben'}
-          description={
-            entries.length === 0
-              ? 'Hier erscheinen wiederverwendbare Aufgaben-Blöcke, die du aus der Vorschau speicherst.'
-              : 'Passe die Filter oder die Suche an, um passende Aufgaben zu finden.'
-          }
+          title="Keine passenden Aufgaben"
+          description="Passe die Filter oder die Suche an, um passende Aufgaben zu finden."
         />
       )}
 

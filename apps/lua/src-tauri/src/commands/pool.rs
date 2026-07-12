@@ -279,6 +279,37 @@ fn lese_pool_datei(path: &str) -> Result<Vec<PoolEntry>, String> {
         .map_err(|e| format!("Kein gültiges Pool-Paket (erwartet JSON-Array von Aufgaben): {}", e))
 }
 
+/// Die vier kuratierten Fachpakete ("Startpaket") werden zur Compile-Zeit
+/// eingebettet (`include_str!`), nicht als Tauri-`bundle.resources` ausgeliefert:
+/// `samples/fachpakete/` liegt außerhalb von `src-tauri/`, und ein Resource-Pfad
+/// über mehrere Verzeichnisgrenzen hinweg müsste zur Laufzeit über
+/// `resolveResource`/`BaseDirectory::Resource` aufgelöst werden — Tauri benennt
+/// `../`-Segmente dabei plattformabhängig in `_up_/` um, was für vier fest
+/// bekannte, nie zur Laufzeit wechselnde Dateien unnötige Fragilität wäre.
+/// `include_str!` ist zur Build-Zeit geprüft (fehlt eine Datei, schlägt der
+/// Build fehl statt erst zur Laufzeit), verhält sich in Dev und Release
+/// identisch und kostet nur ~100 KB Binary-Größe für 29 Aufgaben. Einzige
+/// Quelle der Wahrheit bleiben die Dateien in `samples/fachpakete/` — hier wird
+/// nichts dupliziert, nur eingelesen.
+const STARTPAKET_DATEIEN: [&str; 4] = [
+    include_str!("../../../../../samples/fachpakete/luka-fachpaket-deutsch-textsorten-v1.json"),
+    include_str!("../../../../../samples/fachpakete/luka-fachpaket-informatik-ki-v2.json"),
+    include_str!("../../../../../samples/fachpakete/luka-fachpaket-medien-demokratie-v2.json"),
+    include_str!(
+        "../../../../../samples/fachpakete/luka-startpaket-medien-demokratie-informatik-ki-v1.json"
+    ),
+];
+
+fn lese_startpaket_eintraege() -> Result<Vec<PoolEntry>, String> {
+    let mut alle = Vec::new();
+    for raw in STARTPAKET_DATEIEN {
+        let entries = serde_json::from_str::<Vec<PoolEntry>>(raw)
+            .map_err(|e| format!("Eingebettetes Startpaket ist beschädigt: {}", e))?;
+        alle.extend(entries);
+    }
+    Ok(alle)
+}
+
 /// Liest ein Pool-Paket für die Frontend-Validierung, ohne in die DB zu schreiben.
 #[tauri::command]
 pub async fn pool_read_entries(path: String) -> Result<serde_json::Value, String> {
@@ -404,6 +435,25 @@ pub async fn pool_import_entries(
 ) -> Result<PoolImportReport, String> {
     let guard = state.conn()?;
     import_impl(&guard, &entries, ueberschreiben)
+}
+
+pub(crate) fn import_startpaket_impl(conn: &rusqlite::Connection) -> Result<PoolImportReport, String> {
+    let entries = lese_startpaket_eintraege()?;
+    // ueberschreiben=false → INSERT OR IGNORE: vorhandene IDs werden nie überschrieben,
+    // egal ob sie aus einem früheren Startpaket-Import oder eigenen Aufgaben stammen.
+    import_impl(conn, &entries, false)
+}
+
+/// Importiert die vier mit der App ausgelieferten Fachpakete ("Startpaket") in den
+/// lokalen Pool. Nutzt dieselbe Validierungs-/Import-Logik wie der Datei-Import
+/// (`import_impl`); es gibt keinen separaten Parser. Immer explizit per Klick
+/// ausgelöst, nie automatisch.
+#[tauri::command]
+pub async fn pool_import_startpaket(
+    state: tauri::State<'_, DbState>,
+) -> Result<PoolImportReport, String> {
+    let guard = state.conn()?;
+    import_startpaket_impl(&guard)
 }
 
 /// Exportiert den gesamten lokalen Pool als teilbares Paket (gleiches Format
@@ -548,6 +598,51 @@ mod tests {
         assert!(validate_quality_status("unbewertet").is_ok());
         assert!(validate_quality_status("empfohlen").is_ok());
         assert!(validate_quality_status("eingereicht").is_err());
+    }
+
+    #[test]
+    fn eingebettete_startpaket_dateien_ergeben_29_eindeutige_eintraege() {
+        let entries = lese_startpaket_eintraege().unwrap();
+        assert_eq!(entries.len(), 29);
+        let ids: std::collections::HashSet<&str> = entries.iter().map(|e| e.id.as_str()).collect();
+        assert_eq!(ids.len(), 29, "IDs der Startpaket-Dateien müssen eindeutig sein");
+    }
+
+    #[test]
+    fn startpaket_import_ist_beim_zweiten_lauf_idempotent() {
+        let conn = setup();
+
+        let erster = import_startpaket_impl(&conn).unwrap();
+        assert_eq!(erster.eingefuegt, 29);
+        assert_eq!(erster.ersetzt, 0);
+        assert_eq!(erster.uebersprungen, 0);
+
+        let zweiter = import_startpaket_impl(&conn).unwrap();
+        assert_eq!(zweiter.eingefuegt, 0);
+        assert_eq!(zweiter.ersetzt, 0);
+        assert_eq!(zweiter.uebersprungen, 29, "zweiter Lauf darf nichts überschreiben (INSERT OR IGNORE)");
+
+        let gesamt: i64 = conn.query_row("SELECT COUNT(*) FROM aufgabe_pool", [], |r| r.get(0)).unwrap();
+        assert_eq!(gesamt, 29);
+    }
+
+    #[test]
+    fn startpaket_import_ueberschreibt_vorhandene_ids_niemals() {
+        let conn = setup();
+        // Lehrkraft hat bereits eine eigene Aufgabe unter einer Startpaket-ID gespeichert
+        // (z. B. nach manuellem Export/Re-Import) — der Startpaket-Import darf das nicht antasten.
+        let entries = lese_startpaket_eintraege().unwrap();
+        let erste_id = entries[0].id.clone();
+        import_impl(&conn, &[entry(&erste_id, "eigenes-fach")], false).unwrap();
+
+        let report = import_startpaket_impl(&conn).unwrap();
+        assert_eq!(report.eingefuegt, 28);
+        assert_eq!(report.uebersprungen, 1);
+
+        let fach: String = conn
+            .query_row("SELECT fach FROM aufgabe_pool WHERE id = ?1", rusqlite::params![erste_id], |r| r.get(0))
+            .unwrap();
+        assert_eq!(fach, "eigenes-fach");
     }
 
     #[test]
