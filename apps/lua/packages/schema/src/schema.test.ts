@@ -1351,6 +1351,20 @@ describe('UnterlagentypSchema', () => {
     expect(bloecke.length).toBeGreaterThan(0);
     expect(bloecke.some((b) => b.typ === 'offeneSchreibaufgabe')).toBe(true);
   });
+  it('Deutsch/Oberstufe kuratiert eine einzelne textgebundene SRDP-Schreibaufgabe', () => {
+    const bloecke = buildSkelett({
+      typ: 'matura', fach: 'deutsch', stufe: 'oberstufe', thema: 'T',
+      quelltexte: [{ id: 'q1' }],
+    } as never);
+    expect(bloecke).toHaveLength(1);
+    const block = bloecke[0];
+    expect(block?.typ).toBe('offeneSchreibaufgabe');
+    if (block?.typ === 'offeneSchreibaufgabe') {
+      expect(block.quelleId).toBe('q1');
+      expect(block.config.umfangWorte).toEqual({ min: 405, max: 495 });
+      expect(block.config.aspekte).toHaveLength(3);
+    }
+  });
 });
 
 // ---------------------------------------------------------------------------

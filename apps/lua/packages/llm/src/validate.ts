@@ -1,4 +1,10 @@
-import { DocumentSchema, type DocumentV1, type QuellText } from '@lehrunterlagen/schema';
+import {
+  DocumentSchema,
+  SRDP_DEUTSCH_EINZELAUFGABE_UMFANG,
+  SRDP_DEUTSCH_TEXTSORTEN,
+  type DocumentV1,
+  type QuellText,
+} from '@lehrunterlagen/schema';
 import { normalizeDocument } from './normalize.js';
 import { transformToSchema } from './transform.js';
 import { runQualityChecks, type QualityIssue, type LlmJudgeResult } from './quality.js';
@@ -14,6 +20,42 @@ export interface ValidationResult {
 
 function isObject(val: unknown): val is Record<string, unknown> {
   return typeof val === 'object' && val !== null && !Array.isArray(val);
+}
+
+function validateSrdpDeutschTraining(document: DocumentV1): string | undefined {
+  if (document.meta.typ !== 'matura' || document.meta.fach !== 'deutsch' || document.meta.stufe !== 'oberstufe') return undefined;
+  if (document.bloecke.length !== 1 || document.bloecke[0]?.typ !== 'offeneSchreibaufgabe') {
+    return 'SRDP-Deutsch-Training erwartet genau einen Block vom Typ offeneSchreibaufgabe.';
+  }
+
+  const block = document.bloecke[0];
+  if (!block || block.typ !== 'offeneSchreibaufgabe') return 'SRDP-Deutsch-Training: Schreibaufgabe fehlt.';
+  if (!SRDP_DEUTSCH_TEXTSORTEN.includes(block.config.textsorte as (typeof SRDP_DEUTSCH_TEXTSORTEN)[number])) {
+    return `SRDP-Deutsch-Training: Textsorte muss eine der kuratierten SRDP-Textsorten sein (${SRDP_DEUTSCH_TEXTSORTEN.join(', ')}).`;
+  }
+  if (
+    block.config.umfangWorte.min !== SRDP_DEUTSCH_EINZELAUFGABE_UMFANG.min
+    || block.config.umfangWorte.max !== SRDP_DEUTSCH_EINZELAUFGABE_UMFANG.max
+  ) {
+    return `SRDP-Deutsch-Training: Wortumfang muss ${SRDP_DEUTSCH_EINZELAUFGABE_UMFANG.min}–${SRDP_DEUTSCH_EINZELAUFGABE_UMFANG.max} Wörter betragen.`;
+  }
+  if (!block.quelleId || !document.quelltexte.some((q) => q.id === block.quelleId)) {
+    return 'SRDP-Deutsch-Training: Die Schreibaufgabe muss auf genau eine vorhandene Textbeilage verweisen.';
+  }
+
+  const subkriterien: Record<keyof typeof block.loesung.erwartungshorizont, readonly string[]> = {
+    inhalt: ['Schreibhandlung(en)', 'Arbeitsaufträge', 'Textbeilage(n)', 'Sachliche Richtigkeit', 'Qualität der Auseinandersetzung'],
+    struktur: ['Kohärenz', 'Bezugnahme auf Textbeilage(n)', 'Kohäsionsmittel'],
+    ausdruck: ['Situationsadäquatheit', 'Wortwahl / Ausdruck', 'Satzstrukturen', 'Eigenständigkeit'],
+    sprachrichtigkeit: ['Orthografie', 'Zeichensetzung', 'Grammatik'],
+  };
+  for (const [dimension, labels] of Object.entries(subkriterien) as [keyof typeof subkriterien, readonly string[]][]) {
+    const erwartung = block.loesung.erwartungshorizont[dimension];
+    if (!labels.every((label) => erwartung.includes(label))) {
+      return `SRDP-Deutsch-Training: Erwartungshorizont-Feld "${dimension}" muss alle 15 NATASCHA-Subkriterien strukturiert enthalten.`;
+    }
+  }
+  return undefined;
 }
 
 // Holt das JSON-Objekt aus der Modellantwort heraus, auch wenn versehentlich
@@ -110,6 +152,9 @@ export async function parseAndValidate(
   }
 
   const document = result.data;
+
+  const srdpFehler = validateSrdpDeutschTraining(document);
+  if (srdpFehler) return { ok: false, fehler: srdpFehler };
 
   // Umformung ist im Kompetenz-Modus nicht mehr erlaubt (sinnentleerte Transformationen).
   if (document.meta.modus === 'kompetenz' && document.bloecke.some((b) => b.typ === 'umformung')) {

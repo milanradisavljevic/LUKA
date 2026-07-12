@@ -24,10 +24,12 @@ let fail = 0;
 async function run(name, fach, quelltext, expectKriterium, sprachprobe) {
   process.stdout.write(`\n▶ Matura SRDP — ${name}\n`);
   const meta = { stufe: 'oberstufe', fach, thema: name, datum: '2026-06-24', klasse: '8A', notizen: '', schwierigkeit: 'schwer', typ: 'matura' };
-  const bloecke = [
-    { typ: 'offeneVerstaendnisfrage', punkte: 12, anzahlFragen: 2 },
-    { typ: 'offeneSchreibaufgabe', punkte: 48, textsorte: fach === 'deutsch' ? 'Erörterung' : 'Argumentative essay', situation: 'SRDP-Klausur', umfangWorte: { min: 405, max: 495 }, aspekte: ['Position', 'Argumente', 'Struktur'] },
-  ];
+  const bloecke = fach === 'deutsch'
+    ? [{ typ: 'offeneSchreibaufgabe', punkte: 60, quelleId: 'q1', textsorte: 'Erörterung', situation: 'Eine Jugendzeitschrift veröffentlicht die Textbeilage und bittet dich um einen begründeten Beitrag für ihre Leserinnen und Leser.', umfangWorte: { min: 405, max: 495 }, aspekte: ['Arbeitsaufträge', 'Textbezug', 'Textsorte und Wortumfang'] }]
+    : [
+        { typ: 'offeneVerstaendnisfrage', punkte: 12, anzahlFragen: 2 },
+        { typ: 'offeneSchreibaufgabe', punkte: 48, textsorte: 'Argumentative essay', situation: 'SRDP-Klausur', umfangWorte: { min: 405, max: 495 }, aspekte: ['Position', 'Argumente', 'Struktur'] },
+      ];
   const t0 = Date.now();
   const res = await generateDocument({ meta, quelltexte: [{ id: 'q1', titel: 'Beilage', inhalt: quelltext, herkunft: { typ: 'eingabe', ref: '' } }], bloecke }, cfg);
   const dt = ((Date.now() - t0) / 1000).toFixed(1);

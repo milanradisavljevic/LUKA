@@ -262,6 +262,25 @@ describe('nummeriereAbsaetze (Coverage-Prävention)', () => {
   });
 });
 
+describe('buildMessages — Deutsch-SRDP-Training', () => {
+  it('fordert Einzelaufgabe, Wortumfang, Textbeilage und 15 Subkriterien', () => {
+    const messages = buildMessages(input({ typ: 'matura', fach: 'deutsch', stufe: 'oberstufe' }));
+    const user = messages.find((m) => m.role === 'user')!;
+    expect(user.content).toContain('GENAU EINEN Block');
+    expect(user.content).toContain('405–495');
+    expect(user.content).toContain('Textbeilage');
+    expect(user.content).toContain('Schreibhandlung(en)');
+    expect(user.content).toContain('Situationsadäquatheit');
+    expect(user.content).toContain('Grammatik');
+  });
+
+  it('gated den SRDP-Training-Hinweis für andere Fächer', () => {
+    const messages = buildMessages(input({ typ: 'matura', fach: 'englisch', stufe: 'oberstufe' }));
+    const user = messages.find((m) => m.role === 'user')!;
+    expect(user.content).not.toContain('SRDP-DEUTSCH-TRAINING');
+  });
+});
+
 describe('buildMessages — Kompetenz-Modus', () => {
   const stoffItems = [{
     id: 's1', rahmenwerk: 'at-lehrplan' as const, titel: 'Konjunktiv II',

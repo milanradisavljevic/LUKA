@@ -1,5 +1,17 @@
 import type { ChatMessage, GenerateInput } from './types.js';
-import { FACH_META, istSprachfach } from '@lehrunterlagen/schema';
+import {
+  FACH_META,
+  istSprachfach,
+  SRDP_DEUTSCH_EINZELAUFGABE_UMFANG,
+  SRDP_DEUTSCH_TEXTSORTEN,
+} from '@lehrunterlagen/schema';
+
+const SRDP_DEUTSCH_15_SUBKRITERIEN = {
+  inhalt: ['Schreibhandlung(en)', 'Arbeitsaufträge', 'Textbeilage(n)', 'Sachliche Richtigkeit', 'Qualität der Auseinandersetzung'],
+  struktur: ['Kohärenz', 'Bezugnahme auf Textbeilage(n)', 'Kohäsionsmittel'],
+  ausdruck: ['Situationsadäquatheit', 'Wortwahl / Ausdruck', 'Satzstrukturen', 'Eigenständigkeit'],
+  sprachrichtigkeit: ['Orthografie', 'Zeichensetzung', 'Grammatik'],
+} as const;
 
 // Der System-Prompt traegt die inhaltlichen Regeln. Layout-Regeln (Hausstil)
 // gehoeren NICHT hierher, die macht der Renderer. Das LLM liefert nur Inhalt.
@@ -804,6 +816,22 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
             + `je Schreibauftrag Textsorte (z. B. Zusammenfassung, Leserbrief, Eroerterung, Kommentar, Textanalyse) und konkrete Wortanzahl explizit vorgeben. `
             + `Maturaadaequates Anspruchsniveau. `)
       : '';
+  const srdpDeutschTrainingHinweis =
+    input.meta.typ === 'matura' && input.meta.fach === 'deutsch' && input.meta.stufe === 'oberstufe'
+      ? `SRDP-DEUTSCH-TRAINING (Übungsformat, kein amtliches Prüfungsmaterial): Erzeuge GENAU EINEN Block vom Typ "offeneSchreibaufgabe". `
+        + `Dies ist ein einzelner textgebundener Schreibauftrag mit genau EINER Textbeilage, keine vollständige amtliche Klausur und kein Wahlaufgabenpaket. `
+        + `Waehle genau eine Textsorte aus dieser kuratierten, offiziell gaengigen Auswahl: ${SRDP_DEUTSCH_TEXTSORTEN.join(', ')}. `
+        + `Halte den Wortumfang strikt bei ${SRDP_DEUTSCH_EINZELAUFGABE_UMFANG.min}–${SRDP_DEUTSCH_EINZELAUFGABE_UMFANG.max} Wörtern. `
+        + `config.situation muss den situativen Rahmen (Wer schreibt? An wen? Anlass? Medium?) und den Bezug auf die Textbeilage nennen. `
+        + `quelleId des Schreibblocks muss auf die verwendete Textbeilage zeigen; arbeitsanweisung und aspekte muessen die Textbeilage funktional einbeziehen. `
+        + `Erzeuge keine Verständnisfrage und keinen zweiten Schreibblock. `
+        + `Das loesung.erwartungshorizont-Objekt hat genau die vier Felder inhalt, struktur, ausdruck, sprachrichtigkeit. `
+        + `Fuelle jedes Feld als strukturierte Liste mit den folgenden NATASCHA-Subkriterien und einem konkreten Erwartungssatz je Kriterium: `
+        + `inhalt = ${SRDP_DEUTSCH_15_SUBKRITERIEN.inhalt.join(' | ')}; `
+        + `struktur = ${SRDP_DEUTSCH_15_SUBKRITERIEN.struktur.join(' | ')}; `
+        + `ausdruck = ${SRDP_DEUTSCH_15_SUBKRITERIEN.ausdruck.join(' | ')}; `
+        + `sprachrichtigkeit = ${SRDP_DEUTSCH_15_SUBKRITERIEN.sprachrichtigkeit.join(' | ')}. `
+      : '';
   const fokusThemen = input.meta.fokusThemen ?? [];
   const fokusThemenHinweis =
     fokusThemen.length > 0
@@ -879,6 +907,7 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
         `Schwierigkeitsniveau: "${schwierigkeit}" — passe das kognitive Niveau der Aufgaben entsprechend an (siehe Bloom-Steuerung im System-Prompt). ` +
         spracheHinweis +
         maturaHinweis +
+        srdpDeutschTrainingHinweis +
         lernzielHinweis +
         zielgruppeHinweis +
         notizenHinweis +

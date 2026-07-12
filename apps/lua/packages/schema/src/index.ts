@@ -58,6 +58,24 @@ export function fachLabel(fach: Fach): string {
   return FACH_META[fach]?.label ?? fach;
 }
 
+/**
+ * Kuratierte Textsorten-Auswahl für den Deutsch-SRDP-Übungsspike.
+ * Das ist bewusst eine einzelne Aufgabe, kein amtliches Prüfungspaket.
+ */
+export const SRDP_DEUTSCH_TEXTSORTEN = [
+  'Erörterung',
+  'Kommentar',
+  'Leserbrief',
+  'Textanalyse',
+  'Textinterpretation',
+  'Zusammenfassung',
+  'Empfehlung',
+  'Meinungsrede',
+] as const;
+
+/** Wortumfang der kuratierten Einzelaufgabe im Deutsch-SRDP-Übungsspike. */
+export const SRDP_DEUTSCH_EINZELAUFGABE_UMFANG = { min: 405, max: 495 } as const;
+
 export const ModusSchema = z.enum(['text', 'kompetenz']);
 export type Modus = z.infer<typeof ModusSchema>;
 
@@ -990,7 +1008,12 @@ export const PROFILE: Record<Unterlagentyp, TypProfil> = {
 
 export function buildSkelett(auftrag: Auftrag): Block[] {
   const profil = PROFILE[auftrag.typ];
-  const aufgabenarten = auftrag.gewuenschteAufgabenarten ?? profil.standardAufgabenarten.map((a) => a.typ);
+  const istDeutschSrdpTraining = auftrag.typ === 'matura' && auftrag.fach === 'deutsch' && auftrag.stufe === 'oberstufe';
+  // Der Spike kuratiert genau eine textgebundene Schreibaufgabe. Andere Fächer
+  // behalten das bisherige Matura-Skelett unverändert.
+  const aufgabenarten = istDeutschSrdpTraining
+    ? ['offeneSchreibaufgabe' as const]
+    : (auftrag.gewuenschteAufgabenarten ?? profil.standardAufgabenarten.map((a) => a.typ));
   const gesamtpunkte = auftrag.gesamtpunkteZiel ?? profil.defaultGesamtpunkte;
 
   // Normalisiere Anteile auf die tatsaechlich gewaehlten Aufgabenarten
@@ -1055,15 +1078,24 @@ export function buildSkelett(auftrag: Auftrag): Block[] {
         };
       case 'offeneSchreibaufgabe': {
         const schwierigkeit = auftrag.schwierigkeit ?? 'mittel';
-        const umfang = auftrag.stufe === 'oberstufe' ? { min: 270, max: 330 } : { min: 120, max: 180 };
+        const umfang = istDeutschSrdpTraining
+          ? SRDP_DEUTSCH_EINZELAUFGABE_UMFANG
+          : auftrag.stufe === 'oberstufe' ? { min: 270, max: 330 } : { min: 120, max: 180 };
         return {
           ...base,
           typ: 'offeneSchreibaufgabe',
+          ...(istDeutschSrdpTraining && auftrag.quelltexte?.[0]?.id ? { quelleId: auftrag.quelltexte[0].id } : {}),
           config: {
-            situation: '[Situation]',
-            textsorte: '[Textsorte]',
+            situation: istDeutschSrdpTraining
+              ? '[Schreibsituation mit Bezug auf die Textbeilage: Wer schreibt, an wen, aus welchem Anlass und in welchem Medium?]'
+              : '[Situation]',
+            textsorte: istDeutschSrdpTraining
+              ? '[Erörterung / Kommentar / Leserbrief / Textanalyse / Textinterpretation / Zusammenfassung / Empfehlung / Meinungsrede]'
+              : '[Textsorte]',
             umfangWorte: umfang,
-            aspekte: schwierigkeit === 'leicht' ? ['Aspekt 1'] : ['Aspekt 1', 'Aspekt 2'],
+            aspekte: istDeutschSrdpTraining
+              ? ['Arbeitsaufträge und Schreibhandlung vollständig erfüllen', 'Funktionaler Bezug auf die Textbeilage', 'Textsorte, Adressat und Wortumfang einhalten']
+              : schwierigkeit === 'leicht' ? ['Aspekt 1'] : ['Aspekt 1', 'Aspekt 2'],
           },
           loesung: { musterloesung: '[Musterloesung]', erwartungshorizont: { inhalt: '[Erwartung Inhalt]', struktur: '[Erwartung Struktur]', ausdruck: '[Erwartung Ausdruck]', sprachrichtigkeit: '[Erwartung Sprachrichtigkeit]' } },
         };

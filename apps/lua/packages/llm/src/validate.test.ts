@@ -55,4 +55,37 @@ describe('parseAndValidate', () => {
     const res = await parseAndValidate(JSON.stringify(doc));
     expect(res.ok).toBe(false);
   });
+
+  it('validiert das Deutsch-SRDP-Training als Einzelaufgabe mit 15 Subkriterien', async () => {
+    const doc = {
+      schemaVersion: '0.1.0',
+      meta: { stufe: 'oberstufe', fach: 'deutsch', typ: 'matura', thema: 'Test', datum: '2026-05-30', klasse: '8A', notizen: '' },
+      quelltexte: [{ id: 'q1', titel: 'Beilage', inhalt: 'Ein Beispieltext.', herkunft: { typ: 'eingabe', ref: '' } }],
+      bloecke: [{
+        id: 'b1', typ: 'offeneSchreibaufgabe', punkte: 60, quelleId: 'q1', arbeitsanweisung: 'Verfasse den Text.',
+        config: { situation: 'Schreibe fuer eine Jugendzeitschrift auf Grundlage der Textbeilage.', textsorte: 'Kommentar', umfangWorte: { min: 405, max: 495 }, aspekte: ['Aufgabe', 'Textbeilage', 'Textsorte'] },
+        loesung: {
+          musterloesung: 'Musterloesung',
+          erwartungshorizont: {
+            inhalt: 'Schreibhandlung(en); Arbeitsaufträge; Textbeilage(n); Sachliche Richtigkeit; Qualität der Auseinandersetzung',
+            struktur: 'Kohärenz; Bezugnahme auf Textbeilage(n); Kohäsionsmittel',
+            ausdruck: 'Situationsadäquatheit; Wortwahl / Ausdruck; Satzstrukturen; Eigenständigkeit',
+            sprachrichtigkeit: 'Orthografie; Zeichensetzung; Grammatik',
+          },
+        },
+      }],
+    };
+    const res = await parseAndValidate(JSON.stringify(doc));
+    expect(res.ok).toBe(true);
+  });
+
+  it('lehnt im Deutsch-SRDP-Training eine zweite Aufgabe ab', async () => {
+    const doc = JSON.parse(JSON.stringify(validDoc));
+    doc.meta.typ = 'matura';
+    doc.meta.stufe = 'oberstufe';
+    doc.bloecke.push({ ...doc.bloecke[0], id: 'b2' });
+    const res = await parseAndValidate(JSON.stringify(doc));
+    expect(res.ok).toBe(false);
+    expect(res.fehler).toContain('genau einen Block');
+  });
 });
