@@ -7,6 +7,14 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Viertes Fachpaket „Deutsch — Textsorten-Training Oberstufe"
+- `samples/fachpakete/luka-fachpaket-deutsch-textsorten-v1.json`: 8 kuratierte
+  Aufgaben — sechs Schreibaufgaben zu den SRDP-Textsorten (Erörterung,
+  Kommentar, Leserbrief, Textanalyse, Textinterpretation, Zusammenfassung,
+  jeweils mit fiktiver Textbeilage in der Angabe und vierdimensionalem
+  Erwartungshorizont) plus Matching und Planungs-Tabelle über alle acht
+  Textsorten. Ergänzt das Matura-Training auf der Content-Seite.
+
 ### Added — Matura-Training (SRDP-Format) für Deutsch/Oberstufe
 - Neuer Einstieg in Step 0 (nur bei Deutsch + Oberstufe sichtbar): erzeugt
   eine textgebundene Einzelaufgabe im SRDP-Format — eine der acht gängigen
