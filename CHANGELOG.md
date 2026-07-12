@@ -7,6 +7,20 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Matura-Training (SRDP-Format) für Deutsch/Oberstufe
+- Neuer Einstieg in Step 0 (nur bei Deutsch + Oberstufe sichtbar): erzeugt
+  eine textgebundene Einzelaufgabe im SRDP-Format — eine der acht gängigen
+  Textsorten, 405–495 Wörter, Schreibsituation mit Bezug auf genau eine
+  Textbeilage. Übungsformat, kein amtliches Prüfungsmaterial (steht so in
+  der UI).
+- Der Erwartungshorizont füllt die vier SRDP-Dimensionen strukturiert mit
+  den 15 NATASCHA-Subkriterien; der Export nutzt das bestehende
+  K1/K3-Korrekturraster. Die Generierung wird hart validiert (genau ein
+  Schreibblock, Textsorten-Whitelist, exakter Wortumfang, Pflicht-Verweis
+  auf die Textbeilage).
+- Smoke-Test `scripts/srdp-smoke.mjs` deckt den Durchstich für Deutsch und
+  den unveränderten Englisch-Matura-Pfad ab.
+
 ### Added — Neutraler Start-Hintergrund vor der Fachwahl
 - Der Wizard startet jetzt mit dem neutralen Schreibtisch-Motiv und einer
   eigenen „LUKA-Start"-Farbpalette statt sofort das Deutsch-Mural (Schiller)
