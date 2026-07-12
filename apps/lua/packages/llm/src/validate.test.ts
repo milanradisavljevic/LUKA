@@ -79,6 +79,56 @@ describe('parseAndValidate', () => {
     expect(res.ok).toBe(true);
   });
 
+  it('akzeptiert im Deutsch-SRDP-Training variantige Subkriterien-Schreibweisen', async () => {
+    const doc = {
+      schemaVersion: '0.1.0',
+      meta: { stufe: 'oberstufe', fach: 'deutsch', typ: 'matura', thema: 'Test', datum: '2026-05-30', klasse: '8A', notizen: '' },
+      quelltexte: [{ id: 'q1', titel: 'Beilage', inhalt: 'Ein Beispieltext.', herkunft: { typ: 'eingabe', ref: '' } }],
+      bloecke: [{
+        id: 'b1', typ: 'offeneSchreibaufgabe', punkte: 60, quelleId: 'q1', arbeitsanweisung: 'Verfasse den Text.',
+        config: { situation: 'Schreibe fuer eine Jugendzeitschrift auf Grundlage der Textbeilage.', textsorte: 'Kommentar', umfangWorte: { min: 405, max: 495 }, aspekte: ['Aufgabe', 'Textbeilage', 'Textsorte'] },
+        loesung: {
+          musterloesung: 'Musterloesung',
+          erwartungshorizont: {
+            // Realistische Modell-Varianten: ohne Klammern, ohne Leerzeichen
+            // um den Schrägstrich, „Orthographie" mit ph.
+            inhalt: 'Beide Schreibhandlungen erfüllt; alle Arbeitsaufträge beantwortet; die Textbeilage wird konkret genutzt; sachlich korrekt; vertiefte Auseinandersetzung mit dem Thema',
+            struktur: 'Kohärenz des Gedankengangs; klare Bezugnahme auf die Textbeilage; passende Kohäsionsmittel',
+            ausdruck: 'Situationsadäquate Register (Situationsadäquatheit); treffende Wortwahl; variantenreiche Satzstrukturen; Eigenständigkeit der Formulierung',
+            sprachrichtigkeit: 'Orthographie weitgehend fehlerfrei; korrekte Zeichensetzung; sichere Grammatik',
+          },
+        },
+      }],
+    };
+    const res = await parseAndValidate(JSON.stringify(doc));
+    expect(res.ok).toBe(true);
+  });
+
+  it('nennt im Deutsch-SRDP-Training die fehlenden Subkriterien beim Ablehnen', async () => {
+    const doc = {
+      schemaVersion: '0.1.0',
+      meta: { stufe: 'oberstufe', fach: 'deutsch', typ: 'matura', thema: 'Test', datum: '2026-05-30', klasse: '8A', notizen: '' },
+      quelltexte: [{ id: 'q1', titel: 'Beilage', inhalt: 'Ein Beispieltext.', herkunft: { typ: 'eingabe', ref: '' } }],
+      bloecke: [{
+        id: 'b1', typ: 'offeneSchreibaufgabe', punkte: 60, quelleId: 'q1', arbeitsanweisung: 'Verfasse den Text.',
+        config: { situation: 'Schreibe fuer eine Jugendzeitschrift auf Grundlage der Textbeilage.', textsorte: 'Kommentar', umfangWorte: { min: 405, max: 495 }, aspekte: ['Aufgabe', 'Textbeilage', 'Textsorte'] },
+        loesung: {
+          musterloesung: 'Musterloesung',
+          erwartungshorizont: {
+            inhalt: 'Nur allgemeines Gerede ohne Kriterien.',
+            struktur: 'Kohärenz; Bezugnahme auf Textbeilage(n); Kohäsionsmittel',
+            ausdruck: 'Situationsadäquatheit; Wortwahl / Ausdruck; Satzstrukturen; Eigenständigkeit',
+            sprachrichtigkeit: 'Orthografie; Zeichensetzung; Grammatik',
+          },
+        },
+      }],
+    };
+    const res = await parseAndValidate(JSON.stringify(doc));
+    expect(res.ok).toBe(false);
+    expect(res.fehler).toContain('Schreibhandlung(en)');
+    expect(res.fehler).toContain('fehlen die Subkriterien');
+  });
+
   it('lehnt im Deutsch-SRDP-Training eine zweite Aufgabe ab', async () => {
     const doc = JSON.parse(JSON.stringify(validDoc));
     doc.meta.typ = 'matura';

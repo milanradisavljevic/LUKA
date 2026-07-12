@@ -7,6 +7,15 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Fixed — Matura-Training: Subkriterien-Prüfung war zu wörtlich
+- Die Validierung verlangte die 15 Subkriterien-Labels buchstabengetreu
+  (inkl. „Schreibhandlung(en)" mit Klammern, „Wortwahl / Ausdruck" mit
+  Leerzeichen) — reale Modellantworten mit „Schreibhandlungen" oder
+  „Orthographie" wurden fälschlich abgelehnt. Jetzt tolerantes
+  Kernbegriff-Matching; die Fehlermeldung nennt außerdem konkret die
+  fehlenden Subkriterien, damit der automatische Reparaturversuch sie
+  gezielt nachliefern kann.
+
 ### Changed — PDF-Export mit Speicher-Dialog statt Pfad-Tippfeld
 - Der PDF-Export fragt den Zielort jetzt über den nativen Speichern-Dialog ab
   (Vorschlag aus Dokumenttitel und Datum) — kein Pfad-Eintippen mehr. Bestätigt

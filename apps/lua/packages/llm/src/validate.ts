@@ -43,16 +43,40 @@ function validateSrdpDeutschTraining(document: DocumentV1): string | undefined {
     return 'SRDP-Deutsch-Training: Die Schreibaufgabe muss auf genau eine vorhandene Textbeilage verweisen.';
   }
 
-  const subkriterien: Record<keyof typeof block.loesung.erwartungshorizont, readonly string[]> = {
-    inhalt: ['Schreibhandlung(en)', 'Arbeitsaufträge', 'Textbeilage(n)', 'Sachliche Richtigkeit', 'Qualität der Auseinandersetzung'],
-    struktur: ['Kohärenz', 'Bezugnahme auf Textbeilage(n)', 'Kohäsionsmittel'],
-    ausdruck: ['Situationsadäquatheit', 'Wortwahl / Ausdruck', 'Satzstrukturen', 'Eigenständigkeit'],
-    sprachrichtigkeit: ['Orthografie', 'Zeichensetzung', 'Grammatik'],
+  // Tolerantes Matching: Modelle variieren die Labels („Schreibhandlungen"
+  // statt „Schreibhandlung(en)", „Wortwahl/Ausdruck", „Orthographie") —
+  // geprüft wird deshalb ein normalisierter Kernbegriff je Subkriterium,
+  // nicht der wörtliche Label-String.
+  const subkriterien: Record<keyof typeof block.loesung.erwartungshorizont, readonly { label: string; kern: string }[]> = {
+    inhalt: [
+      { label: 'Schreibhandlung(en)', kern: 'schreibhandlung' },
+      { label: 'Arbeitsaufträge', kern: 'arbeitsauftr' },
+      { label: 'Textbeilage(n)', kern: 'textbeilage' },
+      { label: 'Sachliche Richtigkeit', kern: 'sachlich' },
+      { label: 'Qualität der Auseinandersetzung', kern: 'auseinandersetzung' },
+    ],
+    struktur: [
+      { label: 'Kohärenz', kern: 'kohärenz' },
+      { label: 'Bezugnahme auf Textbeilage(n)', kern: 'bezugnahme' },
+      { label: 'Kohäsionsmittel', kern: 'kohäsion' },
+    ],
+    ausdruck: [
+      { label: 'Situationsadäquatheit', kern: 'situationsadäquat' },
+      { label: 'Wortwahl / Ausdruck', kern: 'wortwahl' },
+      { label: 'Satzstrukturen', kern: 'satzstruktur' },
+      { label: 'Eigenständigkeit', kern: 'eigenständig' },
+    ],
+    sprachrichtigkeit: [
+      { label: 'Orthografie', kern: 'orthogra' },
+      { label: 'Zeichensetzung', kern: 'zeichensetzung' },
+      { label: 'Grammatik', kern: 'grammatik' },
+    ],
   };
-  for (const [dimension, labels] of Object.entries(subkriterien) as [keyof typeof subkriterien, readonly string[]][]) {
-    const erwartung = block.loesung.erwartungshorizont[dimension];
-    if (!labels.every((label) => erwartung.includes(label))) {
-      return `SRDP-Deutsch-Training: Erwartungshorizont-Feld "${dimension}" muss alle 15 NATASCHA-Subkriterien strukturiert enthalten.`;
+  for (const [dimension, kriterien] of Object.entries(subkriterien) as [keyof typeof subkriterien, readonly { label: string; kern: string }[]][]) {
+    const erwartung = block.loesung.erwartungshorizont[dimension].toLowerCase();
+    const fehlend = kriterien.filter((k) => !erwartung.includes(k.kern)).map((k) => k.label);
+    if (fehlend.length > 0) {
+      return `SRDP-Deutsch-Training: Im Erwartungshorizont-Feld "${dimension}" fehlen die Subkriterien: ${fehlend.join(', ')}. Jedes Subkriterium muss namentlich mit einem konkreten Erwartungssatz vorkommen.`;
     }
   }
   return undefined;
