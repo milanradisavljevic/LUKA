@@ -5,7 +5,24 @@ Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 (auch andere Coding-Agents) — siehe `AGENTS.md`.
 
-## [Unreleased]
+## Version 1.0.3 — 2026-07-12
+
+**Das ist neu:**
+
+- **Mein Profil** (Einstellungen): Gib einmal deine Fächer, Schulstufen und
+  bevorzugten Einstellungen an — neue Unterlagen, das KI-Modell und der
+  Aufgaben-Pool richten sich danach. Alles bleibt auf deinem Rechner.
+- **Drei Fachpakete zum Importieren:** Startpaket plus zwei Ausbaupakete
+  (Medien & Demokratie, Informatik & KI) — zusammen 21 kuratierte
+  Oberstufen-Aufgaben. Der Import prüft Pakete jetzt vollständig, bevor
+  sie deinen Pool verändern.
+- **Aufgaben-Pool aufgeräumt:** Favoriten, eigener Qualitätsstatus
+  (getestet/empfohlen), „Kuratiert"-Kennzeichnung mit Herkunft, dazu
+  Filtern und Sortieren nach Herkunft, Status und letzter Verwendung.
+- **Neues Update-Fenster:** Updates erscheinen jetzt im LUKA-Design und
+  zeigen — so wie hier — was neu ist.
+- **LUKA gibt es jetzt auch für den Mac** (Intel und Apple Silicon).
+  Installationshinweise stehen im README und in der Anleitung.
 
 ### Added — Lokale Organisation im Aufgaben-Pool
 - Der Aufgaben-Pool kann jetzt nach Herkunft und Qualitätsstatus gefiltert
@@ -18,8 +35,6 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 ### Fixed — Pool-Karten bei schmalen Fenstern
 - Die Aktionsleiste einer Pool-Karte bricht bei kleinen Fensterbreiten um; das
   rote Löschen-X bleibt dadurch innerhalb der Karte sichtbar.
-
-## Version 1.0.3 — 2026-07-11
 
 ### Added — Drittes Fachpaket und robuster Fachpaket-Import
 - Das neue Fachpaket „Informatik & KI — Ausbaupaket" ergänzt sieben Aufgaben
@@ -69,14 +84,6 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
   Sicherheit → „Dennoch öffnen").
 - Die Windows- und macOS-Builds aktualisieren das gemeinsame Release nun
   nacheinander, damit beide Plattformen zuverlässig veröffentlicht werden.
-
-**Das ist neu:**
-
-- **Mein Profil** (Einstellungen): Gib einmal deine Fächer, Schulstufen und
-  bevorzugten Einstellungen an — neue Unterlagen, das KI-Modell und der
-  Aufgaben-Pool richten sich danach. Alles bleibt auf deinem Rechner.
-- **Neues Update-Fenster:** Updates erscheinen jetzt im LUKA-Design und
-  zeigen — so wie hier — was neu ist.
 
 ### Added — NATASCHA-Sidecar vorbereitet (im Pilot inaktiv)
 - NATASCHA erhält einen dokumentierten Headless-CLI-/Sidecar-Build
@@ -129,6 +136,8 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
   `releaseBody`; tauri-action schreibt ihn als `notes` in `latest.json`, der
   Updater liefert das als `update.body` an den neuen Dialog. Fallback bei
   leerem/fehlendem Abschnitt: „Details im CHANGELOG."
+
+## Version 1.0.2 — 2026-07-10
 
 ### Changed — Generator-only-Pilot (Version 1.0.2)
 - `FEATURES.natascha` auf `false`: Sidebar, Dashboard-Karten, Befehlspalette,
