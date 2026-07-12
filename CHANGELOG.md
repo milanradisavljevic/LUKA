@@ -5,6 +5,28 @@ Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 (auch andere Coding-Agents) — siehe `AGENTS.md`.
 
+## Version 1.0.4 — 2026-07-12
+
+**Das ist neu:**
+
+- **LUKA für den Mac ist da:** Das in Version 1.0.3 angekündigte
+  macOS-Paket (Intel und Apple Silicon) wird jetzt wirklich mitgeliefert —
+  der Mac-Build schlug in 1.0.3 noch fehl. Installationshinweise stehen im
+  README und in der Anleitung. Für Windows ändert sich nichts.
+
+### Fixed — macOS-Bundling scheiterte an Dev-Binaries
+- `tauri build --target universal-apple-darwin` brach beim Bundling ab:
+  Die Dev-Werkzeuge `seed_pool`, `import_keys` und `test_providers` lagen
+  als `src/bin/`-Targets im Cargo-Manifest und wurden vom Tauri-Bundler in
+  die App gepackt — beim Universal-Build wird aber nur das Haupt-Binary
+  für beide Architekturen gebaut, die Zusatz-Binaries fehlten im
+  universal-Ordner (`Failed to copy binary … test_providers`).
+- Alle drei nach `src-tauri/examples/` verschoben (Aufruf jetzt
+  `cargo run --example seed_pool` usw.) — Examples bundelt Tauri nie mit.
+  Nebeneffekt: Auch der Windows-Installer liefert die Dev-Werkzeuge nicht
+  mehr an Lehrkräfte aus.
+- App-Version auf 1.0.4 (tauri.conf.json, Cargo.toml, Cargo.lock).
+
 ## Version 1.0.3 — 2026-07-12
 
 **Das ist neu:**

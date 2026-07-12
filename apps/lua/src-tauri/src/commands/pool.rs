@@ -271,7 +271,7 @@ pub struct PoolImportReport {
 }
 
 /// Dateiformat: JSON-Array von PoolEntry (camelCase) — identisch zu
-/// `scripts/generate-aufgabenpool-draft.mjs`-Output und `bin/seed_pool.rs`.
+/// `scripts/generate-aufgabenpool-draft.mjs`-Output und `examples/seed_pool.rs`.
 fn lese_pool_datei(path: &str) -> Result<Vec<PoolEntry>, String> {
     let raw = std::fs::read_to_string(path)
         .map_err(|e| format!("Datei nicht lesbar: {}", e))?;

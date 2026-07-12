@@ -1,11 +1,11 @@
 // Standalone-Binary: seedet einen review-freigegebenen Aufgabenpool-Entwurf
 // (JSON-Array im PoolEntry-Format, siehe apps/web/src/lib/pool.ts) direkt in
 // die Tabelle aufgabe_pool -- ohne Tauri-IPC (Node-Skripte koennen Tauri-
-// Commands nicht aufrufen). Muster: src/bin/import_keys.rs.
+// Commands nicht aufrufen). Muster: examples/import_keys.rs.
 //
 // Aufruf:
-//   cargo run --bin seed_pool -- <datei>.json
-//   cargo run --bin seed_pool -- <datei>.json --db-path <pfad-zur-db>   (optional, fuer Tests/Sidecar)
+//   cargo run --example seed_pool -- <datei>.json
+//   cargo run --example seed_pool -- <datei>.json --db-path <pfad-zur-db>   (optional, fuer Tests/Sidecar)
 //
 // Herkunft der Datei: apps/lua/scripts/generate-aufgabenpool-draft.mjs erzeugt
 // einen Entwurf (quelleHinweis "LLM-Entwurf, ungeprueft"); ein manueller
@@ -45,7 +45,7 @@ fn main() {
     let json_path = match json_path {
         Some(p) => p,
         None => {
-            eprintln!("Aufruf: cargo run --bin seed_pool -- <datei>.json [--db-path <pfad>]");
+            eprintln!("Aufruf: cargo run --example seed_pool -- <datei>.json [--db-path <pfad>]");
             std::process::exit(1);
         }
     };

@@ -7,7 +7,7 @@
 // (informatikki). Jeder erzeugte Block wird zu einem PoolEntry (siehe
 // apps/web/src/lib/pool.ts) mit quelleHinweis "LLM-Entwurf, ungeprüft" und
 // landet als JSON-Array in scripts/out/aufgabenpool-draft.json — Review-Pass
-// (Milan/Kimi) und anschließendes Seeding (`cargo run --bin seed_pool`) folgen
+// (Milan/Kimi) und anschließendes Seeding (`cargo run --example seed_pool`) folgen
 // AUSSERHALB dieses Skripts.
 //
 // Aufruf:
@@ -349,7 +349,7 @@ async function main() {
   if (!existsSync(OUT_DIR)) mkdirSync(OUT_DIR, { recursive: true });
   writeFileSync(OUT_PATH, JSON.stringify(entries, null, 2), 'utf8');
   console.log(`✓ geschrieben: ${OUT_PATH}`);
-  console.log('  Naechster Schritt: Review-Pass (Milan/Kimi), danach `cargo run --bin seed_pool -- ' + OUT_PATH + '`');
+  console.log('  Naechster Schritt: Review-Pass (Milan/Kimi), danach `cargo run --example seed_pool -- ' + OUT_PATH + '`');
 
   if (fehler > 0) process.exitCode = 1;
 }
