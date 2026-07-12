@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import type { Block, DocumentV1, StoffItem } from '@lehrunterlagen/schema';
-import type { GenerateInput, BlockRequest, ChatMessage } from '@lehrunterlagen/llm';
-import { buildMessages, buildRepairMessage, parseAndValidate, runJudge, istRisikoTyp, type QualityIssue } from '@lehrunterlagen/llm';
+import type { GenerateInput, BlockRequest, ChatMessage, ProviderId } from '@lehrunterlagen/llm';
+import { buildMessages, buildRepairMessage, parseAndValidate, refineDocument, runJudge, istRisikoTyp, type QualityIssue } from '@lehrunterlagen/llm';
 import { invoke } from '@tauri-apps/api/core';
 import type { AppState, AppAction } from '../lib/types';
 import { loadSettings } from '../lib/storage';
@@ -39,7 +39,7 @@ function buildInhaltsModul(meta: AppState['meta']): { titel: string; beschreibun
 }
 
 // Phasen der Generierung — die UI (Kimi) zeigt daraus eine Fortschrittsanzeige.
-export type GenerateStage = 'idle' | 'sende' | 'validiere' | 'korrigiere' | 'fertig' | 'fehler';
+export type GenerateStage = 'idle' | 'sende' | 'validiere' | 'korrigiere' | 'qualitaet' | 'fertig' | 'fehler';
 
 // Ersatz-Anbieter nur bei Transport-/API-Fehlern (nicht bei ungültigem Output).
 // Standardmäßig DeepSeek bevorzugt (User-Setting), Anthropic als Fallback.
@@ -482,7 +482,60 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
     }
   }, []);
 
+  const refineQuality = useCallback(async (state: AppState): Promise<{ document: DocumentV1; aenderungen: string[] } | null> => {
+    const original = state.generiertesDokument;
+    if (!original) { setError('Kein generiertes Dokument vorhanden.'); return null; }
+    if (!isTauri()) { setError('Nur in der Desktop-App verfügbar.'); return null; }
+
+    cancelRef.current = false;
+    setGenerating(true);
+    setError(null);
+    setStage('qualitaet');
+    startTimer();
+
+    try {
+      const { providerId, apiModel } = resolveProvider(state);
+      setAktiverProvider(providerId);
+      const complete = async (messages: ChatMessage[]): Promise<string> => {
+        const sys = messages.find((m) => m.role === 'system');
+        const rest = messages.filter((m) => m.role !== 'system') as ChatMessage[];
+        return invoke<string>('llm_complete', {
+          provider: providerId,
+          model: apiModel,
+          system: sys?.content ?? '',
+          messages: rest,
+          kreativitaet: 0.2,
+        });
+      };
+
+      const result = await refineDocument(
+        original,
+        { provider: providerId as ProviderId, model: apiModel, kreativitaet: 0.2 },
+        complete,
+      );
+      if (cancelRef.current) { setStage('idle'); return null; }
+      if (!result.ok) {
+        setError(result.fehler);
+        setStage('fehler');
+        return null;
+      }
+
+      dispatch({ type: 'SET_GENERIERTES_DOKUMENT', dokument: result.document });
+      setStage('fertig');
+      return { document: result.document, aenderungen: result.aenderungen };
+    } catch (err) {
+      const msg = errToMessage(err);
+      if (msg === '__CANCELLED__') { setStage('idle'); return null; }
+      setError(msg);
+      setStage('fehler');
+      return null;
+    } finally {
+      stopTimer();
+      setGenerating(false);
+    }
+  }, [dispatch]);
+
   const cancel = useCallback(() => { cancelRef.current = true; }, []);
 
-  return { generate, regenerateBlock, pruefeLoesungen, cancel, generating, pruefend, stage, elapsedMs, aktiverProvider, error };
+  return { generate, regenerateBlock, refineQuality, pruefeLoesungen, cancel, generating, pruefend, stage, elapsedMs, aktiverProvider, error };
 }

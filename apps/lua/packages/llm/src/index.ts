@@ -1,46 +1,24 @@
 import type {
   GenerateInput,
   GenerateResult,
-  Provider,
   ProviderConfig,
-  ProviderId,
 } from './types.js';
 import { buildMessages, buildRepairMessage } from './prompt.js';
 import { parseAndValidate } from './validate.js';
 import type { ChatMessage } from './types.js';
-import { anthropicProvider } from './provider-anthropic.js';
-import { openaiProvider } from './provider-openai.js';
-import { kimiProvider } from './provider-kimi.js';
-import { deepseekProvider, mistralProvider, qwenProvider } from './provider-openai-compat.js';
+import { getProvider } from './provider-registry.js';
 
 export * from './types.js';
-export { buildMessages } from './prompt.js';
+export { buildMessages, buildRefinementMessages, buildSrdpDeutschTrainingHint } from './prompt.js';
 export { parseAndValidate, extractJson } from './validate.js';
+export { refineDocument, type RefineComplete } from './refine.js';
 export { normalizeDocument } from './normalize.js';
 export { transformToSchema } from './transform.js';
 export { buildRepairMessage } from './prompt.js';
 export { runQualityChecks, checkGrounding, checkDuplicates, checkSchreibaufgabe, checkLernzielCoverage, llmJudgeHook, type QualityIssue, type LlmJudgeResult, type QualityCheckResult } from './quality.js';
 export { runJudge, istRisikoTyp } from './judge.js';
 
-// Anbieter-Registry. Phase 5: alle drei Adapter verfuegbar.
-const PROVIDERS: Partial<Record<ProviderId, Provider>> = {
-  anthropic: anthropicProvider,
-  openai: openaiProvider,
-  deepseek: deepseekProvider,
-  mistral: mistralProvider,
-  qwen: qwenProvider,
-  kimi: kimiProvider,
-};
-
-export function getProvider(id: ProviderId): Provider {
-  const p = PROVIDERS[id];
-  if (!p) {
-    throw new Error(
-      `Anbieter '${id}' ist noch nicht implementiert. Verfuegbare Anbieter: ${Object.keys(PROVIDERS).join(', ')}.`,
-    );
-  }
-  return p;
-}
+export { getProvider } from './provider-registry.js';
 
 /**
  * Erzeugt aus Quelltexten und Baukasten-Vorgaben ein schema-konformes Dokument.

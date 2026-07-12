@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildMessages, nummeriereAbsaetze } from './prompt.js';
+import { buildMessages, buildRefinementMessages, nummeriereAbsaetze } from './prompt.js';
 import type { Meta } from '@lehrunterlagen/schema';
 
 const baseMeta: Meta = {
@@ -282,6 +282,35 @@ describe('buildMessages — Deutsch-SRDP-Training', () => {
     const messages = buildMessages(input({ typ: 'matura', fach: 'englisch', stufe: 'oberstufe' }));
     const user = messages.find((m) => m.role === 'user')!;
     expect(user.content).not.toContain('SRDP-DEUTSCH-TRAINING');
+  });
+});
+
+describe('buildRefinementMessages — Qualitätspass', () => {
+  const refinementDoc = (meta: Partial<Meta> = {}) => ({
+    schemaVersion: '0.1.0' as const,
+    meta: { ...baseMeta, ...meta },
+    quelltexte: [],
+    bloecke: [],
+  });
+
+  it('enthält die konkrete Kritik-Checkliste und das Änderungsformat', () => {
+    const messages = buildRefinementMessages(refinementDoc());
+    const user = messages.find((m) => m.role === 'user')!;
+    expect(user.content).toContain('Schreibsituation');
+    expect(user.content).toContain('Textbezug');
+    expect(user.content).toContain('Erwartungshorizont');
+    expect(user.content).toContain('Niveau und Punkte');
+    expect(user.content).toContain('aenderungen');
+    expect(user.content).toContain('zwei bis drei');
+  });
+
+  it('fügt den SRDP-Maßstab nur bei Deutsch/Oberstufe/Matura hinzu', () => {
+    const srdp = buildRefinementMessages(refinementDoc({ typ: 'matura', stufe: 'oberstufe', fach: 'deutsch' }));
+    expect(srdp[0]!.content).toContain('ZUSAETZLICHER SRDP-MASSSTAB');
+    expect(srdp[0]!.content).toContain('Schreibhandlung(en)');
+
+    const english = buildRefinementMessages(refinementDoc({ typ: 'matura', stufe: 'oberstufe', fach: 'englisch' }));
+    expect(english[0]!.content).not.toContain('ZUSAETZLICHER SRDP-MASSSTAB');
   });
 });
 

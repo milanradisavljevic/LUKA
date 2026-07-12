@@ -71,6 +71,21 @@ export interface GenerateError {
 
 export type GenerateResult = GenerateOk | GenerateError;
 
+export interface RefineOk {
+  ok: true;
+  document: DocumentV1;
+  aenderungen: string[];
+  rohText: string;
+}
+
+export interface RefineError {
+  ok: false;
+  fehler: string;
+  rohText?: string;
+}
+
+export type RefineResult = RefineOk | RefineError;
+
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;

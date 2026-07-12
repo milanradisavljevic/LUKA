@@ -31,7 +31,7 @@ interface Props {
 }
 
 export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
-  const { generate, regenerateBlock, pruefeLoesungen, cancel, generating, pruefend, stage, elapsedMs, aktiverProvider, error: generateError } = useGenerate(dispatch);
+  const { generate, regenerateBlock, refineQuality, pruefeLoesungen, cancel, generating, pruefend, stage, elapsedMs, aktiverProvider, error: generateError } = useGenerate(dispatch);
   const { exportDocx, exportDocxOverride, exportKorrekturraster, exportKompetenzraster, exportSelbstlern, exportSelbsteinschaetzung, exportGift, exporting, error: exportError, warnung: exportWarnung, lastSavedPaths } = useExport();
   const pdfExport = usePdfExport();
   const isKompetenz = state.meta.modus === 'kompetenz';
@@ -50,6 +50,8 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
   const [showWeitere, setShowWeitere] = useState(false);
   const [niveauLeicht, setNiveauLeicht] = useState(false);
   const [niveauSchwer, setNiveauSchwer] = useState(false);
+  const [qualityPassUsed, setQualityPassUsed] = useState(false);
+  const [qualityChanges, setQualityChanges] = useState<string[] | null>(null);
   const [exportOptions, setExportOptions] = useState({
     docx: DEFAULT_LEHRER_PROFIL.exportDocx,
     pdf: DEFAULT_LEHRER_PROFIL.exportPdf,
@@ -72,6 +74,7 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
     sende:   { label: 'KI formuliert Aufgaben …', step: 1 },
     validiere: { label: 'Struktur und Lösungen werden geprüft …', step: 2 },
     korrigiere: { label: 'KI bessert Beanstandungen nach …', step: 3 },
+    qualitaet: { label: 'KI prüft und schärft die Unterlage …', step: 2 },
     fertig:  { label: 'Fertig!', step: 4 },
     fehler:  { label: 'Fehler', step: 0 },
   };
@@ -94,6 +97,7 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
 
   const totalPunkte = state.bloecke.reduce((s, b) => s + b.punkte, 0);
   const previewBloecke = state.generiertesDokument?.bloecke ?? state.bloecke;
+  const qualityPassRunning = generating && stage === 'qualitaet';
 
   // Quelltext-Abdruck (wie punkteAusblenden): Meta-Toggle, wirkt auf Vorschau + DOCX.
   // Nach der Generierung muss auch das eingefrorene Dokument-Meta mitgezogen werden.
@@ -364,16 +368,53 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
           {/* Schritt 1: Generieren */}
           <button
             className="btn-primary"
-            onClick={() => generate(state)}
+            onClick={() => { setQualityPassUsed(false); setQualityChanges(null); void generate(state); }}
             disabled={!canGenerate || generating || exporting}
-            aria-label={generating ? 'Inhalt wird generiert' : 'Inhalt generieren'}
+            aria-label={generating && !qualityPassRunning ? 'Inhalt wird generiert' : 'Inhalt generieren'}
             style={{ padding: '0.65rem 1.25rem', fontSize: '0.9375rem',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
           >
-            {generating
+            {generating && !qualityPassRunning
               ? <><Loader2 size={16} className="spin" /> Inhalt wird generiert…</>
               : <><Sparkles size={16} /> Inhalt generieren</>}
           </button>
+
+          {canExport && (
+            <button
+              className="btn-secondary"
+              onClick={async () => {
+                const result = await refineQuality(state);
+                if (result) {
+                  setQualityPassUsed(true);
+                  setQualityChanges(result.aenderungen);
+                }
+              }}
+              disabled={generating || exporting || qualityPassUsed}
+              aria-label="Qualität der generierten Unterlage schärfen"
+              title="Nutzt einen weiteren API-Aufruf deines ausgewählten Anbieters."
+              style={{ padding: '0.65rem 1.25rem', fontSize: '0.9375rem',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+            >
+              {qualityPassRunning
+                ? <><Loader2 size={16} className="spin" /> Qualität wird geschärft…</>
+                : <><Sparkles size={16} /> {qualityPassUsed ? 'Qualität bereits geschärft' : 'Qualität schärfen'}</>}
+            </button>
+          )}
+
+          {qualityChanges && (
+            <div style={{
+              padding: '0.65rem 0.75rem', background: 'var(--color-success-bg)',
+              border: '1px solid var(--color-success)', borderRadius: 'var(--radius)',
+              fontSize: '0.75rem', lineHeight: 1.5,
+            }}>
+              <strong style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                <CheckCircle2 size={14} color="var(--color-success)" /> Qualitätspass abgeschlossen
+              </strong>
+              <ul style={{ margin: '0.3rem 0 0 1.15rem', padding: 0 }}>
+                {qualityChanges.map((change, index) => <li key={`${index}-${change}`}>{change}</li>)}
+              </ul>
+            </div>
+          )}
 
           {/* Schritt 2: Exportieren */}
           <button
