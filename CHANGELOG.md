@@ -7,6 +7,12 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Fixed — Qualitätspass: Erwartungshorizont-Listen werden akzeptiert
+- Liefert das Modell die vier Erwartungshorizont-Dimensionen als Liste statt
+  als Text (naheliegend, weil der Prompt eine „strukturierte Liste" verlangt),
+  brach der Qualitätspass mit „Expected string, received array" ab. Die
+  Normalisierung joint solche Listen jetzt zu Text, bevor validiert wird.
+
 ### Fixed — Matura-Training: Subkriterien-Prüfung war zu wörtlich
 - Die Validierung verlangte die 15 Subkriterien-Labels buchstabengetreu
   (inkl. „Schreibhandlung(en)" mit Klammern, „Wortwahl / Ausdruck" mit

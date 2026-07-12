@@ -391,6 +391,18 @@ function normalizeOffeneSchreibaufgabe(block: AnyObj): AnyObj {
       sprachrichtigkeit: text
     };
   }
+  // Einzelne Dimensionen als Array → zu String joinen. Modelle liefern die
+  // Subkriterien gern als JSON-Liste, wenn der Prompt eine "strukturierte
+  // Liste" verlangt (Schema erwartet Strings).
+  if (isObject(loesung.erwartungshorizont)) {
+    const eh = { ...loesung.erwartungshorizont } as AnyObj;
+    for (const feld of ['inhalt', 'struktur', 'ausdruck', 'sprachrichtigkeit']) {
+      if (Array.isArray(eh[feld])) {
+        eh[feld] = (eh[feld] as unknown[]).filter((e) => typeof e === 'string' && e.trim()).join('; ');
+      }
+    }
+    loesung.erwartungshorizont = eh;
+  }
 
   return { ...block, config, loesung };
 }

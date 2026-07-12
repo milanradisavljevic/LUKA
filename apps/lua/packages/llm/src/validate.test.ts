@@ -104,6 +104,32 @@ describe('parseAndValidate', () => {
     expect(res.ok).toBe(true);
   });
 
+  it('joint Erwartungshorizont-Dimensionen, die als Array geliefert werden', async () => {
+    const doc = {
+      schemaVersion: '0.1.0',
+      meta: { stufe: 'oberstufe', fach: 'deutsch', typ: 'matura', thema: 'Test', datum: '2026-05-30', klasse: '8A', notizen: '' },
+      quelltexte: [{ id: 'q1', titel: 'Beilage', inhalt: 'Ein Beispieltext.', herkunft: { typ: 'eingabe', ref: '' } }],
+      bloecke: [{
+        id: 'b1', typ: 'offeneSchreibaufgabe', punkte: 60, quelleId: 'q1', arbeitsanweisung: 'Verfasse den Text.',
+        config: { situation: 'Schreibe fuer eine Jugendzeitschrift auf Grundlage der Textbeilage.', textsorte: 'Kommentar', umfangWorte: { min: 405, max: 495 }, aspekte: ['Aufgabe', 'Textbeilage', 'Textsorte'] },
+        loesung: {
+          musterloesung: 'Musterloesung',
+          erwartungshorizont: {
+            inhalt: ['Schreibhandlungen erfüllt', 'Arbeitsaufträge beantwortet', 'Textbeilage genutzt', 'sachlich korrekt', 'vertiefte Auseinandersetzung'],
+            struktur: ['Kohärenz', 'Bezugnahme auf die Textbeilage', 'Kohäsionsmittel'],
+            ausdruck: ['Situationsadäquatheit', 'Wortwahl', 'Satzstrukturen', 'Eigenständigkeit'],
+            sprachrichtigkeit: ['Orthografie', 'Zeichensetzung', 'Grammatik'],
+          },
+        },
+      }],
+    };
+    const res = await parseAndValidate(JSON.stringify(doc));
+    expect(res.ok).toBe(true);
+    expect(res.document?.bloecke[0]).toMatchObject({
+      loesung: { erwartungshorizont: { sprachrichtigkeit: 'Orthografie; Zeichensetzung; Grammatik' } },
+    });
+  });
+
   it('nennt im Deutsch-SRDP-Training die fehlenden Subkriterien beim Ablehnen', async () => {
     const doc = {
       schemaVersion: '0.1.0',
