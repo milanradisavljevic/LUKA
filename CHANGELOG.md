@@ -7,6 +7,13 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Changed — PDF-Export mit Speicher-Dialog statt Pfad-Tippfeld
+- Der PDF-Export fragt den Zielort jetzt über den nativen Speichern-Dialog ab
+  (Vorschlag aus Dokumenttitel und Datum) — kein Pfad-Eintippen mehr. Bestätigt
+  die Lehrkraft im Dialog das Überschreiben, wird die vorhandene Datei ersetzt.
+- Fehlt LibreOffice für die Konvertierung, erscheint eine verständliche
+  Meldung mit Installationshinweis statt eines technischen Fehlers.
+
 ### Added — Qualitätspass: „Qualität schärfen" nach der Generierung
 - Neuer Button in Schritt 4: Das Modell prüft das eigene Dokument als strenger
   Fachkollege (konkrete Schreibsituation? echter Textbeilagen-Bezug?

@@ -75,8 +75,12 @@ pub async fn convert_pdf(docx_path: String, output_path: Option<String>) -> Resu
         Ok(Ok(_)) => {
             if let Some(target) = requested_pdf {
                 if target != generated_pdf_path {
+                    // Überschreiben ist hier ok: Der native Speicher-Dialog hat die
+                    // Nutzerin bereits gefragt. Unter Windows scheitert rename auf
+                    // existierende Ziele, deshalb vorher entfernen.
                     if target.exists() {
-                        return Err("Die gewählte PDF-Zieldatei existiert bereits.".to_string());
+                        std::fs::remove_file(&target)
+                            .map_err(|e| format!("Vorhandene PDF-Zieldatei konnte nicht ersetzt werden: {}", e))?;
                     }
                     std::fs::rename(&generated_pdf_path, &target)
                         .map_err(|e| format!("PDF konnte nicht am gewählten Ziel gespeichert werden: {}", e))?;
