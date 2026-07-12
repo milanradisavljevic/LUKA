@@ -35,6 +35,7 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
   const { exportDocx, exportDocxOverride, exportKorrekturraster, exportKompetenzraster, exportSelbstlern, exportSelbsteinschaetzung, exportGift, exporting, error: exportError, warnung: exportWarnung, lastSavedPaths } = useExport();
   const pdfExport = usePdfExport();
   const isKompetenz = state.meta.modus === 'kompetenz';
+  const isSrdpDeutschTraining = state.meta.typ === 'matura' && state.meta.fach === 'deutsch' && state.meta.stufe === 'oberstufe';
   const isFrei = isKompetenz && !!state.generiertesDokument?.meta.freieKompetenz?.trim()
     && (state.generiertesDokument?.meta.stoffItemIds?.length ?? 0) === 0;
   const coverage = isKompetenz && state.generiertesDokument && !isFrei
@@ -301,6 +302,7 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
       <div className="card" style={{ padding: '0.875rem 1rem', marginBottom: '1.5rem' }}>
         <p style={{ fontSize: '0.8125rem', margin: 0, color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
           Beim Export entstehen:{' '}
+          {isSrdpDeutschTraining && <span className="badge badge-info">Matura-Training (SRDP-Format)</span>}{' '}
           <span className="badge badge-info">Schülerfassung (DOCX)</span>{' '}
           {exportOptions.loesung && <span className="badge badge-info">Lösung (DOCX)</span>}{' '}
           <span className="badge badge-info">Korrekturraster</span>
@@ -309,6 +311,11 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
           )}{' '}
           {exportOptions.pdf && <span className="badge badge-info">PDF vorgemerkt</span>}
         </p>
+        {isSrdpDeutschTraining && (
+          <p style={{ margin: '0.55rem 0 0', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+            Übungsformat, kein amtliches Prüfungsmaterial. Das Korrekturraster folgt den vier SRDP-Dimensionen; der Erwartungshorizont konkretisiert die NATASCHA-Subkriterien.
+          </p>
+        )}
       </div>
 
       {/* Zusammenfassung + Aktionen */}

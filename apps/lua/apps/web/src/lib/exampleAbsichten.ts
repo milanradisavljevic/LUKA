@@ -13,19 +13,21 @@ export interface ExampleAbsicht {
 export const EXAMPLE_ABSICHTEN: ExampleAbsicht[] = [
   {
     id: 'matura-deutsch',
-    label: 'Matura Deutsch',
-    beschreibung: 'Oberstufe · Schularbeit · Faust / Medienkritik',
+    label: 'Matura-Training (SRDP-Format)',
+    beschreibung: 'Deutsch · Oberstufe · 1 Schreibaufgabe · 405–495 Wörter',
     Icon: GraduationCap,
     auftrag: {
-      typ: 'schularbeit',
+      typ: 'matura',
       fach: 'deutsch',
       stufe: 'oberstufe',
       thema: 'Medienkonsum und seine Folgen für Jugendliche',
       datum: new Date().toISOString().slice(0, 10),
-      dauerMinuten: 50,
-      schwierigkeit: 'mittel',
-      lernziele: ['Textverständnis', 'Argumentationsanalyse', 'Stilmittel erkennen', 'Textproduktion'],
-      notizen: 'Matura-Niveau, AHS-Standard. Quelltext: Zeitungsartikel zum Thema Social Media und Konzentration.',
+      dauerMinuten: 270,
+      schwierigkeit: 'schwer',
+      gewuenschteAufgabenarten: ['offeneSchreibaufgabe'],
+      gesamtpunkteZiel: 60,
+      lernziele: ['Textverständnis', 'Argumentationsanalyse', 'Textproduktion'],
+      notizen: 'Matura-Training (SRDP-Format), kein amtliches Prüfungsmaterial. Eine textgebundene Schreibaufgabe mit Bezug auf eine Textbeilage; Textsorte aus der kuratierten SRDP-Auswahl wählen.',
     },
   },
   {

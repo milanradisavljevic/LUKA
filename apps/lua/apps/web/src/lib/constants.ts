@@ -124,4 +124,5 @@ export const UNTERLAGENTYP_MINUTEN: Record<string, [number, number]> = {
   test: [25, 35],
   schuluebung: [15, 25],
   schularbeit: [45, 60],
+  matura: [240, 270],
 };

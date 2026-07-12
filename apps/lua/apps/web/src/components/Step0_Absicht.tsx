@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { ArrowRight, Clock, FolderOpen, BookOpen, ClipboardCheck, Target, Grid3X3, Languages, Pencil, AlertTriangle } from 'lucide-react';
+import { ArrowRight, Clock, FolderOpen, BookOpen, ClipboardCheck, Target, Grid3X3, Languages, Pencil, AlertTriangle, GraduationCap } from 'lucide-react';
 import type { AppState, AppAction } from '../lib/types';
 import { BLOCK_TYPE_DEFS, SCHWIERIGKEIT_RULES, UNTERLAGENTYP_MINUTEN } from '../lib/constants';
 import { buildSkelett, FACH_META, fachLabel, istSprachfach, SCHULSTUFEN, stufeFromSchulstufe, type Auftrag, type Fach } from '@lehrunterlagen/schema';
@@ -36,7 +36,7 @@ const UNTERLAGENTYPEN = [
   { id: 'test' as const, label: 'Test / Stundenwiederholung', beschreibung: 'Mittel, Punkte + einfacher Schlüssel, ~25 Min, ~24 Pkte' },
   { id: 'schuluebung' as const, label: 'Schulübung', beschreibung: 'Übungsaufgaben ohne Punkte/Noten, ~20 Min' },
   { id: 'schularbeit' as const, label: 'Schularbeit / Klassenarbeit', beschreibung: 'Lang, hohe Stakes, Maturastruktur, ~50 Min, ~48 Pkte' },
-  { id: 'matura' as const, label: 'Matura (SRDP)', beschreibung: 'Standardisierte Reifeprüfung, BMBWF-Format, K1/K3-Raster, ~270 Min' },
+  { id: 'matura' as const, label: 'Matura-Training (SRDP-Format)', beschreibung: 'Deutsch/Oberstufe · 1 textgebundene Schreibaufgabe · K1/K3-Raster · 405–495 Wörter' },
 ];
 
 const SCHWIERIGKEITEN = [
@@ -175,6 +175,24 @@ export function Step0_Absicht({
   // Aus der Korrektur übernommene, kuratierbare Schülerfehler (Brücke v2).
   const [nataschaFehler, setNataschaFehler] = useState<KurierterFehler[]>([]);
 
+  const isDeutschSrdpTraining = fach === 'deutsch' && stufe === 'oberstufe';
+  const handleTypChange = useCallback((neuerTyp: NonNullable<Auftrag['typ']>) => {
+    setTyp(neuerTyp);
+    setSchnellOhneQuelltext(false);
+    if (neuerTyp === 'matura') {
+      setGewuenschteAufgabenarten(['offeneSchreibaufgabe']);
+      setDauerMinuten(270);
+      setSchwierigkeit('schwer');
+      setGesamtpunkteZiel(60);
+      setPunkteVergeben(true);
+    }
+  }, []);
+
+  // Der SRDP-Trainingseinstieg ist fachlich auf Deutsch/Oberstufe begrenzt.
+  useEffect(() => {
+    if (typ === 'matura' && !isDeutschSrdpTraining) setTyp('schularbeit');
+  }, [isDeutschSrdpTraining, typ]);
+
   /** Übernimmt Ausgangstext (→ Quelltext) + Fehler (→ Kuration) aus einer Brücken-Vorbefüllung. */
   const uebernehmeAusgangstextUndFehler = useCallback(
     (ausgangstext?: string, fehlerListe?: { typ: 'R' | 'G' | 'Z' | 'A'; zitat: string; korrektur: string; erklaerung?: string }[]) => {
@@ -294,6 +312,10 @@ export function Step0_Absicht({
       setFehler('Bitte gib ein Thema ein.');
       return;
     }
+    if (typ === 'matura' && !isDeutschSrdpTraining) {
+      setFehler('Matura-Training (SRDP-Format) ist im Spike nur für Deutsch/Oberstufe verfügbar.');
+      return;
+    }
 
     // Kuratierte Korrektur-Fehler in die Notizen einweben (steuert den Prompt).
     const notizenFinal = [notizen.trim(), fehlerNotiz(nataschaFehler)].filter(Boolean).join(' ');
@@ -353,7 +375,7 @@ export function Step0_Absicht({
     } catch (err) {
       setFehler(err instanceof Error ? err.message : 'Fehler beim Erstellen des Skeletts.');
     }
-  }, [typ, fach, stufe, thema, datum, klasse, dauerMinuten, schwierigkeit, gewuenschteAufgabenarten, gesamtpunkteZiel, punkteVergeben, notizen, lernzieleRaw, fokusThemen, nataschaFehler, state.quelltexte, state.bloecke, dispatch, onDismissFirstRunHint]);
+  }, [typ, fach, stufe, isDeutschSrdpTraining, thema, datum, klasse, dauerMinuten, schwierigkeit, gewuenschteAufgabenarten, gesamtpunkteZiel, punkteVergeben, notizen, lernzieleRaw, fokusThemen, nataschaFehler, state.quelltexte, state.bloecke, dispatch, onDismissFirstRunHint]);
 
   const fachLabelCurrent = fachLabel(fach);
   const stufeLabel = stufe === 'oberstufe' ? 'Oberstufe' : 'Unterstufe';
@@ -514,17 +536,22 @@ export function Step0_Absicht({
           Schnellstart
         </label>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.5rem' }}>
-          {EXAMPLE_ABSICHTEN.map((ex) => (
+          {EXAMPLE_ABSICHTEN
+            .filter((ex) => ex.id !== 'matura-deutsch' || isDeutschSrdpTraining)
+            .map((ex) => (
             <button
               key={ex.id}
               onClick={() => {
-                setTyp(ex.auftrag.typ);
+                handleTypChange(ex.auftrag.typ);
                 setFachManuell(ex.auftrag.fach);
                 setStufe(ex.auftrag.stufe);
+                setSchulstufe(ex.auftrag.schulstufe);
                 dispatch({ type: 'SET_RENDER_TEMPLATE', template: getDefaultTemplate(ex.auftrag.stufe).id });
                 setThema(ex.auftrag.thema);
                 setDauerMinuten(ex.auftrag.dauerMinuten ?? '');
                 setSchwierigkeit(ex.auftrag.schwierigkeit ?? 'mittel');
+                setGewuenschteAufgabenarten(ex.auftrag.gewuenschteAufgabenarten?.map(String) ?? []);
+                setGesamtpunkteZiel(ex.auftrag.gesamtpunkteZiel ?? '');
                 setLernzieleRaw(ex.auftrag.lernziele?.join(', ') ?? '');
                 setNotizen(ex.auftrag.notizen ?? '');
                 setSchnellOhneQuelltext(false);
@@ -726,14 +753,16 @@ export function Step0_Absicht({
       <section style={{ marginBottom: '1.25rem' }}>
         <SectionLabel>Unterlagentyp</SectionLabel>
         <div style={{ display: 'grid', gap: '0.5rem' }}>
-          {UNTERLAGENTYPEN.map((u) => {
+          {UNTERLAGENTYPEN
+            .filter((u) => u.id !== 'matura' || isDeutschSrdpTraining)
+            .map((u) => {
             const min = UNTERLAGENTYP_MINUTEN[u.id];
             return (
               <button
                 key={u.id}
                 className="tile"
                 aria-pressed={typ === u.id}
-                onClick={() => { setTyp(u.id); setSchnellOhneQuelltext(false); }}
+                onClick={() => handleTypChange(u.id)}
                 style={{ fontSize: '0.875rem' }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%' }}>
@@ -751,6 +780,12 @@ export function Step0_Absicht({
             );
           })}
         </div>
+        {isDeutschSrdpTraining && typ === 'matura' && (
+          <div style={{ marginTop: '0.65rem', padding: '0.75rem 0.85rem', borderRadius: 'var(--radius)', border: '1px solid color-mix(in srgb, var(--color-warning, #f59e0b) 50%, var(--color-border))', background: 'color-mix(in srgb, var(--color-warning-bg, #fff7ed) 55%, var(--color-bg-surface))', display: 'flex', gap: '0.55rem', alignItems: 'flex-start', fontSize: '0.78rem', lineHeight: 1.5 }}>
+            <GraduationCap size={17} style={{ color: 'var(--color-warning, #b45309)', flexShrink: 0, marginTop: 2 }} />
+            <span><strong>Matura-Training (SRDP-Format)</strong> ist ein Übungsformat für den Unterricht — kein amtliches Prüfungsmaterial. Der Spike erzeugt eine textgebundene Einzelaufgabe mit 405–495 Wörtern und exportiert das bestehende K1/K3-Korrekturraster.</span>
+          </div>
+        )}
       </section>
 
       {/* Thema */}
