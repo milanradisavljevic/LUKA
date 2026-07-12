@@ -131,10 +131,14 @@ const SECTIONS: Section[] = [
         <P>Der <strong>Aufgaben-Pool</strong> sammelt wiederverwendbare Aufgaben-Blöcke — einmal gespeichert, beliebig oft wieder eingefügt.</P>
         <Steps items={[
           <>In der <strong>Vorschau</strong> (Schritt Erstellen) bei einem Block auf <strong>„In Pool speichern"</strong> — der Block wird mit Fach, Stufe, Thema und Tags abgelegt.</>,
-          <>In der Ansicht <strong>Aufgaben-Pool</strong> (Seitenleiste) filterst du nach Fach, Stufe und Aufgabentyp sowie per Volltextsuche; nicht mehr gebrauchte Einträge löschst du dort.</>,
-          <>Im <strong>Baukasten</strong> fügst du einen Pool-Eintrag über <strong>„Aus Pool einfügen"</strong> direkt als neuen Block ein — die Aufgabe inkl. Konfiguration und Lösung landet im aktuellen Dokument.</>,
+          <>In der Ansicht <strong>Aufgaben-Pool</strong> (Seitenleiste) suchst du nach Thema, Tags oder Typ und filterst nach Fach, Stufe, Aufgabentyp, Herkunft und Qualitätsstatus. Mit der Sortierung <strong>„Neueste zuerst"</strong>, <strong>„Zuletzt verwendet"</strong> oder <strong>„Empfohlen zuerst"</strong> findest du passende Aufgaben schneller.</>,
+          <>Jede Aufgabe kannst du mit dem Stern als <strong>Favorit</strong> markieren und lokal mit einem Qualitätsstatus versehen: <strong>Unbewertet</strong>, <strong>Getestet</strong>, <strong>Empfohlen</strong> oder <strong>Zurückgestellt</strong>. Kuratierte Fachpaket-Aufgaben tragen das Badge <strong>„Kuratiert"</strong> und zeigen ihren Herkunftsvermerk.</>,
+          <>Im <strong>Baukasten</strong> fügst du einen Pool-Eintrag über <strong>„Aus Pool einfügen"</strong> direkt als neuen Block ein — die Aufgabe inkl. Konfiguration und Lösung landet im aktuellen Dokument und wird als zuletzt verwendet gespeichert.</>,
+          <>Nicht mehr gebrauchte Einträge löschst du direkt auf ihrer Pool-Karte. Der Button <strong>„Filter löschen"</strong> setzt aktive Suche und Filter zurück.</>,
         ]} />
-        <Tip>Der Pool ist pro Rechner lokal. Ideal, um bewährte Aufgaben über mehrere Unterlagen hinweg wiederzuverwenden, ohne sie jedes Mal neu zu generieren.</Tip>
+        <P><strong>Fachpakete teilen:</strong> Mit <strong>„Exportieren"</strong> speicherst du den gesamten lokalen Pool als teilbare JSON-Datei. Die Favoriten, Qualitätsstatus und letzte Verwendung bleiben bewusst lokal und werden nicht exportiert.</P>
+        <P>Mit <strong>„Importieren"</strong> wählst du eine JSON-Datei aus. Die App validiert sie vollständig, bevor sie den Pool verändert. In der Vorschau siehst du Anzahl, Fächer, Herkunftsvermerke und Duplikate; bei vorhandenen IDs entscheidest du zwischen <strong>„Ersetzen"</strong> und <strong>„Behalten"</strong>. Ungültige Dateien werden abgelehnt und verändern den Pool nicht.</P>
+        <Tip>Der Pool ist pro Rechner lokal. Beim Ersetzen eines Duplikats bleiben deine lokalen Organisationsdaten erhalten — ideal, um kuratierte Inhalte zu übernehmen und eigene Bewertungen weiterzuführen.</Tip>
       </>
     ),
   },
@@ -152,6 +156,22 @@ const SECTIONS: Section[] = [
           <>Zusätzlich: <strong>Übung mit Lösungsteil</strong> (Schüler- und Lösungsteil in einem Dokument) und <strong>Selbsteinschätzungsbogen</strong> für die Schüler/innen.</>,
         ]} />
         <Tip>Vor dem DOCX-Export läuft ein <strong>Quality-Gate</strong> (Lernziel-Abdeckung, Wortzahl Schreibaufgabe) — nur Hinweise, kein Zwang. Jeder Export wird im <strong>Verlauf</strong> protokolliert.</Tip>
+      </>
+    ),
+  },
+  {
+    id: 'matura',
+    title: 'Matura-Training (SRDP-Format)',
+    Icon: GraduationCap,
+    body: (
+      <>
+        <P>Das <strong>Matura-Training (SRDP-Format)</strong> ist ein eigener Unterlagentyp für <strong>Deutsch in der Oberstufe</strong>. Die Kachel erscheint nur, wenn Deutsch und eine Oberstufen-Schulstufe gewählt sind.</P>
+        <Steps items={[
+          <>Im Schritt <strong>Absicht</strong> „Matura-Training (SRDP-Format)" auswählen und eine Textsorte aus der kuratierten SRDP-Auswahl wählen.</>,
+          <>Die App erzeugt eine <strong>textgebundene Einzelaufgabe</strong> mit genau einer Textbeilage und einem Schreibumfang von <strong>405–495 Wörtern</strong>.</>,
+          <>Beim Export erhältst du die Schülerfassung, die Lösung und das bestehende <strong>K1/K3-Korrekturraster</strong>. Der Erwartungshorizont strukturiert die vier SRDP-Dimensionen und die zugehörigen Kriterien.</>,
+        ]} />
+        <Tip>Das Matura-Training ist ein Übungsformat für den Unterricht und <strong>kein amtliches Prüfungsmaterial</strong>.</Tip>
       </>
     ),
   },

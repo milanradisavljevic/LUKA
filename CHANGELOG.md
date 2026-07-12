@@ -7,6 +7,11 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Changed — Hilfe und Anleitung auf aktuellen Feature-Stand (2026-07-12)
+- Die Hilfe erklärt jetzt das Matura-Training im SRDP-Format für Deutsch/Oberstufe.
+- Aufgaben-Pool-Organisation mit Favoriten, Qualitätsstatus, Herkunft, Filtern und Sortierung ist dokumentiert.
+- Fachpaket-Import und -Export inklusive Validierung, Vorschau und Duplikatentscheidung sind in Hilfe und Anleitung nachvollziehbar beschrieben.
+
 ### Added — Viertes Fachpaket „Deutsch — Textsorten-Training Oberstufe"
 - `samples/fachpakete/luka-fachpaket-deutsch-textsorten-v1.json`: 8 kuratierte
   Aufgaben — sechs Schreibaufgaben zu den SRDP-Textsorten (Erörterung,

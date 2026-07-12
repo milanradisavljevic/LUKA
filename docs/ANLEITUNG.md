@@ -54,7 +54,7 @@ Damit das Generieren läuft, brauchst du einen API-Schlüssel deines KI-Anbieter
 
 1. Beim **ersten Start** wählst du einen Anbieter (empfohlen: Mistral, EU-Anbieter), trägst deinen API-Schlüssel ein und testest die Verbindung direkt im Dialog. Schlüssel werden sicher im Schlüsselspeicher des Betriebssystems abgelegt – nicht im Klartext.
 2. Später änderst du Anbieter und Standard-Modell jederzeit in den **Einstellungen**. Für günstige Tests eignet sich ein kleines Modell.
-3. Zum schnellen Loslegen mit fertigen Aufgaben: das mitgelieferte **Startpaket** (Ordner `samples/fachpakete/`) über **Aufgaben-Pool → Importieren** einspielen.
+3. Zum schnellen Loslegen mit fertigen Aufgaben: eines der vier mitgelieferten **Fachpakete** (Ordner `samples/fachpakete/`) über **Aufgaben-Pool → Importieren** einspielen. Verfügbar sind das Startpaket **Medien und Demokratie / Informatik und KI**, **Medien und Demokratie**, **Informatik und KI** sowie **Deutsch – Textsorten-Training Oberstufe**.
 
 > 💡 Ohne hinterlegten Schlüssel schlägt die Generierung fehl. Die Fehlermeldung nennt dann meist „Key/Provider prüfen".
 
@@ -108,16 +108,31 @@ Der Generator führt dich in fünf Schritten von der Absicht zum fertigen DOCX.
 
 ---
 
+## Matura-Training (SRDP-Format)
+
+Das **Matura-Training (SRDP-Format)** ist ein eigener Unterlagentyp für **Deutsch in der Oberstufe**. Die Auswahl erscheint im Schritt **Absicht** nur, wenn Deutsch und eine Oberstufen-Schulstufe gewählt sind.
+
+1. **Matura-Training auswählen:** Im Schritt „Absicht" die Kachel **„Matura-Training (SRDP-Format)"** wählen.
+2. **Textsorte festlegen:** Eine Textsorte aus der kuratierten SRDP-Auswahl wählen.
+3. **Aufgabe erzeugen:** LUKA erstellt genau eine textgebundene Schreibaufgabe mit genau einer Textbeilage und einem Umfang von **405–495 Wörtern**.
+4. **Exportieren:** Neben Schülerfassung und Lösung wird das bestehende **K1/K3-Korrekturraster** exportiert. Der Erwartungshorizont strukturiert die vier SRDP-Dimensionen und die zugehörigen Kriterien.
+
+> ⚠️ Das Matura-Training ist ein Übungsformat für den Unterricht und **kein amtliches Prüfungsmaterial**.
+
+---
+
 ## Aufgaben-Pool
 
 Der **Aufgaben-Pool** sammelt wiederverwendbare Aufgaben-Blöcke — einmal gespeichert, beliebig oft wieder eingefügt.
 
 1. In der **Vorschau** (Schritt Erstellen) bei einem Block auf **„In Pool speichern"** — der Block wird mit Fach, Stufe, Thema und Tags abgelegt.
-2. In der Ansicht **Aufgaben-Pool** (Seitenleiste) filterst du nach Fach, Stufe und Aufgabentyp sowie per Volltextsuche; nicht mehr gebrauchte Einträge löschst du dort.
-3. Im **Baukasten** fügst du einen Pool-Eintrag über **„Aus Pool einfügen"** direkt als neuen Block ein — die Aufgabe inkl. Konfiguration und Lösung landet im aktuellen Dokument.
-4. **Fachpakete teilen:** Über **„Exportieren"** speicherst du deinen Pool als JSON-Datei und gibst sie an Kolleg:innen weiter; über **„Importieren"** spielst du eine erhaltene Datei ein. Vor dem Import zeigt die App eine **Vorschau** (Anzahl, Fächer, Herkunftsvermerke, Duplikate) — bei Duplikaten entscheidest du, ob bestehende Einträge ersetzt oder behalten werden.
+2. In der Ansicht **Aufgaben-Pool** (Seitenleiste) suchst du nach Thema, Tags oder Typ und filterst nach Fach, Stufe, Aufgabentyp, Herkunft und Qualitätsstatus. Du kannst nach **„Neueste zuerst"**, **„Zuletzt verwendet"** oder **„Empfohlen zuerst"** sortieren.
+3. Jede Aufgabe lässt sich mit dem Stern als **Favorit** markieren. Der lokale Qualitätsstatus kann **Unbewertet**, **Getestet**, **Empfohlen** oder **Zurückgestellt** sein. Kuratierte Fachpaket-Aufgaben tragen das Badge **„Kuratiert"** und zeigen ihren Herkunftsvermerk.
+4. Im **Baukasten** fügst du einen Pool-Eintrag über **„Aus Pool einfügen"** direkt als neuen Block ein — die Aufgabe inkl. Konfiguration und Lösung landet im aktuellen Dokument und wird als zuletzt verwendet gespeichert.
+5. **Fachpakete teilen:** Über **„Exportieren"** speicherst du den gesamten lokalen Pool als teilbare JSON-Datei. Favoriten, Qualitätsstatus und letzte Verwendung bleiben lokal und werden nicht exportiert.
+6. **Fachpaket importieren:** Über **„Importieren"** wählst du eine JSON-Datei. LUKA validiert sie vollständig, bevor sie den lokalen Pool verändert. Die Vorschau zeigt Anzahl, Fächer, Herkunftsvermerke und Duplikate. Bei gleichen IDs entscheidest du zwischen **„Ersetzen"** und **„Behalten"**. Nach dem Import meldet die App neue, ersetzte und übersprungene Aufgaben; eine ungültige Datei wird abgelehnt und verändert den Pool nicht.
 
-> 💡 Der Pool ist pro Rechner lokal. Ideal, um bewährte Aufgaben über mehrere Unterlagen hinweg wiederzuverwenden, ohne sie jedes Mal neu zu generieren. Ein kuratiertes Startpaket für **Medien und Demokratie** sowie **Informatik und KI** liegt in `samples/fachpakete/`.
+> 💡 Der Pool ist pro Rechner lokal. Beim Ersetzen eines Duplikats bleiben deine lokalen Organisationsdaten erhalten — ideal, um kuratierte Inhalte zu übernehmen und eigene Bewertungen weiterzuführen. Vier kuratierte Pakete liegen in `samples/fachpakete/`: das Startpaket **Medien und Demokratie / Informatik und KI**, **Medien und Demokratie**, **Informatik und KI** sowie **Deutsch – Textsorten-Training Oberstufe**.
 
 ---
 
