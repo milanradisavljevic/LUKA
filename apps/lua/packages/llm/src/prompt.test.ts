@@ -272,6 +272,10 @@ describe('buildMessages — Deutsch-SRDP-Training', () => {
     expect(user.content).toContain('Schreibhandlung(en)');
     expect(user.content).toContain('Situationsadäquatheit');
     expect(user.content).toContain('Grammatik');
+    expect(user.content).toContain('mindestens zwei beobachtbare, textsortengerechte Arbeitsauftraege');
+    expect(user.content).toContain('Verfasse eine/einen <Textsorte> zum Thema des Textes');
+    expect(user.content).toContain('Keine Platzhalter');
+    expect(user.content).toContain('nicht floskelhaft');
   });
 
   it('gated den SRDP-Training-Hinweis für andere Fächer', () => {

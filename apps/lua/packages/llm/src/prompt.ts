@@ -822,8 +822,14 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
         + `Dies ist ein einzelner textgebundener Schreibauftrag mit genau EINER Textbeilage, keine vollständige amtliche Klausur und kein Wahlaufgabenpaket. `
         + `Waehle genau eine Textsorte aus dieser kuratierten, offiziell gaengigen Auswahl: ${SRDP_DEUTSCH_TEXTSORTEN.join(', ')}. `
         + `Halte den Wortumfang strikt bei ${SRDP_DEUTSCH_EINZELAUFGABE_UMFANG.min}–${SRDP_DEUTSCH_EINZELAUFGABE_UMFANG.max} Wörtern. `
-        + `config.situation muss den situativen Rahmen (Wer schreibt? An wen? Anlass? Medium?) und den Bezug auf die Textbeilage nennen. `
-        + `quelleId des Schreibblocks muss auf die verwendete Textbeilage zeigen; arbeitsanweisung und aspekte muessen die Textbeilage funktional einbeziehen. `
+        + `QUALITAETS-CHECK fuer den Inhalt: config.situation muss einen konkreten, schuelergerichteten Situationsrahmen mit Schreibrolle, genauem Adressaten, Anlass, Medium und Zweck bilden; `
+        + `der Adressat muss die Textsorte und den Ton plausibel begruenden. Vermeide austauschbare Leerformeln wie "zum Thema des Textes" oder eine beliebige "Schulzeitung" ohne konkreten Anlass. `
+        + `arbeitsanweisung muss mindestens zwei beobachtbare, textsortengerechte Arbeitsauftraege mit klaren Operatoren und konkretem Gegenstand enthalten (z. B. analysieren/interpretieren, zusammenfassen, erörtern/begruenden); `
+        + `"Verfasse eine/einen <Textsorte> zum Thema des Textes" allein ist zu banal und ungueltig. `
+        + `quelleId des Schreibblocks muss auf die verwendete Textbeilage zeigen; arbeitsanweisung, config.aspekte und Musterloesung muessen mehrere konkrete Aussagen, Argumente oder sprachliche Mittel DIESES Textes funktional aufgreifen. `
+        + `Die Musterloesung muss ein vollstaendig ausformulierter, plausibler Sehr-gut-Text der Zielstufe im geforderten Wortumfang sein: alle Arbeitsauftraege beantworten, die Textsorte und den Adressaten erkennbar umsetzen, eigenstaendig argumentieren bzw. deuten und die Textbeilage nicht nur allgemein erwaehnen. `
+        + `Keine Platzhalter, keine Meta-Erklaerung, kein blosser Inhaltsabriss und keine erfundenen Belege; Aussagen aus der Textbeilage muessen korrekt und nachpruefbar bleiben. `
+        + `Formuliere den Erwartungshorizont nicht floskelhaft: Jedes NATASCHA-Subkriterium muss als konkreter, fuer genau diesen Auftrag beobachtbarer Erwartungssatz ausgefuellt werden; "guter Ausdruck" oder "weitgehend korrekt" allein reicht nicht. `
         + `Erzeuge keine Verständnisfrage und keinen zweiten Schreibblock. `
         + `Das loesung.erwartungshorizont-Objekt hat genau die vier Felder inhalt, struktur, ausdruck, sprachrichtigkeit. `
         + `Fuelle jedes Feld als strukturierte Liste mit den folgenden NATASCHA-Subkriterien und einem konkreten Erwartungssatz je Kriterium: `
