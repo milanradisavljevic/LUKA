@@ -3,7 +3,7 @@ import { Save, Search, ArrowLeft, ArrowRight, Loader2, BookOpen } from 'lucide-r
 import type { AppAction, ActiveView, SavedDocument } from './lib/types';
 import { STEP_DESCRIPTIONS } from './lib/types';
 import { fachLabel } from '@lehrunterlagen/schema';
-import type { Meta, Block } from '@lehrunterlagen/schema';
+import type { Meta, Block, Fach } from '@lehrunterlagen/schema';
 import { useWizard } from './hooks/useWizard';
 import { useTheme } from './hooks/useTheme';
 import { useZoom } from './hooks/useZoom';
@@ -51,6 +51,7 @@ import { UpdateDialog } from './components/UpdateDialog';
 import { SettingsPanel } from './components/SettingsPanel';
 import { SubjectAtmosphere } from './components/SubjectAtmosphere';
 import { getMuralVars, getMuralMode } from './themes/subjectThemes';
+import type { MuralSubject } from './themes/subjectThemes';
 import { DEFAULT_SETTINGS } from './lib/storage';
 import { FEATURES } from './lib/features';
 import { LLM_PROVIDERS } from './lib/constants';
@@ -108,6 +109,7 @@ export default function App() {
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [tafelOpen, setTafelOpen] = useState(false);
+  const [draftAtmosphereFach, setDraftAtmosphereFach] = useState<Fach | null>(null);
   // Such- + Befehls-Palette: Index aus gecachten Quellen + statischer Nav/Befehle.
   const commandSources = useMemo<SearchCommandSource[]>(() => {
     const fromCommands = COMMANDS.map((c) => ({
@@ -232,6 +234,7 @@ export default function App() {
     setKeyGateState('ready');
     setShowFirstRunWizardHint(true);
     dispatch({ type: 'RESET_STATE' });
+    setDraftAtmosphereFach(null);
     setActiveView('wizard');
     goToStep('absicht');
   }, [dispatch, goToStep]);
@@ -277,6 +280,7 @@ export default function App() {
   }, [dispatch]);
 
   const handleLoadTemplate = (meta: Meta, bloecke: Block[]) => {
+    setDraftAtmosphereFach(null);
     dispatch({ type: 'SET_META', meta });
     dispatch({ type: 'REORDER_BLOCKS', bloecke });
     setActiveView('wizard');
@@ -312,6 +316,7 @@ export default function App() {
     if (hasWork && !window.confirm('Aktuellen Stand verwerfen und das gespeicherte Dokument laden?')) {
       return;
     }
+    setDraftAtmosphereFach(null);
     dispatch({ type: 'LOAD_SNAPSHOT', snapshot: doc.snapshot, documentId: doc.id });
     setActiveView('wizard');
   }, [state.bloecke.length, state.generiertesDokument, dispatch]);
@@ -321,6 +326,7 @@ export default function App() {
     if (hasWork && !window.confirm('Aktuellen Stand verwerfen und ein neues Dokument beginnen?')) {
       return;
     }
+    setDraftAtmosphereFach(null);
     dispatch({ type: 'RESET_STATE' });
     setActiveView('wizard');
   }, [state.bloecke.length, state.generiertesDokument, dispatch]);
@@ -349,6 +355,7 @@ export default function App() {
       schwierigkeit: 'mittel',
     };
     const block = createDefaultBlock(config.typ, meta);
+    setDraftAtmosphereFach(null);
     dispatch({ type: 'RESET_STATE' });
     dispatch({ type: 'SET_META', meta });
     dispatch({ type: 'ADD_BLOCK', block });
@@ -363,6 +370,7 @@ export default function App() {
       return;
     }
     setPendingUebung(prefill);
+    setDraftAtmosphereFach(null);
     dispatch({ type: 'RESET_STATE' });
     setActiveView('wizard');
   }, [state.bloecke.length, state.generiertesDokument, dispatch]);
@@ -436,6 +444,7 @@ export default function App() {
             onDismissFirstRunHint={() => setShowFirstRunWizardHint(false)}
             onNavigateToTemplates={() => setActiveView('templates')}
             onNavigateToKompetenz={() => setActiveView('kompetenz')}
+            onDraftFachChange={setDraftAtmosphereFach}
           />
         );
       case 'input':
@@ -518,6 +527,15 @@ if (hydrating) {
   };
 
   const isWizard = effectiveActiveView === 'wizard';
+  const hasDocumentAtmosphereContext =
+    state.aktuelleDokumentId !== null ||
+    state.auftrag !== null ||
+    state.quelltexte.length > 0 ||
+    state.bloecke.length > 0 ||
+    state.generiertesDokument !== null;
+  const atmosphereFach: MuralSubject = hasDocumentAtmosphereContext
+    ? state.meta.fach
+    : (draftAtmosphereFach ?? 'neutral');
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
@@ -622,11 +640,11 @@ if (hydrating) {
         {/* Hauptbereich */}
         <main
           className="app-main"
-          data-mural={FEATURES.murals ? getMuralMode(state.meta.fach, settings.ambientMuralsEnabled ?? DEFAULT_SETTINGS.ambientMuralsEnabled) : 'off'}
-          style={getMuralVars(state.meta.fach)}
+          data-mural={FEATURES.murals ? getMuralMode(atmosphereFach, settings.ambientMuralsEnabled ?? DEFAULT_SETTINGS.ambientMuralsEnabled) : 'off'}
+          style={getMuralVars(atmosphereFach)}
         >
           <SubjectAtmosphere
-            fach={state.meta.fach}
+            fach={atmosphereFach}
             enabled={FEATURES.murals && (settings.ambientMuralsEnabled ?? DEFAULT_SETTINGS.ambientMuralsEnabled)}
             reduced={settings.reduceBackgroundEffects}
           />

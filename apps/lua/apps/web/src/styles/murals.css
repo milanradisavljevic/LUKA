@@ -123,6 +123,11 @@
   opacity: 0.16;
 }
 
+.subject-atmosphere__asset--start {
+  opacity: 0.58;
+  filter: sepia(0.18) saturate(0.95) contrast(1.22) brightness(0.92);
+}
+
 .subject-atmosphere__asset--portrait {
   opacity: 0.24;
 }

@@ -1,6 +1,8 @@
 import type { Fach } from '@lehrunterlagen/schema';
 import rawThemes from './subjectThemes.json';
 
+export type MuralSubject = Fach | 'neutral';
+
 export interface SubjectTheme {
   id: string;
   displayName: string;
@@ -11,12 +13,12 @@ export interface SubjectTheme {
 
 export const subjectThemes = rawThemes as SubjectTheme[];
 
-export function getSubjectTheme(fach: Fach): SubjectTheme | null {
+export function getSubjectTheme(fach: MuralSubject): SubjectTheme | null {
   return subjectThemes.find((theme) => theme.id === fach) ?? null;
 }
 
 /** CSS-Custom-Properties für den Fach-Wash und die SVG-Fachzeichen. */
-export function getMuralVars(fach: Fach): Record<string, string> {
+export function getMuralVars(fach: MuralSubject): Record<string, string> {
   const theme = getSubjectTheme(fach);
   const vars: Record<string, string> = {};
   if (theme) {
@@ -30,7 +32,7 @@ export function getMuralVars(fach: Fach): Record<string, string> {
 }
 
 /** 'wash' = Fach-Wash + SVG-Fachzeichen, 'off' = ruhiger Standard-Hintergrund. */
-export function getMuralMode(fach: Fach, ambientEnabled: boolean): 'wash' | 'off' {
+export function getMuralMode(fach: MuralSubject, ambientEnabled: boolean): 'wash' | 'off' {
   if (!ambientEnabled) return 'off';
   return getSubjectTheme(fach) ? 'wash' : 'off';
 }

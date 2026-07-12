@@ -28,6 +28,7 @@ interface Props {
   onDismissFirstRunHint?: () => void;
   onNavigateToTemplates?: () => void;
   onNavigateToKompetenz?: () => void;
+  onDraftFachChange?: (fach: Fach) => void;
 }
 
 const UNTERLAGENTYPEN = [
@@ -60,6 +61,7 @@ export function Step0_Absicht({
   onDismissFirstRunHint,
   onNavigateToTemplates,
   onNavigateToKompetenz,
+  onDraftFachChange,
 }: Props) {
   const lastDoc = useMemo(() => getLastDocumentDefaults(), []);
   const lastMeta = lastDoc?.snapshot.meta;
@@ -82,6 +84,10 @@ export function Step0_Absicht({
   const [schnellOhneQuelltext, setSchnellOhneQuelltext] = useState(false);
   // Punkte vergeben? Schulübung standardmäßig ohne Punkte, sonst mit.
   const [punkteVergeben, setPunkteVergeben] = useState<boolean>((lastMeta?.typ ?? 'schularbeit') !== 'schuluebung');
+  const setFachManuell = useCallback((neuesFach: Fach) => {
+    setFach(neuesFach);
+    onDraftFachChange?.(neuesFach);
+  }, [onDraftFachChange]);
   const profileDefaultsApplied = useRef(false);
   const profileBaseline = useRef({ fach, stufe, schulstufe });
   // Herkunftshinweis: zeigt an, dass Fach/Stufe gerade vom Profil übernommen wurden.
@@ -513,7 +519,7 @@ export function Step0_Absicht({
               key={ex.id}
               onClick={() => {
                 setTyp(ex.auftrag.typ);
-                setFach(ex.auftrag.fach);
+                setFachManuell(ex.auftrag.fach);
                 setStufe(ex.auftrag.stufe);
                 dispatch({ type: 'SET_RENDER_TEMPLATE', template: getDefaultTemplate(ex.auftrag.stufe).id });
                 setThema(ex.auftrag.thema);
@@ -583,7 +589,7 @@ export function Step0_Absicht({
               key={s.id}
               onClick={() => {
                 setTyp('schuluebung');
-                setFach(s.fach);
+                setFachManuell(s.fach);
                 setStufe(s.stufe);
                 dispatch({ type: 'SET_RENDER_TEMPLATE', template: getDefaultTemplate(s.stufe).id });
                 setThema(s.thema);
@@ -646,7 +652,7 @@ export function Step0_Absicht({
           </SectionLabel>
           <select
             value={fach}
-            onChange={(e) => setFach(e.target.value as Fach)}
+            onChange={(e) => setFachManuell(e.target.value as Fach)}
             style={{ width: '100%', padding: '0.625rem 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)', background: 'var(--color-bg-base)', fontSize: '0.9375rem', fontWeight: 600 }}
           >
             {/* Deutsch gehört in der Anzeige zu den Sprachfächern; das Schema-Flag

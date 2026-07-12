@@ -1,5 +1,11 @@
 [
   {
+    "id": "neutral",
+    "displayName": "LUKA-Start",
+    "palette": ["#f5f1e8", "#ded7ca", "#b7afa0", "#5d574d"],
+    "accentColor": "#5a6b63"
+  },
+  {
     "id": "deutsch",
     "displayName": "Deutsch",
     "palette": ["#f4efe6", "#ddd3c2", "#b0a690", "#5b5347"],

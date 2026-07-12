@@ -7,6 +7,15 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Neutraler Start-Hintergrund vor der Fachwahl
+- Der Wizard startet jetzt mit dem neutralen Schreibtisch-Motiv und einer
+  eigenen „LUKA-Start"-Farbpalette statt sofort das Deutsch-Mural (Schiller)
+  zu zeigen. Das Fach-Mural erscheint erst, wenn ein Fach aktiv gewählt wird
+  oder ein Dokument mit Kontext geladen ist (Auftrag, Blöcke, Quelltexte).
+- Die Start-Grafik hat jetzt ihre eigene Deckkraft/Filterstufe in
+  `murals.css` — sie war seit 1.0.3 wegen der fehlenden CSS-Klasse fast
+  unsichtbar.
+
 ### Fixed — Update-Fenster: Formatierung der Release-Notes
 - Das Update-Fenster zeigte rohes Markdown (`### `-Überschriften, Backticks)
   und brach lange Aufzählungspunkte an den CHANGELOG-Zeilenumbrüchen ab.
