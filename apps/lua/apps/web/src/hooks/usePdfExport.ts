@@ -1,21 +1,31 @@
 import { useState, useCallback, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 
-const LAST_DOCX_PATH_KEY = 'lehrunterlagen-last-docx-path';
-
-function getLastDocxPath(): string {
-  try { return localStorage.getItem(LAST_DOCX_PATH_KEY) || ''; } catch { return ''; }
-}
-function setLastDocxPath(path: string) {
-  try { localStorage.setItem(LAST_DOCX_PATH_KEY, path); } catch { /* ignore */ }
-}
-
 interface PdfExportState {
   converting: boolean;
   pdfPath: string | null;
   error: string | null;
-  showPathInput: boolean;
-  docxPath: string;
+}
+
+function formatPdfError(error: unknown): string {
+  const raw = error instanceof Error ? error.message : String(error ?? 'PDF-Erstellung fehlgeschlagen');
+  if (/libreoffice|soffice/i.test(raw)) {
+    return 'LibreOffice wurde nicht gefunden oder konnte nicht gestartet werden. Installiere LibreOffice und versuche es erneut; alternativ kannst du die DOCX-Datei in Word oder LibreOffice Writer als PDF speichern.';
+  }
+  return raw || 'PDF-Erstellung fehlgeschlagen.';
+}
+
+export function buildPdfFilename(datum: string, thema: string): string {
+  const sicher = thema
+    .replace(/[äÄ]/g, 'ae')
+    .replace(/[öÖ]/g, 'oe')
+    .replace(/[üÜ]/g, 'ue')
+    .replace(/ß/g, 'ss')
+    .replace(/[^a-zA-Z0-9_-]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '')
+    .slice(0, 40);
+  return `${datum}_${sicher || 'LUKA_Dokument'}.pdf`;
 }
 
 export function usePdfExport() {
@@ -23,8 +33,6 @@ export function usePdfExport() {
     converting: false,
     pdfPath: null,
     error: null,
-    showPathInput: false,
-    docxPath: getLastDocxPath(),
   });
   const [libreOfficeAvailable, setLibreOfficeAvailable] = useState<boolean | null>(null);
 
@@ -34,86 +42,42 @@ export function usePdfExport() {
       .catch(() => setLibreOfficeAvailable(false));
   }, []);
 
-  const startPdfExport = useCallback(() => {
-    setState((prev) => ({
-      ...prev,
-      showPathInput: true,
-      error: null,
-      pdfPath: null,
-    }));
-  }, []);
-
-  const setDocxPath = useCallback((path: string) => {
-    setState((prev) => ({ ...prev, docxPath: path }));
-  }, []);
-
-  /** Öffnet den nativen Datei-Dialog zur DOCX-Auswahl (statt Pfad-Tipperei). */
-  const pickDocxFile = useCallback(async () => {
-    try {
-      const { open } = await import('@tauri-apps/plugin-dialog');
-      const selected = await open({
-        multiple: false,
-        directory: false,
-        defaultPath: getLastDocxPath() || undefined,
-        filters: [{ name: 'Word-Dokument', extensions: ['docx'] }],
-      });
-      if (typeof selected === 'string') {
-        setState((prev) => ({ ...prev, docxPath: selected, error: null }));
-      }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Datei-Auswahl fehlgeschlagen';
-      setState((prev) => ({ ...prev, error: msg }));
-    }
-  }, []);
-
-  const convertToPdf = useCallback(async () => {
-    if (!state.docxPath.trim()) {
-      setState((prev) => ({ ...prev, error: 'Bitte gib den Pfad zur DOCX-Datei ein.' }));
+  const startPdfExport = useCallback(async (docxPath: string | null, defaultPath: string) => {
+    if (!docxPath?.trim()) {
+      setState((prev) => ({ ...prev, error: 'Bitte zuerst die Schülerfassung als DOCX exportieren.' }));
       return;
     }
 
-    setState((prev) => ({ ...prev, converting: true, error: null, pdfPath: null }));
+    setState((prev) => ({ ...prev, error: null, pdfPath: null }));
 
     try {
-      const trimmed = state.docxPath.trim();
-      const pdfPath = await invoke<string>('convert_pdf', {
-        docxPath: trimmed,
+      const { save } = await import('@tauri-apps/plugin-dialog');
+      const selected = await save({
+        title: 'PDF speichern',
+        defaultPath,
+        filters: [{ name: 'PDF-Dokument', extensions: ['pdf'] }],
       });
-      setLastDocxPath(trimmed);
-      setState((prev) => ({ ...prev, converting: false, pdfPath }));
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'PDF-Erstellung fehlgeschlagen';
-      setState((prev) => ({ ...prev, converting: false, error: msg }));
-    }
-  }, [state.docxPath]);
+      if (typeof selected !== 'string') return;
 
-  const closePathInput = useCallback(() => {
-    setState((prev) => ({
-      ...prev,
-      showPathInput: false,
-      error: null,
-      pdfPath: null,
-    }));
+      setState((prev) => ({ ...prev, converting: true, error: null, pdfPath: null }));
+      const pdfPath = await invoke<string>('convert_pdf', {
+        docxPath: docxPath.trim(),
+        outputPath: selected,
+      });
+      setState((prev) => ({ ...prev, converting: false, pdfPath }));
+    } catch (error) {
+      setState((prev) => ({ ...prev, converting: false, error: formatPdfError(error) }));
+    }
   }, []);
 
   const reset = useCallback(() => {
-    setState({
-      converting: false,
-      pdfPath: null,
-      error: null,
-      showPathInput: false,
-      docxPath: '',
-    });
+    setState({ converting: false, pdfPath: null, error: null });
   }, []);
 
   return {
     ...state,
     libreOfficeAvailable,
     startPdfExport,
-    setDocxPath,
-    pickDocxFile,
-    convertToPdf,
-    closePathInput,
     reset,
   };
 }

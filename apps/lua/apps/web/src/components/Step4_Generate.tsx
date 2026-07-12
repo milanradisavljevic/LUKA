@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   Loader2, Sparkles, FileDown, ClipboardList, FileType, CheckCircle2,
   AlertTriangle, Timer, Bot, X, Palette, BookOpen, Target, ShieldCheck,
-  ChevronRight, ChevronDown, Layers, Wrench, ClipboardCheck, FileQuestion, FolderOpen,
+  ChevronRight, ChevronDown, Layers, Wrench, ClipboardCheck, FileQuestion,
   Presentation,
 } from 'lucide-react';
 import type { AppState, AppAction } from '../lib/types';
@@ -11,7 +11,7 @@ import { getBlockLabel } from '../lib/blockDefaults';
 import { PreviewTwoColumn } from './PreviewTwoColumn';
 import { useGenerate } from '../hooks/useGenerate';
 import { useExport } from '../hooks/useExport';
-import { usePdfExport } from '../hooks/usePdfExport';
+import { buildPdfFilename, usePdfExport } from '../hooks/usePdfExport';
 import { computeCoverage } from '../lib/coverage';
 import { checkLernzielCoverage, checkSchreibaufgabe } from '@lehrunterlagen/llm';
 import { fachLabel } from '@lehrunterlagen/schema';
@@ -41,7 +41,6 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
   const coverage = isKompetenz && state.generiertesDokument && !isFrei
     ? computeCoverage(state.generiertesDokument.meta)
     : null;
-  const [showPdfHint, setShowPdfHint] = useState(false);
   const [pendingExportIssues, setPendingExportIssues] = useState<string[] | null>(null);
   const [niveauExportLabel, setNiveauExportLabel] = useState<string | null>(null);
   const [judge, setJudge] = useState<{ issuesByBlock: Record<string, string[]>; gepruefteIds: string[] } | null>(null);
@@ -98,6 +97,12 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
   const totalPunkte = state.bloecke.reduce((s, b) => s + b.punkte, 0);
   const previewBloecke = state.generiertesDokument?.bloecke ?? state.bloecke;
   const qualityPassRunning = generating && stage === 'qualitaet';
+  const studentDocxPath = lastSavedPaths?.find((path) => /Schuelerfassung\.docx$/i.test(path))
+    ?? lastSavedPaths?.find((path) => /\.docx$/i.test(path))
+    ?? null;
+  const pdfDefaultPath = state.generiertesDokument
+    ? buildPdfFilename(state.generiertesDokument.meta.datum, state.generiertesDokument.meta.thema)
+    : 'luka-dokument.pdf';
 
   // Quelltext-Abdruck (wie punkteAusblenden): Meta-Toggle, wirkt auf Vorschau + DOCX.
   // Nach der Generierung muss auch das eingefrorene Dokument-Meta mitgezogen werden.
@@ -549,8 +554,8 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
                   {pdfExport.libreOfficeAvailable ? (
                     <button
                       className="btn-secondary"
-                      onClick={pdfExport.startPdfExport}
-                      disabled={pdfExport.converting}
+                      onClick={() => void pdfExport.startPdfExport(studentDocxPath, pdfDefaultPath)}
+                      disabled={pdfExport.converting || exporting || generating}
                       aria-label="Dokument als PDF speichern"
                       style={{ padding: '0.5rem 1rem', fontSize: '0.8125rem', borderStyle: 'dotted',
                         display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
@@ -564,6 +569,17 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
                       PDF-Export erfordert LibreOffice (soffice). Ohne installiertes LibreOffice steht dieser Export nicht zur Verfügung — die DOCX-Dateien können in Word oder LibreOffice Writer manuell als PDF gespeichert werden.
                     </p>
                   ) : null}
+                  {pdfExport.pdfPath && (
+                    <div style={{
+                      padding: '0.6rem 0.75rem', background: 'var(--color-success-bg)',
+                      borderRadius: 'var(--radius)', fontSize: '0.75rem', lineHeight: 1.5,
+                    }}>
+                      <strong style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <CheckCircle2 size={14} color="var(--color-success)" /> PDF gespeichert
+                      </strong><br />
+                      <code style={{ wordBreak: 'break-all' }}>{pdfExport.pdfPath}</code>
+                    </div>
+                  )}
                   <button
                     className="btn-secondary"
                     onClick={() => exportSelbstlern(state)}
@@ -861,115 +877,6 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
         </div>
       )}
 
-      {/* PDF-Hinweis Modal (Browser-Dev) */}
-      {showPdfHint && (
-        <div style={{
-          position: 'fixed', inset: 0, background: 'var(--color-overlay)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100,
-        }} onClick={() => setShowPdfHint(false)}>
-          <div style={{
-            background: 'var(--color-bg-surface)', padding: '1.5rem', borderRadius: 'var(--radius)',
-            maxWidth: 420, width: '90%', boxShadow: '0 8px 32px var(--color-shadow)',
-          }} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ marginBottom: '0.75rem' }}>PDF erstellen</h3>
-            <p style={{ fontSize: '0.875rem', lineHeight: 1.6, marginBottom: '1rem' }}>
-              Die Web-App exportiert <strong>DOCX</strong>-Dateien (Word-Format).
-              Um eine PDF zu erhalten:
-            </p>
-            <ol style={{ fontSize: '0.875rem', lineHeight: 1.6, paddingLeft: '1.25rem', marginBottom: '1.25rem' }}>
-              <li>Lade die DOCX-Datei herunter.</li>
-              <li>Öffne sie in <strong>Microsoft Word</strong> oder <strong>LibreOffice Writer</strong>.</li>
-              <li>Wähle <em>Datei &rsaquo; Als PDF exportieren</em> (oder Drucken &rsaquo; Als PDF speichern).</li>
-            </ol>
-            <button
-              className="btn-primary"
-              onClick={() => setShowPdfHint(false)}
-              style={{ width: '100%', padding: '0.5rem' }}
-            >
-              Verstanden
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* PDF-Pfad-Input Modal (Tauri) */}
-      {pdfExport.showPathInput && (
-        <div style={{
-          position: 'fixed', inset: 0, background: 'var(--color-overlay)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100,
-        }} onClick={pdfExport.closePathInput}>
-          <div style={{
-            background: 'var(--color-bg-surface)', padding: '1.5rem', borderRadius: 'var(--radius)',
-            maxWidth: 520, width: '90%', boxShadow: '0 8px 32px var(--color-shadow)',
-          }} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ marginBottom: '0.5rem' }}>PDF aus DOCX erstellen</h3>
-            <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>
-              Wähle die zuvor gespeicherte DOCX-Datei — LibreOffice erzeugt daraus eine PDF.
-            </p>
-
-            <button
-              className="btn-secondary"
-              onClick={pdfExport.pickDocxFile}
-              disabled={pdfExport.converting}
-              style={{ marginBottom: '0.75rem', padding: '0.5rem 0.9rem',
-                display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
-            >
-              <FolderOpen size={15} /> DOCX-Datei wählen…
-            </button>
-
-            {pdfExport.docxPath && (
-              <div style={{
-                padding: '0.5rem 0.75rem', background: 'var(--color-bg-base)', borderRadius: 'var(--radius)',
-                marginBottom: '0.75rem', fontSize: '0.8125rem',
-              }}>
-                <code style={{ wordBreak: 'break-all' }}>{pdfExport.docxPath}</code>
-              </div>
-            )}
-
-            {pdfExport.pdfPath && (
-              <div style={{
-                padding: '0.75rem', background: 'var(--color-success-bg)', borderRadius: 'var(--radius)',
-                marginBottom: '0.75rem', fontSize: '0.8125rem',
-              }}>
-                <strong style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
-                  <CheckCircle2 size={14} color="var(--color-success)" /> PDF erstellt:
-                </strong><br />
-                <code style={{ wordBreak: 'break-all' }}>{pdfExport.pdfPath}</code>
-              </div>
-            )}
-
-            {pdfExport.error && (
-              <div style={{
-                padding: '0.75rem', background: 'var(--color-error-bg)', borderRadius: 'var(--radius)',
-                marginBottom: '0.75rem', fontSize: '0.8125rem', color: 'var(--color-error)',
-              }}>
-                {pdfExport.error}
-              </div>
-            )}
-
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <button
-                className="btn-primary"
-                onClick={pdfExport.convertToPdf}
-                disabled={pdfExport.converting || !pdfExport.docxPath.trim()}
-                style={{ flex: 1, padding: '0.5rem',
-                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
-              >
-                {pdfExport.converting
-                  ? <><Loader2 size={15} className="spin" /> Erstelle PDF…</>
-                  : 'PDF erstellen'}
-              </button>
-              <button
-                className="btn-secondary"
-                onClick={pdfExport.closePathInput}
-                style={{ padding: '0.5rem 1rem' }}
-              >
-                Schließen
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

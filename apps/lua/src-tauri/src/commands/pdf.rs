@@ -6,7 +6,7 @@ use tokio::time::{timeout, Duration};
 const TIMEOUT_SECS: u64 = 60;
 
 #[tauri::command]
-pub async fn convert_pdf(docx_path: String) -> Result<String, String> {
+pub async fn convert_pdf(docx_path: String, output_path: Option<String>) -> Result<String, String> {
     let docx = PathBuf::from(&docx_path);
     
     if !docx.exists() {
@@ -17,13 +17,28 @@ pub async fn convert_pdf(docx_path: String) -> Result<String, String> {
         return Err("Datei muss die Endung .docx haben.".to_string());
     }
 
+    let requested_pdf = output_path.map(PathBuf::from);
+    if let Some(target) = &requested_pdf {
+        if !target.extension().map(|e| e.eq_ignore_ascii_case("pdf")).unwrap_or(false) {
+            return Err("Der Zielpfad muss die Endung .pdf haben.".to_string());
+        }
+        if let Some(parent) = target.parent() {
+            if !parent.exists() {
+                return Err("Der gewählte PDF-Zielordner existiert nicht.".to_string());
+            }
+        }
+    }
+
     let soffice = find_libreoffice()
         .ok_or_else(|| "LibreOffice nicht gefunden. Bitte installieren oder PDF manuell erzeugen.".to_string())?;
 
-    let output_dir = docx.parent()
+    let output_dir = requested_pdf
+        .as_ref()
+        .and_then(|target| target.parent())
+        .or_else(|| docx.parent())
         .ok_or_else(|| "Ungültiger Dateipfad.".to_string())?;
 
-    let pdf_path = output_dir.join(
+    let generated_pdf_path = output_dir.join(
         docx.file_stem()
             .ok_or_else(|| "Ungültiger Dateiname.".to_string())?
     ).with_extension("pdf");
@@ -49,15 +64,29 @@ pub async fn convert_pdf(docx_path: String) -> Result<String, String> {
             return Err(format!("PDF-Erzeugung fehlgeschlagen: {}", stderr));
         }
 
-        if !pdf_path.exists() {
+        if !generated_pdf_path.exists() {
             return Err("PDF-Datei wurde nicht erzeugt.".to_string());
         }
 
-        Ok(pdf_path.to_string_lossy().to_string())
+        Ok(())
     };
 
     match timeout(Duration::from_secs(TIMEOUT_SECS), convert_future).await {
-        Ok(result) => result,
+        Ok(Ok(_)) => {
+            if let Some(target) = requested_pdf {
+                if target != generated_pdf_path {
+                    if target.exists() {
+                        return Err("Die gewählte PDF-Zieldatei existiert bereits.".to_string());
+                    }
+                    std::fs::rename(&generated_pdf_path, &target)
+                        .map_err(|e| format!("PDF konnte nicht am gewählten Ziel gespeichert werden: {}", e))?;
+                }
+                Ok(target.to_string_lossy().to_string())
+            } else {
+                Ok(generated_pdf_path.to_string_lossy().to_string())
+            }
+        }
+        Ok(Err(error)) => Err(error),
         Err(_) => Err("PDF-Erzeugung hat zu lange gedauert.".to_string()),
     }
 }
@@ -140,7 +169,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_convert_pdf_invalid_path() {
-        let result = convert_pdf("/nonexistent/file.docx".to_string()).await;
+        let result = convert_pdf("/nonexistent/file.docx".to_string(), None).await;
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("Datei nicht gefunden"));
     }
@@ -151,7 +180,7 @@ mod tests {
         let test_file = temp_dir.join("test.txt");
         std::fs::write(&test_file, "test").unwrap();
 
-        let result = convert_pdf(test_file.to_string_lossy().to_string()).await;
+        let result = convert_pdf(test_file.to_string_lossy().to_string(), None).await;
         assert!(result.is_err());
         assert!(result.unwrap_err().contains(".docx"));
 
@@ -168,7 +197,7 @@ mod tests {
             return;
         }
 
-        let result = convert_pdf(test_docx.to_string_lossy().to_string()).await;
+        let result = convert_pdf(test_docx.to_string_lossy().to_string(), None).await;
         
         match result {
             Ok(pdf_path) => {
