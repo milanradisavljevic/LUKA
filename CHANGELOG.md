@@ -15,6 +15,10 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 - Diese Organisationsdaten bleiben lokal und werden nicht in das teilbare
   Pool-JSON exportiert. Beim Ersetzen eines Duplikats bleiben sie erhalten.
 
+### Fixed — Pool-Karten bei schmalen Fenstern
+- Die Aktionsleiste einer Pool-Karte bricht bei kleinen Fensterbreiten um; das
+  rote Löschen-X bleibt dadurch innerhalb der Karte sichtbar.
+
 ## Version 1.0.3 — 2026-07-11
 
 ### Added — Drittes Fachpaket und robuster Fachpaket-Import

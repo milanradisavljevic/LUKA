@@ -247,7 +247,7 @@ export function PoolView({ onInsertBlock }: Props) {
       )}
 
       {visibleEntries.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '0.75rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem' }}>
           {visibleEntries.map((entry) => {
             const tags = parsePoolTags(entry.tags);
             const kuratiert = isKuratiert(tags);
@@ -327,7 +327,15 @@ export function PoolView({ onInsertBlock }: Props) {
                     {entry.lastUsedAt && <> · zuletzt {new Date(entry.lastUsedAt).toLocaleDateString('de-DE')}</>}
                   </p>
                 </div>
-                <div style={{ display: 'flex', gap: '0.375rem' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
+                    gap: '0.375rem',
+                    minWidth: 0,
+                  }}
+                >
                   <button
                     className="btn-secondary"
                     onClick={() => { void toggleFavorite(entry.id, !entry.isFavorite); }}
@@ -343,7 +351,7 @@ export function PoolView({ onInsertBlock }: Props) {
                     onChange={(e) => { void setQualityStatus(entry.id, e.target.value as PoolQualityStatus); }}
                     aria-label={`Status für ${entry.thema ?? 'Aufgabe'}`}
                     title="Lokalen Qualitätsstatus setzen"
-                    style={{ fontSize: '0.7rem', minWidth: '112px' }}
+                    style={{ fontSize: '0.7rem', flex: '1 1 112px', minWidth: 0 }}
                   >
                     <option value="unbewertet">Unbewertet</option>
                     <option value="getestet">Getestet</option>
@@ -354,7 +362,7 @@ export function PoolView({ onInsertBlock }: Props) {
                     <button
                       className="btn-primary"
                       onClick={() => handleInsert(entry)}
-                      style={{ fontSize: '0.75rem', padding: '0.375rem 0.75rem', flex: 1 }}
+                      style={{ fontSize: '0.75rem', padding: '0.375rem 0.75rem', flex: '1 1 88px', minWidth: 0 }}
                     >
                       Einfügen
                     </button>
@@ -363,7 +371,7 @@ export function PoolView({ onInsertBlock }: Props) {
                     className="btn-danger"
                     onClick={() => handleDelete(entry.id, entry.thema)}
                     aria-label="Aufgabe löschen"
-                    style={{ display: 'inline-flex', alignItems: 'center', padding: '0.375rem 0.5rem' }}
+                    style={{ display: 'inline-flex', alignItems: 'center', padding: '0.375rem 0.5rem', flex: '0 0 auto' }}
                   >
                     <X size={15} />
                   </button>
