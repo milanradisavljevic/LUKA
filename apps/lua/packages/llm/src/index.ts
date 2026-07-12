@@ -2,6 +2,7 @@ import type {
   GenerateInput,
   GenerateResult,
   ProviderConfig,
+  ProviderId,
 } from './types.js';
 import { buildMessages, buildRepairMessage } from './prompt.js';
 import { parseAndValidate } from './validate.js';

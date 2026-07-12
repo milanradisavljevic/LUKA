@@ -7,6 +7,24 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Qualitätspass: „Qualität schärfen" nach der Generierung
+- Neuer Button in Schritt 4: Das Modell prüft das eigene Dokument als strenger
+  Fachkollege (konkrete Schreibsituation? echter Textbeilagen-Bezug?
+  beobachtbarer Erwartungshorizont statt Floskeln?) und liefert eine
+  verbesserte Fassung samt 2–3 Änderungsnotizen, die angezeigt werden.
+  Ein bewusst ausgelöster zusätzlicher Aufruf beim eigenen KI-Anbieter,
+  einmal je Generierung.
+- Die verbesserte Fassung durchläuft dieselbe Validierung wie die
+  Erst-Generierung; Struktur, Block-Typen, ids und Textbeilagen-Verweise
+  sind unveränderlich — der Pass darf nur Inhalte schärfen.
+
+### Added — Fünftes Fachpaket „Englisch Oberstufe (CEFR)"
+- `samples/fachpakete/luka-fachpaket-englisch-cefr-v1.json`: 6 Aufgaben —
+  drei englische Schreibaufgaben (article, email, blog comment mit
+  B1/B2-Niveau, fiktiver Textgrundlage und vierdimensionalem
+  Erwartungshorizont) plus linking-words-Matching, Register-Kategorisierung
+  und Lesestrategien-MC.
+
 ### Added — Startpaket an Bord: 29 Aufgaben per Klick in den Pool
 - Die vier kuratierten Fachpakete reisen jetzt in der App mit (zur Build-Zeit
   eingebettet, Quelle bleibt `samples/fachpakete/`). Ist der Aufgaben-Pool
