@@ -16,6 +16,7 @@ const FALLBACK_NOTES = 'Details im CHANGELOG.';
 function extractTopSection(changelogText) {
   const lines = changelogText.split(/\r?\n/);
   let headerCount = 0;
+  let truncated = false;
   const body = [];
 
   for (const line of lines) {
@@ -25,11 +26,24 @@ function extractTopSection(changelogText) {
       continue; // Überschriftenzeile selbst nicht mit übernehmen
     }
     if (headerCount === 1) {
+      // Lehrkräfte sehen die Notes im Update-Dialog: nur der einleitende
+      // "Das ist neu"-Block gehört dorthin. Technische "### "-Abschnitte
+      // bleiben im CHANGELOG (und dort nachlesbar).
+      if (/^### /.test(line)) {
+        truncated = true;
+        break;
+      }
       body.push(line);
     }
   }
 
-  return body.join('\n').trim();
+  let notes = body.join('\n').trim();
+  // Redundanz zum Dialog-Titel "Was ist neu" vermeiden.
+  notes = notes.replace(/^\*\*Das ist neu:?\*\*\s*\n+/, '');
+  if (notes && truncated) {
+    notes += '\n\nAlle technischen Details stehen im CHANGELOG.';
+  }
+  return notes;
 }
 
 function main() {

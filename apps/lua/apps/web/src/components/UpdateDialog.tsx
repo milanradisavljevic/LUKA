@@ -7,7 +7,25 @@ interface Props {
 }
 
 function renderSegments(segments: InlineSegment[]) {
-  return segments.map((seg, i) => (seg.bold ? <strong key={i}>{seg.text}</strong> : <span key={i}>{seg.text}</span>));
+  return segments.map((seg, i) => {
+    if (seg.code) {
+      return (
+        <code
+          key={i}
+          style={{
+            fontSize: '0.75rem',
+            background: 'var(--color-bg-secondary)',
+            border: '1px solid var(--color-border)',
+            borderRadius: '3px',
+            padding: '0 0.25rem',
+          }}
+        >
+          {seg.text}
+        </code>
+      );
+    }
+    return seg.bold ? <strong key={i}>{seg.text}</strong> : <span key={i}>{seg.text}</span>;
+  });
 }
 
 function ReleaseNotes({ body }: { body: string }) {

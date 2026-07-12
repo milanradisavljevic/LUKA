@@ -1,23 +1,25 @@
 /**
  * Sehr kleines Markdown-Subset für Update-Release-Notes (`update.body`).
  * Unterstützt bewusst nur: Absätze (Leerzeile trennt), `- `-Listenpunkte
- * und `**fett**`. Kein npm-Paket nötig — Release-Notes sind kurze,
- * kontrollierte Texte aus dem eigenen CHANGELOG.
+ * (inkl. eingerückter Fortsetzungszeilen), `**fett**`, `` `code` `` und
+ * `### `-Überschriften (als fette Zeile). Kein npm-Paket nötig —
+ * Release-Notes sind kurze, kontrollierte Texte aus dem eigenen CHANGELOG.
  */
 
 export interface InlineSegment {
   text: string;
   bold: boolean;
+  code?: boolean;
 }
 
 export type MiniMarkdownBlock =
   | { type: 'paragraph'; segments: InlineSegment[] }
   | { type: 'list'; items: InlineSegment[][] };
 
-/** Zerlegt eine Zeile in fett/normal-Segmente (`**...**`). */
+/** Zerlegt eine Zeile in fett/code/normal-Segmente (`**...**`, `` `...` ``). */
 export function parseInlineSegments(text: string): InlineSegment[] {
   const segments: InlineSegment[] = [];
-  const re = /\*\*(.+?)\*\*/g;
+  const re = /\*\*(.+?)\*\*|`([^`]+)`/g;
   let lastIndex = 0;
   let match: RegExpExecArray | null;
 
@@ -25,7 +27,11 @@ export function parseInlineSegments(text: string): InlineSegment[] {
     if (match.index > lastIndex) {
       segments.push({ text: text.slice(lastIndex, match.index), bold: false });
     }
-    segments.push({ text: match[1] ?? '', bold: true });
+    if (match[1] !== undefined) {
+      segments.push({ text: match[1], bold: true });
+    } else {
+      segments.push({ text: match[2] ?? '', bold: false, code: true });
+    }
     lastIndex = re.lastIndex;
   }
   if (lastIndex < text.length) {
@@ -62,7 +68,24 @@ export function parseMiniMarkdown(source: string): MiniMarkdownBlock[] {
       currentList.push(parseInlineSegments(listMatch[1] ?? ''));
       continue;
     }
+    // Eingerückte Zeile direkt unter einem Listenpunkt = Fortsetzung des
+    // Punkts (CHANGELOG bricht lange Bullets mit Einrückung um).
+    if (currentList && currentList.length > 0 && /^\s{2,}/.test(rawLine)) {
+      const last = currentList[currentList.length - 1];
+      if (last) {
+        last.push({ text: ' ', bold: false }, ...parseInlineSegments(line));
+      }
+      continue;
+    }
     flushList();
+    const headingMatch = line.match(/^#{1,6}\s+(.*)$/);
+    if (headingMatch) {
+      blocks.push({
+        type: 'paragraph',
+        segments: [{ text: headingMatch[1] ?? '', bold: true }],
+      });
+      continue;
+    }
     blocks.push({ type: 'paragraph', segments: parseInlineSegments(line) });
   }
   flushList();

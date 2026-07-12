@@ -5,6 +5,19 @@ Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 (auch andere Coding-Agents) — siehe `AGENTS.md`.
 
+## [Unreleased]
+
+### Fixed — Update-Fenster: Formatierung der Release-Notes
+- Das Update-Fenster zeigte rohes Markdown (`### `-Überschriften, Backticks)
+  und brach lange Aufzählungspunkte an den CHANGELOG-Zeilenumbrüchen ab.
+- Die Release-Notes-Extraktion liefert jetzt nur noch den „Das ist neu"-Block
+  an Lehrkräfte (technische `### `-Abschnitte bleiben im CHANGELOG, Hinweis
+  ersetzt sie); die doppelte „Das ist neu"-Zeile unter dem Dialog-Titel
+  entfällt.
+- `miniMarkdown` kann zur Absicherung jetzt auch `### `-Überschriften
+  (fette Zeile), Inline-Code und eingerückte Fortsetzungszeilen von
+  Listenpunkten; der Dialog rendert Inline-Code dezent als Code-Schnipsel.
+
 ## Version 1.0.4 — 2026-07-12
 
 **Das ist neu:**
