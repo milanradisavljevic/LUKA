@@ -126,6 +126,12 @@ pub(crate) fn profil_save_impl(conn: &Connection, profile: &LehrerProfil) -> Res
     Ok(())
 }
 
+pub(crate) fn profil_reset_impl(conn: &Connection) -> Result<(), String> {
+    conn.execute("DELETE FROM lua_lehrerprofil WHERE id = 1", [])
+        .map_err(|e| format!("profil_reset: {}", e))?;
+    Ok(())
+}
+
 #[tauri::command]
 pub async fn profil_get(state: tauri::State<'_, DbState>) -> Result<Option<LehrerProfil>, String> {
     let guard = state.conn()?;
@@ -136,6 +142,13 @@ pub async fn profil_get(state: tauri::State<'_, DbState>) -> Result<Option<Lehre
 pub async fn profil_save(state: tauri::State<'_, DbState>, profile: LehrerProfil) -> Result<(), String> {
     let guard = state.conn()?;
     profil_save_impl(&guard, &profile)
+}
+
+/// Test-/Support-Utility: entfernt das gespeicherte Lehrerprofil, damit der First-Run-Profil-Schritt beim nächsten Start wieder erscheint.
+#[tauri::command]
+pub async fn profil_reset(state: tauri::State<'_, DbState>) -> Result<(), String> {
+    let guard = state.conn()?;
+    profil_reset_impl(&guard)
 }
 
 #[cfg(test)]
@@ -172,6 +185,14 @@ mod tests {
         profil_save_impl(&conn, &updated).unwrap();
         assert_eq!(profil_get_impl(&conn).unwrap().unwrap().display_name, "Mila R.");
         assert_eq!(conn.query_row("SELECT COUNT(*) FROM lua_lehrerprofil", [], |row| row.get::<_, i64>(0)).unwrap(), 1);
+    }
+
+    #[test]
+    fn reset_entfernt_gespeichertes_profil() {
+        let conn = setup();
+        profil_save_impl(&conn, &profile()).unwrap();
+        profil_reset_impl(&conn).unwrap();
+        assert_eq!(profil_get_impl(&conn).unwrap(), None);
     }
 
     #[test]
