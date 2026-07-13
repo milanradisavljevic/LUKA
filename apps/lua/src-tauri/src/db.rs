@@ -41,7 +41,7 @@ pub fn open_db() -> Result<Connection, String> {
 }
 
 pub fn init_schema(conn: &Connection) -> Result<(), String> {
-    conn.execute_batch(NATASCHA_SCHEMA_SQL).map_err(|e| format!("NATASCHA-Schema fehlgeschlagen: {}", e))?;
+    conn.execute_batch(NATASCHA_SCHEMA_SQL).map_err(|e| format!("Korrektur-Schema fehlgeschlagen: {}", e))?;
     conn.execute_batch(LUA_SCHEMA_SQL).map_err(|e| format!("LUA-Schema fehlgeschlagen: {}", e))?;
     migrate_pool_local_metadata(conn)?;
     Ok(())

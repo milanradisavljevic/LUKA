@@ -7,6 +7,13 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Changed — Korrektur-Modul: neutraler Name in der Oberfläche
+- Alle sichtbaren Texte des Korrektur-Moduls (Seitenleiste, Einstellungen,
+  Korrektur-Ansicht, Hilfe, Fehlermeldungen, Statuslabels) verwenden jetzt
+  durchgängig „Korrektur" bzw. „Korrektur-TUI" statt des bisherigen internen
+  Projektnamens. Rein technische Bezeichner und Dateinamen bleiben unverändert;
+  am Verhalten ändert sich nichts (das Modul ist weiterhin deaktiviert).
+
 ### Added — Startpaket-Karte kennt das Land
 - Die Ein-Klick-Startpaket-Karte im leeren Aufgaben-Pool importiert bei
   Profil-Land „Deutschland" zusätzlich das Startpaket Deutschland

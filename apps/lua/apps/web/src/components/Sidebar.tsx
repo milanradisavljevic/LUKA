@@ -38,7 +38,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'pool', label: 'Aufgaben-Pool', Icon: Database, view: 'pool', gruppe: 'Unterrichten', tooltip: 'Wiederverwendbare Aufgaben-Blöcke' },
   { id: 'templates', label: 'Vorlagen', Icon: Files, view: 'templates', gruppe: 'Unterrichten', tooltip: 'Gespeicherte Aufgaben-Vorlagen laden' },
   { id: 'klassen', label: 'Meine Klassen', Icon: GraduationCap, view: 'klassen', gruppe: 'Korrigieren', tooltip: 'Klassenübersicht mit Notenverteilung' },
-  { id: 'korrektur', label: 'Korrektur (NATASCHA)', Icon: SpellCheck, view: 'korrektur', gruppe: 'Korrigieren', tooltip: 'Korrektur-Exporte aus NATASCHA einsehen' },
+  { id: 'korrektur', label: 'Korrektur', Icon: SpellCheck, view: 'korrektur', gruppe: 'Korrigieren', tooltip: 'Korrektur-Exporte einsehen' },
   { id: 'schueler', label: 'Schüler', Icon: Users, view: 'schueler', gruppe: 'Korrigieren', tooltip: 'Einzelne Schüler/innen und deren Ergebnisse' },
   { id: 'erwartungshorizont', label: 'Erwartungshorizont', Icon: ClipboardCheck, view: 'erwartungshorizont', gruppe: 'Korrigieren', tooltip: 'Lösungserwartungen und Bewertungsraster' },
   { id: 'history', label: 'Verlauf', Icon: Clock, view: 'history', tooltip: 'Bisherige Generierungen und Exporte' },

@@ -435,7 +435,7 @@ export function SettingsView() {
         padding: '1.25rem', border: '1px solid var(--color-border)',
         borderRadius: 'var(--radius)', background: 'var(--color-bg-surface)', marginBottom: '1.5rem',
       }}>
-        <h3 style={{ fontSize: '1rem', margin: '0 0 0.75rem' }}>NATASCHA</h3>
+        <h3 style={{ fontSize: '1rem', margin: '0 0 0.75rem' }}>Korrektur-Modul</h3>
         <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', marginTop: 0 }}>
           Aktiver Modus: <strong>{nataschaMode ?? 'Wird geprüft …'}</strong>
         </p>
@@ -448,11 +448,11 @@ export function SettingsView() {
           style={{ width: '100%', boxSizing: 'border-box' }}
         />
         <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', marginBottom: '1rem' }}>
-          Hier sucht „Aus NATASCHA-Korrektur" (Schritt 1) nach Exporten. Muss mit dem
-          in NATASCHA eingestellten <code>[bridge] inbox_dir</code> übereinstimmen.
+          Hier sucht „Aus der Korrektur" (Schritt 1) nach Exporten. Muss mit dem
+          im Korrektur-Tool eingestellten <code>[bridge] inbox_dir</code> übereinstimmen.
         </p>
 
-        <label style={labelStyle}>NATASCHA-Ordner (enthält natascha.py)</label>
+        <label style={labelStyle}>Korrektur-Ordner (Installationsordner des Korrektur-Tools)</label>
         <input
           type="text"
           value={settings.nataschaDir ?? ''}
@@ -469,7 +469,7 @@ export function SettingsView() {
           style={{ width: '100%', boxSizing: 'border-box' }}
         />
         <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', marginBottom: '1rem' }}>
-          Steuert den Start über <strong>Korrektur (NATASCHA)</strong> in der Seitenleiste.
+          Steuert den Start über <strong>Korrektur</strong> in der Seitenleiste.
         </p>
 
         <div style={{ paddingTop: '1rem', borderTop: '1px solid var(--color-border)' }}>
@@ -532,7 +532,7 @@ export function SettingsView() {
         <h3 style={{ fontSize: '1rem', margin: '0 0 0.75rem' }}>Datenbank</h3>
         <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', marginTop: 0, marginBottom: '0.75rem' }}>
           Die lokale SQLite-Datenbank speichert Dokumente, Verlauf und Einstellungen.
-          {FEATURES.natascha && ' Bei aktivierter Korrektur nutzen LUA und NATASCHA dieselbe Datei.'}
+          {FEATURES.natascha && ' Bei aktiviertem Korrektur-Modul nutzen Generator und Korrektur dieselbe Datei.'}
         </p>
         <DbPath />
         <div style={{ marginTop: '0.875rem' }}>

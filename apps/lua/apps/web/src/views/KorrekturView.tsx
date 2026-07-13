@@ -360,7 +360,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
           style={{ fontSize: '0.8125rem', padding: '0.375rem 0.75rem' }}
         >
           <SpellCheck size={14} style={{ verticalAlign: -2, marginRight: 4 }} />
-          NATASCHA-TUI
+          Korrektur-TUI
         </button>
         <button
           className={mode === 'native' ? 'btn-primary' : 'btn-secondary'}
@@ -375,10 +375,10 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
       {mode === 'tui' ? (
         <section style={cardStyle}>
           <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: '0 0 0.75rem' }}>
-            Startet die NATASCHA-TUI in einem Terminalfenster. Für die native Korrektur den Reiter „Native" wählen.
+            Startet die Korrektur-TUI in einem Terminalfenster. Für die native Korrektur den Reiter „Native" wählen.
           </p>
           <button className="btn-primary" onClick={starteNatascha} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-            <SpellCheck size={16} /> NATASCHA öffnen
+            <SpellCheck size={16} /> Korrektur-TUI öffnen
           </button>
           {error && <p style={{ marginTop: '0.75rem', fontSize: '0.8125rem', color: 'var(--color-danger, #c0392b)' }}>{error}</p>}
         </section>
@@ -392,7 +392,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
 
             {klassen.length === 0 && !error && (
               <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: 0 }}>
-                Noch keine Daten. Starte eine Analyse oder öffne NATASCHA.
+                Noch keine Daten. Starte eine Analyse oder öffne die Korrektur-TUI.
               </p>
             )}
 
@@ -655,7 +655,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
             {!loading && selectedKlasse && abgaben.length === 0 && selectedAufgabe && (
               <div style={cardStyle}>
                 <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', textAlign: 'center', margin: 0 }}>
-                  Keine Abgaben für diese Aufgabe. Starte eine neue Analyse oder importiere Daten über NATASCHA.
+                  Keine Abgaben für diese Aufgabe. Starte eine neue Analyse oder importiere Daten über die Korrektur-TUI.
                 </p>
               </div>
             )}

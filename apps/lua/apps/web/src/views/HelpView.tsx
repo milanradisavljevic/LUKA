@@ -267,7 +267,7 @@ const SECTIONS: Section[] = [
   },
   {
     id: 'korrigieren',
-    title: 'Korrigieren (NATASCHA)',
+    title: 'Korrigieren',
     Icon: SpellCheck,
     body: (
       <>

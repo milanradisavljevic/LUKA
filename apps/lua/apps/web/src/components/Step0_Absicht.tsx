@@ -276,7 +276,7 @@ export function Step0_Absicht({
       if (list.length === 0) {
         setNataschaInfo(
           `Keine Korrektur-Exporte gefunden${pfad ? ` in ${pfad}` : ''}. ` +
-            'Exportiere in NATASCHA im Heatmap-Tab über „Für Übungs-Tool". ' +
+            'Exportiere im Korrektur-Modul im Heatmap-Tab über „Für Übungs-Tool". ' +
             'Den Ordner kannst du in den Einstellungen ändern.',
         );
       }
@@ -284,7 +284,7 @@ export function Step0_Absicht({
       setNataschaInfo(
         err instanceof Error
           ? `Exporte konnten nicht geladen werden: ${err.message}`
-          : 'Exporte konnten nicht geladen werden — die NATASCHA-Brücke ist nur in der Desktop-App (Tauri) verfügbar.',
+          : 'Exporte konnten nicht geladen werden — die Korrektur-Brücke ist nur in der Desktop-App (Tauri) verfügbar.',
       );
     } finally {
       setNataschaBusy(false);
@@ -491,7 +491,7 @@ export function Step0_Absicht({
       {/* NATASCHA-Korrektur → gezielte Übungen (Datei-Brücke Phase 1) */}
       {FEATURES.natascha && (
       <section style={{ marginBottom: '1.25rem' }}>
-        <SectionLabel>Aus NATASCHA-Korrektur</SectionLabel>
+        <SectionLabel>Aus der Korrektur</SectionLabel>
         {nataschaExports && nataschaExports.length > 0 ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.5rem' }}>
             {nataschaExports.map((ex) => (
@@ -538,7 +538,7 @@ export function Step0_Absicht({
             style={{ fontSize: '0.8125rem', cursor: nataschaBusy ? 'wait' : 'pointer', maxWidth: '420px' }}
           >
             <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: 'var(--color-accent)', fontWeight: 600 }}>
-              <ClipboardCheck size={16} /> {nataschaBusy ? 'Lädt …' : 'Aus NATASCHA-Korrektur generieren'}
+              <ClipboardCheck size={16} /> {nataschaBusy ? 'Lädt …' : 'Aus der Korrektur generieren'}
             </span>
             <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
               Erzeugt Übungen zu den Fehlerschwerpunkten einer korrigierten Klasse.

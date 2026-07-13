@@ -60,8 +60,8 @@ fn resolve_dir(dir: &str) -> Result<PathBuf, String> {
     let trimmed = dir.trim();
     let path = if trimmed.is_empty() {
         find_natascha_dir().ok_or_else(|| {
-            "NATASCHA-Ordner nicht gefunden. Bitte in den Einstellungen den Pfad zum \
-             Ordner apps/natascha setzen."
+            "Korrektur-Ordner nicht gefunden. Bitte in den Einstellungen den Pfad zum \
+             Installationsordner des Korrektur-Tools (apps/natascha) setzen."
                 .to_string()
         })?
     } else {
@@ -108,7 +108,7 @@ fn natascha_status(dir: &str, _python: &str) -> NataschaStatus {
     if bundled_cli().is_some() {
         return NataschaStatus {
             mode: "bundled",
-            label: "Gebündeltes NATASCHA-Sidecar",
+            label: "Gebündeltes Korrektur-Sidecar",
         };
     }
     if resolve_dir(dir).is_ok() {
@@ -163,7 +163,7 @@ fn validate_python_command(py: &str) -> Result<(), String> {
 #[cfg(target_os = "windows")]
 fn spawn_terminal(work: &PathBuf, py: &str) -> std::io::Result<()> {
     StdCommand::new("cmd")
-        .args(["/C", "start", "NATASCHA", "cmd", "/K"])
+        .args(["/C", "start", "Korrektur", "cmd", "/K"])
         .arg(format!("{} natascha.py", py))
         .current_dir(work)
         .spawn()
@@ -219,7 +219,7 @@ pub async fn launch_natascha(dir: String, python: String) -> Result<(), String> 
     validate_python_command(&py)?;
     spawn_terminal(&work, &py).map_err(|e| {
         format!(
-            "Terminal konnte nicht gestartet werden: {e}. Starte NATASCHA manuell: \
+            "Terminal konnte nicht gestartet werden: {e}. Starte die Korrektur-TUI manuell: \
              cd {} && {} natascha.py",
             work.display(),
             py
@@ -275,7 +275,7 @@ async fn run_cli_and_capture(
     })?;
     let pid = child
         .id()
-        .ok_or_else(|| "NATASCHA-Prozess hat keine PID.".to_string())?;
+        .ok_or_else(|| "Korrektur-Prozess hat keine PID.".to_string())?;
     {
         let mut active = ACTIVE_PROCESS.lock().expect("process mutex poisoned");
         *active = Some((pid, job_id));
@@ -326,7 +326,7 @@ fn terminate_process(job_id: u64) -> Result<(), String> {
         .map_err(|_| "Prozessstatus nicht verfügbar".to_string())?
         .filter(|(_, id)| *id == job_id)
         .map(|(pid, _)| pid)
-        .ok_or_else(|| "Kein laufender NATASCHA-Prozess gefunden.".to_string())?;
+        .ok_or_else(|| "Kein laufender Korrektur-Prozess gefunden.".to_string())?;
     #[cfg(windows)]
     let result = StdCommand::new("taskkill")
         .args(["/PID", &pid.to_string(), "/T", "/F"])
@@ -335,7 +335,7 @@ fn terminate_process(job_id: u64) -> Result<(), String> {
     let result = StdCommand::new("kill")
         .args(["-TERM", &pid.to_string()])
         .status();
-    result.map_err(|e| format!("NATASCHA-Prozess konnte nicht beendet werden: {e}"))?;
+    result.map_err(|e| format!("Korrektur-Prozess konnte nicht beendet werden: {e}"))?;
     ACTIVE_PROCESS
         .lock()
         .expect("process mutex poisoned")
@@ -356,13 +356,13 @@ pub fn natascha_cancel(app: AppHandle, job_id: Option<u64>) -> Result<(), String
         .clone();
     let id = job_id
         .or_else(|| current.map(|(_, id)| id))
-        .ok_or_else(|| "Kein laufender NATASCHA-Prozess.".to_string())?;
+        .ok_or_else(|| "Kein laufender Korrektur-Prozess.".to_string())?;
     terminate_process(id)?;
     emit_progress(
         Some(&app),
         Some(id),
         "cancelled",
-        "NATASCHA-Auftrag abgebrochen",
+        "Korrektur-Auftrag abgebrochen",
     );
     Ok(())
 }
@@ -450,7 +450,7 @@ pub async fn natascha_analyze(
     if let Some(ref v) = rubric {
         cmd.arg("--rubric").arg(v);
     }
-    run_cli_and_capture(cmd, Some(&app), "NATASCHA-Analyse").await
+    run_cli_and_capture(cmd, Some(&app), "Korrektur-Analyse").await
 }
 
 // Hinweis: Lese-Befehle (Klassen/Aufgaben/Abgaben/Heatmap/Notenverteilung/
@@ -475,7 +475,7 @@ pub async fn natascha_feedback_docx(
     if let Some(ref v) = bewertungsmodus {
         cmd.arg("--bewertungsmodus").arg(v);
     }
-    run_cli_and_capture(cmd, None, "NATASCHA-DOCX").await
+    run_cli_and_capture(cmd, None, "Korrektur-DOCX").await
 }
 
 /// Generiert einen Erwartungshorizont via CLI.
@@ -500,7 +500,7 @@ pub async fn natascha_erwartungshorizont(
     if let Some(ref v) = model {
         cmd.arg("--model").arg(v);
     }
-    run_cli_and_capture(cmd, None, "NATASCHA-Erwartungshorizont").await
+    run_cli_and_capture(cmd, None, "Korrektur-Erwartungshorizont").await
 }
 
 /// Dev-Hilfe: lädt synthetische Testdaten in die gemeinsame DB
@@ -539,7 +539,7 @@ pub async fn natascha_add_klasse(
 ) -> Result<String, String> {
     let mut cmd = build_cli_command(&dir, &python)?;
     cmd.arg("add-klasse").arg(&name);
-    run_cli_and_capture(cmd, None, "NATASCHA-Klasse").await
+    run_cli_and_capture(cmd, None, "Korrektur-Klasse").await
 }
 
 /// Legt eine neue Aufgabe (mit Rubrik-Zuordnung) an.
@@ -568,7 +568,7 @@ pub async fn natascha_add_aufgabe(
     if let Some(ref v) = rubric {
         cmd.arg("--rubric").arg(v);
     }
-    run_cli_and_capture(cmd, None, "NATASCHA-Aufgabe").await
+    run_cli_and_capture(cmd, None, "Korrektur-Aufgabe").await
 }
 
 /// Listet verfügbare Rubriken (gefiltert nach Fach/Schulstufe).
@@ -587,7 +587,7 @@ pub async fn natascha_list_rubrics(
     if let Some(ref v) = schulstufe {
         cmd.arg("--schulstufe").arg(v);
     }
-    run_cli_and_capture(cmd, None, "NATASCHA-Rubriken").await
+    run_cli_and_capture(cmd, None, "Korrektur-Rubriken").await
 }
 
 /// Importiert bestehende Analyse-JSONs (output/.../feedback_data) in die DB.
@@ -603,7 +603,7 @@ pub async fn natascha_retro_import(
     if let Some(ref v) = aufgabe {
         cmd.arg("--aufgabe").arg(v);
     }
-    run_cli_and_capture(cmd, None, "NATASCHA-Retro-Import").await
+    run_cli_and_capture(cmd, None, "Korrektur-Retro-Import").await
 }
 
 /// Liest den gespeicherten Ausgangstext einer Aufgabe (für die In-App-Übung-
@@ -622,7 +622,7 @@ pub async fn natascha_quelltext_get(
         .arg(&klasse)
         .arg("--aufgabe")
         .arg(&aufgabe);
-    run_cli_and_capture(cmd, None, "NATASCHA-Ausgangstext").await
+    run_cli_and_capture(cmd, None, "Korrektur-Ausgangstext").await
 }
 
 /// Listet alle Rubrik-Markdown-Dateien (roh) für den Editor.
@@ -630,7 +630,7 @@ pub async fn natascha_quelltext_get(
 pub async fn natascha_list_rubric_files(dir: String, python: String) -> Result<String, String> {
     let mut cmd = build_cli_command(&dir, &python)?;
     cmd.arg("list-rubric-files");
-    run_cli_and_capture(cmd, None, "NATASCHA-Rubrikdateien").await
+    run_cli_and_capture(cmd, None, "Korrektur-Rubrikdateien").await
 }
 
 /// Liest den Roh-Markdown einer Rubrik.
@@ -642,7 +642,7 @@ pub async fn natascha_read_rubric(
 ) -> Result<String, String> {
     let mut cmd = build_cli_command(&dir, &python)?;
     cmd.arg("read-rubric").arg("--name").arg(&name);
-    run_cli_and_capture(cmd, None, "NATASCHA-Rubrik").await
+    run_cli_and_capture(cmd, None, "Korrektur-Rubrik").await
 }
 
 /// Speichert (überschreibt/legt an) eine Rubrik (Markdown via stdin).
@@ -750,7 +750,7 @@ pub async fn natascha_klassen_briefing(
     if let Some(ref v) = model {
         cmd.arg("--model").arg(v);
     }
-    run_cli_and_capture(cmd, None, "NATASCHA-Klassenbriefing").await
+    run_cli_and_capture(cmd, None, "Korrektur-Klassenbriefing").await
 }
 
 /// Generiert ein KI-Schüler-Profil via CLI und speichert es in der DB.
@@ -772,7 +772,7 @@ pub async fn natascha_schueler_profil(
     if let Some(ref v) = model {
         cmd.arg("--model").arg(v);
     }
-    run_cli_and_capture(cmd, None, "NATASCHA-Schuelerprofil").await
+    run_cli_and_capture(cmd, None, "Korrektur-Schuelerprofil").await
 }
 
 #[cfg(test)]

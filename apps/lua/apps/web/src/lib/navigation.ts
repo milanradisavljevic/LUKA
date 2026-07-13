@@ -24,7 +24,7 @@ export const NAV_TARGETS: NavTarget[] = [
   { view: 'pool', label: 'Aufgaben-Pool', description: 'Wiederverwendbare Aufgaben-Blöcke' },
   { view: 'templates', label: 'Vorlagen', description: 'Gespeicherte Aufgaben-Vorlagen laden' },
   { view: 'klassen', label: 'Meine Klassen', description: 'Klassenübersicht mit Notenverteilung' },
-  { view: 'korrektur', label: 'Korrektur (NATASCHA)', description: 'Korrektur-Exporte einsehen' },
+  { view: 'korrektur', label: 'Korrektur', description: 'Korrektur-Exporte einsehen' },
   { view: 'schueler', label: 'Schüler', description: 'Einzelne Schüler/innen und deren Ergebnisse' },
   { view: 'erwartungshorizont', label: 'Erwartungshorizont', description: 'Lösungserwartungen und Bewertungsraster' },
   { view: 'history', label: 'Verlauf', description: 'Bisherige Generierungen und Exporte' },

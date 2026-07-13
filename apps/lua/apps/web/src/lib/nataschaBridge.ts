@@ -145,19 +145,19 @@ export function parseBridgeExport(raw: string): BridgeExport {
   try {
     data = JSON.parse(raw);
   } catch {
-    throw new Error('Die NATASCHA-Datei ist kein gültiges JSON.');
+    throw new Error('Die Korrektur-Exportdatei ist kein gültiges JSON.');
   }
   const d = data as Partial<BridgeExport>;
   if (typeof d?.schemaVersion !== 'number') {
-    throw new Error('Unbekanntes NATASCHA-Format (schemaVersion fehlt).');
+    throw new Error('Unbekanntes Korrektur-Exportformat (schemaVersion fehlt).');
   }
   if (!(SUPPORTED_BRIDGE_VERSIONS as readonly number[]).includes(d.schemaVersion)) {
     throw new Error(
-      `NATASCHA-Export hat Version ${d.schemaVersion}, unterstützt werden ${SUPPORTED_BRIDGE_VERSIONS.join(', ')}.`,
+      `Korrektur-Export hat Version ${d.schemaVersion}, unterstützt werden ${SUPPORTED_BRIDGE_VERSIONS.join(', ')}.`,
     );
   }
   if (!d.klasse || !d.aufgabe || !Array.isArray(d.heatmap)) {
-    throw new Error('NATASCHA-Export ist unvollständig (klasse/aufgabe/heatmap).');
+    throw new Error('Korrektur-Export ist unvollständig (klasse/aufgabe/heatmap).');
   }
   return data as BridgeExport;
 }

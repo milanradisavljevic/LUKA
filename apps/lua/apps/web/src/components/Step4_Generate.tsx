@@ -322,7 +322,7 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
         </p>
         {isSrdpDeutschTraining && (
           <p style={{ margin: '0.55rem 0 0', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
-            Übungsformat, kein amtliches Prüfungsmaterial. Das Korrekturraster folgt den vier SRDP-Dimensionen; der Erwartungshorizont konkretisiert die NATASCHA-Subkriterien.
+            Übungsformat, kein amtliches Prüfungsmaterial. Das Korrekturraster folgt den vier SRDP-Dimensionen; der Erwartungshorizont konkretisiert die K1/K3-Subkriterien.
           </p>
         )}
       </div>
