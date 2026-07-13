@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { ArrowRight, Target, Loader2, Check } from 'lucide-react';
 import type { AppState, AppAction } from '../lib/types';
-import type { BlockTyp, Fach } from '@lehrunterlagen/schema';
+import type { BlockTyp, Fach, Rahmenwerk } from '@lehrunterlagen/schema';
 import { FACH_META, fachLabel, KOMPETENZBEREICHE, schulstufenFuerLand, stufeFromSchulstufe, type Land } from '@lehrunterlagen/schema';
 import { loadTeacherProfile } from '../lib/profile';
 import { listStoffItems, fachHatEntwurf, getStoffItems } from '../lib/stoffkatalog';
@@ -19,6 +19,7 @@ interface Props {
 
 const RAHMENWERKE = [
   { id: 'at-lehrplan' as const, label: 'Österr. Lehrplan' },
+  { id: 'de-lehrplan' as const, label: 'Deutscher Lehrplan (KMK)' },
   { id: 'ib-dp' as const, label: 'IB Diploma Programme' },
 ] as const;
 
@@ -36,7 +37,8 @@ const NIVEAUS = [
 ] as const;
 
 export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
-  const [rahmenwerk, setRahmenwerk] = useState<'at-lehrplan' | 'ib-dp'>('at-lehrplan');
+  const [rahmenwerk, setRahmenwerk] = useState<Rahmenwerk>('at-lehrplan');
+  const rahmenwerkManuell = useRef(false);
   const [fach, setFach] = useState<Fach>('englisch');
   const [stufe, setStufe] = useState<'oberstufe' | 'unterstufe'>('oberstufe');
   const [schulstufe, setSchulstufe] = useState<number | undefined>(undefined);
@@ -45,7 +47,14 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
   useEffect(() => {
     let active = true;
     loadTeacherProfile()
-      .then((profile) => { if (active && profile?.land) setLand(profile.land); })
+      .then((profile) => {
+        if (active && profile?.land) {
+          setLand(profile.land);
+          if (profile.land === 'DE' && !rahmenwerkManuell.current) {
+            setRahmenwerk('de-lehrplan');
+          }
+        }
+      })
       .catch(() => { /* Profil ist optional. */ });
     return () => { active = false; };
   }, []);
@@ -261,7 +270,7 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
           {RAHMENWERKE.map((r) => (
             <button
               key={r.id}
-              onClick={() => setRahmenwerk(r.id)}
+              onClick={() => { rahmenwerkManuell.current = true; setRahmenwerk(r.id); }}
               style={rahmenwerk === r.id ? activeButtonStyle : buttonStyle}
             >
               {r.label}
@@ -405,7 +414,9 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
         </div>
         {stoffItems.length === 0 && (
           <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem' }}>
-            Für diese Kombination gibt es noch keine Stoff-Items. Du kannst trotzdem oben eine Kompetenz frei eingeben.
+            {rahmenwerk === 'de-lehrplan'
+              ? 'Für dieses Fach liegt noch kein deutscher Katalog vor — wähle ein anderes Fach oder den österreichischen Katalog.'
+              : 'Für diese Kombination gibt es noch keine Stoff-Items. Du kannst trotzdem oben eine Kompetenz frei eingeben.'}
           </p>
         )}
         {fachHatEntwurf(fach, stufe) && (
