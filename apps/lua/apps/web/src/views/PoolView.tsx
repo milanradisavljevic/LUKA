@@ -7,6 +7,7 @@ import { parsePoolBlock, parsePoolTags, isKuratiert } from '../lib/pool';
 import type { PoolQualityStatus } from '../lib/pool';
 import { importPoolPaket, exportPoolPaket, importStartpaket } from '../lib/poolTransfer';
 import { loadTeacherProfile } from '../lib/profile';
+import type { ProfileLand } from '../lib/profile';
 import { Toast, type ToastMessage } from '../components/Toast';
 import { ViewShell } from './_ViewShell';
 import { EmptyState } from './_EmptyState';
@@ -31,11 +32,15 @@ export function PoolView({ onInsertBlock }: Props) {
   const [transferLaeuft, setTransferLaeuft] = useState(false);
   const [startpaketLaeuft, setStartpaketLaeuft] = useState(false);
   const [profilFaecher, setProfilFaecher] = useState<string[]>([]);
+  const [profilLand, setProfilLand] = useState<ProfileLand | undefined>();
 
   useEffect(() => {
     let active = true;
     loadTeacherProfile().then((profil) => {
-      if (active && profil) setProfilFaecher(profil.faecher);
+      if (active && profil) {
+        setProfilFaecher(profil.faecher);
+        setProfilLand(profil.land);
+      }
     }).catch(() => {});
     return () => { active = false; };
   }, []);
@@ -75,7 +80,7 @@ export function PoolView({ onInsertBlock }: Props) {
   const handleStartpaket = async () => {
     setStartpaketLaeuft(true);
     try {
-      const report = await importStartpaket();
+      const report = await importStartpaket(profilLand);
       await refresh();
       const zusatz = report.uebersprungen > 0 ? `, ${report.uebersprungen} bereits vorhanden` : '';
       setToast({ id: Date.now(), kind: 'info', text: `Startpaket übernommen: ${report.eingefuegt} neue Aufgabe(n)${zusatz}.` });
@@ -258,10 +263,14 @@ export function PoolView({ onInsertBlock }: Props) {
           }}
         >
           <Sparkles size={28} style={{ color: 'var(--color-accent)' }} />
-          <strong style={{ fontSize: '0.9375rem' }}>29 geprüfte Aufgaben zum Start</strong>
+          <strong style={{ fontSize: '0.9375rem' }}>
+            {profilLand === 'DE'
+              ? '37 geprüfte Aufgaben zum Start (inkl. Startpaket Deutschland)'
+              : '29 geprüfte Aufgaben zum Start'}
+          </strong>
           <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: 0, maxWidth: 460 }}>
             Kuratierte Fachpakete für Medien und Demokratie, Informatik und Künstliche Intelligenz sowie Deutsch
-            (Oberstufe). In deinen Pool übernehmen?
+            (Oberstufe){profilLand === 'DE' ? ' sowie das Startpaket Deutschland' : ''}. In deinen Pool übernehmen?
           </p>
           <button
             className="btn-primary"

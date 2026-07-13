@@ -7,6 +7,12 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Startpaket-Karte kennt das Land
+- Die Ein-Klick-Startpaket-Karte im leeren Aufgaben-Pool importiert bei
+  Profil-Land „Deutschland" zusätzlich das Startpaket Deutschland
+  (37 statt 29 Aufgaben); Österreich/Schweiz unverändert. Wie bisher:
+  nur per Klick, nie automatisch, vorhandene Aufgaben bleiben unberührt.
+
 ### Added — Startpaket Deutschland (Fachpaket)
 - Neues kuratiertes Fachpaket `luka-startpaket-de-v1.json` mit acht Aufgaben
   in bundesdeutscher Terminologie (Deutsch, Englisch, Geschichte, Geographie,

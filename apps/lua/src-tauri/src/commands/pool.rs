@@ -300,11 +300,23 @@ const STARTPAKET_DATEIEN: [&str; 4] = [
     ),
 ];
 
-fn lese_startpaket_eintraege() -> Result<Vec<PoolEntry>, String> {
+/// Zusätzliches, länderspezifisches Fachpaket ("Startpaket Deutschland"): wird
+/// nur mit importiert, wenn das Lehrkraft-Profil `land = "DE"` gesetzt hat.
+/// Bewusst NICHT Teil von `STARTPAKET_DATEIEN`, damit sich das AT/CH-Verhalten
+/// (29 Aufgaben, vier Basis-Pakete) durch diese Erweiterung nicht ändert.
+const STARTPAKET_DATEI_DE: &str =
+    include_str!("../../../../../samples/fachpakete/luka-startpaket-de-v1.json");
+
+fn lese_startpaket_eintraege(include_de: bool) -> Result<Vec<PoolEntry>, String> {
     let mut alle = Vec::new();
     for raw in STARTPAKET_DATEIEN {
         let entries = serde_json::from_str::<Vec<PoolEntry>>(raw)
             .map_err(|e| format!("Eingebettetes Startpaket ist beschädigt: {}", e))?;
+        alle.extend(entries);
+    }
+    if include_de {
+        let entries = serde_json::from_str::<Vec<PoolEntry>>(STARTPAKET_DATEI_DE)
+            .map_err(|e| format!("Eingebettetes Startpaket Deutschland ist beschädigt: {}", e))?;
         alle.extend(entries);
     }
     Ok(alle)
@@ -437,23 +449,26 @@ pub async fn pool_import_entries(
     import_impl(&guard, &entries, ueberschreiben)
 }
 
-pub(crate) fn import_startpaket_impl(conn: &rusqlite::Connection) -> Result<PoolImportReport, String> {
-    let entries = lese_startpaket_eintraege()?;
+pub(crate) fn import_startpaket_impl(conn: &rusqlite::Connection, include_de: bool) -> Result<PoolImportReport, String> {
+    let entries = lese_startpaket_eintraege(include_de)?;
     // ueberschreiben=false → INSERT OR IGNORE: vorhandene IDs werden nie überschrieben,
     // egal ob sie aus einem früheren Startpaket-Import oder eigenen Aufgaben stammen.
     import_impl(conn, &entries, false)
 }
 
-/// Importiert die vier mit der App ausgelieferten Fachpakete ("Startpaket") in den
+/// Importiert die mit der App ausgelieferten Fachpakete ("Startpaket") in den
 /// lokalen Pool. Nutzt dieselbe Validierungs-/Import-Logik wie der Datei-Import
 /// (`import_impl`); es gibt keinen separaten Parser. Immer explizit per Klick
-/// ausgelöst, nie automatisch.
+/// ausgelöst, nie automatisch. Bei `land = "DE"` wird zusätzlich das Startpaket
+/// Deutschland eingespielt (37 statt 29 Aufgaben).
 #[tauri::command]
 pub async fn pool_import_startpaket(
     state: tauri::State<'_, DbState>,
+    land: Option<String>,
 ) -> Result<PoolImportReport, String> {
     let guard = state.conn()?;
-    import_startpaket_impl(&guard)
+    let include_de = land.as_deref() == Some("DE");
+    import_startpaket_impl(&guard, include_de)
 }
 
 /// Exportiert den gesamten lokalen Pool als teilbares Paket (gleiches Format
@@ -602,22 +617,30 @@ mod tests {
 
     #[test]
     fn eingebettete_startpaket_dateien_ergeben_29_eindeutige_eintraege() {
-        let entries = lese_startpaket_eintraege().unwrap();
+        let entries = lese_startpaket_eintraege(false).unwrap();
         assert_eq!(entries.len(), 29);
         let ids: std::collections::HashSet<&str> = entries.iter().map(|e| e.id.as_str()).collect();
         assert_eq!(ids.len(), 29, "IDs der Startpaket-Dateien müssen eindeutig sein");
     }
 
     #[test]
+    fn eingebettete_startpaket_dateien_mit_de_ergeben_37_eindeutige_eintraege() {
+        let entries = lese_startpaket_eintraege(true).unwrap();
+        assert_eq!(entries.len(), 37);
+        let ids: std::collections::HashSet<&str> = entries.iter().map(|e| e.id.as_str()).collect();
+        assert_eq!(ids.len(), 37, "IDs der Startpaket-Dateien (inkl. DE) müssen eindeutig sein");
+    }
+
+    #[test]
     fn startpaket_import_ist_beim_zweiten_lauf_idempotent() {
         let conn = setup();
 
-        let erster = import_startpaket_impl(&conn).unwrap();
+        let erster = import_startpaket_impl(&conn, false).unwrap();
         assert_eq!(erster.eingefuegt, 29);
         assert_eq!(erster.ersetzt, 0);
         assert_eq!(erster.uebersprungen, 0);
 
-        let zweiter = import_startpaket_impl(&conn).unwrap();
+        let zweiter = import_startpaket_impl(&conn, false).unwrap();
         assert_eq!(zweiter.eingefuegt, 0);
         assert_eq!(zweiter.ersetzt, 0);
         assert_eq!(zweiter.uebersprungen, 29, "zweiter Lauf darf nichts überschreiben (INSERT OR IGNORE)");
@@ -627,15 +650,33 @@ mod tests {
     }
 
     #[test]
+    fn startpaket_import_mit_land_de_importiert_37_eintraege_und_ist_idempotent() {
+        let conn = setup();
+
+        let erster = import_startpaket_impl(&conn, true).unwrap();
+        assert_eq!(erster.eingefuegt, 37);
+        assert_eq!(erster.ersetzt, 0);
+        assert_eq!(erster.uebersprungen, 0);
+
+        let zweiter = import_startpaket_impl(&conn, true).unwrap();
+        assert_eq!(zweiter.eingefuegt, 0);
+        assert_eq!(zweiter.ersetzt, 0);
+        assert_eq!(zweiter.uebersprungen, 37, "zweiter Lauf darf nichts überschreiben (INSERT OR IGNORE)");
+
+        let gesamt: i64 = conn.query_row("SELECT COUNT(*) FROM aufgabe_pool", [], |r| r.get(0)).unwrap();
+        assert_eq!(gesamt, 37);
+    }
+
+    #[test]
     fn startpaket_import_ueberschreibt_vorhandene_ids_niemals() {
         let conn = setup();
         // Lehrkraft hat bereits eine eigene Aufgabe unter einer Startpaket-ID gespeichert
         // (z. B. nach manuellem Export/Re-Import) — der Startpaket-Import darf das nicht antasten.
-        let entries = lese_startpaket_eintraege().unwrap();
+        let entries = lese_startpaket_eintraege(false).unwrap();
         let erste_id = entries[0].id.clone();
         import_impl(&conn, &[entry(&erste_id, "eigenes-fach")], false).unwrap();
 
-        let report = import_startpaket_impl(&conn).unwrap();
+        let report = import_startpaket_impl(&conn, false).unwrap();
         assert_eq!(report.eingefuegt, 28);
         assert_eq!(report.uebersprungen, 1);
 

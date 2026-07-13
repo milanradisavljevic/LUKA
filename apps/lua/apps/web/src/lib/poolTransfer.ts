@@ -85,9 +85,12 @@ export async function importPoolPaket(): Promise<ImportErgebnis> {
  * Aufgaben) in den lokalen Pool. Kein Dateidialog, keine Vorschau nötig — die
  * Pakete sind fest mit der App gebündelt und bereits geprüft. Bestehende
  * Aufgaben (gleiche ID) werden nie überschrieben.
+ *
+ * Bei `land === 'DE'` wird zusätzlich das Startpaket Deutschland eingespielt
+ * (37 statt 29 Aufgaben).
  */
-export async function importStartpaket(): Promise<PoolImportReport> {
-  return invoke<PoolImportReport>('pool_import_startpaket');
+export async function importStartpaket(land?: string): Promise<PoolImportReport> {
+  return invoke<PoolImportReport>('pool_import_startpaket', { land });
 }
 
 /** Exportiert den gesamten lokalen Pool als teilbare Fachpaket-Datei. */
