@@ -7,6 +7,15 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Startpaket Deutschland (Fachpaket)
+- Neues kuratiertes Fachpaket `luka-startpaket-de-v1.json` mit acht Aufgaben
+  in bundesdeutscher Terminologie (Deutsch, Englisch, Geschichte, Geographie,
+  Ethik — Klassen 6 bis 11, sieben verschiedene Aufgabenformate). Import wie
+  gewohnt über Aufgaben-Pool → Importieren; alle 43 Paket-Einträge
+  validator-geprüft.
+- Hilfe und Anleitung haben ein neues Kapitel „LUKA für Deutschland"
+  (Land im Profil, Klassenstufen, KMK-Katalog, Abitur-Training, Startpaket).
+
 ### Added — Persönlicher Start: Profil-Schritt beim ersten Öffnen
 - Beim allerersten Start (nach der API-Key-Einrichtung) fragt LUKA einmalig
   kompakt das Lehrerprofil ab: Anzeigename, Land, Bundesland, Schulform,

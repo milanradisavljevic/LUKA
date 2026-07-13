@@ -69,6 +69,7 @@ Wenn du in **Einstellungen → Mein Profil** das Land **Deutschland** auswählst
 - **Klassenstufen:** Deutschland verwendet die Klassen 5 bis 13. Bis einschließlich Klasse 10 ist die Stufe die **Sekundarstufe I**, ab Klasse 11 die **Sekundarstufe II**.
 - **Profil:** Im Profil kannst du deutsche Bundesländer und Schulformen auswählen. Diese Angaben helfen der KI, Szenarien und Beispiele passend zu deinem Schulort und deiner Schulart zu formulieren.
 - **Kompetenz-Modus:** Bei Land Deutschland ist der deutsche Lehrplan-Katalog der **Kultusministerkonferenz (KMK)** für alle Fächer vorausgewählt. Er ist als **kuratierter Entwurf** gekennzeichnet: Die Inhalte sind sorgfältig zusammengestellt, aber kein amtliches Dokument.
+- **Abitur-Training (KMK-Format):** Bei Land Deutschland wird aus dem Matura-Training das Abitur-Training — eine textbezogene Einzelaufgabe nach den sechs KMK-Aufgabenarten (Interpretation, Analyse, Erörterung, materialgestütztes Schreiben) mit zwei bis drei nach den **Anforderungsbereichen AFB I–III** gestaffelten Arbeitsaufträgen und passendem Erwartungshorizont. Wie das Matura-Training ein Übungsformat, **kein amtliches Prüfungsmaterial**.
 - **Startpaket Deutschland:** Das neue Paket mit acht Aufgaben liegt auf GitHub unter `samples/fachpakete/`. Importiere die JSON-Datei über **Aufgaben-Pool → Importieren**, genauso wie die anderen Fachpakete.
 
 > 💡 Die Auswahl des Landes bleibt eine Profileinstellung. Prüfe bei offiziellen Prüfungen und landesspezifischen Vorgaben weiterhin die aktuellen Hinweise deines Bundeslands.
