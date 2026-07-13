@@ -38,4 +38,14 @@ describe('inhaltskatalog integrity', () => {
   it('returns empty array for non-matching rahmenwerk', () => {
     expect(listInhaltsModule('deutsch', 'oberstufe', 'ib-dp')).toEqual([]);
   });
+
+  it('registriert deutsche Inhaltskataloge für Deutsch und Geschichte', () => {
+    for (const fach of ['deutsch', 'geschichte'] as const) {
+      const modules = getAllInhaltsModule().filter((m) => m.fach === fach && m.rahmenwerk === 'de-lehrplan');
+      expect(modules, `${fach}: erwartete 5 deutsche Inhaltsmodule`).toHaveLength(5);
+      expect(modules.every((m) => m.id.startsWith('de-'))).toBe(true);
+      expect(listInhaltsModule(fach, 'unterstufe', 'de-lehrplan').length).toBeGreaterThan(0);
+      expect(listInhaltsModule(fach, 'oberstufe', 'de-lehrplan').length).toBeGreaterThan(0);
+    }
+  });
 });

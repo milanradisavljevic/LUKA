@@ -13,6 +13,11 @@ import { ethikDeskriptoren, ethikStoffItems } from './ethik';
 import { mediendemokratieDeskriptoren, mediendemokratieStoffItems } from './mediendemokratie';
 import { psychologieDeskriptoren, psychologieStoffItems } from './psychologie';
 import { philosophieDeskriptoren, philosophieStoffItems } from './philosophie';
+import { deutschDeDeskriptoren, deutschDeStoffItems } from './de/deutsch';
+import { englischDeDeskriptoren, englischDeStoffItems } from './de/englisch';
+import { geschichteDeDeskriptoren, geschichteDeStoffItems } from './de/geschichte';
+import { geographieDeDeskriptoren, geographieDeStoffItems } from './de/geographie';
+import { ethikDeDeskriptoren, ethikDeStoffItems } from './de/ethik';
 
 // ---------------------------------------------------------------------------
 // Stoffkatalog für den Kompetenz-Modus (Rahmenwerk at-lehrplan).
@@ -35,6 +40,11 @@ const DESKRIPTOREN: Deskriptor[] = [
   ...mediendemokratieDeskriptoren,
   ...psychologieDeskriptoren,
   ...philosophieDeskriptoren,
+  ...deutschDeDeskriptoren,
+  ...englischDeDeskriptoren,
+  ...geschichteDeDeskriptoren,
+  ...geographieDeDeskriptoren,
+  ...ethikDeDeskriptoren,
 ];
 
 const STOFF_ITEMS: StoffItem[] = [
@@ -52,6 +62,11 @@ const STOFF_ITEMS: StoffItem[] = [
   ...mediendemokratieStoffItems,
   ...psychologieStoffItems,
   ...philosophieStoffItems,
+  ...deutschDeStoffItems,
+  ...englischDeStoffItems,
+  ...geschichteDeStoffItems,
+  ...geographieDeStoffItems,
+  ...ethikDeStoffItems,
 ];
 
 // ---------------------------------------------------------------------------

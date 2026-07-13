@@ -11,6 +11,8 @@ import { philosophieInhaltsModule } from './philosophie';
 import { psychologieInhaltsModule } from './psychologie';
 import { religionInhaltsModule } from './religion';
 import { spanischInhaltsModule } from './spanisch';
+import { deutschDeInhaltsModule } from './de/deutsch';
+import { geschichteDeInhaltsModule } from './de/geschichte';
 
 const MODULE: InhaltsModul[] = [
   ...deutschInhaltsModule,
@@ -25,6 +27,8 @@ const MODULE: InhaltsModul[] = [
   ...psychologieInhaltsModule,
   ...religionInhaltsModule,
   ...spanischInhaltsModule,
+  ...deutschDeInhaltsModule,
+  ...geschichteDeInhaltsModule,
 ];
 
 export function listInhaltsModule(

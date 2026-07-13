@@ -1,0 +1,9 @@
+import type { InhaltsModul } from '@lehrunterlagen/schema';
+
+export const deutschDeInhaltsModule: InhaltsModul[] = [
+  { id: 'de-deutsch-erzaehlen-s5', rahmenwerk: 'de-lehrplan', fach: 'deutsch', stufe: 'unterstufe', schulstufe: 5, titel: 'Erzählen und literarische Formen', beschreibung: 'Erzählungen, Märchen und Fabeln mit Figuren, Handlung und Erzählperspektive.', quelle: 'KMK-Bildungsstandards Mittlerer Schulabschluss — kuratierter Entwurf' },
+  { id: 'de-deutsch-sachtexte-s7', rahmenwerk: 'de-lehrplan', fach: 'deutsch', stufe: 'unterstufe', schulstufe: 7, titel: 'Sachtexte und Medien', beschreibung: 'Informierende und argumentierende Texte, Medienformen und kritische Informationsentnahme.', quelle: 'KMK-Bildungsstandards Mittlerer Schulabschluss — kuratierter Entwurf' },
+  { id: 'de-deutsch-argumentieren-s9', rahmenwerk: 'de-lehrplan', fach: 'deutsch', stufe: 'unterstufe', schulstufe: 9, titel: 'Argumentieren und Erörtern', beschreibung: 'Stellungnahmen, Erörterungen und materialgestütztes Argumentieren zu gesellschaftlichen Fragen.', quelle: 'KMK-Bildungsstandards Mittlerer Schulabschluss — kuratierter Entwurf' },
+  { id: 'de-deutsch-literatur-s11', rahmenwerk: 'de-lehrplan', fach: 'deutsch', stufe: 'oberstufe', schulstufe: 11, titel: 'Literatur und Sprache der Moderne', beschreibung: 'Literarische Texte der Moderne und Gegenwart im historischen, gesellschaftlichen und sprachlichen Zusammenhang.', quelle: 'KMK-Bildungsstandards Allgemeine Hochschulreife — kuratierter Entwurf' },
+  { id: 'de-deutsch-abitur-s13', rahmenwerk: 'de-lehrplan', fach: 'deutsch', stufe: 'oberstufe', schulstufe: 13, titel: 'Materialgestütztes Schreiben und Interpretation', beschreibung: 'Analytische, erörternde und materialgestützte Schreibhandlungen auf dem Weg zur Allgemeinen Hochschulreife.', quelle: 'KMK-Bildungsstandards Allgemeine Hochschulreife — kuratierter Entwurf' },
+];
