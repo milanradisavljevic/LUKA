@@ -46,6 +46,24 @@ describe('Stoffkatalog-Integrität', () => {
       expect(listStoffItems(fach, 'oberstufe', 'de-lehrplan').length).toBeGreaterThan(0);
     }
   });
+
+  it('registriert deutsche Restfachkataloge mit toleranterem Umfang', () => {
+    const restfaecher = ['franzoesisch', 'spanisch', 'italienisch', 'latein', 'religion', 'psychologie', 'philosophie', 'mediendemokratie', 'informatikki'] as const;
+    const oberstufenlastig = new Set(['latein', 'psychologie', 'philosophie']);
+
+    for (const fach of restfaecher) {
+      const fachDeskriptoren = deskriptoren.filter((d) => d.fach === fach && d.rahmenwerk === 'de-lehrplan');
+      const fachItems = stoffItems.filter((s) => s.fach === fach && s.rahmenwerk === 'de-lehrplan');
+      expect(fachDeskriptoren.length, `${fach}: mindestens 16 deutsche Deskriptoren`).toBeGreaterThanOrEqual(16);
+      expect(fachItems.length, `${fach}: mindestens 4 deutsche StoffItems`).toBeGreaterThanOrEqual(4);
+      expect(fachDeskriptoren.every((d) => d.id.startsWith('de-'))).toBe(true);
+      expect(fachItems.every((s) => s.id.startsWith('de-'))).toBe(true);
+      expect(fachDeskriptoren.some((d) => d.stufe === 'oberstufe')).toBe(true);
+      if (!oberstufenlastig.has(fach)) {
+        expect(fachDeskriptoren.some((d) => d.stufe === 'unterstufe')).toBe(true);
+      }
+    }
+  });
 });
 
 describe('Entwurfs-Vermerk-Steuerung', () => {

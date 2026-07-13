@@ -18,6 +18,15 @@ import { englischDeDeskriptoren, englischDeStoffItems } from './de/englisch';
 import { geschichteDeDeskriptoren, geschichteDeStoffItems } from './de/geschichte';
 import { geographieDeDeskriptoren, geographieDeStoffItems } from './de/geographie';
 import { ethikDeDeskriptoren, ethikDeStoffItems } from './de/ethik';
+import { franzoesischDeDeskriptoren, franzoesischDeStoffItems } from './de/franzoesisch';
+import { spanischDeDeskriptoren, spanischDeStoffItems } from './de/spanisch';
+import { italienischDeDeskriptoren, italienischDeStoffItems } from './de/italienisch';
+import { lateinDeDeskriptoren, lateinDeStoffItems } from './de/latein';
+import { religionDeDeskriptoren, religionDeStoffItems } from './de/religion';
+import { psychologieDeDeskriptoren, psychologieDeStoffItems } from './de/psychologie';
+import { philosophieDeDeskriptoren, philosophieDeStoffItems } from './de/philosophie';
+import { mediendemokratieDeDeskriptoren, mediendemokratieDeStoffItems } from './de/mediendemokratie';
+import { informatikkiDeDeskriptoren, informatikkiDeStoffItems } from './de/informatikki';
 
 // ---------------------------------------------------------------------------
 // Stoffkatalog für den Kompetenz-Modus (Rahmenwerk at-lehrplan).
@@ -45,6 +54,15 @@ const DESKRIPTOREN: Deskriptor[] = [
   ...geschichteDeDeskriptoren,
   ...geographieDeDeskriptoren,
   ...ethikDeDeskriptoren,
+  ...franzoesischDeDeskriptoren,
+  ...spanischDeDeskriptoren,
+  ...italienischDeDeskriptoren,
+  ...lateinDeDeskriptoren,
+  ...religionDeDeskriptoren,
+  ...psychologieDeDeskriptoren,
+  ...philosophieDeDeskriptoren,
+  ...mediendemokratieDeDeskriptoren,
+  ...informatikkiDeDeskriptoren,
 ];
 
 const STOFF_ITEMS: StoffItem[] = [
@@ -67,6 +85,15 @@ const STOFF_ITEMS: StoffItem[] = [
   ...geschichteDeStoffItems,
   ...geographieDeStoffItems,
   ...ethikDeStoffItems,
+  ...franzoesischDeStoffItems,
+  ...spanischDeStoffItems,
+  ...italienischDeStoffItems,
+  ...lateinDeStoffItems,
+  ...religionDeStoffItems,
+  ...psychologieDeStoffItems,
+  ...philosophieDeStoffItems,
+  ...mediendemokratieDeStoffItems,
+  ...informatikkiDeStoffItems,
 ];
 
 // ---------------------------------------------------------------------------
