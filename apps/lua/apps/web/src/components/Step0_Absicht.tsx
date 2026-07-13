@@ -188,6 +188,16 @@ export function Step0_Absicht({
   const [nataschaFehler, setNataschaFehler] = useState<KurierterFehler[]>([]);
 
   const isDeutschSrdpTraining = fach === 'deutsch' && stufe === 'oberstufe';
+  // Bei Land = DE heißt dasselbe Format Abitur-Training (KMK-Aufgabenarten,
+  // AFB-I–III-Erwartungshorizont) — Prompt/Validierung schalten über meta.land um.
+  const unterlagentypen = useMemo(
+    () => UNTERLAGENTYPEN.map((u) => (
+      u.id === 'matura' && land === 'DE'
+        ? { ...u, label: 'Abitur-Training (KMK-Format)', beschreibung: 'Deutsch/Sek II · 1 textbezogene Schreibaufgabe · AFB I–III · Erwartungshorizont' }
+        : u
+    )),
+    [land],
+  );
   const handleTypChange = useCallback((neuerTyp: NonNullable<Auftrag['typ']>) => {
     setTyp(neuerTyp);
     setSchnellOhneQuelltext(false);
@@ -325,7 +335,9 @@ export function Step0_Absicht({
       return;
     }
     if (typ === 'matura' && !isDeutschSrdpTraining) {
-      setFehler('Matura-Training (SRDP-Format) ist im Spike nur für Deutsch/Oberstufe verfügbar.');
+      setFehler(land === 'DE'
+        ? 'Abitur-Training (KMK-Format) ist vorerst nur für Deutsch/Sekundarstufe II verfügbar.'
+        : 'Matura-Training (SRDP-Format) ist im Spike nur für Deutsch/Oberstufe verfügbar.');
       return;
     }
 
@@ -767,7 +779,7 @@ export function Step0_Absicht({
       <section style={{ marginBottom: '1.25rem' }}>
         <SectionLabel>Unterlagentyp</SectionLabel>
         <div style={{ display: 'grid', gap: '0.5rem' }}>
-          {UNTERLAGENTYPEN
+          {unterlagentypen
             .filter((u) => u.id !== 'matura' || isDeutschSrdpTraining)
             .map((u) => {
             const min = UNTERLAGENTYP_MINUTEN[u.id];
@@ -797,7 +809,9 @@ export function Step0_Absicht({
         {isDeutschSrdpTraining && typ === 'matura' && (
           <div style={{ marginTop: '0.65rem', padding: '0.75rem 0.85rem', borderRadius: 'var(--radius)', border: '1px solid color-mix(in srgb, var(--color-warning, #f59e0b) 50%, var(--color-border))', background: 'color-mix(in srgb, var(--color-warning-bg, #fff7ed) 55%, var(--color-bg-surface))', display: 'flex', gap: '0.55rem', alignItems: 'flex-start', fontSize: '0.78rem', lineHeight: 1.5 }}>
             <GraduationCap size={17} style={{ color: 'var(--color-warning, #b45309)', flexShrink: 0, marginTop: 2 }} />
-            <span><strong>Matura-Training (SRDP-Format)</strong> ist ein Übungsformat für den Unterricht — kein amtliches Prüfungsmaterial. Der Spike erzeugt eine textgebundene Einzelaufgabe mit 405–495 Wörtern und exportiert das bestehende K1/K3-Korrekturraster.</span>
+            {land === 'DE'
+              ? <span><strong>Abitur-Training (KMK-Format)</strong> ist ein Übungsformat für den Unterricht — kein amtliches Prüfungsmaterial. Erzeugt wird eine textbezogene Einzelaufgabe nach den KMK-Aufgabenarten mit gestaffelten Arbeitsaufträgen (AFB I–III) und Erwartungshorizont.</span>
+              : <span><strong>Matura-Training (SRDP-Format)</strong> ist ein Übungsformat für den Unterricht — kein amtliches Prüfungsmaterial. Der Spike erzeugt eine textgebundene Einzelaufgabe mit 405–495 Wörtern und exportiert das bestehende K1/K3-Korrekturraster.</span>}
           </div>
         )}
       </section>
@@ -1052,7 +1066,7 @@ export function Step0_Absicht({
         fontSize: '0.875rem',
       }}>
         <strong>Vorschau:</strong>{' '}
-        {UNTERLAGENTYPEN.find((u) => u.id === typ)?.label} · {fachLabelCurrent} · {stufeLabel}
+        {unterlagentypen.find((u) => u.id === typ)?.label} · {fachLabelCurrent} · {stufeLabel}
         {thema ? ` · „${thema}"` : ''}
         {klasse ? ` · ${klasse}` : ''}
       </div>

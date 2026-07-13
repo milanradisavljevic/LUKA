@@ -95,6 +95,26 @@ export const SRDP_DEUTSCH_TEXTSORTEN = [
 /** Wortumfang der kuratierten Einzelaufgabe im Deutsch-SRDP-Übungsspike. */
 export const SRDP_DEUTSCH_EINZELAUFGABE_UMFANG = { min: 405, max: 495 } as const;
 
+/**
+ * Aufgabenarten der KMK-Bildungsstandards für die Allgemeine Hochschulreife
+ * (Deutsch) — Grundlage des Abitur-Trainings (Übungsformat, land = DE).
+ */
+export const ABITUR_DEUTSCH_AUFGABENARTEN = [
+  'Interpretation literarischer Texte',
+  'Analyse pragmatischer Texte',
+  'Erörterung literarischer Texte',
+  'Erörterung pragmatischer Texte',
+  'Materialgestütztes Verfassen informierender Texte',
+  'Materialgestütztes Verfassen argumentierender Texte',
+] as const;
+
+/**
+ * Plausibilitätsgrenzen für den Wortumfang im Abitur-Training. Anders als die
+ * SRDP kennt das Abitur keine amtliche Wortvorgabe — geprüft wird nur, dass
+ * der gesetzte Rahmen nicht trivial klein ist.
+ */
+export const ABITUR_DEUTSCH_UMFANG_MINDEST = 300;
+
 export const ModusSchema = z.enum(['text', 'kompetenz']);
 export type Modus = z.infer<typeof ModusSchema>;
 

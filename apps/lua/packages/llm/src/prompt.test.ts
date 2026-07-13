@@ -404,3 +404,33 @@ describe('buildMessages — Deutschland-Modus (meta.land)', () => {
     expect(system.content).not.toContain('oesterreichische AHS-Unterlagen');
   });
 });
+
+describe('buildMessages — Abitur-Training (matura + land=DE)', () => {
+  it('nutzt den Abitur-Hint statt des SRDP-Hints', () => {
+    const messages = buildMessages(input({ typ: 'matura', land: 'DE' }));
+    const user = messages.find((m) => m.role === 'user')!;
+    expect(user.content).toContain('ABITUR-DEUTSCH-TRAINING');
+    expect(user.content).toContain('AFB I');
+    expect(user.content).not.toContain('SRDP-DEUTSCH-TRAINING');
+  });
+
+  it('ohne land bleibt es beim SRDP-Hint', () => {
+    const messages = buildMessages(input({ typ: 'matura' }));
+    const user = messages.find((m) => m.role === 'user')!;
+    expect(user.content).toContain('SRDP-DEUTSCH-TRAINING');
+    expect(user.content).not.toContain('ABITUR-DEUTSCH-TRAINING');
+  });
+
+  it('Qualitaetspass haengt bei land=DE den Abitur-Massstab an', () => {
+    const doc = {
+      schemaVersion: '0.1.0',
+      meta: { ...baseMeta, typ: 'matura' as const, land: 'DE' as const },
+      quelltexte: [],
+      bloecke: [],
+    };
+    const messages = buildRefinementMessages(doc as never);
+    const system = messages.find((m) => m.role === 'system')!;
+    expect(system.content).toContain('ZUSAETZLICHER ABITUR-MASSSTAB');
+    expect(system.content).not.toContain('ZUSAETZLICHER SRDP-MASSSTAB');
+  });
+});

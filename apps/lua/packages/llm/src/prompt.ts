@@ -1,5 +1,7 @@
 import type { ChatMessage, GenerateInput } from './types.js';
 import {
+  ABITUR_DEUTSCH_AUFGABENARTEN,
+  ABITUR_DEUTSCH_UMFANG_MINDEST,
   FACH_META,
   istSprachfach,
   SRDP_DEUTSCH_EINZELAUFGABE_UMFANG,
@@ -808,15 +810,38 @@ export function buildSrdpDeutschTrainingHint(): string {
     + `sprachrichtigkeit = ${SRDP_DEUTSCH_15_SUBKRITERIEN.sprachrichtigkeit.join(' | ')}. `;
 }
 
+/** Gemeinsame Abitur-Regeln fuer Erstgenerierung und Qualitaetspass (land = DE). */
+export function buildAbiturDeutschTrainingHint(): string {
+  return `ABITUR-DEUTSCH-TRAINING (Übungsformat nach den KMK-Bildungsstandards für die Allgemeine Hochschulreife, kein amtliches Prüfungsmaterial): Erzeuge GENAU EINEN Block vom Typ "offeneSchreibaufgabe". `
+    + `Dies ist ein einzelner textbezogener Schreibauftrag mit genau EINER Textbeilage (literarischer Primärtext oder pragmatischer Text bzw. Materialgrundlage), keine vollständige Abiturklausur und kein Wahlaufgabenpaket. `
+    + `Waehle als config.textsorte GENAU EINE der KMK-Aufgabenarten: ${ABITUR_DEUTSCH_AUFGABENARTEN.join(', ')}. `
+    + `Die Aufgabenart muss zur Textbeilage passen: Interpretation nur zu literarischen Texten, Analyse und Erörterung pragmatischer Texte nur zu Sachtexten. `
+    + `Gliedere die arbeitsanweisung in zwei bis drei nummerierte Arbeitsauftraege, die die Anforderungsbereiche staffeln — AFB I (wiedergeben, zusammenfassen), AFB II (analysieren, deuten, in Beziehung setzen), AFB III (beurteilen, erörtern, bewerten) — jeder Arbeitsauftrag mit klarem Operator und konkretem Gegenstand DIESER Textbeilage. `
+    + `config.situation nennt den schulischen Rahmen (Klausur-Übung Sekundarstufe II); beim materialgestützten Schreiben zusätzlich Adressat, Medium und Textformat. `
+    + `Setze config.umfangWorte auf einen fuer die Aufgabenart plausiblen Rahmen (mindestens ${ABITUR_DEUTSCH_UMFANG_MINDEST} Woerter Untergrenze). `
+    + `Die Musterloesung muss eine vollstaendig ausformulierte, sehr gute Schuelerleistung der Sekundarstufe II sein: alle Arbeitsauftraege in zusammenhaengender Darstellung beantworten, Textbelege funktional einsetzen, eigenstaendig deuten bzw. argumentieren. Keine Platzhalter, keine Meta-Erklaerung, keine erfundenen Belege. `
+    + `Das loesung.erwartungshorizont-Objekt hat genau die vier Felder inhalt, struktur, ausdruck, sprachrichtigkeit — jedes als konkrete, beobachtbare Erwartungssaetze fuer genau diesen Auftrag: `
+    + `inhalt = Verstehens- und Reflexionsleistung, JEDEM Arbeitsauftrag explizit einen Anforderungsbereich zuordnen (AFB I, AFB II, AFB III namentlich nennen); `
+    + `struktur = Aufbau, Kohaerenz und aufgabenbezogene Gliederung der Darstellung; `
+    + `ausdruck = Darstellungsleistung (Fachbegriffe, Praezision, situationsangemessener Stil); `
+    + `sprachrichtigkeit = Orthografie, Zeichensetzung, Grammatik nach bundesdeutscher Standardsprache. `
+    + `Verstehensleistung und Darstellungsleistung werden getrennt gewuerdigt (Notenpunkte 0–15) — das darf im Erwartungshorizont anklingen. `
+    + `Erzeuge keine Verstaendnisfrage und keinen zweiten Schreibblock. Floskeln wie "guter Ausdruck" ohne beobachtbares Kriterium sind ungueltig.`;
+}
+
 export function buildRefinementMessages(document: DocumentV1): ChatMessage[] {
-  const isSrdpDeutsch = document.meta.typ === 'matura'
+  const landDoc = document.meta.land ?? 'AT';
+  const isDeutschMaturaTraining = document.meta.typ === 'matura'
     && document.meta.fach === 'deutsch'
     && document.meta.stufe === 'oberstufe';
+  const isSrdpDeutsch = isDeutschMaturaTraining && landDoc !== 'DE';
+  const isAbiturDeutsch = isDeutschMaturaTraining && landDoc === 'DE';
   const srdpHint = isSrdpDeutsch
     ? `\n\nZUSAETZLICHER SRDP-MASSSTAB:\n${buildSrdpDeutschTrainingHint()}`
-    : '';
-  const land = document.meta.land ?? 'AT';
-  const kollegeRolle = land === 'DE'
+    : isAbiturDeutsch
+      ? `\n\nZUSAETZLICHER ABITUR-MASSSTAB:\n${buildAbiturDeutschTrainingHint()}`
+      : '';
+  const kollegeRolle = landDoc === 'DE'
     ? 'Du bist ein strenger, konstruktiver Fachkollege fuer deutsche Gymnasialunterlagen. '
     : 'Du bist ein strenger, konstruktiver Fachkollege fuer oesterreichische AHS-Unterlagen. ';
 
@@ -897,19 +922,29 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
         + `Rollenbeschreibungen, Redemittel, Musterdialoge, Titel. Das ist kein Fremdsprachenfach. `;
   const maturaHinweis =
     input.meta.typ === 'matura'
-      ? (istSprachfach(input.meta.fach)
-          ? `SRDP-FORMAT (Matura, Fremdsprache): Gestalte die Aufgaben im Stil der standardisierten Reifepruefung — `
-            + `klare Arbeitsauftraege je Fertigkeit, authentische Textbeilage(n), Textsorte + Wortanzahl je Schreibaufgabe explizit nennen. `
-            + `Anspruchsvolles, maturaadaequates Niveau (B2/C1). `
-          : `SRDP-FORMAT (Matura, Deutsch): Gestalte die Klausur im Stil der standardisierten Reifepruefung — `
-            + `eine oder mehrere Textbeilagen, mehrere Arbeitsauftraege mit klaren Operatoren (z. B. zusammenfassen, analysieren, eroertern), `
-            + `je Schreibauftrag Textsorte (z. B. Zusammenfassung, Leserbrief, Eroerterung, Kommentar, Textanalyse) und konkrete Wortanzahl explizit vorgeben. `
-            + `Maturaadaequates Anspruchsniveau. `)
+      ? (land === 'DE'
+          ? (istSprachfach(input.meta.fach)
+              ? `ABITUR-FORMAT (fortgeführte Fremdsprache): Gestalte die Aufgaben im Stil der Abiturpruefung — `
+                + `klare Arbeitsauftraege je Kompetenz, authentische Textbeilage(n), Textsorte + Umfang je Schreibaufgabe explizit nennen. `
+                + `Anspruchsvolles, abituradaequates Niveau (B2/C1). `
+              : `ABITUR-FORMAT (Deutsch): Gestalte die Klausur im Stil der Abiturpruefung — `
+                + `Textbeilage(n), gestaffelte Arbeitsauftraege mit klaren Operatoren nach den Anforderungsbereichen AFB I–III. `
+                + `Abituradaequates Anspruchsniveau. `)
+          : (istSprachfach(input.meta.fach)
+              ? `SRDP-FORMAT (Matura, Fremdsprache): Gestalte die Aufgaben im Stil der standardisierten Reifepruefung — `
+                + `klare Arbeitsauftraege je Fertigkeit, authentische Textbeilage(n), Textsorte + Wortanzahl je Schreibaufgabe explizit nennen. `
+                + `Anspruchsvolles, maturaadaequates Niveau (B2/C1). `
+              : `SRDP-FORMAT (Matura, Deutsch): Gestalte die Klausur im Stil der standardisierten Reifepruefung — `
+                + `eine oder mehrere Textbeilagen, mehrere Arbeitsauftraege mit klaren Operatoren (z. B. zusammenfassen, analysieren, eroertern), `
+                + `je Schreibauftrag Textsorte (z. B. Zusammenfassung, Leserbrief, Eroerterung, Kommentar, Textanalyse) und konkrete Wortanzahl explizit vorgeben. `
+                + `Maturaadaequates Anspruchsniveau. `))
       : '';
+  const istDeutschMaturaTraining =
+    input.meta.typ === 'matura' && input.meta.fach === 'deutsch' && input.meta.stufe === 'oberstufe';
   const srdpDeutschTrainingHinweis =
-    input.meta.typ === 'matura' && input.meta.fach === 'deutsch' && input.meta.stufe === 'oberstufe'
-      ? buildSrdpDeutschTrainingHint()
-      : '';
+    istDeutschMaturaTraining && land !== 'DE' ? buildSrdpDeutschTrainingHint() : '';
+  const abiturDeutschTrainingHinweis =
+    istDeutschMaturaTraining && land === 'DE' ? buildAbiturDeutschTrainingHint() : '';
   const fokusThemen = input.meta.fokusThemen ?? [];
   const fokusThemenHinweis =
     fokusThemen.length > 0
@@ -986,6 +1021,7 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
         spracheHinweis +
         maturaHinweis +
         srdpDeutschTrainingHinweis +
+        abiturDeutschTrainingHinweis +
         lernzielHinweis +
         zielgruppeHinweis +
         notizenHinweis +

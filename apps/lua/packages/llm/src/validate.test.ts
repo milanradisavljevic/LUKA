@@ -165,3 +165,65 @@ describe('parseAndValidate', () => {
     expect(res.fehler).toContain('genau einen Block');
   });
 });
+
+describe('parseAndValidate — Abitur-Deutsch-Training (land = DE)', () => {
+  const abiturDoc = (patch: (doc: any) => void = () => {}) => {
+    const doc = {
+      schemaVersion: '0.1.0',
+      meta: { stufe: 'oberstufe', fach: 'deutsch', typ: 'matura', land: 'DE', thema: 'Kurzgeschichte', datum: '2026-05-30', klasse: '12a', notizen: '' },
+      quelltexte: [{ id: 'q1', titel: 'Beilage', inhalt: 'Ein literarischer Text.', herkunft: { typ: 'eingabe', ref: '' } }],
+      bloecke: [{
+        id: 'b1', typ: 'offeneSchreibaufgabe', punkte: 60, quelleId: 'q1',
+        arbeitsanweisung: '1. Fasse den Text zusammen. 2. Interpretiere die Erzählperspektive. 3. Beurteile die Deutungsthese.',
+        config: { situation: 'Klausur-Übung Sekundarstufe II.', textsorte: 'Interpretation literarischer Texte', umfangWorte: { min: 600, max: 900 }, aspekte: ['Erzählperspektive', 'Symbolik', 'Deutungsthese'] },
+        loesung: {
+          musterloesung: 'Vollständig ausformulierte Interpretation.',
+          erwartungshorizont: {
+            inhalt: 'AFB I: Inhalt korrekt zusammengefasst; AFB II: Erzählperspektive am Text gedeutet; AFB III: Deutungsthese eigenständig beurteilt.',
+            struktur: 'Aufgabenbezogene Gliederung mit kohärentem Gedankengang.',
+            ausdruck: 'Fachbegriffe der Erzähltextanalyse präzise verwendet.',
+            sprachrichtigkeit: 'Orthografie, Zeichensetzung und Grammatik weitgehend fehlerfrei.',
+          },
+        },
+      }],
+    };
+    patch(doc);
+    return doc;
+  };
+
+  it('akzeptiert eine gültige Abitur-Trainingsaufgabe', async () => {
+    const res = await parseAndValidate(JSON.stringify(abiturDoc()));
+    expect(res.ok).toBe(true);
+  });
+
+  it('lehnt eine Aufgabenart außerhalb der KMK-Liste ab', async () => {
+    const res = await parseAndValidate(JSON.stringify(abiturDoc((d) => { d.bloecke[0].config.textsorte = 'Kommentar'; })));
+    expect(res.ok).toBe(false);
+    expect(res.fehler).toContain('KMK-Aufgabenarten');
+  });
+
+  it('lehnt einen Erwartungshorizont ohne AFB-Staffelung ab', async () => {
+    const res = await parseAndValidate(JSON.stringify(abiturDoc((d) => {
+      d.bloecke[0].loesung.erwartungshorizont.inhalt = 'Der Inhalt wird gut erfasst und dargestellt.';
+    })));
+    expect(res.ok).toBe(false);
+    expect(res.fehler).toContain('Anforderungsbereichen');
+  });
+
+  it('lehnt einen trivialen Wortumfang ab', async () => {
+    const res = await parseAndValidate(JSON.stringify(abiturDoc((d) => { d.bloecke[0].config.umfangWorte = { min: 100, max: 200 }; })));
+    expect(res.ok).toBe(false);
+    expect(res.fehler).toContain('mindestens');
+  });
+
+  it('land=DE routet auf Abitur statt SRDP: SRDP-konformes Dokument fällt durch', async () => {
+    // Kommentar + 405–495 Wörter + NATASCHA-Erwartungshorizont wäre SRDP-gültig —
+    // mit land=DE greift stattdessen die Abitur-Prüfung (Aufgabenart-Fehler).
+    const res = await parseAndValidate(JSON.stringify(abiturDoc((d) => {
+      d.bloecke[0].config.textsorte = 'Kommentar';
+      d.bloecke[0].config.umfangWorte = { min: 405, max: 495 };
+    })));
+    expect(res.ok).toBe(false);
+    expect(res.fehler).toContain('Abitur-Deutsch-Training');
+  });
+});

@@ -1,4 +1,6 @@
 import {
+  ABITUR_DEUTSCH_AUFGABENARTEN,
+  ABITUR_DEUTSCH_UMFANG_MINDEST,
   DocumentSchema,
   SRDP_DEUTSCH_EINZELAUFGABE_UMFANG,
   SRDP_DEUTSCH_TEXTSORTEN,
@@ -23,7 +25,8 @@ function isObject(val: unknown): val is Record<string, unknown> {
 }
 
 function validateSrdpDeutschTraining(document: DocumentV1): string | undefined {
-  if (document.meta.typ !== 'matura' || document.meta.fach !== 'deutsch' || document.meta.stufe !== 'oberstufe') return undefined;
+  // land = DE nutzt das Abitur-Pendant (validateAbiturDeutschTraining).
+  if (document.meta.typ !== 'matura' || document.meta.fach !== 'deutsch' || document.meta.stufe !== 'oberstufe' || document.meta.land === 'DE') return undefined;
   if (document.bloecke.length !== 1 || document.bloecke[0]?.typ !== 'offeneSchreibaufgabe') {
     return 'SRDP-Deutsch-Training erwartet genau einen Block vom Typ offeneSchreibaufgabe.';
   }
@@ -78,6 +81,41 @@ function validateSrdpDeutschTraining(document: DocumentV1): string | undefined {
     if (fehlend.length > 0) {
       return `SRDP-Deutsch-Training: Im Erwartungshorizont-Feld "${dimension}" fehlen die Subkriterien: ${fehlend.join(', ')}. Jedes Subkriterium muss namentlich mit einem konkreten Erwartungssatz vorkommen.`;
     }
+  }
+  return undefined;
+}
+
+function validateAbiturDeutschTraining(document: DocumentV1): string | undefined {
+  if (document.meta.typ !== 'matura' || document.meta.fach !== 'deutsch' || document.meta.stufe !== 'oberstufe' || document.meta.land !== 'DE') return undefined;
+  if (document.bloecke.length !== 1 || document.bloecke[0]?.typ !== 'offeneSchreibaufgabe') {
+    return 'Abitur-Deutsch-Training erwartet genau einen Block vom Typ offeneSchreibaufgabe.';
+  }
+
+  const block = document.bloecke[0];
+  if (!block || block.typ !== 'offeneSchreibaufgabe') return 'Abitur-Deutsch-Training: Schreibaufgabe fehlt.';
+
+  // Aufgabenart tolerant matchen (Modelle variieren Wortlaut/Umlaute) —
+  // der Kernbegriff einer der sechs KMK-Aufgabenarten muss vorkommen.
+  const aufgabenartKerne = ['interpretation', 'analyse', 'erörterung', 'eroerterung', 'materialgestützt', 'materialgestuetzt'];
+  const textsorte = block.config.textsorte.toLowerCase();
+  if (!aufgabenartKerne.some((kern) => textsorte.includes(kern))) {
+    return `Abitur-Deutsch-Training: config.textsorte muss eine der KMK-Aufgabenarten sein (${ABITUR_DEUTSCH_AUFGABENARTEN.join(', ')}).`;
+  }
+  if (block.config.umfangWorte.min < ABITUR_DEUTSCH_UMFANG_MINDEST) {
+    return `Abitur-Deutsch-Training: umfangWorte.min muss mindestens ${ABITUR_DEUTSCH_UMFANG_MINDEST} Wörter betragen — ein Abitur-Schreibauftrag ist kein Kurztext.`;
+  }
+  if (!block.quelleId || !document.quelltexte.some((q) => q.id === block.quelleId)) {
+    return 'Abitur-Deutsch-Training: Die Schreibaufgabe muss auf genau eine vorhandene Textbeilage verweisen.';
+  }
+
+  // Erwartungshorizont: inhalt muss die Anforderungsbereiche explizit staffeln.
+  // Tolerant: "AFB" oder "Anforderungsbereich" plus die Stufe III (I und II sind
+  // in jeder ernsthaften Staffelung enthalten; Bereichs-Notation "AFB I–III" bleibt gültig).
+  const inhalt = block.loesung.erwartungshorizont.inhalt.toLowerCase();
+  const nenntAfb = /(afb|anforderungsbereich)/.test(inhalt);
+  const nenntStufeDrei = /\biii\b|\b3\b/.test(inhalt);
+  if (!nenntAfb || !nenntStufeDrei) {
+    return 'Abitur-Deutsch-Training: Das Erwartungshorizont-Feld "inhalt" muss die Verstehensleistung den Anforderungsbereichen zuordnen (AFB I, AFB II, AFB III namentlich, je Arbeitsauftrag ein konkreter Erwartungssatz).';
   }
   return undefined;
 }
@@ -179,6 +217,9 @@ export async function parseAndValidate(
 
   const srdpFehler = validateSrdpDeutschTraining(document);
   if (srdpFehler) return { ok: false, fehler: srdpFehler };
+
+  const abiturFehler = validateAbiturDeutschTraining(document);
+  if (abiturFehler) return { ok: false, fehler: abiturFehler };
 
   // Umformung ist im Kompetenz-Modus nicht mehr erlaubt (sinnentleerte Transformationen).
   if (document.meta.modus === 'kompetenz' && document.bloecke.some((b) => b.typ === 'umformung')) {

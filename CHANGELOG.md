@@ -7,6 +7,20 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Abitur-Training (Deutschland)
+- Bei Land „Deutschland" wird aus dem Matura-Training das **Abitur-Training
+  (KMK-Format)**: eine textbezogene Einzelaufgabe nach den sechs
+  KMK-Aufgabenarten (Interpretation literarischer Texte, Analyse pragmatischer
+  Texte, Erörterungen, materialgestütztes Schreiben) mit zwei bis drei nach
+  Anforderungsbereichen gestaffelten Arbeitsaufträgen (AFB I–III).
+- Der Erwartungshorizont ordnet die Verstehensleistung explizit den
+  Anforderungsbereichen zu; Verstehens- und Darstellungsleistung werden
+  getrennt gewürdigt (Notenpunkte 0–15). Die Validierung prüft Aufgabenart,
+  AFB-Staffelung, Textbeilagen-Bezug und plausiblen Wortumfang — mit
+  konkreten Fehlermeldungen für die automatische Reparatur.
+- Der Qualitätspass legt bei Abitur-Dokumenten denselben KMK-Maßstab an.
+  Österreich behält unverändert das SRDP-Training (K1/K3, 405–495 Wörter).
+
 ### Added — LUKA für Deutschland (Fundament)
 - Das Land aus dem Lehrerprofil (Österreich/Deutschland/Schweiz) wird jetzt echt
   verwendet: Bei „Deutschland" generiert die KI in bundesdeutscher
