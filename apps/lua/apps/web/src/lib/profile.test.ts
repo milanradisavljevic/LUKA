@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_LEHRER_PROFIL, sortPoolByProfileSubjects, type LehrerProfil } from './profile';
+import { DEFAULT_LEHRER_PROFIL, shouldShowFirstRunProfile, sortPoolByProfileSubjects, type LehrerProfil } from './profile';
 import type { PoolEntry } from './pool';
 
 const entry = (id: string, fach: string): PoolEntry => ({
@@ -28,5 +28,26 @@ describe('Lehrerprofil', () => {
   it('repräsentiert das Profil als roundtrip-fähiges Objekt', () => {
     const profile: LehrerProfil = { ...DEFAULT_LEHRER_PROFIL, displayName: 'Mila', faecher: ['deutsch'], schulstufen: [7] };
     expect(JSON.parse(JSON.stringify(profile))).toEqual(profile);
+  });
+});
+
+describe('shouldShowFirstRunProfile', () => {
+  const profile: LehrerProfil = { ...DEFAULT_LEHRER_PROFIL, displayName: 'Mila' };
+
+  it('zeigt den Schritt nur auf dem Desktop, nach dem Key-Gate, ohne gespeichertes Profil', () => {
+    expect(shouldShowFirstRunProfile({ isDesktop: true, keyGateReady: true, profile: null })).toBe(true);
+  });
+
+  it('zeigt den Schritt nicht im Browser', () => {
+    expect(shouldShowFirstRunProfile({ isDesktop: false, keyGateReady: true, profile: null })).toBe(false);
+  });
+
+  it('zeigt den Schritt nicht, bevor das Key-Gate durch ist', () => {
+    expect(shouldShowFirstRunProfile({ isDesktop: true, keyGateReady: false, profile: null })).toBe(false);
+  });
+
+  it('zeigt den Schritt nicht, wenn bereits ein Profil existiert (auch übersprungenes)', () => {
+    expect(shouldShowFirstRunProfile({ isDesktop: true, keyGateReady: true, profile })).toBe(false);
+    expect(shouldShowFirstRunProfile({ isDesktop: true, keyGateReady: true, profile: { ...DEFAULT_LEHRER_PROFIL } })).toBe(false);
   });
 });

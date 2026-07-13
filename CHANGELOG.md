@@ -7,6 +7,16 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Persönlicher Start: Profil-Schritt beim ersten Öffnen
+- Beim allerersten Start (nach der API-Key-Einrichtung) fragt LUKA einmalig
+  kompakt das Lehrerprofil ab: Anzeigename, Land, Bundesland, Schulform,
+  Fächer und Schulstufen — in einer Minute erledigt, überspringbar, bleibt
+  lokal auf dem Gerät.
+- Direkt danach begrüßt das Dashboard persönlich („Guten Morgen, Frau M."),
+  und Fach/Stufe sind in neuen Unterlagen vorbelegt. Wer überspringt, wird
+  nicht erneut gefragt — das Profil bleibt jederzeit in den Einstellungen
+  erreichbar.
+
 ### Added — Abitur-Training (Deutschland)
 - Bei Land „Deutschland" wird aus dem Matura-Training das **Abitur-Training
   (KMK-Format)**: eine textbezogene Einzelaufgabe nach den sechs

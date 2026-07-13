@@ -6,6 +6,7 @@ import { FEATURES } from '../lib/features';
 import { CREATIVITY_PRESETS } from '../lib/creativity';
 import { loadSettings, saveSettings, getDbPath } from '../lib/storage';
 import { DEFAULT_LEHRER_PROFIL, loadTeacherProfile, saveTeacherProfile, type LehrerProfil, type ProfileLand } from '../lib/profile';
+import { REGION_AT, REGION_DE, SCHULFORMEN_AT, SCHULFORMEN_DE } from '../lib/profileOptions';
 import { FACH_META, schulstufeLabel, schulstufenFuerLand } from '@lehrunterlagen/schema';
 import { SettingsPanel } from '../components/SettingsPanel';
 import { ViewShell } from './_ViewShell';
@@ -25,27 +26,6 @@ const LANGUAGES: { value: string; label: string }[] = [
   { value: 'en', label: 'Englisch' },
 ];
 
-const REGION_AT = ['Burgenland', 'Kärnten', 'Niederösterreich', 'Oberösterreich', 'Salzburg', 'Steiermark', 'Tirol', 'Vorarlberg', 'Wien'];
-const REGION_DE = [
-  'Baden-Württemberg', 'Bayern', 'Berlin', 'Brandenburg', 'Bremen', 'Hamburg', 'Hessen',
-  'Mecklenburg-Vorpommern', 'Niedersachsen', 'Nordrhein-Westfalen', 'Rheinland-Pfalz',
-  'Saarland', 'Sachsen', 'Sachsen-Anhalt', 'Schleswig-Holstein', 'Thüringen',
-];
-const SCHULFORMEN_AT = [
-  { value: 'ahs', label: 'AHS' },
-  { value: 'mittelschule', label: 'Mittelschule' },
-  { value: 'bhs', label: 'BHS' },
-  { value: 'berufsschule', label: 'Berufsschule' },
-  { value: 'sonstige', label: 'Sonstige' },
-];
-const SCHULFORMEN_DE = [
-  { value: 'gymnasium', label: 'Gymnasium' },
-  { value: 'realschule', label: 'Realschule' },
-  { value: 'hauptschule', label: 'Haupt-/Mittelschule' },
-  { value: 'gesamtschule', label: 'Gesamtschule' },
-  { value: 'berufskolleg', label: 'Berufskolleg/Berufsschule' },
-  { value: 'sonstige', label: 'Sonstige' },
-];
 const PROFILE_EXPORT_OPTIONS = [
   { key: 'exportDocx', label: 'DOCX' },
   { key: 'exportPdf', label: 'PDF' },

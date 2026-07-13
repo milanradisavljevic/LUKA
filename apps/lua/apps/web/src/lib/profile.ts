@@ -71,6 +71,19 @@ export function clearTeacherProfileCache(): void {
   cachedProfile = undefined;
 }
 
+/**
+ * Entscheidet, ob der First-Run-Profil-Schritt gezeigt werden soll: nur in der
+ * Desktop-App, erst nachdem das Key-Gate durch ist, und nur solange noch nie ein
+ * Profil gespeichert wurde (auch ein übersprungenes Profil zählt als „gesehen").
+ */
+export function shouldShowFirstRunProfile(params: {
+  isDesktop: boolean;
+  keyGateReady: boolean;
+  profile: LehrerProfil | null;
+}): boolean {
+  return params.isDesktop && params.keyGateReady && params.profile === null;
+}
+
 /** Stable Sortierung: Profilfächer zuerst, bestehende Reihenfolge sonst unverändert. */
 export function sortPoolByProfileSubjects<T extends PoolEntry>(entries: T[], subjects: string[]): T[] {
   if (subjects.length === 0) return entries;

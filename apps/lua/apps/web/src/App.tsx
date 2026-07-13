@@ -19,6 +19,7 @@ import { CommandPalette } from './components/CommandPalette';
 import { TafelModus } from './components/TafelModus';
 import { Sidebar } from './components/Sidebar';
 import { ThemeToggle } from './components/ThemeToggle';
+import { FirstRunProfil } from './components/FirstRunProfil';
 import { DashboardView } from './views/DashboardView';
 // Sekundäre Views lazy geladen (Code-Splitting): halten recharts (nur Klassen/Schüler)
 // und dnd-freie Nebenansichten aus dem Haupt-Bundle. DashboardView bleibt eager (Landing).
@@ -56,6 +57,7 @@ import { DEFAULT_SETTINGS } from './lib/storage';
 import { FEATURES } from './lib/features';
 import { LLM_PROVIDERS } from './lib/constants';
 import { ensurePrimaryProviderKey, getVerifiedProviders, shouldOpenProviderSetup } from './lib/providerSetup';
+import { loadTeacherProfile, shouldShowFirstRunProfile } from './lib/profile';
 import './App.css';
 import './styles/murals.css';
 
@@ -174,6 +176,14 @@ export default function App() {
   const [keyGateState, setKeyGateState] = useState<'checking' | 'required' | 'ready' | 'error'>(() => isTauri() ? 'checking' : 'ready');
   const [keyGateRetry, setKeyGateRetry] = useState(0);
   const [showFirstRunWizardHint, setShowFirstRunWizardHint] = useState(false);
+  // First-Run-Profil: einmalig, nach dem Key-Gate, solange noch kein Profil gespeichert wurde
+  // (Desktop only) — steuert die persönliche Begrüßung im Dashboard ab dem ersten Start.
+  const [profileGateState, setProfileGateState] = useState<'checking' | 'show' | 'done'>(() =>
+    isTauri() ? 'checking' : 'done',
+  );
+  // Erzwingt einen Remount von DashboardView nach dem Profil-Schritt, damit die dort
+  // gecachte Begrüßung (displayName) sofort den frisch gespeicherten Namen zeigt.
+  const [profileVersion, setProfileVersion] = useState(0);
 
   // Stille DB-Write-Fehler sichtbar machen (vorher nur console.error).
   useEffect(() => {
@@ -214,6 +224,29 @@ export default function App() {
     })();
     return () => { cancelled = true; };
   }, [keyGateRetry]);
+
+  // First-Run-Profil: erst prüfen, sobald das Key-Gate durch ist (frischer First-Run-Pfad
+  // über handleFirstRunContinue ODER Bestandsnutzer mit bereits verifizierten Keys).
+  useEffect(() => {
+    if (!isTauri()) { setProfileGateState('done'); return; }
+    if (keyGateState !== 'ready') return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const profile = await loadTeacherProfile();
+        if (cancelled) return;
+        setProfileGateState(shouldShowFirstRunProfile({ isDesktop: true, keyGateReady: true, profile }) ? 'show' : 'done');
+      } catch {
+        if (!cancelled) setProfileGateState('done');
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [keyGateState]);
+
+  const handleFirstRunProfileContinue = useCallback(() => {
+    setProfileGateState('done');
+    setProfileVersion((v) => v + 1);
+  }, []);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -484,7 +517,7 @@ if (hydrating) {
           </div>
         );
       case 'dashboard':
-        return <DashboardView onNavigate={(v) => setActiveView(v)} onStartQuickExercise={handleStartQuickExercise} onGenerateUebung={handleGenerateUebung} />;
+        return <DashboardView key={profileVersion} onNavigate={(v) => setActiveView(v)} onStartQuickExercise={handleStartQuickExercise} onGenerateUebung={handleGenerateUebung} />;
       case 'documents':
         return <DocumentsView onOpenDocument={handleOpenDocument} onNavigate={(v) => setActiveView(v)} />;
       case 'favorites':
@@ -745,6 +778,22 @@ if (hydrating) {
             <SettingsPanel mode="firstRun" onVerifiedContinue={handleFirstRunContinue} />
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* First-Run-Onboarding: kompakter Profil-Schritt (nach dem Key-Gate, einmalig) */}
+      {keyGateState === 'ready' && profileGateState === 'show' && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'var(--color-bg-base)',
+          zIndex: 5000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem',
+        }}>
+          <div style={{
+            maxWidth: 720, width: '100%', maxHeight: '90vh', overflow: 'auto',
+            background: 'var(--color-bg-surface)', borderRadius: 'var(--radius)',
+            border: '1px solid var(--color-border)', padding: '1.5rem', boxShadow: 'var(--shadow)',
+          }} role="dialog" aria-modal="true" aria-labelledby="first-run-profile-title">
+            <FirstRunProfil onContinue={handleFirstRunProfileContinue} />
           </div>
         </div>
       )}
