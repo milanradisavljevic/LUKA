@@ -1,0 +1,98 @@
+[
+  {
+    "id": "de-startpaket-v1-deutsch-schulweg",
+    "fach": "deutsch",
+    "stufe": "unterstufe",
+    "schulstufe": 7,
+    "thema": "Stellungnahme zur Gestaltung des Schulwegs",
+    "aufgabentyp": "offeneSchreibaufgabe",
+    "tags": "[\"Deutsch\",\"Schreiben\",\"redaktionell-kuratiert\",\"startpaket-de-v1\"]",
+    "blockJson": "{\"id\":\"de-b1\",\"punkte\":20,\"arbeitsanweisung\":\"Verfasse für die Schülerzeitung eine begründete Stellungnahme zur Gestaltung des Schulwegs. Nenne mindestens zwei Argumente und einen konkreten Vorschlag.\",\"typ\":\"offeneSchreibaufgabe\",\"config\":{\"situation\":\"Die Schülervertretung deiner Schule möchte im Januar mit der Stadtverwaltung über einen sichereren und klimafreundlicheren Schulweg sprechen. Zur Vorbereitung sammelt die Schülerzeitung Meinungen aus der Klasse 7.\",\"textsorte\":\"Stellungnahme\",\"umfangWorte\":{\"min\":180,\"max\":230},\"aspekte\":[\"eine klare Position zur Gestaltung des Schulwegs formulieren\",\"mindestens zwei nachvollziehbare Argumente entwickeln\",\"einen konkreten und realistischen Vorschlag an die Stadtverwaltung richten\"]},\"loesung\":{\"musterloesung\":\"Ein sicherer Schulweg für alle\\n\\nIch finde, dass unsere Stadt den Schulweg rund um die Schule sicherer und umweltfreundlicher gestalten sollte. Viele Schülerinnen und Schüler kommen zu Fuß oder mit dem Fahrrad, müssen aber an mehreren Stellen dicht an parkenden Autos vorbeifahren.\\n\\nErstens wäre ein geschützter Radweg wichtig, weil Kinder und Jugendliche dann nicht zwischen Autos fahren müssten. Zweitens sollte vor dem Schulgebäude morgens eine kurze Bringzone eingerichtet werden. Dort könnten Eltern ihre Kinder aussteigen lassen, ohne den gesamten Verkehr direkt vor dem Eingang zu blockieren. Zusätzlich wären eine bessere Beleuchtung und ein Zebrastreifen an der Kreuzung sinnvoll.\\n\\nIch schlage vor, dass die Stadtverwaltung gemeinsam mit der Schule eine Verkehrszählung durchführt und die gefährlichsten Stellen zuerst verändert. So würden die Maßnahmen zu den tatsächlichen Problemen passen. Ein sicherer Schulweg schützt nicht nur uns, sondern macht es auch leichter, auf das Auto zu verzichten.\",\"erwartungshorizont\":{\"inhalt\":\"Die Position ist eindeutig; mindestens zwei Argumente und ein konkreter, realistischer Vorschlag werden ausgeführt.\",\"struktur\":\"Die Stellungnahme enthält einen passenden Einstieg, geordnete Argumente und einen abschließenden Vorschlag.\",\"ausdruck\":\"Die Sprache ist sachlich, adressatenbezogen und durch passende Begründungen verbunden.\",\"sprachrichtigkeit\":\"Rechtschreibung, Grammatik und Zeichensetzung sind überwiegend sicher.\"}}}",
+    "quelleHinweis": "Redaktionell kuratierte Aufgabe für das Fachpaket Startpaket Deutschland, fiktives Unterrichtsszenario, Stand 2026-07-13. Kein amtliches Lehrplanmaterial; Lehrplankonformität nicht geprüft.",
+    "createdAt": "2026-07-13T00:00:00.000Z"
+  },
+  {
+    "id": "de-startpaket-v1-englisch-berlin-trip",
+    "fach": "englisch",
+    "stufe": "unterstufe",
+    "schulstufe": 8,
+    "thema": "A day trip to Berlin",
+    "aufgabentyp": "multipleChoice",
+    "tags": "[\"Englisch\",\"Reading\",\"Deutschland\",\"redaktionell-kuratiert\",\"startpaket-de-v1\"]",
+    "blockJson": "{\"id\":\"de-b2\",\"punkte\":10,\"arbeitsanweisung\":\"Read each question about the class trip to Berlin and tick the one correct answer.\",\"typ\":\"multipleChoice\",\"config\":{\"fragen\":[{\"nr\":1,\"frage\":\"Why does the class leave the hostel early?\",\"optionen\":[{\"key\":\"A\",\"text\":\"They want to visit the Reichstag before the guided tour.\"},{\"key\":\"B\",\"text\":\"They have lost their train tickets.\"},{\"key\":\"C\",\"text\":\"They are meeting a football team.\"},{\"key\":\"D\",\"text\":\"They want to buy breakfast at the airport.\"}],\"mehrfach\":false},{\"nr\":2,\"frage\":\"What does the group use to get from the hostel to Museum Island?\",\"optionen\":[{\"key\":\"A\",\"text\":\"A ferry\"},{\"key\":\"B\",\"text\":\"The underground\"},{\"key\":\"C\",\"text\":\"Bicycles\"},{\"key\":\"D\",\"text\":\"A coach\"}],\"mehrfach\":false},{\"nr\":3,\"frage\":\"What is the students' task at the museum?\",\"optionen\":[{\"key\":\"A\",\"text\":\"They have to draw every painting.\"},{\"key\":\"B\",\"text\":\"They must find three objects and explain their history.\"},{\"key\":\"C\",\"text\":\"They interview the museum director.\"},{\"key\":\"D\",\"text\":\"They prepare a concert.\"}],\"mehrfach\":false},{\"nr\":4,\"frage\":\"Where do the students meet for lunch?\",\"optionen\":[{\"key\":\"A\",\"text\":\"At a café near the Brandenburg Gate\"},{\"key\":\"B\",\"text\":\"In the hostel kitchen\"},{\"key\":\"C\",\"text\":\"On the train platform\"},{\"key\":\"D\",\"text\":\"At the museum entrance\"}],\"mehrfach\":false},{\"nr\":5,\"frage\":\"What do the students write after the trip?\",\"optionen\":[{\"key\":\"A\",\"text\":\"A short travel blog post\"},{\"key\":\"B\",\"text\":\"A formal complaint\"},{\"key\":\"C\",\"text\":\"A train timetable\"},{\"key\":\"D\",\"text\":\"A museum invoice\"}],\"mehrfach\":false}]},\"loesung\":{\"antworten\":{\"1\":[\"A\"],\"2\":[\"B\"],\"3\":[\"B\"],\"4\":[\"A\"],\"5\":[\"A\"]}}}",
+    "quelleHinweis": "Redaktionell kuratierte Aufgabe für das Fachpaket Startpaket Deutschland, fiktives englischsprachiges Unterrichtsszenario in Berlin, Stand 2026-07-13. Kein amtliches Lehrplanmaterial; Lehrplankonformität nicht geprüft.",
+    "createdAt": "2026-07-13T00:00:00.000Z"
+  },
+  {
+    "id": "de-startpaket-v1-geschichte-weimar",
+    "fach": "geschichte",
+    "stufe": "unterstufe",
+    "schulstufe": 9,
+    "thema": "Weimarer Republik: Institutionen und Krisen",
+    "aufgabentyp": "matching",
+    "tags": "[\"Geschichte\",\"Weimarer Republik\",\"Deutschland\",\"redaktionell-kuratiert\",\"startpaket-de-v1\"]",
+    "blockJson": "{\"id\":\"de-b3\",\"punkte\":10,\"arbeitsanweisung\":\"Ordne jeder Beschreibung den passenden Begriff zu. Zwei Begriffe bleiben übrig.\",\"typ\":\"matching\",\"config\":{\"items\":[{\"nr\":1,\"prompt\":\"Das Parlament der Weimarer Republik, das Gesetze beschloss und die Regierung kontrollierte.\"},{\"nr\":2,\"prompt\":\"Das Staatsoberhaupt der Weimarer Republik, das unter anderem den Reichskanzler ernannte.\"},{\"nr\":3,\"prompt\":\"Die schwere wirtschaftliche Krise von 1923 mit starkem Wertverlust des Geldes.\"},{\"nr\":4,\"prompt\":\"Die Weltwirtschaftskrise ab 1929, die in Deutschland die Arbeitslosigkeit stark erhöhte.\"},{\"nr\":5,\"prompt\":\"Die demokratische Verfassung, die 1919 in der Stadt Weimar beschlossen wurde.\"}],\"optionen\":[{\"key\":\"A\",\"text\":\"Reichstag\"},{\"key\":\"B\",\"text\":\"Reichspräsident\"},{\"key\":\"C\",\"text\":\"Hyperinflation\"},{\"key\":\"D\",\"text\":\"Weltwirtschaftskrise\"},{\"key\":\"E\",\"text\":\"Weimarer Verfassung\"},{\"key\":\"F\",\"text\":\"Rheinlandbesetzung\"},{\"key\":\"G\",\"text\":\"Ständestaat\"}]},\"loesung\":{\"zuordnung\":{\"1\":\"A\",\"2\":\"B\",\"3\":\"C\",\"4\":\"D\",\"5\":\"E\"}}}",
+    "quelleHinweis": "Redaktionell kuratierte Aufgabe für das Fachpaket Startpaket Deutschland, fachlich historischer Überblick auf Basis allgemein zugänglicher Darstellungen, Stand 2026-07-13. Kein amtliches Lehrplanmaterial; Lehrplankonformität nicht geprüft.",
+    "createdAt": "2026-07-13T00:00:00.000Z"
+  },
+  {
+    "id": "de-startpaket-v1-geographie-raumnutzung",
+    "fach": "geographie",
+    "stufe": "unterstufe",
+    "schulstufe": 7,
+    "thema": "Räume in Deutschland: Naturraum und Nutzung",
+    "aufgabentyp": "kategorisierung",
+    "tags": "[\"Geographie\",\"Raumnutzung\",\"Deutschland\",\"redaktionell-kuratiert\",\"startpaket-de-v1\"]",
+    "blockJson": "{\"id\":\"de-b4\",\"punkte\":12,\"arbeitsanweisung\":\"Ordne jedes Beispiel der passenden Kategorie zu.\",\"typ\":\"kategorisierung\",\"config\":{\"items\":[{\"nr\":1,\"text\":\"Das Wattenmeer an der Nordseeküste wird regelmäßig von Ebbe und Flut geprägt.\",\"optionen\":[\"Naturraum\",\"Menschlich geprägter Raum\"]},{\"nr\":2,\"text\":\"Ein Gewerbegebiet am Stadtrand von Leipzig bietet Flächen für Betriebe und Lagerhallen.\",\"optionen\":[\"Naturraum\",\"Menschlich geprägter Raum\"]},{\"nr\":3,\"text\":\"Der Schwarzwald weist große zusammenhängende Waldflächen und Mittelgebirge auf.\",\"optionen\":[\"Naturraum\",\"Menschlich geprägter Raum\"]},{\"nr\":4,\"text\":\"Eine Talsperre im Sauerland speichert Wasser und dient zugleich dem Hochwasserschutz.\",\"optionen\":[\"Naturraum\",\"Menschlich geprägter Raum\"]},{\"nr\":5,\"text\":\"Die Halligen liegen als kleine, kaum vom Menschen befestigte Inseln im nordfriesischen Wattenmeer.\",\"optionen\":[\"Naturraum\",\"Menschlich geprägter Raum\"]},{\"nr\":6,\"text\":\"Ein Radwegenetz verbindet Dörfer im Münsterland und wird für den Alltagsverkehr ausgebaut.\",\"optionen\":[\"Naturraum\",\"Menschlich geprägter Raum\"]}],\"kategorien\":[{\"name\":\"Naturraum\",\"anzahlItems\":3},{\"name\":\"Menschlich geprägter Raum\",\"anzahlItems\":3}],\"spaltentitelBegriff\":\"Beispiel aus Deutschland\",\"spaltentitelKategorie\":\"Raumtyp\"},\"loesung\":{\"zuordnung\":{\"1\":[\"Naturraum\"],\"2\":[\"Menschlich geprägter Raum\"],\"3\":[\"Naturraum\"],\"4\":[\"Menschlich geprägter Raum\"],\"5\":[\"Naturraum\"],\"6\":[\"Menschlich geprägter Raum\"]}}}",
+    "quelleHinweis": "Redaktionell kuratierte Aufgabe für das Fachpaket Startpaket Deutschland, fiktive Beispiele mit realen deutschen Landschaftsräumen, Stand 2026-07-13. Kein amtliches Lehrplanmaterial; Lehrplankonformität nicht geprüft.",
+    "createdAt": "2026-07-13T00:00:00.000Z"
+  },
+  {
+    "id": "de-startpaket-v1-ethik-digitale-zivilcourage",
+    "fach": "ethik",
+    "stufe": "unterstufe",
+    "schulstufe": 10,
+    "thema": "Digitale Zivilcourage in einer Klassengruppe",
+    "aufgabentyp": "offeneVerstaendnisfrage",
+    "tags": "[\"Ethik\",\"Digitale Zivilcourage\",\"Klasse 10\",\"redaktionell-kuratiert\",\"startpaket-de-v1\"]",
+    "blockJson": "{\"id\":\"de-b5\",\"punkte\":12,\"arbeitsanweisung\":\"Beantworte die Fragen in vollständigen Sätzen und begründe deine Einschätzungen.\",\"typ\":\"offeneVerstaendnisfrage\",\"config\":{\"fragen\":[{\"nr\":1,\"frage\":\"In einer Klassengruppe wird ein bearbeitetes Foto einer Mitschülerin geteilt. Welche zwei Schritte helfen, die Situation zu entschärfen?\",\"zeilen\":4},{\"nr\":2,\"frage\":\"Warum ist es sinnvoll, nicht einfach nur den beleidigenden Beitrag weiterzuleiten, wenn man andere warnen möchte?\",\"zeilen\":4},{\"nr\":3,\"frage\":\"Welche Rolle können Vertrauenspersonen in der Schule übernehmen, wenn die betroffene Person Unterstützung braucht?\",\"zeilen\":4}]},\"loesung\":{\"antworten\":{\"1\":\"Man kann den Beitrag nicht weiterverbreiten, ihn sachlich als problematisch benennen und die betroffene Person privat fragen, welche Unterstützung sie möchte. Zusätzlich sollte der Beitrag der Gruppenmoderation oder der Plattform gemeldet werden.\",\"2\":\"Auch eine warnende Weiterleitung macht das Bild noch sichtbarer und kann die Bloßstellung vergrößern. Besser ist es, den Inhalt nicht zu teilen, sondern die Information über den Vorfall ohne Bild und mit einem Hinweis auf Hilfe weiterzugeben.\",\"3\":\"Lehrkräfte, Schulsozialarbeit oder Beratungsstellen können zuhören, die nächsten Schritte gemeinsam planen und bei der Dokumentation oder Meldung helfen. Sie sollten die betroffene Person ernst nehmen und nicht ohne Absprache handeln, außer es besteht eine akute Gefahr.\"}}}",
+    "quelleHinweis": "Redaktionell kuratierte Aufgabe für das Fachpaket Startpaket Deutschland, fiktives Klassengruppen-Szenario, Stand 2026-07-13. Kein amtliches Lehrplanmaterial; Lehrplankonformität nicht geprüft.",
+    "createdAt": "2026-07-13T00:00:00.000Z"
+  },
+  {
+    "id": "de-startpaket-v1-deutsch-fehlerkorrektur",
+    "fach": "deutsch",
+    "stufe": "unterstufe",
+    "schulstufe": 8,
+    "thema": "Fehlerkorrektur in einer Schulnachricht",
+    "aufgabentyp": "fehlerkorrektur",
+    "tags": "[\"Deutsch\",\"Rechtschreibung\",\"Grammatik\",\"redaktionell-kuratiert\",\"startpaket-de-v1\"]",
+"blockJson": "{\"id\":\"de-b6\",\"punkte\":12,\"arbeitsanweisung\":\"Finde die markierten Fehler in den Sätzen und schreibe jeden Satz vollständig korrigiert auf.\",\"typ\":\"fehlerkorrektur\",\"config\":{\"eingabemodus\":\"manuell\",\"saetze\":[{\"nr\":1,\"satz\":\"Die Klasse 8b fahren am Freitag mit dem Zug nach Köln.\",\"anzahlFehler\":1},{\"nr\":2,\"satz\":\"Bitte denkt daran eure Einverständniserklärungen abzugeben.\",\"anzahlFehler\":1},{\"nr\":3,\"satz\":\"Im Januar beginnt die Ausstellung im Deutschen Museum, sie ist bis Sonntag geöffnet.\",\"anzahlFehler\":1},{\"nr\":4,\"satz\":\"Die Schülerinnen und Schüler bespricht ihre Ergebnisse anschließend in der Gruppe.\",\"anzahlFehler\":1}]},\"loesung\":{\"korrekturen\":[{\"nr\":1,\"korrigierterSatz\":\"Die Klasse 8b fährt am Freitag mit dem Zug nach Köln.\",\"fehler\":[{\"stelle\":\"fahren\",\"art\":\"G\",\"erklaerung\":\"Das Subjekt „Die Klasse“ steht im Singular; das Prädikat lautet „fährt“.\"}]},{\"nr\":2,\"korrigierterSatz\":\"Bitte denkt daran, eure Einverständniserklärungen abzugeben.\",\"fehler\":[{\"stelle\":\"daran eure\",\"art\":\"Z\",\"erklaerung\":\"Vor der erweiterten Infinitivgruppe steht ein Komma.\"}]},{\"nr\":3,\"korrigierterSatz\":\"Im Januar beginnt die Ausstellung im Deutschen Museum; sie ist bis Sonntag geöffnet.\",\"fehler\":[{\"stelle\":\", sie\",\"art\":\"Z\",\"erklaerung\":\"Zwei selbstständige Hauptsätze werden hier durch ein Semikolon getrennt.\"}]},{\"nr\":4,\"korrigierterSatz\":\"Die Schülerinnen und Schüler besprechen ihre Ergebnisse anschließend in der Gruppe.\",\"fehler\":[{\"stelle\":\"bespricht\",\"art\":\"G\",\"erklaerung\":\"Das mehrteilige Subjekt verlangt die Pluralform „besprechen“.\"}]}]}}",
+    "quelleHinweis": "Redaktionell kuratierte Aufgabe für das Fachpaket Startpaket Deutschland, fiktive Schulnachrichten, Stand 2026-07-13. Kein amtliches Lehrplanmaterial; Lehrplankonformität nicht geprüft.",
+    "createdAt": "2026-07-13T00:00:00.000Z"
+  },
+  {
+    "id": "de-startpaket-v1-geographie-bevoelkerung",
+    "fach": "geographie",
+    "stufe": "oberstufe",
+    "schulstufe": 11,
+    "thema": "Bevölkerungsentwicklung und Wanderung",
+    "aufgabentyp": "tabelle",
+    "tags": "[\"Geographie\",\"Bevölkerung\",\"Deutschland\",\"redaktionell-kuratiert\",\"startpaket-de-v1\"]",
+    "blockJson": "{\"id\":\"de-b7\",\"punkte\":12,\"arbeitsanweisung\":\"Ergänze die fehlenden Angaben in der Tabelle und erkläre anschließend, welche Entwicklung die Beispiele zeigen.\",\"typ\":\"tabelle\",\"config\":{\"spalten\":[{\"titel\":\"Beispiel\",\"breiteProzent\":25},{\"titel\":\"Ursache\",\"breiteProzent\":30},{\"titel\":\"Mögliche Folge\",\"breiteProzent\":30},{\"titel\":\"Raumbezug\",\"breiteProzent\":15}],\"zeilen\":[{\"nr\":1,\"zellen\":[{\"text\":\"Zuzug in eine Großstadt\"},{\"text\":\"Arbeits- und Bildungsangebote\"},{\"luecke\":true},{\"text\":\"Stadt\"}]},{\"nr\":2,\"zellen\":[{\"text\":\"Abwanderung aus einem Dorf\"},{\"luecke\":true},{\"text\":\"Weniger Infrastruktur und Fachkräfte\"},{\"text\":\"Ländlicher Raum\"}]},{\"nr\":3,\"zellen\":[{\"text\":\"Pendeln zwischen Brandenburg und Berlin\"},{\"text\":\"Arbeitsplätze und Wohnorte liegen in verschiedenen Gemeinden\"},{\"text\":\"Längere Wege und Verkehr auf den Verbindungen\"},{\"luecke\":true}]},{\"nr\":4,\"zellen\":[{\"text\":\"Zuzug aus dem Ausland\"},{\"text\":\"Ausbildung, Arbeit oder Schutzsuche\"},{\"luecke\":true},{\"text\":\"Deutschland\"}]}]},\"loesung\":{\"zellen\":{\"1,2\":\"Mehr Wohnraumbedarf und Verkehr\",\"2,1\":\"Wenige Arbeitsplätze oder fehlende Angebote\",\"3,3\":\"Region Berlin-Brandenburg\",\"4,2\":\"Wachsende und vielfältigere Bevölkerung\"}}}",
+    "quelleHinweis": "Redaktionell kuratierte Aufgabe für das Fachpaket Startpaket Deutschland, modellhafte Beispiele ohne aktuelle Statistik, Stand 2026-07-13. Kein amtliches Lehrplanmaterial; Lehrplankonformität nicht geprüft.",
+    "createdAt": "2026-07-13T00:00:00.000Z"
+  },
+  {
+    "id": "de-startpaket-v1-englisch-hamburg-gaps",
+    "fach": "englisch",
+    "stufe": "unterstufe",
+    "schulstufe": 6,
+    "thema": "A school trip to Hamburg",
+    "aufgabentyp": "lueckentext",
+    "tags": "[\"Englisch\",\"Grammar\",\"School trip\",\"Deutschland\",\"redaktionell-kuratiert\",\"startpaket-de-v1\"]",
+    "blockJson": "{\"id\":\"de-b8\",\"punkte\":8,\"arbeitsanweisung\":\"Complete the text about a class trip to Hamburg. Choose the correct word from the word bank for each gap.\",\"typ\":\"lueckentext\",\"text\":\"Last Friday our class travelled to Hamburg. We ___1___ the train at seven o'clock and ___2___ at the harbour two hours later. Our teacher ___3___ a map of the city, so we ___4___ find the Maritime Museum. After lunch, we ___5___ a short boat trip and ___6___ many ships.\",\"config\":{\"anzahlLuecken\":6,\"wortbank\":true,\"distraktoren\":2,\"distraktorWoerter\":[\"take\",\"see\"]},\"loesung\":{\"luecken\":[{\"nr\":1,\"wort\":\"took\"},{\"nr\":2,\"wort\":\"arrived\"},{\"nr\":3,\"wort\":\"had\"},{\"nr\":4,\"wort\":\"could\"},{\"nr\":5,\"wort\":\"took\"},{\"nr\":6,\"wort\":\"saw\"}]}}",
+    "quelleHinweis": "Redaktionell kuratierte Aufgabe für das Fachpaket Startpaket Deutschland, fiktives englischsprachiges Unterrichtsszenario in Hamburg, Stand 2026-07-13. Kein amtliches Lehrplanmaterial; Lehrplankonformität nicht geprüft.",
+    "createdAt": "2026-07-13T00:00:00.000Z"
+  }
+]
