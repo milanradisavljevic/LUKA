@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { ArrowRight, Clock, FolderOpen, BookOpen, ClipboardCheck, Target, Grid3X3, Languages, Pencil, AlertTriangle, GraduationCap } from 'lucide-react';
 import type { AppState, AppAction } from '../lib/types';
 import { BLOCK_TYPE_DEFS, SCHWIERIGKEIT_RULES, UNTERLAGENTYP_MINUTEN } from '../lib/constants';
-import { buildSkelett, FACH_META, fachLabel, istSprachfach, SCHULSTUFEN, stufeFromSchulstufe, type Auftrag, type Fach } from '@lehrunterlagen/schema';
+import { buildSkelett, FACH_META, fachLabel, istSprachfach, schulstufenFuerLand, stufeFromSchulstufe, stufeLabelFuerLand, type Auftrag, type Fach } from '@lehrunterlagen/schema';
 import { EXAMPLE_ABSICHTEN } from '../lib/exampleAbsichten';
 import { loadDocuments, loadSettings } from '../lib/storage';
 import { loadTeacherProfile } from '../lib/profile';
@@ -67,6 +67,8 @@ export function Step0_Absicht({
   const lastMeta = lastDoc?.snapshot.meta;
 
   const [typ, setTyp] = useState<NonNullable<Auftrag['typ']>>(lastMeta?.typ ?? 'schularbeit');
+  // Land kommt IMMER aus dem Profil (Umgebung der Lehrkraft, keine Dokument-Präferenz).
+  const [land, setLand] = useState<Auftrag['land']>(lastMeta?.land);
   const [fach, setFach] = useState<NonNullable<Auftrag['fach']>>(lastMeta?.fach ?? 'deutsch');
   const [stufe, setStufe] = useState<NonNullable<Auftrag['stufe']>>(lastMeta?.stufe ?? 'oberstufe');
   const [schulstufe, setSchulstufe] = useState<number | undefined>(lastMeta?.schulstufe);
@@ -96,6 +98,16 @@ export function Step0_Absicht({
   // Sinnvoller Default je Unterlagentyp; manuell überschreibbar.
   useEffect(() => { setPunkteVergeben(typ !== 'schuluebung'); }, [typ]);
 
+  // Land aus dem Profil übernehmen — unabhängig vom Fach/Stufe-Prefill, weil das
+  // Land auch bei manuell begonnener Eingabe gelten muss (steuert Terminologie im Prompt).
+  useEffect(() => {
+    let active = true;
+    loadTeacherProfile()
+      .then((profile) => { if (active && profile?.land) setLand(profile.land); })
+      .catch(() => { /* Profil ist optional. */ });
+    return () => { active = false; };
+  }, []);
+
   useEffect(() => {
     if (lastDoc || profileDefaultsApplied.current) return;
     let active = true;
@@ -116,7 +128,7 @@ export function Step0_Absicht({
         }
         const preferredStufe = profile.schulstufen[0];
         if (preferredStufe) {
-          neueStufe = stufeFromSchulstufe(preferredStufe);
+          neueStufe = stufeFromSchulstufe(preferredStufe, profile.land);
           setSchulstufe(preferredStufe);
           setStufe(neueStufe);
           neueSchulstufe = preferredStufe;
@@ -151,7 +163,7 @@ export function Step0_Absicht({
       if (treffer.fach) setFach(treffer.fach as Fach);
       if (treffer.schulstufe) {
         setSchulstufe(treffer.schulstufe);
-        const neueStufe = stufeFromSchulstufe(treffer.schulstufe);
+        const neueStufe = stufeFromSchulstufe(treffer.schulstufe, land);
         setStufe(neueStufe);
         dispatch({ type: 'SET_RENDER_TEMPLATE', template: getDefaultTemplate(neueStufe).id });
       } else if (treffer.stufe) {
@@ -161,7 +173,7 @@ export function Step0_Absicht({
     } else {
       setKlasseAutoHinweis(null);
     }
-  }, [bekannteKlassen, dispatch]);
+  }, [bekannteKlassen, dispatch, land]);
   // Matura (SRDP) → nüchternes SRDP-Template vorwählen.
   useEffect(() => { if (typ === 'matura') dispatch({ type: 'SET_RENDER_TEMPLATE', template: 'srdp' }); }, [typ, dispatch]);
 
@@ -324,6 +336,7 @@ export function Step0_Absicht({
       typ,
       fach,
       stufe,
+      land,
       schulstufe,
       thema: thema.trim(),
       datum,
@@ -355,6 +368,7 @@ export function Step0_Absicht({
         type: 'SET_META',
         meta: {
           stufe,
+          land,
           schulstufe,
           fach,
           thema: thema.trim(),
@@ -375,10 +389,10 @@ export function Step0_Absicht({
     } catch (err) {
       setFehler(err instanceof Error ? err.message : 'Fehler beim Erstellen des Skeletts.');
     }
-  }, [typ, fach, stufe, isDeutschSrdpTraining, thema, datum, klasse, dauerMinuten, schwierigkeit, gewuenschteAufgabenarten, gesamtpunkteZiel, punkteVergeben, notizen, lernzieleRaw, fokusThemen, nataschaFehler, state.quelltexte, state.bloecke, dispatch, onDismissFirstRunHint]);
+  }, [typ, fach, stufe, land, isDeutschSrdpTraining, thema, datum, klasse, dauerMinuten, schwierigkeit, gewuenschteAufgabenarten, gesamtpunkteZiel, punkteVergeben, notizen, lernzieleRaw, fokusThemen, nataschaFehler, state.quelltexte, state.bloecke, dispatch, onDismissFirstRunHint]);
 
   const fachLabelCurrent = fachLabel(fach);
-  const stufeLabel = stufe === 'oberstufe' ? 'Oberstufe' : 'Unterstufe';
+  const stufeLabel = stufeLabelFuerLand(stufe, land);
 
   return (
     <div>
@@ -706,7 +720,7 @@ export function Step0_Absicht({
             <InfoDot text="Steuert Wortschatz, Satzkomplexität und Beispiele. Eine konkrete Schulstufe (z. B. 7) ist präziser als ganze Unter-/Oberstufe." />
           </SectionLabel>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-            {SCHULSTUFEN.map((s) => {
+            {schulstufenFuerLand(land).map((s) => {
               const aktiv = schulstufe === s;
               return (
                 <button
@@ -715,7 +729,7 @@ export function Step0_Absicht({
                   aria-pressed={aktiv}
                   onClick={() => {
                     setSchulstufe(s);
-                    const neueStufe = stufeFromSchulstufe(s);
+                    const neueStufe = stufeFromSchulstufe(s, land);
                     setStufe(neueStufe);
                     dispatch({ type: 'SET_RENDER_TEMPLATE', template: getDefaultTemplate(neueStufe).id });
                   }}
@@ -737,7 +751,7 @@ export function Step0_Absicht({
                 }}
                 style={{ padding: '0.45rem 0.7rem', alignItems: 'center', fontSize: '0.8125rem', justifyContent: 'center' }}
               >
-                ganze {s === 'oberstufe' ? 'Oberstufe' : 'Unterstufe'}
+                ganze {stufeLabelFuerLand(s, land)}
               </button>
             ))}
           </div>

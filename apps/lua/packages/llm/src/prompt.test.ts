@@ -355,3 +355,52 @@ describe('buildMessages — Kompetenz-Modus', () => {
     expect(system.content).toContain('KOGNITIVES NIVEAU (Bloom-Steuerung)');
   });
 });
+
+describe('buildMessages — Deutschland-Modus (meta.land)', () => {
+  it('haengt den DEUTSCHLAND-MODUS-Hinweis an, wenn land === DE (Text-Modus)', () => {
+    const messages = buildMessages(input({ land: 'DE' }));
+    const system = messages.find((m) => m.role === 'system')!;
+    expect(system.content).toContain('DEUTSCHLAND-MODUS');
+    expect(system.content).toContain('Abitur (nicht Matura)');
+  });
+
+  it('haengt den Hinweis auch im Kompetenz-Modus an', () => {
+    const messages = buildMessages({
+      meta: { ...baseMeta, land: 'DE', modus: 'kompetenz' },
+      quelltexte: [],
+      bloecke: [{ typ: 'fehlerkorrektur' as const, punkte: 4, anzahlSaetze: 2 }],
+      stoffItems: [],
+    });
+    const system = messages.find((m) => m.role === 'system')!;
+    expect(system.content).toContain('DEUTSCHLAND-MODUS');
+  });
+
+  it('Zielgruppe bei land=DE als "Klasse N" statt AHS-Zaehlung', () => {
+    const messages = buildMessages(input({ land: 'DE', schulstufe: 7 }));
+    const user = messages.find((m) => m.role === 'user')!;
+    expect(user.content).toContain('Zielgruppe: Klasse 7');
+    expect(user.content).not.toContain('Klasse AHS');
+  });
+
+  it('Default (ohne land) bleibt oesterreichisch — kein DE-Hinweis, AHS-Zaehlung', () => {
+    const messages = buildMessages(input({ schulstufe: 7 }));
+    const system = messages.find((m) => m.role === 'system')!;
+    const user = messages.find((m) => m.role === 'user')!;
+    expect(system.content).not.toContain('DEUTSCHLAND-MODUS');
+    expect(system.content).toContain('OESTERREICHISCHES DEUTSCH');
+    expect(user.content).toContain('3. Klasse AHS');
+  });
+
+  it('Qualitaetspass-Rolle wird bei land=DE zum deutschen Fachkollegen', () => {
+    const doc = {
+      schemaVersion: '0.1.0',
+      meta: { ...baseMeta, land: 'DE' as const },
+      quelltexte: [],
+      bloecke: [],
+    };
+    const messages = buildRefinementMessages(doc as never);
+    const system = messages.find((m) => m.role === 'system')!;
+    expect(system.content).toContain('deutsche Gymnasialunterlagen');
+    expect(system.content).not.toContain('oesterreichische AHS-Unterlagen');
+  });
+});

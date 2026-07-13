@@ -7,6 +7,19 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — LUKA für Deutschland (Fundament)
+- Das Land aus dem Lehrerprofil (Österreich/Deutschland/Schweiz) wird jetzt echt
+  verwendet: Bei „Deutschland" generiert die KI in bundesdeutscher
+  Standardsprache (Abitur statt Matura, Klassenarbeit/Klausur statt Schularbeit,
+  Januar statt Jänner), Szenarien spielen in Deutschland, und der Qualitätspass
+  urteilt als deutscher Fachkollege. Österreich bleibt unverändert der Standard.
+- Profil: Auswahlliste mit allen 16 deutschen Bundesländern und deutschen
+  Schulformen (Gymnasium, Realschule, Gesamtschule …); es erscheint nur noch
+  das zum gewählten Land passende Bundesland-Feld.
+- Klassenstufen landabhängig: Deutschland bietet Klassen 5–13
+  (Sekundarstufe I bis Klasse 10), Österreich weiterhin Schulstufen 5–12 —
+  im Assistenten, im Kompetenz-Modus, in der Klassenverwaltung und im Profil.
+
 ### Fixed — Qualitätspass: Erwartungshorizont-Listen werden akzeptiert
 - Liefert das Modell die vier Erwartungshorizont-Dimensionen als Liste statt
   als Text (naheliegend, weil der Prompt eine „strukturierte Liste" verlangt),

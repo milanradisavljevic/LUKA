@@ -16,9 +16,28 @@ export type Unterlagentyp = z.infer<typeof UnterlagentypSchema>;
 export const StufeSchema = z.enum(['oberstufe', 'unterstufe']);
 export type Stufe = z.infer<typeof StufeSchema>;
 
+export const LandSchema = z.enum(['AT', 'DE', 'CH']);
+export type Land = z.infer<typeof LandSchema>;
+
+// AT: AHS-Schulstufen 5–12, Unterstufe bis inkl. 8.
+// DE: Klassen 5–13, Sekundarstufe I bis inkl. 10 (gemeinsamer Nenner über G8/G9).
 export const SCHULSTUFEN = [5, 6, 7, 8, 9, 10, 11, 12] as const;
-export function stufeFromSchulstufe(s: number): Stufe {
-  return s <= 8 ? 'unterstufe' : 'oberstufe';
+export const SCHULSTUFEN_DE = [5, 6, 7, 8, 9, 10, 11, 12, 13] as const;
+export function schulstufenFuerLand(land?: Land): readonly number[] {
+  return land === 'DE' ? SCHULSTUFEN_DE : SCHULSTUFEN;
+}
+export function stufeFromSchulstufe(s: number, land?: Land): Stufe {
+  const grenze = land === 'DE' ? 10 : 8;
+  return s <= grenze ? 'unterstufe' : 'oberstufe';
+}
+/** Anzeige: intern bleibt unterstufe/oberstufe — Deutschland spricht von Sekundarstufe I/II. */
+export function stufeLabelFuerLand(stufe: Stufe, land?: Land): string {
+  if (land === 'DE') return stufe === 'oberstufe' ? 'Sekundarstufe II' : 'Sekundarstufe I';
+  return stufe === 'oberstufe' ? 'Oberstufe' : 'Unterstufe';
+}
+/** Anzeige einer Schulstufe: AT „7. Schulstufe", DE „Klasse 7". */
+export function schulstufeLabel(s: number, land?: Land): string {
+  return land === 'DE' ? `Klasse ${s}` : `${s}. Schulstufe`;
 }
 
 export const FachSchema = z.enum([
@@ -79,10 +98,10 @@ export const SRDP_DEUTSCH_EINZELAUFGABE_UMFANG = { min: 405, max: 495 } as const
 export const ModusSchema = z.enum(['text', 'kompetenz']);
 export type Modus = z.infer<typeof ModusSchema>;
 
-export const RahmenwerkSchema = z.enum(['at-lehrplan', 'ib-dp']);
+export const RahmenwerkSchema = z.enum(['at-lehrplan', 'de-lehrplan', 'ib-dp']);
 export type Rahmenwerk = z.infer<typeof RahmenwerkSchema>;
 
-export const BewertungsschemaSchema = z.enum(['at-1-5', 'ib-1-7']);
+export const BewertungsschemaSchema = z.enum(['at-1-5', 'de-1-6', 'de-punkte-15', 'ib-1-7']);
 export type Bewertungsschema = z.infer<typeof BewertungsschemaSchema>;
 
 // Lehrplan-Deskriptor (Ebene 1: Nachweis/Coverage)
@@ -91,7 +110,7 @@ export const DeskriptorSchema = z.object({
   rahmenwerk: RahmenwerkSchema,
   fach: FachSchema,
   stufe: StufeSchema,
-  schulstufe: z.number().int().min(5).max(12).optional(),
+  schulstufe: z.number().int().min(5).max(13).optional(),
   bereich: z.string().min(1),
   code: z.string(),
   text: z.string().min(1),
@@ -108,7 +127,7 @@ export const StoffItemSchema = z.object({
   titel: z.string().min(1),
   fach: FachSchema,
   stufe: StufeSchema,
-  schulstufe: z.number().int().min(5).max(12).optional(),
+  schulstufe: z.number().int().min(5).max(13).optional(),
   // Kompetenzbereich (frei, je Fach aus KOMPETENZBEREICHE). Früher ein sprachfach-zentriertes
   // Enum — geöffnet, damit Sachfächer ihre eigenen Bereiche tragen können.
   kategorie: z.string().min(1),
@@ -123,7 +142,7 @@ export const InhaltsModulSchema = z.object({
   rahmenwerk: RahmenwerkSchema,
   fach: FachSchema,
   stufe: StufeSchema,
-  schulstufe: z.number().int().min(5).max(12).optional(),
+  schulstufe: z.number().int().min(5).max(13).optional(),
   titel: z.string().min(1),
   beschreibung: z.string().default(''),
   quelle: z.string(),
@@ -163,6 +182,9 @@ export const MetaSchema = z.object({
   klasse: z.string(),
   notizen: z.string(),
   typ: UnterlagentypSchema.optional(),
+  // Land der Lehrkraft (aus dem Profil): steuert Terminologie/Varietät im Prompt
+  // (AT: Matura/Schularbeit/Jänner — DE: Abitur/Klassenarbeit/Januar). Default AT.
+  land: LandSchema.optional(),
   schwierigkeit: z.enum(['leicht', 'mittel', 'schwer']).optional(),
   lernziele: z.array(z.string().min(1)).optional(),
   // Fehlerschwerpunkte aus einer NATASCHA-Korrektur (z. B. ["Zeichensetzung", "Grammatik"]).
@@ -172,7 +194,7 @@ export const MetaSchema = z.object({
   modus: ModusSchema.optional(),
   rahmenwerk: RahmenwerkSchema.optional(),
   stoffItemIds: z.array(z.string().min(1)).optional(),
-  schulstufe: z.number().int().min(5).max(12).optional(),
+  schulstufe: z.number().int().min(5).max(13).optional(),
   inhaltsModulId: z.string().optional(),
   kompetenzNiveau: z.enum(['basis', 'standard', 'erweitert']).optional(),
   bewertungsschema: BewertungsschemaSchema.optional(),
@@ -899,6 +921,8 @@ export const AuftragSchema = z.object({
   typ: UnterlagentypSchema,
   fach: FachSchema,
   stufe: StufeSchema,
+  // Land der Lehrkraft (aus dem Profil) — siehe MetaSchema.land.
+  land: LandSchema.optional(),
   thema: z.string(),
   datum: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Datum muss im Format YYYY-MM-DD sein'),
   klasse: z.string().optional(),
@@ -915,7 +939,7 @@ export const AuftragSchema = z.object({
   modus: ModusSchema.optional(),
   rahmenwerk: RahmenwerkSchema.optional(),
   stoffItemIds: z.array(z.string().min(1)).optional(),
-  schulstufe: z.number().int().min(5).max(12).optional(),
+  schulstufe: z.number().int().min(5).max(13).optional(),
   inhaltsModulId: z.string().optional(),
   kompetenzNiveau: z.enum(['basis', 'standard', 'erweitert']).optional(),
   bewertungsschema: BewertungsschemaSchema.optional(),

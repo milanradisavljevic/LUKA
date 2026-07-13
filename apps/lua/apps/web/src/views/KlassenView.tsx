@@ -7,8 +7,9 @@ import { useNatascha } from '../hooks/useNatascha';
 import type { KlassenBriefingRow, FehlerTrendPunkt } from '../hooks/useNatascha';
 import { useKlassenMeta, type KlasseMeta } from '../hooks/useKlassenMeta';
 import { KATEGORIE_TO_BLOCKTYPEN, type NataschaPrefill } from '../lib/nataschaBridge';
-import { FACH_META, SCHULSTUFEN, stufeFromSchulstufe } from '@lehrunterlagen/schema';
+import { FACH_META, schulstufenFuerLand, stufeFromSchulstufe, type Land } from '@lehrunterlagen/schema';
 import type { BlockTyp } from '@lehrunterlagen/schema';
+import { loadTeacherProfile } from '../lib/profile';
 import { ViewShell } from './_ViewShell';
 import { KiTextBlock } from '../components/KiTextBlock';
 import { anzeigeName } from '../lib/anzeigeName';
@@ -160,6 +161,15 @@ export function KlassenView({ onGenerateUebung }: Props) {
   const [formError, setFormError] = useState<string | null>(null);
   const [formNameLocked, setFormNameLocked] = useState(false);
   const [zeigeArchivierte, setZeigeArchivierte] = useState(false);
+  // Land aus dem Profil: steuert die angebotenen Schulstufen (DE: Klassen 5–13).
+  const [land, setLand] = useState<Land | undefined>();
+  useEffect(() => {
+    let active = true;
+    loadTeacherProfile()
+      .then((profile) => { if (active && profile?.land) setLand(profile.land); })
+      .catch(() => { /* Profil ist optional. */ });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     listKlassen().then(setKlassen).catch(() => {
@@ -207,7 +217,7 @@ export function KlassenView({ onGenerateUebung }: Props) {
     const ok = await upsertKlasseMeta({
       name,
       fach: formFach,
-      stufe: formSchulstufe ? stufeFromSchulstufe(formSchulstufe) : (bestehende?.stufe ?? 'oberstufe'),
+      stufe: formSchulstufe ? stufeFromSchulstufe(formSchulstufe, land) : (bestehende?.stufe ?? 'oberstufe'),
       schulstufe: formSchulstufe ?? null,
       schuljahr: formSchuljahr.trim() || null,
       notizen: bestehende?.notizen ?? null,
@@ -216,7 +226,7 @@ export function KlassenView({ onGenerateUebung }: Props) {
     });
     setFormBusy(false);
     if (ok) { setZeigeKlasseForm(false); } else { setFormError('Speichern fehlgeschlagen.'); }
-  }, [formName, formFach, formSchulstufe, formSchuljahr, klassenMeta, upsertKlasseMeta]);
+  }, [formName, formFach, formSchulstufe, formSchuljahr, klassenMeta, upsertKlasseMeta, land]);
 
   const handleToggleArchiv = useCallback(async (meta: KlasseMeta) => {
     await upsertKlasseMeta({ ...meta, archiviert: !meta.archiviert });
@@ -385,7 +395,7 @@ export function KlassenView({ onGenerateUebung }: Props) {
                 {Object.entries(FACH_META).map(([f, m]) => <option key={f} value={f}>{m.label}</option>)}
               </select>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginBottom: '0.4rem' }}>
-                {SCHULSTUFEN.map((s) => (
+                {schulstufenFuerLand(land).map((s) => (
                   <button
                     key={s}
                     type="button"

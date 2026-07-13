@@ -1,8 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { ArrowRight, Target, Loader2, Check } from 'lucide-react';
 import type { AppState, AppAction } from '../lib/types';
 import type { BlockTyp, Fach } from '@lehrunterlagen/schema';
-import { FACH_META, fachLabel, KOMPETENZBEREICHE, SCHULSTUFEN, stufeFromSchulstufe } from '@lehrunterlagen/schema';
+import { FACH_META, fachLabel, KOMPETENZBEREICHE, schulstufenFuerLand, stufeFromSchulstufe, type Land } from '@lehrunterlagen/schema';
+import { loadTeacherProfile } from '../lib/profile';
 import { listStoffItems, fachHatEntwurf, getStoffItems } from '../lib/stoffkatalog';
 import { listInhaltsModule, getInhaltsModul } from '../lib/inhaltskatalog';
 import { BLOCK_TYPE_DEFS, STUFE_RULES } from '../lib/constants';
@@ -39,6 +40,15 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
   const [fach, setFach] = useState<Fach>('englisch');
   const [stufe, setStufe] = useState<'oberstufe' | 'unterstufe'>('oberstufe');
   const [schulstufe, setSchulstufe] = useState<number | undefined>(undefined);
+  // Land aus dem Profil: steuert die angebotenen Schulstufen (DE: Klassen 5–13).
+  const [land, setLand] = useState<Land | undefined>();
+  useEffect(() => {
+    let active = true;
+    loadTeacherProfile()
+      .then((profile) => { if (active && profile?.land) setLand(profile.land); })
+      .catch(() => { /* Profil ist optional. */ });
+    return () => { active = false; };
+  }, []);
   const [stoffItemIds, setStoffItemIds] = useState<string[]>([]);
   const [inhaltsModulId, setInhaltsModulId] = useState<string | undefined>(undefined);
   const [freieKompetenz, setFreieKompetenz] = useState('');
@@ -135,6 +145,7 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
       rahmenwerk,
       fach,
       stufe,
+      land,
       thema: themaFinal,
       stoffItemIds,
       schulstufe,
@@ -151,6 +162,7 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
       typ: 'schuluebung' as const,
       fach,
       stufe,
+      land,
       thema: themaFinal,
       datum: heute,
       quelltexte: [],
@@ -284,12 +296,12 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
         <div>
           <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.875rem' }}>Schulstufe</label>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-            {SCHULSTUFEN.map((s) => {
+            {schulstufenFuerLand(land).map((s) => {
               const aktiv = schulstufe === s;
               return (
                 <button
                   key={s}
-                  onClick={() => { setSchulstufe(s); setStufe(stufeFromSchulstufe(s)); }}
+                  onClick={() => { setSchulstufe(s); setStufe(stufeFromSchulstufe(s, land)); }}
                   style={aktiv ? activeButtonStyle : buttonStyle}
                 >
                   {s}

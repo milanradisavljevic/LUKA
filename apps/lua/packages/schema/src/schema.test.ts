@@ -27,6 +27,9 @@ import {
   DeskriptorSchema,
   StoffItemSchema,
   stufeFromSchulstufe,
+  schulstufenFuerLand,
+  stufeLabelFuerLand,
+  schulstufeLabel,
   InhaltsModulSchema,
   PROFILE,
   buildSkelett,
@@ -201,7 +204,7 @@ describe('MetaSchema', () => {
   });
 
   it('rejects invalid schulstufe', () => {
-    const result = MetaSchema.safeParse({ stufe: 'unterstufe', fach: 'deutsch', thema: 'x', datum: '2026-01-01', klasse: '5A', notizen: '', schulstufe: 13 });
+    const result = MetaSchema.safeParse({ stufe: 'unterstufe', fach: 'deutsch', thema: 'x', datum: '2026-01-01', klasse: '5A', notizen: '', schulstufe: 14 });
     expect(result.success).toBe(false);
   });
 });
@@ -306,7 +309,7 @@ describe('InhaltsModulSchema', () => {
       rahmenwerk: 'at-lehrplan',
       fach: 'geschichte',
       stufe: 'oberstufe',
-      schulstufe: 13,
+      schulstufe: 14,
       titel: 'X',
       beschreibung: '',
       quelle: '',
@@ -1805,5 +1808,32 @@ describe('Fächer-Modell (FachSchema / FACH_META)', () => {
       expect(KOMPETENZBEREICHE[f].length).toBeGreaterThan(0);
       expect(KOMPETENZBEREICHE[f].every((b) => b.trim().length > 0)).toBe(true);
     }
+  });
+});
+
+describe('Land (Deutschland-Unterstützung)', () => {
+  it('MetaSchema akzeptiert land=DE und Klasse 13', () => {
+    const result = MetaSchema.safeParse({ stufe: 'oberstufe', fach: 'deutsch', thema: 'x', datum: '2026-01-01', klasse: '13a', notizen: '', land: 'DE', schulstufe: 13 });
+    expect(result.success).toBe(true);
+  });
+
+  it('stufeFromSchulstufe: DE-Grenze liegt bei 10/11, AT bei 8/9', () => {
+    expect(stufeFromSchulstufe(9)).toBe('oberstufe');
+    expect(stufeFromSchulstufe(9, 'DE')).toBe('unterstufe');
+    expect(stufeFromSchulstufe(10, 'DE')).toBe('unterstufe');
+    expect(stufeFromSchulstufe(11, 'DE')).toBe('oberstufe');
+  });
+
+  it('schulstufenFuerLand: DE bietet Klassen 5–13, AT 5–12', () => {
+    expect(schulstufenFuerLand('DE')).toContain(13);
+    expect(schulstufenFuerLand()).not.toContain(13);
+    expect(schulstufenFuerLand('AT')).not.toContain(13);
+  });
+
+  it('Labels: DE spricht von Sekundarstufe und Klasse', () => {
+    expect(stufeLabelFuerLand('oberstufe', 'DE')).toBe('Sekundarstufe II');
+    expect(stufeLabelFuerLand('oberstufe')).toBe('Oberstufe');
+    expect(schulstufeLabel(7, 'DE')).toBe('Klasse 7');
+    expect(schulstufeLabel(7)).toBe('7. Schulstufe');
   });
 });

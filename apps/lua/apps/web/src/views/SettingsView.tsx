@@ -6,7 +6,7 @@ import { FEATURES } from '../lib/features';
 import { CREATIVITY_PRESETS } from '../lib/creativity';
 import { loadSettings, saveSettings, getDbPath } from '../lib/storage';
 import { DEFAULT_LEHRER_PROFIL, loadTeacherProfile, saveTeacherProfile, type LehrerProfil, type ProfileLand } from '../lib/profile';
-import { FACH_META, SCHULSTUFEN } from '@lehrunterlagen/schema';
+import { FACH_META, schulstufeLabel, schulstufenFuerLand } from '@lehrunterlagen/schema';
 import { SettingsPanel } from '../components/SettingsPanel';
 import { ViewShell } from './_ViewShell';
 
@@ -26,11 +26,24 @@ const LANGUAGES: { value: string; label: string }[] = [
 ];
 
 const REGION_AT = ['Burgenland', 'Kärnten', 'Niederösterreich', 'Oberösterreich', 'Salzburg', 'Steiermark', 'Tirol', 'Vorarlberg', 'Wien'];
-const SCHULFORMEN = [
+const REGION_DE = [
+  'Baden-Württemberg', 'Bayern', 'Berlin', 'Brandenburg', 'Bremen', 'Hamburg', 'Hessen',
+  'Mecklenburg-Vorpommern', 'Niedersachsen', 'Nordrhein-Westfalen', 'Rheinland-Pfalz',
+  'Saarland', 'Sachsen', 'Sachsen-Anhalt', 'Schleswig-Holstein', 'Thüringen',
+];
+const SCHULFORMEN_AT = [
   { value: 'ahs', label: 'AHS' },
   { value: 'mittelschule', label: 'Mittelschule' },
   { value: 'bhs', label: 'BHS' },
   { value: 'berufsschule', label: 'Berufsschule' },
+  { value: 'sonstige', label: 'Sonstige' },
+];
+const SCHULFORMEN_DE = [
+  { value: 'gymnasium', label: 'Gymnasium' },
+  { value: 'realschule', label: 'Realschule' },
+  { value: 'hauptschule', label: 'Haupt-/Mittelschule' },
+  { value: 'gesamtschule', label: 'Gesamtschule' },
+  { value: 'berufskolleg', label: 'Berufskolleg/Berufsschule' },
   { value: 'sonstige', label: 'Sonstige' },
 ];
 const PROFILE_EXPORT_OPTIONS = [
@@ -109,14 +122,20 @@ function ProfileSection() {
           <div style={{ display: 'grid', gap: '0.75rem', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
             <div><label style={labelStyle}>Anzeigename oder Kürzel</label><input value={profile.displayName} onChange={(e) => update({ displayName: e.target.value })} placeholder="z. B. Frau M." style={{ width: '100%', boxSizing: 'border-box' }} /></div>
             <div><label style={labelStyle}>Land</label><select value={profile.land} onChange={(e) => update({ land: e.target.value as ProfileLand })} style={{ width: '100%' }}><option value="AT">Österreich</option><option value="CH">Schweiz</option><option value="DE">Deutschland</option></select></div>
-            <div><label style={labelStyle}>Schulform</label><select value={profile.schulform} onChange={(e) => update({ schulform: e.target.value })} style={{ width: '100%' }}><option value="">— auswählen —</option>{SCHULFORMEN.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></div>
-            <div><label style={labelStyle}>Österreichisches Bundesland</label><select value={profile.regionAt} onChange={(e) => update({ regionAt: e.target.value })} style={{ width: '100%' }}><option value="">— nicht angegeben —</option>{REGION_AT.map((region) => <option key={region} value={region}>{region}</option>)}</select></div>
-            <div><label style={labelStyle}>Schweizer Kanton (später)</label><input value={profile.regionCh} onChange={(e) => update({ regionCh: e.target.value })} placeholder="optional" style={{ width: '100%', boxSizing: 'border-box' }} /></div>
-            <div><label style={labelStyle}>Deutsches Bundesland (später)</label><input value={profile.regionDe} onChange={(e) => update({ regionDe: e.target.value })} placeholder="optional" style={{ width: '100%', boxSizing: 'border-box' }} /></div>
+            <div><label style={labelStyle}>Schulform</label><select value={profile.schulform} onChange={(e) => update({ schulform: e.target.value })} style={{ width: '100%' }}><option value="">— auswählen —</option>{(profile.land === 'DE' ? SCHULFORMEN_DE : SCHULFORMEN_AT).map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></div>
+            {profile.land === 'AT' && (
+              <div><label style={labelStyle}>Österreichisches Bundesland</label><select value={profile.regionAt} onChange={(e) => update({ regionAt: e.target.value })} style={{ width: '100%' }}><option value="">— nicht angegeben —</option>{REGION_AT.map((region) => <option key={region} value={region}>{region}</option>)}</select></div>
+            )}
+            {profile.land === 'DE' && (
+              <div><label style={labelStyle}>Deutsches Bundesland</label><select value={profile.regionDe} onChange={(e) => update({ regionDe: e.target.value })} style={{ width: '100%' }}><option value="">— nicht angegeben —</option>{REGION_DE.map((region) => <option key={region} value={region}>{region}</option>)}</select></div>
+            )}
+            {profile.land === 'CH' && (
+              <div><label style={labelStyle}>Schweizer Kanton (später)</label><input value={profile.regionCh} onChange={(e) => update({ regionCh: e.target.value })} placeholder="optional" style={{ width: '100%', boxSizing: 'border-box' }} /></div>
+            )}
           </div>
 
           <div><label style={labelStyle}>Meine Fächer</label><div style={groupStyle}>{Object.entries(FACH_META).map(([fach, meta]) => <label key={fach} style={checkLabel}><input type="checkbox" checked={profile.faecher.includes(fach)} onChange={() => toggle('faecher', fach)} />{meta.label}</label>)}</div></div>
-          <div><label style={labelStyle}>Meine Schulstufen/Jahrgänge</label><div style={groupStyle}>{SCHULSTUFEN.map((stufe) => <label key={stufe} style={checkLabel}><input type="checkbox" checked={profile.schulstufen.includes(stufe)} onChange={() => toggle('schulstufen', stufe)} />{stufe}. Schulstufe</label>)}</div></div>
+          <div><label style={labelStyle}>Meine Schulstufen/Jahrgänge</label><div style={groupStyle}>{schulstufenFuerLand(profile.land).map((stufe) => <label key={stufe} style={checkLabel}><input type="checkbox" checked={profile.schulstufen.includes(stufe)} onChange={() => toggle('schulstufen', stufe)} />{schulstufeLabel(stufe, profile.land)}</label>)}</div></div>
           <div><label style={labelStyle}>Bevorzugte Aufgabenformate</label><div style={groupStyle}>{BLOCK_TYPE_DEFS.map((format) => <label key={format.id} style={checkLabel}><input type="checkbox" checked={profile.aufgabenformate.includes(format.id)} onChange={() => toggle('aufgabenformate', format.id)} />{format.label}</label>)}</div></div>
 
           <div style={{ display: 'grid', gap: '0.75rem', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))' }}>
