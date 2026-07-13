@@ -19,13 +19,14 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 - Klassenstufen landabhängig: Deutschland bietet Klassen 5–13
   (Sekundarstufe I bis Klasse 10), Österreich weiterhin Schulstufen 5–12 —
   im Assistenten, im Kompetenz-Modus, in der Klassenverwaltung und im Profil.
-- Kompetenz-Modus: deutscher Lehrplan-Katalog (KMK) für Deutsch, Englisch,
-  Geschichte, Geographie und Ethik — je Fach 24 kuratierte Deskriptoren und
-  6 Kompetenz-Bausteine, für Deutsch und Geschichte zusätzlich Themen-Module.
-  Bei Land „Deutschland" ist der deutsche Katalog vorausgewählt; Fächer ohne
-  deutschen Katalog zeigen einen ehrlichen Hinweis. Die deutschen Kataloge
-  sind als kuratierte Entwürfe gekennzeichnet — dieser Vermerk erscheint nur
-  im deutschen Katalog und färbt die österreichischen Fächer nicht mehr ein.
+- Kompetenz-Modus: deutscher Lehrplan-Katalog (KMK) für **alle 14 Fächer** —
+  Kernfächer (Deutsch, Englisch, Geschichte, Geographie, Ethik) mit je
+  24 kuratierten Deskriptoren und 6 Kompetenz-Bausteinen, die übrigen neun
+  Fächer mit je 16–18 Deskriptoren; für Deutsch und Geschichte zusätzlich
+  Themen-Module. Bei Land „Deutschland" ist der deutsche Katalog
+  vorausgewählt. Alle deutschen Kataloge sind ehrlich als kuratierte
+  Entwürfe gekennzeichnet — dieser Vermerk erscheint nur im deutschen
+  Katalog und färbt die österreichischen Fächer nicht ein.
 
 ### Fixed — Qualitätspass: Erwartungshorizont-Listen werden akzeptiert
 - Liefert das Modell die vier Erwartungshorizont-Dimensionen als Liste statt

@@ -88,10 +88,9 @@ describe('Entwurfs-Vermerk-Steuerung', () => {
   });
 
   it('deutsche Kataloge sind ehrlich als Entwurf gekennzeichnet — nur für de-lehrplan', () => {
-    for (const fach of ['deutsch', 'englisch', 'geschichte', 'geographie', 'ethik'] as const) {
+    // Seit Runde 2 haben ALLE Fächer einen DE-Katalog; alle sind kuratierte Entwürfe.
+    for (const fach of Object.keys(KOMPETENZBEREICHE) as (keyof typeof KOMPETENZBEREICHE)[]) {
       expect(fachHatEntwurf(fach, undefined, 'de-lehrplan'), `${fach} (DE) sollte Entwurfs-Vermerk zeigen`).toBe(true);
     }
-    // Fach ohne DE-Katalog: kein Vermerk im de-lehrplan.
-    expect(fachHatEntwurf('latein', undefined, 'de-lehrplan')).toBe(false);
   });
 });
