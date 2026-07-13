@@ -48,4 +48,21 @@ describe('inhaltskatalog integrity', () => {
       expect(listInhaltsModule(fach, 'oberstufe', 'de-lehrplan').length).toBeGreaterThan(0);
     }
   });
+
+  it('registriert deutsche Inhaltskataloge für die 10 restlichen Fächer', () => {
+    const faecher = [
+      'englisch', 'geographie', 'ethik', 'franzoesisch', 'spanisch',
+      'italienisch', 'latein', 'philosophie', 'psychologie', 'religion',
+    ] as const;
+    const modules = getAllInhaltsModule().filter((m) => m.rahmenwerk === 'de-lehrplan');
+    const ids = modules.map((m) => m.id);
+
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const fach of faecher) {
+      const fachModule = modules.filter((m) => m.fach === fach);
+      expect(fachModule.length, `${fach}: erwartete mindestens 4 deutsche Inhaltsmodule`).toBeGreaterThanOrEqual(4);
+      expect(fachModule.every((m) => m.id.startsWith('de-'))).toBe(true);
+      expect(fachModule.every((m) => m.fach === fach && m.rahmenwerk === 'de-lehrplan')).toBe(true);
+    }
+  });
 });

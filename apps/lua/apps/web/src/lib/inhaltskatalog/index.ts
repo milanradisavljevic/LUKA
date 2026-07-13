@@ -12,7 +12,17 @@ import { psychologieInhaltsModule } from './psychologie';
 import { religionInhaltsModule } from './religion';
 import { spanischInhaltsModule } from './spanisch';
 import { deutschDeInhaltsModule } from './de/deutsch';
+import { englischDeInhaltsModule } from './de/englisch';
+import { ethikDeInhaltsModule } from './de/ethik';
+import { franzoesischDeInhaltsModule } from './de/franzoesisch';
+import { geographieDeInhaltsModule } from './de/geographie';
 import { geschichteDeInhaltsModule } from './de/geschichte';
+import { italienischDeInhaltsModule } from './de/italienisch';
+import { lateinDeInhaltsModule } from './de/latein';
+import { philosophieDeInhaltsModule } from './de/philosophie';
+import { psychologieDeInhaltsModule } from './de/psychologie';
+import { religionDeInhaltsModule } from './de/religion';
+import { spanischDeInhaltsModule } from './de/spanisch';
 
 const MODULE: InhaltsModul[] = [
   ...deutschInhaltsModule,
@@ -28,7 +38,17 @@ const MODULE: InhaltsModul[] = [
   ...religionInhaltsModule,
   ...spanischInhaltsModule,
   ...deutschDeInhaltsModule,
+  ...englischDeInhaltsModule,
+  ...ethikDeInhaltsModule,
+  ...franzoesischDeInhaltsModule,
+  ...geographieDeInhaltsModule,
   ...geschichteDeInhaltsModule,
+  ...italienischDeInhaltsModule,
+  ...lateinDeInhaltsModule,
+  ...philosophieDeInhaltsModule,
+  ...psychologieDeInhaltsModule,
+  ...religionDeInhaltsModule,
+  ...spanischDeInhaltsModule,
 ];
 
 export function listInhaltsModule(

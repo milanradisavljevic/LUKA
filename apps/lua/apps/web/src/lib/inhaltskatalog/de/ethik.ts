@@ -1,0 +1,9 @@
+import type { InhaltsModul } from '@lehrunterlagen/schema';
+
+export const ethikDeInhaltsModule: InhaltsModul[] = [
+  { id: 'de-ethik-person-identitaet-s7', rahmenwerk: 'de-lehrplan', fach: 'ethik', stufe: 'unterstufe', schulstufe: 7, titel: 'Person, Identität und Freiheit', beschreibung: 'Identität, Selbstbestimmung und der Umgang mit persönlichen Entscheidungen werden ethisch reflektiert.', quelle: 'Länderübergreifender Lehrplan-Kern Ethik — kuratierter Entwurf' },
+  { id: 'de-ethik-gerechtigkeit-menschenwuerde-s8', rahmenwerk: 'de-lehrplan', fach: 'ethik', stufe: 'unterstufe', schulstufe: 8, titel: 'Gerechtigkeit und Menschenwürde', beschreibung: 'Gleichheit, Menschenrechte und die Würde jedes Menschen werden an konkreten Konflikten geprüft.', quelle: 'Länderübergreifender Lehrplan-Kern Ethik — kuratierter Entwurf' },
+  { id: 'de-ethik-medien-verantwortung-s9', rahmenwerk: 'de-lehrplan', fach: 'ethik', stufe: 'unterstufe', schulstufe: 9, titel: 'Medien, Wahrheit und Verantwortung', beschreibung: 'Umgang mit Informationen, digitaler Öffentlichkeit und Verantwortung für das eigene Handeln werden beurteilt.', quelle: 'Länderübergreifender Lehrplan-Kern Ethik — kuratierter Entwurf' },
+  { id: 'de-ethik-umwelt-zukunft-s10', rahmenwerk: 'de-lehrplan', fach: 'ethik', stufe: 'unterstufe', schulstufe: 10, titel: 'Umweltethik und Verantwortung für die Zukunft', beschreibung: 'Verantwortung gegenüber Tieren, Natur und zukünftigen Generationen wird an Nachhaltigkeitsfragen diskutiert.', quelle: 'Länderübergreifender Lehrplan-Kern Ethik — kuratierter Entwurf' },
+  { id: 'de-ethik-technik-mensch-s12', rahmenwerk: 'de-lehrplan', fach: 'ethik', stufe: 'oberstufe', schulstufe: 12, titel: 'Technik, KI und das gute Leben', beschreibung: 'Autonomie, Datenschutz und Gerechtigkeit werden im Blick auf künstliche Intelligenz und neue Technologien analysiert.', quelle: 'Länderübergreifender Lehrplan-Kern Ethik für die Sekundarstufe II — kuratierter Entwurf' },
+];
