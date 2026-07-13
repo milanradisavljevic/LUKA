@@ -116,18 +116,22 @@ export function istEntwurfsQuelle(quelle: string | undefined): boolean {
 }
 
 /**
- * True, wenn (mind. ein) Deskriptor des Fachs (optional: der Stufe) noch ein
- * kuratierter Entwurf ist. Steuert den Entwurfs-Vermerk: voll gesourcte Fächer
- * (z. B. Sachfächer) zeigen ihn nicht mehr.
+ * True, wenn (mind. ein) Deskriptor des Fachs (optional: der Stufe, optional:
+ * des Rahmenwerks) noch ein kuratierter Entwurf ist. Steuert den
+ * Entwurfs-Vermerk: voll gesourcte Fächer (z. B. Sachfächer) zeigen ihn nicht
+ * mehr. Ohne Rahmenwerk-Filter würden die bewusst als Entwurf gekennzeichneten
+ * de-lehrplan-Kataloge den Vermerk auch für AT-Nutzerinnen einschalten.
  */
 export function fachHatEntwurf(
   fach: Deskriptor['fach'],
   stufe?: Deskriptor['stufe'],
+  rahmenwerk?: Deskriptor['rahmenwerk'],
 ): boolean {
   return DESKRIPTOREN.some(
     (d) =>
       d.fach === fach &&
       (stufe === undefined || d.stufe === stufe) &&
+      (rahmenwerk === undefined || d.rahmenwerk === rahmenwerk) &&
       istEntwurfsQuelle(d.quelle),
   );
 }

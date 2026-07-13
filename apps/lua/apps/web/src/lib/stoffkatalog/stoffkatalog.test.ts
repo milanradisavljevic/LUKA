@@ -56,16 +56,24 @@ describe('Entwurfs-Vermerk-Steuerung', () => {
     expect(istEntwurfsQuelle(undefined)).toBe(false);
   });
 
-  it('voll gesourcte Fächer zeigen keinen Entwurfs-Vermerk', () => {
+  it('voll gesourcte Fächer zeigen im AT-Lehrplan keinen Entwurfs-Vermerk', () => {
     // Sachfächer + Latein/Religion/Psychologie sind vollständig gesourct.
     for (const fach of ['geschichte', 'geographie', 'ethik', 'philosophie', 'latein', 'religion', 'psychologie'] as const) {
-      expect(fachHatEntwurf(fach), `${fach} sollte voll gesourct sein`).toBe(false);
+      expect(fachHatEntwurf(fach, undefined, 'at-lehrplan'), `${fach} sollte voll gesourct sein`).toBe(false);
     }
   });
 
-  it('alle Fächer sind nach der Stufen-Integration voll gesourct', () => {
+  it('alle Fächer sind im AT-Lehrplan nach der Stufen-Integration voll gesourct', () => {
     for (const fach of ['englisch', 'deutsch', 'franzoesisch', 'spanisch', 'italienisch'] as const) {
-      expect(fachHatEntwurf(fach), `${fach} sollte keinen Entwurfs-Vermerk mehr zeigen`).toBe(false);
+      expect(fachHatEntwurf(fach, undefined, 'at-lehrplan'), `${fach} sollte keinen Entwurfs-Vermerk mehr zeigen`).toBe(false);
     }
+  });
+
+  it('deutsche Kataloge sind ehrlich als Entwurf gekennzeichnet — nur für de-lehrplan', () => {
+    for (const fach of ['deutsch', 'englisch', 'geschichte', 'geographie', 'ethik'] as const) {
+      expect(fachHatEntwurf(fach, undefined, 'de-lehrplan'), `${fach} (DE) sollte Entwurfs-Vermerk zeigen`).toBe(true);
+    }
+    // Fach ohne DE-Katalog: kein Vermerk im de-lehrplan.
+    expect(fachHatEntwurf('latein', undefined, 'de-lehrplan')).toBe(false);
   });
 });

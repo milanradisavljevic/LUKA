@@ -419,7 +419,7 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
               : 'Für diese Kombination gibt es noch keine Stoff-Items. Du kannst trotzdem oben eine Kompetenz frei eingeben.'}
           </p>
         )}
-        {fachHatEntwurf(fach, stufe) && (
+        {fachHatEntwurf(fach, stufe, rahmenwerk) && (
           <p style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', fontStyle: 'italic' }}>
             Hinweis: Teile dieses Kompetenzkatalogs sind kuratierte Entwürfe, angelehnt an den BMBWF-Lehrplan — kein offizieller Nachweis.
           </p>
