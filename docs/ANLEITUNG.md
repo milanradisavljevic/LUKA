@@ -54,13 +54,24 @@ Damit das Generieren läuft, brauchst du einen API-Schlüssel deines KI-Anbieter
 
 1. Beim **ersten Start** wählst du einen Anbieter (empfohlen: Mistral, EU-Anbieter), trägst deinen API-Schlüssel ein und testest die Verbindung direkt im Dialog. Schlüssel werden sicher im Schlüsselspeicher des Betriebssystems abgelegt – nicht im Klartext.
 2. Später änderst du Anbieter und Standard-Modell jederzeit in den **Einstellungen**. Für günstige Tests eignet sich ein kleines Modell.
-3. Zum schnellen Loslegen mit fertigen Aufgaben: eines der fünf mitgelieferten **Fachpakete** (Ordner `samples/fachpakete/`) über **Aufgaben-Pool → Importieren** einspielen. Verfügbar sind das Startpaket **Medien und Demokratie / Informatik und KI**, **Medien und Demokratie**, **Informatik und KI**, **Deutsch – Textsorten-Training Oberstufe** sowie **Englisch Oberstufe (CEFR B1–B2)**.
+3. Zum schnellen Loslegen mit fertigen Aufgaben: eines der sechs mitgelieferten **Fachpakete** (Ordner `samples/fachpakete/`) über **Aufgaben-Pool → Importieren** einspielen. Verfügbar sind das Startpaket **Medien und Demokratie / Informatik und KI**, **Startpaket Deutschland**, **Medien und Demokratie**, **Informatik und KI**, **Deutsch – Textsorten-Training Oberstufe** sowie **Englisch Oberstufe (CEFR B1–B2)**.
 
 > 💡 Ohne hinterlegten Schlüssel schlägt die Generierung fehl. Die Fehlermeldung nennt dann meist „Key/Provider prüfen".
 
 **Kein-Key-Hinweis:** Wählst du in Schritt „KI-Modell" einen Anbieter, für den noch kein Schlüssel hinterlegt ist, zeigt die App dort einen Hinweis mit Direkt-Link zu den Einstellungen — so scheiterst du nicht erst beim Generieren.
 
 ---
+
+## LUKA für Deutschland
+
+Wenn du in **Einstellungen → Mein Profil** das Land **Deutschland** auswählst, schreibt die KI bundesdeutsch und ordnet Beispiele dem deutschen Schulalltag zu. Dazu gehören Begriffe wie **Abitur**, **Klassenarbeit**, **Klausur** und **Januar** statt österreichischer Varianten.
+
+- **Klassenstufen:** Deutschland verwendet die Klassen 5 bis 13. Bis einschließlich Klasse 10 ist die Stufe die **Sekundarstufe I**, ab Klasse 11 die **Sekundarstufe II**.
+- **Profil:** Im Profil kannst du deutsche Bundesländer und Schulformen auswählen. Diese Angaben helfen der KI, Szenarien und Beispiele passend zu deinem Schulort und deiner Schulart zu formulieren.
+- **Kompetenz-Modus:** Bei Land Deutschland ist der deutsche Lehrplan-Katalog der **Kultusministerkonferenz (KMK)** für alle Fächer vorausgewählt. Er ist als **kuratierter Entwurf** gekennzeichnet: Die Inhalte sind sorgfältig zusammengestellt, aber kein amtliches Dokument.
+- **Startpaket Deutschland:** Das neue Paket mit acht Aufgaben liegt auf GitHub unter `samples/fachpakete/`. Importiere die JSON-Datei über **Aufgaben-Pool → Importieren**, genauso wie die anderen Fachpakete.
+
+> 💡 Die Auswahl des Landes bleibt eine Profileinstellung. Prüfe bei offiziellen Prüfungen und landesspezifischen Vorgaben weiterhin die aktuellen Hinweise deines Bundeslands.
 
 ## Fächer
 
@@ -134,7 +145,7 @@ Der **Aufgaben-Pool** sammelt wiederverwendbare Aufgaben-Blöcke — einmal gesp
 5. **Fachpakete teilen:** Über **„Exportieren"** speicherst du den gesamten lokalen Pool als teilbare JSON-Datei. Favoriten, Qualitätsstatus und letzte Verwendung bleiben lokal und werden nicht exportiert.
 6. **Fachpaket importieren:** Über **„Importieren"** wählst du eine JSON-Datei. LUKA validiert sie vollständig, bevor sie den lokalen Pool verändert. Die Vorschau zeigt Anzahl, Fächer, Herkunftsvermerke und Duplikate. Bei gleichen IDs entscheidest du zwischen **„Ersetzen"** und **„Behalten"**. Nach dem Import meldet die App neue, ersetzte und übersprungene Aufgaben; eine ungültige Datei wird abgelehnt und verändert den Pool nicht.
 
-> 💡 Der Pool ist pro Rechner lokal. Beim Ersetzen eines Duplikats bleiben deine lokalen Organisationsdaten erhalten — ideal, um kuratierte Inhalte zu übernehmen und eigene Bewertungen weiterzuführen. Fünf kuratierte Pakete liegen in `samples/fachpakete/`: das Startpaket **Medien und Demokratie / Informatik und KI**, **Medien und Demokratie**, **Informatik und KI**, **Deutsch – Textsorten-Training Oberstufe** sowie **Englisch Oberstufe (CEFR B1–B2)**.
+> 💡 Der Pool ist pro Rechner lokal. Beim Ersetzen eines Duplikats bleiben deine lokalen Organisationsdaten erhalten — ideal, um kuratierte Inhalte zu übernehmen und eigene Bewertungen weiterzuführen. Sechs kuratierte Pakete liegen in `samples/fachpakete/`: das Startpaket **Medien und Demokratie / Informatik und KI**, **Startpaket Deutschland**, **Medien und Demokratie**, **Informatik und KI**, **Deutsch – Textsorten-Training Oberstufe** sowie **Englisch Oberstufe (CEFR B1–B2)**.
 
 ---
 

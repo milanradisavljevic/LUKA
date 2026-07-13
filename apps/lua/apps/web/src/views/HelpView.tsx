@@ -124,6 +124,23 @@ const SECTIONS: Section[] = [
     ),
   },
   {
+    id: 'deutschland',
+    title: 'LUKA für Deutschland',
+    Icon: GraduationCap,
+    body: (
+      <>
+        <P>Wenn du in <strong>Einstellungen → Mein Profil</strong> das Land <strong>Deutschland</strong> auswählst, schreibt die KI bundesdeutsch und ordnet Beispiele dem deutschen Schulalltag zu. Dazu gehören Begriffe wie <strong>Abitur</strong>, <strong>Klassenarbeit</strong>, <strong>Klausur</strong> und <strong>Januar</strong> statt österreichischer Varianten.</P>
+        <Steps items={[
+          <><strong>Klassenstufen:</strong> Deutschland verwendet die Klassen 5 bis 13. Bis einschließlich Klasse 10 ist die Stufe die <strong>Sekundarstufe I</strong>, ab Klasse 11 die <strong>Sekundarstufe II</strong>.</>,
+          <><strong>Profil:</strong> Im Profil kannst du deutsche Bundesländer und Schulformen auswählen. Diese Angaben helfen der KI, Szenarien und Beispiele passend zu deinem Schulort und deiner Schulart zu formulieren.</>,
+          <><strong>Kompetenz-Modus:</strong> Bei Land Deutschland ist der deutsche Lehrplan-Katalog der <strong>Kultusministerkonferenz (KMK)</strong> für alle Fächer vorausgewählt. Er ist als <strong>kuratierter Entwurf</strong> gekennzeichnet: Die Inhalte sind sorgfältig zusammengestellt, aber kein amtliches Dokument.</>,
+          <><strong>Startpaket Deutschland:</strong> Das neue Paket mit acht Aufgaben liegt auf GitHub unter <code>samples/fachpakete/</code>. Importiere die JSON-Datei über <strong>Aufgaben-Pool → Importieren</strong>, genauso wie die anderen Fachpakete.</>,
+        ]} />
+        <Tip>Die Auswahl des Landes bleibt eine Profileinstellung. Prüfe bei offiziellen Prüfungen und landesspezifischen Vorgaben weiterhin die aktuellen Hinweise deines Bundeslands.</Tip>
+      </>
+    ),
+  },
+  {
     id: 'pool',
     title: 'Aufgaben-Pool',
     Icon: Database,
@@ -139,7 +156,7 @@ const SECTIONS: Section[] = [
         ]} />
         <P><strong>Fachpakete teilen:</strong> Mit <strong>„Exportieren"</strong> speicherst du den gesamten lokalen Pool als teilbare JSON-Datei. Die Favoriten, Qualitätsstatus und letzte Verwendung bleiben bewusst lokal und werden nicht exportiert.</P>
         <P>Mit <strong>„Importieren"</strong> wählst du eine JSON-Datei aus. Die App validiert sie vollständig, bevor sie den Pool verändert. In der Vorschau siehst du Anzahl, Fächer, Herkunftsvermerke und Duplikate; bei vorhandenen IDs entscheidest du zwischen <strong>„Ersetzen"</strong> und <strong>„Behalten"</strong>. Ungültige Dateien werden abgelehnt und verändern den Pool nicht.</P>
-        <P><strong>Leerer Pool:</strong> Wenn noch keine Aufgaben vorhanden sind, bietet dir LUKA per Klick das Startpaket mit <strong>29 geprüften Aufgaben</strong> an. Nichts wird überschrieben; bereits vorhandene Aufgaben werden übersprungen. Die fünf mitgelieferten Fachpakete — darunter <strong>Englisch Oberstufe (CEFR B1–B2)</strong> — liegen zusätzlich als JSON-Dateien im Repository unter <code>samples/fachpakete/</code>.</P>
+        <P><strong>Leerer Pool:</strong> Wenn noch keine Aufgaben vorhanden sind, bietet dir LUKA per Klick das Startpaket mit <strong>29 geprüften Aufgaben</strong> an. Nichts wird überschrieben; bereits vorhandene Aufgaben werden übersprungen. Die sechs mitgelieferten Fachpakete — darunter <strong>Startpaket Deutschland</strong> und <strong>Englisch Oberstufe (CEFR B1–B2)</strong> — liegen zusätzlich als JSON-Dateien im Repository unter <code>samples/fachpakete/</code>.</P>
         <Tip>Der Pool ist pro Rechner lokal. Beim Ersetzen eines Duplikats bleiben deine lokalen Organisationsdaten erhalten — ideal, um kuratierte Inhalte zu übernehmen und eigene Bewertungen weiterzuführen.</Tip>
       </>
     ),
