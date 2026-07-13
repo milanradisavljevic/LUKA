@@ -420,7 +420,7 @@ per Nachanalyse), diese als Few-Shot-Beispiele in den Prompt laden:
 rubrics/
   anker/
     eric_lienbacher_anker.json   # Note 3-4, mit Lehrkraft-Begründung
-    matthias_bachler_anker.json  # Note 3, mit Lehrkraft-Begründung
+    max_muster_anker.json  # Note 3, mit Lehrkraft-Begründung
 ```
 
 ---

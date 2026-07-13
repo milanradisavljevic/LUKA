@@ -58,7 +58,7 @@ Dokumentiere deine Entscheidung und den Grund.
 |                                                |
 |  Dateien in /input/:                           |
 |  [x] deutsch_digga.docx          (342 Woerter)|
-|  [x] kommentar_bachler.docx      (518 Woerter)|
+|  [x] kommentar_muster.docx      (518 Woerter)|
 |  [ ] english_essay_mueller.docx   (411 Woerter)|
 |                                                |
 |  [Alle auswaehlen]  [Weiter]                  |
@@ -105,7 +105,7 @@ Dokumentiere deine Entscheidung und den Grund.
 |  Status: Warte auf Analyse...                 |
 |  [========----------]  40%                    |
 |                                                |
-|  kommentar_bachler.docx                        |
+|  kommentar_muster.docx                        |
 |  Status: In Warteschlange                     |
 |                                                |
 |  [Prompt kopieren]  [Agent starten]  [Abbruch]|
@@ -183,8 +183,8 @@ Der generierte Prompt muss:
 |  OK  deutsch_digga_feedback.docx               |
 |      output/deutsch_digga_feedback.docx        |
 |                                                |
-|  OK  kommentar_bachler_feedback.docx           |
-|      output/kommentar_bachler_feedback.docx    |
+|  OK  kommentar_muster_feedback.docx           |
+|      output/kommentar_muster_feedback.docx    |
 |                                                |
 |  [Ordner oeffnen]  [Neue Analyse]  [Beenden]  |
 +------------------------------------------------+

@@ -1,7 +1,7 @@
 /**
  * Anzeigename für eine Abgabe: echter Schülername, wenn mit einem Schüler-
  * Datensatz verknüpft — sonst der Dateiname, aber bereinigt statt roh
- * ("Neuer_Booktok_trend-TamaraEbner.docx" wirkt wie ein Bug, nicht wie ein
+ * ("Neuer_Booktok_trend-MiaMuster.docx" wirkt wie ein Bug, nicht wie ein
  * fehlender Datensatz). Der Original-Dateiname bleibt separat abrufbar
  * (z. B. als title-Tooltip), damit nichts an Information verloren geht.
  */

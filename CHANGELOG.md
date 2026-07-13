@@ -7,6 +7,23 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Korrektur-Modul aktiviert
+- Der Bereich **Korrigieren** ist jetzt sichtbar: Korrektur (KI-gestützte
+  Bewertung von Schülerabgaben mit Rubrik, Fehlerliste und Feedback-DOCX),
+  Meine Klassen (Fehler-Heatmap, Notenverteilung, Briefing), Schüler-
+  Längsschnitt und Erwartungshorizont — inklusive der zugehörigen
+  Hilfe-Kapitel und des Closed-Loop-Einstiegs „Übungsblatt zu Top-Fehlern".
+- Voraussetzung: gebündeltes Korrektur-Sidecar oder lokale
+  Python-Installation. Ohne beides zeigen die Ansichten sauber
+  „Nicht verfügbar" — die App bleibt voll nutzbar.
+- Neues Support-Kommando `profil_reset` (nur DevTools-Konsole): setzt das
+  Lehrerprofil zurück, damit der Profil-Schritt beim nächsten Start wieder
+  erscheint.
+
+### Changed — Beispieldaten anonymisiert
+- Test- und Beispieldaten (Namens-Fixtures, Doku-Beispiele) verwenden jetzt
+  durchgängig frei erfundene Musternamen.
+
 ### Added — Deutsche Themen-Module für alle Fächer
 - Der Kompetenz-Modus bietet bei Land „Deutschland" jetzt für alle 14 Fächer
   kuratierte Themen-Module (je 5, z. B. Latein „Rhetorik: Cicero", Geographie
@@ -655,7 +672,7 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 - **Anzeigename statt Rohdateiname:** neuer Helper `lib/anzeigeName.ts` —
   zeigt `vorname nachname`, wenn die Abgabe mit einem Schüler verknüpft ist,
   sonst einen bereinigten Dateinamen (Endung weg, `_`/`-` → Leerzeichen)
-  statt z. B. „Neuer_Booktok_trend-TamaraEbner.docx". Eingesetzt in
+  statt z. B. „Neuer_Booktok_trend-MiaMuster.docx". Eingesetzt in
   `KorrekturView.tsx` und `KlassenView.tsx`; Original-Dateiname bleibt als
   `title`-Tooltip abrufbar. 8 neue Tests (`anzeigeName.test.ts`).
 - Web: Typecheck grün, 126 Tests grün (14 neu). Rust: 40 Tests grün (1 neu).
