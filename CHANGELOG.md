@@ -7,6 +7,11 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Deutsche Themen-Module für alle Fächer
+- Der Kompetenz-Modus bietet bei Land „Deutschland" jetzt für alle 14 Fächer
+  kuratierte Themen-Module (je 5, z. B. Latein „Rhetorik: Cicero", Geographie
+  „Globalisierung und Disparitäten") — als kuratierte Entwürfe gekennzeichnet.
+
 ### Changed — Korrektur-Modul: neutraler Name in der Oberfläche
 - Alle sichtbaren Texte des Korrektur-Moduls (Seitenleiste, Einstellungen,
   Korrektur-Ansicht, Hilfe, Fehlermeldungen, Statuslabels) verwenden jetzt
