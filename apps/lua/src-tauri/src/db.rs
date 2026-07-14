@@ -142,7 +142,7 @@ fn migrate_lua_klassen_identity(conn: &Connection) -> Result<(), String> {
     Ok(())
 }
 
-fn home_dir() -> Option<PathBuf> {
+pub(crate) fn home_dir() -> Option<PathBuf> {
     std::env::var("USERPROFILE")
         .or_else(|_| std::env::var("HOME"))
         .ok()

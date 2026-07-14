@@ -240,10 +240,40 @@ pub async fn launch_natascha(dir: String, python: String) -> Result<(), String> 
 /// Helper: Baut den Basis-Command für natascha_cli.py. Übergibt IMMER den
 /// kanonischen DB-Pfad (`db::resolve_db_path`), damit Python in dieselbe DB
 /// schreibt, die LUA liest (Single Source of Truth = Rust).
+/// Provider-IDs → Env-Variablen, die das Python-Modul liest (natascha_core
+/// key_map). Muss mit beiden Seiten synchron bleiben.
+const PROVIDER_ENV_KEYS: &[(&str, &str)] = &[
+    ("anthropic", "ANTHROPIC_API_KEY"),
+    ("openai", "OPENAI_API_KEY"),
+    ("mistral", "MISTRAL_API_KEY"),
+    ("deepseek", "DEEPSEEK_API_KEY"),
+    ("kimi", "KIMI_API_KEY"),
+    ("qwen", "QWEN_API_KEY"),
+];
+
+/// Reicht die im OS-Keystore hinterlegten API-Keys als Umgebungsvariablen an
+/// den Sidecar durch. Das gebündelte Python liest Keys ausschließlich aus
+/// os.environ und eine .env wird nicht mitgeliefert — ohne diese Injektion
+/// ist die Korrektur-Analyse in der installierten App tot. Bewusst Env statt
+/// CLI-Argument: Argumente wären in Prozesslisten für jeden sichtbar.
+/// (_load_dotenv arbeitet mit override=False — im Dev-Modus gewinnt der
+/// Keystore-Key ebenfalls, eine lokale .env bleibt nur Fallback.)
+fn inject_provider_keys(cmd: &mut Command) {
+    for (provider, env_name) in PROVIDER_ENV_KEYS {
+        if let Ok(key) = crate::keystore::load_key(provider) {
+            let key = key.trim();
+            if !key.is_empty() {
+                cmd.env(env_name, key);
+            }
+        }
+    }
+}
+
 fn build_cli_command(dir: &str, python: &str) -> Result<Command, String> {
     let db_path = crate::db::resolve_db_path();
     if let Some(sidecar) = bundled_cli() {
         let mut cmd = Command::new(sidecar);
+        inject_provider_keys(&mut cmd);
         cmd.arg("--db-path").arg(db_path.as_os_str());
         if let Some(parent) = std::env::current_exe()
             .ok()
@@ -256,6 +286,7 @@ fn build_cli_command(dir: &str, python: &str) -> Result<Command, String> {
     let natascha_dir = resolve_dir(dir)?;
     let py = resolve_python(python);
     let mut cmd = Command::new(&py);
+    inject_provider_keys(&mut cmd);
     cmd.arg(natascha_dir.join("natascha_cli.py"))
         .arg("--db-path")
         .arg(db_path.as_os_str())
@@ -536,9 +567,26 @@ pub async fn natascha_feedback_docx(
     };
     let mut cmd = build_cli_command(&dir, &python)?;
     cmd.arg("feedback-docx").arg(abgabe_id.to_string());
-    if let Some(ref v) = output {
-        cmd.arg("--output").arg(v);
-    }
+    // Immer einen expliziten Zielpfad übergeben: der Python-Default wäre
+    // Path.cwd() = Exe-Verzeichnis (z. B. Program Files) — dort ist Schreiben
+    // oft verboten und die Datei für die Lehrkraft unauffindbar. Ablage im
+    // Bridge-Ordner, den „Ordner öffnen“ in der UI direkt anzeigen kann.
+    let ziel = match output {
+        Some(v) => v,
+        None => {
+            let ordner = crate::db::home_dir()
+                .ok_or_else(|| "Home-Verzeichnis nicht gefunden.".to_string())?
+                .join("lehr-suite-bridge")
+                .join("feedback");
+            std::fs::create_dir_all(&ordner)
+                .map_err(|e| format!("Feedback-Ordner konnte nicht erstellt werden: {e}"))?;
+            ordner
+                .join(format!("feedback_{abgabe_id}.docx"))
+                .to_string_lossy()
+                .into_owned()
+        }
+    };
+    cmd.arg("--output").arg(&ziel);
     if let Some(ref v) = bewertungsmodus {
         cmd.arg("--bewertungsmodus").arg(v);
     }
@@ -866,5 +914,24 @@ mod tests {
         assert!(validate_python_command("python`id`").is_err());
         assert!(validate_python_command("python && start").is_err());
         assert!(validate_python_command("").is_err());
+    }
+
+    /// Muss synchron zur key_map in natascha_core.py bleiben — sonst startet
+    /// der Sidecar ohne Key und die Analyse endet mit "API_KEY nicht gesetzt".
+    #[test]
+    fn provider_env_mapping_ist_vollstaendig_und_eindeutig() {
+        let erwartet = [
+            ("anthropic", "ANTHROPIC_API_KEY"),
+            ("openai", "OPENAI_API_KEY"),
+            ("mistral", "MISTRAL_API_KEY"),
+            ("deepseek", "DEEPSEEK_API_KEY"),
+            ("kimi", "KIMI_API_KEY"),
+            ("qwen", "QWEN_API_KEY"),
+        ];
+        assert_eq!(PROVIDER_ENV_KEYS, &erwartet);
+        let mut env_namen: Vec<&str> = PROVIDER_ENV_KEYS.iter().map(|(_, e)| *e).collect();
+        env_namen.sort_unstable();
+        env_namen.dedup();
+        assert_eq!(env_namen.len(), PROVIDER_ENV_KEYS.len());
     }
 }
