@@ -44,8 +44,31 @@ pub fn open_db() -> Result<Connection, String> {
 pub fn init_schema(conn: &Connection) -> Result<(), String> {
     conn.execute_batch(NATASCHA_SCHEMA_SQL).map_err(|e| format!("Korrektur-Schema fehlgeschlagen: {}", e))?;
     conn.execute_batch(LUA_SCHEMA_SQL).map_err(|e| format!("LUA-Schema fehlgeschlagen: {}", e))?;
+    migrate_natascha_abgabe_link_columns(conn)?;
     migrate_pool_local_metadata(conn)?;
     migrate_lua_klassen_identity(conn)?;
+    Ok(())
+}
+
+/// Ergänzt die optionalen Verknüpfungen einer Abgabe mit einem Unterrichtseinsatz
+/// bzw. gespeicherten Material in bereits vorhandenen gemeinsamen Datenbanken.
+fn migrate_natascha_abgabe_link_columns(conn: &Connection) -> Result<(), String> {
+    let mut stmt = conn
+        .prepare("PRAGMA table_info(abgabe)")
+        .map_err(|e| format!("Abgabe-Link-Migration vorbereiten fehlgeschlagen: {}", e))?;
+    let columns: std::collections::HashSet<String> = stmt
+        .query_map([], |row| row.get::<_, String>(1))
+        .map_err(|e| format!("Abgabe-Link-Migration lesen fehlgeschlagen: {}", e))?
+        .collect::<Result<_, _>>()
+        .map_err(|e| format!("Abgabe-Link-Migration auswerten fehlgeschlagen: {}", e))?;
+    if !columns.contains("unterrichtseinsatz_id") {
+        conn.execute_batch("ALTER TABLE abgabe ADD COLUMN unterrichtseinsatz_id TEXT;")
+            .map_err(|e| format!("Abgabe-Link-Migration Einsatz fehlgeschlagen: {}", e))?;
+    }
+    if !columns.contains("material_id") {
+        conn.execute_batch("ALTER TABLE abgabe ADD COLUMN material_id TEXT;")
+            .map_err(|e| format!("Abgabe-Link-Migration Material fehlgeschlagen: {}", e))?;
+    }
     Ok(())
 }
 
@@ -267,6 +290,38 @@ mod tests {
             .into_iter()
             .any(|(name, unique)| name == "idx_lua_klassen_id" && unique);
         assert!(unique_index_exists);
+    }
+
+    #[test]
+    fn natascha_abgabe_link_migration_ergaenzt_alte_datenbank() {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(
+            "CREATE TABLE abgabe (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                schueler_id INTEGER,
+                klasse TEXT NOT NULL,
+                aufgabe TEXT NOT NULL,
+                dateiname TEXT NOT NULL,
+                datei_hash TEXT UNIQUE NOT NULL,
+                datum TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                rohtext TEXT, note REAL, gesamtstufe REAL,
+                feedback_json_path TEXT, wortanzahl INTEGER, fach TEXT,
+                schulstufe TEXT, textsorte TEXT, rubrik TEXT
+            );",
+        )
+        .unwrap();
+
+        init_schema(&conn).unwrap();
+
+        let columns: std::collections::HashSet<String> = conn
+            .prepare("PRAGMA table_info(abgabe)")
+            .unwrap()
+            .query_map([], |row| row.get::<_, String>(1))
+            .unwrap()
+            .collect::<Result<_, _>>()
+            .unwrap();
+        assert!(columns.contains("unterrichtseinsatz_id"));
+        assert!(columns.contains("material_id"));
     }
 
     #[test]

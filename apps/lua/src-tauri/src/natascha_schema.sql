@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS schueler (
 CREATE TABLE IF NOT EXISTS abgabe (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     schueler_id INTEGER REFERENCES schueler(id) ON DELETE SET NULL,
+    unterrichtseinsatz_id TEXT,
+    material_id TEXT,
     klasse TEXT NOT NULL,
     aufgabe TEXT NOT NULL,
     dateiname TEXT NOT NULL,

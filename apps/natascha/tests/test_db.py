@@ -7,6 +7,7 @@ Connection oeffnet und die Daten ueber Aufrufe hinweg persistieren muessen).
 from __future__ import annotations
 
 import sys
+import sqlite3
 from pathlib import Path
 
 import pytest
@@ -14,6 +15,25 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import natascha_db as db
+
+
+def test_init_db_migrates_old_abgabe_link_columns(tmp_path: Path) -> None:
+    p = tmp_path / "old.db"
+    with sqlite3.connect(p) as conn:
+        conn.execute(
+            """CREATE TABLE abgabe (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                schueler_id INTEGER, klasse TEXT NOT NULL, aufgabe TEXT NOT NULL,
+                dateiname TEXT NOT NULL, datei_hash TEXT UNIQUE NOT NULL,
+                datum TIMESTAMP DEFAULT CURRENT_TIMESTAMP, rohtext TEXT, note REAL,
+                gesamtstufe REAL, feedback_json_path TEXT, wortanzahl INTEGER,
+                fach TEXT, schulstufe TEXT, textsorte TEXT, rubrik TEXT
+            )"""
+        )
+    db.init_db(p)
+    with sqlite3.connect(p) as conn:
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(abgabe)")}
+    assert {"unterrichtseinsatz_id", "material_id"} <= columns
 
 
 @pytest.fixture()

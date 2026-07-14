@@ -7,6 +7,11 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Korrektur mit Unterrichtseinsatz-Verknüpfung
+- Eine Analyse kann nun einem konkreten Unterrichtseinsatz und gespeicherten
+  Material zugeordnet werden. Dadurch bleibt die verwendete Unterlage bis zur
+  späteren Übung nachvollziehbar.
+
 ### Added — Einsatz-UI für den Unterrichtskreislauf
 - Gespeicherte Unterlagen können nun einer aktiven Klasse als geplanter oder
   eingesetzter Unterrichtseinsatz zugeordnet werden. Art, Datum und ein kurzer

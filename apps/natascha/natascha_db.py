@@ -30,6 +30,8 @@ CREATE TABLE IF NOT EXISTS schueler (
 CREATE TABLE IF NOT EXISTS abgabe (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     schueler_id INTEGER REFERENCES schueler(id) ON DELETE SET NULL,
+    unterrichtseinsatz_id TEXT,
+    material_id TEXT,
     klasse TEXT NOT NULL,
     aufgabe TEXT NOT NULL,
     dateiname TEXT NOT NULL,
@@ -147,6 +149,11 @@ def init_db(db_path: Path | str) -> None:
         conn.execute("PRAGMA journal_mode=WAL")
         conn.execute("PRAGMA foreign_keys=ON")
         conn.executescript(SCHEMA_SQL)
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(abgabe)")}
+        for column in ("unterrichtseinsatz_id", "material_id"):
+            if column not in columns:
+                conn.execute(f"ALTER TABLE abgabe ADD COLUMN {column} TEXT")
+        conn.commit()
 
 
 def _file_hash(path: Path) -> str:
@@ -750,6 +757,8 @@ def save_analysis_to_db(
     wortanzahl: int | None = None,
     feedback_json_path: str = "",
     bestaetigte_schueler_id: int | None = None,
+    unterrichtseinsatz_id: str | None = None,
+    material_id: str | None = None,
 ) -> int:
     """
     Bequemlichkeits-Funktion: Nimmt das validierte JSON-Dict nach der Analyse
@@ -800,9 +809,11 @@ def save_analysis_to_db(
     with sqlite3.connect(db_path_str) as conn:
         conn.execute("PRAGMA foreign_keys=ON")
         cur = conn.execute(
-            "INSERT INTO abgabe (schueler_id, klasse, aufgabe, dateiname, datei_hash, rohtext, note, gesamtstufe, feedback_json_path, wortanzahl, fach, schulstufe, textsorte, rubrik) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO abgabe (schueler_id, unterrichtseinsatz_id, material_id, klasse, aufgabe, dateiname, datei_hash, rohtext, note, gesamtstufe, feedback_json_path, wortanzahl, fach, schulstufe, textsorte, rubrik) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 schueler_id,
+                unterrichtseinsatz_id,
+                material_id,
                 klasse,
                 aufgabe,
                 dateiname,
