@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Users, TrendingUp, AlertTriangle, Loader2, BarChart3, ChevronRight, Trash2, UserPlus, Sparkles, Wand2, FileUp, User, School, Check } from 'lucide-react';
+import { Users, TrendingUp, AlertTriangle, Loader2, BarChart3, ChevronRight, Trash2, UserPlus, Sparkles, Wand2, FileUp, User, School, Check, Archive } from 'lucide-react';
 import { EmptyState } from './_EmptyState';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, Legend, CartesianGrid } from 'recharts';
 import { useNatascha } from '../hooks/useNatascha';
@@ -13,6 +13,7 @@ import { KiTextBlock } from '../components/KiTextBlock';
 import { InfoDot } from '../components/ui/InfoDot';
 import { useKlassenMeta } from '../hooks/useKlassenMeta';
 import { pruefeCsvImport, type CsvImportPruefung, type CsvImportWarnung } from '../lib/csvImportPruefung';
+import { filterKlassenNachArchiv } from '../lib/archivFilter';
 
 const FEHLER_LABELS: Record<string, string> = { R: 'Rechtschreibung', G: 'Grammatik', Z: 'Zeichensetzung', A: 'Ausdruck' };
 
@@ -60,6 +61,7 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
   const [importMsg, setImportMsg] = useState<string | null>(null);
   const [csvVorschau, setCsvVorschau] = useState<{ klasse: string; pruefung: CsvImportPruefung } | null>(null);
   const [csvImportBusy, setCsvImportBusy] = useState(false);
+  const [zeigeArchivierte, setZeigeArchivierte] = useState(false);
   const csvInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { listKlassen().then(setKlassen); }, [listKlassen]);
@@ -246,17 +248,13 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
   }, [csvVorschau, insertSchueler, listKlassen, loadSchueler]);
 
   const handleDeleteSchueler = useCallback(async (id: number, name: string) => {
-    // Ehrlicher Dialog statt Pauschal-Beruhigung: FK-Verhalten der DB ist
-    // ON DELETE CASCADE für schueler_profil, ON DELETE SET NULL für abgabe/
-    // lehrer_feedback (natascha_schema.sql) — das KI-Profil geht also wirklich
-    // verloren, Abgaben bleiben nur anonymisiert (schueler_id → NULL) erhalten.
     const abgabenHinweis = selectedSchuelerId === id && laengsschnitt
-      ? `${laengsschnitt.anzahlAbgaben} Abgabe${laengsschnitt.anzahlAbgaben === 1 ? '' : 'n'} bleiben anonymisiert erhalten`
-      : 'vorhandene Abgaben bleiben anonymisiert erhalten';
+      ? `${laengsschnitt.anzahlAbgaben} Abgabe${laengsschnitt.anzahlAbgaben === 1 ? '' : 'n'} werden ebenfalls gelöscht`
+      : 'vorhandene Abgaben und abhängige Historien werden ebenfalls gelöscht';
     if (!window.confirm(
       `Schüler „${name}" endgültig löschen?\n\n` +
-      `Das KI-Schüler-Profil wird gelöscht. ${abgabenHinweis} ` +
-      `(ohne Namenszuordnung, weiter in Klassenauswertungen sichtbar).\n\n` +
+      `Das KI-Schüler-Profil wird gelöscht. ${abgabenHinweis}. ` +
+      `Der Vorgang kann nicht rückgängig gemacht werden.\n\n` +
       `Für ein Backup vorher: Einstellungen → Datensicherung.`
     )) return;
     setError(null);
@@ -277,6 +275,8 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
   const schuelerName = (s: { vorname: string; nachname: string | null }) =>
     [s.vorname, s.nachname].filter(Boolean).join(' ') || '—';
 
+  const sichtbareKlassen = filterKlassenNachArchiv(klassen, bekannteKlassen, zeigeArchivierte);
+
   const trendIcon = (r: string) => r === 'steigt' ? '↑' : r === 'faellt' ? '↓' : '→';
 
   return (
@@ -287,7 +287,15 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
             <Users size={16} style={{ verticalAlign: -2, marginRight: 6 }} /> Klasse & Schüler
           </h3>
 
-          {klassen.map((k) => (
+          <button
+            className="btn-secondary"
+            onClick={() => setZeigeArchivierte((sichtbar) => !sichtbar)}
+            style={{ width: '100%', marginBottom: '0.5rem', fontSize: '0.7rem', padding: '0.3rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}
+          >
+            <Archive size={12} /> {zeigeArchivierte ? 'Archivierte ausblenden' : 'Archivierte anzeigen'}
+          </button>
+
+          {sichtbareKlassen.map((k) => (
             <div key={k.klasse}>
               <button
                 onClick={() => loadSchueler(k.klasse)}
@@ -336,11 +344,11 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
             </div>
           ))}
 
-          {klassen.length === 0 && (
+          {sichtbareKlassen.length === 0 && (
             <EmptyState
               icon={School}
-              title="Noch keine Klassen"
-              description="Lege eine Klasse und Schüler an oder importiere eine CSV-Liste."
+              title={klassen.length === 0 ? 'Noch keine Klassen' : 'Keine aktiven Klassen'}
+              description={klassen.length === 0 ? 'Lege eine Klasse und Schüler an oder importiere eine CSV-Liste.' : 'Blende archivierte Klassen ein, um ihre Schüler und Historien zu öffnen.'}
               bordered={false}
             />
           )}

@@ -13,6 +13,15 @@ export interface KlasseMeta {
   createdAt: string;
 }
 
+export interface KlassenLoeschvorschau {
+  klasse: string;
+  schueler: number;
+  abgaben: number;
+  materialien: number;
+  briefings: number;
+  quelltexte: number;
+}
+
 async function invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
   const { invoke: tauriInvoke } = await import('@tauri-apps/api/core');
   return tauriInvoke<T>(cmd, args);
@@ -67,9 +76,43 @@ export function useKlassenMeta() {
     }
   }, []);
 
+  const archive = useCallback(async (name: string, archiviert: boolean): Promise<boolean> => {
+    setError(null);
+    try {
+      await invoke('db_klasse_archivieren', { klasse: name, archiviert });
+      await refresh();
+      return true;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      return false;
+    }
+  }, [refresh]);
+
+  const deletePreview = useCallback(async (name: string): Promise<KlassenLoeschvorschau | null> => {
+    setError(null);
+    try {
+      return await invoke<KlassenLoeschvorschau>('db_klasse_loeschvorschau', { klasse: name });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      return null;
+    }
+  }, []);
+
+  const deleteKlasse = useCallback(async (name: string): Promise<KlassenLoeschvorschau | null> => {
+    setError(null);
+    try {
+      const report = await invoke<KlassenLoeschvorschau>('db_klasse_loeschen', { klasse: name });
+      await refresh();
+      return report;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      return null;
+    }
+  }, [refresh]);
+
   useEffect(() => {
     refresh();
   }, [refresh]);
 
-  return { klassen, loading, error, refresh, upsert, remove };
+  return { klassen, loading, error, refresh, upsert, remove, archive, deletePreview, deleteKlasse };
 }

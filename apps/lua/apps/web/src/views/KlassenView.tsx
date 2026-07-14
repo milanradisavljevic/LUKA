@@ -5,7 +5,7 @@ import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContai
 import type { KlasseInfo } from '../lib/storage';
 import { useNatascha } from '../hooks/useNatascha';
 import type { KlassenBriefingRow, FehlerTrendPunkt } from '../hooks/useNatascha';
-import { useKlassenMeta, type KlasseMeta } from '../hooks/useKlassenMeta';
+import { useKlassenMeta, type KlasseMeta, type KlassenLoeschvorschau } from '../hooks/useKlassenMeta';
 import { KATEGORIE_TO_BLOCKTYPEN, type NataschaPrefill } from '../lib/nataschaBridge';
 import { FACH_META, schulstufenFuerLand, stufeFromSchulstufe, type Land } from '@lehrunterlagen/schema';
 import type { BlockTyp } from '@lehrunterlagen/schema';
@@ -130,7 +130,14 @@ function buildWirksamkeit(punkte: FehlerTrendPunkt[]) {
 
 export function KlassenView({ onGenerateUebung }: Props) {
   const { listKlassen, listAufgaben, getAbgaben, getHeatmap, getKlassenStatistik, getKlassenTrend, getFehlerTrend, getKlassenKalibrierung, getFehlerDetail, exportNotenCsv, generateKlassenBriefing, getKlassenBriefing, quelltextGet } = useNatascha();
-  const { klassen: klassenMeta, upsert: upsertKlasseMeta, remove: removeKlasseMeta } = useKlassenMeta();
+  const {
+    klassen: klassenMeta,
+    upsert: upsertKlasseMeta,
+    remove: removeKlasseMeta,
+    archive: archiveKlasse,
+    deletePreview: getKlassenLoeschvorschau,
+    deleteKlasse,
+  } = useKlassenMeta();
 
   const [tab, setTab] = useState<Tab>('uebersicht');
   const [klassen, setKlassen] = useState<KlasseInfo[]>([]);
@@ -161,6 +168,8 @@ export function KlassenView({ onGenerateUebung }: Props) {
   const [formError, setFormError] = useState<string | null>(null);
   const [formNameLocked, setFormNameLocked] = useState(false);
   const [zeigeArchivierte, setZeigeArchivierte] = useState(false);
+  const [klasseLoeschvorschau, setKlasseLoeschvorschau] = useState<KlassenLoeschvorschau | null>(null);
+  const [klasseLoeschBusy, setKlasseLoeschBusy] = useState(false);
   // Land aus dem Profil: steuert die angebotenen Schulstufen (DE: Klassen 5–13).
   const [land, setLand] = useState<Land | undefined>();
   useEffect(() => {
@@ -228,9 +237,55 @@ export function KlassenView({ onGenerateUebung }: Props) {
     if (ok) { setZeigeKlasseForm(false); } else { setFormError('Speichern fehlgeschlagen.'); }
   }, [formName, formFach, formSchulstufe, formSchuljahr, klassenMeta, upsertKlasseMeta, land]);
 
-  const handleToggleArchiv = useCallback(async (meta: KlasseMeta) => {
-    await upsertKlasseMeta({ ...meta, archiviert: !meta.archiviert });
-  }, [upsertKlasseMeta]);
+  const handleToggleArchiv = useCallback(async (name: string, meta?: KlasseMeta) => {
+    const ok = meta
+      ? await archiveKlasse(name, !meta.archiviert)
+      : await archiveKlasse(name, true);
+    if (ok) await listKlassen().then(setKlassen);
+  }, [archiveKlasse, listKlassen]);
+
+  const handleKlasseLoeschvorschau = useCallback(async (name: string) => {
+    setKlasseLoeschBusy(true);
+    const preview = await getKlassenLoeschvorschau(name);
+    setKlasseLoeschvorschau(preview);
+    setKlasseLoeschBusy(false);
+  }, [getKlassenLoeschvorschau]);
+
+  const handleKlasseLoeschen = useCallback(async () => {
+    if (!klasseLoeschvorschau) return;
+    const { klasse, schueler, abgaben, materialien, briefings, quelltexte } = klasseLoeschvorschau;
+    const bestaetigt = window.confirm(
+      `Klasse „${klasse}" und alle zugehörigen Daten endgültig löschen?\n\n` +
+      `${schueler} Schüler, ${abgaben} Abgaben, ${materialien} Materialien, ` +
+      `${briefings} Briefings und ${quelltexte} Quelltexte werden entfernt. ` +
+      `Dieser Vorgang kann nicht rückgängig gemacht werden.`,
+    );
+    if (!bestaetigt) return;
+    const eingegeben = window.prompt(`Zur Bestätigung exakt „${klasse}" eingeben:`);
+    if (eingegeben?.trim() !== klasse) return;
+
+    setKlasseLoeschBusy(true);
+    const report = await deleteKlasse(klasse);
+    if (report) {
+      setKlasseLoeschvorschau(null);
+      if (selectedKlasse === klasse) {
+        setSelectedKlasse(null);
+        setSelectedAufgabe(null);
+        setAufgaben([]);
+        setAbgaben([]);
+        setHeatmap([]);
+        setStatistik(null);
+        setTrend([]);
+        setFehlerTrend([]);
+        setKalibrierung(null);
+        setFehlerDetail(null);
+        setBriefing(null);
+        setBriefingError(null);
+      }
+      await listKlassen().then(setKlassen);
+    }
+    setKlasseLoeschBusy(false);
+  }, [klasseLoeschvorschau, deleteKlasse, listKlassen, selectedKlasse]);
 
   const loadKlasse = useCallback(async (klasse: string) => {
     setSelectedKlasse(klasse);
@@ -429,6 +484,43 @@ export function KlassenView({ onGenerateUebung }: Props) {
             </div>
           )}
 
+          {klasseLoeschvorschau && (
+            <section
+              aria-label="Vorschau Klassenlöschung"
+              style={{
+                border: '1px solid var(--color-danger, #c0392b)', borderRadius: 'var(--radius)',
+                padding: '0.625rem', marginBottom: '0.75rem', background: 'var(--color-bg-base)',
+              }}
+            >
+              <strong style={{ display: 'block', fontSize: '0.75rem', marginBottom: '0.3rem' }}>
+                Endgültige Löschung: {klasseLoeschvorschau.klasse}
+              </strong>
+              <p style={{ fontSize: '0.7rem', lineHeight: 1.4, margin: '0 0 0.45rem', color: 'var(--color-text-secondary)' }}>
+                Betroffen sind {klasseLoeschvorschau.schueler} Schüler, {klasseLoeschvorschau.abgaben} Abgaben,
+                {` ${klasseLoeschvorschau.materialien} Materialien, ${klasseLoeschvorschau.briefings} Briefings und ${klasseLoeschvorschau.quelltexte} Quelltexte`}.
+                Abhängige Korrekturhistorien werden mitgelöscht.
+              </p>
+              <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                <button
+                  className="btn-danger"
+                  onClick={handleKlasseLoeschen}
+                  disabled={klasseLoeschBusy}
+                  style={{ fontSize: '0.7rem', padding: '0.3rem 0.5rem' }}
+                >
+                  {klasseLoeschBusy ? 'Lösche …' : 'Endgültig löschen'}
+                </button>
+                <button
+                  className="btn-secondary"
+                  onClick={() => setKlasseLoeschvorschau(null)}
+                  disabled={klasseLoeschBusy}
+                  style={{ fontSize: '0.7rem', padding: '0.3rem 0.5rem' }}
+                >
+                  Abbrechen
+                </button>
+              </div>
+            </section>
+          )}
+
           {klassenListe.length === 0 && !error && !zeigeKlasseForm && (
             <EmptyState
               icon={School}
@@ -462,24 +554,30 @@ export function KlassenView({ onGenerateUebung }: Props) {
                 >
                   <Pencil size={12} />
                 </button>
+                <button
+                  onClick={() => handleToggleArchiv(k.name, k.meta)}
+                  title={k.meta?.archiviert ? 'Aus Archiv holen' : 'Archivieren'}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-secondary)', padding: 2 }}
+                >
+                  {k.meta?.archiviert ? <ArchiveRestore size={12} /> : <Archive size={12} />}
+                </button>
                 {k.meta && (
-                  <>
-                    <button
-                      onClick={() => handleToggleArchiv(k.meta!)}
-                      title={k.meta.archiviert ? 'Aus Archiv holen' : 'Archivieren'}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-secondary)', padding: 2 }}
-                    >
-                      {k.meta.archiviert ? <ArchiveRestore size={12} /> : <Archive size={12} />}
-                    </button>
-                    <button
-                      onClick={() => { if (window.confirm(`Metadaten zu „${k.name}" entfernen? (Nur Fach/Stufe/Schuljahr — Abgaben/Schüler bleiben unberührt.)`)) removeKlasseMeta(k.name); }}
-                      title="Metadaten entfernen"
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-secondary)', padding: 2 }}
-                    >
-                      <Trash2 size={12} />
-                    </button>
-                  </>
+                  <button
+                    onClick={() => { if (window.confirm(`Metadaten zu „${k.name}" entfernen? (Nur Fach/Stufe/Schuljahr — Abgaben/Schüler bleiben unberührt.)`)) removeKlasseMeta(k.name); }}
+                    title="Metadaten entfernen"
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-secondary)', padding: 2 }}
+                  >
+                    <X size={12} />
+                  </button>
                 )}
+                <button
+                  onClick={() => handleKlasseLoeschvorschau(k.name)}
+                  title="Klasse endgültig löschen"
+                  disabled={klasseLoeschBusy}
+                  style={{ background: 'none', border: 'none', cursor: klasseLoeschBusy ? 'default' : 'pointer', color: 'var(--color-danger, #c0392b)', padding: 2 }}
+                >
+                  <Trash2 size={12} />
+                </button>
               </div>
             </div>
           ))}
