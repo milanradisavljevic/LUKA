@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 
 /** Spiegelt KlasseMeta aus src-tauri/src/commands/klassen.rs (serde camelCase). */
 export interface KlasseMeta {
+  id?: string | null;
   name: string;
   fach?: string | null;
   stufe?: string | null;

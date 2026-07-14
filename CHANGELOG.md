@@ -7,6 +7,11 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Stabile Klassenidentitäten
+- Klassenmetadaten erhalten zusätzlich eine stabile technische ID. Bestehende
+  Klassen werden beim ersten Start sicher nachgerüstet; der Klassenname bleibt
+  der kompatible Schlüssel zur Korrektur.
+
 ### Fixed — Korrektur-Heatmap: Quelltext-Prefill weist auf fehlende Quelle hin
 - Springt eine Übung aus der Klassen-Heatmap ohne ausreichenden Ausgangstext
   in den Generator, zeigt Schritt 0 jetzt eine klare Wahl: Quelltext einfügen

@@ -70,6 +70,7 @@ CREATE INDEX IF NOT EXISTS idx_pool_thema ON aufgabe_pool(thema);
 -- nicht geprüft. Umbenennen einer Klasse hier ändert NICHTS an existierenden
 -- NATASCHA-Datensätzen — die UI muss das kommunizieren.
 CREATE TABLE IF NOT EXISTS lua_klassen (
+    id TEXT,
     name TEXT PRIMARY KEY,
     fach TEXT,
     stufe TEXT,

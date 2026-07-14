@@ -3,6 +3,7 @@ use std::sync::Mutex;
 
 use once_cell::sync::Lazy;
 use rusqlite::Connection;
+use uuid::Uuid;
 
 pub const NATASCHA_SCHEMA_SQL: &str = include_str!("natascha_schema.sql");
 pub const LUA_SCHEMA_SQL: &str = include_str!("lua_schema.sql");
@@ -44,6 +45,7 @@ pub fn init_schema(conn: &Connection) -> Result<(), String> {
     conn.execute_batch(NATASCHA_SCHEMA_SQL).map_err(|e| format!("Korrektur-Schema fehlgeschlagen: {}", e))?;
     conn.execute_batch(LUA_SCHEMA_SQL).map_err(|e| format!("LUA-Schema fehlgeschlagen: {}", e))?;
     migrate_pool_local_metadata(conn)?;
+    migrate_lua_klassen_identity(conn)?;
     Ok(())
 }
 
@@ -76,6 +78,44 @@ fn migrate_pool_local_metadata(conn: &Connection) -> Result<(), String> {
          CREATE INDEX IF NOT EXISTS idx_pool_last_used ON aufgabe_pool(last_used_at);",
     )
     .map_err(|e| format!("Pool-Migration Indizes fehlgeschlagen: {}", e))?;
+    Ok(())
+}
+
+/// Ergänzt die stabile LUA-Identität für Klassen in bereits vorhandenen Datenbanken.
+/// `name` bleibt bewusst der NATASCHA-Brückenschlüssel und Primärschlüssel.
+fn migrate_lua_klassen_identity(conn: &Connection) -> Result<(), String> {
+    let mut stmt = conn
+        .prepare("PRAGMA table_info(lua_klassen)")
+        .map_err(|e| format!("Klassen-ID-Migration vorbereiten fehlgeschlagen: {}", e))?;
+    let columns: std::collections::HashSet<String> = stmt
+        .query_map([], |row| row.get::<_, String>(1))
+        .map_err(|e| format!("Klassen-ID-Migration lesen fehlgeschlagen: {}", e))?
+        .collect::<Result<_, _>>()
+        .map_err(|e| format!("Klassen-ID-Migration auswerten fehlgeschlagen: {}", e))?;
+
+    if !columns.contains("id") {
+        conn.execute_batch("ALTER TABLE lua_klassen ADD COLUMN id TEXT;")
+            .map_err(|e| format!("Klassen-ID-Migration Spalte fehlgeschlagen: {}", e))?;
+    }
+
+    let mut backfill_stmt = conn
+        .prepare("SELECT name FROM lua_klassen WHERE id IS NULL OR trim(id) = ''")
+        .map_err(|e| format!("Klassen-ID-Migration Backfill vorbereiten fehlgeschlagen: {}", e))?;
+    let namen: Vec<String> = backfill_stmt
+        .query_map([], |row| row.get::<_, String>(0))
+        .map_err(|e| format!("Klassen-ID-Migration Backfill lesen fehlgeschlagen: {}", e))?
+        .collect::<Result<_, _>>()
+        .map_err(|e| format!("Klassen-ID-Migration Backfill auswerten fehlgeschlagen: {}", e))?;
+    for name in namen {
+        conn.execute(
+            "UPDATE lua_klassen SET id=?1 WHERE name=?2 AND (id IS NULL OR trim(id) = '')",
+            rusqlite::params![Uuid::new_v4().to_string(), name],
+        )
+        .map_err(|e| format!("Klassen-ID-Migration Backfill fehlgeschlagen: {}", e))?;
+    }
+
+    conn.execute_batch("CREATE UNIQUE INDEX IF NOT EXISTS idx_lua_klassen_id ON lua_klassen(id);")
+        .map_err(|e| format!("Klassen-ID-Migration Index fehlgeschlagen: {}", e))?;
     Ok(())
 }
 
@@ -180,5 +220,52 @@ mod tests {
         assert!(columns.contains("is_favorite"));
         assert!(columns.contains("quality_status"));
         assert!(columns.contains("last_used_at"));
+    }
+
+    #[test]
+    fn lua_klassen_identity_migration_ergaenzt_alte_datenbank() {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(
+            "CREATE TABLE lua_klassen (
+                name TEXT PRIMARY KEY, fach TEXT, stufe TEXT, schulstufe INTEGER,
+                schuljahr TEXT, notizen TEXT, archiviert INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+            INSERT INTO lua_klassen (name, fach) VALUES ('7A', 'deutsch'), ('8B', 'englisch');",
+        )
+        .unwrap();
+
+        init_schema(&conn).unwrap();
+
+        let columns: std::collections::HashSet<String> = conn
+            .prepare("PRAGMA table_info(lua_klassen)")
+            .unwrap()
+            .query_map([], |row| row.get::<_, String>(1))
+            .unwrap()
+            .collect::<Result<_, _>>()
+            .unwrap();
+        assert!(columns.contains("id"));
+
+        let ids: Vec<String> = conn
+            .prepare("SELECT id FROM lua_klassen ORDER BY name")
+            .unwrap()
+            .query_map([], |row| row.get::<_, String>(0))
+            .unwrap()
+            .collect::<Result<_, _>>()
+            .unwrap();
+        assert_eq!(ids.len(), 2);
+        assert!(ids.iter().all(|id| Uuid::parse_str(id).is_ok()));
+        assert_ne!(ids[0], ids[1]);
+
+        let unique_index_exists: bool = conn
+            .prepare("PRAGMA index_list(lua_klassen)")
+            .unwrap()
+            .query_map([], |row| Ok((row.get::<_, String>(1)?, row.get::<_, i64>(2)? != 0)))
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap()
+            .into_iter()
+            .any(|(name, unique)| name == "idx_lua_klassen_id" && unique);
+        assert!(unique_index_exists);
     }
 }
