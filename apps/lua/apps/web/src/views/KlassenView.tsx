@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { GraduationCap, Users, BarChart3, AlertTriangle, TrendingUp, TrendingDown, Download, Wand2, Sparkles, Loader2, School, Plus, Archive, ArchiveRestore, Pencil, Trash2, X } from 'lucide-react';
 import { EmptyState } from './_EmptyState';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from 'recharts';
-import type { KlasseInfo } from '../lib/storage';
+import { loadDocuments, type KlasseInfo } from '../lib/storage';
 import { useNatascha } from '../hooks/useNatascha';
 import type { KlassenBriefingRow, FehlerTrendPunkt } from '../hooks/useNatascha';
 import { useKlassenMeta, type KlasseMeta, type KlassenLoeschvorschau } from '../hooks/useKlassenMeta';
@@ -25,6 +25,8 @@ interface Props {
 interface AbgabeInfo {
   id: number;
   schuelerId: number | null;
+  unterrichtseinsatzId: string | null;
+  materialId: string | null;
   klasse: string;
   aufgabe: string;
   dateiname: string;
@@ -378,7 +380,12 @@ export function KlassenView({ onGenerateUebung }: Props) {
       }
     }
     let ausgangstext = '';
-    if (selectedKlasse && selectedAufgabe) {
+    const materialId = abgaben.find((a) => a.materialId)?.materialId;
+    if (materialId) {
+      const doc = loadDocuments().find((d) => d.id === materialId);
+      ausgangstext = doc?.snapshot.quelltexte?.map((q) => q.inhalt).filter(Boolean).join('\n\n') ?? '';
+    }
+    if (!ausgangstext && selectedKlasse && selectedAufgabe) {
       ausgangstext = await quelltextGet(selectedKlasse, selectedAufgabe);
     }
     const prefill: NataschaPrefill = {
@@ -391,7 +398,7 @@ export function KlassenView({ onGenerateUebung }: Props) {
       ausgangstext: ausgangstext || undefined,
     };
     onGenerateUebung?.(prefill);
-  }, [selectedKlasse, selectedAufgabe, heatmap, onGenerateUebung, quelltextGet]);
+  }, [selectedKlasse, selectedAufgabe, heatmap, abgaben, onGenerateUebung, quelltextGet]);
 
   const handleGenerateBriefing = useCallback(async () => {
     if (!selectedKlasse) return;

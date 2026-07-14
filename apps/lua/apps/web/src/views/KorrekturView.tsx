@@ -1,7 +1,10 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { SpellCheck, FileText, GraduationCap, Save, AlertTriangle, Loader2, Upload, FileDown, ChevronRight, Eye, EyeOff, Files, XCircle, CheckCircle2, ShieldCheck } from 'lucide-react';
-import { loadSettings } from '../lib/storage';
+import { loadDocuments, loadSettings } from '../lib/storage';
 import { useNatascha, type PersonenVorschau, type SchuelerInfo } from '../hooks/useNatascha';
+import { useEinsatz, type EinsatzRecord } from '../hooks/useEinsatz';
+import { useKlassenMeta } from '../hooks/useKlassenMeta';
+import { einsatzAnzeigeDatum, formatEinsatzDatum } from '../lib/einsatz';
 import { ViewShell } from './_ViewShell';
 import { anzeigeName } from '../lib/anzeigeName';
 import { InfoDot } from '../components/ui/InfoDot';
@@ -16,6 +19,8 @@ interface AbgabeDetail {
   abgabe: {
     id: number;
     schuelerId: number | null;
+    unterrichtseinsatzId: string | null;
+    materialId: string | null;
     klasse: string;
     aufgabe: string;
     dateiname: string;
@@ -77,6 +82,8 @@ interface KorrekturViewProps {
 
 export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
   const { analyze, analyzing, analyzeError, listKlassen, listAufgaben, getAbgaben, getAbgabeDetail, upsertLehrerFeedback, generateFeedbackDocx, retroImport, personenVorschau, listSchueler } = useNatascha();
+  const { list: listEinsaetze } = useEinsatz();
+  const { klassen: klassenMeta, refresh: refreshKlassenMeta } = useKlassenMeta();
 
   const [mode, setMode] = useState<'tui' | 'native'>('native');
   const [klassen, setKlassen] = useState<KlasseInfo[]>([]);
@@ -101,6 +108,8 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
   // Ausgangstext (Angabe/Quelltext der Arbeit) — optional. Schließt den In-App-Closed-Loop:
   // wird mitanalysiert und kann später die passgenaue Übung vorbefüllen.
   const [analyzeAusgangstext, setAnalyzeAusgangstext] = useState('');
+  const [selectedEinsatzId, setSelectedEinsatzId] = useState('');
+  const [einsatzOptions, setEinsatzOptions] = useState<EinsatzRecord[]>([]);
   const [analyzeSuccess, setAnalyzeSuccess] = useState<string | null>(null);
   // Pseudonymisierung: Redaktionsvorschau + Schalter (Standard AN).
   const [pseudoAktiv, setPseudoAktiv] = useState(true);
@@ -143,6 +152,37 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     })();
     return () => { cancelled = true; if (unlisten) unlisten(); setDragActive(false); };
   }, [analyzeOpen]);
+
+  useEffect(() => {
+    if (!analyzeOpen || !isTauri()) return;
+    void refreshKlassenMeta();
+  }, [analyzeOpen, refreshKlassenMeta]);
+
+  useEffect(() => {
+    if (!analyzeOpen || !isTauri()) return;
+    let active = true;
+    (async () => {
+      const rows = await listEinsaetze();
+      if (!active) return;
+      const archived = new Set(klassenMeta.filter((k) => k.archiviert).map((k) => k.name));
+      setEinsatzOptions(rows.filter((e) => !archived.has(e.klasseNameSnapshot)));
+    })();
+    return () => { active = false; };
+  }, [analyzeOpen, listEinsaetze, klassenMeta]);
+
+  const handleEinsatzChange = useCallback((id: string) => {
+    setSelectedEinsatzId(id);
+    if (!id) return;
+    const einsatz = einsatzOptions.find((e) => e.id === id);
+    if (!einsatz) return;
+    if (einsatz.klasseNameSnapshot) setAnalyzeKlasse(einsatz.klasseNameSnapshot);
+    let source = '';
+    if (einsatz.materialId) {
+      const doc = loadDocuments().find((d) => d.id === einsatz.materialId);
+      source = doc?.snapshot.quelltexte?.map((q) => q.inhalt).filter(Boolean).join('\n\n') ?? '';
+    }
+    setAnalyzeAusgangstext(source);
+  }, [einsatzOptions]);
 
   useEffect(() => {
     listKlassen().then(setKlassen);
@@ -308,13 +348,15 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     if (!analyzeFile || !analyzeKlasse || !analyzeAufgabe) return;
     setError(null);
     setAnalyzeSuccess(null);
-    const result = await analyze(analyzeFile, analyzeKlasse, analyzeAufgabe, { ausgangstext: analyzeAusgangstext.trim() || undefined, pseudonymisierung: pseudoAktiv, schuelerId: zuordnungId === '' ? undefined : zuordnungId });
+    const einsatz = einsatzOptions.find((e) => e.id === selectedEinsatzId);
+    const result = await analyze(analyzeFile, analyzeKlasse, analyzeAufgabe, { ausgangstext: analyzeAusgangstext.trim() || undefined, pseudonymisierung: pseudoAktiv, schuelerId: zuordnungId === '' ? undefined : zuordnungId, einsatzId: einsatz?.id, materialId: einsatz?.materialId ?? undefined });
     if (result) {
       setAnalyzeSuccess('Analyse abgeschlossen — Daten gespeichert.');
       setAnalyzeOpen(false);
       setAnalyzeFile('');
       setAnalyzeAufgabe('');
       setAnalyzeAusgangstext('');
+      setSelectedEinsatzId('');
       const refreshed = await listKlassen();
       setKlassen(refreshed);
       if (analyzeKlasse) {
@@ -323,7 +365,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     } else {
       setError(analyzeError ?? 'Analyse fehlgeschlagen');
     }
-  }, [analyze, analyzeFile, analyzeKlasse, analyzeAufgabe, analyzeAusgangstext, analyzeError, listKlassen, loadAufgaben, pseudoAktiv, zuordnungId]);
+  }, [analyze, analyzeFile, analyzeKlasse, analyzeAufgabe, analyzeAusgangstext, analyzeError, listKlassen, loadAufgaben, pseudoAktiv, zuordnungId, einsatzOptions, selectedEinsatzId]);
 
   const annotatedNodes = useMemo(() => {
     const rohtext = selectedAbgabe?.abgabe.rohtext;
@@ -377,7 +419,8 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
       const file = batchFiles[i]!;
       setBatchCurrent(i + 1);
       try {
-        const result = await analyze(file, analyzeKlasse, analyzeAufgabe, { ausgangstext: analyzeAusgangstext.trim() || undefined, pseudonymisierung: pseudoAktiv });
+        const einsatz = einsatzOptions.find((e) => e.id === selectedEinsatzId);
+        const result = await analyze(file, analyzeKlasse, analyzeAufgabe, { ausgangstext: analyzeAusgangstext.trim() || undefined, pseudonymisierung: pseudoAktiv, einsatzId: einsatz?.id, materialId: einsatz?.materialId ?? undefined });
         if (result) {
           const note = result?.analysis?.notenempfehlung?.note;
           results.push({ file, ok: true, msg: note != null ? `Note ${note}` : 'OK' });
@@ -396,7 +439,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     const refreshed = await listKlassen();
     setKlassen(refreshed);
     if (analyzeKlasse) await loadAufgaben(analyzeKlasse);
-  }, [batchFiles, analyzeKlasse, analyzeAufgabe, analyzeAusgangstext, analyze, analyzeError, listKlassen, loadAufgaben, pseudoAktiv]);
+  }, [batchFiles, analyzeKlasse, analyzeAufgabe, analyzeAusgangstext, analyze, analyzeError, listKlassen, loadAufgaben, pseudoAktiv, einsatzOptions, selectedEinsatzId]);
 
   const cardStyle = {
     padding: '1.25rem', border: '1px solid var(--color-border)',
@@ -410,7 +453,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
       title="Korrektur"
       description="Schülerabgaben analysieren und bewerten."
       maxWidth={mode === 'native' ? 1400 : 860}
-      action={mode === 'native' ? <button className="btn-secondary" onClick={() => setAnalyzeOpen(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.8125rem', padding: '0.375rem 0.75rem' }}><Upload size={14} /> Neue Analyse</button> : undefined}
+      action={mode === 'native' ? <button className="btn-secondary" onClick={() => { setSelectedEinsatzId(''); setAnalyzeOpen(true); }} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.8125rem', padding: '0.375rem 0.75rem' }}><Upload size={14} /> Neue Analyse</button> : undefined}
     >
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
         <button
@@ -810,6 +853,25 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
                   ))}
                 </div>
               )}
+            </div>
+
+            <div style={{ marginBottom: '0.75rem' }}>
+              <label>Unterrichtseinsatz <span style={{ color: 'var(--color-text-secondary)', fontWeight: 400 }}>(optional)</span></label>
+              <select
+                value={selectedEinsatzId}
+                onChange={(e) => handleEinsatzChange(e.target.value)}
+                style={{ width: '100%' }}
+              >
+                <option value="">Keinen Einsatz auswählen — Verhalten wie bisher</option>
+                {einsatzOptions.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {(e.titelSnapshot || 'Unbenannte Unterlage')} · {(e.klasseNameSnapshot || 'Klasse offen')} · {formatEinsatzDatum(einsatzAnzeigeDatum(e))}
+                  </option>
+                ))}
+              </select>
+              {selectedEinsatzId && <p style={{ margin: '0.25rem 0 0', fontSize: '0.72rem', color: 'var(--color-text-secondary)' }}>
+                Klasse und Ausgangstext wurden aus dem Einsatz vorbefüllt und bleiben bewusst überschreibbar.
+              </p>}
             </div>
 
             <div style={{ marginBottom: '0.75rem' }}>

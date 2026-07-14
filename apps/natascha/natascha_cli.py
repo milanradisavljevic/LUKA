@@ -108,6 +108,8 @@ def cmd_analyze(args):
         pseudonymisierung=not args.keine_pseudonymisierung,
         db_path_override=db_path,
         bestaetigte_schueler_id=args.schueler_id,
+        unterrichtseinsatz_id=args.einsatz_id,
+        material_id=args.material_id,
     )
 
     if data is None:
@@ -601,6 +603,8 @@ def main():
     p_analyze.add_argument("--schueler", default="")
     p_analyze.add_argument("--bewertungsmodus", default="benotet", choices=["benotet", "formativ"])
     p_analyze.add_argument("--ausgangstext", default=None)
+    p_analyze.add_argument("--einsatz-id", default=None)
+    p_analyze.add_argument("--material-id", default=None)
     p_analyze.add_argument("--erwartungshorizont", default="")
     p_analyze.add_argument("--rubric", default="")
     p_analyze.add_argument("--max-retries", type=int, default=3)

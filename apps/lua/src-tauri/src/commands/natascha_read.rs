@@ -8,6 +8,8 @@ use crate::commands::db::DbState;
 pub struct AbgabeInfo {
     pub id: i64,
     pub schueler_id: Option<i64>,
+    pub unterrichtseinsatz_id: Option<String>,
+    pub material_id: Option<String>,
     pub klasse: String,
     pub aufgabe: String,
     pub dateiname: String,
@@ -78,9 +80,9 @@ pub async fn db_get_abgaben(state: tauri::State<'_, DbState>, klasse: String, au
     let conn = &*guard;
 
     let sql = if aufgabe.is_some() {
-        "SELECT a.id, a.schueler_id, a.klasse, a.aufgabe, a.dateiname, a.datum, a.note, a.gesamtstufe, a.wortanzahl, a.fach, a.schulstufe, a.textsorte, s.vorname, s.nachname, CASE WHEN lf.id IS NOT NULL THEN 1 ELSE 0 END, lf.note_final FROM abgabe a LEFT JOIN schueler s ON a.schueler_id=s.id LEFT JOIN lehrer_feedback lf ON a.id=lf.abgabe_id WHERE a.klasse=?1 AND a.aufgabe=?2 ORDER BY s.nachname, s.vorname, a.dateiname"
+        "SELECT a.id, a.schueler_id, a.unterrichtseinsatz_id, a.material_id, a.klasse, a.aufgabe, a.dateiname, a.datum, a.note, a.gesamtstufe, a.wortanzahl, a.fach, a.schulstufe, a.textsorte, s.vorname, s.nachname, CASE WHEN lf.id IS NOT NULL THEN 1 ELSE 0 END, lf.note_final FROM abgabe a LEFT JOIN schueler s ON a.schueler_id=s.id LEFT JOIN lehrer_feedback lf ON a.id=lf.abgabe_id WHERE a.klasse=?1 AND a.aufgabe=?2 ORDER BY s.nachname, s.vorname, a.dateiname"
     } else {
-        "SELECT a.id, a.schueler_id, a.klasse, a.aufgabe, a.dateiname, a.datum, a.note, a.gesamtstufe, a.wortanzahl, a.fach, a.schulstufe, a.textsorte, s.vorname, s.nachname, CASE WHEN lf.id IS NOT NULL THEN 1 ELSE 0 END, lf.note_final FROM abgabe a LEFT JOIN schueler s ON a.schueler_id=s.id LEFT JOIN lehrer_feedback lf ON a.id=lf.abgabe_id WHERE a.klasse=?1 ORDER BY a.aufgabe, s.nachname, s.vorname, a.dateiname"
+        "SELECT a.id, a.schueler_id, a.unterrichtseinsatz_id, a.material_id, a.klasse, a.aufgabe, a.dateiname, a.datum, a.note, a.gesamtstufe, a.wortanzahl, a.fach, a.schulstufe, a.textsorte, s.vorname, s.nachname, CASE WHEN lf.id IS NOT NULL THEN 1 ELSE 0 END, lf.note_final FROM abgabe a LEFT JOIN schueler s ON a.schueler_id=s.id LEFT JOIN lehrer_feedback lf ON a.id=lf.abgabe_id WHERE a.klasse=?1 ORDER BY a.aufgabe, s.nachname, s.vorname, a.dateiname"
     };
 
     let params: Vec<Box<dyn rusqlite::types::ToSql>> = if let Some(ref af) = aufgabe {
@@ -95,20 +97,22 @@ pub async fn db_get_abgaben(state: tauri::State<'_, DbState>, klasse: String, au
         Ok(AbgabeInfo {
             id: row.get(0)?,
             schueler_id: row.get(1)?,
-            klasse: row.get(2)?,
-            aufgabe: row.get(3)?,
-            dateiname: row.get(4)?,
-            datum: row.get(5)?,
-            note: row.get(6)?,
-            gesamtstufe: row.get(7)?,
-            wortanzahl: row.get(8)?,
-            fach: row.get(9)?,
-            schulstufe: row.get(10)?,
-            textsorte: row.get(11)?,
-            vorname: row.get(12)?,
-            nachname: row.get(13)?,
-            hat_lehrer_feedback: row.get::<_, i64>(14)? != 0,
-            note_final: row.get(15)?,
+            unterrichtseinsatz_id: row.get(2)?,
+            material_id: row.get(3)?,
+            klasse: row.get(4)?,
+            aufgabe: row.get(5)?,
+            dateiname: row.get(6)?,
+            datum: row.get(7)?,
+            note: row.get(8)?,
+            gesamtstufe: row.get(9)?,
+            wortanzahl: row.get(10)?,
+            fach: row.get(11)?,
+            schulstufe: row.get(12)?,
+            textsorte: row.get(13)?,
+            vorname: row.get(14)?,
+            nachname: row.get(15)?,
+            hat_lehrer_feedback: row.get::<_, i64>(16)? != 0,
+            note_final: row.get(17)?,
             rohtext: None,
         })
     }).map_err(|e| format!("query: {}", e))?;
@@ -309,26 +313,28 @@ pub async fn db_get_abgabe_detail(state: tauri::State<'_, DbState>, abgabe_id: i
     let conn = &*guard;
 
     let abgabe = conn.query_row(
-        "SELECT a.id, a.schueler_id, a.klasse, a.aufgabe, a.dateiname, a.datum, a.note, a.gesamtstufe, a.wortanzahl, a.fach, a.schulstufe, a.textsorte, s.vorname, s.nachname, CASE WHEN lf.id IS NOT NULL THEN 1 ELSE 0 END, lf.note_final, a.rohtext FROM abgabe a LEFT JOIN schueler s ON a.schueler_id=s.id LEFT JOIN lehrer_feedback lf ON a.id=lf.abgabe_id WHERE a.id=?1",
+        "SELECT a.id, a.schueler_id, a.unterrichtseinsatz_id, a.material_id, a.klasse, a.aufgabe, a.dateiname, a.datum, a.note, a.gesamtstufe, a.wortanzahl, a.fach, a.schulstufe, a.textsorte, s.vorname, s.nachname, CASE WHEN lf.id IS NOT NULL THEN 1 ELSE 0 END, lf.note_final, a.rohtext FROM abgabe a LEFT JOIN schueler s ON a.schueler_id=s.id LEFT JOIN lehrer_feedback lf ON a.id=lf.abgabe_id WHERE a.id=?1",
         rusqlite::params![abgabe_id], |row| {
             Ok(AbgabeInfo {
                 id: row.get(0)?,
                 schueler_id: row.get(1)?,
-                klasse: row.get(2)?,
-                aufgabe: row.get(3)?,
-                dateiname: row.get(4)?,
-                datum: row.get(5)?,
-                note: row.get(6)?,
-                gesamtstufe: row.get(7)?,
-                wortanzahl: row.get(8)?,
-                fach: row.get(9)?,
-                schulstufe: row.get(10)?,
-                textsorte: row.get(11)?,
-                vorname: row.get(12)?,
-                nachname: row.get(13)?,
-                hat_lehrer_feedback: row.get::<_, i64>(14)? != 0,
-                note_final: row.get(15)?,
-                rohtext: row.get(16)?,
+                unterrichtseinsatz_id: row.get(2)?,
+                material_id: row.get(3)?,
+                klasse: row.get(4)?,
+                aufgabe: row.get(5)?,
+                dateiname: row.get(6)?,
+                datum: row.get(7)?,
+                note: row.get(8)?,
+                gesamtstufe: row.get(9)?,
+                wortanzahl: row.get(10)?,
+                fach: row.get(11)?,
+                schulstufe: row.get(12)?,
+                textsorte: row.get(13)?,
+                vorname: row.get(14)?,
+                nachname: row.get(15)?,
+                hat_lehrer_feedback: row.get::<_, i64>(16)? != 0,
+                note_final: row.get(17)?,
+                rohtext: row.get(18)?,
             })
         }
     ).map_err(|e| format!("query abgabe: {}", e))?;

@@ -844,6 +844,8 @@ def run_llm_analysis(
     pseudonymisierung: bool = True,
     db_path_override: Path | None = None,
     bestaetigte_schueler_id: int | None = None,
+    unterrichtseinsatz_id: str | None = None,
+    material_id: str | None = None,
 ) -> tuple[dict[str, Any] | None, list[str]]:
     """
     Fuehrt die vollstaendige LLM-Analyse durch: Prompt bauen, API aufrufen,
@@ -1204,6 +1206,8 @@ def run_llm_analysis(
                     wortanzahl=wortanzahl,
                     feedback_json_path=json_path_str,
                     bestaetigte_schueler_id=bestaetigte_schueler_id,
+                    unterrichtseinsatz_id=unterrichtseinsatz_id,
+                    material_id=material_id,
                 )
                 if abgabe_id and abgabe_id > 0:
                     data["_abgabe_id"] = abgabe_id

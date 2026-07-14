@@ -5,6 +5,8 @@ import type { KlasseInfo } from '../lib/storage';
 interface AbgabeInfo {
   id: number;
   schuelerId: number | null;
+  unterrichtseinsatzId: string | null;
+  materialId: string | null;
   klasse: string;
   aufgabe: string;
   dateiname: string;
@@ -91,7 +93,7 @@ export function useNatascha() {
     filePath: string,
     klasse: string,
     aufgabe: string,
-    opts?: { fach?: string; schulstufe?: string; textsorte?: string; schueler?: string; bewertungsmodus?: string; ausgangstext?: string; pseudonymisierung?: boolean; schuelerId?: number },
+    opts?: { fach?: string; schulstufe?: string; textsorte?: string; schueler?: string; bewertungsmodus?: string; ausgangstext?: string; pseudonymisierung?: boolean; schuelerId?: number; einsatzId?: string; materialId?: string },
   ) => {
     setAnalyzing(true);
     setAnalyzeError(null);
@@ -111,6 +113,8 @@ export function useNatascha() {
         ausgangstext: opts?.ausgangstext,
         pseudonymisierung: opts?.pseudonymisierung,
         schuelerId: opts?.schuelerId,
+        einsatzId: opts?.einsatzId,
+        materialId: opts?.materialId,
       });
       return JSON.parse(result);
     } catch (e) {

@@ -420,6 +420,8 @@ pub async fn natascha_analyze(
     rubric: Option<String>,
     pseudonymisierung: Option<bool>,
     schueler_id: Option<i64>,
+    einsatz_id: Option<String>,
+    material_id: Option<String>,
 ) -> Result<String, String> {
     let mut cmd = build_cli_command(&dir, &python)?;
     cmd.arg("analyze")
@@ -461,6 +463,12 @@ pub async fn natascha_analyze(
     // Namensheuristik und legt nie neue Schüler an.
     if let Some(id) = schueler_id {
         cmd.arg("--schueler-id").arg(id.to_string());
+    }
+    if let Some(ref id) = einsatz_id {
+        cmd.arg("--einsatz-id").arg(id);
+    }
+    if let Some(ref id) = material_id {
+        cmd.arg("--material-id").arg(id);
     }
     run_cli_and_capture(cmd, Some(&app), "Korrektur-Analyse").await
 }
