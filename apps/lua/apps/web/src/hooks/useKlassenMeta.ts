@@ -20,6 +20,7 @@ export interface KlassenLoeschvorschau {
   materialien: number;
   briefings: number;
   quelltexte: number;
+  einsaetze: number;
 }
 
 async function invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {

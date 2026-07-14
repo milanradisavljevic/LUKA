@@ -7,6 +7,13 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Einsatz-UI für den Unterrichtskreislauf
+- Gespeicherte Unterlagen können nun einer aktiven Klasse als geplanter oder
+  eingesetzter Unterrichtseinsatz zugeordnet werden. Art, Datum und ein kurzer
+  Rückblick bleiben direkt an der Unterlage sichtbar.
+- Klassen zeigen eine kompakte Chronik ihrer Einsätze. Nach dem Speichern einer
+  Unterlage mit Klasse erinnert ein sanfter Hinweis an das optionale Vermerken.
+
 ### Added — Bestätigte Schülerzuordnung bei der Korrektur
 - Der Analyse-Dialog zeigt eine Zuordnungs-Auswahl aus der Klassenliste; der
   Vorschlag aus dem Dateinamen wird vorausgewählt und ist per Dropdown

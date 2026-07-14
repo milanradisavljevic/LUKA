@@ -5,6 +5,8 @@ import { STEP_DESCRIPTIONS } from './lib/types';
 import { fachLabel } from '@lehrunterlagen/schema';
 import type { Meta, Block, Fach } from '@lehrunterlagen/schema';
 import { useWizard } from './hooks/useWizard';
+import { useEinsatz } from './hooks/useEinsatz';
+import { useKlassenMeta } from './hooks/useKlassenMeta';
 import { useTheme } from './hooks/useTheme';
 import { useZoom } from './hooks/useZoom';
 import { useUpdater } from './hooks/useUpdater';
@@ -105,10 +107,13 @@ export default function App() {
   const updater = useUpdater();
 
   const { state, dispatch, goNext, goBack, goToStep, currentIndex } = useWizard();
+  const { klassen: klassenMeta } = useKlassenMeta();
+  const { upsert: upsertEinsatz } = useEinsatz();
   const { preference: themePreference, resolved: theme, toggle: toggleTheme } = useTheme();
   const { zoom, reset: resetZoom } = useZoom();
   const [activeView, setActiveView] = useState<ActiveView>('dashboard');
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
+  const [einsatzOffer, setEinsatzOffer] = useState<{ materialId: string; titel: string; klasse: string; lernziele: string[] } | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [tafelOpen, setTafelOpen] = useState(false);
   const [draftAtmosphereFach, setDraftAtmosphereFach] = useState<Fach | null>(null);
@@ -342,7 +347,37 @@ export default function App() {
     }
     setSaveMsg('Gespeichert');
     window.setTimeout(() => setSaveMsg(null), 2000);
+    if (state.generiertesDokument && state.meta.klasse?.trim()) {
+      setEinsatzOffer({
+        materialId: id,
+        titel: doc.title,
+        klasse: state.meta.klasse.trim(),
+        lernziele: state.meta.lernziele ?? [],
+      });
+    } else {
+      setEinsatzOffer(null);
+    }
   }, [state, dispatch]);
+
+  const handleEinsatzOffer = useCallback(async () => {
+    if (!einsatzOffer) return;
+    const klasse = klassenMeta.find((meta) => meta.name === einsatzOffer.klasse);
+    const created = await upsertEinsatz({
+      materialId: einsatzOffer.materialId,
+      klasseId: klasse?.id ?? null,
+      klasseNameSnapshot: einsatzOffer.klasse,
+      titelSnapshot: einsatzOffer.titel,
+      status: 'geplant',
+      einsatzArt: 'nur_geplant',
+      geplantAm: new Date().toISOString().slice(0, 10),
+      lernzieleSnapshot: JSON.stringify(einsatzOffer.lernziele),
+    });
+    if (created) {
+      setEinsatzOffer(null);
+      setSaveMsg('Geplanter Einsatz vermerkt');
+      window.setTimeout(() => setSaveMsg(null), 2500);
+    }
+  }, [einsatzOffer, klassenMeta, upsertEinsatz]);
 
   const handleOpenDocument = useCallback((doc: SavedDocument) => {
     const hasWork = state.bloecke.length > 0 || state.generiertesDokument !== null;
@@ -614,6 +649,13 @@ if (hydrating) {
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
             {saveMsg && (
               <span style={{ fontSize: '0.75rem', color: 'var(--color-success)' }}>{saveMsg}</span>
+            )}
+            {einsatzOffer && (
+              <div role="status" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.3rem 0.45rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', background: 'var(--color-bg-surface)', fontSize: '0.72rem' }}>
+                <span>Für Klasse {einsatzOffer.klasse} erstellt — Einsatz vermerken?</span>
+                <button className="btn-primary" onClick={handleEinsatzOffer} style={{ fontSize: '0.7rem', padding: '0.25rem 0.45rem' }}>Vermerken</button>
+                <button className="btn-secondary" onClick={() => setEinsatzOffer(null)} aria-label="Einsatz-Angebot schließen" title="Später" style={{ padding: '0.2rem' }}><span aria-hidden="true">×</span></button>
+              </div>
             )}
             <button
               onClick={() => setPaletteOpen(true)}

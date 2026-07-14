@@ -14,6 +14,8 @@ import { ViewShell } from './_ViewShell';
 import { KiTextBlock } from '../components/KiTextBlock';
 import { anzeigeName } from '../lib/anzeigeName';
 import { InfoDot } from '../components/ui/InfoDot';
+import { useEinsatz, type EinsatzRecord } from '../hooks/useEinsatz';
+import { einsatzAnzeigeDatum, formatEinsatzDatum, labelEinsatzArt, labelRueckblickStatus, sortEinsaetze } from '../lib/einsatz';
 
 interface Props {
   /** Closed Loop: aus der Heatmap ein Übungsblatt im LUA-Generator starten. */
@@ -138,6 +140,7 @@ export function KlassenView({ onGenerateUebung }: Props) {
     deletePreview: getKlassenLoeschvorschau,
     deleteKlasse,
   } = useKlassenMeta();
+  const { list: listEinsaetze } = useEinsatz();
 
   const [tab, setTab] = useState<Tab>('uebersicht');
   const [klassen, setKlassen] = useState<KlasseInfo[]>([]);
@@ -156,6 +159,7 @@ export function KlassenView({ onGenerateUebung }: Props) {
   const [briefing, setBriefing] = useState<KlassenBriefingRow | null>(null);
   const [briefingBusy, setBriefingBusy] = useState(false);
   const [briefingError, setBriefingError] = useState<string | null>(null);
+  const [chronik, setChronik] = useState<EinsatzRecord[]>([]);
 
   // Klasse anlegen/bearbeiten — LUA-eigene Metadaten (Fach/Schulstufe/Schuljahr)
   // zusätzlich zum reinen Klasse-String, den NATASCHA verwendet.
@@ -185,6 +189,27 @@ export function KlassenView({ onGenerateUebung }: Props) {
       setError('Datenbank nicht erreichbar.');
     });
   }, [listKlassen]);
+
+  const selectedKlasseMeta = useMemo(
+    () => klassenMeta.find((meta) => meta.name === selectedKlasse),
+    [klassenMeta, selectedKlasse],
+  );
+
+  useEffect(() => {
+    if (!selectedKlasse) {
+      setChronik([]);
+      return;
+    }
+    let active = true;
+    const filter = selectedKlasseMeta?.id ? { klasseId: selectedKlasseMeta.id } : undefined;
+    listEinsaetze(filter).then((entries) => {
+      if (!active) return;
+      setChronik(sortEinsaetze(entries.filter((entry) =>
+        entry.klasseNameSnapshot === selectedKlasse || !selectedKlasseMeta?.id || entry.klasseId === selectedKlasseMeta.id,
+      )));
+    });
+    return () => { active = false; };
+  }, [listEinsaetze, selectedKlasse, selectedKlasseMeta?.id]);
 
   // Merge: NATASCHA-Klassen (haben Abgaben) ∪ LUA-Metadaten (auch ganz neue,
   // noch abgabenlose Klassen sollen im Wizard bereits nutzbar sein).
@@ -253,11 +278,11 @@ export function KlassenView({ onGenerateUebung }: Props) {
 
   const handleKlasseLoeschen = useCallback(async () => {
     if (!klasseLoeschvorschau) return;
-    const { klasse, schueler, abgaben, materialien, briefings, quelltexte } = klasseLoeschvorschau;
+    const { klasse, schueler, abgaben, materialien, briefings, quelltexte, einsaetze } = klasseLoeschvorschau;
     const bestaetigt = window.confirm(
       `Klasse „${klasse}" und alle zugehörigen Daten endgültig löschen?\n\n` +
       `${schueler} Schüler, ${abgaben} Abgaben, ${materialien} Materialien, ` +
-      `${briefings} Briefings und ${quelltexte} Quelltexte werden entfernt. ` +
+      `${briefings} Briefings, ${quelltexte} Quelltexte und ${einsaetze} Unterrichtseinsätze werden entfernt. ` +
       `Dieser Vorgang kann nicht rückgängig gemacht werden.`,
     );
     if (!bestaetigt) return;
@@ -497,7 +522,7 @@ export function KlassenView({ onGenerateUebung }: Props) {
               </strong>
               <p style={{ fontSize: '0.7rem', lineHeight: 1.4, margin: '0 0 0.45rem', color: 'var(--color-text-secondary)' }}>
                 Betroffen sind {klasseLoeschvorschau.schueler} Schüler, {klasseLoeschvorschau.abgaben} Abgaben,
-                {` ${klasseLoeschvorschau.materialien} Materialien, ${klasseLoeschvorschau.briefings} Briefings und ${klasseLoeschvorschau.quelltexte} Quelltexte`}.
+                {` ${klasseLoeschvorschau.materialien} Materialien, ${klasseLoeschvorschau.briefings} Briefings, ${klasseLoeschvorschau.quelltexte} Quelltexte und ${klasseLoeschvorschau.einsaetze} Unterrichtseinsätze`}.
                 Abhängige Korrekturhistorien werden mitgelöscht.
               </p>
               <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
@@ -616,6 +641,29 @@ export function KlassenView({ onGenerateUebung }: Props) {
           </div>}
 
           {loading && <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>Laden …</p>}
+
+          {selectedKlasse && (
+            <section style={{ ...cardStyle, marginBottom: '1rem' }} aria-labelledby="klassen-chronik">
+              <h4 id="klassen-chronik" style={{ fontSize: '0.875rem', margin: '0 0 0.5rem' }}>Chronik</h4>
+              {chronik.length === 0 ? (
+                <p style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', margin: 0 }}>
+                  Hier erscheinen Unterlagen, sobald du ihren Einsatz in einer Klasse vermerkst.
+                </p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                  {chronik.map((einsatz) => (
+                    <div key={einsatz.id} style={{ borderTop: '1px solid var(--color-border)', paddingTop: '0.45rem' }}>
+                      <strong style={{ fontSize: '0.78rem' }}>{einsatz.titelSnapshot || 'Unbenannte Unterlage'}</strong>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', marginTop: 2 }}>
+                        {formatEinsatzDatum(einsatzAnzeigeDatum(einsatz))} · {labelEinsatzArt(einsatz.einsatzArt)} · Rückblick: {labelRueckblickStatus(einsatz.rueckblick?.status ?? 'offen')}
+                      </div>
+                      {einsatz.notiz && <div style={{ fontSize: '0.72rem', marginTop: 2, whiteSpace: 'pre-wrap' }}>{einsatz.notiz}</div>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
 
           {!loading && !selectedKlasse && (
             <EmptyState
