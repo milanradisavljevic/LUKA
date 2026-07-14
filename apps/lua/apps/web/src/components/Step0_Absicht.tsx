@@ -240,8 +240,10 @@ export function Step0_Absicht({
     [dispatch],
   );
 
+  // Nur fokussieren — der Schrittwechsel muss vorher über handleErstellen laufen,
+  // sonst unmountet Step0, bevor Thema/Fokus-Themen aus dem Prefill per SET_META
+  // committet sind (renderStep ist ein switch, lokaler State ginge verloren).
   const fokussiereQuelltext = useCallback(() => {
-    dispatch({ type: 'SET_STEP', step: 'input' });
     requestAnimationFrame(() => {
       const feld = document.querySelector<HTMLTextAreaElement>('[data-quelltext-input]');
       if (feld) {
@@ -259,7 +261,7 @@ export function Step0_Absicht({
         neuesFeld?.focus();
       });
     });
-  }, [dispatch]);
+  }, []);
 
   const waehleKontextfreieUebung = useCallback(() => {
     setPrefillQuelleStatus(null);
@@ -482,7 +484,7 @@ export function Step0_Absicht({
                 : 'Ohne Ausgangstext blockiert der Text-Modus die Generierung am Ende; füge ihn jetzt ein oder erstelle die Übung kontextfrei.'}
             </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-              <button type="button" className="btn-primary" onClick={() => { setPrefillQuelleStatus(null); setModus(undefined); setFreieKompetenz(''); fokussiereQuelltext(); }}>
+              <button type="button" className="btn-primary" onClick={() => { setPrefillQuelleStatus(null); setModus(undefined); setFreieKompetenz(''); handleErstellen(); fokussiereQuelltext(); }}>
                 Ausgangstext jetzt einfügen
               </button>
               <button type="button" className="btn-secondary" onClick={waehleKontextfreieUebung}>
