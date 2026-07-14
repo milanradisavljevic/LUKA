@@ -31,12 +31,12 @@ build_arch() {
     --distpath "$BUILD_DIR/$target" \
     --workpath "$BUILD_DIR/work-$target" \
     --specpath "$BUILD_DIR/spec-$target" \
-    --add-data "feedback_schema.json:." \
-    --add-data "natascha_config.toml:." \
-    --add-data "rubrics:rubrics" \
-    --add-data "prompts:prompts" \
+    --add-data "$ROOT/feedback_schema.json:." \
+    --add-data "$ROOT/natascha_config.toml:." \
+    --add-data "$ROOT/rubrics:rubrics" \
+    --add-data "$ROOT/prompts:prompts" \
     --collect-data textual \
-    natascha_cli.py
+    "$ROOT/natascha_cli.py"
   cp "$BUILD_DIR/$target/natascha-cli-$target" "$OUT_DIR/natascha-cli-$target"
 }
 
