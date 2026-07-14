@@ -3,6 +3,14 @@ use serde::Serialize;
 
 use crate::commands::db::DbState;
 
+fn normalize_klasse(value: &str) -> String {
+    value.split_whitespace().collect::<Vec<_>>().join(" ").to_lowercase()
+}
+
+fn normalize_aufgabe(value: &str) -> String {
+    value.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AbgabeInfo {
@@ -256,6 +264,8 @@ pub async fn db_upsert_lehrer_feedback(
 ) -> Result<(), String> {
     let guard = state.conn()?;
     let conn = &*guard;
+    let klasse = normalize_klasse(&klasse);
+    let aufgabe = normalize_aufgabe(&aufgabe);
     conn.execute(
         "INSERT INTO lehrer_feedback (abgabe_id, klasse, aufgabe, note_final, lehrer_kommentar, schueler_id, note_app_snapshot) \
          SELECT ?1, ?2, ?3, ?4, ?5, ?6, note FROM abgabe WHERE id=?1 \
@@ -434,7 +444,7 @@ pub(crate) fn insert_schueler_impl(
     vorname: &str,
     nachname: Option<&str>,
 ) -> Result<i64, String> {
-    let klasse = klasse.trim();
+    let klasse = normalize_klasse(klasse);
     let vorname = vorname.trim();
     if klasse.is_empty() || vorname.is_empty() {
         return Err("Klasse und Vorname dürfen nicht leer sein.".to_string());

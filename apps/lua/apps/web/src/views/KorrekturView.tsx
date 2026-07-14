@@ -44,6 +44,27 @@ interface AbgabeDetail {
 
 interface KlasseInfo { klasse: string; anzahlAbgaben: number; }
 
+interface AnalyseKlasseOption {
+  name: string;
+  label: string;
+  fach: string;
+  schulstufe: string;
+}
+
+function isVisionPath(path: string): boolean {
+  return /\.(pdf|jpe?g|png)$/i.test(path);
+}
+
+function normalizeKlasse(value: string): string {
+  return value.trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+function analyseHinweise(result: unknown): string[] {
+  if (!result || typeof result !== 'object') return [];
+  const errors = (result as { errors?: unknown }).errors;
+  return Array.isArray(errors) ? errors.filter((entry): entry is string => typeof entry === 'string') : [];
+}
+
 const FEHLER_COLORS: Record<string, string> = { R: '#e74c3c', G: '#27ae60', Z: '#3498db', A: '#f39c12' };
 const FEHLER_LABELS: Record<string, string> = { R: 'Rechtschreibung', G: 'Grammatik', Z: 'Zeichensetzung', A: 'Ausdruck' };
 
@@ -105,6 +126,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
   const [analyzeOpen, setAnalyzeOpen] = useState(false);
   const [analyzeKlasse, setAnalyzeKlasse] = useState('');
   const [analyzeAufgabe, setAnalyzeAufgabe] = useState('');
+  const [analyzeAufgaben, setAnalyzeAufgaben] = useState<string[]>([]);
   const [analyzeFile, setAnalyzeFile] = useState('');
   const [rubrikListe, setRubrikListe] = useState<RubrikListe>({ rubrics: [], defaultRubric: '' });
   const [selectedRubrik, setSelectedRubrik] = useState('');
@@ -159,7 +181,8 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
   useEffect(() => {
     if (!analyzeOpen || !isTauri()) return;
     void refreshKlassenMeta();
-  }, [analyzeOpen, refreshKlassenMeta]);
+    void listKlassen().then(setKlassen);
+  }, [analyzeOpen, refreshKlassenMeta, listKlassen]);
 
   useEffect(() => {
     if (!analyzeOpen || !isTauri()) return;
@@ -187,7 +210,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     if (!id) return;
     const einsatz = einsatzOptions.find((e) => e.id === id);
     if (!einsatz) return;
-    if (einsatz.klasseNameSnapshot) setAnalyzeKlasse(einsatz.klasseNameSnapshot);
+    if (einsatz.klasseNameSnapshot) setAnalyzeKlasse(normalizeKlasse(einsatz.klasseNameSnapshot));
     let source = '';
     if (einsatz.materialId) {
       const doc = loadDocuments().find((d) => d.id === einsatz.materialId);
@@ -199,6 +222,48 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
   useEffect(() => {
     listKlassen().then(setKlassen);
   }, [listKlassen]);
+
+  const analyseKlassen = useMemo<AnalyseKlasseOption[]>(() => {
+    const result = new Map<string, AnalyseKlasseOption>();
+    for (const klasse of klassen) {
+      const name = normalizeKlasse(klasse.klasse);
+      if (name) result.set(name, { name, label: klasse.klasse, fach: '', schulstufe: '' });
+    }
+    for (const meta of klassenMeta) {
+      if (meta.archiviert) continue;
+      const name = normalizeKlasse(meta.name);
+      if (!name) continue;
+      const schulstufe = meta.stufe?.trim() || (meta.schulstufe != null
+        ? (meta.schulstufe >= 9 ? 'oberstufe' : 'unterstufe')
+        : '');
+      result.set(name, {
+        name,
+        label: meta.name,
+        fach: meta.fach?.trim() ?? '',
+        schulstufe,
+      });
+    }
+    return [...result.values()].sort((a, b) => a.label.localeCompare(b.label, 'de'));
+  }, [klassen, klassenMeta]);
+
+  const analyseKlasseMeta = useMemo(
+    () => analyseKlassen.find((klasse) => klasse.name === analyzeKlasse),
+    [analyseKlassen, analyzeKlasse],
+  );
+
+  useEffect(() => {
+    if (!analyzeOpen || !analyzeKlasse || !isTauri()) {
+      setAnalyzeAufgaben([]);
+      return;
+    }
+    let active = true;
+    void listAufgaben(analyzeKlasse).then((aufgaben) => {
+      if (active) setAnalyzeAufgaben(aufgaben);
+    }).catch(() => {
+      if (active) setAnalyzeAufgaben([]);
+    });
+    return () => { active = false; };
+  }, [analyzeOpen, analyzeKlasse, listAufgaben]);
 
   const loadAufgaben = useCallback(async (klasse: string) => {
     setSelectedKlasse(klasse);
@@ -313,6 +378,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
       return;
     }
     let aktiv = true;
+    setPseudoVorschau(null);
     setPseudoVorschauBusy(true);
     const t = setTimeout(async () => {
       const v = await personenVorschau(analyzeFile, analyzeKlasse.trim());
@@ -358,12 +424,27 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
 
   const handleAnalyze = useCallback(async () => {
     if (!analyzeFile || !analyzeKlasse || !analyzeAufgabe) return;
+    if (isVisionPath(analyzeFile) && (!pseudoVorschau || pseudoVorschauBusy)) {
+      setError('Die PDF/Bild-Prüfung läuft noch. Bitte kurz warten, bis die Anbieter-Unterstützung geprüft ist.');
+      return;
+    }
+    if (pseudoVorschau?.visionModus && !pseudoVorschau.visionFaehig) {
+      setError('Diese PDF/Bild-Abgabe kann mit dem konfigurierten KI-Anbieter nicht analysiert werden. Bitte einen Vision-fähigen Anbieter oder DOCX/TXT verwenden.');
+      return;
+    }
     setError(null);
     setAnalyzeSuccess(null);
     const einsatz = einsatzOptions.find((e) => e.id === selectedEinsatzId);
-    const result = await analyze(analyzeFile, analyzeKlasse, analyzeAufgabe, { ausgangstext: analyzeAusgangstext.trim() || undefined, rubric: selectedRubrik || undefined, pseudonymisierung: pseudoAktiv, schuelerId: zuordnungId === '' ? undefined : zuordnungId, einsatzId: einsatz?.id, materialId: einsatz?.materialId ?? undefined });
+    const result = await analyze(analyzeFile, analyzeKlasse, analyzeAufgabe, { fach: analyseKlasseMeta?.fach || undefined, schulstufe: analyseKlasseMeta?.schulstufe || undefined, ausgangstext: analyzeAusgangstext.trim() || undefined, rubric: selectedRubrik || undefined, pseudonymisierung: pseudoAktiv, schuelerId: zuordnungId === '' ? undefined : zuordnungId, einsatzId: einsatz?.id, materialId: einsatz?.materialId ?? undefined });
+    const resultErrors = analyseHinweise(result);
+    const duplicate = resultErrors.some((entry) => /duplikat|bereits analysiert/i.test(entry));
     if (result) {
-      setAnalyzeSuccess('Analyse abgeschlossen — Daten gespeichert.');
+      if (duplicate) {
+        setAnalyzeSuccess(null);
+        setError(`Übersprungen (bereits analysiert): ${resultErrors.join(' ')}`);
+      } else {
+        setAnalyzeSuccess(`Analyse abgeschlossen — Daten gespeichert.${resultErrors.length ? ` Hinweise: ${resultErrors.join(' ')}` : ''}`);
+      }
       setAnalyzeOpen(false);
       setAnalyzeFile('');
       setAnalyzeAufgabe('');
@@ -378,7 +459,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     } else {
       setError(analyzeError ?? 'Analyse fehlgeschlagen');
     }
-  }, [analyze, analyzeFile, analyzeKlasse, analyzeAufgabe, analyzeAusgangstext, analyzeError, listKlassen, loadAufgaben, pseudoAktiv, selectedRubrik, zuordnungId, einsatzOptions, selectedEinsatzId]);
+  }, [analyze, analyzeFile, analyzeKlasse, analyzeAufgabe, analyseKlasseMeta, analyzeAusgangstext, analyzeError, listKlassen, loadAufgaben, pseudoVorschau, pseudoVorschauBusy, pseudoAktiv, selectedRubrik, zuordnungId, einsatzOptions, selectedEinsatzId]);
 
   const annotatedNodes = useMemo(() => {
     const rohtext = selectedAbgabe?.abgabe.rohtext;
@@ -426,6 +507,16 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     setBatchCurrent(0);
     batchCancelRef.current = false;
 
+    const visionFiles = batchFiles.filter(isVisionPath);
+    if (visionFiles.length > 0) {
+      const visionChecks = await Promise.all(visionFiles.map((file) => personenVorschau(file, analyzeKlasse)));
+      if (visionChecks.some((preview) => preview?.visionModus && !preview.visionFaehig)) {
+        setBatchRunning(false);
+        setError('Mindestens eine PDF/Bild-Abgabe kann mit dem konfigurierten KI-Anbieter nicht analysiert werden. Bitte einen Vision-fähigen Anbieter oder DOCX/TXT verwenden.');
+        return;
+      }
+    }
+
     const results: { file: string; ok: boolean; msg: string }[] = [];
     for (let i = 0; i < batchFiles.length; i++) {
       if (batchCancelRef.current) break;
@@ -433,10 +524,12 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
       setBatchCurrent(i + 1);
       try {
         const einsatz = einsatzOptions.find((e) => e.id === selectedEinsatzId);
-        const result = await analyze(file, analyzeKlasse, analyzeAufgabe, { ausgangstext: analyzeAusgangstext.trim() || undefined, rubric: selectedRubrik || undefined, pseudonymisierung: pseudoAktiv, einsatzId: einsatz?.id, materialId: einsatz?.materialId ?? undefined });
+        const result = await analyze(file, analyzeKlasse, analyzeAufgabe, { fach: analyseKlasseMeta?.fach || undefined, schulstufe: analyseKlasseMeta?.schulstufe || undefined, ausgangstext: analyzeAusgangstext.trim() || undefined, rubric: selectedRubrik || undefined, pseudonymisierung: pseudoAktiv, einsatzId: einsatz?.id, materialId: einsatz?.materialId ?? undefined });
         if (result) {
           const note = result?.analysis?.notenempfehlung?.note;
-          results.push({ file, ok: true, msg: note != null ? `Note ${note}` : 'OK' });
+          const resultErrors = analyseHinweise(result);
+          const duplicate = resultErrors.some((entry) => /duplikat|bereits analysiert/i.test(entry));
+          results.push({ file, ok: !duplicate, msg: duplicate ? 'Übersprungen (bereits analysiert)' : `${note != null ? `Note ${note}` : 'OK'}${resultErrors.length ? ` · ${resultErrors.join(' ')}` : ''}` });
         } else {
           results.push({ file, ok: false, msg: analyzeError ?? 'fehlgeschlagen' });
         }
@@ -452,7 +545,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     const refreshed = await listKlassen();
     setKlassen(refreshed);
     if (analyzeKlasse) await loadAufgaben(analyzeKlasse);
-  }, [batchFiles, analyzeKlasse, analyzeAufgabe, analyzeAusgangstext, analyze, analyzeError, listKlassen, loadAufgaben, pseudoAktiv, selectedRubrik, einsatzOptions, selectedEinsatzId]);
+  }, [batchFiles, analyzeKlasse, analyzeAufgabe, analyseKlasseMeta, analyzeAusgangstext, analyze, analyzeError, personenVorschau, listKlassen, loadAufgaben, pseudoAktiv, selectedRubrik, einsatzOptions, selectedEinsatzId]);
 
   const cardStyle = {
     padding: '1.25rem', border: '1px solid var(--color-border)',
@@ -889,12 +982,35 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
 
             <div style={{ marginBottom: '0.75rem' }}>
               <label>Klasse</label>
-              <input type="text" value={analyzeKlasse} onChange={(e) => setAnalyzeKlasse(e.target.value)} placeholder="z.B. 7a" />
+              <select
+                value={analyzeKlasse}
+                onChange={(e) => {
+                  setAnalyzeKlasse(normalizeKlasse(e.target.value));
+                  setAnalyzeAufgabe('');
+                }}
+                style={{ width: '100%' }}
+              >
+                <option value="">Klasse auswählen</option>
+                {analyseKlassen.map((klasse) => (
+                  <option key={klasse.name} value={klasse.name}>{klasse.label}</option>
+                ))}
+              </select>
             </div>
 
             <div style={{ marginBottom: '0.75rem' }}>
               <label>Aufgabe</label>
-              <input type="text" value={analyzeAufgabe} onChange={(e) => setAnalyzeAufgabe(e.target.value)} placeholder="z.B. SA2" />
+              <input
+                type="text"
+                list="korrektur-aufgaben-optionen"
+                value={analyzeAufgabe}
+                onChange={(e) => setAnalyzeAufgabe(e.target.value)}
+                placeholder={analyzeKlasse ? 'Vorhandene Aufgabe wählen oder neue eingeben' : 'Zuerst Klasse auswählen'}
+                disabled={!analyzeKlasse}
+                style={{ width: '100%' }}
+              />
+              <datalist id="korrektur-aufgaben-optionen">
+                {analyzeAufgaben.map((aufgabe) => <option key={aufgabe} value={aufgabe} />)}
+              </datalist>
             </div>
 
             <div style={{ marginBottom: '0.75rem' }}>
@@ -972,6 +1088,11 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
                       PDF/Bild: Ersetzen im Dokument nicht möglich — die Datei geht unverändert an den Anbieter.
                     </span>
                   )}
+                  {!pseudoVorschauBusy && pseudoVorschau?.visionModus && !pseudoVorschau.visionFaehig && (
+                    <span style={{ display: 'block', marginTop: 4, color: 'var(--color-danger, #c0392b)', fontWeight: 600 }}>
+                      Analyse blockiert: Der konfigurierte KI-Anbieter unterstützt diesen PDF-/Bildtyp nicht.
+                    </span>
+                  )}
                   {!pseudoVorschauBusy && pseudoVorschau && !pseudoVorschau.visionModus && pseudoVorschau.klassenlisteLeer && (
                     <span>Keine Schülerliste für diese Klasse hinterlegt — es kann nichts erkannt werden.</span>
                   )}
@@ -1015,7 +1136,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
                       <Files size={14} /> Stapel analysieren ({batchFiles.length})
                     </button>
                   ) : (
-                    <button className="btn-primary" onClick={handleAnalyze} disabled={analyzing || !analyzeFile || !analyzeKlasse || !analyzeAufgabe} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                    <button className="btn-primary" onClick={handleAnalyze} disabled={analyzing || !analyzeFile || !analyzeKlasse || !analyzeAufgabe || (isVisionPath(analyzeFile) && (pseudoVorschauBusy || !pseudoVorschau || !pseudoVorschau.visionFaehig))} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
                       {analyzing ? <Loader2 size={14} className="spin" /> : <Upload size={14} />}
                       {analyzing ? 'Analysiere …' : 'Analyse starten'}
                     </button>

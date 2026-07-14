@@ -15,6 +15,16 @@ import sys
 from pathlib import Path
 from typing import Any
 
+
+def normalize_klasse(value: str) -> str:
+    """Kanonischer Schlüssel für Klassen beim Schreiben und Nachschlagen."""
+    return " ".join((value or "").split()).casefold()
+
+
+def normalize_aufgabe(value: str) -> str:
+    """Kanonischer Aufgabenname ohne versehentliche Leerraum-Varianten."""
+    return " ".join((value or "").split())
+
 # ---------------------------------------------------------------------------
 # Schema
 # ---------------------------------------------------------------------------
@@ -185,6 +195,7 @@ def insert_schueler(
     nachname: str = "",
 ) -> int:
     """Fügt einen Schüler hinzu und gibt die neue ID zurück."""
+    klasse = normalize_klasse(klasse)
     with sqlite3.connect(str(db_path)) as conn:
         cur = conn.execute(
             "INSERT INTO schueler (klasse, vorname, nachname) VALUES (?, ?, ?)",
@@ -196,6 +207,7 @@ def insert_schueler(
 
 def get_schueler_by_klasse(db_path: Path | str, klasse: str) -> list[dict[str, Any]]:
     """Alle Schüler einer Klasse, sortiert nach Vorname."""
+    klasse = normalize_klasse(klasse)
     with sqlite3.connect(str(db_path)) as conn:
         conn.row_factory = sqlite3.Row
         rows = conn.execute(
@@ -209,6 +221,7 @@ def get_schueler_by_name(
     db_path: Path | str, klasse: str, vorname: str, nachname: str = ""
 ) -> dict[str, Any] | None:
     """Sucht einen Schüler exakt nach Name (case-insensitive)."""
+    klasse = normalize_klasse(klasse)
     with sqlite3.connect(str(db_path)) as conn:
         conn.row_factory = sqlite3.Row
         row = conn.execute(
@@ -288,6 +301,8 @@ def insert_abgabe(
     rubrik: str = "",
 ) -> int:
     """Speichert eine Abgabe in der DB und gibt die ID zurueck."""
+    klasse = normalize_klasse(klasse)
+    aufgabe = normalize_aufgabe(aufgabe)
     with sqlite3.connect(str(db_path)) as conn:
         cur = conn.execute(
             """
@@ -525,6 +540,8 @@ def upsert_aufgabe_quelltext(
     Für die LUA-Brücke: LUA befüllt damit den Quelltext der Übung vor.
     Leere Texte werden ignoriert.
     """
+    klasse = normalize_klasse(klasse)
+    aufgabe = normalize_aufgabe(aufgabe)
     text = (ausgangstext or "").strip()
     if not text or not klasse or not aufgabe:
         return
@@ -781,6 +798,8 @@ def save_analysis_to_db(
 
     Gibt die Abgabe-ID zurueck oder -1 bei Fehler.
     """
+    klasse = normalize_klasse(klasse)
+    aufgabe = normalize_aufgabe(aufgabe)
     dateiname = data.get("datei", file_path.name)
     datei_hash = _file_hash(file_path)
 

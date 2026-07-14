@@ -61,6 +61,8 @@ def cmd_analyze(args):
     _progress("start", "Analyse wird vorbereitet")
     nc, ndb, config, db_path = _load_env_and_config()
     file_path = Path(args.file).resolve()
+    args.klasse = ndb.normalize_klasse(args.klasse)
+    args.aufgabe = ndb.normalize_aufgabe(args.aufgabe)
     if not file_path.is_file():
         print(f"Datei nicht gefunden: {file_path}", file=sys.stderr)
         return 1
@@ -140,11 +142,15 @@ def cmd_personen_vorschau(args):
     import pseudonymisierung as pseu
 
     file_path = Path(args.file).resolve()
+    args.klasse = ndb.normalize_klasse(args.klasse)
     if not file_path.is_file():
         print(f"Datei nicht gefunden: {file_path}", file=sys.stderr)
         return 1
 
     vision = nc.is_vision_file(file_path)
+    api_cfg = config.get("api", {})
+    provider = str(api_cfg.get("provider", "anthropic"))
+    model = str(api_cfg.get("model", ""))
     text = ""
     if not vision:
         try:
@@ -168,6 +174,7 @@ def cmd_personen_vorschau(args):
                 for f in funde
             ],
             "visionModus": vision,
+            "visionFaehig": (not vision) or nc.is_vision_capable(provider, model, file_path),
             "klassenlisteLeer": len(roster) == 0,
         }
     )

@@ -7,6 +7,15 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Fixed — Verlässlicher Analyse-Dialog
+- Klassen werden in der Korrektur ausgewählt und neue Analysen speichern
+  kanonische Klassen- und Aufgabenschlüssel. Vorhandene Aufgaben bleiben als
+  Vorschläge verfügbar.
+- Duplikate und Analyse-Hinweise erscheinen sichtbar; Fach und Schulstufe der
+  Klasse werden an die Bewertung übergeben.
+- PDF- und Bildabgaben werden vor dem Start gegen die Vision-Fähigkeit des
+  konfigurierten Anbieters geprüft.
+
 ### Fixed — Korrektur funktioniert jetzt auch in der installierten App
 - Zwei Bundle-Blocker behoben: Die API-Schlüssel erreichen das eingebaute
   Korrektur-Modul jetzt automatisch (vorher endete jede Analyse in der

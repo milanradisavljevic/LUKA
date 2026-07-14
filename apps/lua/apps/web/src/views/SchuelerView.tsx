@@ -17,6 +17,10 @@ import { filterKlassenNachArchiv } from '../lib/archivFilter';
 
 const FEHLER_LABELS: Record<string, string> = { R: 'Rechtschreibung', G: 'Grammatik', Z: 'Zeichensetzung', A: 'Ausdruck' };
 
+function normalizeKlasse(value: string): string {
+  return value.trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
 const CSV_WARNUNG_LABELS: Record<CsvImportWarnung, string> = {
   dubletten_in_datei: 'Doppelt in dieser Datei',
   dubletten_im_bestand: 'Bereits in der Klasse vorhanden',
@@ -71,7 +75,7 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
   }, [listRubrics, aufFach, aufStufe]);
 
   const handleAddAufgabe = useCallback(async () => {
-    const klasse = (neuKlasse || selectedKlasse || '').trim();
+    const klasse = normalizeKlasse(neuKlasse || selectedKlasse || '');
     if (!klasse || !aufLabel.trim()) { setAufMsg('Klasse und Bezeichnung erforderlich.'); return; }
     setAufBusy(true); setAufMsg(null);
     try {
@@ -182,7 +186,7 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
   }, [selectedSchuelerId, generateSchuelerProfil]);
 
   const handleAddSchueler = useCallback(async () => {
-    const klasse = (neuKlasse || selectedKlasse || '').trim();
+    const klasse = normalizeKlasse(neuKlasse || selectedKlasse || '');
     if (!klasse || !neuVorname.trim()) { setError('Klasse und Vorname sind erforderlich.'); return; }
     setAdding(true); setError(null);
     try {
@@ -197,7 +201,7 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
 
   // CSV-Import: zuerst prüfen und Vorschau anzeigen, erst danach explizit speichern.
   const handleCsvImport = useCallback(async (file: File) => {
-    const klasse = (neuKlasse || selectedKlasse || '').trim();
+    const klasse = normalizeKlasse(neuKlasse || selectedKlasse || '');
     if (!klasse) { setImportMsg('Bitte zuerst eine Klasse wählen oder eingeben.'); return; }
     setImportMsg('CSV wird geprüft …');
     try {

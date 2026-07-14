@@ -949,6 +949,12 @@ def run_llm_analysis(
         (data, errors) – data ist das validierte JSON-Dict oder None,
         errors ist eine Liste aller aufgetretenen Fehlermeldungen.
     """
+    # Klassen-/Aufgabenschlüssel werden vor jedem DB-Schreibpfad kanonisiert;
+    # die UI liefert aus Kompatibilitätsgründen weiterhin die Anzeigeform.
+    if ndb is not None:
+        klasse = ndb.normalize_klasse(klasse)
+        aufgabe = ndb.normalize_aufgabe(aufgabe)
+
     schema = load_schema_for_mode(config, bewertungsmodus)
 
     # Duplikat-Erkennung (Hash-Check)

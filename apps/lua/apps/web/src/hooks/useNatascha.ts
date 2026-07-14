@@ -83,6 +83,7 @@ async function invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T
 export interface PersonenVorschau {
   funde: { schuelerId: number; anzeige: string; alias: string; vorkommenText: number; imDateinamen: boolean }[];
   visionModus: boolean;
+  visionFaehig: boolean;
   klassenlisteLeer: boolean;
 }
 
