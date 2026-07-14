@@ -81,6 +81,37 @@ CREATE TABLE IF NOT EXISTS lua_klassen (
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- Evidenzschicht zwischen erzeugtem Material, Klasse und späterer Auswertung.
+-- Die Identitätsfelder bleiben bewusst nullable und werden im Rust-Code validiert;
+-- NATASCHA kennt diese LUA-eigenen Tabellen nicht.
+CREATE TABLE IF NOT EXISTS unterrichtseinsatz (
+    id TEXT PRIMARY KEY,
+    material_id TEXT,
+    klasse_id TEXT,
+    klasse_name_snapshot TEXT NOT NULL DEFAULT '',
+    titel_snapshot TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'geplant',
+    einsatz_art TEXT NOT NULL DEFAULT '',
+    geplant_am TEXT,
+    eingesetzt_am TEXT,
+    lernziele_snapshot TEXT NOT NULL DEFAULT '[]',
+    notiz TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_unterrichtseinsatz_material ON unterrichtseinsatz(material_id);
+CREATE INDEX IF NOT EXISTS idx_unterrichtseinsatz_klasse ON unterrichtseinsatz(klasse_id);
+
+CREATE TABLE IF NOT EXISTS einsatz_rueckblick (
+    id TEXT PRIMARY KEY,
+    einsatz_id TEXT NOT NULL REFERENCES unterrichtseinsatz(id) ON DELETE CASCADE,
+    status TEXT NOT NULL DEFAULT 'offen',
+    notiz TEXT NOT NULL DEFAULT '',
+    erstellt_am TEXT NOT NULL,
+    UNIQUE(einsatz_id)
+);
+
 -- Lokales Lehrerprofil. Singleton (id=1), bewusst ohne Netzwerk-/Account-Bezug.
 CREATE TABLE IF NOT EXISTS lua_lehrerprofil (
     id INTEGER PRIMARY KEY CHECK (id = 1),

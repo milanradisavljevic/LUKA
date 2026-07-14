@@ -7,6 +7,12 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Evidenzschicht „Unterrichtseinsatz“
+- Unterrichtseinsätze verknüpfen Material und Klassenidentität mit Snapshots,
+  Einsatzstatus und einem später ergänzbaren Rückblick. Die Daten bleiben im
+  LUA-Schema und werden transaktional mit einer endgültig gelöschten Klasse
+  entfernt; die Korrektur-Datenbank bleibt unverändert.
+
 ### Added — Pseudonymisierung vor dem KI-Versand (Korrektur)
 - Namen aus der Klassenliste werden vor der Übertragung an den KI-Anbieter
   automatisch durch stabile Aliasse ersetzt (z. B. `S-7A-014`) und in der

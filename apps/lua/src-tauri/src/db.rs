@@ -268,4 +268,29 @@ mod tests {
             .any(|(name, unique)| name == "idx_lua_klassen_id" && unique);
         assert!(unique_index_exists);
     }
+
+    #[test]
+    fn einsatz_schema_wird_bei_alter_datenbank_angelegt() {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(
+            "CREATE TABLE lua_klassen (
+                name TEXT PRIMARY KEY, fach TEXT, stufe TEXT, schulstufe INTEGER,
+                schuljahr TEXT, notizen TEXT, archiviert INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );",
+        )
+        .unwrap();
+        init_schema(&conn).unwrap();
+
+        for table in ["unterrichtseinsatz", "einsatz_rueckblick"] {
+            let exists: i64 = conn
+                .query_row(
+                    "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?1",
+                    rusqlite::params![table],
+                    |row| row.get(0),
+                )
+                .unwrap();
+            assert_eq!(exists, 1, "Tabelle {table} fehlt nach init_schema");
+        }
+    }
 }

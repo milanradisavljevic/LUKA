@@ -111,6 +111,7 @@ pub struct KlassenLoeschvorschau {
     pub materialien: i64,
     pub briefings: i64,
     pub quelltexte: i64,
+    pub einsaetze: i64,
 }
 
 fn normalisiere_klasse(name: &str) -> Result<String, String> {
@@ -136,12 +137,22 @@ fn klasse_loeschvorschau_impl(
     name: &str,
 ) -> Result<KlassenLoeschvorschau, String> {
     let klasse = normalisiere_klasse(name)?;
+    let einsaetze = conn
+        .query_row(
+            "SELECT COUNT(*) FROM unterrichtseinsatz
+             WHERE klasse_name_snapshot=?1
+                OR klasse_id=(SELECT id FROM lua_klassen WHERE name=?1)",
+            rusqlite::params![klasse],
+            |row| row.get(0),
+        )
+        .map_err(|e| format!("Klassen-Löschvorschau unterrichtseinsatz: {e}"))?;
     Ok(KlassenLoeschvorschau {
         schueler: count_klasse_rows(conn, "schueler", &klasse)?,
         abgaben: count_klasse_rows(conn, "abgabe", &klasse)?,
         materialien: count_klasse_rows(conn, "generated_materials", &klasse)?,
         briefings: count_klasse_rows(conn, "klassen_briefing", &klasse)?,
         quelltexte: count_klasse_rows(conn, "aufgabe_quelltext", &klasse)?,
+        einsaetze,
         klasse,
     })
 }
@@ -206,6 +217,21 @@ pub(crate) fn klasse_loeschen_impl(
         conn.execute("DELETE FROM schueler WHERE klasse=?1", rusqlite::params![klasse])?;
         conn.execute("DELETE FROM klassen_briefing WHERE klasse=?1", rusqlite::params![klasse])?;
         conn.execute("DELETE FROM aufgabe_quelltext WHERE klasse=?1", rusqlite::params![klasse])?;
+        conn.execute(
+            "DELETE FROM einsatz_rueckblick
+             WHERE einsatz_id IN (
+                 SELECT id FROM unterrichtseinsatz
+                 WHERE klasse_name_snapshot=?1
+                    OR klasse_id=(SELECT id FROM lua_klassen WHERE name=?1)
+             )",
+            rusqlite::params![klasse],
+        )?;
+        conn.execute(
+            "DELETE FROM unterrichtseinsatz
+             WHERE klasse_name_snapshot=?1
+                OR klasse_id=(SELECT id FROM lua_klassen WHERE name=?1)",
+            rusqlite::params![klasse],
+        )?;
         conn.execute("DELETE FROM generated_materials WHERE klasse=?1", rusqlite::params![klasse])?;
         conn.execute("DELETE FROM lua_klassen WHERE name=?1", rusqlite::params![klasse])?;
         Ok(())
@@ -353,6 +379,9 @@ mod tests {
         conn.execute("INSERT INTO aufgabe_quelltext (klasse, aufgabe, ausgangstext) VALUES ('7A', 'SA1', 'Text')", []).unwrap();
         conn.execute("INSERT INTO generated_materials (id, title, snapshot_json, created_at, updated_at, klasse) VALUES ('mat-7a', 'Übung', '{}', 'now', 'now', '7A')", []).unwrap();
         conn.execute("INSERT INTO generated_materials (id, title, snapshot_json, created_at, updated_at, klasse) VALUES ('mat-8b', 'Übung', '{}', 'now', 'now', '8B')", []).unwrap();
+        conn.execute("INSERT INTO unterrichtseinsatz (id, klasse_id, klasse_name_snapshot, titel_snapshot, created_at, updated_at) VALUES ('einsatz-7a', (SELECT id FROM lua_klassen WHERE name='7A'), '7A', 'Übung', 'now', 'now')", []).unwrap();
+        conn.execute("INSERT INTO einsatz_rueckblick (id, einsatz_id, status, erstellt_am) VALUES ('rueckblick-7a', 'einsatz-7a', 'offen', 'now')", []).unwrap();
+        conn.execute("INSERT INTO unterrichtseinsatz (id, klasse_name_snapshot, titel_snapshot, created_at, updated_at) VALUES ('einsatz-7a-snapshot', '7A', 'Alte Übung', 'now', 'now')", []).unwrap();
 
         let preview = klasse_loeschvorschau_impl(&conn, "7A").unwrap();
         assert_eq!(preview.schueler, 1);
@@ -360,6 +389,7 @@ mod tests {
         assert_eq!(preview.materialien, 1);
         assert_eq!(preview.briefings, 1);
         assert_eq!(preview.quelltexte, 1);
+        assert_eq!(preview.einsaetze, 2);
 
         let report = klasse_loeschen_impl(&conn, "7A").unwrap();
         assert_eq!(report.abgaben, 1);
@@ -371,6 +401,8 @@ mod tests {
         assert_eq!(conn.query_row::<i64, _, _>("SELECT COUNT(*) FROM schueler_profil", [], |r| r.get(0)).unwrap(), 0);
         assert_eq!(conn.query_row::<i64, _, _>("SELECT COUNT(*) FROM generated_materials WHERE klasse='7A'", [], |r| r.get(0)).unwrap(), 0);
         assert_eq!(conn.query_row::<i64, _, _>("SELECT COUNT(*) FROM generated_materials WHERE klasse='8B'", [], |r| r.get(0)).unwrap(), 1);
+        assert_eq!(conn.query_row::<i64, _, _>("SELECT COUNT(*) FROM unterrichtseinsatz", [], |r| r.get(0)).unwrap(), 0);
+        assert_eq!(conn.query_row::<i64, _, _>("SELECT COUNT(*) FROM einsatz_rueckblick", [], |r| r.get(0)).unwrap(), 0);
         assert_eq!(conn.query_row::<i64, _, _>("SELECT COUNT(*) FROM lua_klassen WHERE name='7A'", [], |r| r.get(0)).unwrap(), 0);
     }
 
