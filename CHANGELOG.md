@@ -5,6 +5,15 @@ Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 (auch andere Coding-Agents) — siehe `AGENTS.md`.
 
+## [Unreleased]
+
+### Fixed — Korrektur-Modul: Meldungen und Einstellungen in Lehrer-Sprache
+- Fehlermeldungen des Korrektur-Moduls erklären jetzt Ursache und Lösung
+  verständlich (statt „liegt keine natascha.py"). In den Einstellungen zeigt
+  der Status klar „Einsatzbereit — eingebaut, keine Einrichtung nötig";
+  Korrektur-Ordner und Python-Befehl sind in einen Erweitert-Bereich für
+  Sonderfälle gewandert.
+
 ## Version 1.1.0 — 2026-07-14
 
 **Das ist neu:**
