@@ -189,15 +189,15 @@ function ToggleRow({
 export function SettingsView() {
   const [settings, setSettings] = useState<AppSettings>(() => loadSettings());
   const [savedHint, setSavedHint] = useState(false);
-  const [nataschaMode, setNataschaMode] = useState<string | null>(null);
+  const [nataschaMode, setNataschaMode] = useState<{ mode: string; label: string } | null>(null);
 
   useEffect(() => {
     if (!FEATURES.natascha) return;
     void import('@tauri-apps/api/core').then(({ invoke }) =>
-      invoke<{ label: string }>('natascha_get_status', {
+      invoke<{ mode: string; label: string }>('natascha_get_status', {
         dir: settings.nataschaDir ?? '',
         python: settings.pythonCommand ?? '',
-      }).then((status) => setNataschaMode(status.label)).catch(() => setNataschaMode('Nicht verfügbar')),
+      }).then((status) => setNataschaMode(status)).catch(() => setNataschaMode({ mode: 'unavailable', label: 'Nicht verfügbar' })),
     );
   }, [settings.nataschaDir, settings.pythonCommand]);
 
@@ -436,9 +436,27 @@ export function SettingsView() {
         borderRadius: 'var(--radius)', background: 'var(--color-bg-surface)', marginBottom: '1.5rem',
       }}>
         <h3 style={{ fontSize: '1rem', margin: '0 0 0.75rem' }}>Korrektur-Modul</h3>
-        <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', marginTop: 0 }}>
-          Aktiver Modus: <strong>{nataschaMode ?? 'Wird geprüft …'}</strong>
-        </p>
+        {/* Verständlicher Status statt Modus-Jargon: Normalfall ist das
+            eingebaute Sidecar — dann ist hier nichts einzurichten. */}
+        {nataschaMode === null && (
+          <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', marginTop: 0 }}>Wird geprüft …</p>
+        )}
+        {nataschaMode?.mode === 'bundled' && (
+          <p style={{ fontSize: '0.8125rem', marginTop: 0, color: 'var(--color-success)' }}>
+            ✓ Einsatzbereit — das Korrektur-Modul ist in LUKA eingebaut, keine Einrichtung nötig.
+          </p>
+        )}
+        {nataschaMode?.mode === 'python' && (
+          <p style={{ fontSize: '0.8125rem', marginTop: 0, color: 'var(--color-text-secondary)' }}>
+            Einsatzbereit über lokales Python (Entwicklungsmodus).
+          </p>
+        )}
+        {nataschaMode?.mode === 'unavailable' && (
+          <p style={{ fontSize: '0.8125rem', marginTop: 0, color: 'var(--color-error)' }}>
+            Nicht verfügbar. Bitte LUKA mit dem aktuellen Installer neu installieren —
+            dann ist das Korrektur-Modul eingebaut. (Entwickler: unten „Erweitert“ öffnen.)
+          </p>
+        )}
         <label style={labelStyle}>Inbox-Ordner für Korrektur-Exporte</label>
         <input
           type="text"
@@ -452,25 +470,35 @@ export function SettingsView() {
           im Korrektur-Tool eingestellten <code>[bridge] inbox_dir</code> übereinstimmen.
         </p>
 
-        <label style={labelStyle}>Korrektur-Ordner (Installationsordner des Korrektur-Tools)</label>
-        <input
-          type="text"
-          value={settings.nataschaDir ?? ''}
-          placeholder="Leer = Auto-Erkennung (apps/natascha)"
-          onChange={(e) => update({ nataschaDir: e.target.value })}
-          style={{ width: '100%', boxSizing: 'border-box' }}
-        />
-        <label style={{ ...labelStyle, marginTop: '1rem' }}>Python-Befehl</label>
-        <input
-          type="text"
-          value={settings.pythonCommand ?? ''}
-          placeholder="Leer = OS-Standard (python / python3)"
-          onChange={(e) => update({ pythonCommand: e.target.value })}
-          style={{ width: '100%', boxSizing: 'border-box' }}
-        />
-        <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', marginBottom: '1rem' }}>
-          Steuert den Start über <strong>Korrektur</strong> in der Seitenleiste.
-        </p>
+        {/* Technik nur für Sonderfälle: eingeklappt, damit Lehrkräfte nie mit
+            Pfaden oder Python konfrontiert werden (eingebautes Modul = Normalfall). */}
+        <details style={{ marginBottom: '1rem' }}>
+          <summary style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', cursor: 'pointer' }}>
+            Erweitert — nur für Entwicklung und Sonderfälle
+          </summary>
+          <div style={{ marginTop: '0.75rem' }}>
+            <label style={labelStyle}>Korrektur-Ordner (Installationsordner des Korrektur-Tools)</label>
+            <input
+              type="text"
+              value={settings.nataschaDir ?? ''}
+              placeholder="Leer = Auto-Erkennung (apps/natascha)"
+              onChange={(e) => update({ nataschaDir: e.target.value })}
+              style={{ width: '100%', boxSizing: 'border-box' }}
+            />
+            <label style={{ ...labelStyle, marginTop: '1rem' }}>Python-Befehl</label>
+            <input
+              type="text"
+              value={settings.pythonCommand ?? ''}
+              placeholder="Leer = OS-Standard (python / python3)"
+              onChange={(e) => update({ pythonCommand: e.target.value })}
+              style={{ width: '100%', boxSizing: 'border-box' }}
+            />
+            <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', marginBottom: 0 }}>
+              Beide Felder wirken nur, wenn das eingebaute Korrektur-Modul fehlt
+              (Entwicklungsmodus). Im Zweifel leer lassen.
+            </p>
+          </div>
+        </details>
 
         <div style={{ paddingTop: '1rem', borderTop: '1px solid var(--color-border)' }}>
           <label style={labelStyle}>Gemeinsame Datenbank</label>

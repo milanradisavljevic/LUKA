@@ -60,15 +60,23 @@ fn resolve_dir(dir: &str) -> Result<PathBuf, String> {
     let trimmed = dir.trim();
     let path = if trimmed.is_empty() {
         find_natascha_dir().ok_or_else(|| {
-            "Korrektur-Ordner nicht gefunden. Bitte in den Einstellungen den Pfad zum \
-             Installationsordner des Korrektur-Tools (apps/natascha) setzen."
+            "Das Korrektur-Modul ist nicht verfügbar. In der installierten App ist es \
+             eingebaut — bitte LUKA mit dem aktuellen Installer neu installieren. \
+             (Für Entwickler: Einstellungen → Korrektur-Modul → Erweitert, dort den \
+             Ordner apps/natascha eintragen.)"
                 .to_string()
         })?
     } else {
         PathBuf::from(trimmed)
     };
     if !path.join("natascha.py").is_file() {
-        return Err(format!("In {} liegt keine natascha.py.", path.display()));
+        return Err(format!(
+            "Der eingestellte Korrektur-Ordner enthält das Korrektur-Modul nicht:\n{}\n\
+             Lösung: In den Einstellungen unter Korrektur-Modul → Erweitert das Feld \
+             „Korrektur-Ordner“ leeren (Auto-Erkennung) — oder LUKA mit dem aktuellen \
+             Installer neu installieren, dann ist das Modul eingebaut.",
+            path.display()
+        ));
     }
     Ok(path)
 }

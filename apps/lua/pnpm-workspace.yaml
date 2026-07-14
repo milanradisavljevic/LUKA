@@ -13,3 +13,16 @@ allowBuilds:
 # lesbar). Ein WSL-seitiger Auto-Install würde Linux-Symlinks anlegen, die
 # Windows nicht auflösen kann. Bei veralteten Deps nur warnen.
 verifyDepsBeforeRun: warn
+
+# Beide Plattformen versorgen: die App läuft unter Windows (tauri dev),
+# Tests/Typecheck laufen zusätzlich in WSL. Ohne diesen Block installiert
+# Windows-pnpm nur die win32-Binaries (rollup/esbuild) und vitest bricht in
+# WSL mit "Cannot find module @rollup/rollup-linux-x64-gnu" ab.
+supportedArchitectures:
+  os:
+    - win32
+    - linux
+  cpu:
+    - x64
+  libc:
+    - glibc
