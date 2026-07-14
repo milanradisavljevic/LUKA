@@ -11,6 +11,7 @@ import csv
 import hashlib
 import json
 import sqlite3
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -139,7 +140,14 @@ def get_db_path(config: dict[str, Any]) -> Path:
     db_cfg = config.get("database", {})
     raw = db_cfg.get("path", "natascha_schuljahr.db")
     p = Path(raw).expanduser()
-    return p if p.is_absolute() else Path(__file__).resolve().parent / raw
+    if p.is_absolute():
+        return p
+    # Relative Pfade: im PyInstaller-Bundle wäre __file__ das flüchtige
+    # _MEIPASS-Temp-Verzeichnis — dann persistentes Datenverzeichnis nutzen
+    # (gleiche Konvention wie natascha_core.PROJECT_ROOT).
+    if getattr(sys, "frozen", False):
+        return Path.home() / "lehr-suite-bridge" / "natascha" / raw
+    return Path(__file__).resolve().parent / raw
 
 
 def init_db(db_path: Path | str) -> None:

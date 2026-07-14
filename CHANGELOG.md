@@ -7,6 +7,15 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Fixed — Korrektur funktioniert jetzt auch in der installierten App
+- Zwei Bundle-Blocker behoben: Die API-Schlüssel erreichen das eingebaute
+  Korrektur-Modul jetzt automatisch (vorher endete jede Analyse in der
+  installierten App mit einem Schlüssel-Fehler), und alles, was das Modul
+  speichert (Aufgaben, eigene Rubriken, Analyse-Daten), liegt jetzt dauerhaft
+  im Ordner `lehr-suite-bridge` statt in einem temporären Verzeichnis, das
+  bei jedem Neustart verschwand. Feedback-DOCX landen in
+  `lehr-suite-bridge/feedback` statt im Programmordner.
+
 ### Fixed — Feedback-DOCX: Kommentare tragen den Namen aus dem Lehrerprofil
 - Die Word-Kommentare und die „Lehrkraft"-Zeile der Feedback-DOCX verwendeten
   einen fest in der Config verdrahteten Namen — jede Lehrkraft hätte unter

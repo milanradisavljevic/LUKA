@@ -54,7 +54,64 @@ try:
 except Exception:
     pseu = None  # type: ignore[assignment]
 
-PROJECT_ROOT = Path(__file__).resolve().parent
+# Dateien, die beim ersten Start eines gebündelten Sidecars ins persistente
+# Datenverzeichnis kopiert werden. Einzeldateien nur, wenn sie fehlen —
+# Nutzeränderungen (eigene Rubriken, angepasste Config) werden NIE überschrieben;
+# neue mitgelieferte Dateien kommen bei App-Updates trotzdem an.
+_SEED_DATEIEN = ("natascha_config.toml", "feedback_schema.json")
+_SEED_ORDNER = ("rubrics", "prompts")
+
+
+def _seed_data_dir(bundle_root: Path, data_root: Path) -> None:
+    """Kopiert mitgelieferte Ressourcen einmalig ins Datenverzeichnis (idempotent)."""
+    import shutil as _shutil
+
+    data_root.mkdir(parents=True, exist_ok=True)
+    for name in _SEED_DATEIEN:
+        quelle = bundle_root / name
+        ziel = data_root / name
+        if quelle.is_file() and not ziel.exists():
+            _shutil.copy2(quelle, ziel)
+    for ordner in _SEED_ORDNER:
+        quell_dir = bundle_root / ordner
+        if not quell_dir.is_dir():
+            continue
+        ziel_dir = data_root / ordner
+        ziel_dir.mkdir(parents=True, exist_ok=True)
+        for quelle in quell_dir.rglob("*"):
+            rel = quelle.relative_to(quell_dir)
+            ziel = ziel_dir / rel
+            if quelle.is_dir():
+                ziel.mkdir(parents=True, exist_ok=True)
+            elif not ziel.exists():
+                _shutil.copy2(quelle, ziel)
+
+
+def _resolve_project_root() -> Path:
+    """Projekt-Wurzel für Config, Rubriken und alle Schreibpfade.
+
+    Dev-Modus: das echte Repo-Verzeichnis (unverändertes Verhalten).
+    PyInstaller-Onefile: __file__ zeigt ins flüchtige _MEIPASS-Temp-Verzeichnis,
+    das bei jedem Start neu entpackt wird — jeder Schreibvorgang dorthin wäre
+    nach Prozessende verloren (Config-Änderungen, gespeicherte Rubriken,
+    Analyse-JSONs). Deshalb dient im Bundle-Modus ein persistentes
+    Datenverzeichnis neben der gemeinsamen DB als Wurzel; die mitgelieferten
+    Ressourcen werden beim Start dorthin geseedet.
+    """
+    source_root = Path(__file__).resolve().parent
+    if not getattr(sys, "frozen", False):
+        return source_root
+    bundle_root = Path(getattr(sys, "_MEIPASS", source_root))
+    data_root = Path.home() / "lehr-suite-bridge" / "natascha"
+    try:
+        _seed_data_dir(bundle_root, data_root)
+    except OSError:
+        # Datenverzeichnis nicht beschreibbar → wenigstens lesend lauffähig bleiben.
+        return bundle_root
+    return data_root
+
+
+PROJECT_ROOT = _resolve_project_root()
 
 VERSION = "0.6.0"
 
