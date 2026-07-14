@@ -73,6 +73,35 @@ jobs:
       # wie in ci.yml: frische CI-Umgebung braucht die Cross-Paket-Typen.
       - run: pnpm --filter "./packages/*" build
 
+      - name: NATASCHA-Sidecar für Windows bauen
+        if: runner.os == 'Windows'
+        working-directory: apps/natascha
+        shell: pwsh
+        run: .\build_sidecar.ps1
+
+      - name: NATASCHA-Sidecar für macOS bauen
+        if: runner.os == 'macOS'
+        working-directory: apps/natascha
+        run: bash ./build_sidecar.sh
+
+      - name: NATASCHA-Sidecar auf Runde-7-Flags prüfen (Windows)
+        if: runner.os == 'Windows'
+        working-directory: apps/natascha
+        shell: pwsh
+        run: |
+          $help = & .\dist\natascha-cli\natascha-cli-x86_64-pc-windows-msvc.exe analyze --help | Out-String
+          if ($help -notmatch '--einsatz-id' -or $help -notmatch '--material-id') {
+            throw 'Sidecar ist veraltet: Einsatz-/Material-Flags fehlen.'
+          }
+
+      - name: NATASCHA-Sidecar auf Runde-7-Flags prüfen (macOS)
+        if: runner.os == 'macOS'
+        working-directory: apps/natascha
+        run: |
+          help="$(./dist/natascha-cli/natascha-cli-universal-apple-darwin analyze --help)"
+          grep -q -- '--einsatz-id' <<< "$help"
+          grep -q -- '--material-id' <<< "$help"
+
       # Release-Notes aus dem obersten CHANGELOG-Abschnitt (zwischen der
       # ersten und zweiten "## "-Überschrift) für den In-App-Update-Dialog.
       # Läuft im Repo-Root (working-directory-Override), da CHANGELOG.md dort
@@ -97,4 +126,4 @@ jobs:
           prerelease: false
           # Windows: nur NSIS (siehe Kommentar oben in der Matrix).
           # macOS: universelles App-/DMG-Bundle, unsigniert.
-          args: ${{ matrix.args }}
+          args: ${{ matrix.args }} --config src-tauri/tauri.natascha-sidecar.conf.json

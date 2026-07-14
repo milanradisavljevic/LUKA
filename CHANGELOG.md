@@ -5,7 +5,21 @@ Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 (auch andere Coding-Agents) — siehe `AGENTS.md`.
 
-## [Unreleased]
+## Version 1.1.0 — 2026-07-14
+
+**Das ist neu:**
+
+- **Korrektur direkt in LUKA:** Schülerabgaben lassen sich mit Rubrik, Fehlerliste,
+  Feedback-DOCX, Klassen-Heatmap und Schüler-Längsschnitt bearbeiten.
+- **Datenschutz und sichere Zuordnung:** Namen werden vor dem KI-Versand
+  pseudonymisiert; die Lehrkraft kann die erkannte Schülerzuordnung bestätigen.
+- **Unterrichtseinsatz nachvollziehbar:** Unterlagen, Klassen, Einsatzdatum,
+  Einsatzart und Rückblick bleiben als Evidenz verbunden — bis zur Übung aus dem
+  tatsächlichen Material.
+- **Deutschland und Abitur:** persönliches Lehrerprofil, deutsche Terminologie,
+  Klassen 5–13, kuratierte Deutschland-Kataloge und Abitur-Training im KMK-Format.
+- **Mehr Qualität und weniger Verwaltungsaufwand:** Startpakete, Fachpakete,
+  Qualitätspass, PDF-Speicherdialog sowie Archiv-/Lösch- und bestätigte CSV-Flows.
 
 ### Added — Korrektur mit Unterrichtseinsatz-Verknüpfung
 - Eine Analyse kann nun einem konkreten Unterrichtseinsatz und gespeicherten

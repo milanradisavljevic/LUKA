@@ -13,7 +13,7 @@ $OutDir = Join-Path $Root "dist\natascha-cli"
 Set-Location $Root
 
 & $Python -m pip install --upgrade pyinstaller
-& $Python -m pip install -r requirements_tui.txt
+& $Python -m pip install -r requirements_cli.txt -r requirements_tui.txt
 
 $mode = if ($OneDir) { "--onedir" } else { "--onefile" }
 

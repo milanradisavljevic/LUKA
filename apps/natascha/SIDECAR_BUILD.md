@@ -13,11 +13,23 @@ cd apps/natascha
 .\build_sidecar.ps1
 ```
 
-Das Skript installiert PyInstaller und `requirements_tui.txt` in die gewaehlte Python-Umgebung und erzeugt:
+Das Skript installiert PyInstaller sowie `requirements_cli.txt` und
+`requirements_tui.txt` in die gewaehlte Python-Umgebung und erzeugt:
 
 ```text
 apps/natascha/dist/natascha-cli/natascha-cli-x86_64-pc-windows-msvc.exe
 ```
+
+Für den macOS-Universal-Build:
+
+```bash
+cd apps/natascha
+bash ./build_sidecar.sh
+```
+
+Dabei werden ARM- und Intel-Binaries gebaut, mit `lipo` zu einem universellen
+Sidecar verbunden und unter
+`dist/natascha-cli/natascha-cli-universal-apple-darwin` abgelegt.
 
 ## Optionale Tauri-Integration
 
@@ -28,7 +40,10 @@ cd apps/lua
 pnpm tauri build --config src-tauri/tauri.natascha-sidecar.conf.json
 ```
 
-Diese Datei setzt nur `bundle.externalBin` auf `../../natascha/dist/natascha-cli/natascha-cli`. Tauri ergaenzt fuer Windows den Target-Suffix `-x86_64-pc-windows-msvc.exe`.
+Diese Datei setzt `bundle.externalBin` auf
+`../../natascha/dist/natascha-cli/natascha-cli`. Tauri ergänzt je Plattform den
+Target-Suffix. Der Release-Workflow baut das Sidecar vor `tauri-action` und
+verwendet diese Konfiguration automatisch.
 
 ## Smoke-Test
 
