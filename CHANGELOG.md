@@ -7,6 +7,13 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Fixed — Feedback-DOCX: Kommentare tragen den Namen aus dem Lehrerprofil
+- Die Word-Kommentare und die „Lehrkraft"-Zeile der Feedback-DOCX verwendeten
+  einen fest in der Config verdrahteten Namen — jede Lehrkraft hätte unter
+  fremdem Namen kommentiert. Der Name kommt jetzt automatisch aus „Mein
+  Profil"; ohne Profilname steht neutral „Lehrkraft". Der Realname wurde aus
+  der mitgelieferten Konfiguration entfernt.
+
 ### Added — Verständliche Namen für Bewertungsraster
 - Alle mitgelieferten Bewertungsraster haben nun Lehrkraft-taugliche Angaben zu
   Fach, Schulstufe und Textsorte. Dadurch kann die App sie ohne technische

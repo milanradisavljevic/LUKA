@@ -511,12 +511,29 @@ pub async fn natascha_personen_vorschau(
 /// Generiert eine Feedback-DOCX via CLI.
 #[tauri::command]
 pub async fn natascha_feedback_docx(
+    state: tauri::State<'_, crate::commands::db::DbState>,
     dir: String,
     python: String,
     abgabe_id: i64,
     output: Option<String>,
     bewertungsmodus: Option<String>,
 ) -> Result<String, String> {
+    // Name der Lehrkraft aus dem lokalen LUKA-Profil: Kommentare und
+    // Metadaten der Feedback-DOCX sollen die tatsächliche Lehrkraft
+    // ausweisen, nicht den teacher_name-Default aus der Sidecar-Config.
+    // (Eigener Scope: der Mutex-Guard darf nicht über das await leben.)
+    let lehrer: Option<String> = {
+        let guard = state.conn()?;
+        guard
+            .query_row(
+                "SELECT display_name FROM lua_lehrerprofil WHERE id=1",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .ok()
+            .map(|name| name.trim().to_string())
+            .filter(|name| !name.is_empty())
+    };
     let mut cmd = build_cli_command(&dir, &python)?;
     cmd.arg("feedback-docx").arg(abgabe_id.to_string());
     if let Some(ref v) = output {
@@ -524,6 +541,9 @@ pub async fn natascha_feedback_docx(
     }
     if let Some(ref v) = bewertungsmodus {
         cmd.arg("--bewertungsmodus").arg(v);
+    }
+    if let Some(ref v) = lehrer {
+        cmd.arg("--lehrer").arg(v);
     }
     run_cli_and_capture(cmd, None, "Korrektur-DOCX").await
 }

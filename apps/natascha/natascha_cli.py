@@ -373,6 +373,11 @@ def cmd_feedback_docx(args):
             print("Kein Feedback-JSON und keine Kriterien in der DB fuer diese Abgabe", file=sys.stderr)
             return 1
 
+    # Lehrkraft-Name aus dem LUKA-Profil hat Vorrang vor dem Config-Default:
+    # Kommentare/Metadaten der DOCX sollen die tatsächliche Lehrkraft ausweisen.
+    if getattr(args, "lehrer", None) and args.lehrer.strip():
+        config.setdefault("docx", {})["teacher_name"] = args.lehrer.strip()
+
     doc = gf.build_feedback_document(data, config=config, bewertungsmodus=args.bewertungsmodus)
     output = args.output or str(Path.cwd() / f"feedback_{abgabe_id}.docx")
     doc.save(output)
@@ -661,6 +666,12 @@ def main():
     p_docx.add_argument("abgabe_id", type=int)
     p_docx.add_argument("--output", default=None)
     p_docx.add_argument("--bewertungsmodus", default="benotet")
+    p_docx.add_argument(
+        "--lehrer",
+        default=None,
+        help="Name der Lehrkraft für Kommentare/Metadaten der DOCX "
+        "(überschreibt docx.teacher_name aus der Config; kommt in LUKA aus dem Lehrerprofil).",
+    )
 
     # erwartungshorizont
     p_eh = sub.add_parser("erwartungshorizont", help="Erwartungshorizont generieren")

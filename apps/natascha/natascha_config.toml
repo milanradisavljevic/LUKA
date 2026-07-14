@@ -51,7 +51,9 @@ path = "~/lehr-suite-bridge/lehr-suite.db"
 "Englisch+Oberstufe" = "srdp_englisch_b2.md"
 
 [docx]
-teacher_name = "Natascha Kordovsky"
+# Leer = LUKA übergibt den Namen aus dem Lehrerprofil (feedback-docx --lehrer).
+# Für die TUI kann hier lokal ein Name stehen — kein Realname im Repo-Default!
+teacher_name = ""
 school_name = ""
 logo_path = ""
 

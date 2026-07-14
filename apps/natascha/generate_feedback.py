@@ -629,7 +629,7 @@ def add_student_text_section(
 def _attach_word_comments(
     doc: Document,
     paragraph_comment_pairs: list[tuple[Any, str]],
-    author: str = "Natascha",
+    author: str = "Lehrkraft",
 ) -> None:
     """Hängt Word-Balloon-Kommentare an Absätze via direkter XML-Manipulation."""
     if not _LXML_AVAILABLE or not paragraph_comment_pairs:
@@ -799,7 +799,7 @@ def _attach_word_level_comments(
     doc: Document,
     hinweise_list: list[WordLevelHinweis],
     extra_strings: list[str] | None = None,
-    author: str = "Natascha",
+    author: str = "Lehrkraft",
     student_paragraphs: list | None = None,
     fehler_list: list[SprachFehler] | None = None,
 ) -> None:
@@ -1588,7 +1588,7 @@ def build_feedback_document(
 
     cfg = config or {}
     docx_cfg = cfg.get("docx", {})
-    teacher_name = docx_cfg.get("teacher_name", "Lehrkraft")
+    teacher_name = docx_cfg.get("teacher_name") or "Lehrkraft"
 
     word_count = len(original_text.split()) if original_text else 0
     add_korrektur_header(doc, data, config, word_count=word_count, aufgabe_label=aufgabe_label)
