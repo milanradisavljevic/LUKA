@@ -17,8 +17,14 @@ from typing import Any
 
 
 def normalize_klasse(value: str) -> str:
-    """Kanonischer Schlüssel für Klassen beim Schreiben und Nachschlagen."""
-    return " ".join((value or "").split()).casefold()
+    """Kanonische Klassen-Schreibweise: nur Leerraum kollabieren.
+
+    Bewusst KEIN casefold: Bestandsdaten enthalten Groß-/Kleinschreibung
+    ("7A", "6i") — kleingeschriebene Neuschreibungen würden neben den alten
+    Zeilen eine zweite Klasse erzeugen und Roster/Heatmap spalten. Toleranz
+    beim Nachschlagen leistet COLLATE NOCASE in den Lookup-Queries.
+    """
+    return " ".join((value or "").split())
 
 
 def normalize_aufgabe(value: str) -> str:
@@ -211,7 +217,7 @@ def get_schueler_by_klasse(db_path: Path | str, klasse: str) -> list[dict[str, A
     with sqlite3.connect(str(db_path)) as conn:
         conn.row_factory = sqlite3.Row
         rows = conn.execute(
-            "SELECT * FROM schueler WHERE klasse = ? ORDER BY vorname, nachname",
+            "SELECT * FROM schueler WHERE klasse = ? COLLATE NOCASE ORDER BY vorname, nachname",
             (klasse,),
         ).fetchall()
         return [dict(r) for r in rows]
@@ -225,7 +231,7 @@ def get_schueler_by_name(
     with sqlite3.connect(str(db_path)) as conn:
         conn.row_factory = sqlite3.Row
         row = conn.execute(
-            "SELECT * FROM schueler WHERE klasse = ? AND LOWER(vorname) = LOWER(?)"
+            "SELECT * FROM schueler WHERE klasse = ? COLLATE NOCASE AND LOWER(vorname) = LOWER(?)"
             " AND LOWER(COALESCE(nachname,'')) = LOWER(?)",
             (klasse, vorname, nachname),
         ).fetchone()

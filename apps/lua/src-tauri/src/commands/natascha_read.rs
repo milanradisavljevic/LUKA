@@ -3,8 +3,11 @@ use serde::Serialize;
 
 use crate::commands::db::DbState;
 
+// Nur Leerraum kanonisieren — Groß-/Kleinschreibung bleibt erhalten, sonst
+// entstehen neue Zeilen ("7a") neben Bestandsdaten ("7A") und Auswertungen
+// spalten sich. Lookup-Toleranz macht COLLATE NOCASE auf der Python-Seite.
 fn normalize_klasse(value: &str) -> String {
-    value.split_whitespace().collect::<Vec<_>>().join(" ").to_lowercase()
+    value.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 fn normalize_aufgabe(value: &str) -> String {

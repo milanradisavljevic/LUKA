@@ -2,6 +2,31 @@ use std::path::PathBuf;
 use tauri::AppHandle;
 use tauri_plugin_dialog::DialogExt;
 
+/// Zeigt eine erzeugte Datei im Dateimanager (Explorer/Finder) an.
+/// Bewusst ohne Opener-Plugin: gezielter System-Dateimanager-Aufruf reicht,
+/// und der Pfad muss existieren (kein beliebiges URL-/Programm-Öffnen).
+#[tauri::command]
+pub async fn show_in_folder(path: String) -> Result<(), String> {
+    let p = PathBuf::from(&path);
+    if !p.exists() {
+        return Err(format!("Datei nicht gefunden: {path}"));
+    }
+    #[cfg(target_os = "windows")]
+    let result = std::process::Command::new("explorer")
+        .arg("/select,")
+        .arg(&p)
+        .spawn();
+    #[cfg(target_os = "macos")]
+    let result = std::process::Command::new("open").arg("-R").arg(&p).spawn();
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+    let result = std::process::Command::new("xdg-open")
+        .arg(p.parent().unwrap_or(&p))
+        .spawn();
+    result
+        .map(|_| ())
+        .map_err(|e| format!("Dateimanager konnte nicht geöffnet werden: {e}"))
+}
+
 /// Speichert ein exportiertes Dokument (z. B. DOCX) als Datei.
 ///
 /// - `dir` gesetzt und `ask == false` → direkt nach `dir/filename` schreiben.

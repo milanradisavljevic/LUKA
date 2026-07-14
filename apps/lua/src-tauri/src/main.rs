@@ -21,6 +21,7 @@ fn main() {
             commands::pdf::convert_pdf,
             commands::pdf::libreoffice_available,
             commands::export::export_docx,
+            commands::export::show_in_folder,
             commands::web::fetch_url,
             commands::bridge::list_bridge_exports,
             commands::bridge::read_bridge_export,

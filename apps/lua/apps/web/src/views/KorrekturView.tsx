@@ -55,8 +55,12 @@ function isVisionPath(path: string): boolean {
   return /\.(pdf|jpe?g|png)$/i.test(path);
 }
 
+// Nur Leerraum kanonisieren — Groß-/Kleinschreibung bleibt erhalten!
+// Kleinschreiben würde neue Abgaben ("7a") neben Bestandsdaten ("7A") legen
+// und Heatmap/Roster/Auswertungen in Parallelwelten spalten. Toleranz beim
+// Nachschlagen übernimmt die DB-Seite (COLLATE NOCASE im Roster-Lookup).
 function normalizeKlasse(value: string): string {
-  return value.trim().replace(/\s+/g, ' ').toLowerCase();
+  return value.trim().replace(/\s+/g, ' ');
 }
 
 function analyseHinweise(result: unknown): string[] {
@@ -347,17 +351,34 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     }
   }, [selectedKlasse, selectedAufgabe, retroImport, listKlassen, loadAbgaben]);
 
+  const [docxErfolg, setDocxErfolg] = useState<string | null>(null);
+
   const handleGenerateDocx = useCallback(async () => {
     if (!selectedAbgabe) return;
     setError(null);
+    setDocxErfolg(null);
     const result = await generateFeedbackDocx(selectedAbgabe.abgabe.id);
     if (result) {
-      setError(null);
-      alert(`Feedback-DOCX erstellt: ${result.path}`);
+      setDocxErfolg(result.path);
     } else {
       setError('DOCX-Erstellung fehlgeschlagen');
     }
   }, [selectedAbgabe, generateFeedbackDocx]);
+
+  const handleShowDocx = useCallback(async () => {
+    if (!docxErfolg) return;
+    try {
+      const { invoke } = await import('@tauri-apps/api/core');
+      await invoke('show_in_folder', { path: docxErfolg });
+    } catch (e) {
+      setError(typeof e === 'string' ? e : 'Ordner konnte nicht geöffnet werden.');
+    }
+  }, [docxErfolg]);
+
+  // Karte gehört zur jeweiligen Abgabe — beim Wechsel ausblenden.
+  useEffect(() => {
+    setDocxErfolg(null);
+  }, [selectedAbgabe?.abgabe.id]);
 
   const starteNatascha = async () => {
     if (mode !== 'tui') return;
@@ -722,6 +743,21 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
                     <FileDown size={14} /> Feedback-DOCX
                   </button>
                 </div>
+
+                {docxErfolg && (
+                  <div role="status" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', padding: '0.5rem 0.75rem', marginBottom: '1rem', border: '1px solid color-mix(in srgb, var(--color-success) 40%, var(--color-border))', borderRadius: 'var(--radius)', background: 'color-mix(in srgb, var(--color-success-bg, #f0fdf4) 60%, var(--color-bg-surface))', fontSize: '0.8125rem' }}>
+                    <CheckCircle2 size={15} style={{ color: 'var(--color-success)', flexShrink: 0 }} />
+                    <span style={{ flex: 1, minWidth: 180 }}>
+                      Feedback-DOCX erstellt: <strong>{docxErfolg.split(/[/\\]/).pop()}</strong>
+                    </span>
+                    <button className="btn-secondary" onClick={handleShowDocx} style={{ fontSize: '0.75rem', padding: '0.25rem 0.625rem' }}>
+                      Ordner öffnen
+                    </button>
+                    <button className="btn-secondary" aria-label="Hinweis schließen" title="Schließen" onClick={() => setDocxErfolg(null)} style={{ padding: '0.2rem 0.45rem' }}>
+                      ×
+                    </button>
+                  </div>
+                )}
 
                 <div className="korrektur-detail-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(340px, 440px) 1fr', gap: '1.25rem', alignItems: 'start' }}>
                   {/* Linke Spalte: Analyse-Rail */}
