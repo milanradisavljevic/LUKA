@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { SpellCheck, FileText, GraduationCap, Save, AlertTriangle, Loader2, Upload, FileDown, ChevronRight, Eye, EyeOff, Files, XCircle, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { loadDocuments, loadSettings } from '../lib/storage';
-import { useNatascha, type PersonenVorschau, type SchuelerInfo } from '../hooks/useNatascha';
+import { useNatascha, type PersonenVorschau, type RubrikListe, type SchuelerInfo } from '../hooks/useNatascha';
 import { useEinsatz, type EinsatzRecord } from '../hooks/useEinsatz';
 import { useKlassenMeta } from '../hooks/useKlassenMeta';
 import { einsatzAnzeigeDatum, formatEinsatzDatum } from '../lib/einsatz';
 import { ViewShell } from './_ViewShell';
 import { anzeigeName } from '../lib/anzeigeName';
+import { gruppiereRubriken, rubrikLabel } from '../lib/rubrikAuswahl';
 import { InfoDot } from '../components/ui/InfoDot';
 
 function isTauri(): boolean {
@@ -81,7 +82,7 @@ interface KorrekturViewProps {
 }
 
 export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
-  const { analyze, analyzing, analyzeError, listKlassen, listAufgaben, getAbgaben, getAbgabeDetail, upsertLehrerFeedback, generateFeedbackDocx, retroImport, personenVorschau, listSchueler } = useNatascha();
+  const { analyze, analyzing, analyzeError, listKlassen, listAufgaben, getAbgaben, getAbgabeDetail, upsertLehrerFeedback, generateFeedbackDocx, retroImport, personenVorschau, listSchueler, listRubrics } = useNatascha();
   const { list: listEinsaetze } = useEinsatz();
   const { klassen: klassenMeta, refresh: refreshKlassenMeta } = useKlassenMeta();
 
@@ -105,6 +106,8 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
   const [analyzeKlasse, setAnalyzeKlasse] = useState('');
   const [analyzeAufgabe, setAnalyzeAufgabe] = useState('');
   const [analyzeFile, setAnalyzeFile] = useState('');
+  const [rubrikListe, setRubrikListe] = useState<RubrikListe>({ rubrics: [], defaultRubric: '' });
+  const [selectedRubrik, setSelectedRubrik] = useState('');
   // Ausgangstext (Angabe/Quelltext der Arbeit) — optional. Schließt den In-App-Closed-Loop:
   // wird mitanalysiert und kann später die passgenaue Übung vorbefüllen.
   const [analyzeAusgangstext, setAnalyzeAusgangstext] = useState('');
@@ -157,6 +160,15 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     if (!analyzeOpen || !isTauri()) return;
     void refreshKlassenMeta();
   }, [analyzeOpen, refreshKlassenMeta]);
+
+  useEffect(() => {
+    if (!analyzeOpen || !isTauri()) return;
+    let active = true;
+    void listRubrics().then((liste) => {
+      if (active) setRubrikListe(liste);
+    });
+    return () => { active = false; };
+  }, [analyzeOpen, listRubrics]);
 
   useEffect(() => {
     if (!analyzeOpen || !isTauri()) return;
@@ -349,12 +361,13 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     setError(null);
     setAnalyzeSuccess(null);
     const einsatz = einsatzOptions.find((e) => e.id === selectedEinsatzId);
-    const result = await analyze(analyzeFile, analyzeKlasse, analyzeAufgabe, { ausgangstext: analyzeAusgangstext.trim() || undefined, pseudonymisierung: pseudoAktiv, schuelerId: zuordnungId === '' ? undefined : zuordnungId, einsatzId: einsatz?.id, materialId: einsatz?.materialId ?? undefined });
+    const result = await analyze(analyzeFile, analyzeKlasse, analyzeAufgabe, { ausgangstext: analyzeAusgangstext.trim() || undefined, rubric: selectedRubrik || undefined, pseudonymisierung: pseudoAktiv, schuelerId: zuordnungId === '' ? undefined : zuordnungId, einsatzId: einsatz?.id, materialId: einsatz?.materialId ?? undefined });
     if (result) {
       setAnalyzeSuccess('Analyse abgeschlossen — Daten gespeichert.');
       setAnalyzeOpen(false);
       setAnalyzeFile('');
       setAnalyzeAufgabe('');
+      setSelectedRubrik('');
       setAnalyzeAusgangstext('');
       setSelectedEinsatzId('');
       const refreshed = await listKlassen();
@@ -365,7 +378,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     } else {
       setError(analyzeError ?? 'Analyse fehlgeschlagen');
     }
-  }, [analyze, analyzeFile, analyzeKlasse, analyzeAufgabe, analyzeAusgangstext, analyzeError, listKlassen, loadAufgaben, pseudoAktiv, zuordnungId, einsatzOptions, selectedEinsatzId]);
+  }, [analyze, analyzeFile, analyzeKlasse, analyzeAufgabe, analyzeAusgangstext, analyzeError, listKlassen, loadAufgaben, pseudoAktiv, selectedRubrik, zuordnungId, einsatzOptions, selectedEinsatzId]);
 
   const annotatedNodes = useMemo(() => {
     const rohtext = selectedAbgabe?.abgabe.rohtext;
@@ -420,7 +433,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
       setBatchCurrent(i + 1);
       try {
         const einsatz = einsatzOptions.find((e) => e.id === selectedEinsatzId);
-        const result = await analyze(file, analyzeKlasse, analyzeAufgabe, { ausgangstext: analyzeAusgangstext.trim() || undefined, pseudonymisierung: pseudoAktiv, einsatzId: einsatz?.id, materialId: einsatz?.materialId ?? undefined });
+        const result = await analyze(file, analyzeKlasse, analyzeAufgabe, { ausgangstext: analyzeAusgangstext.trim() || undefined, rubric: selectedRubrik || undefined, pseudonymisierung: pseudoAktiv, einsatzId: einsatz?.id, materialId: einsatz?.materialId ?? undefined });
         if (result) {
           const note = result?.analysis?.notenempfehlung?.note;
           results.push({ file, ok: true, msg: note != null ? `Note ${note}` : 'OK' });
@@ -439,7 +452,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     const refreshed = await listKlassen();
     setKlassen(refreshed);
     if (analyzeKlasse) await loadAufgaben(analyzeKlasse);
-  }, [batchFiles, analyzeKlasse, analyzeAufgabe, analyzeAusgangstext, analyze, analyzeError, listKlassen, loadAufgaben, pseudoAktiv, einsatzOptions, selectedEinsatzId]);
+  }, [batchFiles, analyzeKlasse, analyzeAufgabe, analyzeAusgangstext, analyze, analyzeError, listKlassen, loadAufgaben, pseudoAktiv, selectedRubrik, einsatzOptions, selectedEinsatzId]);
 
   const cardStyle = {
     padding: '1.25rem', border: '1px solid var(--color-border)',
@@ -882,6 +895,25 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
             <div style={{ marginBottom: '0.75rem' }}>
               <label>Aufgabe</label>
               <input type="text" value={analyzeAufgabe} onChange={(e) => setAnalyzeAufgabe(e.target.value)} placeholder="z.B. SA2" />
+            </div>
+
+            <div style={{ marginBottom: '0.75rem' }}>
+              <label>Bewertungsraster</label>
+              <select value={selectedRubrik} onChange={(e) => setSelectedRubrik(e.target.value)} style={{ width: '100%' }}>
+                <option value="">Automatisch — Standard für Fach/Schulstufe</option>
+                {gruppiereRubriken(rubrikListe.rubrics).map((gruppe) => (
+                  <optgroup key={gruppe.fach || 'weitere'} label={gruppe.label}>
+                    {gruppe.rubriken.map((rubrik) => (
+                      <option key={rubrik.filename} value={rubrik.filename}>{rubrikLabel(rubrik)}</option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+              {!selectedRubrik && rubrikListe.defaultRubric && (
+                <p style={{ margin: '0.25rem 0 0', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+                  Es gilt: {rubrikLabel(rubrikListe.rubrics.find((rubrik) => rubrik.filename === rubrikListe.defaultRubric) ?? { filename: rubrikListe.defaultRubric })}
+                </p>
+              )}
             </div>
 
             {/* Bestätigte Zuordnung: Vorschlag aus dem Dateinamen, Entscheidung bei

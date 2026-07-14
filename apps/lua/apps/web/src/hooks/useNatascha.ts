@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { loadSettings } from '../lib/storage';
 import type { KlasseInfo } from '../lib/storage';
+import type { RubrikOption } from '../lib/rubrikAuswahl';
 
 interface AbgabeInfo {
   id: number;
@@ -85,6 +86,11 @@ export interface PersonenVorschau {
   klassenlisteLeer: boolean;
 }
 
+export interface RubrikListe {
+  rubrics: RubrikOption[];
+  defaultRubric: string;
+}
+
 export function useNatascha() {
   const [analyzing, setAnalyzing] = useState(false);
   const [analyzeError, setAnalyzeError] = useState<string | null>(null);
@@ -93,7 +99,7 @@ export function useNatascha() {
     filePath: string,
     klasse: string,
     aufgabe: string,
-    opts?: { fach?: string; schulstufe?: string; textsorte?: string; schueler?: string; bewertungsmodus?: string; ausgangstext?: string; pseudonymisierung?: boolean; schuelerId?: number; einsatzId?: string; materialId?: string },
+    opts?: { fach?: string; schulstufe?: string; textsorte?: string; schueler?: string; bewertungsmodus?: string; ausgangstext?: string; rubric?: string; pseudonymisierung?: boolean; schuelerId?: number; einsatzId?: string; materialId?: string },
   ) => {
     setAnalyzing(true);
     setAnalyzeError(null);
@@ -111,6 +117,7 @@ export function useNatascha() {
         schueler: opts?.schueler,
         bewertungsmodus: opts?.bewertungsmodus,
         ausgangstext: opts?.ausgangstext,
+        rubric: opts?.rubric,
         pseudonymisierung: opts?.pseudonymisierung,
         schuelerId: opts?.schuelerId,
         einsatzId: opts?.einsatzId,
@@ -283,14 +290,14 @@ export function useNatascha() {
     return JSON.parse(result);
   }, []);
 
-  const listRubrics = useCallback(async (fach?: string, schulstufe?: string): Promise<string[]> => {
+  const listRubrics = useCallback(async (fach?: string, schulstufe?: string): Promise<RubrikListe> => {
     const s = loadSettings();
     try {
       const result = await invoke<string>('natascha_list_rubrics', {
         dir: s.nataschaDir ?? '', python: s.pythonCommand ?? '', fach, schulstufe,
       });
-      return JSON.parse(result);
-    } catch { return []; }
+      return JSON.parse(result) as RubrikListe;
+    } catch { return { rubrics: [], defaultRubric: '' }; }
   }, []);
 
   const deleteSchueler = useCallback(async (schuelerId: number): Promise<void> => {

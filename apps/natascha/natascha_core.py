@@ -353,12 +353,42 @@ def extract_criteria_keys(rubric_content: str) -> list[str]:
     return re.findall(r"`([a-z][a-z_]*)`", match.group(1))
 
 
+_RUBRIK_HEADER_RE = re.compile(
+    r"^\ufeff?<!--[ \t]*luka-rubrik[ \t]*\r?\n(?P<body>.*?)[ \t]*\r?\n-->[ \t]*(?:\r?\n)?",
+    re.DOTALL,
+)
+_RUBRIK_HEADER_FIELDS = ("titel", "fach", "schulstufe", "textsorte")
+
+
+def parse_rubrik_header(text: str) -> dict[str, str]:
+    """Liest den optionalen luka-rubrik-Kommentar am Anfang einer Rubrik.
+
+    Alte oder selbst angelegte Rubriken ohne Header bleiben vollständig nutzbar;
+    ihre Metadaten sind dann leere Strings.
+    """
+    header = {field: "" for field in _RUBRIK_HEADER_FIELDS}
+    match = _RUBRIK_HEADER_RE.match(text)
+    if not match:
+        return header
+    for line in match.group("body").splitlines():
+        key, separator, value = line.partition(":")
+        key = key.strip().lower()
+        if separator and key in header:
+            header[key] = value.strip()
+    return header
+
+
+def strip_rubrik_header(text: str) -> str:
+    """Entfernt ausschließlich den optionalen Metadaten-Header einer Rubrik."""
+    return _RUBRIK_HEADER_RE.sub("", text, count=1)
+
+
 def load_rubric(rubric_filename: str, config: dict[str, Any]) -> str:
     rubric_dir = resolve_path(config, "rubrics")
     rubric_path = rubric_dir / rubric_filename
     if not rubric_path.exists():
         raise FileNotFoundError(f"Rubrik nicht gefunden: {rubric_path}")
-    return rubric_path.read_text(encoding="utf-8")
+    return strip_rubrik_header(rubric_path.read_text(encoding="utf-8"))
 
 
 def list_all_rubrics(config: dict[str, Any]) -> list[str]:
@@ -395,7 +425,7 @@ def load_rubric_for_aufgabe(config: dict[str, Any], klasse: str | None, aufgabe:
     rubric_dir = resolve_path(config, "rubrics")
     for f in sorted(rubric_dir.glob("*.md")):
         if not f.name.upper().startswith("README"):
-            return f.read_text(encoding="utf-8")
+            return load_rubric(f.name, config)
     raise FileNotFoundError("Keine Rubrik gefunden")
 
 

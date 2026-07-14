@@ -31,7 +31,8 @@ def test_cli_readonly_commands_against_temp_db(tmp_path: Path) -> None:
     db_path = tmp_path / "natascha.db"
 
     rubrics = run_cli(db_path, "list-rubrics", "--fach", "Deutsch", "--schulstufe", "Oberstufe")
-    assert "srdp_deutsch_oberstufe.md" in rubrics
+    assert "srdp_deutsch_oberstufe.md" in [rubric["filename"] for rubric in rubrics["rubrics"]]
+    assert rubrics["defaultRubric"] == "srdp_deutsch_oberstufe.md"
 
     text = run_cli(db_path, "quelltext-get", "--klasse", "CLI-TEST", "--aufgabe", "SA1")
     assert text == {"klasse": "CLI-TEST", "aufgabe": "SA1", "ausgangstext": ""}

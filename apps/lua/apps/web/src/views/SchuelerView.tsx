@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Users, TrendingUp, AlertTriangle, Loader2, BarChart3, ChevronRight, Trash2, UserPlus, Sparkles, Wand2, FileUp, User, School, Check, Archive } from 'lucide-react';
 import { EmptyState } from './_EmptyState';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, Legend, CartesianGrid } from 'recharts';
-import { useNatascha } from '../hooks/useNatascha';
+import { useNatascha, type RubrikListe } from '../hooks/useNatascha';
 import type { KlasseInfo } from '../lib/storage';
 import type { SchuelerProfilRow } from '../hooks/useNatascha';
 import { KATEGORIE_TO_BLOCKTYPEN, type NataschaPrefill, type BridgeBeispiel } from '../lib/nataschaBridge';
@@ -52,7 +52,7 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
   const [aufFach, setAufFach] = useState('Deutsch');
   const [aufStufe, setAufStufe] = useState('Oberstufe');
   const [aufRubric, setAufRubric] = useState('');
-  const [rubrics, setRubrics] = useState<string[]>([]);
+  const [rubrics, setRubrics] = useState<RubrikListe['rubrics']>([]);
   const [aufBusy, setAufBusy] = useState(false);
   const [aufMsg, setAufMsg] = useState<string | null>(null);
   const [profil, setProfil] = useState<SchuelerProfilRow | null>(null);
@@ -67,7 +67,7 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
   useEffect(() => { listKlassen().then(setKlassen); }, [listKlassen]);
 
   useEffect(() => {
-    listRubrics(aufFach, aufStufe).then((r) => { setRubrics(r); setAufRubric(r[0] ?? ''); });
+    listRubrics(aufFach, aufStufe).then((r) => { setRubrics(r.rubrics); setAufRubric(r.defaultRubric || r.rubrics[0]?.filename || ''); });
   }, [listRubrics, aufFach, aufStufe]);
 
   const handleAddAufgabe = useCallback(async () => {
@@ -467,7 +467,7 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
             <select value={aufRubric} onChange={(e) => setAufRubric(e.target.value)}
               style={{ width: '100%', boxSizing: 'border-box', marginBottom: 6, fontSize: '0.7rem' }}>
               {rubrics.length === 0 && <option value="">(keine Rubriken gefunden)</option>}
-              {rubrics.map((r) => <option key={r} value={r}>{r}</option>)}
+              {rubrics.map((r) => <option key={r.filename} value={r.filename}>{r.titel || r.filename}</option>)}
             </select>
             <button className="btn-primary" disabled={aufBusy} onClick={handleAddAufgabe}
               style={{ width: '100%', fontSize: '0.75rem', padding: '0.35rem' }}>

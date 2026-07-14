@@ -66,7 +66,11 @@ def cmd_analyze(args):
         return 1
 
     _progress("input", "Rubrik und Abgabe werden gelesen")
-    rubric = nc.load_rubric_for_aufgabe(config, args.klasse, args.aufgabe)
+    rubric = (
+        nc.load_rubric(args.rubric, config)
+        if args.rubric
+        else nc.load_rubric_for_aufgabe(config, args.klasse, args.aufgabe)
+    )
     docx_text = nc.read_docx_text(file_path)
 
     # Fehlt fach/schulstufe/textsorte, aus der Aufgaben-Config ableiten — so wirkt
@@ -463,8 +467,19 @@ def cmd_add_aufgabe(args):
 
 def cmd_list_rubrics(args):
     nc, ndb, config, db_path = _load_env_and_config()
-    rubrics = nc.rubric_options_for(args.fach or "", args.schulstufe or "", config)
-    _json_out(rubrics)
+    fach = args.fach or config.get("defaults", {}).get("fach", "")
+    schulstufe = args.schulstufe or config.get("defaults", {}).get("schulstufe", "")
+    filenames = nc.rubric_options_for(args.fach or "", args.schulstufe or "", config)
+    rubrics_dir = nc.resolve_path(config, "rubrics")
+    rubrics = []
+    for filename in filenames:
+        path = rubrics_dir / filename
+        header = nc.parse_rubrik_header(path.read_text(encoding="utf-8")) if path.exists() else {}
+        rubrics.append({"filename": filename, **header})
+    _json_out({
+        "rubrics": rubrics,
+        "defaultRubric": nc.default_rubric_for(fach, schulstufe, config),
+    })
     return 0
 
 
