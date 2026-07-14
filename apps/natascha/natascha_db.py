@@ -749,12 +749,18 @@ def save_analysis_to_db(
     rohtext: str = "",
     wortanzahl: int | None = None,
     feedback_json_path: str = "",
+    bestaetigte_schueler_id: int | None = None,
 ) -> int:
     """
     Bequemlichkeits-Funktion: Nimmt das validierte JSON-Dict nach der Analyse
     und speichert alles in die DB (inkl. Kriterien und Fehler).
 
     Verwendet eine einzelne Transaktion fuer atomaren Save.
+
+    bestaetigte_schueler_id: Von der Lehrkraft bestätigte Zuordnung. Hat Vorrang
+    vor der Namensheuristik und legt NIE einen neuen Schüler an. Wird nur
+    übernommen, wenn der Schüler existiert und zur Klasse gehört — sonst
+    Rückfall auf die Heuristik (Schutz gegen veraltete IDs aus der UI).
 
     Gibt die Abgabe-ID zurueck oder -1 bei Fehler.
     """
@@ -765,9 +771,17 @@ def save_analysis_to_db(
     if existing:
         return -1  # Duplikat
 
-    schueler_name = data.get("schueler", "")
     schueler_id: int | None = None
-    if schueler_name:
+    if bestaetigte_schueler_id is not None:
+        bestaetigt = get_schueler_by_id(db_path, bestaetigte_schueler_id)
+        if bestaetigt is not None and bestaetigt.get("klasse") == klasse:
+            schueler_id = int(bestaetigt["id"])
+
+    # Heuristik nur ohne bestätigte Zuordnung. Achtung: data["schueler"] kann
+    # aus der LLM-Antwort stammen — die Heuristik kann falsche oder erfundene
+    # Namen als Schüler anlegen. Die bestätigte ID ist der bevorzugte Weg.
+    schueler_name = data.get("schueler", "")
+    if schueler_id is None and schueler_name:
         parts = schueler_name.split(maxsplit=1)
         vn = parts[0] if parts else schueler_name
         nn = parts[1] if len(parts) > 1 else ""

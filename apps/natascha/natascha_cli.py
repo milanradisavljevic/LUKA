@@ -107,6 +107,7 @@ def cmd_analyze(args):
         rubric_name=args.rubric or "",
         pseudonymisierung=not args.keine_pseudonymisierung,
         db_path_override=db_path,
+        bestaetigte_schueler_id=args.schueler_id,
     )
 
     if data is None:
@@ -152,6 +153,7 @@ def cmd_personen_vorschau(args):
         {
             "funde": [
                 {
+                    "schuelerId": f["schueler_id"],
                     "anzeige": f["anzeige"],
                     "alias": f["alias"],
                     "vorkommenText": f["vorkommen_text"],
@@ -604,6 +606,13 @@ def main():
     p_analyze.add_argument("--max-retries", type=int, default=3)
     p_analyze.add_argument("--cancel-timeout", type=int, default=None)
     p_analyze.add_argument("--quiet", action="store_true")
+    p_analyze.add_argument(
+        "--schueler-id",
+        type=int,
+        default=None,
+        help="Von der Lehrkraft bestätigte Schüler-ID; hat Vorrang vor der "
+        "Namensheuristik und legt nie neue Schüler an.",
+    )
     p_analyze.add_argument(
         "--keine-pseudonymisierung",
         action="store_true",

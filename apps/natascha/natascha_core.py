@@ -843,6 +843,7 @@ def run_llm_analysis(
     rubric_name: str = "",
     pseudonymisierung: bool = True,
     db_path_override: Path | None = None,
+    bestaetigte_schueler_id: int | None = None,
 ) -> tuple[dict[str, Any] | None, list[str]]:
     """
     Fuehrt die vollstaendige LLM-Analyse durch: Prompt bauen, API aufrufen,
@@ -1202,6 +1203,7 @@ def run_llm_analysis(
                     rohtext=docx_text,
                     wortanzahl=wortanzahl,
                     feedback_json_path=json_path_str,
+                    bestaetigte_schueler_id=bestaetigte_schueler_id,
                 )
                 if abgabe_id and abgabe_id > 0:
                     data["_abgabe_id"] = abgabe_id

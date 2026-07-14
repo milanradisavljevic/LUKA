@@ -419,6 +419,7 @@ pub async fn natascha_analyze(
     erwartungshorizont: Option<String>,
     rubric: Option<String>,
     pseudonymisierung: Option<bool>,
+    schueler_id: Option<i64>,
 ) -> Result<String, String> {
     let mut cmd = build_cli_command(&dir, &python)?;
     cmd.arg("analyze")
@@ -455,6 +456,11 @@ pub async fn natascha_analyze(
     // Abschalten wird als Flag durchgereicht.
     if pseudonymisierung == Some(false) {
         cmd.arg("--keine-pseudonymisierung");
+    }
+    // Von der Lehrkraft bestätigte Zuordnung — hat in Python Vorrang vor der
+    // Namensheuristik und legt nie neue Schüler an.
+    if let Some(id) = schueler_id {
+        cmd.arg("--schueler-id").arg(id.to_string());
     }
     run_cli_and_capture(cmd, Some(&app), "Korrektur-Analyse").await
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { SpellCheck, FileText, GraduationCap, Save, AlertTriangle, Loader2, Upload, FileDown, ChevronRight, Eye, EyeOff, Files, XCircle, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { loadSettings } from '../lib/storage';
-import { useNatascha, type PersonenVorschau } from '../hooks/useNatascha';
+import { useNatascha, type PersonenVorschau, type SchuelerInfo } from '../hooks/useNatascha';
 import { ViewShell } from './_ViewShell';
 import { anzeigeName } from '../lib/anzeigeName';
 import { InfoDot } from '../components/ui/InfoDot';
@@ -76,7 +76,7 @@ interface KorrekturViewProps {
 }
 
 export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
-  const { analyze, analyzing, analyzeError, listKlassen, listAufgaben, getAbgaben, getAbgabeDetail, upsertLehrerFeedback, generateFeedbackDocx, retroImport, personenVorschau } = useNatascha();
+  const { analyze, analyzing, analyzeError, listKlassen, listAufgaben, getAbgaben, getAbgabeDetail, upsertLehrerFeedback, generateFeedbackDocx, retroImport, personenVorschau, listSchueler } = useNatascha();
 
   const [mode, setMode] = useState<'tui' | 'native'>('native');
   const [klassen, setKlassen] = useState<KlasseInfo[]>([]);
@@ -106,6 +106,10 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
   const [pseudoAktiv, setPseudoAktiv] = useState(true);
   const [pseudoVorschau, setPseudoVorschau] = useState<PersonenVorschau | null>(null);
   const [pseudoVorschauBusy, setPseudoVorschauBusy] = useState(false);
+  // Bestätigte Schülerzuordnung: '' = Automatik (Namensheuristik).
+  const [klasseSchueler, setKlasseSchueler] = useState<SchuelerInfo[]>([]);
+  const [zuordnungId, setZuordnungId] = useState<number | ''>('');
+  const zuordnungTouchedRef = useRef(false);
 
   // Batch-Korrektur (mehrere Dateien sequenziell)
   const [batchFiles, setBatchFiles] = useState<string[]>([]);
@@ -272,11 +276,39 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     };
   }, [analyzeOpen, analyzeFile, analyzeKlasse, personenVorschau]);
 
+  // Schülerliste der Klasse für die bestätigte Zuordnung laden.
+  useEffect(() => {
+    if (!analyzeOpen || !analyzeKlasse.trim() || !isTauri()) {
+      setKlasseSchueler([]);
+      return;
+    }
+    let aktiv = true;
+    const t = setTimeout(async () => {
+      const rows = await listSchueler(analyzeKlasse.trim());
+      if (aktiv) setKlasseSchueler(rows);
+    }, 400);
+    return () => { aktiv = false; clearTimeout(t); };
+  }, [analyzeOpen, analyzeKlasse, listSchueler]);
+
+  // Datei gewechselt → Zuordnung zurücksetzen, Automatik-Vorschlag darf wieder greifen.
+  useEffect(() => {
+    setZuordnungId('');
+    zuordnungTouchedRef.current = false;
+  }, [analyzeFile]);
+
+  // Vorschlag aus der Redaktionsvorschau übernehmen (Dateiname-Treffer),
+  // solange die Lehrkraft nicht selbst gewählt hat.
+  useEffect(() => {
+    if (zuordnungTouchedRef.current || !pseudoVorschau) return;
+    const dateiTreffer = pseudoVorschau.funde.filter((f) => f.imDateinamen);
+    if (dateiTreffer.length === 1) setZuordnungId(dateiTreffer[0]!.schuelerId);
+  }, [pseudoVorschau]);
+
   const handleAnalyze = useCallback(async () => {
     if (!analyzeFile || !analyzeKlasse || !analyzeAufgabe) return;
     setError(null);
     setAnalyzeSuccess(null);
-    const result = await analyze(analyzeFile, analyzeKlasse, analyzeAufgabe, { ausgangstext: analyzeAusgangstext.trim() || undefined, pseudonymisierung: pseudoAktiv });
+    const result = await analyze(analyzeFile, analyzeKlasse, analyzeAufgabe, { ausgangstext: analyzeAusgangstext.trim() || undefined, pseudonymisierung: pseudoAktiv, schuelerId: zuordnungId === '' ? undefined : zuordnungId });
     if (result) {
       setAnalyzeSuccess('Analyse abgeschlossen — Daten gespeichert.');
       setAnalyzeOpen(false);
@@ -291,7 +323,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     } else {
       setError(analyzeError ?? 'Analyse fehlgeschlagen');
     }
-  }, [analyze, analyzeFile, analyzeKlasse, analyzeAufgabe, analyzeAusgangstext, analyzeError, listKlassen, loadAufgaben, pseudoAktiv]);
+  }, [analyze, analyzeFile, analyzeKlasse, analyzeAufgabe, analyzeAusgangstext, analyzeError, listKlassen, loadAufgaben, pseudoAktiv, zuordnungId]);
 
   const annotatedNodes = useMemo(() => {
     const rohtext = selectedAbgabe?.abgabe.rohtext;
@@ -789,6 +821,34 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
               <label>Aufgabe</label>
               <input type="text" value={analyzeAufgabe} onChange={(e) => setAnalyzeAufgabe(e.target.value)} placeholder="z.B. SA2" />
             </div>
+
+            {/* Bestätigte Zuordnung: Vorschlag aus dem Dateinamen, Entscheidung bei
+                der Lehrkraft. Automatik = alte Namensheuristik (kann Schüler anlegen). */}
+            {batchFiles.length === 0 && klasseSchueler.length > 0 && (
+              <div style={{ marginBottom: '0.75rem' }}>
+                <label>Schüler:in (Zuordnung)</label>
+                <select
+                  value={zuordnungId === '' ? '' : String(zuordnungId)}
+                  onChange={(e) => {
+                    zuordnungTouchedRef.current = true;
+                    setZuordnungId(e.target.value === '' ? '' : Number(e.target.value));
+                  }}
+                  style={{ width: '100%' }}
+                >
+                  <option value="">Automatisch (aus Dateiname erkennen)</option>
+                  {klasseSchueler.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.vorname}{s.nachname ? ` ${s.nachname}` : ''}
+                    </option>
+                  ))}
+                </select>
+                {zuordnungId !== '' && !zuordnungTouchedRef.current && (
+                  <p style={{ margin: '0.25rem 0 0', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+                    Automatisch aus dem Dateinamen erkannt — bitte prüfen.
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Datenschutz: Redaktionsvorschau + Schalter. Kein stilles Versprechen —
                 die Karte zeigt konkret, was ersetzt wird (oder dass nichts geht). */}

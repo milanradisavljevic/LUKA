@@ -78,7 +78,7 @@ async function invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T
 }
 
 export interface PersonenVorschau {
-  funde: { anzeige: string; alias: string; vorkommenText: number; imDateinamen: boolean }[];
+  funde: { schuelerId: number; anzeige: string; alias: string; vorkommenText: number; imDateinamen: boolean }[];
   visionModus: boolean;
   klassenlisteLeer: boolean;
 }
@@ -91,7 +91,7 @@ export function useNatascha() {
     filePath: string,
     klasse: string,
     aufgabe: string,
-    opts?: { fach?: string; schulstufe?: string; textsorte?: string; schueler?: string; bewertungsmodus?: string; ausgangstext?: string; pseudonymisierung?: boolean },
+    opts?: { fach?: string; schulstufe?: string; textsorte?: string; schueler?: string; bewertungsmodus?: string; ausgangstext?: string; pseudonymisierung?: boolean; schuelerId?: number },
   ) => {
     setAnalyzing(true);
     setAnalyzeError(null);
@@ -110,6 +110,7 @@ export function useNatascha() {
         bewertungsmodus: opts?.bewertungsmodus,
         ausgangstext: opts?.ausgangstext,
         pseudonymisierung: opts?.pseudonymisierung,
+        schuelerId: opts?.schuelerId,
       });
       return JSON.parse(result);
     } catch (e) {
@@ -472,7 +473,7 @@ interface DbLoadAllResult {
   dbPath: string;
 }
 
-interface SchuelerInfo {
+export interface SchuelerInfo {
   id: number;
   klasse: string;
   vorname: string;

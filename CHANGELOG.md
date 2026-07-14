@@ -7,6 +7,14 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Bestätigte Schülerzuordnung bei der Korrektur
+- Der Analyse-Dialog zeigt eine Zuordnungs-Auswahl aus der Klassenliste; der
+  Vorschlag aus dem Dateinamen wird vorausgewählt und ist per Dropdown
+  korrigierbar. Eine bestätigte Zuordnung hat Vorrang vor der bisherigen
+  Namensheuristik und legt nie neue Schüler an — bisher konnte sogar ein vom
+  KI-Modell erfundener Name still einen Schüler-Datensatz erzeugen. Ohne
+  Bestätigung bleibt das alte Verhalten (Automatik) erhalten.
+
 ### Added — Evidenzschicht „Unterrichtseinsatz“
 - Unterrichtseinsätze verknüpfen Material und Klassenidentität mit Snapshots,
   Einsatzstatus und einem später ergänzbaren Rückblick. Die Daten bleiben im
