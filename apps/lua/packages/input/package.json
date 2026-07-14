@@ -21,7 +21,7 @@
     "docx": "^8.6.0",
     "pdf-lib": "^1.17.1",
     "typescript": "^5.4.0",
-    "vitest": "^2.0.0"
+    "vitest": "^4.1.10"
   },
   "exports": {
     ".": {
