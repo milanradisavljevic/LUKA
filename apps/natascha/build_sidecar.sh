@@ -15,18 +15,18 @@ mkdir -p "$OUT_DIR" "$BUILD_DIR"
 build_arch() {
   local arch="$1"
   local target="$2"
-  local python_cmd=(python3)
+  local python_prefix=()
   if [[ "$arch" == "x86_64" ]]; then
-    python_cmd=(arch -x86_64 python3)
+    python_prefix=(arch -x86_64)
   fi
 
   local venv_dir="$BUILD_DIR/venv-$target"
   rm -rf "$venv_dir"
-  "${python_cmd[@]}" -m venv "$venv_dir"
-  "${python_cmd[@]}" "$venv_dir/bin/python" -m pip install --upgrade pip pyinstaller
-  "${python_cmd[@]}" "$venv_dir/bin/python" -m pip install -r requirements_cli.txt -r requirements_tui.txt
+  "${python_prefix[@]}" python3 -m venv "$venv_dir"
+  "${python_prefix[@]}" "$venv_dir/bin/python" -m pip install --upgrade pip pyinstaller
+  "${python_prefix[@]}" "$venv_dir/bin/python" -m pip install -r requirements_cli.txt -r requirements_tui.txt
 
-  "${python_cmd[@]}" "$venv_dir/bin/python" -m PyInstaller \
+  "${python_prefix[@]}" "$venv_dir/bin/python" -m PyInstaller \
     --clean \
     --noconfirm \
     --onefile \
