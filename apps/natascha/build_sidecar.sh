@@ -15,7 +15,11 @@ mkdir -p "$OUT_DIR" "$BUILD_DIR"
 build_arch() {
   local arch="$1"
   local target="$2"
-  local python_prefix=()
+  # Das Array darf NIE leer sein: macOS liefert Bash 3.2, und dort bricht die
+  # Expansion eines leeren Arrays unter `set -u` mit "unbound variable" ab
+  # (genau so scheiterte der v1.1.0-Release-Lauf). Deshalb bekommt auch die
+  # native Architektur einen expliziten arch-Prefix.
+  local python_prefix=(arch -arm64)
   if [[ "$arch" == "x86_64" ]]; then
     python_prefix=(arch -x86_64)
   fi
