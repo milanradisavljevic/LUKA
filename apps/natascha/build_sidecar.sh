@@ -7,9 +7,6 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT"
 
-python3 -m pip install --upgrade pyinstaller
-python3 -m pip install -r requirements_cli.txt -r requirements_tui.txt
-
 OUT_DIR="$ROOT/dist/natascha-cli"
 BUILD_DIR="$ROOT/dist/sidecar-build"
 rm -rf "$BUILD_DIR"
@@ -23,7 +20,13 @@ build_arch() {
     python_cmd=(arch -x86_64 python3)
   fi
 
-  "${python_cmd[@]}" -m PyInstaller \
+  local venv_dir="$BUILD_DIR/venv-$target"
+  rm -rf "$venv_dir"
+  "${python_cmd[@]}" -m venv "$venv_dir"
+  "${python_cmd[@]}" "$venv_dir/bin/python" -m pip install --upgrade pip pyinstaller
+  "${python_cmd[@]}" "$venv_dir/bin/python" -m pip install -r requirements_cli.txt -r requirements_tui.txt
+
+  "${python_cmd[@]}" "$venv_dir/bin/python" -m PyInstaller \
     --clean \
     --noconfirm \
     --onefile \
