@@ -7,3 +7,9 @@ onlyBuiltDependencies:
 
 allowBuilds:
   esbuild: true
+
+# Kein automatischer Install vor Skript-Läufen: node_modules wird auf diesem
+# Rechner immer von Windows-pnpm erzeugt (Junctions, von WSL und Windows
+# lesbar). Ein WSL-seitiger Auto-Install würde Linux-Symlinks anlegen, die
+# Windows nicht auflösen kann. Bei veralteten Deps nur warnen.
+verifyDepsBeforeRun: warn
