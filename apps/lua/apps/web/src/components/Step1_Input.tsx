@@ -282,7 +282,7 @@ export function Step1_Input({ state, dispatch }: Props) {
             </div>
             <div>
               <label>Inhalt</label>
-              <textarea rows={10} value={qt.inhalt} placeholder="Quelltext hier einfügen…"
+              <textarea rows={10} data-quelltext-input value={qt.inhalt} placeholder="Quelltext hier einfügen…"
                 style={{ whiteSpace: 'pre-wrap', lineHeight: 1.5 }}
                 onChange={(e) => dispatch({ type: 'UPDATE_QUELLTEXT', id: qt.id, quelltext: { inhalt: e.target.value } })} />
               {qt.inhalt.trim().length > 0 && (() => {
@@ -302,7 +302,7 @@ export function Step1_Input({ state, dispatch }: Props) {
       ))}
 
       <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
-        <button className="btn-secondary" onClick={addPlaceholderText}>
+        <button className="btn-secondary" data-quelltext-add onClick={addPlaceholderText}>
           + Quelltext manuell eingeben
         </button>
         <button className="btn-secondary" onClick={() => fileInputRef.current?.click()}

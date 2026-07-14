@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { ArrowRight, Clock, FolderOpen, BookOpen, ClipboardCheck, Target, Grid3X3, Languages, Pencil, AlertTriangle, GraduationCap } from 'lucide-react';
+import { ArrowRight, Clock, FolderOpen, BookOpen, ClipboardCheck, Target, Grid3X3, Languages, Pencil, AlertTriangle, GraduationCap, X } from 'lucide-react';
 import type { AppState, AppAction } from '../lib/types';
 import { BLOCK_TYPE_DEFS, SCHWIERIGKEIT_RULES, UNTERLAGENTYP_MINUTEN } from '../lib/constants';
 import { buildSkelett, FACH_META, fachLabel, istSprachfach, schulstufenFuerLand, stufeFromSchulstufe, stufeLabelFuerLand, type Auftrag, type Fach } from '@lehrunterlagen/schema';
@@ -8,6 +8,7 @@ import { loadDocuments, loadSettings } from '../lib/storage';
 import { loadTeacherProfile } from '../lib/profile';
 import { FEATURES } from '../lib/features';
 import { consumePendingUebung } from '../lib/korrekturBridge';
+import { bewertePrefillQuelle } from '../lib/prefillQuelle';
 import { getDefaultTemplate } from '@lehrunterlagen/renderer';
 import { useKlassenMeta } from '../hooks/useKlassenMeta';
 import { Tile } from './ui/Tile';
@@ -82,6 +83,9 @@ export function Step0_Absicht({
   const [notizen, setNotizen] = useState(lastMeta?.notizen ?? '');
   const [lernzieleRaw, setLernzieleRaw] = useState(lastMeta?.lernziele?.join(', ') ?? '');
   const [fokusThemen, setFokusThemen] = useState<string[]>(lastMeta?.fokusThemen ?? []);
+  const [modus, setModus] = useState<NonNullable<Auftrag['modus']> | undefined>(undefined);
+  const [freieKompetenz, setFreieKompetenz] = useState('');
+  const [prefillQuelleStatus, setPrefillQuelleStatus] = useState<'fehlt' | 'zu_kurz' | null>(null);
   const [fehler, setFehler] = useState<string | null>(null);
   const [schnellOhneQuelltext, setSchnellOhneQuelltext] = useState(false);
   // Punkte vergeben? Schulübung standardmäßig ohne Punkte, sonst mit.
@@ -200,6 +204,8 @@ export function Step0_Absicht({
   );
   const handleTypChange = useCallback((neuerTyp: NonNullable<Auftrag['typ']>) => {
     setTyp(neuerTyp);
+    setModus(undefined);
+    setFreieKompetenz('');
     setSchnellOhneQuelltext(false);
     if (neuerTyp === 'matura') {
       setGewuenschteAufgabenarten(['offeneSchreibaufgabe']);
@@ -234,12 +240,43 @@ export function Step0_Absicht({
     [dispatch],
   );
 
+  const fokussiereQuelltext = useCallback(() => {
+    dispatch({ type: 'SET_STEP', step: 'input' });
+    requestAnimationFrame(() => {
+      const feld = document.querySelector<HTMLTextAreaElement>('[data-quelltext-input]');
+      if (feld) {
+        feld.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        feld.focus();
+        return;
+      }
+
+      // Bei einem leeren Step 1 existiert das Textfeld erst nach „manuell eingeben".
+      const hinzufuegen = document.querySelector<HTMLButtonElement>('[data-quelltext-add]');
+      hinzufuegen?.click();
+      requestAnimationFrame(() => {
+        const neuesFeld = document.querySelector<HTMLTextAreaElement>('[data-quelltext-input]');
+        neuesFeld?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        neuesFeld?.focus();
+      });
+    });
+  }, [dispatch]);
+
+  const waehleKontextfreieUebung = useCallback(() => {
+    setPrefillQuelleStatus(null);
+    setTyp('schuluebung');
+    setModus('kompetenz');
+    setFreieKompetenz(fokusThemen.join(', '));
+    setSchnellOhneQuelltext(true);
+  }, [fokusThemen]);
+
   // Closed Loop: Übungs-Vorbefüllung aus der Korrektur-Heatmap übernehmen (einmalig beim Mounten).
   useEffect(() => {
     if (!FEATURES.natascha) return;
     const p = consumePendingUebung();
     if (!p) return;
     setTyp('schuluebung');
+    setModus(undefined);
+    setFreieKompetenz('');
     setFach(p.fach);
     setStufe(p.stufe);
     dispatch({ type: 'SET_RENDER_TEMPLATE', template: getDefaultTemplate(p.stufe).id });
@@ -248,6 +285,8 @@ export function Step0_Absicht({
     setFokusThemen(p.fokusThemen);
     setGewuenschteAufgabenarten(p.gewuenschteAufgabenarten);
     uebernehmeAusgangstextUndFehler(p.ausgangstext, p.fehler);
+    const quelleStatus = bewertePrefillQuelle(p.ausgangstext);
+    setPrefillQuelleStatus(quelleStatus === 'ok' ? null : quelleStatus);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -357,6 +396,8 @@ export function Step0_Absicht({
       dauerMinuten: dauerMinuten !== '' ? Number(dauerMinuten) : undefined,
       schwierigkeit,
       gewuenschteAufgabenarten: gewuenschteAufgabenarten.length > 0 ? gewuenschteAufgabenarten as Auftrag['gewuenschteAufgabenarten'] : undefined,
+      modus,
+      freieKompetenz: modus === 'kompetenz' ? freieKompetenz.trim() || undefined : undefined,
       // „Ohne Punkte": 0 (nicht undefined) erzwingt punktlose Blöcke; sonst würde
       // buildSkelett auf den Profil-Default (z. B. Schularbeit 48) zurückfallen.
       gesamtpunkteZiel: !punkteVergeben ? 0 : (gesamtpunkteZiel !== '' ? Number(gesamtpunkteZiel) : undefined),
@@ -394,6 +435,8 @@ export function Step0_Absicht({
           schwierigkeit,
           lernziele: lernzieleRaw.split(',').map((s) => s.trim()).filter(Boolean) || undefined,
           fokusThemen: fokusThemen.length > 0 ? fokusThemen : undefined,
+          modus,
+          freieKompetenz: modus === 'kompetenz' ? freieKompetenz.trim() || undefined : undefined,
         },
       });
       onDismissFirstRunHint?.();
@@ -401,7 +444,7 @@ export function Step0_Absicht({
     } catch (err) {
       setFehler(err instanceof Error ? err.message : 'Fehler beim Erstellen des Skeletts.');
     }
-  }, [typ, fach, stufe, land, isDeutschSrdpTraining, thema, datum, klasse, dauerMinuten, schwierigkeit, gewuenschteAufgabenarten, gesamtpunkteZiel, punkteVergeben, notizen, lernzieleRaw, fokusThemen, nataschaFehler, state.quelltexte, state.bloecke, dispatch, onDismissFirstRunHint]);
+  }, [typ, fach, stufe, land, isDeutschSrdpTraining, thema, datum, klasse, dauerMinuten, schwierigkeit, gewuenschteAufgabenarten, gesamtpunkteZiel, punkteVergeben, notizen, lernzieleRaw, fokusThemen, nataschaFehler, modus, freieKompetenz, state.quelltexte, state.bloecke, dispatch, onDismissFirstRunHint]);
 
   const fachLabelCurrent = fachLabel(fach);
   const stufeLabel = stufeLabelFuerLand(stufe, land);
@@ -412,6 +455,53 @@ export function Step0_Absicht({
       <p style={{ color: 'var(--color-text-secondary)', margin: '0 0 1.25rem', fontSize: '0.875rem' }}>
         Beschreibe, was du brauchst. Die App baut daraus automatisch das passende Skelett.
       </p>
+
+      {prefillQuelleStatus && (
+        <section
+          role="alert"
+          style={{
+            marginBottom: '1.25rem',
+            padding: '0.95rem 1rem',
+            border: '1px solid color-mix(in srgb, var(--color-warning, #f59e0b) 55%, var(--color-border))',
+            borderRadius: 'var(--radius)',
+            background: 'color-mix(in srgb, var(--color-warning-bg, #fff7ed) 72%, var(--color-bg-surface))',
+            display: 'grid',
+            gridTemplateColumns: 'auto minmax(0, 1fr) auto',
+            gap: '0.85rem',
+            alignItems: 'start',
+          }}
+        >
+          <AlertTriangle size={20} style={{ color: 'var(--color-warning, #f59e0b)', marginTop: '0.1rem' }} />
+          <div>
+            <strong style={{ display: 'block', marginBottom: '0.25rem' }}>
+              {prefillQuelleStatus === 'zu_kurz' ? 'Ausgangstext aus der Korrektur ist zu kurz' : 'Ausgangstext aus der Korrektur fehlt'}
+            </strong>
+            <p style={{ margin: '0 0 0.7rem', fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>
+              {prefillQuelleStatus === 'zu_kurz'
+                ? 'Mit weniger als 80 Wörtern blockiert der Text-Modus die Generierung am Ende; füge einen längeren Text ein oder erstelle die Übung kontextfrei.'
+                : 'Ohne Ausgangstext blockiert der Text-Modus die Generierung am Ende; füge ihn jetzt ein oder erstelle die Übung kontextfrei.'}
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <button type="button" className="btn-primary" onClick={() => { setPrefillQuelleStatus(null); setModus(undefined); setFreieKompetenz(''); fokussiereQuelltext(); }}>
+                Ausgangstext jetzt einfügen
+              </button>
+              <button type="button" className="btn-secondary" onClick={waehleKontextfreieUebung}>
+                Kontextfreie Übung erstellen
+              </button>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn-secondary"
+            aria-label="Hinweis schließen"
+            title="Hinweis schließen"
+            onClick={() => setPrefillQuelleStatus(null)}
+            style={{ padding: '0.3rem' }}
+          >
+            <X size={16} />
+          </button>
+        </section>
+      )}
 
       {firstRunHint && (
         <section

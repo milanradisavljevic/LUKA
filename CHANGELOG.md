@@ -7,6 +7,12 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Fixed — Korrektur-Heatmap: Quelltext-Prefill weist auf fehlende Quelle hin
+- Springt eine Übung aus der Klassen-Heatmap ohne ausreichenden Ausgangstext
+  in den Generator, zeigt Schritt 0 jetzt eine klare Wahl: Quelltext einfügen
+  oder eine kontextfreie Kompetenz-Übung erstellen. Die Generierung läuft
+  dadurch nicht mehr erst am Ende in einen vermeidbaren Quelltext-Fehler.
+
 ### Added — Korrektur-Modul aktiviert
 - Der Bereich **Korrigieren** ist jetzt sichtbar: Korrektur (KI-gestützte
   Bewertung von Schülerabgaben mit Rubrik, Fehlerliste und Feedback-DOCX),
