@@ -1,3 +1,10 @@
+<!-- luka-rubrik
+titel: Offener Brief
+fach: deutsch
+schulstufe: oberstufe
+textsorte: offener-brief
+-->
+
 # Bewertungsraster: Offener Brief
 
 ## JSON-Kriterien (exakte Schlüssel für die Bewertung — keine anderen verwenden)

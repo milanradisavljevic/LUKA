@@ -1,3 +1,10 @@
+<!-- luka-rubrik
+titel: Textinterpretation
+fach: deutsch
+schulstufe: oberstufe
+textsorte: textinterpretation
+-->
+
 # Bewertungsraster: Textinterpretation
 
 ## JSON-Kriterien (exakte Schlüssel für die Bewertung — keine anderen verwenden)

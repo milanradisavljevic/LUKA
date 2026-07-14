@@ -1,3 +1,10 @@
+<!-- luka-rubrik
+titel: Checkliste Textinterpretation
+fach: deutsch
+schulstufe: oberstufe
+textsorte: textinterpretation
+-->
+
 # Checkliste: Textinterpretation
 
 ## JSON-Kriterien (exakte Schlüssel für die Bewertung — keine anderen verwenden)

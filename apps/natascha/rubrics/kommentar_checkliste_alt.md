@@ -1,3 +1,10 @@
+<!-- luka-rubrik
+titel: Kommentar (Checkliste, alt)
+fach: deutsch
+schulstufe: oberstufe
+textsorte: kommentar
+-->
+
 # Bewertungsraster: Kommentar
 
 ## Checkliste Kriterien

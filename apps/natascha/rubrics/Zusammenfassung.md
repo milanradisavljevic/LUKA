@@ -1,3 +1,10 @@
+<!-- luka-rubrik
+titel: Zusammenfassung
+fach: deutsch
+schulstufe: unterstufe
+textsorte: zusammenfassung
+-->
+
 # Checkliste für deine Texte
 
 > Lies deine Zusammenfassung noch einmal genau durch und überprüfe, ob du die folgenden Punkte beachtet hast. Mache ein Häkerl in der Tabelle oder überarbeite deinen Text.

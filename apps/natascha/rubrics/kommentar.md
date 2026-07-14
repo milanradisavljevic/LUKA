@@ -1,3 +1,10 @@
+<!-- luka-rubrik
+titel: Kommentar
+fach: deutsch
+schulstufe: oberstufe
+textsorte: kommentar
+-->
+
 # Bewertungsraster: Kommentar
 
 ## JSON-Kriterien (exakte Schlüssel für die Bewertung — keine anderen verwenden)

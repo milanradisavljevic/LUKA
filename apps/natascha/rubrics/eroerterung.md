@@ -1,3 +1,10 @@
+<!-- luka-rubrik
+titel: Erörterung
+fach: deutsch
+schulstufe: oberstufe
+textsorte: eroerterung
+-->
+
 # Bewertungsraster: Erörterung
 
 ## Kategorien und Kriterien

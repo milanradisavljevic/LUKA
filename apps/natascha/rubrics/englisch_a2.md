@@ -1,3 +1,10 @@
+<!-- luka-rubrik
+titel: Englisch A2
+fach: englisch
+schulstufe: unterstufe
+textsorte: alle
+-->
+
 # Bewertungsraster: Englisch A2
 
 ## JSON-Kriterien (exakte Schlüssel für die Bewertung — keine anderen verwenden)

@@ -1,3 +1,10 @@
+<!-- luka-rubrik
+titel: Erzählung (Unterstufe)
+fach: deutsch
+schulstufe: unterstufe
+textsorte: erzaehlung
+-->
+
 # Bewertungsraster: Erzählung (Unterstufe)
 
 ## JSON-Kriterien (exakte Schlüssel für die Bewertung — keine anderen verwenden)

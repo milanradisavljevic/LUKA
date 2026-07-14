@@ -1,3 +1,10 @@
+<!-- luka-rubrik
+titel: Erwartungshorizont SA2: Genderneutrale Mode
+fach: deutsch
+schulstufe: oberstufe
+textsorte: kommentar
+-->
+
 # Erwartungshorizont: SA2 Thema 1 - Genderneutrale Mode
 
 ## Aufgabenkontext

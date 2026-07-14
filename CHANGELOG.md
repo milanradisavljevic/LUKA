@@ -7,6 +7,11 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Verständliche Namen für Bewertungsraster
+- Alle mitgelieferten Bewertungsraster haben nun Lehrkraft-taugliche Angaben zu
+  Fach, Schulstufe und Textsorte. Dadurch kann die App sie ohne technische
+  Dateinamen anbieten.
+
 ### Fixed — Korrektur-Modul: Meldungen und Einstellungen in Lehrer-Sprache
 - Fehlermeldungen des Korrektur-Moduls erklären jetzt Ursache und Lösung
   verständlich (statt „liegt keine natascha.py"). In den Einstellungen zeigt

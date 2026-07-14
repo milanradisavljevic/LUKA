@@ -1,3 +1,10 @@
+<!-- luka-rubrik
+titel: Beschreibung (Unterstufe)
+fach: deutsch
+schulstufe: unterstufe
+textsorte: beschreibung
+-->
+
 # Bewertungsraster: Beschreibung (Unterstufe)
 
 ## JSON-Kriterien (exakte Schlüssel für die Bewertung — keine anderen verwenden)

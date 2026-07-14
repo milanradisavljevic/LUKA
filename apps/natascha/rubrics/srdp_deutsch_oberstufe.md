@@ -1,3 +1,10 @@
+<!-- luka-rubrik
+titel: SRDP Deutsch Oberstufe
+fach: deutsch
+schulstufe: oberstufe
+textsorte: alle
+-->
+
 # Bewertungsraster: SRDP Deutsch Oberstufe
 
 ## JSON-Kriterien (exakte Schlüssel für die Bewertung — keine anderen verwenden)

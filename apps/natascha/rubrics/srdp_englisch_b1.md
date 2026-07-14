@@ -1,3 +1,10 @@
+<!-- luka-rubrik
+titel: SRDP Englisch B1
+fach: englisch
+schulstufe: oberstufe
+textsorte: alle
+-->
+
 # Bewertungsraster: SRDP Englisch B1
 
 ## JSON-Kriterien (exakte Schlüssel für die Bewertung — keine anderen verwenden)

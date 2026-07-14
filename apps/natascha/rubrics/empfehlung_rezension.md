@@ -1,3 +1,10 @@
+<!-- luka-rubrik
+titel: Empfehlung / Rezension
+fach: deutsch
+schulstufe: oberstufe
+textsorte: empfehlung-rezension
+-->
+
 # Bewertungsraster: Empfehlung / Rezension
 
 ## JSON-Kriterien (exakte Schlüssel für die Bewertung — keine anderen verwenden)

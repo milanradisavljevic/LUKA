@@ -1,3 +1,10 @@
+<!-- luka-rubrik
+titel: Meinungsrede
+fach: deutsch
+schulstufe: oberstufe
+textsorte: meinungsrede
+-->
+
 # Bewertungsraster: Meinungsrede
 
 ## JSON-Kriterien (exakte Schlüssel für die Bewertung — keine anderen verwenden)

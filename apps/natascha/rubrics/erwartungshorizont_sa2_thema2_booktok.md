@@ -1,3 +1,10 @@
+<!-- luka-rubrik
+titel: Erwartungshorizont SA2: Literatur und soziale Medien
+fach: deutsch
+schulstufe: oberstufe
+textsorte: kommentar
+-->
+
 # Erwartungshorizont: SA2 Thema 2 - Literatur und soziale Medien / BookTok
 
 ## Aufgabenkontext

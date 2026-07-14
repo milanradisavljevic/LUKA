@@ -1,3 +1,10 @@
+<!-- luka-rubrik
+titel: Einfacher Kommentar (Unterstufe)
+fach: deutsch
+schulstufe: unterstufe
+textsorte: kommentar
+-->
+
 # Bewertungsraster: Einfacher Kommentar (Unterstufe)
 
 ## JSON-Kriterien (exakte Schlüssel für die Bewertung — keine anderen verwenden)

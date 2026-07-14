@@ -1,3 +1,10 @@
+<!-- luka-rubrik
+titel: Leserbrief
+fach: deutsch
+schulstufe: oberstufe
+textsorte: leserbrief
+-->
+
 # Bewertungsraster: Leserbrief
 
 ## JSON-Kriterien (exakte Schlüssel für die Bewertung — keine anderen verwenden)

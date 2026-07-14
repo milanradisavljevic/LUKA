@@ -1,3 +1,10 @@
+<!-- luka-rubrik
+titel: Textanalyse
+fach: deutsch
+schulstufe: oberstufe
+textsorte: textanalyse
+-->
+
 # Bewertungsraster: Textanalyse
 
 ## JSON-Kriterien (exakte Schlüssel für die Bewertung — keine anderen verwenden)

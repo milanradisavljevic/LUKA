@@ -1,3 +1,10 @@
+<!-- luka-rubrik
+titel: Rhetorische Figuren
+fach: deutsch
+schulstufe: oberstufe
+textsorte: alle
+-->
+
 # Rhetorische Figuren – Referenztabelle
 
 Wird verwendet zur Beurteilung von Ausdruck und Stilmitteln in allen Textsorten.
