@@ -418,6 +418,7 @@ pub async fn natascha_analyze(
     ausgangstext: Option<String>,
     erwartungshorizont: Option<String>,
     rubric: Option<String>,
+    pseudonymisierung: Option<bool>,
 ) -> Result<String, String> {
     let mut cmd = build_cli_command(&dir, &python)?;
     cmd.arg("analyze")
@@ -450,7 +451,34 @@ pub async fn natascha_analyze(
     if let Some(ref v) = rubric {
         cmd.arg("--rubric").arg(v);
     }
+    // Standard ist Pseudonymisierung AN (Python-Default); nur explizites
+    // Abschalten wird als Flag durchgereicht.
+    if pseudonymisierung == Some(false) {
+        cmd.arg("--keine-pseudonymisierung");
+    }
     run_cli_and_capture(cmd, Some(&app), "Korrektur-Analyse").await
+}
+
+/// Redaktionsvorschau: welche Personenangaben aus der Klassenliste würden vor
+/// dem LLM-Versand ersetzt (kein LLM-Call). Gibt JSON `{ funde, visionModus,
+/// klassenlisteLeer }` zurück.
+#[tauri::command]
+pub async fn natascha_personen_vorschau(
+    dir: String,
+    python: String,
+    file_path: String,
+    klasse: String,
+    schueler: Option<String>,
+) -> Result<String, String> {
+    let mut cmd = build_cli_command(&dir, &python)?;
+    cmd.arg("personen-vorschau")
+        .arg(&file_path)
+        .arg("--klasse")
+        .arg(&klasse);
+    if let Some(ref v) = schueler {
+        cmd.arg("--schueler").arg(v);
+    }
+    run_cli_and_capture(cmd, None, "Personen-Vorschau").await
 }
 
 // Hinweis: Lese-Befehle (Klassen/Aufgaben/Abgaben/Heatmap/Notenverteilung/

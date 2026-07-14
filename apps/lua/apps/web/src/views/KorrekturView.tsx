@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { SpellCheck, FileText, GraduationCap, Save, AlertTriangle, Loader2, Upload, FileDown, ChevronRight, Eye, EyeOff, Files, XCircle, CheckCircle2 } from 'lucide-react';
+import { SpellCheck, FileText, GraduationCap, Save, AlertTriangle, Loader2, Upload, FileDown, ChevronRight, Eye, EyeOff, Files, XCircle, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { loadSettings } from '../lib/storage';
-import { useNatascha } from '../hooks/useNatascha';
+import { useNatascha, type PersonenVorschau } from '../hooks/useNatascha';
 import { ViewShell } from './_ViewShell';
 import { anzeigeName } from '../lib/anzeigeName';
 import { InfoDot } from '../components/ui/InfoDot';
@@ -76,7 +76,7 @@ interface KorrekturViewProps {
 }
 
 export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
-  const { analyze, analyzing, analyzeError, listKlassen, listAufgaben, getAbgaben, getAbgabeDetail, upsertLehrerFeedback, generateFeedbackDocx, retroImport } = useNatascha();
+  const { analyze, analyzing, analyzeError, listKlassen, listAufgaben, getAbgaben, getAbgabeDetail, upsertLehrerFeedback, generateFeedbackDocx, retroImport, personenVorschau } = useNatascha();
 
   const [mode, setMode] = useState<'tui' | 'native'>('native');
   const [klassen, setKlassen] = useState<KlasseInfo[]>([]);
@@ -102,6 +102,10 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
   // wird mitanalysiert und kann später die passgenaue Übung vorbefüllen.
   const [analyzeAusgangstext, setAnalyzeAusgangstext] = useState('');
   const [analyzeSuccess, setAnalyzeSuccess] = useState<string | null>(null);
+  // Pseudonymisierung: Redaktionsvorschau + Schalter (Standard AN).
+  const [pseudoAktiv, setPseudoAktiv] = useState(true);
+  const [pseudoVorschau, setPseudoVorschau] = useState<PersonenVorschau | null>(null);
+  const [pseudoVorschauBusy, setPseudoVorschauBusy] = useState(false);
 
   // Batch-Korrektur (mehrere Dateien sequenziell)
   const [batchFiles, setBatchFiles] = useState<string[]>([]);
@@ -245,11 +249,34 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     }
   };
 
+  // Redaktionsvorschau nachladen, sobald Datei + Klasse feststehen (debounced —
+  // der Call spawnt den Python-Sidecar, nicht bei jedem Tastendruck).
+  useEffect(() => {
+    if (!analyzeOpen || !analyzeFile || !analyzeKlasse.trim() || !isTauri()) {
+      setPseudoVorschau(null);
+      return;
+    }
+    let aktiv = true;
+    setPseudoVorschauBusy(true);
+    const t = setTimeout(async () => {
+      const v = await personenVorschau(analyzeFile, analyzeKlasse.trim());
+      if (aktiv) {
+        setPseudoVorschau(v);
+        setPseudoVorschauBusy(false);
+      }
+    }, 600);
+    return () => {
+      aktiv = false;
+      clearTimeout(t);
+      setPseudoVorschauBusy(false);
+    };
+  }, [analyzeOpen, analyzeFile, analyzeKlasse, personenVorschau]);
+
   const handleAnalyze = useCallback(async () => {
     if (!analyzeFile || !analyzeKlasse || !analyzeAufgabe) return;
     setError(null);
     setAnalyzeSuccess(null);
-    const result = await analyze(analyzeFile, analyzeKlasse, analyzeAufgabe, { ausgangstext: analyzeAusgangstext.trim() || undefined });
+    const result = await analyze(analyzeFile, analyzeKlasse, analyzeAufgabe, { ausgangstext: analyzeAusgangstext.trim() || undefined, pseudonymisierung: pseudoAktiv });
     if (result) {
       setAnalyzeSuccess('Analyse abgeschlossen — Daten gespeichert.');
       setAnalyzeOpen(false);
@@ -264,7 +291,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     } else {
       setError(analyzeError ?? 'Analyse fehlgeschlagen');
     }
-  }, [analyze, analyzeFile, analyzeKlasse, analyzeAufgabe, analyzeAusgangstext, analyzeError, listKlassen, loadAufgaben]);
+  }, [analyze, analyzeFile, analyzeKlasse, analyzeAufgabe, analyzeAusgangstext, analyzeError, listKlassen, loadAufgaben, pseudoAktiv]);
 
   const annotatedNodes = useMemo(() => {
     const rohtext = selectedAbgabe?.abgabe.rohtext;
@@ -318,7 +345,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
       const file = batchFiles[i]!;
       setBatchCurrent(i + 1);
       try {
-        const result = await analyze(file, analyzeKlasse, analyzeAufgabe, { ausgangstext: analyzeAusgangstext.trim() || undefined });
+        const result = await analyze(file, analyzeKlasse, analyzeAufgabe, { ausgangstext: analyzeAusgangstext.trim() || undefined, pseudonymisierung: pseudoAktiv });
         if (result) {
           const note = result?.analysis?.notenempfehlung?.note;
           results.push({ file, ok: true, msg: note != null ? `Note ${note}` : 'OK' });
@@ -337,7 +364,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     const refreshed = await listKlassen();
     setKlassen(refreshed);
     if (analyzeKlasse) await loadAufgaben(analyzeKlasse);
-  }, [batchFiles, analyzeKlasse, analyzeAufgabe, analyzeAusgangstext, analyze, analyzeError, listKlassen, loadAufgaben]);
+  }, [batchFiles, analyzeKlasse, analyzeAufgabe, analyzeAusgangstext, analyze, analyzeError, listKlassen, loadAufgaben, pseudoAktiv]);
 
   const cardStyle = {
     padding: '1.25rem', border: '1px solid var(--color-border)',
@@ -761,6 +788,62 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
             <div style={{ marginBottom: '0.75rem' }}>
               <label>Aufgabe</label>
               <input type="text" value={analyzeAufgabe} onChange={(e) => setAnalyzeAufgabe(e.target.value)} placeholder="z.B. SA2" />
+            </div>
+
+            {/* Datenschutz: Redaktionsvorschau + Schalter. Kein stilles Versprechen —
+                die Karte zeigt konkret, was ersetzt wird (oder dass nichts geht). */}
+            <div style={{ marginBottom: '0.75rem', padding: '0.625rem 0.75rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', background: 'var(--color-bg-base)' }}>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', cursor: 'pointer', marginBottom: 0 }}>
+                <input
+                  type="checkbox"
+                  checked={pseudoAktiv}
+                  onChange={(e) => setPseudoAktiv(e.target.checked)}
+                  style={{ marginTop: 2 }}
+                />
+                <span style={{ fontSize: '0.8125rem' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontWeight: 600 }}>
+                    <ShieldCheck size={14} /> Personenangaben vor dem Versand ersetzen
+                  </span>
+                  <span style={{ display: 'block', color: 'var(--color-text-secondary)', fontSize: '0.75rem', marginTop: 2 }}>
+                    Namen aus der Klassenliste gehen als Alias (z.&nbsp;B. S-7A-014) an den KI-Anbieter
+                    und werden in der Rückmeldung wieder eingesetzt.
+                  </span>
+                </span>
+              </label>
+              {pseudoAktiv && batchFiles.length === 0 && (
+                <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+                  {pseudoVorschauBusy && <span>Prüfe Datei auf bekannte Namen …</span>}
+                  {!pseudoVorschauBusy && pseudoVorschau?.visionModus && (
+                    <span style={{ color: 'var(--color-warning, #b45309)' }}>
+                      PDF/Bild: Ersetzen im Dokument nicht möglich — die Datei geht unverändert an den Anbieter.
+                    </span>
+                  )}
+                  {!pseudoVorschauBusy && pseudoVorschau && !pseudoVorschau.visionModus && pseudoVorschau.klassenlisteLeer && (
+                    <span>Keine Schülerliste für diese Klasse hinterlegt — es kann nichts erkannt werden.</span>
+                  )}
+                  {!pseudoVorschauBusy && pseudoVorschau && !pseudoVorschau.visionModus && !pseudoVorschau.klassenlisteLeer && (
+                    pseudoVorschau.funde.length === 0
+                      ? <span>Keine Namen aus der Klassenliste in Datei/Dateiname gefunden.</span>
+                      : (
+                        <span>
+                          Wird ersetzt:{' '}
+                          {pseudoVorschau.funde.map((f, i) => (
+                            <span key={f.alias}>
+                              {i > 0 && ', '}
+                              <strong>{f.anzeige}</strong> → {f.alias}
+                              {f.vorkommenText > 0 ? ` (${f.vorkommenText}× im Text)` : ' (im Dateinamen)'}
+                            </span>
+                          ))}
+                        </span>
+                      )
+                  )}
+                </div>
+              )}
+              {pseudoAktiv && batchFiles.length > 0 && (
+                <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+                  Gilt für alle Dateien im Stapel; erkannte Namen stehen nach der Analyse im Hinweis-Protokoll.
+                </div>
+              )}
             </div>
 
             {analyzeError && <p style={{ color: 'var(--color-error)', fontSize: '0.8125rem' }}>{analyzeError}</p>}

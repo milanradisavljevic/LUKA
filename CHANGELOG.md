@@ -7,6 +7,17 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — Pseudonymisierung vor dem KI-Versand (Korrektur)
+- Namen aus der Klassenliste werden vor der Übertragung an den KI-Anbieter
+  automatisch durch stabile Aliasse ersetzt (z. B. `S-7A-014`) und in der
+  Rückmeldung wieder eingesetzt — auch im zweiten Bewertungs-Call (SRDP).
+  Der Analyse-Dialog zeigt vorab eine Redaktionsvorschau („Wird ersetzt:
+  Mia Muster → S-7A-014") mit Abschalt-Möglichkeit. Bei PDF/Bild-Abgaben
+  weist die App ausdrücklich darauf hin, dass dort nichts ersetzt werden
+  kann. Erkannt wird nur, was in der Klassenliste steht; die Zuordnung
+  bleibt vollständig lokal (Datenminimierung, kein Anonymisierungs-
+  Versprechen). DSGVO-Regressionstest: kein Klarname im Prompt.
+
 ### Added — CSV-Import mit Vorschau und Bestätigung
 - Der Schülerimport zeigt erkannte Zeilen vor dem Speichern an, warnt vor
   Dubletten und fehlenden Vornamen und erlaubt das Abwählen einzelner Zeilen.

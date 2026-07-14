@@ -77,6 +77,12 @@ async function invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T
   return tauriInvoke<T>(cmd, args);
 }
 
+export interface PersonenVorschau {
+  funde: { anzeige: string; alias: string; vorkommenText: number; imDateinamen: boolean }[];
+  visionModus: boolean;
+  klassenlisteLeer: boolean;
+}
+
 export function useNatascha() {
   const [analyzing, setAnalyzing] = useState(false);
   const [analyzeError, setAnalyzeError] = useState<string | null>(null);
@@ -85,7 +91,7 @@ export function useNatascha() {
     filePath: string,
     klasse: string,
     aufgabe: string,
-    opts?: { fach?: string; schulstufe?: string; textsorte?: string; schueler?: string; bewertungsmodus?: string; ausgangstext?: string },
+    opts?: { fach?: string; schulstufe?: string; textsorte?: string; schueler?: string; bewertungsmodus?: string; ausgangstext?: string; pseudonymisierung?: boolean },
   ) => {
     setAnalyzing(true);
     setAnalyzeError(null);
@@ -103,6 +109,7 @@ export function useNatascha() {
         schueler: opts?.schueler,
         bewertungsmodus: opts?.bewertungsmodus,
         ausgangstext: opts?.ausgangstext,
+        pseudonymisierung: opts?.pseudonymisierung,
       });
       return JSON.parse(result);
     } catch (e) {
@@ -111,6 +118,27 @@ export function useNatascha() {
       return null;
     } finally {
       setAnalyzing(false);
+    }
+  }, []);
+
+  // Redaktionsvorschau: welche Namen aus der Klassenliste würden vor dem
+  // LLM-Versand durch Aliasse ersetzt (lokaler CLI-Call, kein LLM).
+  const personenVorschau = useCallback(async (
+    filePath: string,
+    klasse: string,
+  ): Promise<PersonenVorschau | null> => {
+    try {
+      const settings = loadSettings();
+      const result = await invoke<string>('natascha_personen_vorschau', {
+        dir: settings.nataschaDir ?? '',
+        python: settings.pythonCommand ?? '',
+        filePath,
+        klasse,
+        schueler: null,
+      });
+      return JSON.parse(result) as PersonenVorschau;
+    } catch {
+      return null;
     }
   }, []);
 
@@ -398,6 +426,7 @@ export function useNatascha() {
     analyzing,
     analyzeError,
     analyze,
+    personenVorschau,
     cancel,
     listKlassen,
     listAufgaben,

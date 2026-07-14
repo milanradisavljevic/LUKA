@@ -105,6 +105,8 @@ def cmd_analyze(args):
         aufgabe=args.aufgabe,
         erwartungshorizont_name=args.erwartungshorizont or "",
         rubric_name=args.rubric or "",
+        pseudonymisierung=not args.keine_pseudonymisierung,
+        db_path_override=db_path,
     )
 
     if data is None:
@@ -122,6 +124,45 @@ def cmd_analyze(args):
     if data.get("_abgabe_id"):
         result["abgabe_id"] = data["_abgabe_id"]
     _json_out(result)
+    return 0
+
+
+def cmd_personen_vorschau(args):
+    """Redaktionsvorschau: welche Personenangaben würden ersetzt (ohne LLM-Call)."""
+    nc, ndb, config, db_path = _load_env_and_config()
+    import pseudonymisierung as pseu
+
+    file_path = Path(args.file).resolve()
+    if not file_path.is_file():
+        print(f"Datei nicht gefunden: {file_path}", file=sys.stderr)
+        return 1
+
+    vision = nc.is_vision_file(file_path)
+    text = ""
+    if not vision:
+        try:
+            text = nc.read_docx_text(file_path)
+        except Exception as e:
+            print(f"Datei nicht lesbar: {e}", file=sys.stderr)
+            return 1
+
+    roster = ndb.get_schueler_by_klasse(db_path, args.klasse)
+    funde = pseu.erkenne_personenangaben(text, file_path.name, args.schueler or "", roster)
+    _json_out(
+        {
+            "funde": [
+                {
+                    "anzeige": f["anzeige"],
+                    "alias": f["alias"],
+                    "vorkommenText": f["vorkommen_text"],
+                    "imDateinamen": f["im_dateinamen"],
+                }
+                for f in funde
+            ],
+            "visionModus": vision,
+            "klassenlisteLeer": len(roster) == 0,
+        }
+    )
     return 0
 
 
@@ -563,6 +604,12 @@ def main():
     p_analyze.add_argument("--max-retries", type=int, default=3)
     p_analyze.add_argument("--cancel-timeout", type=int, default=None)
     p_analyze.add_argument("--quiet", action="store_true")
+    p_analyze.add_argument(
+        "--keine-pseudonymisierung",
+        action="store_true",
+        help="Personenangaben aus der Klassenliste NICHT durch Aliasse ersetzen "
+        "(Standard ist Ersetzen vor dem LLM-Versand).",
+    )
 
     # srdp-detail
     p_srdp = sub.add_parser("srdp-detail", help="SRDP-Detail fuer bestehende Analyse")
@@ -629,6 +676,15 @@ def main():
     p_ri.add_argument("--klasse", required=True)
     p_ri.add_argument("--aufgabe", default=None)
 
+    # Redaktionsvorschau: welche Personenangaben würden ersetzt (kein LLM-Call)
+    p_pv = sub.add_parser(
+        "personen-vorschau",
+        help="Zeigt, welche Namen aus der Klassenliste vor dem LLM-Versand ersetzt würden",
+    )
+    p_pv.add_argument("file", help="Pfad zur Abgabe (DOCX/PDF/TXT)")
+    p_pv.add_argument("--klasse", required=True)
+    p_pv.add_argument("--schueler", default="")
+
 
     args = parser.parse_args()
     _DB_PATH_OVERRIDE = args.db_path
@@ -652,6 +708,7 @@ def main():
         "save-rubric": cmd_save_rubric,
         "quelltext-get": cmd_quelltext_get,
         "retro-import": cmd_retro_import,
+        "personen-vorschau": cmd_personen_vorschau,
     }
 
     handler = commands.get(args.command)

@@ -37,6 +37,7 @@ fn main() {
             commands::natascha::natascha_list_rubrics,
             commands::natascha::natascha_retro_import,
             commands::natascha::natascha_quelltext_get,
+            commands::natascha::natascha_personen_vorschau,
             commands::natascha::natascha_list_rubric_files,
             commands::natascha::natascha_read_rubric,
             commands::natascha::natascha_save_rubric,

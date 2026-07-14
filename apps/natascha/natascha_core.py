@@ -48,6 +48,12 @@ try:
 except Exception:
     ndb = None  # type: ignore[assignment]
 
+# Pseudonymisierung vor LLM-Versand (optional wie ndb; ohne DB kein Roster)
+try:
+    import pseudonymisierung as pseu
+except Exception:
+    pseu = None  # type: ignore[assignment]
+
 PROJECT_ROOT = Path(__file__).resolve().parent
 
 VERSION = "0.6.0"
@@ -835,6 +841,8 @@ def run_llm_analysis(
     aufgabe: str = "",
     erwartungshorizont_name: str = "",
     rubric_name: str = "",
+    pseudonymisierung: bool = True,
+    db_path_override: Path | None = None,
 ) -> tuple[dict[str, Any] | None, list[str]]:
     """
     Fuehrt die vollstaendige LLM-Analyse durch: Prompt bauen, API aufrufen,
@@ -920,6 +928,52 @@ def run_llm_analysis(
 
     vision_mode = file_path is not None and is_vision_file(file_path)
 
+    # Pseudonymisierung: Namen aus der Klassenliste werden vor dem Versand an
+    # den externen Anbieter durch Aliasse ersetzt (Datenminimierung, P0).
+    # Der Original-docx_text bleibt unangetastet — er ist der rohtext in der DB;
+    # nur der LLM-Pfad (Prompt, Zitat-Filter, SRDP) sieht die Alias-Fassung.
+    docx_text_llm = docx_text
+    schueler_llm = schueler
+    pseudo_funde: list[dict[str, Any]] = []
+    if pseudonymisierung:
+        if vision_mode:
+            ausgangstext_warnings.append(
+                "Hinweis: PDF/Bild-Abgabe — Personenangaben können darin nicht "
+                "ersetzt werden; die Datei geht unverändert an den Anbieter."
+            )
+        elif not klasse:
+            # Ohne Klassenbezug existiert keine Klassenliste — es gibt nichts,
+            # wogegen erkannt werden könnte. Kein Hinweis-Rauschen.
+            pass
+        elif pseu is None or ndb is None:
+            ausgangstext_warnings.append(
+                "Hinweis: Pseudonymisierung übersprungen (keine Klassenliste "
+                "verfügbar) — Personenangaben wurden NICHT ersetzt."
+            )
+        else:
+            try:
+                # --db-path-Override der CLI respektieren (gemeinsame DB mit LUA),
+                # sonst würde das Roster aus der Config-DB gelesen.
+                _db_path = db_path_override or ndb.get_db_path(config)
+                ndb.init_db(_db_path)
+                _roster = ndb.get_schueler_by_klasse(_db_path, klasse)
+                pseudo_funde = pseu.erkenne_personenangaben(
+                    docx_text, file_path.name if file_path else "", schueler, _roster
+                )
+                if pseudo_funde:
+                    docx_text_llm = pseu.ersetze_personenangaben(docx_text, pseudo_funde)
+                    schueler_llm = pseu.alias_fuer_schuelerangabe(schueler, pseudo_funde) or ""
+                    _anzahl = sum(f["vorkommen_text"] for f in pseudo_funde)
+                    ausgangstext_warnings.append(
+                        f"Hinweis: {_anzahl} Personenangabe(n) aus der Klassenliste "
+                        "vor dem LLM-Versand durch Aliasse ersetzt."
+                    )
+            except Exception as e:
+                ausgangstext_warnings.append(
+                    f"Hinweis: Pseudonymisierung fehlgeschlagen ({e}) — "
+                    "Personenangaben wurden NICHT ersetzt."
+                )
+
     if vision_mode:
         if config.get("api", {}).get("provider", "anthropic").lower() == "mistral":
             return None, ausgangstext_warnings + [
@@ -935,7 +989,7 @@ def run_llm_analysis(
         except (ValueError, OSError) as e:
             return None, ausgangstext_warnings + [f"Datei konnte nicht enkodiert werden: {e}"]
         original_prompt = build_vision_prompt(
-            rubric_content, fach, schulstufe, textsorte, config, schueler, bewertungsmodus,
+            rubric_content, fach, schulstufe, textsorte, config, schueler_llm, bewertungsmodus,
             ausgangstext_text=ausgangstext_text,
             has_vision_ausgangstext=(ausgangstext_vision_block is not None),
             klasse=klasse, aufgabe=aufgabe,
@@ -953,8 +1007,8 @@ def run_llm_analysis(
                 "und die Aufgabenstellung erfüllt.\n\n"
             )
             original_prompt = ausgangstext_note + build_analysis_prompt(
-                docx_text, rubric_content, fach, schulstufe, textsorte,
-                config, schueler, bewertungsmodus, ausgangstext_text=None,
+                docx_text_llm, rubric_content, fach, schulstufe, textsorte,
+                config, schueler_llm, bewertungsmodus, ausgangstext_text=None,
                 klasse=klasse, aufgabe=aufgabe,
                 erwartungshorizont_name=erwartungshorizont_name,
             )
@@ -962,7 +1016,7 @@ def run_llm_analysis(
         else:
             vision_content = None
             original_prompt = build_analysis_prompt(
-                docx_text, rubric_content, fach, schulstufe, textsorte, config, schueler,
+                docx_text_llm, rubric_content, fach, schulstufe, textsorte, config, schueler_llm,
                 bewertungsmodus, ausgangstext_text=ausgangstext_text,
                 klasse=klasse, aufgabe=aufgabe,
                 erwartungshorizont_name=erwartungshorizont_name,
@@ -1053,11 +1107,12 @@ def run_llm_analysis(
         if data.get("fehler"):
             data["fehler"] = drop_unbrauchbare_fehler(data["fehler"])
 
-        # Halluzinationsfilter: Fehler-Zitate gegen Originaltext prüfen
-        if data.get("fehler") and docx_text and not vision_mode:
-            data["fehler"] = verify_fehler_against_text(data["fehler"], docx_text)
-            data["fehler"] = drop_satzzeichen_anhaengsel(data["fehler"], docx_text)
-            data["fehler"] = filter_title_false_positives(data["fehler"], docx_text)
+        # Halluzinationsfilter: Fehler-Zitate gegen den Text prüfen, den das
+        # LLM gesehen hat (Alias-Fassung) — Zitate enthalten ggf. Aliasse.
+        if data.get("fehler") and docx_text_llm and not vision_mode:
+            data["fehler"] = verify_fehler_against_text(data["fehler"], docx_text_llm)
+            data["fehler"] = drop_satzzeichen_anhaengsel(data["fehler"], docx_text_llm)
+            data["fehler"] = filter_title_false_positives(data["fehler"], docx_text_llm)
 
         # Konsistenzcheck: Fehleranzahl vs. Sprachrichtigkeit-Note
         fehler_count = len(data.get("fehler", []))
@@ -1073,10 +1128,11 @@ def run_llm_analysis(
                     sprachnote,
                 )
 
-        # SRDP-Detailbewertung (zweiter LLM-Call) — vor Notenberechnung, damit Note daraus folgt
-        if bewertungsmodus == "benotet" and docx_text and not vision_mode:
+        # SRDP-Detailbewertung (zweiter LLM-Call) — vor Notenberechnung, damit Note daraus folgt.
+        # Auch hier die Alias-Fassung, sonst gingen die Namen im zweiten Call doch raus.
+        if bewertungsmodus == "benotet" and docx_text_llm and not vision_mode:
             srdp = generate_srdp_detail(
-                docx_text, data, config, cancel_event=cancel_event, textsorte=textsorte
+                docx_text_llm, data, config, cancel_event=cancel_event, textsorte=textsorte
             )
             if srdp:
                 data["srdp_detail"] = srdp
@@ -1099,6 +1155,13 @@ def run_llm_analysis(
                 "begruendung": app_note["begruendung"],
             }
             data["notendetail"] = app_note
+
+        # Aliasse in der Antwort zurücksetzen, BEVOR gespeichert wird: Zitate
+        # müssen zum Original-rohtext passen (Annotation), Feedback-Texte sollen
+        # die Lehrkraft mit echtem Namen erreichen. Nur die Übertragung war
+        # pseudonymisiert.
+        if pseudo_funde and pseu is not None:
+            data = pseu.ruecksetze_personenangaben(data, pseudo_funde)
 
         # In Datenbank speichern (Tracking, Heatmap, Duplikat-Erkennung)
         if ndb is not None and file_path is not None and file_path.exists():
@@ -1154,7 +1217,10 @@ def run_llm_analysis(
                 # DB-Fehler duerfen Analyse nicht blockieren
                 pass
 
-        return data, []
+        # Warnhinweise (Ausgangstext, Pseudonymisierung) auch bei Erfolg
+        # zurückgeben — die Lehrkraft soll sehen, was übertragen wurde.
+        # Retry-Fehlermeldungen früherer Versuche bleiben bewusst draußen.
+        return data, list(ausgangstext_warnings)
 
     errors.append(
         f"Analyse nach {effective_max_retries} Versuchen fehlgeschlagen. "
