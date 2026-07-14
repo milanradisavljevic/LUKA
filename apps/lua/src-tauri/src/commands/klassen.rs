@@ -102,6 +102,125 @@ fn conn_delete(conn: &rusqlite::Connection, name: &str) -> Result<(), String> {
     Ok(())
 }
 
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct KlassenLoeschvorschau {
+    pub klasse: String,
+    pub schueler: i64,
+    pub abgaben: i64,
+    pub materialien: i64,
+    pub briefings: i64,
+    pub quelltexte: i64,
+}
+
+fn normalisiere_klasse(name: &str) -> Result<String, String> {
+    let klasse = name.trim();
+    if klasse.is_empty() {
+        return Err("Klassenname darf nicht leer sein.".to_string());
+    }
+    Ok(klasse.to_string())
+}
+
+fn count_klasse_rows(
+    conn: &rusqlite::Connection,
+    table: &str,
+    klasse: &str,
+) -> Result<i64, String> {
+    let sql = format!("SELECT COUNT(*) FROM {table} WHERE klasse=?1");
+    conn.query_row(&sql, rusqlite::params![klasse], |row| row.get(0))
+        .map_err(|e| format!("Klassen-Löschvorschau {table}: {e}"))
+}
+
+fn klasse_loeschvorschau_impl(
+    conn: &rusqlite::Connection,
+    name: &str,
+) -> Result<KlassenLoeschvorschau, String> {
+    let klasse = normalisiere_klasse(name)?;
+    Ok(KlassenLoeschvorschau {
+        schueler: count_klasse_rows(conn, "schueler", &klasse)?,
+        abgaben: count_klasse_rows(conn, "abgabe", &klasse)?,
+        materialien: count_klasse_rows(conn, "generated_materials", &klasse)?,
+        briefings: count_klasse_rows(conn, "klassen_briefing", &klasse)?,
+        quelltexte: count_klasse_rows(conn, "aufgabe_quelltext", &klasse)?,
+        klasse,
+    })
+}
+
+/// Liefert vor dem endgültigen Löschen die betroffenen Datensatzmengen.
+#[tauri::command]
+pub async fn db_klasse_loeschvorschau(
+    state: tauri::State<'_, DbState>,
+    klasse: String,
+) -> Result<KlassenLoeschvorschau, String> {
+    let guard = state.conn()?;
+    klasse_loeschvorschau_impl(&guard, &klasse)
+}
+
+/// Archiviert oder reaktiviert eine Klasse. Bei einer NATASCHA-Klasse ohne
+/// bisherige LUA-Metadaten wird der LUA-Datensatz mit stabiler UUID angelegt.
+#[tauri::command]
+pub async fn db_klasse_archivieren(
+    state: tauri::State<'_, DbState>,
+    klasse: String,
+    archiviert: bool,
+) -> Result<(), String> {
+    let guard = state.conn()?;
+    klasse_archivieren_impl(&guard, &klasse, archiviert)
+}
+
+pub(crate) fn klasse_archivieren_impl(
+    conn: &rusqlite::Connection,
+    name: &str,
+    archiviert: bool,
+) -> Result<(), String> {
+    let klasse = normalisiere_klasse(name)?;
+    conn.execute(
+        "INSERT INTO lua_klassen (id, name, archiviert) VALUES (?1, ?2, ?3) \
+         ON CONFLICT(name) DO UPDATE SET archiviert=excluded.archiviert",
+        rusqlite::params![Uuid::new_v4().to_string(), klasse, archiviert as i64],
+    ).map_err(|e| format!("db_klasse_archivieren: {e}"))?;
+    Ok(())
+}
+
+/// Löscht eine Klasse und alle direkt oder über Foreign Keys abhängigen Daten
+/// in einer einzigen Transaktion. Globale LUA-Tabellen bleiben unberührt.
+#[tauri::command]
+pub async fn db_klasse_loeschen(
+    state: tauri::State<'_, DbState>,
+    klasse: String,
+) -> Result<KlassenLoeschvorschau, String> {
+    let guard = state.conn()?;
+    klasse_loeschen_impl(&guard, &klasse)
+}
+
+pub(crate) fn klasse_loeschen_impl(
+    conn: &rusqlite::Connection,
+    name: &str,
+) -> Result<KlassenLoeschvorschau, String> {
+    let preview = klasse_loeschvorschau_impl(conn, name)?;
+    conn.execute_batch("BEGIN IMMEDIATE;")
+        .map_err(|e| format!("Klassenlöschung transaction start: {e}"))?;
+    let klasse = preview.klasse.clone();
+    let result = (|| -> rusqlite::Result<()> {
+        conn.execute("DELETE FROM abgabe WHERE klasse=?1", rusqlite::params![klasse])?;
+        conn.execute("DELETE FROM schueler WHERE klasse=?1", rusqlite::params![klasse])?;
+        conn.execute("DELETE FROM klassen_briefing WHERE klasse=?1", rusqlite::params![klasse])?;
+        conn.execute("DELETE FROM aufgabe_quelltext WHERE klasse=?1", rusqlite::params![klasse])?;
+        conn.execute("DELETE FROM generated_materials WHERE klasse=?1", rusqlite::params![klasse])?;
+        conn.execute("DELETE FROM lua_klassen WHERE name=?1", rusqlite::params![klasse])?;
+        Ok(())
+    })();
+    if let Err(e) = result {
+        let _ = conn.execute_batch("ROLLBACK;");
+        return Err(format!("Klassenlöschung: {e}"));
+    }
+    if let Err(e) = conn.execute_batch("COMMIT;") {
+        let _ = conn.execute_batch("ROLLBACK;");
+        return Err(format!("Klassenlöschung transaction commit: {e}"));
+    }
+    Ok(preview)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -110,6 +229,14 @@ mod tests {
     fn setup() -> Connection {
         let conn = Connection::open_in_memory().unwrap();
         conn.execute_batch("PRAGMA foreign_keys=ON;").unwrap();
+        conn.execute_batch(crate::db::LUA_SCHEMA_SQL).unwrap();
+        conn
+    }
+
+    fn setup_full() -> Connection {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch("PRAGMA foreign_keys=ON;").unwrap();
+        conn.execute_batch(crate::db::NATASCHA_SCHEMA_SQL).unwrap();
         conn.execute_batch(crate::db::LUA_SCHEMA_SQL).unwrap();
         conn
     }
@@ -188,5 +315,79 @@ mod tests {
         upsert(&conn, &beispiel("7A"));
         conn_delete(&conn, "7A").unwrap();
         assert!(klassen_meta_list_impl(&conn).unwrap().is_empty());
+    }
+
+    #[test]
+    fn archivieren_erzeugt_fehlende_metadaten_und_ist_reversibel() {
+        let conn = setup();
+        klasse_archivieren_impl(&conn, "7A", true).unwrap();
+        let archiviert = klassen_meta_list_impl(&conn).unwrap();
+        assert_eq!(archiviert.len(), 1);
+        assert!(archiviert[0].archiviert);
+        assert!(archiviert[0].id.as_deref().map(|id| Uuid::parse_str(id).is_ok()).unwrap_or(false));
+
+        klasse_archivieren_impl(&conn, "7A", false).unwrap();
+        assert!(!klassen_meta_list_impl(&conn).unwrap()[0].archiviert);
+    }
+
+    #[test]
+    fn klassen_loeschung_vorschau_und_kaskade_lassen_unabhaengige_daten_stehen() {
+        let conn = setup_full();
+        upsert(&conn, &beispiel("7A"));
+        upsert(&conn, &beispiel("8B"));
+        conn.execute("INSERT INTO schueler (klasse, vorname) VALUES ('7A', 'Mia')", []).unwrap();
+        let s1 = conn.last_insert_rowid();
+        conn.execute(
+            "INSERT INTO schueler (klasse, vorname) VALUES ('8B', 'Noah')", [],
+        ).unwrap();
+        conn.execute(
+            "INSERT INTO abgabe (schueler_id, klasse, aufgabe, dateiname, datei_hash) VALUES (?1, '7A', 'SA1', 'mia.docx', 'hash-7a')",
+            rusqlite::params![s1],
+        ).unwrap();
+        let abgabe_id = conn.last_insert_rowid();
+        conn.execute("INSERT INTO kriterium_historie (abgabe_id, kriterium_name) VALUES (?1, 'Richtigkeit')", rusqlite::params![abgabe_id]).unwrap();
+        conn.execute("INSERT INTO fehler_historie (abgabe_id, typ) VALUES (?1, 'G')", rusqlite::params![abgabe_id]).unwrap();
+        conn.execute("INSERT INTO lehrer_feedback (abgabe_id, klasse, aufgabe) VALUES (?1, '7A', 'SA1')", rusqlite::params![abgabe_id]).unwrap();
+        conn.execute("INSERT INTO schueler_profil (schueler_id, profil_json, basis_anzahl_abgaben) VALUES (?1, '{}', 1)", rusqlite::params![s1]).unwrap();
+        conn.execute("INSERT INTO klassen_briefing (klasse, briefing_json, basis_anzahl_abgaben, basis_anzahl_fehler) VALUES ('7A', '{}', 1, 1)", []).unwrap();
+        conn.execute("INSERT INTO aufgabe_quelltext (klasse, aufgabe, ausgangstext) VALUES ('7A', 'SA1', 'Text')", []).unwrap();
+        conn.execute("INSERT INTO generated_materials (id, title, snapshot_json, created_at, updated_at, klasse) VALUES ('mat-7a', 'Übung', '{}', 'now', 'now', '7A')", []).unwrap();
+        conn.execute("INSERT INTO generated_materials (id, title, snapshot_json, created_at, updated_at, klasse) VALUES ('mat-8b', 'Übung', '{}', 'now', 'now', '8B')", []).unwrap();
+
+        let preview = klasse_loeschvorschau_impl(&conn, "7A").unwrap();
+        assert_eq!(preview.schueler, 1);
+        assert_eq!(preview.abgaben, 1);
+        assert_eq!(preview.materialien, 1);
+        assert_eq!(preview.briefings, 1);
+        assert_eq!(preview.quelltexte, 1);
+
+        let report = klasse_loeschen_impl(&conn, "7A").unwrap();
+        assert_eq!(report.abgaben, 1);
+        assert_eq!(conn.query_row::<i64, _, _>("SELECT COUNT(*) FROM schueler WHERE klasse='7A'", [], |r| r.get(0)).unwrap(), 0);
+        assert_eq!(conn.query_row::<i64, _, _>("SELECT COUNT(*) FROM abgabe WHERE klasse='7A'", [], |r| r.get(0)).unwrap(), 0);
+        assert_eq!(conn.query_row::<i64, _, _>("SELECT COUNT(*) FROM kriterium_historie", [], |r| r.get(0)).unwrap(), 0);
+        assert_eq!(conn.query_row::<i64, _, _>("SELECT COUNT(*) FROM fehler_historie", [], |r| r.get(0)).unwrap(), 0);
+        assert_eq!(conn.query_row::<i64, _, _>("SELECT COUNT(*) FROM lehrer_feedback", [], |r| r.get(0)).unwrap(), 0);
+        assert_eq!(conn.query_row::<i64, _, _>("SELECT COUNT(*) FROM schueler_profil", [], |r| r.get(0)).unwrap(), 0);
+        assert_eq!(conn.query_row::<i64, _, _>("SELECT COUNT(*) FROM generated_materials WHERE klasse='7A'", [], |r| r.get(0)).unwrap(), 0);
+        assert_eq!(conn.query_row::<i64, _, _>("SELECT COUNT(*) FROM generated_materials WHERE klasse='8B'", [], |r| r.get(0)).unwrap(), 1);
+        assert_eq!(conn.query_row::<i64, _, _>("SELECT COUNT(*) FROM lua_klassen WHERE name='7A'", [], |r| r.get(0)).unwrap(), 0);
+    }
+
+    #[test]
+    fn klassen_loeschung_rollt_bei_fehler_vollstaendig_zurueck() {
+        let conn = setup_full();
+        upsert(&conn, &beispiel("7A"));
+        conn.execute("INSERT INTO generated_materials (id, title, snapshot_json, created_at, updated_at, klasse) VALUES ('mat-7a', 'Übung', '{}', 'now', 'now', '7A')", []).unwrap();
+        conn.execute_batch(
+            "CREATE TRIGGER block_klasse_material_delete
+             BEFORE DELETE ON generated_materials
+             WHEN OLD.klasse='7A'
+             BEGIN SELECT RAISE(ABORT, 'Testfehler'); END;",
+        ).unwrap();
+
+        assert!(klasse_loeschen_impl(&conn, "7A").is_err());
+        assert_eq!(conn.query_row::<i64, _, _>("SELECT COUNT(*) FROM lua_klassen WHERE name='7A'", [], |r| r.get(0)).unwrap(), 1);
+        assert_eq!(conn.query_row::<i64, _, _>("SELECT COUNT(*) FROM generated_materials WHERE klasse='7A'", [], |r| r.get(0)).unwrap(), 1);
     }
 }

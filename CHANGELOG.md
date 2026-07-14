@@ -18,6 +18,14 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
   bleibt vollständig lokal (Datenminimierung, kein Anonymisierungs-
   Versprechen). DSGVO-Regressionstest: kein Klarname im Prompt.
 
+### Added — Lösch- und Archivmodell für Klassen und Schüler
+- Klassen lassen sich mit einer Vorschau und einer zusätzlichen Namensbestätigung
+  vollständig löschen; abhängige Abgaben, Profile und Korrekturhistorien werden
+  gemeinsam entfernt. Archivierte Klassen bleiben für Rückblicke verfügbar,
+  sind aber in aktiven Listen standardmäßig ausgeblendet.
+- Das endgültige Löschen eines Schülers entfernt nun ebenfalls seine Abgaben und
+  abhängigen Historien. Das Archivieren einer Klasse bleibt jederzeit reversibel.
+
 ### Added — CSV-Import mit Vorschau und Bestätigung
 - Der Schülerimport zeigt erkannte Zeilen vor dem Speichern an, warnt vor
   Dubletten und fehlenden Vornamen und erlaubt das Abwählen einzelner Zeilen.

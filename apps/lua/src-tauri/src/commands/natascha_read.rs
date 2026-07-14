@@ -442,7 +442,7 @@ pub(crate) fn insert_schueler_impl(
     Ok(conn.last_insert_rowid())
 }
 
-/// Löscht einen Schüler. Abgaben bleiben erhalten (schueler_id → NULL via FK).
+/// Löscht einen Schüler samt seinen Abgaben und abhängigen Historien.
 #[tauri::command]
 pub async fn db_delete_schueler(state: tauri::State<'_, DbState>, schueler_id: i64) -> Result<(), String> {
     let guard = state.conn()?;
@@ -450,8 +450,21 @@ pub async fn db_delete_schueler(state: tauri::State<'_, DbState>, schueler_id: i
 }
 
 pub(crate) fn delete_schueler_impl(conn: &rusqlite::Connection, schueler_id: i64) -> Result<(), String> {
-    conn.execute("DELETE FROM schueler WHERE id=?1", rusqlite::params![schueler_id])
-        .map_err(|e| format!("delete schueler: {}", e))?;
+    conn.execute_batch("BEGIN IMMEDIATE;")
+        .map_err(|e| format!("delete schueler transaction start: {}", e))?;
+    let result = (|| -> rusqlite::Result<()> {
+        conn.execute("DELETE FROM abgabe WHERE schueler_id=?1", rusqlite::params![schueler_id])?;
+        conn.execute("DELETE FROM schueler WHERE id=?1", rusqlite::params![schueler_id])?;
+        Ok(())
+    })();
+    if let Err(e) = result {
+        let _ = conn.execute_batch("ROLLBACK;");
+        return Err(format!("delete schueler: {}", e));
+    }
+    if let Err(e) = conn.execute_batch("COMMIT;") {
+        let _ = conn.execute_batch("ROLLBACK;");
+        return Err(format!("delete schueler transaction commit: {}", e));
+    }
     Ok(())
 }
 
@@ -1163,11 +1176,9 @@ mod tests {
         assert!(fehler_trend_impl(&conn, "9z").unwrap().is_empty());
     }
 
-    /// Lösch-Dialog (SchuelerView) behauptet: Profil weg, Abgaben/Fehler bleiben
-    /// anonymisiert. Das gilt nur, wenn foreign_keys=ON greift (ON DELETE CASCADE
-    /// bei schueler_profil, ON DELETE SET NULL bei abgabe) — hier verifiziert.
+    /// Schülerlöschung entfernt Profil, Abgabe und abhängige Historien gemeinsam.
     #[test]
-    fn delete_schueler_cascaded_profil_aber_abgabe_bleibt_anonymisiert() {
+    fn delete_schueler_cascaded_abgabe_und_historien() {
         let conn = setup();
         // seed() legt Mona (s1) + Max an, Abgabe SA1 gehört Mona.
         let s1 = insert_schueler_impl(&conn, "7a", "Mona", Some("Muster")).unwrap();
@@ -1183,6 +1194,18 @@ mod tests {
             "INSERT INTO schueler_profil (schueler_id, profil_json, basis_anzahl_abgaben) VALUES (?1, '{}', 1)",
             rusqlite::params![s1],
         ).unwrap();
+        conn.execute(
+            "INSERT INTO kriterium_historie (abgabe_id, kriterium_name, stufe) VALUES (?1, 'Richtigkeit', 2)",
+            rusqlite::params![abgabe_id],
+        ).unwrap();
+        conn.execute(
+            "INSERT INTO fehler_historie (abgabe_id, typ) VALUES (?1, 'G')",
+            rusqlite::params![abgabe_id],
+        ).unwrap();
+        conn.execute(
+            "INSERT INTO lehrer_feedback (abgabe_id, klasse, aufgabe, schueler_id, note_final) VALUES (?1, '7a', 'SA1', ?2, 2)",
+            rusqlite::params![abgabe_id, s1],
+        ).unwrap();
 
         delete_schueler_impl(&conn, s1).unwrap();
 
@@ -1194,11 +1217,14 @@ mod tests {
         let abgabe_existiert: i64 = conn.query_row(
             "SELECT COUNT(*) FROM abgabe WHERE id=?1", rusqlite::params![abgabe_id], |r| r.get(0),
         ).unwrap();
-        assert_eq!(abgabe_existiert, 1, "Abgabe muss erhalten bleiben");
+        assert_eq!(abgabe_existiert, 0, "Abgabe muss vollständig gelöscht sein");
 
-        let schueler_id_null: Option<i64> = conn.query_row(
-            "SELECT schueler_id FROM abgabe WHERE id=?1", rusqlite::params![abgabe_id], |r| r.get(0),
+        let historie_count: i64 = conn.query_row(
+            "SELECT (SELECT COUNT(*) FROM kriterium_historie WHERE abgabe_id=?1) +
+                    (SELECT COUNT(*) FROM fehler_historie WHERE abgabe_id=?1) +
+                    (SELECT COUNT(*) FROM lehrer_feedback WHERE abgabe_id=?1)",
+            rusqlite::params![abgabe_id], |r| r.get(0),
         ).unwrap();
-        assert_eq!(schueler_id_null, None, "abgabe.schueler_id muss per SET NULL entkoppelt sein");
+        assert_eq!(historie_count, 0, "Abhängige Historien müssen per CASCADE verschwinden");
     }
 }
