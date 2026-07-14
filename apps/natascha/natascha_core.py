@@ -354,7 +354,7 @@ def extract_criteria_keys(rubric_content: str) -> list[str]:
 
 
 _RUBRIK_HEADER_RE = re.compile(
-    r"^\ufeff?<!--[ \t]*luka-rubrik[ \t]*\r?\n(?P<body>.*?)[ \t]*\r?\n-->[ \t]*(?:\r?\n)?",
+    r"^\ufeff?<!--[ \t]*luka-rubrik[ \t]*\r?\n(?P<body>.*?)[ \t]*\r?\n-->[ \t]*(?:\r?\n[ \t]*)*",
     re.DOTALL,
 )
 _RUBRIK_HEADER_FIELDS = ("titel", "fach", "schulstufe", "textsorte")
