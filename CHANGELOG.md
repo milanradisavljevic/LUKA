@@ -7,6 +7,11 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## [Unreleased]
 
+### Added — CSV-Import mit Vorschau und Bestätigung
+- Der Schülerimport zeigt erkannte Zeilen vor dem Speichern an, warnt vor
+  Dubletten und fehlenden Vornamen und erlaubt das Abwählen einzelner Zeilen.
+  Übernommen wird erst nach einer ausdrücklichen Bestätigung.
+
 ### Added — Stabile Klassenidentitäten
 - Klassenmetadaten erhalten zusätzlich eine stabile technische ID. Bestehende
   Klassen werden beim ersten Start sicher nachgerüstet; der Klassenname bleibt

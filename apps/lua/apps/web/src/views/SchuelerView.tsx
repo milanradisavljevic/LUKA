@@ -12,8 +12,15 @@ import { ViewShell } from './_ViewShell';
 import { KiTextBlock } from '../components/KiTextBlock';
 import { InfoDot } from '../components/ui/InfoDot';
 import { useKlassenMeta } from '../hooks/useKlassenMeta';
+import { pruefeCsvImport, type CsvImportPruefung, type CsvImportWarnung } from '../lib/csvImportPruefung';
 
 const FEHLER_LABELS: Record<string, string> = { R: 'Rechtschreibung', G: 'Grammatik', Z: 'Zeichensetzung', A: 'Ausdruck' };
+
+const CSV_WARNUNG_LABELS: Record<CsvImportWarnung, string> = {
+  dubletten_in_datei: 'Doppelt in dieser Datei',
+  dubletten_im_bestand: 'Bereits in der Klasse vorhanden',
+  vorname_fehlt: 'Vorname fehlt',
+};
 
 interface SchuelerViewProps {
   /** Cross-Nav-Vorauswahl (aus der Korrektur). */
@@ -51,6 +58,8 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
   const [profilBusy, setProfilBusy] = useState(false);
   const [profilError, setProfilError] = useState<string | null>(null);
   const [importMsg, setImportMsg] = useState<string | null>(null);
+  const [csvVorschau, setCsvVorschau] = useState<{ klasse: string; pruefung: CsvImportPruefung } | null>(null);
+  const [csvImportBusy, setCsvImportBusy] = useState(false);
   const csvInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { listKlassen().then(setKlassen); }, [listKlassen]);
@@ -184,36 +193,57 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
     } finally { setAdding(false); }
   }, [neuKlasse, selectedKlasse, neuVorname, neuNachname, insertSchueler, listKlassen, loadSchueler]);
 
-  // CSV-Import: eine Zeile pro Schüler. Unterstützt "Vorname,Nachname",
-  // "Nachname;Vorname"-artige Trenner (, ; Tab) oder eine einzelne "Vorname Nachname"-Spalte.
+  // CSV-Import: zuerst prüfen und Vorschau anzeigen, erst danach explizit speichern.
   const handleCsvImport = useCallback(async (file: File) => {
     const klasse = (neuKlasse || selectedKlasse || '').trim();
     if (!klasse) { setImportMsg('Bitte zuerst eine Klasse wählen oder eingeben.'); return; }
-    setImportMsg('Importiere …');
+    setImportMsg('CSV wird geprüft …');
     try {
       const text = await file.text();
-      const rows = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-      let ok = 0, skip = 0;
-      for (const [i, line] of rows.entries()) {
-        const parts = line.split(/[,;\t]/).map((p) => p.trim()).filter(Boolean);
-        let vn = '', nn = '';
-        if (parts.length >= 2) { vn = parts[0]!; nn = parts[1]!; }
-        else if (parts.length === 1) {
-          const sp = parts[0]!.split(/\s+/);
-          vn = sp[0]!; nn = sp.slice(1).join(' ');
-        }
-        // Kopfzeile überspringen
-        if (i === 0 && /vorname|nachname|name/i.test(line)) { skip++; continue; }
-        if (!vn) { skip++; continue; }
-        try { await insertSchueler(klasse, vn, nn || null); ok++; } catch { skip++; }
+      const bestand = await listSchueler(klasse);
+      const pruefung = pruefeCsvImport(text, bestand);
+      if (pruefung.zeilen.length === 0) {
+        setCsvVorschau(null);
+        setImportMsg('Die CSV-Datei enthält keine Importzeilen.');
+        return;
       }
-      setImportMsg(`${ok} Schüler importiert${skip ? `, ${skip} übersprungen` : ''}.`);
-      await listKlassen().then(setKlassen);
-      await loadSchueler(klasse);
+      setCsvVorschau({ klasse, pruefung });
+      setImportMsg(null);
     } catch (e) {
       setImportMsg(typeof e === 'string' ? e : e instanceof Error ? e.message : 'Import fehlgeschlagen.');
     }
-  }, [neuKlasse, selectedKlasse, insertSchueler, listKlassen, loadSchueler]);
+  }, [neuKlasse, selectedKlasse, listSchueler]);
+
+  const handleCsvConfirm = useCallback(async () => {
+    if (!csvVorschau) return;
+    const auswahl = csvVorschau.pruefung.zeilen.filter((row) => row.ausgewaehlt && row.vorname.trim());
+    if (auswahl.length === 0) {
+      setImportMsg('Bitte mindestens eine gültige Zeile auswählen.');
+      return;
+    }
+    setCsvImportBusy(true);
+    setImportMsg(null);
+    let ok = 0;
+    let skip = 0;
+    try {
+      for (const row of auswahl) {
+        try {
+          await insertSchueler(csvVorschau.klasse, row.vorname, row.nachname.trim() || null);
+          ok++;
+        } catch {
+          skip++;
+        }
+      }
+      setCsvVorschau(null);
+      setImportMsg(`${ok} Schüler importiert${skip ? `, ${skip} übersprungen` : ''}.`);
+      await listKlassen().then(setKlassen);
+      await loadSchueler(csvVorschau.klasse);
+    } catch (e) {
+      setImportMsg(typeof e === 'string' ? e : e instanceof Error ? e.message : 'Import fehlgeschlagen.');
+    } finally {
+      setCsvImportBusy(false);
+    }
+  }, [csvVorschau, insertSchueler, listKlassen, loadSchueler]);
 
   const handleDeleteSchueler = useCallback(async (id: number, name: string) => {
     // Ehrlicher Dialog statt Pauschal-Beruhigung: FK-Verhalten der DB ist
@@ -349,6 +379,67 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
               <FileUp size={12} /> CSV importieren
             </button>
             {importMsg && <p style={{ fontSize: '0.6875rem', marginTop: 4, marginBottom: 0, color: 'var(--color-text-secondary)' }}>{importMsg}</p>}
+            {csvVorschau && (
+              <section
+                aria-label="CSV-Import-Vorschau"
+                style={{
+                  marginTop: '0.75rem', padding: '0.75rem',
+                  border: '1px solid color-mix(in srgb, var(--color-accent) 45%, var(--color-border))',
+                  borderRadius: 'var(--radius)', background: 'var(--color-bg-base)',
+                }}
+              >
+                <strong style={{ display: 'block', fontSize: '0.75rem', marginBottom: '0.25rem' }}>
+                  CSV-Vorschau für {csvVorschau.klasse}
+                </strong>
+                <p style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)', margin: '0 0 0.5rem' }}>
+                  Prüfe die Zeilen und bestätige erst danach den Import. Warnungen kannst du durch Abwählen einzelner Zeilen berücksichtigen.
+                </p>
+                <div style={{ display: 'grid', gap: 3, maxHeight: 220, overflowY: 'auto' }}>
+                  {csvVorschau.pruefung.zeilen.map((row) => (
+                    <label key={row.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: '0.7rem', padding: '0.25rem 0' }}>
+                      <input
+                        type="checkbox"
+                        checked={row.ausgewaehlt}
+                        disabled={!row.vorname.trim()}
+                        onChange={(e) => setCsvVorschau((prev) => prev ? {
+                          ...prev,
+                          pruefung: {
+                            ...prev.pruefung,
+                            zeilen: prev.pruefung.zeilen.map((candidate) => candidate.id === row.id
+                              ? { ...candidate, ausgewaehlt: e.target.checked }
+                              : candidate),
+                          },
+                        } : prev)}
+                      />
+                      <span style={{ minWidth: 0 }}>
+                        <span>{row.vorname || '—'}{row.nachname ? ` ${row.nachname}` : ''}</span>
+                        <span style={{ display: 'block', color: row.warnungen.length ? 'var(--color-warning, #b45309)' : 'var(--color-text-secondary)' }}>
+                          {row.warnungen.length ? row.warnungen.map((warning) => CSV_WARNUNG_LABELS[warning]).join(' · ') : `Zeile ${row.zeile}`}
+                        </span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
+                  <button
+                    className="btn-primary"
+                    disabled={csvImportBusy || !csvVorschau.pruefung.zeilen.some((row) => row.ausgewaehlt && row.vorname.trim())}
+                    onClick={handleCsvConfirm}
+                    style={{ fontSize: '0.7rem', padding: '0.3rem 0.5rem' }}
+                  >
+                    {csvImportBusy ? 'Importiere …' : `Ausgewählte Schüler speichern (${csvVorschau.pruefung.zeilen.filter((row) => row.ausgewaehlt && row.vorname.trim()).length})`}
+                  </button>
+                  <button
+                    className="btn-secondary"
+                    disabled={csvImportBusy}
+                    onClick={() => setCsvVorschau(null)}
+                    style={{ fontSize: '0.7rem', padding: '0.3rem 0.5rem' }}
+                  >
+                    Abbrechen
+                  </button>
+                </div>
+              </section>
+            )}
           </div>
 
           <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--color-border)' }}>
