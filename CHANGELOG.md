@@ -5,16 +5,24 @@ Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 (auch andere Coding-Agents) — siehe `AGENTS.md`.
 
-## [Unreleased]
+## Version 1.1.1 — 2026-07-15
+
+**Das ist neu:** Die Korrektur funktioniert jetzt auch in der installierten
+App zuverlässig — vorher schlug jede Analyse dort mit einem Schlüssel-Fehler
+fehl. Dazu: verständliche Rubrik-Auswahl, Kommentare mit dem richtigen Namen,
+ein verlässlicherer Analyse-Dialog und ein Feedback-DOCX, das man findet.
 
 ### Fixed — Verlässlicher Analyse-Dialog
-- Klassen werden in der Korrektur ausgewählt und neue Analysen speichern
-  kanonische Klassen- und Aufgabenschlüssel. Vorhandene Aufgaben bleiben als
-  Vorschläge verfügbar.
+- Klassen werden in der Korrektur ausgewählt statt frei getippt; neue
+  Analysen speichern kanonische Klassen- und Aufgabenschlüssel, ohne
+  Groß-/Kleinschreibung bestehender Klassen zu verändern. Vorhandene
+  Aufgaben bleiben als Vorschläge verfügbar.
 - Duplikate und Analyse-Hinweise erscheinen sichtbar; Fach und Schulstufe der
   Klasse werden an die Bewertung übergeben.
 - PDF- und Bildabgaben werden vor dem Start gegen die Vision-Fähigkeit des
   konfigurierten Anbieters geprüft.
+- Nach dem Erstellen einer Feedback-DOCX zeigt eine Erfolgskarte den
+  Dateinamen mit einem „Ordner öffnen"-Knopf statt eines rohen Pfad-Hinweises.
 
 ### Fixed — Korrektur funktioniert jetzt auch in der installierten App
 - Zwei Bundle-Blocker behoben: Die API-Schlüssel erreichen das eingebaute
