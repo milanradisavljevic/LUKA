@@ -27,7 +27,7 @@ Eine einzelne Lehrkraft (Windows) kann die App installieren, mit den sechs zentr
 | `generiertesDokument` | Enthält alle Quelltexte + Blöcke + LLM-Output. Bei längeren Schularbeiten > 1 MB. **Muss selektiv persistiert werden.** | `apps/web/src/lib/types.ts:14` |
 | Version | Aktuell `0.1.0` in allen drei Manifesten. **Muss auf `1.0.0-beta`.** | `tauri.conf.json:4`, `Cargo.toml:3`, `apps/web/package.json:3` |
 | Renderer | 1707 Zeilen monolithisch (`packages/renderer/src/index.ts`), 11 `build*`-Funktionen, keine Snapshot-Tests. | `wc -l packages/renderer/src/index.ts` |
-| Qwen-Key | `sk-15c669f8e54f4d238bf64f18d40775b3` — Status laut `offene Punkte.txt #11` 401, muss live geprüft werden. | extern |
+| Qwen-Key | `[ENTFERNT 2026-07-15 — Schlüssel stand hier im Klartext, revoked]` — Status laut `offene Punkte.txt #11` 401, muss live geprüft werden. | extern |
 
 ## Phasen-Reihenfolge (korrigiert)
 
