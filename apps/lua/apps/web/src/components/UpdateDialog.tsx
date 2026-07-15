@@ -108,7 +108,7 @@ export function UpdateDialog({ updater }: Props) {
             )}
             {state.body && state.body.trim() && (
               <>
-                <h3 style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '0.375rem' }}>
+                <h3 className="font-script" style={{ fontSize: '1rem', fontWeight: 400, color: 'var(--color-text-primary)', marginBottom: '0.375rem' }}>
                   Was ist neu
                 </h3>
                 <ReleaseNotes body={state.body} />

@@ -12,6 +12,10 @@ App zuverlässig — vorher schlug jede Analyse dort mit einem Schlüssel-Fehler
 fehl. Dazu: verständliche Rubrik-Auswahl, Kommentare mit dem richtigen Namen,
 ein verlässlicherer Analyse-Dialog und ein Feedback-DOCX, das man findet.
 
+### Changed — Playwrite für Release-Notes
+- Die Überschrift „Was ist neu“ im Update-Dialog verwendet weiterhin die
+  Playwrite-Schreibschrift und bewahrt damit die LUKA-Designidentität.
+
 ### Fixed — Verlässlicher Analyse-Dialog
 - Klassen werden in der Korrektur ausgewählt statt frei getippt; neue
   Analysen speichern kanonische Klassen- und Aufgabenschlüssel, ohne
