@@ -61,6 +61,10 @@ fn migrate_natascha_abgabe_link_columns(conn: &Connection) -> Result<(), String>
         .map_err(|e| format!("Abgabe-Link-Migration lesen fehlgeschlagen: {}", e))?
         .collect::<Result<_, _>>()
         .map_err(|e| format!("Abgabe-Link-Migration auswerten fehlgeschlagen: {}", e))?;
+    if !columns.contains("korrekturauftrag_id") {
+        conn.execute_batch("ALTER TABLE abgabe ADD COLUMN korrekturauftrag_id TEXT;")
+            .map_err(|e| format!("Abgabe-Link-Migration Auftrag fehlgeschlagen: {}", e))?;
+    }
     if !columns.contains("unterrichtseinsatz_id") {
         conn.execute_batch("ALTER TABLE abgabe ADD COLUMN unterrichtseinsatz_id TEXT;")
             .map_err(|e| format!("Abgabe-Link-Migration Einsatz fehlgeschlagen: {}", e))?;
@@ -322,6 +326,7 @@ mod tests {
             .unwrap();
         assert!(columns.contains("unterrichtseinsatz_id"));
         assert!(columns.contains("material_id"));
+        assert!(columns.contains("korrekturauftrag_id"));
     }
 
     #[test]

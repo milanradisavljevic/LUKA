@@ -924,6 +924,7 @@ def run_llm_analysis(
     file_path: Path | None = None,
     bewertungsmodus: str = "benotet",
     ausgangstext_path: Path | None = None,
+    ausgangstext_text: str | None = None,
     klasse: str = "",
     aufgabe: str = "",
     erwartungshorizont_name: str = "",
@@ -933,6 +934,10 @@ def run_llm_analysis(
     bestaetigte_schueler_id: int | None = None,
     unterrichtseinsatz_id: str | None = None,
     material_id: str | None = None,
+    korrekturauftrag_id: str | None = None,
+    rubrik_inhalt: str = "",
+    rubrik_titel: str = "",
+    erwartungshorizont: str = "",
 ) -> tuple[dict[str, Any] | None, list[str]]:
     """
     Fuehrt die vollstaendige LLM-Analyse durch: Prompt bauen, API aufrufen,
@@ -993,13 +998,20 @@ def run_llm_analysis(
             pass
 
     # Ausgangstext vorverarbeiten
-    ausgangstext_text: str | None = None
+    # Den vom Aufrufer gelieferten Text beibehalten; die frühere lokale
+    # Initialisierung hat ihn versehentlich vor der Prompt-Erstellung verworfen.
+    ausgangstext_text = ausgangstext_text.strip() if ausgangstext_text and ausgangstext_text.strip() else None
     ausgangstext_vision_block: dict | None = None
     ausgangstext_warnings: list[str] = []
 
-    if ausgangstext_path is not None:
+    if ausgangstext_text is None and ausgangstext_path is not None:
         suf = ausgangstext_path.suffix.lower()
-        if suf == ".docx":
+        if suf in (".txt", ".md", ".markdown"):
+            try:
+                ausgangstext_text = ausgangstext_path.read_text(encoding="utf-8")
+            except Exception as e:
+                ausgangstext_warnings.append(f"Ausgangstext nicht lesbar: {e}")
+        elif suf == ".docx":
             try:
                 ausgangstext_text = read_docx_text(ausgangstext_path)
             except Exception as e:
@@ -1301,6 +1313,10 @@ def run_llm_analysis(
                     bestaetigte_schueler_id=bestaetigte_schueler_id,
                     unterrichtseinsatz_id=unterrichtseinsatz_id,
                     material_id=material_id,
+                    korrekturauftrag_id=korrekturauftrag_id,
+                    rubrik_inhalt=rubrik_inhalt,
+                    rubrik_titel=rubrik_titel,
+                    erwartungshorizont=erwartungshorizont,
                 )
                 if abgabe_id and abgabe_id > 0:
                     data["_abgabe_id"] = abgabe_id

@@ -22,6 +22,7 @@ Exit-Code 0 = Erfolg, 1 = Fehler.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 import time
@@ -81,10 +82,29 @@ def cmd_analyze(args):
     fach = args.fach or auf_cfg.get("fach", "")
     schulstufe = args.schulstufe or auf_cfg.get("schulstufe", "")
     textsorte = args.textsorte or auf_cfg.get("textsorte", "")
+    rubric_name = args.rubric or auf_cfg.get("rubric", "")
+    if not rubric_name:
+        rubric_name = nc.default_rubric_for(fach, schulstufe, config)
+    if not rubric_name:
+        rubric_name = (nc.list_all_rubrics(config) or [""])[0]
+    rubric_path = nc.resolve_path(config, "rubrics") / rubric_name if rubric_name else None
+    rubric_header = nc.parse_rubrik_header(rubric_path.read_text(encoding="utf-8")) if rubric_path and rubric_path.exists() else {}
+    rubrik_titel = rubric_header.get("titel", "") or rubric_name
+    auftrag_key = "|".join([
+        args.klasse, args.aufgabe, rubric_name,
+        args.einsatz_id or "", args.material_id or "",
+    ])
+    korrekturauftrag_id = "ka-" + hashlib.sha256(auftrag_key.encode("utf-8")).hexdigest()[:24]
+    erwartungshorizont_text = nc.load_erwartungshorizont(config, args.klasse, args.aufgabe) or ""
 
     ausgangstext_path = None
-    if args.ausgangstext:
-        ausgangstext_path = Path(args.ausgangstext).resolve()
+    if args.ausgangstext_file or args.ausgangstext:
+        ausgangstext_path = Path(args.ausgangstext_file or args.ausgangstext).resolve()
+
+    # Der Text aus dem LUA-Dialog ist Inhalt, kein Dateipfad. Der alte
+    # --ausgangstext-Schalter bleibt als kompatibler Dateipfad erhalten;
+    # neue Aufrufer verwenden die eindeutig benannten Varianten.
+    ausgangstext_text = args.ausgangstext_text
 
     cancel_event = None
     if args.cancel_timeout:
@@ -107,15 +127,20 @@ def cmd_analyze(args):
         file_path=file_path,
         bewertungsmodus=args.bewertungsmodus,
         ausgangstext_path=ausgangstext_path,
+        ausgangstext_text=ausgangstext_text,
         klasse=args.klasse,
         aufgabe=args.aufgabe,
         erwartungshorizont_name=args.erwartungshorizont or "",
-        rubric_name=args.rubric or "",
+        rubric_name=rubric_name,
         pseudonymisierung=not args.keine_pseudonymisierung,
         db_path_override=db_path,
         bestaetigte_schueler_id=args.schueler_id,
         unterrichtseinsatz_id=args.einsatz_id,
         material_id=args.material_id,
+        korrekturauftrag_id=korrekturauftrag_id,
+        rubrik_inhalt=rubric,
+        rubrik_titel=rubrik_titel,
+        erwartungshorizont=erwartungshorizont_text,
     )
 
     if data is None:
@@ -629,7 +654,9 @@ def main():
     p_analyze.add_argument("--textsorte", default="")
     p_analyze.add_argument("--schueler", default="")
     p_analyze.add_argument("--bewertungsmodus", default="benotet", choices=["benotet", "formativ"])
-    p_analyze.add_argument("--ausgangstext", default=None)
+    p_analyze.add_argument("--ausgangstext", default=None, help=argparse.SUPPRESS)
+    p_analyze.add_argument("--ausgangstext-text", default=None)
+    p_analyze.add_argument("--ausgangstext-file", default=None)
     p_analyze.add_argument("--einsatz-id", default=None)
     p_analyze.add_argument("--material-id", default=None)
     p_analyze.add_argument("--erwartungshorizont", default="")

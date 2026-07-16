@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Check, Database, Download } from 'lucide-react';
+import { Check, Database, Download, RefreshCw, Terminal } from 'lucide-react';
 import type { AppSettings, LlmProvider } from '../lib/types';
 import { BLOCK_TYPE_DEFS, LLM_PROVIDERS } from '../lib/constants';
 import { FEATURES } from '../lib/features';
@@ -32,6 +32,14 @@ const PROFILE_EXPORT_OPTIONS = [
   { key: 'exportLoesung', label: 'Lösung' },
   { key: 'exportErwartungshorizont', label: 'Erwartungshorizont (später)' },
 ] as const;
+
+interface NataschaStatus {
+  available: boolean;
+  mode: string;
+  code: string;
+  label: string;
+  diagnostic?: string;
+}
 
 function ProfileSection() {
   const desktopAvailable = typeof window !== 'undefined' && (window as any).__TAURI_INTERNALS__ !== undefined;
@@ -189,17 +197,20 @@ function ToggleRow({
 export function SettingsView() {
   const [settings, setSettings] = useState<AppSettings>(() => loadSettings());
   const [savedHint, setSavedHint] = useState(false);
-  const [nataschaMode, setNataschaMode] = useState<{ mode: string; label: string } | null>(null);
+  const [nataschaMode, setNataschaMode] = useState<NataschaStatus | null>(null);
+  const [nataschaStatusRetry, setNataschaStatusRetry] = useState(0);
 
   useEffect(() => {
     if (!FEATURES.natascha) return;
+    setNataschaMode(null);
     void import('@tauri-apps/api/core').then(({ invoke }) =>
-      invoke<{ mode: string; label: string }>('natascha_get_status', {
+      invoke<NataschaStatus>('natascha_get_status', {
         dir: settings.nataschaDir ?? '',
         python: settings.pythonCommand ?? '',
-      }).then((status) => setNataschaMode(status)).catch(() => setNataschaMode({ mode: 'unavailable', label: 'Nicht verfügbar' })),
-    );
-  }, [settings.nataschaDir, settings.pythonCommand]);
+        forceRefresh: nataschaStatusRetry > 0,
+      }).then((status) => setNataschaMode(status)).catch((error) => setNataschaMode({ available: false, mode: 'unavailable', code: 'sidecar_unstartable', label: 'Korrektur-Modul konnte nicht geprüft werden', diagnostic: String(error) })),
+    ).catch((error) => setNataschaMode({ available: false, mode: 'unavailable', code: 'sidecar_unstartable', label: 'Korrektur-Modul konnte nicht geprüft werden', diagnostic: String(error) }));
+  }, [settings.nataschaDir, settings.pythonCommand, nataschaStatusRetry]);
 
   const update = (patch: Partial<AppSettings>) => {
     const next = { ...settings, ...patch };
@@ -240,6 +251,21 @@ export function SettingsView() {
     } catch (e) {
       setSeedMsg(typeof e === 'string' ? e : e instanceof Error ? e.message : 'Seed fehlgeschlagen.');
     } finally { setSeedBusy(false); }
+  };
+
+  const handleLaunchTui = async () => {
+    try {
+      const { invoke } = await import('@tauri-apps/api/core');
+      await invoke('launch_natascha', { dir: settings.nataschaDir ?? '', python: settings.pythonCommand ?? '' });
+    } catch (error) {
+      setNataschaMode({
+        available: false,
+        mode: 'unavailable',
+        code: 'sidecar_unstartable',
+        label: 'Korrektur-TUI konnte nicht geöffnet werden',
+        diagnostic: String(error),
+      });
+    }
   };
 
   const [backupMsg, setBackupMsg] = useState<string | null>(null);
@@ -441,21 +467,29 @@ export function SettingsView() {
         {nataschaMode === null && (
           <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', marginTop: 0 }}>Wird geprüft …</p>
         )}
-        {nataschaMode?.mode === 'bundled' && (
+        {nataschaMode?.available && nataschaMode.mode === 'bundled' && (
           <p style={{ fontSize: '0.8125rem', marginTop: 0, color: 'var(--color-success)' }}>
-            ✓ Einsatzbereit — das Korrektur-Modul ist in LUKA eingebaut, keine Einrichtung nötig.
+            ✓ {nataschaMode.label} — keine Einrichtung nötig.
           </p>
         )}
-        {nataschaMode?.mode === 'python' && (
+        {nataschaMode?.available && nataschaMode.mode === 'python' && (
           <p style={{ fontSize: '0.8125rem', marginTop: 0, color: 'var(--color-text-secondary)' }}>
-            Einsatzbereit über lokales Python (Entwicklungsmodus).
+            {nataschaMode.label} (Entwicklungsmodus).
           </p>
         )}
-        {nataschaMode?.mode === 'unavailable' && (
-          <p style={{ fontSize: '0.8125rem', marginTop: 0, color: 'var(--color-error)' }}>
-            Nicht verfügbar. Bitte LUKA mit dem aktuellen Installer neu installieren —
-            dann ist das Korrektur-Modul eingebaut. (Entwickler: unten „Erweitert“ öffnen.)
-          </p>
+        {nataschaMode && !nataschaMode.available && (
+          <div style={{ marginTop: 0, color: 'var(--color-error)' }}>
+            <p style={{ fontSize: '0.8125rem', margin: 0 }}>{nataschaMode.label}. Bitte aktualisieren oder die erweiterten Einstellungen prüfen.</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
+              <button className="btn-secondary" onClick={() => setNataschaStatusRetry((value) => value + 1)} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.75rem' }}>
+                <RefreshCw size={13} /> Erneut prüfen
+              </button>
+              {nataschaMode.diagnostic && <details style={{ color: 'var(--color-text-secondary)' }}>
+                <summary style={{ cursor: 'pointer', fontSize: '0.75rem' }}>Details für Support</summary>
+                <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', margin: '0.4rem 0 0', fontSize: '0.7rem' }}>{nataschaMode.diagnostic}</pre>
+              </details>}
+            </div>
+          </div>
         )}
         <label style={labelStyle}>Inbox-Ordner für Korrektur-Exporte</label>
         <input
@@ -477,6 +511,9 @@ export function SettingsView() {
             Erweitert — nur für Entwicklung und Sonderfälle
           </summary>
           <div style={{ marginTop: '0.75rem' }}>
+            <button className="btn-secondary" onClick={handleLaunchTui} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: '1rem' }}>
+              <Terminal size={14} /> Korrektur-TUI öffnen (technischer Fallback)
+            </button>
             <label style={labelStyle}>Korrektur-Ordner (Installationsordner des Korrektur-Tools)</label>
             <input
               type="text"

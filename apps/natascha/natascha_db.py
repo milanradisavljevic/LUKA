@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS schueler (
 CREATE TABLE IF NOT EXISTS abgabe (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     schueler_id INTEGER REFERENCES schueler(id) ON DELETE SET NULL,
+    korrekturauftrag_id TEXT,
     unterrichtseinsatz_id TEXT,
     material_id TEXT,
     klasse TEXT NOT NULL,
@@ -143,6 +144,28 @@ CREATE TABLE IF NOT EXISTS aufgabe_quelltext (
     geaendert_am TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(klasse, aufgabe)
 );
+
+CREATE TABLE IF NOT EXISTS korrekturauftrag (
+    id TEXT PRIMARY KEY,
+    klasse TEXT NOT NULL,
+    aufgabe TEXT NOT NULL,
+    titel TEXT NOT NULL DEFAULT '',
+    fach TEXT NOT NULL DEFAULT '',
+    schulstufe TEXT NOT NULL DEFAULT '',
+    textsorte TEXT NOT NULL DEFAULT '',
+    aufgabenstellung TEXT NOT NULL DEFAULT '',
+    ausgangstext TEXT NOT NULL DEFAULT '',
+    rubrik TEXT NOT NULL DEFAULT '',
+    rubrik_titel TEXT NOT NULL DEFAULT '',
+    rubrik_inhalt TEXT NOT NULL DEFAULT '',
+    erwartungshorizont TEXT NOT NULL DEFAULT '',
+    unterrichtseinsatz_id TEXT,
+    material_id TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_korrekturauftrag_klasse_aufgabe ON korrekturauftrag(klasse, aufgabe);
 """
 
 # ---------------------------------------------------------------------------
@@ -174,9 +197,12 @@ def init_db(db_path: Path | str) -> None:
         conn.execute("PRAGMA foreign_keys=ON")
         conn.executescript(SCHEMA_SQL)
         columns = {row[1] for row in conn.execute("PRAGMA table_info(abgabe)")}
-        for column in ("unterrichtseinsatz_id", "material_id"):
+        for column in ("korrekturauftrag_id", "unterrichtseinsatz_id", "material_id"):
             if column not in columns:
                 conn.execute(f"ALTER TABLE abgabe ADD COLUMN {column} TEXT")
+        context_columns = {row[1] for row in conn.execute("PRAGMA table_info(korrekturauftrag)")}
+        if context_columns and "rubrik_titel" not in context_columns:
+            conn.execute("ALTER TABLE korrekturauftrag ADD COLUMN rubrik_titel TEXT NOT NULL DEFAULT ''")
         conn.commit()
 
 
@@ -582,6 +608,64 @@ def get_aufgabe_quelltext(
         return None
 
 
+def upsert_korrekturauftrag(
+    db_path: Path | str,
+    auftrag_id: str,
+    klasse: str,
+    aufgabe: str,
+    *,
+    fach: str = "",
+    schulstufe: str = "",
+    textsorte: str = "",
+    ausgangstext: str = "",
+    rubrik: str = "",
+    rubrik_titel: str = "",
+    rubrik_inhalt: str = "",
+    erwartungshorizont: str = "",
+    unterrichtseinsatz_id: str | None = None,
+    material_id: str | None = None,
+) -> None:
+    """Persistiert den fachlichen Kontext einer Korrektur einmalig.
+
+    Der Auftrag ist bewusst unabhängig von einzelnen Abgaben. So bleiben
+    Quelle, Rubrik und Erwartungshorizont auch nach Änderungen an Dateien oder
+    Konfiguration reproduzierbar.
+    """
+    klasse = normalize_klasse(klasse)
+    aufgabe = normalize_aufgabe(aufgabe)
+    if not auftrag_id or not klasse or not aufgabe:
+        return
+    with sqlite3.connect(str(db_path)) as conn:
+        conn.execute(
+            """
+            INSERT INTO korrekturauftrag
+              (id, klasse, aufgabe, titel, fach, schulstufe, textsorte,
+               ausgangstext, rubrik, rubrik_titel, rubrik_inhalt, erwartungshorizont,
+               unterrichtseinsatz_id, material_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+              fach=excluded.fach,
+              schulstufe=excluded.schulstufe,
+              textsorte=excluded.textsorte,
+              ausgangstext=CASE WHEN excluded.ausgangstext <> '' THEN excluded.ausgangstext ELSE korrekturauftrag.ausgangstext END,
+              rubrik=CASE WHEN excluded.rubrik <> '' THEN excluded.rubrik ELSE korrekturauftrag.rubrik END,
+              rubrik_titel=CASE WHEN excluded.rubrik_titel <> '' THEN excluded.rubrik_titel ELSE korrekturauftrag.rubrik_titel END,
+              rubrik_inhalt=CASE WHEN excluded.rubrik_inhalt <> '' THEN excluded.rubrik_inhalt ELSE korrekturauftrag.rubrik_inhalt END,
+              erwartungshorizont=CASE WHEN excluded.erwartungshorizont <> '' THEN excluded.erwartungshorizont ELSE korrekturauftrag.erwartungshorizont END,
+              unterrichtseinsatz_id=COALESCE(excluded.unterrichtseinsatz_id, korrekturauftrag.unterrichtseinsatz_id),
+              material_id=COALESCE(excluded.material_id, korrekturauftrag.material_id),
+              updated_at=CURRENT_TIMESTAMP
+            """,
+            (
+                auftrag_id, klasse, aufgabe, aufgabe, fach, schulstufe,
+                textsorte, (ausgangstext or "").strip(), rubrik, rubrik_titel,
+                rubrik_inhalt, erwartungshorizont, unterrichtseinsatz_id,
+                material_id,
+            ),
+        )
+        conn.commit()
+
+
 def import_json_to_db(
     db_path: Path | str,
     json_path: Path,
@@ -790,6 +874,10 @@ def save_analysis_to_db(
     bestaetigte_schueler_id: int | None = None,
     unterrichtseinsatz_id: str | None = None,
     material_id: str | None = None,
+    korrekturauftrag_id: str | None = None,
+    rubrik_inhalt: str = "",
+    rubrik_titel: str = "",
+    erwartungshorizont: str = "",
 ) -> int:
     """
     Bequemlichkeits-Funktion: Nimmt das validierte JSON-Dict nach der Analyse
@@ -808,6 +896,24 @@ def save_analysis_to_db(
     aufgabe = normalize_aufgabe(aufgabe)
     dateiname = data.get("datei", file_path.name)
     datei_hash = _file_hash(file_path)
+
+    if korrekturauftrag_id:
+        upsert_korrekturauftrag(
+            db_path,
+            korrekturauftrag_id,
+            klasse,
+            aufgabe,
+            fach=str(data.get("fach", "") or ""),
+            schulstufe=str(data.get("schulstufe", "") or ""),
+            textsorte=str(data.get("textsorte", "") or ""),
+            ausgangstext=str(data.get("ausgangstext", "") or ""),
+            rubrik=str(data.get("rubrik", "") or ""),
+            rubrik_titel=rubrik_titel,
+            rubrik_inhalt=rubrik_inhalt,
+            erwartungshorizont=erwartungshorizont,
+            unterrichtseinsatz_id=unterrichtseinsatz_id,
+            material_id=material_id,
+        )
 
     existing = get_abgabe_by_hash(db_path, datei_hash)
     if existing:
@@ -842,9 +948,10 @@ def save_analysis_to_db(
     with sqlite3.connect(db_path_str) as conn:
         conn.execute("PRAGMA foreign_keys=ON")
         cur = conn.execute(
-            "INSERT INTO abgabe (schueler_id, unterrichtseinsatz_id, material_id, klasse, aufgabe, dateiname, datei_hash, rohtext, note, gesamtstufe, feedback_json_path, wortanzahl, fach, schulstufe, textsorte, rubrik) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO abgabe (schueler_id, korrekturauftrag_id, unterrichtseinsatz_id, material_id, klasse, aufgabe, dateiname, datei_hash, rohtext, note, gesamtstufe, feedback_json_path, wortanzahl, fach, schulstufe, textsorte, rubrik) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 schueler_id,
+                korrekturauftrag_id,
                 unterrichtseinsatz_id,
                 material_id,
                 klasse,

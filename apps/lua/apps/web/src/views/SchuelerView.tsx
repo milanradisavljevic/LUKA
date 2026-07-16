@@ -154,10 +154,10 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
       }
     }
     // Jüngste Aufgabe aus dem Verlauf ableiten, um den passenden Ausgangstext zu holen.
-    const verlauf = (laengsschnitt.verlauf ?? []) as Array<{ aufgabe?: string; datum?: string | null }>;
+    const verlauf = (laengsschnitt.verlauf ?? []) as Array<{ aufgabe?: string; datum?: string | null; ausgangstext?: string }>;
     const juengste = verlauf[verlauf.length - 1];
-    let ausgangstext: string | undefined;
-    if (s.klasse && juengste?.aufgabe) {
+    let ausgangstext: string | undefined = juengste?.ausgangstext?.trim() || undefined;
+    if (!ausgangstext && s.klasse && juengste?.aufgabe) {
       const text = await quelltextGet(s.klasse, juengste.aufgabe);
       if (text) ausgangstext = text;
     }

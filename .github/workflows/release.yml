@@ -117,6 +117,33 @@ jobs:
         working-directory: .
         run: node .github/scripts/extract-release-notes.mjs
 
+      # Gate: Die Tauri-Bundler-Namensauflösung wird gegen das fertige Paket
+      # geprüft, bevor tauri-action den Release veröffentlicht. So kann ein
+      # grüner Sidecar-Build keinen defekten Installer mehr überdecken.
+      - name: Installierten Windows-Sidecar-Smoke ausführen
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          pnpm tauri build --bundles nsis --config src-tauri/tauri.natascha-sidecar.conf.json
+          $installer = Get-ChildItem -LiteralPath 'src-tauri/target/release/bundle/nsis' -Filter '*.exe' |
+            Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $installer) { throw 'Kein NSIS-Installer für den Sidecar-Smoke gefunden.' }
+          $installDir = Join-Path $env:RUNNER_TEMP "luka-sidecar-smoke-$env:GITHUB_RUN_ID"
+          pwsh -File '../../scripts/verify-sidecar-installer.ps1' -InstallerPath $installer.FullName -InstallDirectory $installDir
+
+      - name: Installierten macOS-Sidecar-Smoke ausführen
+        if: runner.os == 'macOS'
+        run: |
+          pnpm tauri build --target universal-apple-darwin --config src-tauri/tauri.natascha-sidecar.conf.json
+          app="$(find src-tauri/target/universal-apple-darwin/release/bundle/macos -maxdepth 1 -name '*.app' -print -quit)"
+          test -n "$app"
+          sidecar="$(find "$app/Contents" -type f -name 'natascha-cli' -print -quit)"
+          test -n "$sidecar"
+          test -x "$sidecar"
+          help="$($sidecar analyze --help)"
+          grep -q -- '--einsatz-id' <<< "$help"
+          grep -q -- '--material-id' <<< "$help"
+
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

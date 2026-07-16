@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS schueler (
 CREATE TABLE IF NOT EXISTS abgabe (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     schueler_id INTEGER REFERENCES schueler(id) ON DELETE SET NULL,
+    korrekturauftrag_id TEXT,
     unterrichtseinsatz_id TEXT,
     material_id TEXT,
     klasse TEXT NOT NULL,
@@ -94,6 +95,28 @@ CREATE TABLE IF NOT EXISTS aufgabe_quelltext (
     geaendert_am TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(klasse, aufgabe)
 );
+
+CREATE TABLE IF NOT EXISTS korrekturauftrag (
+    id TEXT PRIMARY KEY,
+    klasse TEXT NOT NULL,
+    aufgabe TEXT NOT NULL,
+    titel TEXT NOT NULL DEFAULT '',
+    fach TEXT NOT NULL DEFAULT '',
+    schulstufe TEXT NOT NULL DEFAULT '',
+    textsorte TEXT NOT NULL DEFAULT '',
+    aufgabenstellung TEXT NOT NULL DEFAULT '',
+    ausgangstext TEXT NOT NULL DEFAULT '',
+    rubrik TEXT NOT NULL DEFAULT '',
+    rubrik_titel TEXT NOT NULL DEFAULT '',
+    rubrik_inhalt TEXT NOT NULL DEFAULT '',
+    erwartungshorizont TEXT NOT NULL DEFAULT '',
+    unterrichtseinsatz_id TEXT,
+    material_id TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_korrekturauftrag_klasse_aufgabe ON korrekturauftrag(klasse, aufgabe);
 
 CREATE INDEX IF NOT EXISTS idx_abgabe_hash ON abgabe(datei_hash);
 CREATE INDEX IF NOT EXISTS idx_abgabe_klasse ON abgabe(klasse);

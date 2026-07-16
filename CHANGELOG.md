@@ -5,6 +5,26 @@ Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 (auch andere Coding-Agents) — siehe `AGENTS.md`.
 
+## Version 1.2.0 — 2026-07-16
+
+**Das ist neu:** Die native Korrektur ist jetzt der klare Hauptweg. „Neue
+Analyse“ ist direkt im Arbeitsbereich sichtbar; bei einer leeren Korrektur-
+Ansicht führt ein Startknopf durch den ersten Upload. Das Modul prüft sich vor
+dem Öffnen des Dialogs und erklärt verständlich, wenn die Installation nicht
+bereit ist. Die bisherige Korrektur-TUI bleibt als technischer Fallback in den
+erweiterten Einstellungen verfügbar.
+
+Zusätzlich bleibt die Prüfgrundlage jetzt erhalten: Ausgangsmaterial kann als
+Text oder Datei hinterlegt werden, das Bewertungsraster wird mit dem Auftrag
+gespeichert, und die Korrekturansicht zeigt Quelle, Raster und Erwartungshorizont
+später wieder an. Dadurch kann eine Folgeübung auf denselben Kontext aufbauen.
+
+## Version 1.1.2 — 2026-07-16
+
+**Das ist neu:** Die Korrektur startet in der installierten Windows-App wieder
+zuverlässig. Ein Fehler bei der Sidecar-Datei wurde behoben; vorhandene Daten,
+Einstellungen und Korrekturen bleiben erhalten.
+
 ## Version 1.1.1 — 2026-07-15
 
 **Das ist neu:** Die Korrektur funktioniert jetzt auch in der installierten

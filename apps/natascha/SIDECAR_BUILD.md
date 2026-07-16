@@ -20,6 +20,11 @@ Das Skript installiert PyInstaller sowie `requirements_cli.txt` und
 apps/natascha/dist/natascha-cli/natascha-cli-x86_64-pc-windows-msvc.exe
 ```
 
+Beim fertigen Tauri-Installer wird dieses Sidecar unter Windows als
+`natascha-cli.exe` neben der Anwendung abgelegt (macOS: `natascha-cli`). Die
+Laufzeitprüfung verwendet deshalb den konfigurierten Basisnamen und akzeptiert
+den Target-Suffix nur noch als Entwicklungs-Fallback.
+
 Für den macOS-Universal-Build:
 
 ```bash

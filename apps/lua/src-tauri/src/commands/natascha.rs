@@ -6,7 +6,7 @@
 
 use once_cell::sync::Lazy;
 use serde::Serialize;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Command as StdCommand, Stdio};
 use std::sync::Mutex;
 use tauri::{AppHandle, Emitter};
@@ -18,6 +18,7 @@ const NATASCHA_CLI_TIMEOUT_SECS: u64 = 10 * 60;
 
 static ACTIVE_PROCESS: Lazy<Mutex<Option<(u32, u64)>>> = Lazy::new(|| Mutex::new(None));
 static NEXT_JOB_ID: Lazy<Mutex<u64>> = Lazy::new(|| Mutex::new(1));
+static STATUS_CACHE: Lazy<Mutex<Option<(String, NataschaStatus)>>> = Lazy::new(|| Mutex::new(None));
 
 #[derive(Clone, Serialize)]
 struct NataschaProgress {
@@ -60,10 +61,9 @@ fn resolve_dir(dir: &str) -> Result<PathBuf, String> {
     let trimmed = dir.trim();
     let path = if trimmed.is_empty() {
         find_natascha_dir().ok_or_else(|| {
-            "Das Korrektur-Modul ist nicht verfügbar. In der installierten App ist es \
-             eingebaut — bitte LUKA mit dem aktuellen Installer neu installieren. \
-             (Für Entwickler: Einstellungen → Korrektur-Modul → Erweitert, dort den \
-             Ordner apps/natascha eintragen.)"
+            "Das Korrektur-Modul ist nicht verfügbar. Bitte LUKA aktualisieren oder \
+             unter Einstellungen → Korrektur-Modul → Erweitert einen gültigen \
+             Korrektur-Ordner hinterlegen."
                 .to_string()
         })?
     } else {
@@ -71,10 +71,9 @@ fn resolve_dir(dir: &str) -> Result<PathBuf, String> {
     };
     if !path.join("natascha.py").is_file() {
         return Err(format!(
-            "Der eingestellte Korrektur-Ordner enthält das Korrektur-Modul nicht:\n{}\n\
-             Lösung: In den Einstellungen unter Korrektur-Modul → Erweitert das Feld \
-             „Korrektur-Ordner“ leeren (Auto-Erkennung) — oder LUKA mit dem aktuellen \
-             Installer neu installieren, dann ist das Modul eingebaut.",
+            "Der eingestellte Korrektur-Ordner ist nicht verfügbar:\n{}\n\
+             Lösung: In den Einstellungen unter Korrektur-Modul → Erweitert einen \
+             gültigen Ordner auswählen oder das Feld für die automatische Erkennung leeren.",
             path.display()
         ));
     }
@@ -84,8 +83,11 @@ fn resolve_dir(dir: &str) -> Result<PathBuf, String> {
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NataschaStatus {
+    pub available: bool,
     pub mode: &'static str,
+    pub code: &'static str,
     pub label: &'static str,
+    pub diagnostic: Option<String>,
 }
 
 fn next_job_id() -> u64 {
@@ -95,39 +97,85 @@ fn next_job_id() -> u64 {
     current
 }
 
-fn bundled_cli() -> Option<PathBuf> {
-    let exe = std::env::current_exe().ok()?;
-    let filename = if cfg!(windows) {
-        "natascha-cli-x86_64-pc-windows-msvc.exe"
+fn bundled_cli_candidates(exe: &Path) -> Vec<PathBuf> {
+    let filenames: &[&str] = if cfg!(windows) {
+        // Tauri bundles externalBin under its configured base name. The
+        // target-suffixed name remains useful for development artifacts.
+        &[
+            "natascha-cli.exe",
+            "natascha-cli-x86_64-pc-windows-msvc.exe",
+        ]
     } else {
-        "natascha-cli"
+        &["natascha-cli", "natascha-cli-universal-apple-darwin"]
     };
     let mut candidates = Vec::new();
     if let Some(parent) = exe.parent() {
-        candidates.push(parent.join(filename));
-        candidates.push(parent.join("resources").join(filename));
-        candidates.push(parent.join("Resources").join(filename));
-        candidates.push(parent.join(r"..\Resources").join(filename));
+        for filename in filenames {
+            candidates.push(parent.join(filename));
+            candidates.push(parent.join("resources").join(filename));
+            candidates.push(parent.join("Resources").join(filename));
+            candidates.push(parent.join(r"..\Resources").join(filename));
+        }
     }
-    candidates.into_iter().find(|path| path.is_file())
+    candidates
 }
 
-fn natascha_status(dir: &str, _python: &str) -> NataschaStatus {
-    if bundled_cli().is_some() {
-        return NataschaStatus {
-            mode: "bundled",
-            label: "Gebündeltes Korrektur-Sidecar",
-        };
-    }
-    if resolve_dir(dir).is_ok() {
-        return NataschaStatus {
-            mode: "python",
-            label: "Python-Fallback",
-        };
-    }
+fn bundled_cli_from_exe(exe: &Path) -> Option<PathBuf> {
+    bundled_cli_candidates(exe)
+        .into_iter()
+        .find(|path| path.is_file())
+}
+
+fn bundled_cli() -> Option<PathBuf> {
+    bundled_cli_from_exe(&std::env::current_exe().ok()?)
+}
+
+fn status_ready(mode: &'static str, code: &'static str, label: &'static str) -> NataschaStatus {
     NataschaStatus {
+        available: true,
+        mode,
+        code,
+        label,
+        diagnostic: None,
+    }
+}
+
+fn status_unavailable(
+    code: &'static str,
+    label: &'static str,
+    diagnostic: impl Into<String>,
+) -> NataschaStatus {
+    NataschaStatus {
+        available: false,
         mode: "unavailable",
-        label: "Nicht verfügbar",
+        code,
+        label,
+        diagnostic: Some(diagnostic.into()),
+    }
+}
+
+fn status_from_probe(mode: &'static str, probe: Result<(), String>) -> NataschaStatus {
+    match (mode, probe) {
+        ("bundled", Ok(())) => status_ready(
+            "bundled",
+            "ready_bundled",
+            "Einsatzbereit — Korrektur eingebaut",
+        ),
+        ("python", Ok(())) => status_ready(
+            "python",
+            "ready_python",
+            "Einsatzbereit — lokales Korrektur-Modul",
+        ),
+        ("bundled", Err(detail)) | ("python", Err(detail)) => status_unavailable(
+            "sidecar_unstartable",
+            "Korrektur-Modul konnte nicht gestartet werden",
+            detail,
+        ),
+        _ => status_unavailable(
+            "sidecar_unstartable",
+            "Korrektur-Modul konnte nicht gestartet werden",
+            "Unbekannter Korrektur-Modus",
+        ),
     }
 }
 
@@ -294,6 +342,46 @@ fn build_cli_command(dir: &str, python: &str) -> Result<Command, String> {
     Ok(cmd)
 }
 
+/// Führt einen nicht-destruktiven Starttest aus. `--help` beendet sich vor
+/// jeder Datenbank- oder LLM-Initialisierung und prüft trotzdem, ob das
+/// gebündelte bzw. konfigurierte Modul tatsächlich ausführbar ist.
+async fn probe_command(mut cmd: Command) -> Result<(), String> {
+    cmd.kill_on_drop(true);
+    let output = timeout(Duration::from_secs(8), cmd.arg("--help").output())
+        .await
+        .map_err(|_| "Die Prüfung des Korrektur-Moduls hat zu lange gedauert.".to_string())?
+        .map_err(|e| format!("Korrektur-Modul konnte nicht gestartet werden: {e}"))?;
+    if output.status.success() {
+        Ok(())
+    } else {
+        let detail = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        Err(if detail.is_empty() {
+            format!("Korrektur-Modul beendet sich mit Status {}.", output.status)
+        } else {
+            detail
+        })
+    }
+}
+
+async fn natascha_status(dir: &str, python: &str) -> NataschaStatus {
+    if let Some(sidecar) = bundled_cli() {
+        let mut cmd = Command::new(sidecar);
+        cmd.arg("analyze");
+        return status_from_probe("bundled", probe_command(cmd).await);
+    }
+
+    let natascha_dir = match resolve_dir(dir) {
+        Ok(path) => path,
+        Err(detail) => {
+            return status_unavailable("sidecar_missing", "Korrektur-Modul nicht gefunden", detail)
+        }
+    };
+    let py = resolve_python(python);
+    let mut cmd = Command::new(py);
+    cmd.arg(natascha_dir.join("natascha_cli.py"));
+    status_from_probe("python", probe_command(cmd).await)
+}
+
 /// Helper: Führt die CLI aus, gibt stdout (JSON) zurück. Bei Fehler eine
 /// kategorisierte, lesbare Meldung statt rohem stderr/Traceback.
 async fn run_cli_and_capture(
@@ -383,8 +471,26 @@ fn terminate_process(job_id: u64) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn natascha_get_status(dir: String, python: String) -> NataschaStatus {
-    natascha_status(&dir, &python)
+pub async fn natascha_get_status(
+    dir: String,
+    python: String,
+    force_refresh: Option<bool>,
+) -> NataschaStatus {
+    let key = format!("{dir}\u{0}{python}");
+    if !force_refresh.unwrap_or(false) {
+        if let Some((cached_key, status)) = STATUS_CACHE
+            .lock()
+            .expect("status cache mutex poisoned")
+            .as_ref()
+        {
+            if cached_key == &key {
+                return status.clone();
+            }
+        }
+    }
+    let status = natascha_status(&dir, &python).await;
+    *STATUS_CACHE.lock().expect("status cache mutex poisoned") = Some((key, status.clone()));
+    status
 }
 
 #[tauri::command]
@@ -455,6 +561,8 @@ pub async fn natascha_analyze(
     schueler: Option<String>,
     bewertungsmodus: Option<String>,
     ausgangstext: Option<String>,
+    ausgangstext_text: Option<String>,
+    ausgangstext_file: Option<String>,
     erwartungshorizont: Option<String>,
     rubric: Option<String>,
     pseudonymisierung: Option<bool>,
@@ -484,8 +592,14 @@ pub async fn natascha_analyze(
     if let Some(ref v) = bewertungsmodus {
         cmd.arg("--bewertungsmodus").arg(v);
     }
-    if let Some(ref v) = ausgangstext {
-        cmd.arg("--ausgangstext").arg(v);
+    if let Some(ref v) = ausgangstext_text {
+        cmd.arg("--ausgangstext-text").arg(v);
+    } else if let Some(ref v) = ausgangstext_file {
+        cmd.arg("--ausgangstext-file").arg(v);
+    } else if let Some(ref v) = ausgangstext {
+        // Rückwärtskompatibilität für ältere Web-Bundles: alter Parameter war
+        // ein Dateipfad.
+        cmd.arg("--ausgangstext-file").arg(v);
     }
     if let Some(ref v) = erwartungshorizont {
         cmd.arg("--erwartungshorizont").arg(v);
@@ -933,5 +1047,58 @@ mod tests {
         env_namen.sort_unstable();
         env_namen.dedup();
         assert_eq!(env_namen.len(), PROVIDER_ENV_KEYS.len());
+    }
+
+    #[test]
+    fn bundled_cli_prefers_installed_runtime_name() {
+        let root = std::env::temp_dir().join(format!("luka-sidecar-name-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&root).unwrap();
+        let exe = root.join(if cfg!(windows) { "luka.exe" } else { "luka" });
+        let installed = root.join(if cfg!(windows) {
+            "natascha-cli.exe"
+        } else {
+            "natascha-cli"
+        });
+        let suffixed = root.join(if cfg!(windows) {
+            "natascha-cli-x86_64-pc-windows-msvc.exe"
+        } else {
+            "natascha-cli-universal-apple-darwin"
+        });
+        std::fs::write(&installed, b"installed").unwrap();
+        std::fs::write(&suffixed, b"build").unwrap();
+
+        assert_eq!(bundled_cli_from_exe(&exe), Some(installed));
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn bundled_cli_accepts_target_suffix_as_fallback() {
+        let root =
+            std::env::temp_dir().join(format!("luka-sidecar-fallback-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&root).unwrap();
+        let exe = root.join(if cfg!(windows) { "luka.exe" } else { "luka" });
+        let suffixed = root.join(if cfg!(windows) {
+            "natascha-cli-x86_64-pc-windows-msvc.exe"
+        } else {
+            "natascha-cli-universal-apple-darwin"
+        });
+        std::fs::write(&suffixed, b"build").unwrap();
+
+        assert_eq!(bundled_cli_from_exe(&exe), Some(suffixed));
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn status_probe_maps_ready_and_unstartable_states() {
+        let ready = status_from_probe("bundled", Ok(()));
+        assert!(ready.available);
+        assert_eq!(ready.code, "ready_bundled");
+
+        let failed = status_from_probe("bundled", Err("probe failed".to_string()));
+        assert!(!failed.available);
+        assert_eq!(failed.code, "sidecar_unstartable");
+        assert_eq!(failed.diagnostic.as_deref(), Some("probe failed"));
     }
 }

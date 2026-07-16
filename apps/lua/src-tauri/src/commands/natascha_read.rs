@@ -396,6 +396,56 @@ pub async fn db_get_abgabe_detail(state: tauri::State<'_, DbState>, abgabe_id: i
     Ok(AbgabeDetail { abgabe, kriterien, fehler, lehrer_feedback })
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct KorrekturKontext {
+    pub id: String,
+    pub klasse: String,
+    pub aufgabe: String,
+    pub titel: String,
+    pub fach: String,
+    pub schulstufe: String,
+    pub textsorte: String,
+    pub ausgangstext: String,
+    pub rubrik: String,
+    pub rubrik_titel: String,
+    pub rubrik_inhalt: String,
+    pub erwartungshorizont: String,
+    pub unterrichtseinsatz_id: Option<String>,
+    pub material_id: Option<String>,
+    pub updated_at: Option<String>,
+}
+
+/// Liefert den zuletzt aktualisierten, persistenten Kontext eines Auftrags.
+/// Die UI kann damit Quelle und Bewertungsgrundlage auch nach einem Neustart
+/// sichtbar machen, ohne erneut eine Abgabe analysieren zu müssen.
+#[tauri::command]
+pub async fn db_get_korrektur_kontext(
+    state: tauri::State<'_, DbState>,
+    klasse: String,
+    aufgabe: String,
+) -> Result<Option<KorrekturKontext>, String> {
+    let guard = state.conn()?;
+    let conn = &*guard;
+    let result = conn.query_row(
+        "SELECT id, klasse, aufgabe, titel, fach, schulstufe, textsorte, ausgangstext, rubrik, rubrik_titel, rubrik_inhalt, erwartungshorizont, unterrichtseinsatz_id, material_id, updated_at FROM korrekturauftrag WHERE klasse=?1 AND aufgabe=?2 ORDER BY updated_at DESC LIMIT 1",
+        rusqlite::params![klasse, aufgabe],
+        |row| Ok(KorrekturKontext {
+            id: row.get(0)?, klasse: row.get(1)?, aufgabe: row.get(2)?,
+            titel: row.get(3)?, fach: row.get(4)?, schulstufe: row.get(5)?,
+            textsorte: row.get(6)?, ausgangstext: row.get(7)?, rubrik: row.get(8)?,
+            rubrik_titel: row.get(9)?, rubrik_inhalt: row.get(10)?, erwartungshorizont: row.get(11)?,
+            unterrichtseinsatz_id: row.get(12)?, material_id: row.get(13)?,
+            updated_at: row.get(14)?,
+        }),
+    );
+    match result {
+        Ok(context) => Ok(Some(context)),
+        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+        Err(e) => Err(format!("query korrekturkontext: {}", e)),
+    }
+}
+
 // ─── P2: Schüler- und Klassen-Queries ─────────────────────────────
 
 #[derive(Serialize)]
@@ -492,6 +542,8 @@ pub(crate) fn delete_schueler_impl(conn: &rusqlite::Connection, schueler_id: i64
 pub struct LaengsschnittEintrag {
     pub abgabe_id: i64,
     pub aufgabe: String,
+    pub korrekturauftrag_id: Option<String>,
+    pub ausgangstext: String,
     pub datum: Option<String>,
     pub note_app: Option<f64>,
     pub note_lehrer: Option<f64>,
@@ -612,10 +664,10 @@ pub async fn db_get_schueler_laengsschnitt(state: tauri::State<'_, DbState>, sch
     ).map_err(|e| format!("query schueler: {}", e))?;
 
     let mut abgabe_stmt = conn.prepare(
-        "SELECT id, schueler_id, klasse, aufgabe, dateiname, datum, note, gesamtstufe, wortanzahl, fach, schulstufe, textsorte FROM abgabe WHERE schueler_id=?1 ORDER BY datum, id"
+        "SELECT a.id, a.schueler_id, a.klasse, a.aufgabe, a.dateiname, a.datum, a.note, a.gesamtstufe, a.wortanzahl, a.fach, a.schulstufe, a.textsorte, a.korrekturauftrag_id, COALESCE(k.ausgangstext, '') FROM abgabe a LEFT JOIN korrekturauftrag k ON k.id=a.korrekturauftrag_id WHERE a.schueler_id=?1 ORDER BY a.datum, a.id"
     ).map_err(|e| format!("prepare abgaben: {}", e))?;
     let abgabe_rows = abgabe_stmt.query_map(rusqlite::params![schueler_id], |row| {
-        Ok((row.get::<_, i64>(0)?, row.get::<_, String>(3)?, row.get::<_, Option<String>>(5)?, row.get::<_, Option<f64>>(6)?))
+        Ok((row.get::<_, i64>(0)?, row.get::<_, String>(3)?, row.get::<_, Option<String>>(5)?, row.get::<_, Option<f64>>(6)?, row.get::<_, Option<String>>(12)?, row.get::<_, String>(13)?))
     }).map_err(|e| format!("query abgaben: {}", e))?;
 
     let mut verlauf = Vec::new();
@@ -629,7 +681,7 @@ pub async fn db_get_schueler_laengsschnitt(state: tauri::State<'_, DbState>, sch
     let mut kalib_paare: Vec<(f64, f64)> = Vec::new();
 
     for row in abgabe_rows {
-        if let Ok((aid, aufgabe, datum, note_app)) = row {
+        if let Ok((aid, aufgabe, datum, note_app, korrekturauftrag_id, ausgangstext)) = row {
             abgabe_ids.push(aid);
             let note_lehrer: Option<f64> = conn.query_row(
                 "SELECT note_final FROM lehrer_feedback WHERE abgabe_id=?1",
@@ -672,7 +724,7 @@ pub async fn db_get_schueler_laengsschnitt(state: tauri::State<'_, DbState>, sch
             all_k3.push(k3);
 
             let krit_map: std::collections::HashMap<String, Option<f64>> = norm.into_iter().map(|(k, v)| (k, v)).collect();
-            verlauf.push(LaengsschnittEintrag { abgabe_id: aid, aufgabe, datum, note_app, note_lehrer, kriterien: krit_map, k1, k3 });
+            verlauf.push(LaengsschnittEintrag { abgabe_id: aid, aufgabe, korrekturauftrag_id, ausgangstext, datum, note_app, note_lehrer, kriterien: krit_map, k1, k3 });
         }
     }
 

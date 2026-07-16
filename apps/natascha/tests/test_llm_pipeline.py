@@ -326,6 +326,32 @@ class TestRunLlmAnalysis:
         assert data is not None
         assert data["schueler"] == "Mia Muster"
 
+    def test_direct_ausgangstext_is_kept_in_analysis_prompt(self) -> None:
+        """Der aus LUA kommende Textinhalt darf nicht als Dateipfad behandelt werden."""
+        config = self._make_config()
+        prompts: list[str] = []
+
+        def mock_api(prompt: str, *args, **kwargs) -> str:
+            prompts.append(prompt)
+            return self._mock_api_success()
+
+        with patch.object(nc, "run_llm_api", side_effect=mock_api):
+            data, errors = nc.run_llm_analysis(
+                docx_text="Schülertext",
+                rubric_content="Rubrik",
+                fach="Deutsch",
+                schulstufe="Unterstufe",
+                textsorte="Kommentar",
+                config=config,
+                ausgangstext_text="Der zuvor gelesene Ausgangstext.",
+                max_retries=1,
+            )
+
+        assert data is not None
+        assert errors == []
+        assert prompts
+        assert "Der zuvor gelesene Ausgangstext." in prompts[0]
+
     def test_retry_on_invalid_json(self, tmp_path: Path) -> None:
         """Retry wenn JSON-Extraktion fehlschlägt."""
         config = self._make_config()

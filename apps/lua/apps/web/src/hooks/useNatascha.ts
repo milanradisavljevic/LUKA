@@ -92,6 +92,24 @@ export interface RubrikListe {
   defaultRubric: string;
 }
 
+export interface KorrekturKontext {
+  id: string;
+  klasse: string;
+  aufgabe: string;
+  titel: string;
+  fach: string;
+  schulstufe: string;
+  textsorte: string;
+  ausgangstext: string;
+  rubrik: string;
+  rubrikTitel: string;
+  rubrikInhalt: string;
+  erwartungshorizont: string;
+  unterrichtseinsatzId: string | null;
+  materialId: string | null;
+  updatedAt: string | null;
+}
+
 export function useNatascha() {
   const [analyzing, setAnalyzing] = useState(false);
   const [analyzeError, setAnalyzeError] = useState<string | null>(null);
@@ -100,7 +118,7 @@ export function useNatascha() {
     filePath: string,
     klasse: string,
     aufgabe: string,
-    opts?: { fach?: string; schulstufe?: string; textsorte?: string; schueler?: string; bewertungsmodus?: string; ausgangstext?: string; rubric?: string; pseudonymisierung?: boolean; schuelerId?: number; einsatzId?: string; materialId?: string },
+    opts?: { fach?: string; schulstufe?: string; textsorte?: string; schueler?: string; bewertungsmodus?: string; ausgangstext?: string; ausgangstextDatei?: string; rubric?: string; pseudonymisierung?: boolean; schuelerId?: number; einsatzId?: string; materialId?: string },
   ) => {
     setAnalyzing(true);
     setAnalyzeError(null);
@@ -117,7 +135,8 @@ export function useNatascha() {
         textsorte: opts?.textsorte,
         schueler: opts?.schueler,
         bewertungsmodus: opts?.bewertungsmodus,
-        ausgangstext: opts?.ausgangstext,
+        ausgangstextText: opts?.ausgangstext,
+        ausgangstextFile: opts?.ausgangstextDatei,
         rubric: opts?.rubric,
         pseudonymisierung: opts?.pseudonymisierung,
         schuelerId: opts?.schuelerId,
@@ -326,6 +345,14 @@ export function useNatascha() {
     } catch { return ''; }
   }, []);
 
+  const getKorrekturKontext = useCallback(async (klasse: string, aufgabe: string): Promise<KorrekturKontext | null> => {
+    try {
+      return await invoke<KorrekturKontext | null>('db_get_korrektur_kontext', { klasse, aufgabe });
+    } catch {
+      return null;
+    }
+  }, []);
+
   // --- Rubrik-Editor ---
   const listRubricFiles = useCallback(async (): Promise<string[]> => {
     const s = loadSettings();
@@ -451,6 +478,7 @@ export function useNatascha() {
     generateErwartungshorizont,
     saveErwartungshorizont,
     getAbgabeDetail,
+    getKorrekturKontext,
     upsertLehrerFeedback,
     listSchueler,
     insertSchueler,
@@ -496,6 +524,8 @@ export interface SchuelerInfo {
 interface LaengsschnittEintrag {
   abgabeId: number;
   aufgabe: string;
+  korrekturauftragId: string | null;
+  ausgangstext: string;
   datum: string | null;
   noteApp: number | null;
   noteLehrer: number | null;

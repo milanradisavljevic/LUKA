@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { SpellCheck, FileText, GraduationCap, Save, AlertTriangle, Loader2, Upload, FileDown, ChevronRight, Eye, EyeOff, Files, XCircle, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { GraduationCap, Save, AlertTriangle, Loader2, Upload, FolderOpen, FileDown, ChevronRight, Eye, EyeOff, Files, XCircle, CheckCircle2, ShieldCheck, RefreshCw } from 'lucide-react';
 import { loadDocuments, loadSettings } from '../lib/storage';
-import { useNatascha, type PersonenVorschau, type RubrikListe, type SchuelerInfo } from '../hooks/useNatascha';
+import { useNatascha, type PersonenVorschau, type RubrikListe, type SchuelerInfo, type KorrekturKontext } from '../hooks/useNatascha';
 import { useEinsatz, type EinsatzRecord } from '../hooks/useEinsatz';
 import { useKlassenMeta } from '../hooks/useKlassenMeta';
 import { einsatzAnzeigeDatum, formatEinsatzDatum } from '../lib/einsatz';
@@ -9,6 +9,7 @@ import { ViewShell } from './_ViewShell';
 import { anzeigeName } from '../lib/anzeigeName';
 import { gruppiereRubriken, rubrikLabel } from '../lib/rubrikAuswahl';
 import { InfoDot } from '../components/ui/InfoDot';
+import { isKorrekturReady, type KorrekturStatus } from '../lib/korrekturStatus';
 
 function isTauri(): boolean {
   return typeof window !== 'undefined' && (window as any).__TAURI_INTERNALS__ !== undefined;
@@ -107,17 +108,17 @@ interface KorrekturViewProps {
 }
 
 export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
-  const { analyze, analyzing, analyzeError, listKlassen, listAufgaben, getAbgaben, getAbgabeDetail, upsertLehrerFeedback, generateFeedbackDocx, retroImport, personenVorschau, listSchueler, listRubrics } = useNatascha();
+  const { analyze, analyzing, analyzeError, listKlassen, listAufgaben, getAbgaben, getAbgabeDetail, getKorrekturKontext, upsertLehrerFeedback, generateFeedbackDocx, retroImport, personenVorschau, listSchueler, listRubrics } = useNatascha();
   const { list: listEinsaetze } = useEinsatz();
   const { klassen: klassenMeta, refresh: refreshKlassenMeta } = useKlassenMeta();
 
-  const [mode, setMode] = useState<'tui' | 'native'>('native');
   const [klassen, setKlassen] = useState<KlasseInfo[]>([]);
   const [selectedKlasse, setSelectedKlasse] = useState<string | null>(null);
   const [aufgaben, setAufgaben] = useState<string[]>([]);
   const [selectedAufgabe, setSelectedAufgabe] = useState<string | null>(null);
   const [abgaben, setAbgaben] = useState<AbgabeDetail['abgabe'][]>([]);
   const [selectedAbgabe, setSelectedAbgabe] = useState<AbgabeDetail | null>(null);
+  const [korrekturKontext, setKorrekturKontext] = useState<KorrekturKontext | null>(null);
   const [teacherNote, setTeacherNote] = useState('');
   const [teacherComment, setTeacherComment] = useState('');
   const [saving, setSaving] = useState(false);
@@ -137,6 +138,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
   // Ausgangstext (Angabe/Quelltext der Arbeit) — optional. Schließt den In-App-Closed-Loop:
   // wird mitanalysiert und kann später die passgenaue Übung vorbefüllen.
   const [analyzeAusgangstext, setAnalyzeAusgangstext] = useState('');
+  const [analyzeAusgangstextDatei, setAnalyzeAusgangstextDatei] = useState('');
   const [selectedEinsatzId, setSelectedEinsatzId] = useState('');
   const [einsatzOptions, setEinsatzOptions] = useState<EinsatzRecord[]>([]);
   const [analyzeSuccess, setAnalyzeSuccess] = useState<string | null>(null);
@@ -157,6 +159,39 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
   const batchCancelRef = useRef(false);
   // Drag-&-Drop-Ablage: Dateien in den Analyse-Dialog ziehen (Tauri liefert absolute Pfade).
   const [dragActive, setDragActive] = useState(false);
+  const [korrekturStatus, setKorrekturStatus] = useState<KorrekturStatus | null>(null);
+  const [statusRetry, setStatusRetry] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+    setKorrekturStatus(null);
+    if (!isTauri()) {
+      setKorrekturStatus({
+        available: false,
+        mode: 'unavailable',
+        code: 'sidecar_missing',
+        label: 'Korrektur nur in der Desktop-App verfügbar',
+        diagnostic: 'Die Web-Vorschau besitzt keinen Tauri-Prozess.',
+      });
+      return () => { active = false; };
+    }
+    void import('@tauri-apps/api/core').then(({ invoke }) => invoke<KorrekturStatus>('natascha_get_status', {
+      dir: loadSettings().nataschaDir ?? '',
+      python: loadSettings().pythonCommand ?? '',
+      forceRefresh: statusRetry > 0,
+    })).then((status) => {
+      if (active) setKorrekturStatus(status);
+    }).catch((error) => {
+      if (active) setKorrekturStatus({
+        available: false,
+        mode: 'unavailable',
+        code: 'sidecar_unstartable',
+        label: 'Korrektur-Modul konnte nicht geprüft werden',
+        diagnostic: String(error),
+      });
+    });
+    return () => { active = false; };
+  }, [statusRetry]);
 
   useEffect(() => {
     if (!analyzeOpen || !isTauri()) return;
@@ -298,6 +333,18 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     finally { setLoading(false); }
   }, [getAbgaben]);
 
+  useEffect(() => {
+    if (!selectedKlasse || !selectedAufgabe) {
+      setKorrekturKontext(null);
+      return;
+    }
+    let active = true;
+    void getKorrekturKontext(selectedKlasse, selectedAufgabe).then((context) => {
+      if (active) setKorrekturKontext(context);
+    });
+    return () => { active = false; };
+  }, [selectedKlasse, selectedAufgabe, getKorrekturKontext]);
+
   const loadDetail = useCallback(async (abgabeId: number) => {
     setLoading(true);
     try {
@@ -380,16 +427,24 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     setDocxErfolg(null);
   }, [selectedAbgabe?.abgabe.id]);
 
-  const starteNatascha = async () => {
-    if (mode !== 'tui') return;
-    try {
-      const { invoke } = await import('@tauri-apps/api/core');
-      const settings = loadSettings();
-      await invoke('launch_natascha', { dir: settings.nataschaDir ?? '', python: settings.pythonCommand ?? '' });
-    } catch (e) {
-      setError(String(e));
+  const handleOpenAnalyze = useCallback(() => {
+    setError(null);
+    setAnalyzeSuccess(null);
+    if (!isKorrekturReady(korrekturStatus)) {
+      setError(korrekturStatus?.label ?? 'Korrektur-Modul wird noch geprüft.');
+      return;
     }
-  };
+    setSelectedEinsatzId('');
+    // Beim erneuten Korrigieren derselben Aufgabe die bereits bestätigte
+    // Prüfgrundlage wiederverwenden. So muss die Lehrkraft Quelle und Raster
+    // nicht bei jeder weiteren Abgabe erneut zusammensuchen.
+    if (selectedKlasse) setAnalyzeKlasse(selectedKlasse);
+    if (selectedAufgabe) setAnalyzeAufgabe(selectedAufgabe);
+    setSelectedRubrik(korrekturKontext?.rubrik ?? '');
+    setAnalyzeAusgangstext(korrekturKontext?.ausgangstext ?? '');
+    setAnalyzeAusgangstextDatei('');
+    setAnalyzeOpen(true);
+  }, [korrekturStatus, korrekturKontext, selectedAufgabe, selectedKlasse]);
 
   // Redaktionsvorschau nachladen, sobald Datei + Klasse feststehen (debounced —
   // der Call spawnt den Python-Sidecar, nicht bei jedem Tastendruck).
@@ -456,7 +511,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     setError(null);
     setAnalyzeSuccess(null);
     const einsatz = einsatzOptions.find((e) => e.id === selectedEinsatzId);
-    const result = await analyze(analyzeFile, analyzeKlasse, analyzeAufgabe, { fach: analyseKlasseMeta?.fach || undefined, schulstufe: analyseKlasseMeta?.schulstufe || undefined, ausgangstext: analyzeAusgangstext.trim() || undefined, rubric: selectedRubrik || undefined, pseudonymisierung: pseudoAktiv, schuelerId: zuordnungId === '' ? undefined : zuordnungId, einsatzId: einsatz?.id, materialId: einsatz?.materialId ?? undefined });
+    const result = await analyze(analyzeFile, analyzeKlasse, analyzeAufgabe, { fach: analyseKlasseMeta?.fach || undefined, schulstufe: analyseKlasseMeta?.schulstufe || undefined, ausgangstext: analyzeAusgangstextDatei ? undefined : (analyzeAusgangstext.trim() || undefined), ausgangstextDatei: analyzeAusgangstextDatei || undefined, rubric: selectedRubrik || undefined, pseudonymisierung: pseudoAktiv, schuelerId: zuordnungId === '' ? undefined : zuordnungId, einsatzId: einsatz?.id, materialId: einsatz?.materialId ?? undefined });
     const resultErrors = analyseHinweise(result);
     const duplicate = resultErrors.some((entry) => /duplikat|bereits analysiert/i.test(entry));
     if (result) {
@@ -471,6 +526,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
       setAnalyzeAufgabe('');
       setSelectedRubrik('');
       setAnalyzeAusgangstext('');
+      setAnalyzeAusgangstextDatei('');
       setSelectedEinsatzId('');
       const refreshed = await listKlassen();
       setKlassen(refreshed);
@@ -480,7 +536,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     } else {
       setError(analyzeError ?? 'Analyse fehlgeschlagen');
     }
-  }, [analyze, analyzeFile, analyzeKlasse, analyzeAufgabe, analyseKlasseMeta, analyzeAusgangstext, analyzeError, listKlassen, loadAufgaben, pseudoVorschau, pseudoVorschauBusy, pseudoAktiv, selectedRubrik, zuordnungId, einsatzOptions, selectedEinsatzId]);
+  }, [analyze, analyzeFile, analyzeKlasse, analyzeAufgabe, analyseKlasseMeta, analyzeAusgangstext, analyzeAusgangstextDatei, analyzeError, listKlassen, loadAufgaben, pseudoVorschau, pseudoVorschauBusy, pseudoAktiv, selectedRubrik, zuordnungId, einsatzOptions, selectedEinsatzId]);
 
   const annotatedNodes = useMemo(() => {
     const rohtext = selectedAbgabe?.abgabe.rohtext;
@@ -499,6 +555,17 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
       }
     } catch {
       setAnalyzeFile(prompt('Dateipfad zur Schülerarbeit:') ?? '');
+    }
+  }, []);
+
+  const pickSourceFile = useCallback(async () => {
+    try {
+      const { open } = await import('@tauri-apps/plugin-dialog');
+      const selected = await open({ multiple: false, filters: [{ name: 'Ausgangsmaterial', extensions: ['docx', 'pdf', 'txt', 'md'] }] });
+      if (typeof selected === 'string') setAnalyzeAusgangstextDatei(selected);
+    } catch {
+      const value = prompt('Pfad zum Ausgangsmaterial:');
+      if (value) setAnalyzeAusgangstextDatei(value);
     }
   }, []);
 
@@ -545,7 +612,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
       setBatchCurrent(i + 1);
       try {
         const einsatz = einsatzOptions.find((e) => e.id === selectedEinsatzId);
-        const result = await analyze(file, analyzeKlasse, analyzeAufgabe, { fach: analyseKlasseMeta?.fach || undefined, schulstufe: analyseKlasseMeta?.schulstufe || undefined, ausgangstext: analyzeAusgangstext.trim() || undefined, rubric: selectedRubrik || undefined, pseudonymisierung: pseudoAktiv, einsatzId: einsatz?.id, materialId: einsatz?.materialId ?? undefined });
+        const result = await analyze(file, analyzeKlasse, analyzeAufgabe, { fach: analyseKlasseMeta?.fach || undefined, schulstufe: analyseKlasseMeta?.schulstufe || undefined, ausgangstext: analyzeAusgangstextDatei ? undefined : (analyzeAusgangstext.trim() || undefined), ausgangstextDatei: analyzeAusgangstextDatei || undefined, rubric: selectedRubrik || undefined, pseudonymisierung: pseudoAktiv, einsatzId: einsatz?.id, materialId: einsatz?.materialId ?? undefined });
         if (result) {
           const note = result?.analysis?.notenempfehlung?.note;
           const resultErrors = analyseHinweise(result);
@@ -566,7 +633,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     const refreshed = await listKlassen();
     setKlassen(refreshed);
     if (analyzeKlasse) await loadAufgaben(analyzeKlasse);
-  }, [batchFiles, analyzeKlasse, analyzeAufgabe, analyseKlasseMeta, analyzeAusgangstext, analyze, analyzeError, personenVorschau, listKlassen, loadAufgaben, pseudoAktiv, selectedRubrik, einsatzOptions, selectedEinsatzId]);
+  }, [batchFiles, analyzeKlasse, analyzeAufgabe, analyseKlasseMeta, analyzeAusgangstext, analyzeAusgangstextDatei, analyze, analyzeError, personenVorschau, listKlassen, loadAufgaben, pseudoAktiv, selectedRubrik, einsatzOptions, selectedEinsatzId]);
 
   const cardStyle = {
     padding: '1.25rem', border: '1px solid var(--color-border)',
@@ -579,40 +646,48 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     <ViewShell
       title="Korrektur"
       description="Schülerabgaben analysieren und bewerten."
-      maxWidth={mode === 'native' ? 1400 : 860}
-      action={mode === 'native' ? <button className="btn-secondary" onClick={() => { setSelectedEinsatzId(''); setAnalyzeOpen(true); }} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.8125rem', padding: '0.375rem 0.75rem' }}><Upload size={14} /> Neue Analyse</button> : undefined}
+      maxWidth={1400}
     >
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
         <button
-          className={mode === 'tui' ? 'btn-primary' : 'btn-secondary'}
-          onClick={() => setMode('tui')}
-          style={{ fontSize: '0.8125rem', padding: '0.375rem 0.75rem' }}
+          className="btn-primary"
+          onClick={handleOpenAnalyze}
+          disabled={korrekturStatus === null}
+          title={korrekturStatus?.available ? 'Neue Schülerabgabe analysieren' : korrekturStatus?.label}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', minHeight: 44, padding: '0.65rem 1rem', fontSize: '0.9375rem' }}
         >
-          <SpellCheck size={14} style={{ verticalAlign: -2, marginRight: 4 }} />
-          Korrektur-TUI
+          {korrekturStatus === null ? <Loader2 size={17} className="spin" /> : <Upload size={17} />}
+          {korrekturStatus === null ? 'Korrektur wird geprüft …' : 'Neue Analyse'}
         </button>
-        <button
-          className={mode === 'native' ? 'btn-primary' : 'btn-secondary'}
-          onClick={() => setMode('native')}
-          style={{ fontSize: '0.8125rem', padding: '0.375rem 0.75rem' }}
-        >
-          <FileText size={14} style={{ verticalAlign: -2, marginRight: 4 }} />
-          Native
-        </button>
+        {korrekturStatus?.available && (
+          <span style={{ fontSize: '0.8125rem', color: 'var(--color-success)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            <CheckCircle2 size={15} /> {korrekturStatus.label}
+          </span>
+        )}
       </div>
 
-      {mode === 'tui' ? (
-        <section style={cardStyle}>
-          <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: '0 0 0.75rem' }}>
-            Startet die Korrektur-TUI in einem Terminalfenster. Für die native Korrektur den Reiter „Native" wählen.
-          </p>
-          <button className="btn-primary" onClick={starteNatascha} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-            <SpellCheck size={16} /> Korrektur-TUI öffnen
+      {korrekturStatus && !korrekturStatus.available && (
+        <section role="status" style={{ ...cardStyle, borderColor: 'var(--color-danger, #c0392b)', marginBottom: '1rem', display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
+          <AlertTriangle size={18} style={{ color: 'var(--color-danger, #c0392b)', flexShrink: 0, marginTop: 2 }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <strong style={{ fontSize: '0.875rem' }}>{korrekturStatus.label}</strong>
+            <p style={{ margin: '0.3rem 0 0', fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>
+              Die Analyse kann erst gestartet werden, wenn das Korrektur-Modul bereit ist.
+            </p>
+            {korrekturStatus.diagnostic && (
+              <details style={{ marginTop: '0.5rem' }}>
+                <summary style={{ cursor: 'pointer', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>Details für Support</summary>
+                <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', margin: '0.4rem 0 0', fontSize: '0.7rem', color: 'var(--color-text-secondary)' }}>{korrekturStatus.diagnostic}</pre>
+              </details>
+            )}
+          </div>
+          <button className="btn-secondary" onClick={() => setStatusRetry((value) => value + 1)} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', fontSize: '0.75rem' }}>
+            <RefreshCw size={13} /> Erneut prüfen
           </button>
-          {error && <p style={{ marginTop: '0.75rem', fontSize: '0.8125rem', color: 'var(--color-danger, #c0392b)' }}>{error}</p>}
         </section>
-      ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: '1.25rem' }}>
+      )}
+
+      <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: '1.25rem' }}>
           <div style={cardStyle}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
               <GraduationCap size={16} style={{ color: 'var(--color-accent)' }} />
@@ -621,7 +696,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
 
             {klassen.length === 0 && !error && (
               <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: 0 }}>
-                Noch keine Daten. Starte eine Analyse oder öffne die Korrektur-TUI.
+                Noch keine Daten. Starte eine neue Analyse.
               </p>
             )}
 
@@ -675,6 +750,43 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
             </div>}
 
             {loading && <div style={cardStyle}><Loader2 size={18} className="spin" style={{ verticalAlign: -2, marginRight: 6 }} /> Laden …</div>}
+
+            {!loading && korrekturKontext && selectedAufgabe && (
+              <section style={{ ...cardStyle, marginBottom: '1rem', background: 'var(--color-bg-base)' }} aria-label="Korrekturgrundlage">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', marginBottom: '0.6rem' }}>
+                  <div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Korrekturgrundlage</div>
+                    <strong style={{ fontSize: '0.95rem' }}>{korrekturKontext.titel || korrekturKontext.aufgabe}</strong>
+                  </div>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)' }}>{korrekturKontext.fach || 'Fach offen'} · {korrekturKontext.schulstufe || 'Stufe offen'}</span>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem', fontSize: '0.76rem' }}>
+                  <span className="badge">Quelle: {korrekturKontext.ausgangstext.trim() ? `${korrekturKontext.ausgangstext.trim().split(/\s+/).length} Wörter gespeichert` : 'nicht hinterlegt'}</span>
+                  <span className="badge">Raster: {korrekturKontext.rubrikTitel || 'nicht hinterlegt'}</span>
+                  <span className="badge">Erwartungshorizont: {korrekturKontext.erwartungshorizont.trim() ? 'vorhanden' : 'nicht hinterlegt'}</span>
+                </div>
+                <details style={{ marginTop: '0.65rem' }}>
+                  <summary style={{ cursor: 'pointer', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>Prüfgrundlage anzeigen</summary>
+                  <div style={{ marginTop: '0.5rem', display: 'grid', gap: '0.5rem', fontSize: '0.78rem' }}>
+                    {korrekturKontext.ausgangstext.trim() && <div><strong>Ausgangstext</strong><div style={{ maxHeight: 110, overflow: 'auto', whiteSpace: 'pre-wrap', color: 'var(--color-text-secondary)' }}>{korrekturKontext.ausgangstext}</div></div>}
+                    {korrekturKontext.rubrikInhalt.trim() && <div><strong>Bewertungsraster</strong><div style={{ maxHeight: 110, overflow: 'auto', whiteSpace: 'pre-wrap', color: 'var(--color-text-secondary)' }}>{korrekturKontext.rubrikInhalt}</div></div>}
+                  </div>
+                </details>
+              </section>
+            )}
+
+            {!loading && klassen.length === 0 && !selectedKlasse && (
+              <section style={{ ...cardStyle, minHeight: 220, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: '0.75rem' }}>
+                <Upload size={30} style={{ color: 'var(--color-accent)', opacity: 0.8 }} />
+                <h3 style={{ fontSize: '1.05rem', margin: 0 }}>Noch keine Analysen</h3>
+                <p style={{ maxWidth: 430, margin: 0, fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>
+                  Lade eine Schülerabgabe hoch, wähle Klasse und Aufgabe und starte die erste Korrektur.
+                </p>
+                <button className="btn-primary" onClick={handleOpenAnalyze} disabled={korrekturStatus === null} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', minHeight: 42 }}>
+                  <Upload size={16} /> Neue Analyse
+                </button>
+              </section>
+            )}
 
             {!loading && selectedKlasse && abgaben.length > 0 && (
               <div style={cardStyle}>
@@ -899,13 +1011,12 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
             {!loading && selectedKlasse && abgaben.length === 0 && selectedAufgabe && (
               <div style={cardStyle}>
                 <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', textAlign: 'center', margin: 0 }}>
-                  Keine Abgaben für diese Aufgabe. Starte eine neue Analyse oder importiere Daten über die Korrektur-TUI.
+                  Keine Abgaben für diese Aufgabe. Starte eine neue Analyse oder nutze den technischen TUI-Fallback in den Einstellungen.
                 </p>
               </div>
             )}
           </div>
         </div>
-      )}
 
       {analyzeOpen && (
         <div style={{ position: 'fixed', inset: 0, background: 'var(--color-overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }} onClick={() => { if (!batchRunning) setAnalyzeOpen(false); }}>
@@ -948,17 +1059,29 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
               </div>
             </div>
 
-            {/* Ausgangstext / Angabe — optional. Schließt den Closed Loop: aus der Korrektur
-                kann später eine passgenaue Übung mit genau diesem Quelltext erzeugt werden. */}
+            {/* Prüfgrundlage: Inhalt und Datei sind getrennt, damit der Text nicht
+                versehentlich als Dateipfad an NATASCHA gelangt. */}
             <div style={{ marginBottom: '0.75rem' }}>
-              <label>Ausgangstext / Angabe <span style={{ color: 'var(--color-text-secondary)', fontWeight: 400 }}>(optional)</span></label>
+              <label>Ausgangsmaterial <span style={{ color: 'var(--color-text-secondary)', fontWeight: 400 }}>(optional, für textgebundene Aufgaben empfohlen)</span></label>
+              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.45rem', alignItems: 'center' }}>
+                <button type="button" className="btn-secondary" onClick={pickSourceFile} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.75rem' }}>
+                  <FolderOpen size={14} /> Datei auswählen …
+                </button>
+                {analyzeAusgangstextDatei && <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }} title={analyzeAusgangstextDatei}>
+                  {baseName(analyzeAusgangstextDatei)}
+                  <button type="button" onClick={() => setAnalyzeAusgangstextDatei('')} style={{ marginLeft: 6, border: 0, background: 'none', cursor: 'pointer', color: 'var(--color-text-secondary)' }} aria-label="Ausgangsmaterial entfernen">×</button>
+                </span>}
+              </div>
               <textarea
                 rows={3}
                 value={analyzeAusgangstext}
-                onChange={(e) => setAnalyzeAusgangstext(e.target.value)}
-                placeholder="Quelltext bzw. Angabe der Arbeit hier einfügen — ermöglicht später eine passgenaue Übung aus den Fehlern."
+                onChange={(e) => { setAnalyzeAusgangstext(e.target.value); if (e.target.value.trim()) setAnalyzeAusgangstextDatei(''); }}
+                placeholder="Text der Vorlage oder Aufgabenstellung hier einfügen …"
                 style={{ width: '100%', resize: 'vertical' }}
               />
+              <p style={{ margin: '0.25rem 0 0', fontSize: '0.72rem', color: 'var(--color-text-secondary)' }}>
+                NATASCHA prüft die Abgabe gegen diese Grundlage. Sie wird im Korrekturauftrag gespeichert und später für Folgeübungen angeboten.
+              </p>
             </div>
 
             {/* Batch: mehrere Dateien sequenziell */}
