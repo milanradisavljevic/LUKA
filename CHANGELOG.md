@@ -5,7 +5,7 @@ Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 (auch andere Coding-Agents) — siehe `AGENTS.md`.
 
-## Version 1.2.0 — 2026-07-16
+## Version 1.2.0 — 2026-07-22
 
 **Das ist neu:** Die native Korrektur ist jetzt der klare Hauptweg. „Neue
 Analyse“ ist direkt im Arbeitsbereich sichtbar; bei einer leeren Korrektur-
@@ -19,11 +19,14 @@ Text oder Datei hinterlegt werden, das Bewertungsraster wird mit dem Auftrag
 gespeichert, und die Korrekturansicht zeigt Quelle, Raster und Erwartungshorizont
 später wieder an. Dadurch kann eine Folgeübung auf denselben Kontext aufbauen.
 
-## Version 1.1.2 — 2026-07-16
+### Fixed — Korrektur in der installierten App
+- Die Korrektur startet nach der Installation wieder zuverlässig. Ein Fehler bei
+  der Sidecar-Datei wurde behoben; vorhandene Daten, Einstellungen und
+  Korrekturen bleiben erhalten.
 
-**Das ist neu:** Die Korrektur startet in der installierten Windows-App wieder
-zuverlässig. Ein Fehler bei der Sidecar-Datei wurde behoben; vorhandene Daten,
-Einstellungen und Korrekturen bleiben erhalten.
+### Added — Abnahme des gebündelten Korrektur-Moduls
+- Windows- und macOS-Release prüfen das fertige Paket vor der Veröffentlichung
+  auf die korrekte Sidecar-Datei und die Einsatz-/Material-Verknüpfung.
 
 ## Version 1.1.1 — 2026-07-15
 

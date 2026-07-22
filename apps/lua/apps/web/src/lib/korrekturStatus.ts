@@ -20,4 +20,3 @@ export function korrekturStatusTone(status: KorrekturStatus | null): 'pending' |
   if (!status) return 'pending';
   return isKorrekturReady(status) ? 'success' : 'error';
 }
-
