@@ -278,7 +278,9 @@ const SECTIONS: Section[] = [
           und <strong>A</strong>usdruck.
         </P>
         <Steps items={[
-          <>Klasse und Aufgabe links wählen, dann „Neue Analyse" und eine Datei (DOCX/PDF/TXT) hochladen.</>,
+          <>Klasse und Aufgabe links wählen, dann „Neue Analyse" und eine Datei (DOCX/PDF/TXT) hochladen. Mehrere Dateien können als Stapel laufen.</>,
+          <>Optional Ausgangsmaterial als Text oder Datei und ein Bewertungsraster hinterlegen. Beides bleibt am Korrekturauftrag erhalten und steht später für Folgeübungen wieder bereit.</>,
+          <>Vor dem Versand zeigt LUKA die erkannte Schülerzuordnung und — bei Textabgaben — die Redaktionsvorschau. Namen werden standardmäßig durch stabile Aliasse ersetzt; PDF- und Bildinhalte können nicht automatisch redigiert werden.</>,
           <>Nach der Analyse zeigt die Detailansicht links die Bewertung (Note, Kriterien, Fehlerliste) und rechts den <strong>markierten Schülertext</strong> als A4-Vorschau.</>,
           <>Eigene <strong>Lehrernote</strong> und einen Kommentar erfassen und speichern — die App vergleicht deine Note später mit der KI-Note (Kalibrierung).</>,
           <>Mit „Feedback-DOCX" ein Rückmelde-Dokument für die Schülerin/den Schüler erzeugen.</>,

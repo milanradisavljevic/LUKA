@@ -2,11 +2,11 @@
 
 # LUKA
 
-**Lehrunterlagen mit KI — in Minuten statt Abenden.**
+**Lehrunterlagen und gezielte Korrektur mit KI — in Minuten statt Abenden.**
 
 *Eine Desktop-App für Lehrkräfte: Arbeitsblätter, Übungen und Schularbeiten
-erstellen und als sauber formatierte DOCX exportieren — alles lokal, mit dem
-eigenen KI-Schlüssel.*
+erstellen, Schülerabgaben korrigieren und daraus gezielte Folgeübungen ableiten
+— alles lokal, mit dem eigenen KI-Schlüssel.*
 
 ![Tauri](https://img.shields.io/badge/Tauri-2-24C8DB?logo=tauri&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
@@ -22,10 +22,12 @@ eigenen KI-Schlüssel.*
 
 ## Was ist LUKA?
 
-LUKA ist ein **Unterlagen-Generator** für den textbasierten Unterricht: Von der
-Absicht („Schularbeit Englisch, Oberstufe, zu diesem Zeitungsartikel") bis zum
-fertigen DOCX-Paket — **Schülerfassung, Lösung und Korrekturraster** — führt ein
-Assistent in fünf Schritten. Drei Wege stehen offen:
+LUKA ist ein lokales **Unterlagen- und Korrektur-Tool** für den textbasierten
+Unterricht: Von der Absicht („Schularbeit Englisch, Oberstufe, zu diesem
+Zeitungsartikel") bis zum fertigen DOCX-Paket — **Schülerfassung, Lösung und
+Korrekturraster** — führt ein Assistent in fünf Schritten. Danach lassen sich
+Abgaben mit Rubrik analysieren, Fehler in der Klasse auswerten und passende
+Folgeübungen erzeugen. Drei Wege zur ersten Unterlage stehen offen:
 
 - **Aus Quelltext** — Material hochladen oder einfügen (TXT/DOCX/PDF/HTML/URL);
   daraus entstehen passende Aufgaben.
@@ -43,11 +45,16 @@ flowchart LR
   B --> C[Aufgaben-Baukasten]
   C --> D[KI generiert]
   D --> E[DOCX: Schülerfassung · Lösung · Raster]
+  E --> F[Unterrichtseinsatz]
+  F --> G[Korrektur]
+  G --> H[Fehler-Heatmap]
+  H --> I[Gezielte Folgeübung]
 ```
 
-> **In Entwicklung:** ein integrierter Korrektur-Assistent (Schülerabgaben
-> analysieren, Fehler-Heatmaps, Lern-Längsschnitte). Er ist im Repo enthalten,
-> aber in der aktuellen Pilot-Version **noch nicht aktiviert**.
+> **Closed Loop:** Die Korrektur ist in der Desktop-App integriert. Das
+> gebündelte Modul prüft sich beim Öffnen selbst; wenn es nicht verfügbar ist,
+> erklärt die App den Grund und bietet den technischen TUI-Fallback in den
+> erweiterten Einstellungen an.
 
 ---
 
@@ -59,6 +66,7 @@ flowchart LR
 | **Aufgabentypen** | Multiple Choice, Matching, Lückentext, Kategorisierung, Kreuzworträtsel, Wortgitter, Vokabelübung, Verständnisfrage, Schreibaufgabe, Fehlerkorrektur, Rollenspiel mit Rollenkarten u. v. m. |
 | **Differenzierung** | Leichtere/schwerere Varianten auf Knopfdruck; Schwierigkeit nach Bloom, bei Fremdsprachen CEFR A2–B2 |
 | **Aufgaben-Pool & Fachpakete** | Bewährte Aufgaben speichern, filtern, wiederverwenden — und als **Fachpaket (JSON) exportieren/importieren**, mit Vorschau und Duplikat-Kontrolle. Kuratiertes Startpaket liegt bei (`samples/fachpakete/`) |
+| **Korrektur & Folgeübung** | Schülerabgaben mit Rubrik analysieren, Fehlerlisten und Feedback-DOCX erzeugen, Klassen-/Schülerauswertungen ansehen und aus Fehlerschwerpunkten eine Folgeübung starten |
 | **Export** | DOCX (Schülerfassung, Lösung, Korrekturraster, Kompetenznachweis, Selbsteinschätzungsbogen), PDF (via LibreOffice), **Moodle/GIFT** |
 | **Qualität** | Quality-Gate vor dem Export (Lernziel-Abdeckung, Wortzahl); einzelne Blöcke gezielt neu generieren |
 | **Komfort** | Befehlspalette (`Ctrl+K`), Vorlagen, Verlauf, Favoriten, Dark-Mode, automatische Updates |
@@ -141,7 +149,7 @@ LUKA/  (Repo: LUKA)
   apps/
     lua/        Desktop-App: TypeScript · React · Vite · Tauri (pnpm-Monorepo)
                 packages/ schema · llm · input · renderer · qa · export
-    natascha/   Korrektur-Kern (Python) — in Entwicklung, im Pilot deaktiviert
+    natascha/   Korrektur-Kern (Python) — als headless Sidecar in LUA eingebaut
   docs/         Anleitung, Datenschutz, Invarianten, Szenarien
   samples/      synthetische Beispieldaten + kuratierte Fachpakete
 ```
@@ -161,9 +169,10 @@ SQLite-Datei.
 
 ## Datenschutz
 
-Beim Generieren werden **Thema, Notizen und Quelltexte an den gewählten
-KI-Anbieter übertragen** — sonst nichts. Daher: keine Klarnamen von
-Schüler:innen in Quelltexten und Notizen. Datenbank und Exporte bleiben
+Beim Generieren und Korrigieren werden die jeweils nötigen Texte an den
+gewählten KI-Anbieter übertragen. Bei Textabgaben kann LUKA erkannte Namen aus
+der Klassenliste vor dem Versand durch stabile Aliasse ersetzen; PDF- und
+Bildinhalte werden nicht automatisch redigiert. Datenbank und Exporte bleiben
 **lokal** auf dem Rechner; echte Schülerdaten sind per `.gitignore` vom Repo
 ausgeschlossen. Details: [`docs/DATENSCHUTZ.md`](docs/DATENSCHUTZ.md).
 
@@ -174,6 +183,6 @@ Veröffentlicht unter der **MIT-Lizenz** — siehe [`LICENSE`](LICENSE).
 
 ## Roadmap
 
-Kuratierte **Fachpakete** für weitere Fächer · lokales **Lehrerprofil** mit
-Wizard-Defaults · **Korrektur-Assistent** produktionsreif machen
-(Python-Sidecar-Bündelung) · Community-Einreichungen nach dem Pilotfeedback.
+Pilotbetrieb des geschlossenen Unterrichtskreislaufs · freiwilliges lokales
+Lehrerprofil und Community-Feedback · kuratierte Fachpakete und weitere
+Lehrpläne nach belastbarer Abnahme des aktuellen Windows-/macOS-Releases.

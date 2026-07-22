@@ -111,11 +111,11 @@ cd apps/natascha && python3 seed_testdaten.py && python3 natascha_bridge.py TEST
   nutzt einen Hydrate-Cache mit SQLite-Persistenz und Browser/localStorage-
   Fallback. NATASCHA bleibt Schema-Eigentümer; LUA spiegelt das NATASCHA-Schema
   additiv und reicht für Headless-Sidecar-Aufrufe immer `--db-path` weiter.
-- **Phase 3 — Korrektur-UI integrieren.** Design + Wege A/B/C:
-  **`docs/phase3-correction-ui.md`**. **Phase 3a erledigt:** Sidebar „Korrektur
-  (NATASCHA)" startet die TUI in einem Terminal (`commands/natascha.rs`,
-  `launch_natascha`; Windows-Spawn noch ungetestet).
-- **Phase 3c — voller Port (freigegeben).** NATASCHA komplett nativ in die LUA-UX:
-  Python-Core als headless Sidecar, alle ~15 Screens in React. Bauplan +
-  Wellen 0–4: **`docs/phase3c-natascha-port-plan.md`**. Welle 0 = Phase 2
-  (gemeinsame DB) ist erledigt; nächste Schritte sind die React-Port-Wellen.
+- **Phase 3 — Native Korrektur-UI: RELEASE-KANDIDAT.** Die Korrektur ist als
+  nativer React-Arbeitsbereich integriert; der Python-Core läuft als headless
+  Sidecar. Gemeinsame Datenbank, Korrekturgrundlage, Rubrik-Kontext,
+  Feedback-DOCX und Closed-Loop-Folgeübung sind implementiert. Die TUI bleibt
+  als technischer Fallback in den erweiterten Einstellungen.
+- **Nächster Gate:** v1.2.0 dokumentieren, lokal/CI verifizieren und den
+  installierten Windows-/macOS-Pfad mit synthetischen Daten abnehmen. Erst
+  danach folgen Pilotfeedback und weitere Fachpakete/Lehrpläne.

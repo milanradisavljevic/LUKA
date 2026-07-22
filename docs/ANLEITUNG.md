@@ -1,6 +1,9 @@
 # LUKA – Anleitung
 
-LUKA ist ein **Unterlagen-Generator** für Lehrkräfte: Er erzeugt Arbeitsblätter, Übungen und Schularbeiten mit KI und exportiert sauber formatierte DOCX (Schülerfassung, Lösung, Korrekturraster zum Selbst-Korrigieren).
+LUKA ist ein lokales **Unterlagen- und Korrektur-Tool** für Lehrkräfte: Es
+erzeugt Arbeitsblätter, Übungen und Schularbeiten, analysiert Schülerabgaben
+mit einer Rubrik und hilft dabei, aus Fehlerschwerpunkten gezielte Folgeübungen
+zu erstellen.
 
 Alles läuft **lokal auf deinem Rechner** mit deinem eigenen API-Schlüssel — keine Accounts, kein Server, keine Cloud-Datenbank.
 
@@ -8,13 +11,18 @@ Alles läuft **lokal auf deinem Rechner** mit deinem eigenen API-Schlüssel — 
 
 ## Überblick
 
-Der Ablauf im Überblick: **Absicht festlegen → Quelltext (optional) → Aufgaben zusammenstellen → generieren → DOCX exportieren.**
+Der Ablauf im Überblick: **Absicht festlegen → Quelltext (optional) → Aufgaben
+zusammenstellen → generieren → DOCX exportieren → Unterrichtseinsatz vermerken
+→ Abgaben korrigieren → Folgeübung ableiten.**
 
 Dazu kommen der **Aufgaben-Pool** (bewährte Aufgaben speichern, wiederverwenden und als Fachpaket mit Kolleg:innen teilen) sowie **Vorlagen**, **Verlauf** und **Favoriten** für die Organisation.
 
 > 💡 Wenn du neu bist, lies **Erste Schritte** und erstelle danach eine erste Schnell-Übung – das dauert keine 5 Minuten.
 >
-> **Ausblick:** Ein integrierter Korrektur-Assistent (Schülerabgaben analysieren, Fehler-Heatmaps, Längsschnitte) ist in Entwicklung, aber **in dieser Version noch nicht enthalten**.
+> **Hinweis:** Die Korrektur ist in der Desktop-App integriert. Das Modul prüft
+> sich vor einer Analyse selbst. Falls die Installation nicht bereit ist, zeigt
+> die App eine verständliche Diagnose; der technische TUI-Fallback liegt in den
+> erweiterten Einstellungen.
 
 ---
 
@@ -119,6 +127,40 @@ Der Generator führt dich in fünf Schritten von der Absicht zum fertigen DOCX.
 **Selbsteinschätzungsbogen:** Nach dem Generieren kannst du einen zusätzlichen Bogen exportieren, mit dem Schülerinnen und Schüler einschätzen, wie sicher sie sich bei den einzelnen Aufgaben fühlen. Er eignet sich besonders für differenzierte Rückmeldung und Selbstregulation.
 
 > 💡 Einen ganzen Blocktyp wieder entfernen: im Baukasten oben rechts am Block auf das **X** klicken. Mehr Zuordnungs-Paare/MC-Antworten: im Block-Editor auf „+ Item" / „+ Option" / „+ Frage".
+
+---
+
+## Korrigieren und gezielt üben
+
+Der Bereich **Korrektur** schließt den Unterrichtskreislauf. Die Analyse läuft
+im eingebauten Korrektur-Modul oder — nur als technischer Fallback — über eine
+lokale NATASCHA-Installation.
+
+1. Öffne **Korrektur → Neue Analyse**. Wähle Klasse und Aufgabe und lade eine
+   Schülerabgabe als DOCX, PDF oder TXT hoch. Mehrere Dateien können als
+   Stapel verarbeitet werden.
+2. Hinterlege optional das **Ausgangsmaterial** als Text oder Datei. Für
+   textgebundene Aufgaben wird es empfohlen, weil es gemeinsam mit der Rubrik
+   und dem Auftrag gespeichert und später für Folgeübungen wieder angezeigt
+   wird.
+3. Wähle das **Bewertungsraster**. Vor dem Versand zeigt LUKA bei Textabgaben
+   eine Redaktionsvorschau; erkannte Namen aus der gewählten Klasse werden
+   standardmäßig durch stabile Aliasse ersetzt. Bei PDF- und Bildabgaben kann
+   LUKA den sichtbaren Inhalt nicht automatisch redigieren.
+4. Nach der Analyse siehst du Note, Kriterien, Fehlerliste und den markierten
+   Text. Eine bestätigte Schülerzuordnung hat Vorrang vor der Dateinamen-
+   Erkennung. Eigene Lehrernote und Kommentar kannst du speichern.
+5. Erzeuge über **Feedback-DOCX** ein Rückmeldedokument. Die Datei landet im
+   lokalen Feedback-Ordner; die Erfolgskarte zeigt den Dateinamen und öffnet
+   auf Wunsch den Ordner.
+6. Unter **Meine Klassen** und **Schüler** findest du Fehler-Heatmaps,
+   Notenverteilungen, Trends und Längsschnitte. **Übungsblatt zu Top-Fehlern**
+   übernimmt die Schwerpunkte direkt in den Generator.
+
+Bereits vorhandene Analyse-JSONs können über **Retro-Import** nachträglich in
+die gemeinsame lokale Datenbank übernommen werden. Ohne gebündeltes Modul zeigt
+die App den Diagnosegrund; die Einstellungen enthalten den TUI-Fallback und
+Optionen für Sonderinstallationen.
 
 ---
 
