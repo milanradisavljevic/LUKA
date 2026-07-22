@@ -948,7 +948,7 @@ def save_analysis_to_db(
     with sqlite3.connect(db_path_str) as conn:
         conn.execute("PRAGMA foreign_keys=ON")
         cur = conn.execute(
-            "INSERT INTO abgabe (schueler_id, korrekturauftrag_id, unterrichtseinsatz_id, material_id, klasse, aufgabe, dateiname, datei_hash, rohtext, note, gesamtstufe, feedback_json_path, wortanzahl, fach, schulstufe, textsorte, rubrik) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO abgabe (schueler_id, korrekturauftrag_id, unterrichtseinsatz_id, material_id, klasse, aufgabe, dateiname, datei_hash, rohtext, note, gesamtstufe, feedback_json_path, wortanzahl, fach, schulstufe, textsorte, rubrik) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 schueler_id,
                 korrekturauftrag_id,

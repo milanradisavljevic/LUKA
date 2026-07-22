@@ -23,6 +23,9 @@ später wieder an. Dadurch kann eine Folgeübung auf denselben Kontext aufbauen.
 - Die Korrektur startet nach der Installation wieder zuverlässig. Ein Fehler bei
   der Sidecar-Datei wurde behoben; vorhandene Daten, Einstellungen und
   Korrekturen bleiben erhalten.
+- Korrekturergebnisse werden wieder zuverlässig in der gemeinsamen Datenbank
+  gespeichert; ein fehlerhafter SQL-Platzhalter verhinderte das bisher bei
+  bestimmten Analysepfaden.
 
 ### Added — Abnahme des gebündelten Korrektur-Moduls
 - Windows- und macOS-Release prüfen das fertige Paket vor der Veröffentlichung
