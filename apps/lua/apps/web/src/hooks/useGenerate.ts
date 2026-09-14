@@ -1,3 +1,5 @@
+import { beginActivity } from '../lib/workSession';
+import { MODEL_MAP } from '../lib/runtimeModel';
 import { useState, useCallback, useRef } from 'react';
 import type { Block, DocumentV1, StoffItem } from '@lehrunterlagen/schema';
 import type { GenerateInput, BlockRequest, ChatMessage, ProviderId } from '@lehrunterlagen/llm';
@@ -58,29 +60,8 @@ const PROVIDER_MAP = {
   qwen: 'qwen',
 } as const;
 
-const MODEL_MAP: Record<string, string> = {
-  // Anthropic
-  'Opus 4.8': 'claude-opus-4-8',
-  'Opus 4.7': 'claude-opus-4-7',
-  'Sonnet 4.6': 'claude-sonnet-4-6',
-  'Haiku 4.5': 'claude-haiku-4-5-20251001',
-  // OpenAI
-  'GPT-5.4': 'gpt-5.4',
-  'GPT-5.4 mini': 'gpt-5.4-mini',
-  'GPT-5.4 nano': 'gpt-5.4-nano',
-  // DeepSeek
-  'DeepSeek V4 Flash': 'deepseek-v4-flash',
-  'DeepSeek V4 Pro': 'deepseek-v4-pro',
-  // Mistral
-  'Mistral Medium 3.5': 'mistral-medium-3-5',
-  'Mistral Small 4': 'mistral-small-2603',
-  // Qwen
-  'Qwen 3.7 Max': 'qwen3-max',
-  'Qwen 3.5 Plus': 'qwen3.5-plus',
-  // Kimi
-  'Moonshot V1 8K': 'moonshot-v1-8k',
-  'Kimi K2.6': 'kimi-k2.6',
-};
+// Modellnamen werden mit der Korrektur gemeinsam aufgelöst.
+
 
 function blockToRequest(block: Block): BlockRequest {
   switch (block.typ) {
@@ -330,12 +311,12 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
     const guardMsg = guards(state);
     if (guardMsg) { setError(guardMsg); return false; }
 
+    const finishActivity=beginActivity('Unterlage erstellen');
     cancelRef.current = false;
     setGenerating(true);
     setError(null);
     setStage('sende');
     startTimer();
-    dispatch({ type: 'SET_GENERIERTES_DOKUMENT', dokument: null });
 
     try {
       const { providerId, apiModel } = resolveProvider(state);
@@ -392,6 +373,7 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
       setStage('fehler');
       return false;
     } finally {
+      finishActivity();
       stopTimer();
       setGenerating(false);
     }
@@ -406,6 +388,7 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
     if (!ziel) { setError('Block nicht gefunden.'); return null; }
     if (!isTauri()) { setError('Nur in der Desktop-App verfügbar.'); return null; }
 
+    const finishActivity=beginActivity('Unterlage erstellen');
     cancelRef.current = false;
     setGenerating(true);
     setError(null);
@@ -437,6 +420,7 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
       setStage('fehler');
       return null;
     } finally {
+      finishActivity();
       stopTimer();
       setGenerating(false);
     }
@@ -459,6 +443,7 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
       });
     };
 
+    const finishActivity=beginActivity('Unterlage prüfen');
     setPruefend(true);
     setError(null);
     try {
@@ -478,6 +463,7 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
       setError(`Lösungsprüfung fehlgeschlagen: ${msg}`);
       return { issuesByBlock: {}, gepruefteIds: [] };
     } finally {
+      finishActivity();
       setPruefend(false);
     }
   }, []);
@@ -487,6 +473,7 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
     if (!original) { setError('Kein generiertes Dokument vorhanden.'); return null; }
     if (!isTauri()) { setError('Nur in der Desktop-App verfügbar.'); return null; }
 
+    const finishActivity=beginActivity('Unterlage erstellen');
     cancelRef.current = false;
     setGenerating(true);
     setError(null);
@@ -530,6 +517,7 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
       setStage('fehler');
       return null;
     } finally {
+      finishActivity();
       stopTimer();
       setGenerating(false);
     }

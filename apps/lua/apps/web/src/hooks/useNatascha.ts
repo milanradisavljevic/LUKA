@@ -1,4 +1,6 @@
-import { useState, useCallback } from 'react';
+import { beginActivity } from '../lib/workSession';
+import { correctionRuntime } from '../lib/runtimeModel';
+import { useState, useCallback, useRef } from 'react';
 import { loadSettings } from '../lib/storage';
 import type { KlasseInfo } from '../lib/storage';
 import type { RubrikOption } from '../lib/rubrikAuswahl';
@@ -112,19 +114,30 @@ export interface KorrekturKontext {
 
 export function useNatascha() {
   const [analyzing, setAnalyzing] = useState(false);
+  const analyzeBusy=useRef(false);
+  const [activeJobId,setActiveJobId]=useState<number|null>(null);
   const [analyzeError, setAnalyzeError] = useState<string | null>(null);
 
   const analyze = useCallback(async (
     filePath: string,
     klasse: string,
     aufgabe: string,
-    opts?: { fach?: string; schulstufe?: string; textsorte?: string; schueler?: string; bewertungsmodus?: string; ausgangstext?: string; ausgangstextDatei?: string; rubric?: string; pseudonymisierung?: boolean; schuelerId?: number; einsatzId?: string; materialId?: string },
+    opts?: { runtime?: {provider:string;model:string}; fach?: string; schulstufe?: string; textsorte?: string; schueler?: string; bewertungsmodus?: string; ausgangstext?: string; ausgangstextDatei?: string; rubric?: string; pseudonymisierung?: boolean; schuelerId?: number; einsatzId?: string; materialId?: string },
   ) => {
+    if(analyzeBusy.current) throw new Error('Eine Analyse läuft bereits.');
+    analyzeBusy.current=true;
+    const finishActivity = beginActivity('Korrektur');
     setAnalyzing(true);
     setAnalyzeError(null);
+    let unlisten:(()=>void)|undefined;
     try {
+      const {listen}=await import('@tauri-apps/api/event');
+      unlisten=await listen<{job_id:number;stage:string;message:string}>('natascha://progress',event=>{
+        if(event.payload.stage==='start' && event.payload.message==='Korrektur-Analyse gestartet')setActiveJobId(event.payload.job_id);
+      });
       const settings = loadSettings();
       const result = await invoke<string>('natascha_analyze', {
+        ...(opts?.runtime ?? correctionRuntime(settings)),
         dir: settings.nataschaDir ?? '',
         python: settings.pythonCommand ?? '',
         filePath,
@@ -147,8 +160,11 @@ export function useNatascha() {
     } catch (e) {
       const msg = typeof e === 'string' ? e : e instanceof Error ? e.message : 'Analyse fehlgeschlagen';
       setAnalyzeError(msg);
-      return null;
+      throw new Error(msg);
     } finally {
+      unlisten?.();setActiveJobId(null);
+      analyzeBusy.current=false;
+      finishActivity();
       setAnalyzing(false);
     }
   }, []);
@@ -158,10 +174,12 @@ export function useNatascha() {
   const personenVorschau = useCallback(async (
     filePath: string,
     klasse: string,
+    runtime?: {provider:string;model:string},
   ): Promise<PersonenVorschau | null> => {
     try {
       const settings = loadSettings();
       const result = await invoke<string>('natascha_personen_vorschau', {
+        ...(runtime ?? correctionRuntime(settings)),
         dir: settings.nataschaDir ?? '',
         python: settings.pythonCommand ?? '',
         filePath,
@@ -188,6 +206,7 @@ export function useNatascha() {
       const result = await invoke<DbLoadAllResult>('db_load_all');
       return result.klassen ?? [];
     } catch {
+      window.dispatchEvent(new CustomEvent('luka:data-error', {detail:'Klassen konnten nicht geladen werden. Deine Daten sind dadurch nicht gelöscht. Bitte erneut laden.'}));
       return [];
     }
   }, []);
@@ -253,7 +272,7 @@ export function useNatascha() {
     try {
       return await invoke<AbgabeDetail>('db_get_abgabe_detail', { abgabeId });
     } catch {
-      return null;
+      throw new Error('Die Abgabe konnte nicht geladen werden. Bitte erneut versuchen.');
     }
   }, []);
 
@@ -317,7 +336,7 @@ export function useNatascha() {
         dir: s.nataschaDir ?? '', python: s.pythonCommand ?? '', fach, schulstufe,
       });
       return JSON.parse(result) as RubrikListe;
-    } catch { return { rubrics: [], defaultRubric: '' }; }
+    } catch { throw new Error('Bewertungsraster konnten nicht geladen werden. Bitte erneut versuchen.'); }
   }, []);
 
   const deleteSchueler = useCallback(async (schuelerId: number): Promise<void> => {
@@ -466,6 +485,7 @@ export function useNatascha() {
     analyzing,
     analyzeError,
     analyze,
+    activeJobId,
     personenVorschau,
     cancel,
     listKlassen,

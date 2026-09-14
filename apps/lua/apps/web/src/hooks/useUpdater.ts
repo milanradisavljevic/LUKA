@@ -1,125 +1,88 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Update } from '@tauri-apps/plugin-updater';
+import { flushPersistence } from '../lib/storage';
+import { flushDrafts, hasActiveWork } from '../lib/workSession';
 
-export type UpdaterPhase = 'idle' | 'available' | 'downloading' | 'downloaded' | 'error';
-
-export interface UpdaterProgress {
-  /** Bisher geladene Bytes. */
-  received: number;
-  /** Gesamtgröße in Bytes, falls vom Server bekannt (sonst unbestimmt). */
-  total: number | null;
-}
-
-export interface UpdaterState {
-  phase: UpdaterPhase;
-  version: string | null;
-  currentVersion: string | null;
-  /** Release-Notes aus `update.body` (latest.json → `notes`), falls vorhanden. */
-  body: string | null;
-  progress: UpdaterProgress | null;
-  /** Kurze deutsche Fehlermeldung — nur bei Fehlern WÄHREND des aktiven Downloads. */
-  error: string | null;
-}
-
-const IDLE_STATE: UpdaterState = {
-  phase: 'idle',
-  version: null,
-  currentVersion: null,
-  body: null,
-  progress: null,
-  error: null,
-};
-
-function isTauri(): boolean {
-  return typeof window !== 'undefined' && (window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ !== undefined;
-}
-
-/**
- * State-Maschine für den Update-Dialog (siehe `components/UpdateDialog.tsx`).
- *
- * Prüft ~5s nach App-Start still auf Updates (GitHub Releases, signiert).
- * Fehler beim Check (offline, Endpoint nicht erreichbar) werden bewusst
- * verschluckt (nur console.warn) — ein fehlgeschlagener Check darf den
- * Unterricht nie stören. Fehler beim aktiven Download werden dagegen im
- * Dialog angezeigt, damit die Lehrkraft weiß, dass nichts passiert ist.
- */
+export type UpdaterPhase = 'idle' | 'available' | 'downloading' | 'ready' | 'installing' | 'installed' | 'verified' | 'error';
+export interface UpdaterState { phase: UpdaterPhase; version: string | null; currentVersion: string | null; body: string | null; progress: { received: number; total: number | null } | null; error: string | null; }
+const IDLE: UpdaterState = { phase:'idle', version:null, currentVersion:null, body:null, progress:null, error:null };
+const PENDING = 'luka-update-pending';
+const LATER = 'luka-update-later';
 export function useUpdater() {
-  const [state, setState] = useState<UpdaterState>(IDLE_STATE);
+  const [state,setState] = useState<UpdaterState>(IDLE);
   const updateRef = useRef<Update | null>(null);
-
-  const checkNow = useCallback(async () => {
-    try {
-      const { check } = await import('@tauri-apps/plugin-updater');
-      const update = await check();
-      if (!update) return;
-      updateRef.current = update;
-      setState({
-        phase: 'available',
-        version: update.version,
-        currentVersion: update.currentVersion,
-        body: update.body ?? null,
-        progress: null,
-        error: null,
-      });
-    } catch (err) {
-      // Bewusst still — siehe Docstring oben.
-      console.warn('Update-Check fehlgeschlagen', err);
-    }
-  }, []);
-
+  const busy = useRef(false);
   useEffect(() => {
-    if (!isTauri()) return;
-    const t = window.setTimeout(() => {
-      void checkNow();
-    }, 5000);
-    return () => window.clearTimeout(t);
-  }, [checkNow]);
-
-  const install = useCallback(async () => {
-    const update = updateRef.current;
-    if (!update) return;
-
-    setState((s) => ({ ...s, phase: 'downloading', progress: { received: 0, total: null }, error: null }));
-    let received = 0;
-
-    try {
-      await update.downloadAndInstall((event) => {
-        if (event.event === 'Started') {
-          received = 0;
-          setState((s) => ({ ...s, progress: { received: 0, total: event.data.contentLength ?? null } }));
-        } else if (event.event === 'Progress') {
-          received += event.data.chunkLength;
-          setState((s) => ({ ...s, progress: { received, total: s.progress?.total ?? null } }));
-        } else if (event.event === 'Finished') {
-          setState((s) => ({ ...s, phase: 'downloaded' }));
+    if (!(window as any).__TAURI_INTERNALS__) return;
+    let cancelled = false;
+    const check = async () => {
+      try {
+        const { getVersion } = await import('@tauri-apps/api/app');
+        const current = await getVersion();
+        const pending = localStorage.getItem(PENDING);
+        if (pending) {
+          localStorage.removeItem(PENDING);
+          if (!cancelled) setState({ ...IDLE, phase:pending === current ? 'verified' : 'error', currentVersion:current, version:pending,
+            error:pending === current ? null : 'Das Update wurde nicht abgeschlossen. LUKA läuft weiterhin mit Version ' + current + '. Bitte die reguläre Installation prüfen und das Update erneut laden.' });
+          return;
         }
-      });
-      // Sicherheitsnetz, falls 'Finished' aus irgendeinem Grund nicht feuert.
-      setState((s) => (s.phase === 'downloading' ? { ...s, phase: 'downloaded' } : s));
-    } catch (err) {
-      console.warn('Update-Download fehlgeschlagen', err);
-      setState((s) => ({
-        ...s,
-        phase: 'error',
-        error: 'Download fehlgeschlagen. Bitte später erneut versuchen.',
-      }));
-    }
+        const { check } = await import('@tauri-apps/plugin-updater');
+        const update = await check({ timeout:30000 });
+        if (cancelled) { await update?.close(); return; }
+        if (!update) return;
+        const later = JSON.parse(localStorage.getItem(LATER) || 'null');
+        if (later?.version === update.version && later.until > Date.now()) { await update.close(); return; }
+        updateRef.current = update;
+        setState({ ...IDLE, phase:'available', version:update.version, currentVersion:update.currentVersion, body:update.body ?? null });
+      } catch { /* Eine automatische Online-Prüfung darf offline nicht unterbrechen. */ }
+    };
+    const t = window.setTimeout(() => void check(), 5000);
+    return () => { cancelled = true; window.clearTimeout(t); };
   }, []);
-
-  const relaunchNow = useCallback(async () => {
+  const download = useCallback(async () => {
+    if (!updateRef.current || busy.current) return;
+    busy.current = true;
+    setState(s => ({...s,phase:'downloading',error:null,progress:{received:0,total:null}}));
+    let received=0;
     try {
-      const { relaunch } = await import('@tauri-apps/plugin-process');
-      await relaunch();
-    } catch (err) {
-      console.warn('Neustart fehlgeschlagen', err);
-    }
+      await updateRef.current.download(event => {
+        if(event.event === 'Started') { received=0; setState(s=>({...s,progress:{received:0,total:event.data.contentLength ?? null}})); }
+        if(event.event === 'Progress') { received+=event.data.chunkLength; setState(s=>({...s,progress:{received,total:s.progress?.total ?? null}})); }
+        // Finished bestätigt nur den Download, niemals die Installation.
+      });
+      setState(s=>({...s,phase:'ready'}));
+    } catch { setState(s=>({...s,phase:'error',error:'Das Update konnte nicht heruntergeladen oder geprüft werden. Bitte erneut versuchen.'})); }
+    finally { busy.current=false; }
   }, []);
-
+  const install = useCallback(async () => {
+    if (!updateRef.current || busy.current) return;
+    if (hasActiveWork()) { setState(s=>({...s,error:'Bitte zuerst den laufenden Auftrag abschließen oder abbrechen.'})); return; }
+    busy.current=true;
+    try {
+      flushDrafts(); await flushPersistence();
+      localStorage.setItem(PENDING,updateRef.current.version);
+      setState(s=>({...s,phase:'installing',error:null}));
+      await updateRef.current.install();
+      // Unter Windows beendet der Installer die App selbst.
+      setState(s=>({...s,phase:'installed'}));
+    } catch(e) {
+      localStorage.removeItem(PENDING);
+      setState(s=>({...s,phase:'ready',error:e instanceof Error ? e.message : 'Installation fehlgeschlagen. Bitte erneut versuchen.'}));
+    } finally { busy.current=false; }
+  }, []);
+  const relaunchNow = useCallback(async () => {
+    try { if(hasActiveWork()) throw new Error('Bitte zuerst den laufenden Auftrag beenden.'); flushDrafts(); await flushPersistence(); const { relaunch }=await import('@tauri-apps/plugin-process'); await relaunch(); }
+    catch(e) { setState(s=>({...s,error:e instanceof Error ? e.message : 'Neustart fehlgeschlagen. Bitte LUKA manuell neu öffnen.'})); }
+  }, []);
+  const retry = useCallback(async () => {
+    try { if(hasActiveWork()) throw new Error('Bitte zuerst den laufenden Auftrag beenden.'); flushDrafts(); await flushPersistence(); window.location.reload(); }
+    catch(e) { setState(s=>({...s,error:e instanceof Error ? e.message : 'Erneutes Prüfen fehlgeschlagen.'})); }
+  }, []);
   const dismiss = useCallback(() => {
-    setState(IDLE_STATE);
-  }, []);
-
-  return { state, install, relaunchNow, dismiss };
+    if(busy.current) return;
+    if(state.phase==='available' && state.version) localStorage.setItem(LATER,JSON.stringify({version:state.version,until:Date.now()+86400000}));
+    setState(IDLE);
+  },[state.phase,state.version]);
+  return {state,download,install,relaunchNow,dismiss,retry};
 }
-
 export type UseUpdaterReturn = ReturnType<typeof useUpdater>;

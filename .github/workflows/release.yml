@@ -124,7 +124,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          pnpm tauri build --bundles nsis --config src-tauri/tauri.natascha-sidecar.conf.json
+          pnpm tauri build --bundles nsis --config src-tauri/tauri.natascha-smoke.conf.json
           $installer = Get-ChildItem -LiteralPath 'src-tauri/target/release/bundle/nsis' -Filter '*.exe' |
             Sort-Object LastWriteTime -Descending | Select-Object -First 1
           if (-not $installer) { throw 'Kein NSIS-Installer für den Sidecar-Smoke gefunden.' }
@@ -134,7 +134,7 @@ jobs:
       - name: Installierten macOS-Sidecar-Smoke ausführen
         if: runner.os == 'macOS'
         run: |
-          pnpm tauri build --target universal-apple-darwin --config src-tauri/tauri.natascha-sidecar.conf.json
+          pnpm tauri build --target universal-apple-darwin --config src-tauri/tauri.natascha-smoke.conf.json
           app="$(find src-tauri/target/universal-apple-darwin/release/bundle/macos -maxdepth 1 -name '*.app' -print -quit)"
           test -n "$app"
           sidecar="$(find "$app/Contents" -type f -name 'natascha-cli' -print -quit)"

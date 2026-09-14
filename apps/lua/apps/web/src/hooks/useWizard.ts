@@ -1,4 +1,5 @@
-import { useReducer, useCallback } from 'react';
+import { useReducer, useCallback, useEffect } from 'react';
+import { readDraft, writeDraft } from '../lib/workSession';
 import type { AppState, AppAction, StepId } from '../lib/types';
 import { getDefaultMeta } from '../lib/constants';
 import { getDefaultTemplate } from '@lehrunterlagen/renderer';
@@ -6,15 +7,15 @@ import { loadSettings } from '../lib/storage';
 
 const STEPS_ORDER: StepId[] = ['absicht', 'input', 'baukasten', 'llm', 'generate'];
 
-function wizardReducer(state: AppState, action: AppAction): AppState {
+export function wizardReducer(state: AppState, action: AppAction): AppState {
+  if(state.generiertesDokument && ['SET_META','ADD_QUELLTEXT','REMOVE_QUELLTEXT','UPDATE_QUELLTEXT','ADD_BLOCK','UPDATE_BLOCK','REMOVE_BLOCK','REMOVE_BLOCKS_BY_TYPE','REORDER_BLOCKS'].includes(action.type)) state={...state,generatedOutdated:true};
   switch (action.type) {
     case 'SET_STEP':
-      // Zurück zu Schritt 2 → generiertes Dokument verwerfen
+      // Navigation allein verändert kein bereits erzeugtes Ergebnis.
       return {
         ...state,
         step: action.step,
-        generiertesDokument:
-          action.step === 'baukasten' ? null : state.generiertesDokument,
+        generiertesDokument: state.generiertesDokument,
       };
     case 'SET_AUFTRAG':
       return { ...state, auftrag: action.auftrag };
@@ -55,7 +56,7 @@ function wizardReducer(state: AppState, action: AppAction): AppState {
     case 'SET_AUSGABE_SPRACHE':
       return { ...state, ausgabeSprache: action.value };
     case 'SET_GENERIERTES_DOKUMENT':
-      return { ...state, generiertesDokument: action.dokument };
+      return { ...state, generiertesDokument: action.dokument, generatedOutdated:false };
     case 'SET_RENDER_TEMPLATE':
       return { ...state, renderTemplate: action.template };
     case 'SET_RENDER_LAYOUT':
@@ -109,7 +110,13 @@ function createInitialState(): AppState {
 }
 
 export function useWizard() {
-  const [state, dispatch] = useReducer(wizardReducer, undefined, createInitialState);
+  const [state, dispatch] = useReducer(wizardReducer, undefined, () => {
+    const initial = createInitialState();
+    const draft = readDraft<AppState | null>('wizard', null);
+    return draft && draft.meta && Array.isArray(draft.bloecke) && Array.isArray(draft.quelltexte) && STEPS_ORDER.includes(draft.step)
+      ? { ...initial, ...draft } : initial;
+  });
+  useEffect(() => { writeDraft('wizard', state); }, [state]);
 
   const currentIndex = STEPS_ORDER.indexOf(state.step);
   const canGoNext = currentIndex < STEPS_ORDER.length - 1 && !(state.step === 'absicht' && !state.auftrag);

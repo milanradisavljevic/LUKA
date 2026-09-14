@@ -1,3 +1,5 @@
+import { ContextNavigation } from './components/ContextNavigation';
+import { flushDrafts, hasActiveWork, useSessionStatus } from './lib/workSession';
 import { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
 import { Save, Search, ArrowLeft, ArrowRight, Loader2, BookOpen } from 'lucide-react';
 import type { AppAction, ActiveView, SavedDocument } from './lib/types';
@@ -42,7 +44,7 @@ const QuickExerciseView = lazy(() => import('./views/QuickExerciseView').then((m
 import { setPendingUebung } from './lib/korrekturBridge';
 import { createDefaultBlock } from './lib/blockDefaults';
 import type { NataschaPrefill } from './lib/nataschaBridge';
-import { loadDocuments, upsertDocument, snapshotFromState, saveTemplate, deleteTemplate, loadTemplates, hydrateCache, isHydrated, setPersistErrorHandler, loadSettings, subscribeSettings, getCache } from './lib/storage';
+import { loadDocuments, saveDocumentConfirmed, flushPersistence, snapshotFromState, saveTemplate, deleteTemplate, loadTemplates, hydrateCache, isHydrated, setPersistErrorHandler, loadSettings, subscribeSettings, getCache } from './lib/storage';
 import { buildSearchIndex } from './lib/search';
 import type { SearchIndex, SearchResult, SearchCommandSource } from './lib/search';
 import { visibleNavTargets, NATASCHA_VIEWS } from './lib/navigation';
@@ -69,7 +71,7 @@ function isTauri(): boolean {
 
 /** Seitentitel je Ansicht — ersetzt die Marken-Dopplung im Header. */
 const VIEW_TITLES: Record<ActiveView, string> = {
-  dashboard: 'Übersicht',
+  dashboard: 'Start',
   wizard: 'Neue Unterlage',
   kompetenz: 'Kompetenz-Übung',
   quick: 'Schnell-Übung',
@@ -105,6 +107,24 @@ export default function App() {
   // Update-Check verzögert nach Start (nur Desktop-App): stört den Aufbau nicht,
   // scheitert still bei offline — Logik + Dialog-State in hooks/useUpdater.ts.
   const updater = useUpdater();
+  const session = useSessionStatus();
+  const [dataIssue,setDataIssue]=useState<string | null>(null);
+  useEffect(()=>{const fn=(event:Event)=>setDataIssue((event as CustomEvent<string>).detail);window.addEventListener('luka:data-error',fn);return ()=>window.removeEventListener('luka:data-error',fn);},[]);
+  useEffect(() => {
+    if (!(window as any).__TAURI_INTERNALS__) return;
+    let cancelled=false; let unlisten: (() => void) | undefined;
+    void import('@tauri-apps/api/window').then(async ({getCurrentWindow}) => {
+      const win=getCurrentWindow();
+      const off=await win.onCloseRequested(async event => {
+        event.preventDefault();
+        if(hasActiveWork()) { window.alert('Ein Auftrag läuft noch. Bitte abschließen oder abbrechen, bevor du LUKA beendest.'); return; }
+        try { flushDrafts(); await flushPersistence(); await win.destroy(); }
+        catch(e) { window.alert(e instanceof Error ? e.message : 'Speichern fehlgeschlagen. LUKA bleibt geöffnet.'); }
+      });
+      if(cancelled) off(); else unlisten=off;
+    });
+    return () => {cancelled=true;unlisten?.();};
+  }, []);
 
   const { state, dispatch, goNext, goBack, goToStep, currentIndex } = useWizard();
   const { klassen: klassenMeta } = useKlassenMeta();
@@ -325,7 +345,7 @@ export default function App() {
     goToStep('baukasten');
   };
 
-  const handleSaveDocument = useCallback(() => {
+  const handleSaveDocument = useCallback(async () => {
     const existing = state.aktuelleDokumentId
       ? loadDocuments().find((d) => d.id === state.aktuelleDokumentId)
       : undefined;
@@ -341,7 +361,9 @@ export default function App() {
       deletedAt: null,
       snapshot: snapshotFromState(state),
     };
-    upsertDocument(doc);
+    setSaveMsg('Wird gespeichert …');
+    try { await saveDocumentConfirmed(doc); }
+    catch { setSaveMsg('Speichern fehlgeschlagen — bitte erneut speichern.'); return; }
     if (state.aktuelleDokumentId !== id) {
       dispatch({ type: 'SET_DOCUMENT_ID', id });
     }
@@ -522,7 +544,7 @@ export default function App() {
       case 'llm':
         return <Step3_LLMOptions state={state} dispatch={dispatch} onNavigateToSettings={() => setActiveView('settings')} />;
       case 'generate':
-        return <Step4_Generate state={state} dispatch={dispatch} onOpenTafel={handleOpenTafel} />;
+        return null;
     }
   };
 
@@ -552,7 +574,7 @@ if (hydrating) {
           </div>
         );
       case 'dashboard':
-        return <DashboardView key={profileVersion} onNavigate={(v) => setActiveView(v)} onStartQuickExercise={handleStartQuickExercise} onGenerateUebung={handleGenerateUebung} />;
+        return <DashboardView resumeTitle={state.meta.thema || (state.bloecke.length ? 'Begonnene Unterlage' : undefined)} onResume={()=>setActiveView('wizard')} onOpenDocument={handleOpenDocument} key={profileVersion} onNavigate={(v) => setActiveView(v)} onStartQuickExercise={handleStartQuickExercise} onGenerateUebung={handleGenerateUebung} />;
       case 'documents':
         return <DocumentsView onOpenDocument={handleOpenDocument} onNavigate={(v) => setActiveView(v)} />;
       case 'favorites':
@@ -570,7 +592,7 @@ if (hydrating) {
           goToStep('baukasten');
         }} />;
       case 'korrektur':
-        return <KorrekturView onOpenSchueler={handleOpenSchueler} />;
+        return null; // Bleibt unterhalb dauerhaft montiert, auch während Navigation.
       case 'schueler':
         return <SchuelerView preselect={pendingSchueler} onConsumePreselect={() => setPendingSchueler(null)} onGenerateUebung={handleGenerateUebung} />;
       case 'klassen':
@@ -732,7 +754,14 @@ if (hydrating) {
                 </div>
               }
             >
+              {dataIssue && <div role="alert" className="session-warning">{dataIssue} <button className="btn-secondary" onClick={async()=>{try{if(hasActiveWork())throw new Error('Bitte zuerst den laufenden Auftrag beenden.');flushDrafts();await flushPersistence();window.location.reload();}catch(e){setDataIssue(String(e));}}}>Erneut laden</button></div>}
+              {session.error && <p role="alert" style={{padding:'1rem',color:'var(--color-error)'}}>{session.error}</p>}
+              {session.busy && <p role="status">Ein Auftrag läuft. Der Fortschritt bleibt beim Wechsel zwischen Arbeitsbereichen erhalten.</p>}
+              <ContextNavigation view={activeView} navigate={setActiveView}/>
+              {state.generatedOutdated && isWizard && <p role="status" className="session-warning">Die Vorgaben wurden geändert. Die vorhandene Vorschau bleibt erhalten; erst „Neu generieren“ übernimmt diese Änderungen.</p>}
               {renderView()}
+              <div hidden={!isWizard || state.step !== 'generate'}><Step4_Generate state={state} dispatch={dispatch} onOpenTafel={handleOpenTafel} /></div>
+              <div hidden={activeView !== 'korrektur'}><KorrekturView onOpenSchueler={handleOpenSchueler} /></div>
             </Suspense>
           </div>
         </main>

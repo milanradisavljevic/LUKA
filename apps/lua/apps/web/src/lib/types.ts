@@ -57,6 +57,7 @@ export interface AppState {
   bloecke: Block[];
   /** Vom LLM befülltes Dokument — null bis "Generieren" geklickt wurde. */
   generiertesDokument: DocumentV1 | null;
+  generatedOutdated?: boolean;
   llmProvider: LlmProvider | null;
   modelName: string;
   kreativitaet: number;
@@ -76,6 +77,7 @@ export interface DocumentSnapshot {
   quelltexte: QuellText[];
   bloecke: Block[];
   generiertesDokument: DocumentV1 | null;
+  generatedOutdated?: boolean;
   llmProvider: LlmProvider | null;
   modelName: string;
   kreativitaet: number;

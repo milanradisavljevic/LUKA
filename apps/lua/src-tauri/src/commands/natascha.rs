@@ -7,6 +7,7 @@
 use once_cell::sync::Lazy;
 use serde::Serialize;
 use std::path::{Path, PathBuf};
+use std::collections::BTreeMap;
 use std::process::{Command as StdCommand, Stdio};
 use std::sync::Mutex;
 use tauri::{AppHandle, Emitter};
@@ -16,7 +17,22 @@ use tokio::time::{timeout, Duration};
 
 const NATASCHA_CLI_TIMEOUT_SECS: u64 = 10 * 60;
 
-static ACTIVE_PROCESS: Lazy<Mutex<Option<(u32, u64)>>> = Lazy::new(|| Mutex::new(None));
+static ACTIVE_PROCESSES: Lazy<Mutex<BTreeMap<u64, u32>>> = Lazy::new(|| Mutex::new(BTreeMap::new()));
+
+// Jeder Auftrag entfernt ausschließlich seinen eigenen Eintrag, auch bei Fehlern.
+struct ProcessRegistration(u64);
+impl Drop for ProcessRegistration {
+    fn drop(&mut self) {
+        if let Ok(mut jobs) = ACTIVE_PROCESSES.lock() { jobs.remove(&self.0); }
+    }
+}
+
+fn background_command(program: impl AsRef<std::ffi::OsStr>) -> Command {
+    let mut cmd = Command::new(program);
+    #[cfg(windows)]
+    cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW; stdout bleibt für JSON offen.
+    cmd
+}
 static NEXT_JOB_ID: Lazy<Mutex<u64>> = Lazy::new(|| Mutex::new(1));
 static STATUS_CACHE: Lazy<Mutex<Option<(String, NataschaStatus)>>> = Lazy::new(|| Mutex::new(None));
 
@@ -320,7 +336,7 @@ fn inject_provider_keys(cmd: &mut Command) {
 fn build_cli_command(dir: &str, python: &str) -> Result<Command, String> {
     let db_path = crate::db::resolve_db_path();
     if let Some(sidecar) = bundled_cli() {
-        let mut cmd = Command::new(sidecar);
+        let mut cmd = background_command(sidecar);
         inject_provider_keys(&mut cmd);
         cmd.arg("--db-path").arg(db_path.as_os_str());
         if let Some(parent) = std::env::current_exe()
@@ -333,7 +349,7 @@ fn build_cli_command(dir: &str, python: &str) -> Result<Command, String> {
     }
     let natascha_dir = resolve_dir(dir)?;
     let py = resolve_python(python);
-    let mut cmd = Command::new(&py);
+    let mut cmd = background_command(&py);
     inject_provider_keys(&mut cmd);
     cmd.arg(natascha_dir.join("natascha_cli.py"))
         .arg("--db-path")
@@ -365,7 +381,7 @@ async fn probe_command(mut cmd: Command) -> Result<(), String> {
 
 async fn natascha_status(dir: &str, python: &str) -> NataschaStatus {
     if let Some(sidecar) = bundled_cli() {
-        let mut cmd = Command::new(sidecar);
+        let mut cmd = background_command(sidecar);
         cmd.arg("analyze");
         return status_from_probe("bundled", probe_command(cmd).await);
     }
@@ -377,7 +393,7 @@ async fn natascha_status(dir: &str, python: &str) -> NataschaStatus {
         }
     };
     let py = resolve_python(python);
-    let mut cmd = Command::new(py);
+    let mut cmd = background_command(py);
     cmd.arg(natascha_dir.join("natascha_cli.py"));
     status_from_probe("python", probe_command(cmd).await)
 }
@@ -390,7 +406,6 @@ async fn run_cli_and_capture(
     label: &'static str,
 ) -> Result<String, String> {
     let job_id = next_job_id();
-    emit_progress(app, Some(job_id), "start", format!("{label} gestartet"));
     cmd.stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .kill_on_drop(true);
@@ -404,9 +419,10 @@ async fn run_cli_and_capture(
         .id()
         .ok_or_else(|| "Korrektur-Prozess hat keine PID.".to_string())?;
     {
-        let mut active = ACTIVE_PROCESS.lock().expect("process mutex poisoned");
-        *active = Some((pid, job_id));
+        ACTIVE_PROCESSES.lock().map_err(|_| "Prozessstatus nicht verfügbar")?.insert(job_id, pid);
     }
+    let _registration = ProcessRegistration(job_id);
+    emit_progress(app, Some(job_id), "start", format!("{label} gestartet"));
     let output = match timeout(
         Duration::from_secs(NATASCHA_CLI_TIMEOUT_SECS),
         child.wait_with_output(),
@@ -428,10 +444,7 @@ async fn run_cli_and_capture(
             ));
         }
     };
-    ACTIVE_PROCESS
-        .lock()
-        .expect("process mutex poisoned")
-        .take();
+    ACTIVE_PROCESSES.lock().map_err(|_| "Prozessstatus nicht verfügbar")?.remove(&job_id);
     if !output.status.success() {
         emit_progress(
             app,
@@ -448,25 +461,24 @@ async fn run_cli_and_capture(
 }
 
 fn terminate_process(job_id: u64) -> Result<(), String> {
-    let pid = ACTIVE_PROCESS
+    let pid = ACTIVE_PROCESSES
         .lock()
         .map_err(|_| "Prozessstatus nicht verfügbar".to_string())?
-        .filter(|(_, id)| *id == job_id)
-        .map(|(pid, _)| pid)
+        .get(&job_id).copied()
         .ok_or_else(|| "Kein laufender Korrektur-Prozess gefunden.".to_string())?;
     #[cfg(windows)]
-    let result = StdCommand::new("taskkill")
-        .args(["/PID", &pid.to_string(), "/T", "/F"])
-        .status();
+    let result = {
+        use std::os::windows::process::CommandExt;
+        StdCommand::new("taskkill").creation_flags(0x08000000)
+            .args(["/PID", &pid.to_string(), "/T", "/F"]).status()
+    };
     #[cfg(not(windows))]
     let result = StdCommand::new("kill")
         .args(["-TERM", &pid.to_string()])
         .status();
-    result.map_err(|e| format!("Korrektur-Prozess konnte nicht beendet werden: {e}"))?;
-    ACTIVE_PROCESS
-        .lock()
-        .expect("process mutex poisoned")
-        .take();
+    let status = result.map_err(|e| format!("Korrektur-Prozess konnte nicht beendet werden: {e}"))?;
+    if !status.success() { return Err("Der Auftrag konnte nicht abgebrochen werden. Bitte erneut prüfen.".into()); }
+    ACTIVE_PROCESSES.lock().map_err(|_| "Prozessstatus nicht verfügbar")?.remove(&job_id);
     Ok(())
 }
 
@@ -495,13 +507,14 @@ pub async fn natascha_get_status(
 
 #[tauri::command]
 pub fn natascha_cancel(app: AppHandle, job_id: Option<u64>) -> Result<(), String> {
-    let current = ACTIVE_PROCESS
-        .lock()
-        .map_err(|_| "Prozessstatus nicht verfügbar".to_string())?
-        .clone();
-    let id = job_id
-        .or_else(|| current.map(|(_, id)| id))
-        .ok_or_else(|| "Kein laufender Korrektur-Prozess.".to_string())?;
+    let id = match job_id {
+        Some(id) => id,
+        None => {
+            let jobs = ACTIVE_PROCESSES.lock().map_err(|_| "Prozessstatus nicht verfügbar")?;
+            if jobs.len() != 1 { return Err("Bitte den konkreten Korrektur-Auftrag zum Abbrechen auswählen.".into()); }
+            *jobs.keys().next().unwrap()
+        }
+    };
     terminate_process(id)?;
     emit_progress(
         Some(&app),
@@ -555,6 +568,8 @@ pub async fn natascha_analyze(
     file_path: String,
     klasse: String,
     aufgabe: String,
+    provider: Option<String>,
+    model: Option<String>,
     fach: Option<String>,
     schulstufe: Option<String>,
     textsorte: Option<String>,
@@ -571,6 +586,8 @@ pub async fn natascha_analyze(
     material_id: Option<String>,
 ) -> Result<String, String> {
     let mut cmd = build_cli_command(&dir, &python)?;
+    if let Some(v) = provider { cmd.arg("--provider").arg(v); }
+    if let Some(v) = model { cmd.arg("--model").arg(v); }
     cmd.arg("analyze")
         .arg(&file_path)
         .arg("--klasse")
@@ -631,6 +648,8 @@ pub async fn natascha_analyze(
 /// klassenlisteLeer }` zurück.
 #[tauri::command]
 pub async fn natascha_personen_vorschau(
+    provider: Option<String>,
+    model: Option<String>,
     dir: String,
     python: String,
     file_path: String,
@@ -638,6 +657,8 @@ pub async fn natascha_personen_vorschau(
     schueler: Option<String>,
 ) -> Result<String, String> {
     let mut cmd = build_cli_command(&dir, &python)?;
+    if let Some(v) = provider { cmd.arg("--provider").arg(v); }
+    if let Some(v) = model { cmd.arg("--model").arg(v); }
     cmd.arg("personen-vorschau")
         .arg(&file_path)
         .arg("--klasse")
@@ -741,7 +762,7 @@ pub async fn natascha_erwartungshorizont(
 pub async fn natascha_seed_testdaten(dir: String, python: String) -> Result<String, String> {
     let nat_dir = resolve_dir(&dir)?;
     let py = resolve_python(&python);
-    let output = Command::new(&py)
+    let output = background_command(&py)
         .arg(nat_dir.join("seed_testdaten.py"))
         .arg("--db-path")
         .arg(crate::db::resolve_db_path().as_os_str())

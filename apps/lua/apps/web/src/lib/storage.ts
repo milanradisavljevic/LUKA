@@ -62,11 +62,42 @@ let onPersistError: ((cmd: string, error: unknown) => void) | null = null;
 export function setPersistErrorHandler(fn: ((cmd: string, error: unknown) => void) | null): void {
   onPersistError = fn;
 }
-function persist(cmd: string, args?: Record<string, unknown>): void {
-  void invoke(cmd, args).catch((e) => {
-    console.error(`[storage] DB-Write '${cmd}' fehlgeschlagen:`, e);
+let writeQueue: Promise<void> = Promise.resolve();
+const failedWrites = new Map<string, unknown>();
+function persist(cmd: string, args?: Record<string, unknown>): Promise<void> {
+  const key = cmd + ':' + (typeof args?.docJson === 'string' ? JSON.parse(args.docJson).id : '');
+  const task = writeQueue.then(async () => {
+    if (!isTauri()) {
+      if (cache) {
+        localStorage.setItem(DOCS_KEY, JSON.stringify(cache.documents));
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(cache.history));
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(cache.settings));
+        localStorage.setItem(TEMPLATES_KEY, JSON.stringify(cache.templates));
+      }
+    } else await invoke(cmd, args);
+    failedWrites.delete(key);
+  });
+  writeQueue = task.catch(e => {
+    failedWrites.set(key, e);
     onPersistError?.(cmd, e);
   });
+  return task;
+}
+export async function flushPersistence(): Promise<void> {
+  // Auch Schreibvorgänge abwarten, die während des Wartens hinzukommen.
+  let current;
+  do { current = writeQueue; await current; } while (current !== writeQueue);
+  if (failedWrites.size) throw new Error('Nicht alle Änderungen konnten gespeichert werden. Bitte vor dem Beenden erneut speichern.');
+}
+export async function saveDocumentConfirmed(doc: SavedDocument): Promise<void> {
+  if (isTauri()) {
+    await persist('db_upsert_document', { docJson: JSON.stringify(doc) });
+    if (cache) cache.documents = [...cache.documents.filter(d => d.id !== doc.id), doc];
+  } else {
+    const next = [...loadDocuments().filter(d => d.id !== doc.id), doc];
+    localStorage.setItem(DOCS_KEY, JSON.stringify(next));
+    if (cache) cache.documents = next;
+  }
 }
 
 /** Hydratisiert den Cache aus der SQLite-Datenbank. Beim ersten Start wird
@@ -162,7 +193,7 @@ export function upsertDocument(doc: SavedDocument): SavedDocument[] {
   const docs = loadDocuments();
   const next = [...docs.filter((d) => d.id !== doc.id), doc];
   if (cache) cache.documents = next;
-  persistUpsertDocuments(next);
+  persistUpsertDocuments([doc]);
   return next;
 }
 
@@ -240,6 +271,7 @@ export function snapshotFromState(state: AppState): DocumentSnapshot {
     quelltexte: state.quelltexte,
     bloecke: state.bloecke,
     generiertesDokument: state.generiertesDokument,
+    generatedOutdated: state.generatedOutdated,
     llmProvider: state.llmProvider,
     modelName: state.modelName,
     kreativitaet: state.kreativitaet,

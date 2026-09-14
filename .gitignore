@@ -56,3 +56,7 @@ docs/Textdokument (neu).txt
 /*.png
 /transformiere_jsons.py
 ChatGPT Image*.png
+
+# Lokale PyInstaller-Zwischenergebnisse
+apps/natascha/build/
+apps/natascha/*.spec

@@ -1,4 +1,5 @@
-import { useState, type ReactNode } from 'react';
+import { loadSettings, saveSettings, flushPersistence } from '../lib/storage';
+import { useRef, useState, type ReactNode } from 'react';
 import { AlertTriangle, CheckCircle2, ExternalLink, Eye, Loader2, Save, ShieldCheck, Trash2, Wifi } from 'lucide-react';
 import type { LlmProvider } from '../lib/types';
 import { LLM_PROVIDERS } from '../lib/constants';
@@ -34,6 +35,8 @@ const KEY_HINTS: Record<string, { placeholder: string; prefix?: string; label: s
 };
 
 export function SettingsPanel({ mode = 'settings', onKeySaved, onVerifiedContinue }: SettingsPanelProps) {
+  const busyProviders=useRef(new Set<string>());
+  const [saved, setSaved]=useState<Record<string, boolean>>({});
   const [keys, setKeys] = useState<Record<string, string>>({});
   const [loaded, setLoaded] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -59,9 +62,10 @@ export function SettingsPanel({ mode = 'settings', onKeySaved, onVerifiedContinu
     });
   };
 
-  const handleSaveAndTest = async (providerId: LlmProvider) => {
+  const handleSaveAndTest = async (providerId: LlmProvider, test = true) => {
     const key = keys[providerId];
-    if (!key || !key.trim()) return;
+    if (!key || !key.trim() || busyProviders.current.has(providerId)) return;
+    busyProviders.current.add(providerId);
     setProviderStatus(providerId, 'testing');
     setCleared((prev) => ({ ...prev, [providerId]: false }));
 
@@ -69,20 +73,30 @@ export function SettingsPanel({ mode = 'settings', onKeySaved, onVerifiedContinu
       if (!tauriAvailable) throw new Error('Nur in der Desktop-App verfügbar.');
       const { invoke } = await import('@tauri-apps/api/core');
       const keyId = getPrimaryProviderKeyId(providerId);
-      await runProviderTest(providerId, key);
+      if(test) await runProviderTest(providerId, key);
       setProviderStatus(providerId, 'saving');
       await invoke('save_api_key', { provider: keyId, key: key.trim() });
 
-      setProviderStatus(providerId, 'success');
-      markProviderSetupVerified(providerId);
-      setVerifiedProvider(providerId);
+      const stored=await invoke<string>('load_api_key',{provider:keyId});
+      if(stored !== key.trim()) throw new Error('Der Schlüssel konnte nicht dauerhaft gespeichert werden. Bitte erneut versuchen.');
+      setSaved(prev=>({...prev,[providerId]:true}));
+      if(test) {
+        markProviderSetupVerified(providerId);
+        if(firstRun) {
+          const model=LLM_PROVIDERS.find(p=>p.id===providerId)?.models[0] ?? '';
+          saveSettings({...loadSettings(),defaultProvider:providerId,defaultModel:model});
+          await flushPersistence();
+        }
+        setVerifiedProvider(providerId);
+      } else unmarkProviderSetupVerified(providerId);
+      setProviderStatus(providerId, test ? 'success' : 'idle');
       setKeys((prev) => ({ ...prev, [providerId]: '' }));
       setLoaded((prev) => ({ ...prev, [providerId]: '' }));
       if (!firstRun) onKeySaved?.();
     } catch (err) {
       const kind = classifyProviderTestError(err);
       setProviderStatus(providerId, kind, err instanceof Error ? err.message : String(err));
-    }
+    } finally { busyProviders.current.delete(providerId); }
   };
 
   const handleShowSaved = async (providerId: LlmProvider) => {
@@ -132,6 +146,11 @@ export function SettingsPanel({ mode = 'settings', onKeySaved, onVerifiedContinu
       await runProviderTest(providerId, stored.key);
       setProviderStatus(providerId, 'success');
       markProviderSetupVerified(providerId);
+      if(firstRun){
+        const model=LLM_PROVIDERS.find(p=>p.id===providerId)?.models[0] ?? '';
+        saveSettings({...loadSettings(),defaultProvider:providerId,defaultModel:model});
+        await flushPersistence();
+      }
       setVerifiedProvider(providerId);
       if (!firstRun) onKeySaved?.();
     } catch (err) {
@@ -251,6 +270,7 @@ export function SettingsPanel({ mode = 'settings', onKeySaved, onVerifiedContinu
         Schlüssel werden lokal im System-Keyring gespeichert und bei API-Aufrufen direkt an den gewählten Anbieter übertragen.
       </p>
 
+      {firstRun && <p>Falls der Online-Test gerade scheitert, kannst du den Schlüssel mit „Nur speichern“ sichern und die Verbindung später erneut testen.</p>}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         {LLM_PROVIDERS.map((provider) => {
           const hint = KEY_HINTS[provider.id];
@@ -311,8 +331,10 @@ export function SettingsPanel({ mode = 'settings', onKeySaved, onVerifiedContinu
                   autoFocus={firstRun && info.recommended}
                   placeholder={hint?.placeholder ?? 'API-Key eingeben'}
                   value={keys[provider.id] ?? ''}
-                  onChange={(e) => setKeys((prev) => ({ ...prev, [provider.id]: e.target.value }))}
-                  disabled={!tauriAvailable}
+                  onChange={(e) => { const value=e.currentTarget.value; setKeys(prev=>({...prev,[provider.id]:value})); }}
+                  autoComplete="off" spellCheck={false}
+                  onKeyDown={e=>{if(e.key==='Enter' && !busy){e.preventDefault();void handleSaveAndTest(provider.id as LlmProvider);}}}
+                  disabled={!tauriAvailable || busy}
                   style={{ flex: '1 1 220px', minWidth: 0, fontFamily: 'monospace', fontSize: '0.8125rem' }}
                 />
                 <button
@@ -325,6 +347,7 @@ export function SettingsPanel({ mode = 'settings', onKeySaved, onVerifiedContinu
                   {busy ? <Loader2 size={14} className="spin" /> : <Save size={14} />}
                   Speichern & testen
                 </button>
+                <button className="btn-secondary" disabled={!tauriAvailable || !value || busy} onClick={()=>void handleSaveAndTest(provider.id as LlmProvider,false)}>Nur speichern</button>
                 <button
                   className="btn-secondary"
                   onClick={() => handleShowSaved(provider.id as LlmProvider)}
@@ -366,6 +389,7 @@ export function SettingsPanel({ mode = 'settings', onKeySaved, onVerifiedContinu
                 {info.privacyHint}
               </div>
 
+              {saved[provider.id] && <p role="status">Schlüssel im System-Schlüsselspeicher gesichert.</p>}
               {msg && (
                 <div style={{ color: msg.color, fontSize: '0.8125rem', marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                   {msg.icon}

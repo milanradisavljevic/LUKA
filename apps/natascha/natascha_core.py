@@ -175,6 +175,23 @@ def count_words(path: Path) -> int:
         return 0
 
 
+def read_submission_text(file_path: Path) -> str:
+    """Einheitlicher Eingang für Analyse und Vorschau; Vision-Dateien bleiben binär."""
+    suffix = file_path.suffix.lower()
+    if suffix == ".docx":
+        return read_docx_text(file_path)
+    if suffix == ".odt":
+        return read_odt_text(file_path)
+    if suffix == ".txt":
+        try:
+            return file_path.read_text(encoding="utf-8-sig")
+        except UnicodeDecodeError:
+            return file_path.read_text(encoding="cp1252")
+    if is_vision_file(file_path):
+        return ""
+    raise ValueError("Dieses Dateiformat wird nicht unterstützt. Bitte DOCX, TXT, ODT, PDF, JPG oder PNG verwenden.")
+
+
 def read_docx_text(docx_path: Path, preserve_italic: bool = True) -> str:
     doc = DocxDocument(str(docx_path))
     parts = []

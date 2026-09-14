@@ -13,6 +13,7 @@ fn main() {
         .plugin(tauri_plugin_process::init())
         .manage(commands::db::DbState(Mutex::new(conn)))
         .invoke_handler(tauri::generate_handler![
+            commands::diagnostics::installation_info,
             commands::llm::llm_complete,
             commands::llm::test_provider_connection,
             commands::keys::save_api_key,

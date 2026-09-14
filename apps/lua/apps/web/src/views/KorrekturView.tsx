@@ -1,6 +1,11 @@
+import { useLocalDraft, beginActivity } from '../lib/workSession';
+import { uniqueTextAnchor } from '../lib/textAnchors';
+import { correctionRuntime } from '../lib/runtimeModel';
+import { LLM_PROVIDERS } from '../lib/constants';
+import { useDialogFocus } from '../hooks/useDialogFocus';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { GraduationCap, Save, AlertTriangle, Loader2, Upload, FolderOpen, FileDown, ChevronRight, Eye, EyeOff, Files, XCircle, CheckCircle2, ShieldCheck, RefreshCw } from 'lucide-react';
-import { loadDocuments, loadSettings } from '../lib/storage';
+import { loadDocuments, loadSettings, subscribeSettings } from '../lib/storage';
 import { useNatascha, type PersonenVorschau, type RubrikListe, type SchuelerInfo, type KorrekturKontext } from '../hooks/useNatascha';
 import { useEinsatz, type EinsatzRecord } from '../hooks/useEinsatz';
 import { useKlassenMeta } from '../hooks/useKlassenMeta';
@@ -79,8 +84,8 @@ function annotateText(text: string, fehler: FehlerRow[]): React.ReactNode[] {
   const segs: Seg[] = [];
   for (const f of fehler) {
     if (!f.zitat) continue;
-    const idx = text.indexOf(f.zitat);
-    if (idx === -1) continue;
+    const idx = uniqueTextAnchor(text, f.zitat);
+    if (idx === null) continue;
     segs.push({ start: idx, end: idx + f.zitat.length, typ: f.typ });
   }
   segs.sort((a, b) => a.start - b.start);
@@ -108,7 +113,7 @@ interface KorrekturViewProps {
 }
 
 export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
-  const { analyze, analyzing, analyzeError, listKlassen, listAufgaben, getAbgaben, getAbgabeDetail, getKorrekturKontext, upsertLehrerFeedback, generateFeedbackDocx, retroImport, personenVorschau, listSchueler, listRubrics } = useNatascha();
+  const { analyze, activeJobId, cancel, analyzing, analyzeError, listKlassen, listAufgaben, getAbgaben, getAbgabeDetail, getKorrekturKontext, upsertLehrerFeedback, generateFeedbackDocx, retroImport, personenVorschau, listSchueler, listRubrics } = useNatascha();
   const { list: listEinsaetze } = useEinsatz();
   const { klassen: klassenMeta, refresh: refreshKlassenMeta } = useKlassenMeta();
 
@@ -129,17 +134,17 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
   const [showPreview, setShowPreview] = useState(true);
 
   const [analyzeOpen, setAnalyzeOpen] = useState(false);
-  const [analyzeKlasse, setAnalyzeKlasse] = useState('');
-  const [analyzeAufgabe, setAnalyzeAufgabe] = useState('');
+  const [analyzeKlasse, setAnalyzeKlasse] = useLocalDraft('analyzeKlasse', '');
+  const [analyzeAufgabe, setAnalyzeAufgabe] = useLocalDraft('analyzeAufgabe', '');
   const [analyzeAufgaben, setAnalyzeAufgaben] = useState<string[]>([]);
-  const [analyzeFile, setAnalyzeFile] = useState('');
+  const [analyzeFile, setAnalyzeFile] = useLocalDraft('analyzeFile', '');
   const [rubrikListe, setRubrikListe] = useState<RubrikListe>({ rubrics: [], defaultRubric: '' });
-  const [selectedRubrik, setSelectedRubrik] = useState('');
+  const [selectedRubrik, setSelectedRubrik] = useLocalDraft('selectedRubrik', '');
   // Ausgangstext (Angabe/Quelltext der Arbeit) — optional. Schließt den In-App-Closed-Loop:
   // wird mitanalysiert und kann später die passgenaue Übung vorbefüllen.
-  const [analyzeAusgangstext, setAnalyzeAusgangstext] = useState('');
-  const [analyzeAusgangstextDatei, setAnalyzeAusgangstextDatei] = useState('');
-  const [selectedEinsatzId, setSelectedEinsatzId] = useState('');
+  const [analyzeAusgangstext, setAnalyzeAusgangstext] = useLocalDraft('analyzeAusgangstext', '');
+  const [analyzeAusgangstextDatei, setAnalyzeAusgangstextDatei] = useLocalDraft('analyzeAusgangstextDatei', '');
+  const [selectedEinsatzId, setSelectedEinsatzId] = useLocalDraft('selectedEinsatzId', '');
   const [einsatzOptions, setEinsatzOptions] = useState<EinsatzRecord[]>([]);
   const [analyzeSuccess, setAnalyzeSuccess] = useState<string | null>(null);
   // Pseudonymisierung: Redaktionsvorschau + Schalter (Standard AN).
@@ -152,11 +157,38 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
   const zuordnungTouchedRef = useRef(false);
 
   // Batch-Korrektur (mehrere Dateien sequenziell)
-  const [batchFiles, setBatchFiles] = useState<string[]>([]);
+  const [batchFiles, setBatchFiles] = useLocalDraft<string[]>('correction-files', []);
   const [batchRunning, setBatchRunning] = useState(false);
   const [batchCurrent, setBatchCurrent] = useState(0);
-  const [batchResults, setBatchResults] = useState<{ file: string; ok: boolean; msg: string }[]>([]);
+  const [batchResults, setBatchResults] = useLocalDraft<{ file: string; ok: boolean; msg: string }[]>('correction-results', []);
   const batchCancelRef = useRef(false);
+  const [feedbackDrafts,setFeedbackDrafts] = useLocalDraft<Record<string,{note:string;comment:string}>>('feedback',{});
+  const feedbackRef=useRef(feedbackDrafts); feedbackRef.current=feedbackDrafts;
+  const detailRequest=useRef(0);
+  const saveLock=useRef(false);
+  const listRequest=useRef(0);
+  const [exportBusy,setExportBusy]=useState(false);
+  const exportLock=useRef(false);
+  const [assignments,setAssignments]=useLocalDraft<Record<string,number | ''>>('correction-assignments',{});
+  const [settings,setSettings]=useState(loadSettings);
+  useEffect(()=>subscribeSettings(setSettings),[]);
+  const runtime=correctionRuntime(settings);
+  const [queueContext,setQueueContext]=useLocalDraft('correction-context','');
+  const contextKey=JSON.stringify([analyzeKlasse,analyzeAufgabe,selectedRubrik,analyzeAusgangstext,analyzeAusgangstextDatei,selectedEinsatzId,runtime.provider,runtime.model,pseudoAktiv,assignments]);
+  const [fileChecks,setFileChecks]=useState<Record<string,PersonenVorschau | null>>({});
+  const [checkingFiles,setCheckingFiles]=useState(false);
+  const modalRef=useDialogFocus(analyzeOpen,()=>{if(!analyzing && !batchRunning)setAnalyzeOpen(false);});
+  const queueRunning=analyzing || batchRunning;
+  const selectFiles=useCallback((paths:string[])=>{
+    const accepted=paths.filter(f=>/\.(docx|pdf|txt|odt|jpe?g|png)$/i.test(f));
+    if(accepted.length!==paths.length)setError('Einige Dateien wurden nicht übernommen. Unterstützt: DOCX, PDF, TXT, ODT, JPG, PNG.');
+    setBatchFiles(accepted);setAnalyzeFile(accepted[0] ?? '');setBatchResults([]);setAssignments({});
+  },[setBatchFiles,setAnalyzeFile,setBatchResults,setAssignments]);
+  const changeFeedback=(note:string,comment:string)=>{
+    setTeacherNote(note);setTeacherComment(comment);
+    if(selectedAbgabe)setFeedbackDrafts(previous=>({...previous,[selectedAbgabe.abgabe.id]:{note,comment}}));
+    setSaveMsg('Entwurf auf diesem Gerät gesichert — noch nicht freigegeben');
+  };
   // Drag-&-Drop-Ablage: Dateien in den Analyse-Dialog ziehen (Tauri liefert absolute Pfade).
   const [dragActive, setDragActive] = useState(false);
   const [korrekturStatus, setKorrekturStatus] = useState<KorrekturStatus | null>(null);
@@ -206,16 +238,14 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
           else if (p.type === 'leave') setDragActive(false);
           else if (p.type === 'drop') {
             setDragActive(false);
-            const docs = (p.paths ?? []).filter((f) => /\.(docx|pdf|txt|odt)$/i.test(f));
-            if (docs.length === 1) { setAnalyzeFile(docs[0]!); }
-            else if (docs.length > 1) { setBatchFiles(docs); setBatchResults([]); }
+            if(!queueRunning) selectFiles(p.paths ?? []);
           }
         });
         if (cancelled) un(); else unlisten = un;
       } catch { /* Drag-&-Drop nicht verfügbar (z. B. Web-Dev) — Picker bleibt */ }
     })();
     return () => { cancelled = true; if (unlisten) unlisten(); setDragActive(false); };
-  }, [analyzeOpen]);
+  }, [analyzeOpen, queueRunning, selectFiles]);
 
   useEffect(() => {
     if (!analyzeOpen || !isTauri()) return;
@@ -223,14 +253,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     void listKlassen().then(setKlassen);
   }, [analyzeOpen, refreshKlassenMeta, listKlassen]);
 
-  useEffect(() => {
-    if (!analyzeOpen || !isTauri()) return;
-    let active = true;
-    void listRubrics().then((liste) => {
-      if (active) setRubrikListe(liste);
-    });
-    return () => { active = false; };
-  }, [analyzeOpen, listRubrics]);
+
 
   useEffect(() => {
     if (!analyzeOpen || !isTauri()) return;
@@ -304,31 +327,58 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     return () => { active = false; };
   }, [analyzeOpen, analyzeKlasse, listAufgaben]);
 
+  useEffect(()=>{
+    if(!analyzeOpen || !isTauri())return;
+    let active=true;
+    void listRubrics(analyseKlasseMeta?.fach,analyseKlasseMeta?.schulstufe).then(value=>{if(active)setRubrikListe(value);}).catch(e=>{if(active)setError(String(e));});
+    return ()=>{active=false;};
+  },[analyzeOpen,analyseKlasseMeta?.fach,analyseKlasseMeta?.schulstufe,listRubrics]);
+
+  useEffect(()=>{
+    if(!analyzeOpen || !analyzeKlasse || queueRunning)return;
+    let active=true;setCheckingFiles(true);setFileChecks({});
+    void (async()=>{
+      const checks:Record<string,PersonenVorschau | null>={};
+      for(const file of batchFiles){
+        if(!active)return;
+        checks[file]=await personenVorschau(file,analyzeKlasse,runtime);
+        if(active)setFileChecks({...checks});
+      }
+      if(active)setCheckingFiles(false);
+    })();
+    return ()=>{active=false;};
+  },[analyzeOpen,analyzeKlasse,batchFiles,personenVorschau,runtime.provider,runtime.model,queueRunning]);
+
   const loadAufgaben = useCallback(async (klasse: string) => {
+    const request=++listRequest.current;detailRequest.current++;
+    setError(null);setAufgaben([]);setAbgaben([]);
     setSelectedKlasse(klasse);
     setSelectedAufgabe(null);
     setSelectedAbgabe(null);
     setLoading(true);
     try {
       const af = await listAufgaben(klasse);
+      if(request!==listRequest.current)return;
       setAufgaben(af);
       if (af.length > 0) {
         const first: string | undefined = af[0];
         setSelectedAufgabe(first ?? null);
         const abs = await getAbgaben(klasse, first);
-        setAbgaben(abs as AbgabeDetail['abgabe'][]);
+        if(request===listRequest.current)setAbgaben(abs as AbgabeDetail['abgabe'][]);
       }
     } catch (e) { setError(String(e)); }
     finally { setLoading(false); }
   }, [listAufgaben, getAbgaben]);
 
   const loadAbgaben = useCallback(async (klasse: string, aufgabe: string) => {
+    const request=++listRequest.current;detailRequest.current++;
+    setError(null);setAbgaben([]);
     setSelectedAufgabe(aufgabe);
     setSelectedAbgabe(null);
     setLoading(true);
     try {
       const abs = await getAbgaben(klasse, aufgabe);
-      setAbgaben(abs as AbgabeDetail['abgabe'][]);
+      if(request===listRequest.current)setAbgaben(abs as AbgabeDetail['abgabe'][]);
     } catch (e) { setError(String(e)); }
     finally { setLoading(false); }
   }, [getAbgaben]);
@@ -346,20 +396,30 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
   }, [selectedKlasse, selectedAufgabe, getKorrekturKontext]);
 
   const loadDetail = useCallback(async (abgabeId: number) => {
+    const request=++detailRequest.current;
+    setError(null);
     setLoading(true);
     try {
       const detail = await getAbgabeDetail(abgabeId) as AbgabeDetail | null;
+      if (request !== detailRequest.current) return;
       if (detail) {
         setSelectedAbgabe(detail);
-        setTeacherNote(detail.lehrerFeedback?.noteFinal?.toString() ?? '');
-        setTeacherComment(detail.lehrerFeedback?.lehrerKommentar ?? '');
+        const draft=feedbackRef.current[abgabeId];
+        setTeacherNote(draft?.note ?? detail.lehrerFeedback?.noteFinal?.toString() ?? '');
+        setTeacherComment(draft?.comment ?? detail.lehrerFeedback?.lehrerKommentar ?? '');
+        setSaveMsg(draft ? 'Gesicherter Entwurf — noch nicht freigegeben' : null);
       }
     } catch (e) { setError(String(e)); }
     finally { setLoading(false); }
   }, [getAbgabeDetail]);
 
   const handleSaveFeedback = useCallback(async () => {
-    if (!selectedAbgabe) return;
+    if (!selectedAbgabe || saveLock.current) return false;
+    const note=teacherNote.trim() ? Number(teacherNote) : null;
+    if(note === null || !Number.isFinite(note) || note < 1 || note > 5){setError('Bitte eine gültige Lehrernote zwischen 1 und 5 eingeben.');return false;}
+    const savedNote=teacherNote, savedComment=teacherComment;
+    saveLock.current=true;
+    const finish=beginActivity('Feedback speichern');
     setSaving(true);
     setSaveMsg(null);
     const ok = await upsertLehrerFeedback(
@@ -371,14 +431,18 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
       selectedAbgabe.abgabe.schuelerId ?? null,
     );
     if (ok) {
-      setSaveMsg('Gespeichert');
+      setSaveMsg('Freigegeben und gespeichert');
+      setFeedbackDrafts(previous=>{const next={...previous};const draft=next[selectedAbgabe.abgabe.id];if(!draft || (draft.note===savedNote && draft.comment===savedComment))delete next[selectedAbgabe.abgabe.id];return next;});
       setTimeout(() => setSaveMsg(null), 2000);
-      loadDetail(selectedAbgabe.abgabe.id);
+      const savedFeedback={id:selectedAbgabe.lehrerFeedback?.id ?? 0,noteFinal:note,noteAppSnapshot:selectedAbgabe.abgabe.note,lehrerKommentar:teacherComment || null,erstelltAm:null,geaendertAm:null};
+      setSelectedAbgabe(current=>current?.abgabe.id===selectedAbgabe.abgabe.id ? {...current,lehrerFeedback:savedFeedback,abgabe:{...current.abgabe,hatLehrerFeedback:true,noteFinal:note}} : current);
+      setAbgaben(rows=>rows.map(row=>row.id===selectedAbgabe.abgabe.id ? {...row,hatLehrerFeedback:true,noteFinal:note}:row));
     } else {
       setError('Speichern fehlgeschlagen');
     }
-    setSaving(false);
-  }, [selectedAbgabe, teacherNote, teacherComment, upsertLehrerFeedback, loadDetail]);
+    setSaving(false);saveLock.current=false;finish();
+    return ok;
+  }, [selectedAbgabe, teacherNote, teacherComment, upsertLehrerFeedback, loadDetail, saving, setFeedbackDrafts]);
 
   const [retroBusy, setRetroBusy] = useState(false);
   const handleRetroImport = useCallback(async () => {
@@ -401,7 +465,11 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
   const [docxErfolg, setDocxErfolg] = useState<string | null>(null);
 
   const handleGenerateDocx = useCallback(async () => {
-    if (!selectedAbgabe) return;
+    if (!selectedAbgabe || exportLock.current) return;
+    exportLock.current=true;setExportBusy(true);
+    const finish=beginActivity('Feedback exportieren');
+    try {
+    if (!await handleSaveFeedback()) return;
     setError(null);
     setDocxErfolg(null);
     const result = await generateFeedbackDocx(selectedAbgabe.abgabe.id);
@@ -410,7 +478,8 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     } else {
       setError('DOCX-Erstellung fehlgeschlagen');
     }
-  }, [selectedAbgabe, generateFeedbackDocx]);
+    } finally {exportLock.current=false;setExportBusy(false);finish();}
+  }, [selectedAbgabe, generateFeedbackDocx, handleSaveFeedback, saving]);
 
   const handleShowDocx = useCallback(async () => {
     if (!docxErfolg) return;
@@ -434,6 +503,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
       setError(korrekturStatus?.label ?? 'Korrektur-Modul wird noch geprüft.');
       return;
     }
+    if(analyzeKlasse || analyzeFile || batchFiles.length){setAnalyzeOpen(true);return;}
     setSelectedEinsatzId('');
     // Beim erneuten Korrigieren derselben Aufgabe die bereits bestätigte
     // Prüfgrundlage wiederverwenden. So muss die Lehrkraft Quelle und Raster
@@ -444,7 +514,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     setAnalyzeAusgangstext(korrekturKontext?.ausgangstext ?? '');
     setAnalyzeAusgangstextDatei('');
     setAnalyzeOpen(true);
-  }, [korrekturStatus, korrekturKontext, selectedAufgabe, selectedKlasse]);
+  }, [korrekturStatus, korrekturKontext, selectedAufgabe, selectedKlasse, analyzeKlasse, analyzeFile, batchFiles.length]);
 
   // Redaktionsvorschau nachladen, sobald Datei + Klasse feststehen (debounced —
   // der Call spawnt den Python-Sidecar, nicht bei jedem Tastendruck).
@@ -457,7 +527,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     setPseudoVorschau(null);
     setPseudoVorschauBusy(true);
     const t = setTimeout(async () => {
-      const v = await personenVorschau(analyzeFile, analyzeKlasse.trim());
+      const v = await personenVorschau(analyzeFile, analyzeKlasse.trim(), runtime);
       if (aktiv) {
         setPseudoVorschau(v);
         setPseudoVorschauBusy(false);
@@ -468,7 +538,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
       clearTimeout(t);
       setPseudoVorschauBusy(false);
     };
-  }, [analyzeOpen, analyzeFile, analyzeKlasse, personenVorschau]);
+  }, [analyzeOpen, analyzeFile, analyzeKlasse, personenVorschau, runtime.provider, runtime.model]);
 
   // Schülerliste der Klasse für die bestätigte Zuordnung laden.
   useEffect(() => {
@@ -488,7 +558,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
   useEffect(() => {
     setZuordnungId('');
     zuordnungTouchedRef.current = false;
-  }, [analyzeFile]);
+  }, [analyzeFile, analyzeKlasse]);
 
   // Vorschlag aus der Redaktionsvorschau übernehmen (Dateiname-Treffer),
   // solange die Lehrkraft nicht selbst gewählt hat.
@@ -511,7 +581,9 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     setError(null);
     setAnalyzeSuccess(null);
     const einsatz = einsatzOptions.find((e) => e.id === selectedEinsatzId);
-    const result = await analyze(analyzeFile, analyzeKlasse, analyzeAufgabe, { fach: analyseKlasseMeta?.fach || undefined, schulstufe: analyseKlasseMeta?.schulstufe || undefined, ausgangstext: analyzeAusgangstextDatei ? undefined : (analyzeAusgangstext.trim() || undefined), ausgangstextDatei: analyzeAusgangstextDatei || undefined, rubric: selectedRubrik || undefined, pseudonymisierung: pseudoAktiv, schuelerId: zuordnungId === '' ? undefined : zuordnungId, einsatzId: einsatz?.id, materialId: einsatz?.materialId ?? undefined });
+    let result;
+    try { result = await analyze(analyzeFile, analyzeKlasse, analyzeAufgabe, { runtime, fach: analyseKlasseMeta?.fach || undefined, schulstufe: analyseKlasseMeta?.schulstufe || undefined, ausgangstext: analyzeAusgangstextDatei ? undefined : (analyzeAusgangstext.trim() || undefined), ausgangstextDatei: analyzeAusgangstextDatei || undefined, rubric: selectedRubrik || rubrikListe.defaultRubric || undefined, pseudonymisierung: pseudoAktiv, schuelerId: assignments[analyzeFile] || (zuordnungId === '' ? undefined : zuordnungId), einsatzId: einsatz?.id, materialId: einsatz?.materialId ?? undefined });
+    } catch(e) { setError(e instanceof Error ? e.message : String(e)); return; }
     const resultErrors = analyseHinweise(result);
     const duplicate = resultErrors.some((entry) => /duplikat|bereits analysiert/i.test(entry));
     if (result) {
@@ -521,13 +593,10 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
       } else {
         setAnalyzeSuccess(`Analyse abgeschlossen — Daten gespeichert.${resultErrors.length ? ` Hinweise: ${resultErrors.join(' ')}` : ''}`);
       }
+      setQueueContext(contextKey);
+      setBatchResults([{file:analyzeFile,ok:!duplicate,msg:duplicate ? 'Bereits analysiert' : 'KI-Vorschlag vorhanden — bitte prüfen'}]);
       setAnalyzeOpen(false);
-      setAnalyzeFile('');
-      setAnalyzeAufgabe('');
-      setSelectedRubrik('');
-      setAnalyzeAusgangstext('');
-      setAnalyzeAusgangstextDatei('');
-      setSelectedEinsatzId('');
+      // Die Grundlage bleibt für weitere Abgaben und Wiederaufnahme erhalten.
       const refreshed = await listKlassen();
       setKlassen(refreshed);
       if (analyzeKlasse) {
@@ -536,7 +605,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     } else {
       setError(analyzeError ?? 'Analyse fehlgeschlagen');
     }
-  }, [analyze, analyzeFile, analyzeKlasse, analyzeAufgabe, analyseKlasseMeta, analyzeAusgangstext, analyzeAusgangstextDatei, analyzeError, listKlassen, loadAufgaben, pseudoVorschau, pseudoVorschauBusy, pseudoAktiv, selectedRubrik, zuordnungId, einsatzOptions, selectedEinsatzId]);
+  }, [runtime.provider, runtime.model, contextKey, rubrikListe.defaultRubric, assignments, analyze, analyzeFile, analyzeKlasse, analyzeAufgabe, analyseKlasseMeta, analyzeAusgangstext, analyzeAusgangstextDatei, analyzeError, listKlassen, loadAufgaben, pseudoVorschau, pseudoVorschauBusy, pseudoAktiv, selectedRubrik, zuordnungId, einsatzOptions, selectedEinsatzId]);
 
   const annotatedNodes = useMemo(() => {
     const rohtext = selectedAbgabe?.abgabe.rohtext;
@@ -544,19 +613,10 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     return annotateText(rohtext, selectedAbgabe.fehler);
   }, [selectedAbgabe]);
 
-  const pickFile = useCallback(async () => {
-    try {
-      const { open } = await import('@tauri-apps/plugin-dialog');
-      const selected = await open({ multiple: false, filters: [{ name: 'Dokumente', extensions: ['docx', 'pdf', 'txt', 'odt'] }] });
-      if (selected && typeof selected === 'string') {
-        setAnalyzeFile(selected);
-      } else if (selected && Array.isArray(selected) && selected.length > 0) {
-        setAnalyzeFile(selected[0]);
-      }
-    } catch {
-      setAnalyzeFile(prompt('Dateipfad zur Schülerarbeit:') ?? '');
-    }
-  }, []);
+  const pickFile=useCallback(async()=>{
+    try{const {open}=await import('@tauri-apps/plugin-dialog');const paths=await open({multiple:true,filters:[{name:'Abgaben',extensions:['docx','pdf','txt','odt','jpg','jpeg','png']}]});if(paths)selectFiles(Array.isArray(paths)?paths:[paths]);}
+    catch{setError('Die Dateiauswahl konnte nicht geöffnet werden. Bitte erneut versuchen.');}
+  },[selectFiles]);
 
   const pickSourceFile = useCallback(async () => {
     try {
@@ -569,25 +629,15 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     }
   }, []);
 
-  const pickFiles = useCallback(async () => {
-    try {
-      const { open } = await import('@tauri-apps/plugin-dialog');
-      const selected = await open({ multiple: true, filters: [{ name: 'Dokumente', extensions: ['docx', 'pdf', 'txt', 'odt'] }] });
-      if (Array.isArray(selected)) {
-        setBatchFiles(selected);
-      } else if (typeof selected === 'string') {
-        setBatchFiles([selected]);
-      }
-      setBatchResults([]);
-    } catch {
-      /* Dialog nicht verfügbar (z. B. Web-Dev) — Batch braucht den nativen Picker. */
-    }
-  }, []);
-
   const baseName = (p: string) => p.split(/[/\\]/).pop() || p;
 
+  const batchStarting=useRef(false);
   const handleBatchAnalyze = useCallback(async () => {
-    if (batchFiles.length === 0 || !analyzeKlasse || !analyzeAufgabe) return;
+    if (batchStarting.current || batchFiles.length === 0 || !analyzeKlasse || !analyzeAufgabe) return;
+    if(checkingFiles || batchFiles.some(file=>!fileChecks[file])) {setError('Bitte zuerst die Dateiprüfung vollständig abschließen.');return;}
+    batchStarting.current=true;
+    const finishActivity=beginActivity('Korrekturstapel');
+    try {
     setError(null);
     setAnalyzeSuccess(null);
     setBatchRunning(true);
@@ -597,22 +647,24 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
 
     const visionFiles = batchFiles.filter(isVisionPath);
     if (visionFiles.length > 0) {
-      const visionChecks = await Promise.all(visionFiles.map((file) => personenVorschau(file, analyzeKlasse)));
-      if (visionChecks.some((preview) => preview?.visionModus && !preview.visionFaehig)) {
+      const visionChecks = await Promise.all(visionFiles.map((file) => personenVorschau(file, analyzeKlasse, runtime)));
+      if (visionChecks.some((preview) => !preview || (preview.visionModus && !preview.visionFaehig))) {
         setBatchRunning(false);
         setError('Mindestens eine PDF/Bild-Abgabe kann mit dem konfigurierten KI-Anbieter nicht analysiert werden. Bitte einen Vision-fähigen Anbieter oder DOCX/TXT verwenden.');
         return;
       }
     }
 
-    const results: { file: string; ok: boolean; msg: string }[] = [];
+    const results: { file: string; ok: boolean; msg: string }[] = queueContext === contextKey ? batchResults.filter(r=>r.ok && batchFiles.includes(r.file)) : [];
+    setQueueContext(contextKey);
     for (let i = 0; i < batchFiles.length; i++) {
       if (batchCancelRef.current) break;
       const file = batchFiles[i]!;
+      if(results.some(r=>r.file===file && r.ok))continue;
       setBatchCurrent(i + 1);
       try {
         const einsatz = einsatzOptions.find((e) => e.id === selectedEinsatzId);
-        const result = await analyze(file, analyzeKlasse, analyzeAufgabe, { fach: analyseKlasseMeta?.fach || undefined, schulstufe: analyseKlasseMeta?.schulstufe || undefined, ausgangstext: analyzeAusgangstextDatei ? undefined : (analyzeAusgangstext.trim() || undefined), ausgangstextDatei: analyzeAusgangstextDatei || undefined, rubric: selectedRubrik || undefined, pseudonymisierung: pseudoAktiv, einsatzId: einsatz?.id, materialId: einsatz?.materialId ?? undefined });
+        const result = await analyze(file, analyzeKlasse, analyzeAufgabe, { runtime, fach: analyseKlasseMeta?.fach || undefined, schulstufe: analyseKlasseMeta?.schulstufe || undefined, ausgangstext: analyzeAusgangstextDatei ? undefined : (analyzeAusgangstext.trim() || undefined), ausgangstextDatei: analyzeAusgangstextDatei || undefined, rubric: selectedRubrik || rubrikListe.defaultRubric || undefined, pseudonymisierung: pseudoAktiv, schuelerId: assignments[file] || undefined, einsatzId: einsatz?.id, materialId: einsatz?.materialId ?? undefined });
         if (result) {
           const note = result?.analysis?.notenempfehlung?.note;
           const resultErrors = analyseHinweise(result);
@@ -633,7 +685,9 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     const refreshed = await listKlassen();
     setKlassen(refreshed);
     if (analyzeKlasse) await loadAufgaben(analyzeKlasse);
-  }, [batchFiles, analyzeKlasse, analyzeAufgabe, analyseKlasseMeta, analyzeAusgangstext, analyzeAusgangstextDatei, analyze, analyzeError, personenVorschau, listKlassen, loadAufgaben, pseudoAktiv, selectedRubrik, einsatzOptions, selectedEinsatzId]);
+    } catch(e) {setError(e instanceof Error ? e.message : String(e));}
+    finally {setBatchRunning(false);batchStarting.current=false;finishActivity();}
+  }, [runtime.provider, runtime.model, contextKey, queueContext, rubrikListe.defaultRubric, assignments, batchResults, checkingFiles, fileChecks, batchFiles, analyzeKlasse, analyzeAufgabe, analyseKlasseMeta, analyzeAusgangstext, analyzeAusgangstextDatei, analyze, analyzeError, personenVorschau, listKlassen, loadAufgaben, pseudoAktiv, selectedRubrik, einsatzOptions, selectedEinsatzId]);
 
   const cardStyle = {
     padding: '1.25rem', border: '1px solid var(--color-border)',
@@ -687,7 +741,10 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
         </section>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: '1.25rem' }}>
+      {(batchRunning || analyzing) && <p role="status">{batchRunning ? 'Stapel: Datei '+batchCurrent+' von '+batchFiles.length : 'KI-Vorschlag wird erstellt'} — du kannst innerhalb von LUKA weiterarbeiten.</p>}
+      <div style={{marginBottom:'1rem'}}><button className="btn-secondary" disabled={queueRunning} onClick={()=>{setBatchFiles([]);setBatchResults([]);setAnalyzeFile('');setAnalyzeAufgabe('');setSelectedRubrik('');setAnalyzeAusgangstext('');setAnalyzeAusgangstextDatei('');setSelectedEinsatzId('');setAssignments({});setAnalyzeOpen(true);}}>Neuer Korrekturauftrag</button></div>
+      {batchResults.length>0 && !analyzeOpen && <details className="queue-results"><summary>Letzter Auftrag: {batchResults.filter(r=>r.ok).length} abgeschlossen</summary>{batchResults.map(r=><p key={r.file}>{baseName(r.file)} — {r.msg}</p>)}<button className="btn-secondary" onClick={()=>setAnalyzeOpen(true)}>Auftrag öffnen / fehlende Dateien fortsetzen</button></details>}
+      <div className="correction-workspace" style={{ display: 'grid', gridTemplateColumns: 'minmax(180px, 240px) minmax(0, 1fr)', gap: '1.25rem' }}>
           <div style={cardStyle}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
               <GraduationCap size={16} style={{ color: 'var(--color-accent)' }} />
@@ -703,7 +760,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
             {klassen.map((k) => (
               <div key={k.klasse}>
                 <button
-                  onClick={() => loadAufgaben(k.klasse)}
+                  disabled={saving || exportBusy} onClick={() => loadAufgaben(k.klasse)}
                   style={{
                     display: 'block', width: '100%', textAlign: 'left',
                     padding: '0.4rem 0.6rem', marginBottom: '0.125rem', fontSize: '0.8125rem',
@@ -819,7 +876,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
                       {abgaben.map((a) => (
                         <tr
                           key={a.id}
-                          onClick={() => loadDetail(a.id)}
+                          aria-disabled={saving || exportBusy} onClick={() => { if(!saving && !exportBusy) void loadDetail(a.id); }}
                           style={{ borderBottom: '1px solid var(--color-border)', cursor: 'pointer', background: selectedAbgabe?.abgabe.id === a.id ? 'var(--color-highlight-bg)' : 'transparent' }}
                         >
                           <td style={{ padding: '0.375rem 0.5rem' }} title={a.dateiname}>{schuelerName(a)}</td>
@@ -851,7 +908,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
                     ) : schuelerName(selectedAbgabe.abgabe)}
                     {' '}— {selectedAbgabe.abgabe.aufgabe}
                   </h4>
-                  <button className="btn-secondary" onClick={handleGenerateDocx} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.75rem', padding: '0.25rem 0.625rem' }}>
+                  <button className="btn-secondary" onClick={handleGenerateDocx} disabled={saving || exportBusy} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.75rem', padding: '0.25rem 0.625rem' }}>
                     <FileDown size={14} /> Feedback-DOCX
                   </button>
                 </div>
@@ -920,6 +977,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
                     {selectedAbgabe.fehler.length > 0 && (
                       <div style={{ marginBottom: '1.25rem' }}>
                         <h5 style={{ fontSize: '0.8125rem', margin: '0 0 0.5rem' }}>Fehler ({selectedAbgabe.fehler.length})</h5>
+                        <p style={{fontSize:'0.8rem'}}>Nur eindeutig zuordenbare Zitate werden im Text markiert. Wiederholte oder abweichende Formulierungen bitte anhand des Zitats prüfen.</p>
                         <div style={{ maxHeight: '48vh', overflowY: 'auto', paddingRight: '0.25rem' }}>
                           {selectedAbgabe.fehler.map((f) => (
                             <div key={f.id} style={{ padding: '0.5rem 0.75rem', marginBottom: '0.375rem', background: 'var(--color-bg-base)', borderRadius: 'var(--radius)', borderLeft: `3px solid ${FEHLER_COLORS[f.typ] ?? '#999'}` }}>
@@ -936,20 +994,23 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
                     )}
 
                     <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '1rem' }}>
-                      <h5 style={{ fontSize: '0.875rem', margin: '0 0 0.75rem' }}>Lehrer-Feedback</h5>
+                      <h5 style={{ fontSize: '0.875rem', margin: '0 0 0.75rem' }}>Lehrkraftprüfung</h5>
+                      <p>{selectedAbgabe.lehrerFeedback && !feedbackDrafts[selectedAbgabe.abgabe.id] ? 'Freigegeben' : 'KI-Vorschlag — Prüfung offen'}</p>
                       <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '0.75rem', alignItems: 'start' }}>
                         <label style={{ fontSize: '0.8125rem', fontWeight: 600, lineHeight: '2' }}>Note</label>
                         <input
                           type="number" min="1" max="5" step="0.25"
                           value={teacherNote}
-                          onChange={(e) => setTeacherNote(e.target.value)}
+                          disabled={saving || exportBusy}
+                          onChange={(e) => changeFeedback(e.target.value,teacherComment)}
                           placeholder="1 – 5"
                           style={{ width: '100%', boxSizing: 'border-box' }}
                         />
                         <label style={{ fontSize: '0.8125rem', fontWeight: 600, lineHeight: '2' }}>Kommentar</label>
                         <textarea
                           value={teacherComment}
-                          onChange={(e) => setTeacherComment(e.target.value)}
+                          disabled={saving || exportBusy}
+                          onChange={(e) => changeFeedback(teacherNote,e.target.value)}
                           placeholder="Optional: Bemerkung zum Aufsatz"
                           rows={3}
                           style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical' }}
@@ -957,9 +1018,10 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.75rem' }}>
                         <button className="btn-primary" onClick={handleSaveFeedback} disabled={saving} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
-                          <Save size={14} /> {saving ? 'Speichern …' : 'Speichern'}
+                          <Save size={14} /> {saving ? 'Speichern …' : 'Freigeben'}
                         </button>
-                        {saveMsg && <span style={{ fontSize: '0.75rem', color: 'var(--color-success)' }}>{saveMsg}</span>}
+                        <button className="btn-secondary" disabled={saving} onClick={async()=>{if(await handleSaveFeedback()){const next=abgaben.find(a=>a.id!==selectedAbgabe?.abgabe.id && !a.hatLehrerFeedback);if(next)await loadDetail(next.id);else setSaveMsg('Alle angezeigten Abgaben sind geprüft.');}}}>Freigeben und nächste</button>
+                      {saveMsg && <span style={{ fontSize: '0.75rem', color: 'var(--color-success)' }}>{saveMsg}</span>}
                       </div>
                     </div>
                   </div>
@@ -1019,106 +1081,11 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
         </div>
 
       {analyzeOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'var(--color-overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }} onClick={() => { if (!batchRunning) setAnalyzeOpen(false); }}>
-          <div style={{ ...cardStyle, width: 480, maxHeight: '90vh', overflow: 'auto' }} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ fontSize: '1rem', margin: '0 0 1rem' }}>Neue Analyse starten</h3>
-
-            <div style={{ marginBottom: '0.75rem' }}>
-              <label>Datei (DOCX/PDF/TXT/ODT)</label>
-              {/* Drag-&-Drop-Ablage — Datei aus dem Explorer hierher ziehen (oder klicken) */}
-              <button
-                type="button"
-                onClick={pickFile}
-                style={{
-                  width: '100%', marginBottom: '0.5rem', padding: '1.1rem 0.75rem', cursor: 'pointer',
-                  border: `2px dashed ${dragActive ? 'var(--color-accent)' : 'var(--color-border)'}`,
-                  borderRadius: 'var(--radius)',
-                  background: dragActive ? 'var(--color-highlight-bg)' : 'var(--color-bg-base)',
-                  color: 'var(--color-text-secondary)', textAlign: 'center',
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.35rem',
-                  transition: 'border-color 0.15s, background 0.15s',
-                }}
-              >
-                <Upload size={20} style={{ opacity: 0.7 }} />
-                <span style={{ fontSize: '0.875rem', color: 'var(--color-text-primary)' }}>
-                  {dragActive ? 'Loslassen zum Übernehmen' : 'Datei hierher ziehen oder klicken'}
-                </span>
-                <span style={{ fontSize: '0.7rem' }}>DOCX · PDF · TXT · ODT — mehrere Dateien = Stapel</span>
-              </button>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <input
-                  type="text"
-                  value={analyzeFile}
-                  onChange={(e) => setAnalyzeFile(e.target.value)}
-                  placeholder="Dateipfad oder Datei auswählen"
-                  style={{ flex: 1 }}
-                />
-                <button className="btn-secondary" onClick={pickFile} style={{ whiteSpace: 'nowrap', fontSize: '0.8125rem', padding: '0.375rem 0.75rem' }}>
-                  Durchsuchen …
-                </button>
-              </div>
-            </div>
-
-            {/* Prüfgrundlage: Inhalt und Datei sind getrennt, damit der Text nicht
-                versehentlich als Dateipfad an NATASCHA gelangt. */}
-            <div style={{ marginBottom: '0.75rem' }}>
-              <label>Ausgangsmaterial <span style={{ color: 'var(--color-text-secondary)', fontWeight: 400 }}>(optional, für textgebundene Aufgaben empfohlen)</span></label>
-              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.45rem', alignItems: 'center' }}>
-                <button type="button" className="btn-secondary" onClick={pickSourceFile} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.75rem' }}>
-                  <FolderOpen size={14} /> Datei auswählen …
-                </button>
-                {analyzeAusgangstextDatei && <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }} title={analyzeAusgangstextDatei}>
-                  {baseName(analyzeAusgangstextDatei)}
-                  <button type="button" onClick={() => setAnalyzeAusgangstextDatei('')} style={{ marginLeft: 6, border: 0, background: 'none', cursor: 'pointer', color: 'var(--color-text-secondary)' }} aria-label="Ausgangsmaterial entfernen">×</button>
-                </span>}
-              </div>
-              <textarea
-                rows={3}
-                value={analyzeAusgangstext}
-                onChange={(e) => { setAnalyzeAusgangstext(e.target.value); if (e.target.value.trim()) setAnalyzeAusgangstextDatei(''); }}
-                placeholder="Text der Vorlage oder Aufgabenstellung hier einfügen …"
-                style={{ width: '100%', resize: 'vertical' }}
-              />
-              <p style={{ margin: '0.25rem 0 0', fontSize: '0.72rem', color: 'var(--color-text-secondary)' }}>
-                NATASCHA prüft die Abgabe gegen diese Grundlage. Sie wird im Korrekturauftrag gespeichert und später für Folgeübungen angeboten.
-              </p>
-            </div>
-
-            {/* Batch: mehrere Dateien sequenziell */}
-            <div style={{ marginBottom: '0.75rem', padding: '0.625rem 0.75rem', background: 'var(--color-bg-base)', borderRadius: 'var(--radius)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                <span style={{ fontSize: '0.8125rem', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  <Files size={14} /> {batchFiles.length > 0 ? `${batchFiles.length} Dateien für Stapel gewählt` : 'oder ganze Klasse (mehrere Dateien)'}
-                </span>
-                <button className="btn-secondary" onClick={pickFiles} disabled={batchRunning} style={{ whiteSpace: 'nowrap', fontSize: '0.75rem', padding: '0.3rem 0.6rem' }}>
-                  Mehrere wählen …
-                </button>
-              </div>
-              {batchFiles.length > 0 && !batchRunning && (
-                <button onClick={() => { setBatchFiles([]); setBatchResults([]); }} style={{ marginTop: 6, fontSize: '0.6875rem', border: 'none', background: 'none', color: 'var(--color-text-secondary)', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>
-                  Auswahl verwerfen
-                </button>
-              )}
-              {batchRunning && (
-                <div style={{ marginTop: 8 }}>
-                  <div style={{ fontSize: '0.75rem', marginBottom: 4 }}>Analysiere {batchCurrent}/{batchFiles.length} …</div>
-                  <div style={{ height: 6, background: 'var(--color-border)', borderRadius: 3, overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${(batchCurrent / batchFiles.length) * 100}%`, background: 'var(--color-accent)', transition: 'width 0.2s' }} />
-                  </div>
-                </div>
-              )}
-              {batchResults.length > 0 && (
-                <div style={{ marginTop: 8, maxHeight: '22vh', overflowY: 'auto', fontSize: '0.6875rem' }}>
-                  {batchResults.map((r, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '1px 0' }}>
-                      {r.ok ? <CheckCircle2 size={12} style={{ color: 'var(--color-success)', flexShrink: 0 }} /> : <XCircle size={12} style={{ color: 'var(--color-danger, #c0392b)', flexShrink: 0 }} />}
-                      <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.file}>{baseName(r.file)}</span>
-                      <span style={{ color: 'var(--color-text-secondary)', flexShrink: 0 }}>{r.msg}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--color-overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }} onClick={() => { if (!batchRunning && !analyzing) setAnalyzeOpen(false); }}>
+          <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="correction-import-title" tabIndex={-1} className="correction-import" style={{ ...cardStyle, width: 760, maxWidth:'calc(100vw - 2rem)', maxHeight: '90vh', overflow: 'auto' }} onClick={(e) => e.stopPropagation()}>
+            <h3 id="correction-import-title" style={{ fontSize: '1.2rem', margin: '0 0 1rem' }}>Korrekturauftrag</h3>
+            {error && <p role="alert" className="session-warning">{error}</p>}
+            <fieldset disabled={queueRunning} style={{border:0,padding:0,margin:0,minWidth:0}}>
 
             <div style={{ marginBottom: '0.75rem' }}>
               <label>Unterrichtseinsatz <span style={{ color: 'var(--color-text-secondary)', fontWeight: 400 }}>(optional)</span></label>
@@ -1127,7 +1094,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
                 onChange={(e) => handleEinsatzChange(e.target.value)}
                 style={{ width: '100%' }}
               >
-                <option value="">Keinen Einsatz auswählen — Verhalten wie bisher</option>
+                <option value="">Ohne gespeicherte Unterlage</option>
                 {einsatzOptions.map((e) => (
                   <option key={e.id} value={e.id}>
                     {(e.titelSnapshot || 'Unbenannte Unterlage')} · {(e.klasseNameSnapshot || 'Klasse offen')} · {formatEinsatzDatum(einsatzAnzeigeDatum(e))}
@@ -1145,7 +1112,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
                 value={analyzeKlasse}
                 onChange={(e) => {
                   setAnalyzeKlasse(normalizeKlasse(e.target.value));
-                  setAnalyzeAufgabe('');
+                  setAnalyzeAufgabe('');setAssignments({});setSelectedRubrik('');setBatchResults([]);
                 }}
                 style={{ width: '100%' }}
               >
@@ -1219,6 +1186,43 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
               </div>
             )}
 
+            {/* Prüfgrundlage: Inhalt und Datei sind getrennt, damit der Text nicht
+                versehentlich als Dateipfad an NATASCHA gelangt. */}
+            <div style={{ marginBottom: '0.75rem' }}>
+              <label>Ausgangsmaterial <span style={{ color: 'var(--color-text-secondary)', fontWeight: 400 }}>(optional, für textgebundene Aufgaben empfohlen)</span></label>
+              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.45rem', alignItems: 'center' }}>
+                <button type="button" className="btn-secondary" onClick={pickSourceFile} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.75rem' }}>
+                  <FolderOpen size={14} /> Datei auswählen …
+                </button>
+                {analyzeAusgangstextDatei && <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }} title={analyzeAusgangstextDatei}>
+                  {baseName(analyzeAusgangstextDatei)}
+                  <button type="button" onClick={() => setAnalyzeAusgangstextDatei('')} style={{ marginLeft: 6, border: 0, background: 'none', cursor: 'pointer', color: 'var(--color-text-secondary)' }} aria-label="Ausgangsmaterial entfernen">×</button>
+                </span>}
+              </div>
+              <textarea
+                rows={3}
+                value={analyzeAusgangstext}
+                onChange={(e) => { setAnalyzeAusgangstext(e.target.value); if (e.target.value.trim()) setAnalyzeAusgangstextDatei(''); }}
+                placeholder="Text der Vorlage oder Aufgabenstellung hier einfügen …"
+                style={{ width: '100%', resize: 'vertical' }}
+              />
+              <p style={{ margin: '0.25rem 0 0', fontSize: '0.72rem', color: 'var(--color-text-secondary)' }}>
+                NATASCHA prüft die Abgabe gegen diese Grundlage. Sie wird im Korrekturauftrag gespeichert und später für Folgeübungen angeboten.
+              </p>
+            </div>
+
+            <h4>Abgaben</h4>
+            <button type="button" className="file-drop" onClick={pickFile} style={{width:'100%',padding:'1.25rem',border:'2px dashed var(--color-border)',background:dragActive?'var(--color-bg-selected)':'var(--color-bg-base)',borderRadius:'var(--radius)'}}>
+              <Upload size={20}/> Dateien hierher ziehen oder auswählen<br/><small>Eine oder mehrere Abgaben · DOCX, PDF, TXT, ODT, JPG, PNG</small>
+            </button>
+            {batchFiles.map(file=><div className="correction-file-row" key={file}>
+              <div><strong>{baseName(file)}</strong><div>{checkingFiles && !fileChecks[file] ? 'Wird geprüft …' : !fileChecks[file] ? 'Prüfung nicht abgeschlossen' : fileChecks[file]?.visionModus ? 'PDF/Bild: Datei wird unverändert übertragen' : 'Textdatei geprüft'}</div></div>
+              <select aria-label={'Schülerzuordnung für '+baseName(file)} value={assignments[file] ?? ''} onChange={e=>setAssignments(prev=>({...prev,[file]:e.target.value ? Number(e.target.value):''}))}>
+                <option value="">Automatische Zuordnung — bitte prüfen</option>{klasseSchueler.map(person=><option key={person.id} value={person.id}>{person.vorname} {person.nachname}</option>)}
+              </select>
+              <button type="button" className="btn-secondary" onClick={()=>selectFiles(batchFiles.filter(p=>p!==file))} aria-label={'Entfernen: '+baseName(file)}>Entfernen</button>
+            </div>)}
+            {batchResults.length>0 && <div role="status" className="queue-results"><strong>Letzter Bearbeitungsstand</strong>{batchResults.map(r=><p key={r.file}>{baseName(r.file)} — {r.ok?'KI-Vorschlag vorhanden':'Nicht abgeschlossen'} · {r.msg}</p>)}</div>}
             {/* Datenschutz: Redaktionsvorschau + Schalter. Kein stilles Versprechen —
                 die Karte zeigt konkret, was ersetzt wird (oder dass nichts geht). */}
             <div style={{ marginBottom: '0.75rem', padding: '0.625rem 0.75rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', background: 'var(--color-bg-base)' }}>
@@ -1239,7 +1243,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
                   </span>
                 </span>
               </label>
-              {pseudoAktiv && batchFiles.length === 0 && (
+              {pseudoAktiv && batchFiles.length <= 1 && (
                 <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
                   {pseudoVorschauBusy && <span>Prüfe Datei auf bekannte Namen …</span>}
                   {!pseudoVorschauBusy && pseudoVorschau?.visionModus && (
@@ -1273,31 +1277,33 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
                   )}
                 </div>
               )}
-              {pseudoAktiv && batchFiles.length > 0 && (
+              {pseudoAktiv && batchFiles.length > 1 && (
                 <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
                   Gilt für alle Dateien im Stapel; erkannte Namen stehen nach der Analyse im Hinweis-Protokoll.
                 </div>
               )}
             </div>
 
+            </fieldset>
+            <p className="runtime-summary"><strong>KI für diesen Auftrag:</strong> {LLM_PROVIDERS.find(p=>p.id===settings.defaultProvider)?.label ?? runtime.provider} · {settings.defaultModel}. Bewertungsraster: {rubrikLabel(rubrikListe.rubrics.find(r=>r.filename===(selectedRubrik || rubrikListe.defaultRubric)) ?? {filename:selectedRubrik || rubrikListe.defaultRubric || 'Bitte auswählen'})}</p>
             {analyzeError && <p style={{ color: 'var(--color-error)', fontSize: '0.8125rem' }}>{analyzeError}</p>}
 
             <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-              {batchRunning ? (
-                <button className="btn-secondary" onClick={() => { batchCancelRef.current = true; }} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
-                  <XCircle size={14} /> Abbrechen (nach laufender Datei)
+              {queueRunning ? (
+                <button className="btn-secondary" disabled={!batchRunning && activeJobId===null} onClick={async () => { if(batchRunning){batchCancelRef.current=true;}else if(activeJobId!==null && !await cancel(activeJobId)){setError('Der Auftrag konnte noch nicht abgebrochen werden. Bitte erneut versuchen.');} }} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                  <XCircle size={14} /> {batchRunning ? 'Stapel nach laufender Datei stoppen' : 'Analyse abbrechen'}
                 </button>
               ) : (
                 <>
-                  <button className="btn-secondary" onClick={() => setAnalyzeOpen(false)}>Schließen</button>
-                  {batchFiles.length > 0 ? (
-                    <button className="btn-primary" onClick={handleBatchAnalyze} disabled={!analyzeKlasse || !analyzeAufgabe} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                  <button className="btn-secondary" onClick={() => setAnalyzeOpen(false)}>Entwurf schließen</button>
+                  {batchFiles.length > 1 ? (
+                    <button className="btn-primary" onClick={handleBatchAnalyze} disabled={checkingFiles || !analyzeKlasse || !analyzeAufgabe || batchFiles.some(file=>!fileChecks[file] || !fileChecks[file]?.visionFaehig)} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
                       <Files size={14} /> Stapel analysieren ({batchFiles.length})
                     </button>
                   ) : (
-                    <button className="btn-primary" onClick={handleAnalyze} disabled={analyzing || !analyzeFile || !analyzeKlasse || !analyzeAufgabe || (isVisionPath(analyzeFile) && (pseudoVorschauBusy || !pseudoVorschau || !pseudoVorschau.visionFaehig))} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                    <button className="btn-primary" onClick={handleAnalyze} disabled={checkingFiles || !fileChecks[analyzeFile] || analyzing || !analyzeFile || !analyzeKlasse || !analyzeAufgabe || (isVisionPath(analyzeFile) && (pseudoVorschauBusy || !pseudoVorschau || !pseudoVorschau.visionFaehig))} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
                       {analyzing ? <Loader2 size={14} className="spin" /> : <Upload size={14} />}
-                      {analyzing ? 'Analysiere …' : 'Analyse starten'}
+                      {analyzing ? 'Analysiere …' : 'KI-Vorschlag erstellen'}
                     </button>
                   )}
                 </>

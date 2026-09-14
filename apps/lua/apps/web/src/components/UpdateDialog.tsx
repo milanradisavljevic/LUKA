@@ -1,3 +1,4 @@
+import { useDialogFocus } from '../hooks/useDialogFocus';
 import { Download, Loader2, RotateCw, X } from 'lucide-react';
 import type { UseUpdaterReturn } from '../hooks/useUpdater';
 import { parseMiniMarkdown, type InlineSegment, type MiniMarkdownBlock } from '../lib/miniMarkdown';
@@ -63,11 +64,12 @@ function formatBytes(n: number): string {
  * Konsumiert `useUpdater()` — reine Anzeige, keine eigene Update-Logik.
  */
 export function UpdateDialog({ updater }: Props) {
-  const { state, install, relaunchNow, dismiss } = updater;
+  const { state, download, install, relaunchNow, dismiss } = updater;
+  const dialogRef = useDialogFocus(state.phase !== 'idle', () => { if (!['downloading','installing'].includes(state.phase)) dismiss(); });
 
   if (state.phase === 'idle') return null;
 
-  const canDismissViaBackdrop = state.phase !== 'downloading';
+  const canDismissViaBackdrop = !['downloading', 'installing'].includes(state.phase);
 
   return (
     <div
@@ -80,6 +82,8 @@ export function UpdateDialog({ updater }: Props) {
       }}
     >
       <div
+        ref={dialogRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-labelledby="update-dialog-title"
@@ -116,8 +120,8 @@ export function UpdateDialog({ updater }: Props) {
             )}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem' }}>
               <button className="btn-secondary" onClick={dismiss}>Später</button>
-              <button className="btn-primary" onClick={() => void install()} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
-                <Download size={14} /> Jetzt installieren
+              <button className="btn-primary" onClick={() => void download()} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                <Download size={14} /> Update herunterladen
               </button>
             </div>
           </>
@@ -157,16 +161,30 @@ export function UpdateDialog({ updater }: Props) {
           </>
         )}
 
-        {state.phase === 'downloaded' && (
+        {state.phase === 'ready' && (
+          <>
+            <h2 id="update-dialog-title">Update bereit</h2>
+            <p>Bei der Installation wird LUKA geschlossen. Deine Entwürfe werden vorher gesichert. Laufende Aufträge müssen zuerst beendet werden.</p>
+            {state.error && <p role="alert" style={{color:'var(--color-error)'}}>{state.error}</p>}
+            <button className="btn-primary" onClick={() => void install()}>Sichern und installieren</button>
+          </>
+        )}
+        {state.phase === 'installing' && <h2 id="update-dialog-title"><Loader2 className="spin" size={18} /> Installation wird gestartet …</h2>}
+        {state.phase === 'verified' && <>
+          <h2 id="update-dialog-title">LUKA {state.currentVersion} ist jetzt aktiv</h2>
+          <p>Das Update wurde beim Neustart bestätigt.</p>
+          <button className="btn-primary" onClick={dismiss}>Weiterarbeiten</button>
+        </>}
+        {state.phase === 'installed' && (
           <>
             <h2 id="update-dialog-title" style={{ fontSize: '1rem', color: 'var(--color-text-primary)', marginBottom: '0.5rem' }}>
               Update installiert
             </h2>
             <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>
-              Jetzt neu starten? Ungespeicherte Eingaben im Wizard gehen beim Neustart verloren.
+              Deine Entwürfe sind gesichert. Nach dem Neustart wird die neue Version bestätigt.
             </p>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-              <button className="btn-secondary" onClick={dismiss}>Beim nächsten Start</button>
+              {state.error && <p role="alert">{state.error}</p>}
               <button className="btn-primary" onClick={() => void relaunchNow()} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
                 <RotateCw size={14} /> Jetzt neu starten
               </button>
@@ -189,6 +207,7 @@ export function UpdateDialog({ updater }: Props) {
             </p>
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
               <button className="btn-secondary" onClick={dismiss}>Schließen</button>
+              <button className="btn-primary" onClick={() => void updater.retry()}>Erneut prüfen</button>
             </div>
           </>
         )}

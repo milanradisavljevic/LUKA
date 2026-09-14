@@ -5,6 +5,19 @@ Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 (auch andere Coding-Agents) — siehe `AGENTS.md`.
 
+## Version 1.3.0 — 2026-09-15
+
+- API-Schlüssel: Eingabe stabilisiert, Speichern mit Rückprüfung und separater Speicherung ohne Online-Test. Der zuerst eingerichtete Anbieter wird als Standard übernommen.
+
+- Korrekturaktionen öffnen unter Windows kein Konsolenfenster mehr.
+- Updates trennen Herunterladen und Installieren; die neue Version wird nach dem Neustart bestätigt. Entwürfe werden vor der Installation gesichert.
+- Korrektur und Vorschau verwenden den ausgewählten KI-Anbieter und dasselbe Bewertungsraster. TXT und ODT werden korrekt eingelesen; PDF-/Bilddateien verwenden den passenden Analysepfad.
+- Begonnene Unterlagen und Lehrerkommentare bleiben als lokale Entwürfe erhalten. Der Wechsel zum Baukasten verwirft keine fertigen Ergebnisse mehr.
+- Feedback wird vor dem Export gespeichert. „Freigeben und nächste“ führt durch die Lehrkraftprüfung.
+- Korrekturaufträge zeigen eine gemeinsame Dateiliste, Zuordnung und den letzten Bearbeitungsstand. Navigation erhält laufende Aufträge.
+- Fünf Hauptbereiche und „Weiterarbeiten“ auf der Startseite erleichtern die Orientierung. Die Korrekturmaske bietet mehr Platz und Tastaturführung.
+- Mehrdeutige Fehlerzitate werden nicht mehr an einer möglicherweise falschen Stelle markiert.
+
 ## Version 1.2.0 — 2026-07-22
 
 **Das ist neu:** Die native Korrektur ist jetzt der klare Hauptweg. „Neue

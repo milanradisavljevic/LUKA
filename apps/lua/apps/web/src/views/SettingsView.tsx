@@ -11,6 +11,12 @@ import { FACH_META, schulstufeLabel, schulstufenFuerLand } from '@lehrunterlagen
 import { SettingsPanel } from '../components/SettingsPanel';
 import { ViewShell } from './_ViewShell';
 
+function InstallationStatus() {
+ const [info,setInfo]=useState<{version:string;executable:string;temporary:boolean}|null>(null);
+ useEffect(()=>{if((window as any).__TAURI_INTERNALS__)void import('@tauri-apps/api/core').then(m=>m.invoke<typeof info>('installation_info')).then(setInfo);},[]);
+ return info ? <section className="queue-results"><h3>Installation & Updates</h3><p>Aktiv: LUKA {info.version}</p>{info.temporary && <p role="alert">LUKA läuft aus einem Test- oder temporären Ordner. Bitte den regulären Installer verwenden.</p>}<details><summary>Details für Support</summary><p style={{overflowWrap:'anywhere'}}>{info.executable}</p></details></section> : null;
+}
+
 function DbPath() {
   const path = getDbPath();
   return (
@@ -296,6 +302,7 @@ export function SettingsView() {
       title="Einstellungen"
       description="API-Schlüssel und die Standard-Vorgaben für neue Dokumente."
     >
+      <InstallationStatus />
       <ProfileSection />
       {/* Abschnitt 1: Standard-Vorgaben */}
       <section style={{
@@ -311,7 +318,7 @@ export function SettingsView() {
           )}
         </div>
         <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', marginBottom: '1.25rem' }}>
-          Diese Werte belegen ein <strong>neues</strong> Dokument vor. Bestehende Dokumente bleiben unverändert.
+          Diese Werte belegen neue Unterlagen vor und bestimmen Anbieter und Modell für neue Korrekturaufträge.
         </p>
 
         <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>

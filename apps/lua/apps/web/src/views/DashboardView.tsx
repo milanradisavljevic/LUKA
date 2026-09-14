@@ -8,7 +8,7 @@ import { useNatascha } from '../hooks/useNatascha';
 import { loadDocuments, loadTemplates } from '../lib/storage';
 import { loadTeacherProfile } from '../lib/profile';
 import { BLOCK_TYPE_DEFS } from '../lib/constants';
-import type { ActiveView } from '../lib/types';
+import type { SavedDocument, ActiveView } from '../lib/types';
 import { FEATURES } from '../lib/features';
 import { fachLabel } from '@lehrunterlagen/schema';
 import type { Block, Fach } from '@lehrunterlagen/schema';
@@ -21,6 +21,9 @@ import {
 } from '../lib/nataschaBridge';
 
 interface DashboardViewProps {
+  resumeTitle?: string;
+  onResume?: () => void;
+  onOpenDocument?: (document: SavedDocument) => void;
   onNavigate?: (view: ActiveView) => void;
   onStartQuickExercise?: (config: { fach: 'deutsch' | 'englisch'; stufe: 'unterstufe' | 'oberstufe'; typ: Block['typ']; thema: string }) => void;
   onGenerateUebung?: (prefill: NataschaPrefill) => void;
@@ -95,7 +98,7 @@ const START_ACTIONS = [
   },
 ];
 
-export function DashboardView({ onNavigate, onStartQuickExercise, onGenerateUebung }: DashboardViewProps = {}) {
+export function DashboardView({ resumeTitle, onResume, onOpenDocument, onNavigate, onStartQuickExercise, onGenerateUebung }: DashboardViewProps = {}) {
   const { listKlassen, getNotenverteilung, getKlassenTrend, getHeatmap, quelltextGet } = useNatascha();
   const [rows, setRows] = useState<KlasseStat[]>([]);
   const [empfehlung, setEmpfehlung] = useState<EmpfehlungDesTages | null>(null);
@@ -255,6 +258,15 @@ export function DashboardView({ onNavigate, onStartQuickExercise, onGenerateUebu
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto' }}>
 
+      <section className="resume-work" aria-labelledby="resume-title">
+        <div><h2 id="resume-title">Weiterarbeiten</h2><p>Dein Unterricht, deine offenen Aufgaben.</p></div>
+        <div className="resume-actions">
+          {resumeTitle && <button className="btn-primary" onClick={onResume}>Entwurf fortsetzen: {resumeTitle}</button>}
+          {lastDocument && <button className="btn-secondary" onClick={()=>onOpenDocument?.(lastDocument)}>Letzte Unterlage: {lastDocument.title}</button>}
+          {FEATURES.natascha && <button className="btn-secondary" onClick={()=>onNavigate?.('korrektur')}>Korrekturen weiterprüfen</button>}
+          {!resumeTitle && !lastDocument && <span>Beginne unten mit deiner ersten Unterlage.</span>}
+        </div>
+      </section>
       {/* ═══ HERO: Begrüßung + drei Startwege ═══ */}
       <section className="paper dashboard-start" aria-labelledby="dashboard-start-title">
         <div className="dashboard-start__header">

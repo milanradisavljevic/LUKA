@@ -33,6 +33,8 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 # Von --db-path gesetzt (gemeinsame DB mit LUA). Überschreibt den Config-Pfad,
 # damit LUA als Single Source of Truth den DB-Pfad vorgeben kann.
 _DB_PATH_OVERRIDE = None
+_PROVIDER_OVERRIDE = ""
+_MODEL_OVERRIDE = ""
 
 
 def _load_env_and_config():
@@ -41,6 +43,12 @@ def _load_env_and_config():
     import natascha_db as ndb
     nc._load_dotenv()
     config = nc.load_config()
+    if _PROVIDER_OVERRIDE or _MODEL_OVERRIDE:
+        config = {**config, "api": dict(config.get("api", {}))}
+        if _PROVIDER_OVERRIDE:
+            config["api"]["provider"] = _PROVIDER_OVERRIDE
+        if _MODEL_OVERRIDE:
+            config["api"]["model"] = _MODEL_OVERRIDE
     if _DB_PATH_OVERRIDE:
         db_path = Path(_DB_PATH_OVERRIDE).expanduser()
     else:
@@ -69,12 +77,12 @@ def cmd_analyze(args):
         return 1
 
     _progress("input", "Rubrik und Abgabe werden gelesen")
-    rubric = (
-        nc.load_rubric(args.rubric, config)
-        if args.rubric
-        else nc.load_rubric_for_aufgabe(config, args.klasse, args.aufgabe)
-    )
-    docx_text = nc.read_docx_text(file_path)
+    docx_text = nc.read_submission_text(file_path)
+    api = config.get("api", {})
+    if nc.is_vision_file(file_path) and not nc.is_vision_capable(
+        str(api.get("provider", "")), str(api.get("model", "")), file_path
+    ):
+        raise ValueError("Der ausgewählte Anbieter unterstützt diese PDF-/Bilddatei nicht. Bitte Anbieter ändern oder DOCX/TXT/ODT verwenden.")
 
     # Fehlt fach/schulstufe/textsorte, aus der Aufgaben-Config ableiten — so wirkt
     # eine in der App angelegte Aufgabe (inkl. Rubrik) direkt bei der Korrektur.
@@ -87,7 +95,10 @@ def cmd_analyze(args):
         rubric_name = nc.default_rubric_for(fach, schulstufe, config)
     if not rubric_name:
         rubric_name = (nc.list_all_rubrics(config) or [""])[0]
-    rubric_path = nc.resolve_path(config, "rubrics") / rubric_name if rubric_name else None
+    if not rubric_name:
+        raise ValueError("Kein passendes Bewertungsraster vorhanden. Bitte ein Raster auswählen.")
+    rubric = nc.load_rubric(rubric_name, config)
+    rubric_path = nc.resolve_path(config, "rubrics") / rubric_name
     rubric_header = nc.parse_rubrik_header(rubric_path.read_text(encoding="utf-8")) if rubric_path and rubric_path.exists() else {}
     rubrik_titel = rubric_header.get("titel", "") or rubric_name
     auftrag_key = "|".join([
@@ -154,7 +165,7 @@ def cmd_analyze(args):
         for e in errors:
             print(f"Hinweis: {e}", file=sys.stderr)
 
-    result = {"analysis": data, "errors": errors}
+    result = {"analysis": data, "errors": errors, "provider": config.get("api", {}).get("provider"), "model": config.get("api", {}).get("model"), "rubric": rubric_name}
     if data.get("_abgabe_id"):
         result["abgabe_id"] = data["_abgabe_id"]
     _json_out(result)
@@ -179,7 +190,7 @@ def cmd_personen_vorschau(args):
     text = ""
     if not vision:
         try:
-            text = nc.read_docx_text(file_path)
+            text = nc.read_submission_text(file_path)
         except Exception as e:
             print(f"Datei nicht lesbar: {e}", file=sys.stderr)
             return 1
@@ -632,7 +643,7 @@ def cmd_retro_import(args):
 
 
 def main():
-    global _DB_PATH_OVERRIDE
+    global _DB_PATH_OVERRIDE, _PROVIDER_OVERRIDE, _MODEL_OVERRIDE
     parser = argparse.ArgumentParser(
         prog="natascha_cli",
         description="NATASCHA Headless-CLI — Sub-Commands fuer LUA-Integration",
@@ -642,6 +653,8 @@ def main():
         default=None,
         help="Überschreibt den DB-Pfad (gemeinsame DB mit LUA). Muss VOR dem Sub-Command stehen.",
     )
+    parser.add_argument("--provider", dest="runtime_provider", default="", help="KI-Anbieter für diesen Auftrag")
+    parser.add_argument("--model", dest="runtime_model", default="", help="KI-Modell für diesen Auftrag")
     sub = parser.add_subparsers(dest="command", help="Verfuegbare Befehle")
 
     # analyze
@@ -761,6 +774,8 @@ def main():
 
     args = parser.parse_args()
     _DB_PATH_OVERRIDE = args.db_path
+    _PROVIDER_OVERRIDE = args.runtime_provider
+    _MODEL_OVERRIDE = args.runtime_model
     if not args.command:
         parser.print_help()
         return 1

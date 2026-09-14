@@ -6,6 +6,10 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+# Eine echte Installation verändert Verknüpfungen/Registry: nur isolierte Runner.
+if ($env:CI -ne 'true') {
+  throw 'Installer-Abnahme nur in einer isolierten CI-/Windows-Testumgebung. Auf dem Arbeitsrechner würde sie die reguläre Installation verändern.'
+}
 $installer = (Resolve-Path -LiteralPath $InstallerPath).Path
 $target = [System.IO.Path]::GetFullPath($InstallDirectory)
 
@@ -15,7 +19,7 @@ if (Test-Path -LiteralPath $target) {
 New-Item -ItemType Directory -Force -Path $target | Out-Null
 
 Write-Host "Installiere $installer nach $target"
-$process = Start-Process -FilePath $installer -ArgumentList @('/S', "/D=$target") -Wait -PassThru
+$process = Start-Process -FilePath $installer -ArgumentList @('/S', "/D=$target") -WindowStyle Hidden -Wait -PassThru
 if ($process.ExitCode -ne 0) {
   throw "NSIS-Installer beendet sich mit Exit-Code $($process.ExitCode)."
 }
