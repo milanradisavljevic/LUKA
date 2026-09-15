@@ -78,7 +78,7 @@ export function SettingsPanel({ mode = 'settings', onKeySaved, onVerifiedContinu
       await invoke('save_api_key', { provider: keyId, key: key.trim() });
 
       const stored=await invoke<string>('load_api_key',{provider:keyId});
-      if(stored !== key.trim()) throw new Error('Der Schlüssel konnte nicht dauerhaft gespeichert werden. Bitte erneut versuchen.');
+      if(!stored || !stored.trim()) throw new Error('Der Schlüssel konnte nicht dauerhaft gespeichert werden. Bitte erneut versuchen.');
       setSaved(prev=>({...prev,[providerId]:true}));
       if(test) {
         markProviderSetupVerified(providerId);

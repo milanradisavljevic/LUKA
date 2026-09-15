@@ -97,10 +97,10 @@ export function getDefaultMeta(stufe?: Meta['stufe']): Meta {
 export const LLM_PROVIDERS = [
   { id: 'claude' as const, label: 'Claude (Anthropic)', models: ['Opus 4.8', 'Opus 4.7', 'Sonnet 4.6', 'Haiku 4.5'] },
   { id: 'chatgpt' as const, label: 'ChatGPT (OpenAI)', models: ['GPT-5.4', 'GPT-5.4 mini', 'GPT-5.4 nano'] },
-  { id: 'deepseek' as const, label: 'DeepSeek', models: ['DeepSeek V4 Flash', 'DeepSeek V4 Pro'] },
+  { id: 'deepseek' as const, label: 'DeepSeek', models: ['DeepSeek V4.1 Flash', 'DeepSeek V4 Pro'] },
   { id: 'mistral' as const, label: 'Mistral', models: ['Mistral Medium 3.5', 'Mistral Small 4'] },
   { id: 'qwen' as const, label: 'Qwen (Alibaba)', models: ['Qwen 3.7 Max', 'Qwen 3.5 Plus'] },
-  { id: 'kimi' as const, label: 'Kimi (Moonshot)', models: ['Moonshot V1 8K', 'Kimi K2.6'] },
+  { id: 'kimi' as const, label: 'Kimi (Moonshot)', models: ['Kimi K3', 'Kimi K2.6'] },
 ];
 
 /**

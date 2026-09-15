@@ -10,7 +10,7 @@ impl OpenAiCompatAdapter {
             "openai" => "https://api.openai.com/v1",
             "deepseek" => "https://api.deepseek.com/v1",
             "mistral" => "https://api.mistral.ai/v1",
-            "qwen" => "https://dashscope.aliyuncs.com/compatible-mode/v1",
+            "qwen" => "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
             "kimi" => "https://api.moonshot.ai/v1",
             _ => "https://api.openai.com/v1",
         };
@@ -154,7 +154,7 @@ mod tests {
         };
 
         let (url, _, body) = adapter.build_request(&req).unwrap();
-        assert_eq!(url, "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions");
+        assert_eq!(url, "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions");
         assert!(body.get("response_format").is_some(), "Qwen sollte response_format haben");
     }
 

@@ -55,7 +55,7 @@ export const PROVIDER_ONBOARDING: Record<LlmProvider, ProviderOnboardingInfo> = 
     shortReason: 'Sehr günstig, gut für unkritische Tests.',
     privacyHint: 'Chinesischer Anbieter, nur für selbst verfasste Inhalte.',
     costHint: 'Sehr niedrige Token-Kosten.',
-    testModel: 'deepseek-v4-flash',
+    testModel: 'deepseek-flash',
   },
   mistral: {
     setupUrl: 'https://console.mistral.ai/api-keys/',
@@ -79,7 +79,7 @@ export const PROVIDER_ONBOARDING: Record<LlmProvider, ProviderOnboardingInfo> = 
     shortReason: 'Gut für lange Kontexte und unkritische Experimente.',
     privacyHint: 'Chinesischer Anbieter, nur für selbst verfasste Inhalte.',
     costHint: 'Günstig bis mittel, abhängig vom Modell.',
-    testModel: 'moonshot-v1-8k',
+    testModel: 'kimi-k2.6',
   },
 };
 

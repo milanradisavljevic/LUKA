@@ -20,6 +20,14 @@ fn compact_connection_test_body(mut body: serde_json::Value) -> serde_json::Valu
         } else {
             map.insert("max_tokens".to_string(), serde_json::json!(16));
         }
+        // DeepSeek V4.1 Flash und Kimi K2.6 haben Thinking standardmäßig aktiviert.
+        // Für den Connection Test deaktivieren, da die Antwort sonst
+        // in `reasoning_content` landet und `content` leer bleibt.
+        if let Some(model) = map.get("model").and_then(|m| m.as_str()) {
+            if model.starts_with("deepseek") || model.starts_with("kimi") {
+                map.insert("thinking".to_string(), serde_json::json!({"type": "disabled"}));
+            }
+        }
     }
     body
 }
@@ -39,6 +47,8 @@ pub async fn test_provider_connection(
         return Err("Kein API-Schlüssel angegeben.".to_string());
     }
 
+    // Kimi K2.6 akzeptiert nur temperature=0.6.
+    let temperature = if provider == "kimi" { 0.6 } else { 0.0 };
     let req = LlmRequest {
         provider: provider.clone(),
         model,
@@ -47,7 +57,7 @@ pub async fn test_provider_connection(
             role: "user".to_string(),
             content: "Antworte mit OK.".to_string(),
         }],
-        temperature: 0.0,
+        temperature,
         api_key,
     };
     let adapter: Box<dyn Adapter + Send + Sync> = match provider.as_str() {
@@ -60,11 +70,14 @@ pub async fn test_provider_connection(
         .timeout(Duration::from_secs(CONNECTION_TEST_TIMEOUT))
         .build()
         .map_err(|e| format!("HTTP-Client-Fehler: {}", e))?;
-    let mut request = client.post(&url);
-    for (key, value) in &headers {
-        request = request.header(key.as_str(), value.as_str());
-    }
-    let response = request.json(&body).send().await.map_err(|e| {
+
+    let response = {
+        let mut request = client.post(&url);
+        for (key, value) in &headers {
+            request = request.header(key.as_str(), value.as_str());
+        }
+        request.json(&body).send().await
+    }.map_err(|e| {
         if e.is_timeout() {
             "Zeitüberschreitung beim Verbindungstest.".to_string()
         } else if e.is_connect() {
@@ -75,6 +88,34 @@ pub async fn test_provider_connection(
     })?;
     let status = response.status();
     let response_text = response.text().await.unwrap_or_default();
+
+    // Qwen-Fallback: Bei 401/403 mit internationalem Endpoint, China-Endpoint versuchen.
+    if !status.is_success() && provider == "qwen" && matches!(status.as_u16(), 401 | 403) {
+        let fallback_url = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions";
+        if let Ok(fallback_resp) = {
+            let mut req = client.post(fallback_url);
+            for (key, value) in &headers {
+                req = req.header(key.as_str(), value.as_str());
+            }
+            req.json(&body).send().await
+        } {
+            let fb_status = fallback_resp.status();
+            let fb_text = fallback_resp.text().await.unwrap_or_default();
+            if fb_status.is_success() {
+                let fb_body: serde_json::Value = serde_json::from_str(&fb_text)
+                    .map_err(|e| format!("Ungültige Provider-Antwort: {}", e))?;
+                let content = adapter.parse_response(&fb_body)?;
+                if content.trim().is_empty() {
+                    return Err("Der Anbieter hat leer geantwortet.".to_string());
+                }
+                return Ok(());
+            }
+            if matches!(fb_status.as_u16(), 401 | 403) {
+                return Err("API-Schlüssel ungültig. Bitte in den Einstellungen prüfen.".to_string());
+            }
+        }
+    }
+
     if !status.is_success() {
         return Err(match status.as_u16() {
             401 | 403 => "API-Schlüssel ungültig. Bitte in den Einstellungen prüfen.".to_string(),

@@ -63,7 +63,11 @@ export function useUpdater() {
       localStorage.setItem(PENDING,updateRef.current.version);
       setState(s=>({...s,phase:'installing',error:null}));
       await updateRef.current.install();
-      // Unter Windows beendet der Installer die App selbst.
+      // Unter Windows beendet der Installer die App selbst — aber nur,
+      // wenn die App die EXE nicht hält. Damit der NSIS-Installer die
+      // Dateien ersetzen kann, schließen wir die App nach kurzer Verzögerung.
+      const { exit } = await import('@tauri-apps/plugin-process');
+      setTimeout(() => { void exit(0); }, 2000);
       setState(s=>({...s,phase:'installed'}));
     } catch(e) {
       localStorage.removeItem(PENDING);

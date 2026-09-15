@@ -98,13 +98,14 @@ export const MODELS: ModelInfo[] = [
   },
 
   // --- DeepSeek ---
-  // Quelle: https://platform.deepseek.com/pricing, Stand 2026-06-01
-  // Preise sind ohne Cache-Hit-Rabatt. V4 Pro: Aktionspreis (75% off bis 2026-05-31).
+  // Quelle: https://api-docs.deepseek.com/, Stand 2026-09-15
+  // V4-Flash ist abgeschaltet,umbenannt in deepseek-flash (V4.1-Flash).
+  // Legacy-Name deepseek-v4-flash wird noch unterstützt.
   {
-    label: 'DeepSeek V4 Flash',
-    apiName: 'deepseek-v4-flash',
+    label: 'DeepSeek V4.1 Flash',
+    apiName: 'deepseek-flash',
     provider: 'deepseek',
-    staerken: ['Schnell', 'Sehr günstig', 'Allrounder'],
+    staerken: ['Schnell', 'Sehr günstig', 'Allrounder', 'Nativ multimodal'],
     kostenInputProMioToken: 0.14,
     kostenOutputProMioToken: 0.28,
     region: 'China (DeepSeek)',
@@ -170,29 +171,25 @@ export const MODELS: ModelInfo[] = [
   },
 
   // --- Kimi (Moonshot AI) ---
-  // Quelle: https://platform.moonshot.cn/docs/pricing/chat-v1, Stand 2026-06-01
-  // Preise in CNY: moonshot-v1-8k Input ¥2.00/MTok, Output ¥10.00/MTok.
-  // Umrechnung 1 USD ≈ 7.25 CNY → Input ≈ $0.28/MTok, Output ≈ $1.38/MTok.
-  {
-    label: 'Moonshot V1 8K',
-    apiName: 'moonshot-v1-8k',
-    provider: 'kimi',
-    staerken: ['Langer Kontext', 'Chinesischer Anbieter'],
-    kostenInputProMioToken: 0.28,
-    kostenOutputProMioToken: 1.38,
-    region: 'China (Moonshot AI)',
-    datenschutz: 'Chinesischer Anbieter — nur für selbst verfasste Inhalte',
-  },
-  // Quelle: https://platform.moonshot.cn/docs/pricing/chat-k26
-  // Kimi K2.6: Input ¥6.50/MTok (cache miss), Output ¥27.00/MTok
-  // Umrechnung: Input ≈ $0.90/MTok, Output ≈ $3.72/MTok
+  // Quelle: https://platform.kimi.ai/docs/pricing/chat, Stand 2026-09-15
+  // moonshot-v1-Serie wurde am 31.08.2026 abgeschaltet. Aktuelle Modelle: kimi-k3, kimi-k2.6.
   {
     label: 'Kimi K2.6',
     apiName: 'kimi-k2.6',
     provider: 'kimi',
     staerken: ['Langer Kontext (256K)', 'Multimodal', 'Starkes Reasoning'],
-    kostenInputProMioToken: 0.9,
-    kostenOutputProMioToken: 3.72,
+    kostenInputProMioToken: 0.95,
+    kostenOutputProMioToken: 4.0,
+    region: 'China (Moonshot AI)',
+    datenschutz: 'Chinesischer Anbieter — nur für selbst verfasste Inhalte',
+  },
+  {
+    label: 'Kimi K3',
+    apiName: 'kimi-k3',
+    provider: 'kimi',
+    staerken: ['Stärkstes Modell', '1M Kontext', 'Nativ multimodal', 'Agenten-Fähigkeiten'],
+    kostenInputProMioToken: 3.0,
+    kostenOutputProMioToken: 15.0,
     region: 'China (Moonshot AI)',
     datenschutz: 'Chinesischer Anbieter — nur für selbst verfasste Inhalte',
   },

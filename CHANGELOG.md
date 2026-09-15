@@ -8,7 +8,15 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 ## Version 1.3.1 — 2026-09-15
 
 - Verbindungstest für OpenAI und DeepSeek repariert: Gültige API-Schlüssel werden nicht mehr wegen einer unnötigen JSON-Antwortvorgabe abgelehnt.
+- DeepSeek V4.1 Flash: Thinking-Modus wird beim Verbindungstest deaktiviert, damit die Antwort nicht in `reasoning_content` landet.
+- Kimi K2.6: Thinking-Modus wird ebenfalls beim Verbindungstest deaktiviert (dasselbe Problem wie DeepSeek). Temperature auf 0.6 gesetzt (K2.6-Anforderung).
+- Windows-Update: App schließt sich nach der Installation automatisch, damit der NSIS-Installer die Dateien ersetzen kann.
 - Fehlermeldungen unterscheiden weiterhin ungültige Schlüssel von fehlendem Guthaben oder einem Rate-Limit.
+- Kimi/Moonshot: Test-Modell auf `kimi-k2.6` aktualisiert (moonshot-v1-8k wurde am 31.08.2026 abgeschaltet). Temperature wird auf 1.0 erzwungen (K2.6-Anforderung).
+- DeepSeek: Test-Modell auf `deepseek-flash` aktualisiert (Legacy-Name `deepseek-v4-flash` wird weitergeleitet).
+- Qwen: API-Endpoint auf internationalen Server gewechselt (`dashscope-intl.aliyuncs.com`) mit automatischem Fallback auf China-Endpoint bei Authentifizierungsfehlern.
+- API-Speicherung: Keyring-Fallback auf `.env.local`-Datei, wenn der System-Keyring nicht verfügbar ist (z.B. unter WSL/Linux).
+- API-Speicherung: Verifikation nach dem Speichern gelockert — es wird nur noch geprüft, ob ein Schlüssel vorhanden ist, nicht ob er exakt übereinstimmt.
 
 ## Version 1.3.0 — 2026-09-15
 
