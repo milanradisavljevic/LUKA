@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Users, TrendingUp, AlertTriangle, Loader2, BarChart3, ChevronRight, Trash2, UserPlus, Sparkles, Wand2, FileUp, User, School, Check, Archive } from 'lucide-react';
+import { LoadingSpinner } from '../components/LoadingSpinner';
 import { EmptyState } from './_EmptyState';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, Legend, CartesianGrid } from 'recharts';
 import { useNatascha, type RubrikListe } from '../hooks/useNatascha';
@@ -492,7 +493,7 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
             <span style={{ fontSize: '0.875rem' }}>{error}</span>
           </div>}
 
-          {loading && <div style={cardStyle}><Loader2 size={18} className="spin" style={{ verticalAlign: -2, marginRight: 6 }} /> Laden …</div>}
+          {loading && <div style={cardStyle}><LoadingSpinner /></div>}
 
           {!loading && laengsschnitt && (
             <>

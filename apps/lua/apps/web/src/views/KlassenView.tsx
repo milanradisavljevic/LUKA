@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { GraduationCap, Users, BarChart3, AlertTriangle, TrendingUp, TrendingDown, Download, Wand2, Sparkles, Loader2, School, Plus, Archive, ArchiveRestore, Pencil, Trash2, X } from 'lucide-react';
+import { LoadingSpinner } from '../components/LoadingSpinner';
 import { EmptyState } from './_EmptyState';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from 'recharts';
 import { loadDocuments, type KlasseInfo } from '../lib/storage';
@@ -647,7 +648,7 @@ export function KlassenView({ onGenerateUebung }: Props) {
             <span style={{ fontSize: '0.875rem' }}>{error}</span>
           </div>}
 
-          {loading && <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>Laden …</p>}
+          {loading && <LoadingSpinner />}
 
           {selectedKlasse && (
             <section style={{ ...cardStyle, marginBottom: '1rem' }} aria-labelledby="klassen-chronik">

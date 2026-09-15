@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { X, Search, Database, Upload, Download, Star, BadgeCheck, Sparkles, Loader2 } from 'lucide-react';
+import { LoadingSpinner } from '../components/LoadingSpinner';
 import { fachLabel, FACH_META } from '@lehrunterlagen/schema';
 import type { Block, Fach, Stufe, BlockTyp } from '@lehrunterlagen/schema';
 import { useAufgabenPool } from '../hooks/useAufgabenPool';
@@ -243,9 +244,9 @@ export function PoolView({ onInsertBlock }: Props) {
       </div>
 
       {loading && (
-        <p style={{ color: 'var(--color-text-secondary)', textAlign: 'center', padding: '1rem' }}>
-          Laden...
-        </p>
+        <div style={{ textAlign: 'center', padding: '1rem' }}>
+          <LoadingSpinner />
+        </div>
       )}
 
       {error && (

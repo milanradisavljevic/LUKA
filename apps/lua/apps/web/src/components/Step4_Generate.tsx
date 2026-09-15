@@ -46,7 +46,7 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
   const [judge, setJudge] = useState<{ issuesByBlock: Record<string, string[]>; gepruefteIds: string[] } | null>(null);
   // Aktions-Spalte: zwei Akkordeons + Niveau-Auswahl (Mittel = Haupt-Export, hier nur leichter/schwerer).
   const [showDiff, setShowDiff] = useState(false);
-  const [showWeitere, setShowWeitere] = useState(false);
+  const [showWeitere, setShowWeitere] = useState(true);
   const [niveauLeicht, setNiveauLeicht] = useState(false);
   const [niveauSchwer, setNiveauSchwer] = useState(false);
   const [qualityPassUsed, setQualityPassUsed] = useState(false);

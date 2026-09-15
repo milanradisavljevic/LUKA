@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
-  GraduationCap, AlertTriangle, Loader2, ClipboardCheck,
+  GraduationCap, AlertTriangle, ClipboardCheck,
   ChevronRight, FileText, Timer, Files, Clock, Coins,
   Grid3X3, Languages, Pencil, AlignLeft, Repeat, Wand2,
 } from 'lucide-react';
@@ -13,6 +13,7 @@ import { FEATURES } from '../lib/features';
 import { fachLabel } from '@lehrunterlagen/schema';
 import type { Block, Fach } from '@lehrunterlagen/schema';
 import { StartActionIllustration } from '../components/ui/StartActionIllustration';
+import { LoadingSpinner } from '../components/LoadingSpinner';
 import { Tile } from '../components/ui/Tile';
 import {
   buildPrefillFromHeatmap,
@@ -468,7 +469,7 @@ export function DashboardView({ resumeTitle, onResume, onOpenDocument, onNavigat
       {/* ═══ NATASCHA-Klassenstats ═══ */}
       {FEATURES.natascha && (loading ? (
         <div className="card" style={{ padding: '1.25rem' }}>
-          <Loader2 size={18} className="spin" style={{ verticalAlign: -2, marginRight: 6 }} /> Laden …
+          <LoadingSpinner />
         </div>
       ) : rows.length > 0 && (
         <div>

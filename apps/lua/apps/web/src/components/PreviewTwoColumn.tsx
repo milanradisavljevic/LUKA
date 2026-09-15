@@ -49,6 +49,7 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
   const [poolDialogBlock, setPoolDialogBlock] = useState<Block | null>(null);
   const [poolTags, setPoolTags] = useState('');
   const [poolQuelle, setPoolQuelle] = useState('');
+  const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null);
   const windowWidth = useWindowWidth();
   const isNarrow = windowWidth < 768;
   const { regenerateBlock, generating, stage } = useGenerate(dispatch);
@@ -197,8 +198,8 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
           <table style={{ width: '100%', fontSize: '10pt', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
-                <th style={{ textAlign: 'left', padding: '0.2rem', borderBottom: `1px solid ${PAPER_BORDER}` }}>Structure</th>
-                <th style={{ textAlign: 'left', padding: '0.2rem', borderBottom: `1px solid ${PAPER_BORDER}` }}>How to use it</th>
+                <th style={{ textAlign: 'left', padding: '0.2rem', borderBottom: `1px solid ${PAPER_BORDER}` }}>{state.ausgabeSprache === 'en' ? 'Structure' : 'Aufbau'}</th>
+                <th style={{ textAlign: 'left', padding: '0.2rem', borderBottom: `1px solid ${PAPER_BORDER}` }}>{state.ausgabeSprache === 'en' ? 'How to use it' : 'Verwendung'}</th>
               </tr>
             </thead>
             <tbody>
@@ -208,8 +209,8 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
                   <td style={{ padding: '0.2rem', verticalAlign: 'top' }}>
                     {item.form && <div><em>{item.form}</em></div>}
                     {item.use && item.use.map((u, j) => <div key={j}>{u}</div>)}
-                    {item.signalWords && item.signalWords.length > 0 && <div><strong>Signal words:</strong> <em>{item.signalWords.join(', ')}</em></div>}
-                    {item.example && <div><strong>Example:</strong> <em>{item.example}</em></div>}
+                    {item.signalWords && item.signalWords.length > 0 && <div><strong>{state.ausgabeSprache === 'en' ? 'Signal words:' : 'Signalwörter:'}</strong> <em>{item.signalWords.join(', ')}</em></div>}
+                    {item.example && <div><strong>{state.ausgabeSprache === 'en' ? 'Example:' : 'Beispiel:'}</strong> <em>{item.example}</em></div>}
                     {item.tip && (
                       <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
                         <Lightbulb size={12} aria-hidden="true" />
@@ -387,19 +388,25 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
                       {['Kürzer', 'Schwieriger', 'Andere Formulierung'].map((hint) => (
                         <button
                           key={hint}
-                          onClick={async () => {
+                          onClick={() => {
+                            const doRegenerate = async () => {
+                              setRegenId(null);
+                              const neu = await regenerateBlock(state, block.id, hint);
+                              if (neu) {
+                                setEditierteIds((prev) => {
+                                  const next = new Set(prev);
+                                  next.delete(block.id);
+                                  return next;
+                                });
+                              }
+                            };
                             if (editierteIds.has(block.id)) {
-                              const ok = window.confirm('Diese Aufgabe wurde manuell bearbeitet. Beim Neu-Generieren gehen deine Änderungen verloren. Fortfahren?');
-                              if (!ok) return;
-                            }
-                            setRegenId(null);
-                            const neu = await regenerateBlock(state, block.id, hint);
-                            if (neu) {
-                              setEditierteIds((prev) => {
-                                const next = new Set(prev);
-                                next.delete(block.id);
-                                return next;
+                              setConfirmDialog({
+                                message: 'Diese Aufgabe wurde manuell bearbeitet. Beim Neu-Generieren gehen deine Änderungen verloren. Fortfahren?',
+                                onConfirm: doRegenerate,
                               });
+                            } else {
+                              void doRegenerate();
                             }
                           }}
                           style={{
@@ -416,19 +423,25 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
                         </button>
                       ))}
                       <button
-                        onClick={async () => {
+                        onClick={() => {
+                          const doRegenerate = async () => {
+                            setRegenId(null);
+                            const neu = await regenerateBlock(state, block.id);
+                            if (neu) {
+                              setEditierteIds((prev) => {
+                                const next = new Set(prev);
+                                next.delete(block.id);
+                                return next;
+                              });
+                            }
+                          };
                           if (editierteIds.has(block.id)) {
-                            const ok = window.confirm('Diese Aufgabe wurde manuell bearbeitet. Beim Neu-Generieren gehen deine Änderungen verloren. Fortfahren?');
-                            if (!ok) return;
-                          }
-                          setRegenId(null);
-                          const neu = await regenerateBlock(state, block.id);
-                          if (neu) {
-                            setEditierteIds((prev) => {
-                              const next = new Set(prev);
-                              next.delete(block.id);
-                              return next;
+                            setConfirmDialog({
+                              message: 'Diese Aufgabe wurde manuell bearbeitet. Beim Neu-Generieren gehen deine Änderungen verloren. Fortfahren?',
+                              onConfirm: doRegenerate,
                             });
+                          } else {
+                            void doRegenerate();
                           }
                         }}
                         style={{
@@ -617,7 +630,11 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
             zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center',
             padding: '1rem',
           }}
-          onClick={() => setPoolDialogBlock(null)}
+          onClick={() => {
+            if (!poolTags.trim() && !poolQuelle.trim()) {
+              setPoolDialogBlock(null);
+            }
+          }}
         >
           <div
             style={{
@@ -630,7 +647,21 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 style={{ margin: '0 0 1rem', fontSize: '1rem' }}>In Aufgaben-Pool speichern</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '0 0 1rem' }}>
+              <h3 style={{ margin: 0, fontSize: '1rem' }}>In Aufgaben-Pool speichern</h3>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!poolTags.trim() && !poolQuelle.trim()) {
+                    setPoolDialogBlock(null);
+                  }
+                }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem', color: 'var(--color-text-secondary)' }}
+                aria-label="Schließen"
+              >
+                ✕
+              </button>
+            </div>
             <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>
               Block: {BLOCK_TYPE_DEFS.find((d) => d.id === poolDialogBlock.typ)?.label ?? poolDialogBlock.typ}
             </p>
@@ -661,7 +692,11 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
             <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
               <button
                 className="btn-secondary"
-                onClick={() => setPoolDialogBlock(null)}
+                onClick={() => {
+                  if (!poolTags.trim() && !poolQuelle.trim()) {
+                    setPoolDialogBlock(null);
+                  }
+                }}
               >
                 Abbrechen
               </button>
@@ -686,6 +721,52 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
                 }}
               >
                 Speichern
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bestätigungs-Dialog */}
+      {confirmDialog && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+            zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '1rem',
+          }}
+          onClick={() => setConfirmDialog(null)}
+        >
+          <div
+            style={{
+              background: 'var(--color-bg-surface)',
+              borderRadius: 'var(--radius)',
+              padding: '1.5rem',
+              maxWidth: 400,
+              width: '100%',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p style={{ margin: '0 0 1.25rem', fontSize: '0.9375rem', lineHeight: 1.5 }}>
+              {confirmDialog.message}
+            </p>
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+              <button
+                className="btn-secondary"
+                onClick={() => setConfirmDialog(null)}
+              >
+                Abbrechen
+              </button>
+              <button
+                className="btn-primary"
+                onClick={() => {
+                  const { onConfirm } = confirmDialog;
+                  setConfirmDialog(null);
+                  onConfirm();
+                }}
+              >
+                Fortfahren
               </button>
             </div>
           </div>

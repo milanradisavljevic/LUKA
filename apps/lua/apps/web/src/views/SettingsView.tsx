@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Check, Database, Download, RefreshCw, Terminal } from 'lucide-react';
 import type { AppSettings, LlmProvider } from '../lib/types';
 import { BLOCK_TYPE_DEFS, LLM_PROVIDERS } from '../lib/constants';
@@ -202,9 +202,11 @@ function ToggleRow({
 
 export function SettingsView() {
   const [settings, setSettings] = useState<AppSettings>(() => loadSettings());
+  const savedSettingsRef = useRef<AppSettings>(settings);
   const [savedHint, setSavedHint] = useState(false);
   const [nataschaMode, setNataschaMode] = useState<NataschaStatus | null>(null);
   const [nataschaStatusRetry, setNataschaStatusRetry] = useState(0);
+  const isDirty = JSON.stringify(settings) !== JSON.stringify(savedSettingsRef.current);
 
   useEffect(() => {
     if (!FEATURES.natascha) return;
@@ -221,9 +223,17 @@ export function SettingsView() {
   const update = (patch: Partial<AppSettings>) => {
     const next = { ...settings, ...patch };
     setSettings(next);
-    saveSettings(next);
+  };
+
+  const saveAll = () => {
+    saveSettings(settings);
+    savedSettingsRef.current = settings;
     setSavedHint(true);
     window.setTimeout(() => setSavedHint(false), 1500);
+  };
+
+  const discardChanges = () => {
+    setSettings(savedSettingsRef.current);
   };
 
   const handleProviderChange = (provider: LlmProvider) => {
@@ -633,6 +643,27 @@ export function SettingsView() {
       }}>
         <SettingsPanel />
       </section>
+
+      {/* Speichern/Verwerfen Leiste */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: '0.75rem',
+        padding: '1rem 0', position: 'sticky', bottom: 0,
+        background: 'var(--color-bg-base)', zIndex: 10,
+      }}>
+        <button className="btn-primary" onClick={saveAll} disabled={!isDirty}>
+          Speichern
+        </button>
+        {isDirty && (
+          <button className="btn-secondary" onClick={discardChanges}>
+            Verwerfen
+          </button>
+        )}
+        {savedHint && (
+          <span style={{ fontSize: '0.8125rem', color: 'var(--color-success)', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+            <Check size={13} /> Gespeichert
+          </span>
+        )}
+      </div>
     </ViewShell>
   );
 }

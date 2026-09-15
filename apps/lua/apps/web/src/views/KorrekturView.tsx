@@ -5,6 +5,7 @@ import { LLM_PROVIDERS } from '../lib/constants';
 import { useDialogFocus } from '../hooks/useDialogFocus';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { GraduationCap, Save, AlertTriangle, Loader2, Upload, FolderOpen, FileDown, ChevronRight, Eye, EyeOff, Files, XCircle, CheckCircle2, ShieldCheck, RefreshCw } from 'lucide-react';
+import { LoadingSpinner } from '../components/LoadingSpinner';
 import { loadDocuments, loadSettings, subscribeSettings } from '../lib/storage';
 import { useNatascha, type PersonenVorschau, type RubrikListe, type SchuelerInfo, type KorrekturKontext } from '../hooks/useNatascha';
 import { useEinsatz, type EinsatzRecord } from '../hooks/useEinsatz';
@@ -806,7 +807,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
               <span style={{ fontSize: '0.875rem', color: 'var(--color-success)' }}>{analyzeSuccess}</span>
             </div>}
 
-            {loading && <div style={cardStyle}><Loader2 size={18} className="spin" style={{ verticalAlign: -2, marginRight: 6 }} /> Laden …</div>}
+            {loading && <div style={cardStyle}><LoadingSpinner /></div>}
 
             {!loading && korrekturKontext && selectedAufgabe && (
               <section style={{ ...cardStyle, marginBottom: '1rem', background: 'var(--color-bg-base)' }} aria-label="Korrekturgrundlage">
