@@ -11,7 +11,7 @@ export const MODEL_MAP: Record<string, string> = {
   'GPT-5.4 mini': 'gpt-5.4-mini',
   'GPT-5.4 nano': 'gpt-5.4-nano',
   // DeepSeek
-  'DeepSeek V4 Flash': 'deepseek-v4-flash',
+  'DeepSeek V4.1 Flash': 'deepseek-flash',
   'DeepSeek V4 Pro': 'deepseek-v4-pro',
   // Mistral
   'Mistral Medium 3.5': 'mistral-medium-3-5',
@@ -20,7 +20,7 @@ export const MODEL_MAP: Record<string, string> = {
   'Qwen 3.7 Max': 'qwen3-max',
   'Qwen 3.5 Plus': 'qwen3.5-plus',
   // Kimi
-  'Moonshot V1 8K': 'moonshot-v1-8k',
+  'Kimi K3': 'kimi-k3',
   'Kimi K2.6': 'kimi-k2.6',
 };
 export function correctionRuntime(settings: AppSettings) {
