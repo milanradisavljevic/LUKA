@@ -5,7 +5,7 @@ Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 (auch andere Coding-Agents) — siehe `AGENTS.md`.
 
-## Version 1.3.1 — 2026-09-15
+## Version 1.3.2 — 2026-09-15
 
 - Verbindungstest für OpenAI und DeepSeek repariert: Gültige API-Schlüssel werden nicht mehr wegen einer unnötigen JSON-Antwortvorgabe abgelehnt.
 - DeepSeek V4.1 Flash: Thinking-Modus wird beim Verbindungstest deaktiviert, damit die Antwort nicht in `reasoning_content` landet.
