@@ -97,6 +97,7 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
   const [poolTags, setPoolTags] = useState('');
   const [poolQuelle, setPoolQuelle] = useState('');
   const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null);
+  const [diffData, setDiffData] = useState<{ oldBlock: Block; newBlock: Block } | null>(null);
   const windowWidth = useWindowWidth();
   const isNarrow = windowWidth < 768;
   const { regenerateBlock, generating, stage } = useGenerate(dispatch);
@@ -475,8 +476,10 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
                           onClick={() => {
                             const doRegenerate = async () => {
                               setRegenId(null);
+                              const oldBlock = block;
                               const neu = await regenerateBlock(state, block.id, hint);
                               if (neu) {
+                                setDiffData({ oldBlock, newBlock: neu });
                                 setEditierteIds((prev) => {
                                   const next = new Set(prev);
                                   next.delete(block.id);
@@ -510,8 +513,10 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
                         onClick={() => {
                           const doRegenerate = async () => {
                             setRegenId(null);
+                            const oldBlock = block;
                             const neu = await regenerateBlock(state, block.id);
                             if (neu) {
+                              setDiffData({ oldBlock, newBlock: neu });
                               setEditierteIds((prev) => {
                                 const next = new Set(prev);
                                 next.delete(block.id);
@@ -706,6 +711,85 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
       >
         {activeTab === 'schueler' ? renderSchuelerFassung() : renderLoesungsFassung()}
       </div>
+
+      {/* Block-Diff Panel */}
+      {diffData && (
+        <div style={{
+          maxWidth: 800,
+          margin: '1rem auto',
+          background: 'var(--color-bg-surface)',
+          borderRadius: 'var(--radius)',
+          border: '1px solid var(--color-border)',
+          overflow: 'hidden',
+        }}>
+          <div style={{
+            padding: '0.75rem 1rem',
+            background: 'var(--color-accent-bg, #e3f2fd)',
+            borderBottom: '1px solid var(--color-border)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}>
+            <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>
+              Änderungen im Block
+            </span>
+            <button
+              onClick={() => setDiffData(null)}
+              style={{
+                padding: '0.25rem 0.5rem',
+                fontSize: '0.75rem',
+                borderRadius: 'var(--radius)',
+                border: '1px solid var(--color-border)',
+                background: 'var(--color-bg)',
+                cursor: 'pointer',
+              }}
+            >
+              Schließen
+            </button>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0 }}>
+            {/* Alt */}
+            <div style={{
+              padding: '0.75rem 1rem',
+              borderRight: '1px solid var(--color-border)',
+              background: '#fff5f5',
+            }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#c62828', marginBottom: '0.5rem' }}>
+                Vorher (alt)
+              </div>
+              <div style={{ fontSize: '0.8125rem', lineHeight: 1.5 }}>
+                <div style={{ marginBottom: '0.5rem' }}>
+                  <strong>Aufgabe:</strong> {diffData.oldBlock.arbeitsanweisung}
+                </div>
+                {diffData.oldBlock.beispiel && (
+                  <div style={{ fontStyle: 'italic', color: 'var(--color-text-secondary)' }}>
+                    Beispiel: {diffData.oldBlock.beispiel}
+                  </div>
+                )}
+              </div>
+            </div>
+            {/* Neu */}
+            <div style={{
+              padding: '0.75rem 1rem',
+              background: '#f5fff5',
+            }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#2e7d32', marginBottom: '0.5rem' }}>
+                Nachher (neu)
+              </div>
+              <div style={{ fontSize: '0.8125rem', lineHeight: 1.5 }}>
+                <div style={{ marginBottom: '0.5rem' }}>
+                  <strong>Aufgabe:</strong> {diffData.newBlock.arbeitsanweisung}
+                </div>
+                {diffData.newBlock.beispiel && (
+                  <div style={{ fontStyle: 'italic', color: 'var(--color-text-secondary)' }}>
+                    Beispiel: {diffData.newBlock.beispiel}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Pool-Speichern Dialog */}
       {poolDialogBlock && (
