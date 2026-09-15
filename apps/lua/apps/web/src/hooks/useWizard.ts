@@ -1,4 +1,4 @@
-import { useReducer, useCallback, useEffect } from 'react';
+import { useReducer, useCallback, useEffect, useRef } from 'react';
 import { readDraft, writeDraft } from '../lib/workSession';
 import type { AppState, AppAction, StepId } from '../lib/types';
 import { getDefaultMeta } from '../lib/constants';
@@ -6,6 +6,25 @@ import { getDefaultTemplate } from '@lehrunterlagen/renderer';
 import { loadSettings } from '../lib/storage';
 
 const STEPS_ORDER: StepId[] = ['absicht', 'input', 'baukasten', 'llm', 'generate'];
+
+// Actions die keinen Undo-Snapshot erzeugen (Navigation, System)
+const NON_UNDOABLE = new Set([
+  'SET_STEP', 'RESET_STATE', 'LOAD_SNAPSHOT', 'SET_DOCUMENT_ID',
+  'UNDO', 'REDO',
+]);
+
+// Actions die den Redo-Stack leeren (neuer Edit nach Undo)
+const CLEAR_REDO_ON = new Set([
+  'SET_AUFTRAG', 'SET_META',
+  'ADD_QUELLTEXT', 'REMOVE_QUELLTEXT', 'UPDATE_QUELLTEXT',
+  'ADD_BLOCK', 'UPDATE_BLOCK', 'REMOVE_BLOCK',
+  'REMOVE_BLOCKS_BY_TYPE', 'REORDER_BLOCKS',
+  'SET_LLM_PROVIDER', 'SET_MODEL_NAME', 'SET_KREATIVITAET',
+  'SET_AUSGABE_SPRACHE', 'SET_RENDER_TEMPLATE', 'SET_RENDER_LAYOUT',
+  'SET_GENERIERTES_DOKUMENT', 'UPDATE_GENERIERTER_BLOCK',
+]);
+
+const MAX_HISTORY = 50;
 
 export function wizardReducer(state: AppState, action: AppAction): AppState {
   if(state.generiertesDokument && ['SET_META','ADD_QUELLTEXT','REMOVE_QUELLTEXT','UPDATE_QUELLTEXT','ADD_BLOCK','UPDATE_BLOCK','REMOVE_BLOCK','REMOVE_BLOCKS_BY_TYPE','REORDER_BLOCKS'].includes(action.type)) state={...state,generatedOutdated:true};
@@ -110,13 +129,59 @@ function createInitialState(): AppState {
 }
 
 export function useWizard() {
-  const [state, dispatch] = useReducer(wizardReducer, undefined, () => {
+  const [state, rawDispatch] = useReducer(wizardReducer, undefined, () => {
     const initial = createInitialState();
     const draft = readDraft<AppState | null>('wizard', null);
     return draft && draft.meta && Array.isArray(draft.bloecke) && Array.isArray(draft.quelltexte) && STEPS_ORDER.includes(draft.step)
       ? { ...initial, ...draft } : initial;
   });
   useEffect(() => { writeDraft('wizard', state); }, [state]);
+
+  const pastRef = useRef<AppState[]>([]);
+  const futureRef = useRef<AppState[]>([]);
+
+  const dispatch = useCallback((action: AppAction) => {
+    if (action.type === 'UNDO') {
+      if (pastRef.current.length === 0) return;
+      const prev = pastRef.current.pop()!;
+      futureRef.current.push(state);
+      rawDispatch({ type: 'LOAD_SNAPSHOT', snapshot: {
+        auftrag: prev.auftrag, meta: prev.meta, quelltexte: prev.quelltexte,
+        bloecke: prev.bloecke, generiertesDokument: prev.generiertesDokument,
+        generatedOutdated: prev.generatedOutdated, llmProvider: prev.llmProvider,
+        modelName: prev.modelName, kreativitaet: prev.kreativitaet,
+        ausgabeSprache: prev.ausgabeSprache, renderTemplate: prev.renderTemplate,
+        renderLayout: prev.renderLayout,
+      }, documentId: prev.aktuelleDokumentId });
+      return;
+    }
+    if (action.type === 'REDO') {
+      if (futureRef.current.length === 0) return;
+      const next = futureRef.current.pop()!;
+      pastRef.current.push(state);
+      rawDispatch({ type: 'LOAD_SNAPSHOT', snapshot: {
+        auftrag: next.auftrag, meta: next.meta, quelltexte: next.quelltexte,
+        bloecke: next.bloecke, generiertesDokument: next.generiertesDokument,
+        generatedOutdated: next.generatedOutdated, llmProvider: next.llmProvider,
+        modelName: next.modelName, kreativitaet: next.kreativitaet,
+        ausgabeSprache: next.ausgabeSprache, renderTemplate: next.renderTemplate,
+        renderLayout: next.renderLayout,
+      }, documentId: next.aktuelleDokumentId });
+      return;
+    }
+
+    // Undo-Snapshot vor nicht-System-Actions
+    if (!NON_UNDOABLE.has(action.type)) {
+      pastRef.current.push(structuredClone(state));
+      if (pastRef.current.length > MAX_HISTORY) pastRef.current.shift();
+      if (CLEAR_REDO_ON.has(action.type)) futureRef.current = [];
+    }
+
+    rawDispatch(action);
+  }, [state]);
+
+  const undo = useCallback(() => dispatch({ type: 'UNDO' }), [dispatch]);
+  const redo = useCallback(() => dispatch({ type: 'REDO' }), [dispatch]);
 
   const currentIndex = STEPS_ORDER.indexOf(state.step);
   const canGoNext = currentIndex < STEPS_ORDER.length - 1 && !(state.step === 'absicht' && !state.auftrag);
@@ -126,17 +191,22 @@ export function useWizard() {
     if (canGoNext) {
       dispatch({ type: 'SET_STEP', step: STEPS_ORDER[currentIndex + 1]! });
     }
-  }, [canGoNext, currentIndex]);
+  }, [canGoNext, currentIndex, dispatch]);
 
   const goBack = useCallback(() => {
     if (canGoBack) {
       dispatch({ type: 'SET_STEP', step: STEPS_ORDER[currentIndex - 1]! });
     }
-  }, [canGoBack, currentIndex]);
+  }, [canGoBack, currentIndex, dispatch]);
 
   const goToStep = useCallback((step: StepId) => {
     dispatch({ type: 'SET_STEP', step });
-  }, []);
+  }, [dispatch]);
 
-  return { state, dispatch, goNext, goBack, goToStep, currentIndex };
+  return {
+    state, dispatch, goNext, goBack, goToStep, currentIndex,
+    canUndo: pastRef.current.length > 0,
+    canRedo: futureRef.current.length > 0,
+    undo, redo,
+  };
 }

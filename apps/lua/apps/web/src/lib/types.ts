@@ -151,5 +151,7 @@ export type AppAction =
   | { type: 'SET_RENDER_TEMPLATE'; template: RenderTemplateId }
   | { type: 'SET_RENDER_LAYOUT'; layout: RenderLayoutId }
   | { type: 'RESET_STATE' }
-  | { type: 'LOAD_SNAPSHOT'; snapshot: DocumentSnapshot; documentId: string }
-  | { type: 'SET_DOCUMENT_ID'; id: string | null };
+  | { type: 'LOAD_SNAPSHOT'; snapshot: DocumentSnapshot; documentId: string | null }
+  | { type: 'SET_DOCUMENT_ID'; id: string | null }
+  | { type: 'UNDO' }
+  | { type: 'REDO' };

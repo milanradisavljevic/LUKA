@@ -1,7 +1,7 @@
 import { ContextNavigation } from './components/ContextNavigation';
 import { flushDrafts, hasActiveWork, useSessionStatus } from './lib/workSession';
 import { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
-import { Save, Search, ArrowLeft, ArrowRight, Loader2, BookOpen } from 'lucide-react';
+import { Save, Search, ArrowLeft, ArrowRight, Loader2, BookOpen, RotateCcw, RotateCw } from 'lucide-react';
 import type { AppAction, ActiveView, SavedDocument } from './lib/types';
 import { STEP_DESCRIPTIONS } from './lib/types';
 import { fachLabel } from '@lehrunterlagen/schema';
@@ -126,7 +126,7 @@ export default function App() {
     return () => {cancelled=true;unlisten?.();};
   }, []);
 
-  const { state, dispatch, goNext, goBack, goToStep, currentIndex } = useWizard();
+  const { state, dispatch, goNext, goBack, goToStep, currentIndex, canUndo, canRedo, undo, redo } = useWizard();
   const { klassen: klassenMeta } = useKlassenMeta();
   const { upsert: upsertEinsatz } = useEinsatz();
   const { preference: themePreference, resolved: theme, toggle: toggleTheme } = useTheme();
@@ -283,10 +283,25 @@ export default function App() {
       if (e.key === 'Escape' && paletteOpen) {
         setPaletteOpen(false);
       }
+      // Undo: Ctrl+Z / Cmd+Z
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        if (canUndo && activeView === 'wizard') {
+          e.preventDefault();
+          undo();
+        }
+      }
+      // Redo: Ctrl+Y / Cmd+Y oder Ctrl+Shift+Z / Cmd+Shift+Z
+      if (((e.ctrlKey || e.metaKey) && e.key === 'y') ||
+          ((e.ctrlKey || e.metaKey) && e.key === 'z' && e.shiftKey)) {
+        if (canRedo && activeView === 'wizard') {
+          e.preventDefault();
+          redo();
+        }
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [keyGateState, paletteOpen]);
+  }, [keyGateState, paletteOpen, canUndo, canRedo, undo, redo, activeView]);
 
   const handleFirstRunContinue = useCallback(() => {
     setKeyGateState('ready');
@@ -780,6 +795,26 @@ if (hydrating) {
                 <ArrowLeft size={16} /> Zurück
               </button>
             ) : <div />}
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <button
+                className="btn-secondary"
+                onClick={undo}
+                disabled={!canUndo}
+                title="Rückgängig (Ctrl+Z)"
+                style={{ padding: '0.4rem 0.6rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+              >
+                <RotateCcw size={14} />
+              </button>
+              <button
+                className="btn-secondary"
+                onClick={redo}
+                disabled={!canRedo}
+                title="Wiederholen (Ctrl+Y)"
+                style={{ padding: '0.4rem 0.6rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+              >
+                <RotateCw size={14} />
+              </button>
+            </div>
             {currentIndex < 4 && (
               <button className="btn-primary" onClick={goNext}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
