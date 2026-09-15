@@ -5,6 +5,11 @@ Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 (auch andere Coding-Agents) — siehe `AGENTS.md`.
 
+## Version 1.3.1 — 2026-09-15
+
+- Verbindungstest für OpenAI und DeepSeek repariert: Gültige API-Schlüssel werden nicht mehr wegen einer unnötigen JSON-Antwortvorgabe abgelehnt.
+- Fehlermeldungen unterscheiden weiterhin ungültige Schlüssel von fehlendem Guthaben oder einem Rate-Limit.
+
 ## Version 1.3.0 — 2026-09-15
 
 - API-Schlüssel: Eingabe stabilisiert, Speichern mit Rückprüfung und separater Speicherung ohne Online-Test. Der zuerst eingerichtete Anbieter wird als Standard übernommen.

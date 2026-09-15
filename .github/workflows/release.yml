@@ -1,14 +1,7 @@
 name: Release
 
-# Windows- und macOS-Release bei Versions-Tag: baut NSIS-Installer (Windows)
-# bzw. ein universelles, unsigniertes App-/DMG-Bundle (macOS), signiert die
-# Update-Artefakte (TAURI_SIGNING_PRIVATE_KEY aus den Repo-Secrets) und
-# veröffentlicht GitHub Release inkl. latest.json für den In-App-Updater.
-# Beide Runner veröffentlichen auf dasselbe Tag-Release; tauri-action merged
-# die Plattform-Einträge in der latest.json automatisch zusammen.
-#
-# macOS-Build ist bewusst unsigniert (kein Apple-Zertifikat/Notarization) —
-# siehe Gatekeeper-Hinweis in README.md / docs/ANLEITUNG.md.
+# Windows-Release bei Versions-Tag: baut den NSIS-Installer, signiert das
+# Update-Artefakt und veröffentlicht GitHub Release inkl. latest.json.
 #
 # Auslösen: Version in apps/lua/src-tauri/tauri.conf.json + Cargo.toml erhöhen,
 # committen, dann:  git tag v1.0.1 && git push origin v1.0.1
@@ -23,9 +16,6 @@ jobs:
     name: ${{ matrix.name }} bauen & veröffentlichen
     strategy:
       fail-fast: false
-      # Beide Plattformen aktualisieren dasselbe GitHub-Release und dieselbe
-      # latest.json. Nacheinander verhindert, dass tauri-action parallel
-      # dasselbe Release anlegt oder seine Assets überschreibt.
       max-parallel: 1
       matrix:
         include:
@@ -35,11 +25,6 @@ jobs:
             # verdoppelt Build-Zeit; Erstinstallation + Updates laufen über NSIS.
             args: --bundles nsis
             rustTargets: ""
-          - os: macos-latest
-            name: macOS-Bundle (universal, unsigniert)
-            # Universal-Binary für Intel- und Apple-Silicon-Macs in einem Bundle.
-            args: --target universal-apple-darwin
-            rustTargets: aarch64-apple-darwin,x86_64-apple-darwin
     runs-on: ${{ matrix.os }}
     permissions:
       contents: write

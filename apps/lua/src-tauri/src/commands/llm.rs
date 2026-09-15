@@ -9,6 +9,12 @@ const CONNECTION_TEST_TIMEOUT: u64 = 20;
 
 fn compact_connection_test_body(mut body: serde_json::Value) -> serde_json::Value {
     if let Some(map) = body.as_object_mut() {
+        // Ein Key-Test braucht keine strukturierte JSON-Antwort. Mehrere
+        // OpenAI-kompatible Anbieter lehnen `json_object` ab, wenn ihr eigener
+        // Prompt-Validator das Wort JSON nicht in der erwarteten Nachricht
+        // findet. Das würde einen gültigen Schlüssel fälschlich als defekt
+        // darstellen.
+        map.remove("response_format");
         if map.contains_key("max_completion_tokens") {
             map.insert("max_completion_tokens".to_string(), serde_json::json!(16));
         } else {
@@ -36,10 +42,10 @@ pub async fn test_provider_connection(
     let req = LlmRequest {
         provider: provider.clone(),
         model,
-        system: "Du bist ein Verbindungstest. Antworte nur mit {\"ok\":true}.".to_string(),
+        system: "Du bist ein Verbindungstest. Antworte sehr kurz.".to_string(),
         messages: vec![ChatMessage {
             role: "user".to_string(),
-            content: "Antworte jetzt.".to_string(),
+            content: "Antworte mit OK.".to_string(),
         }],
         temperature: 0.0,
         api_key,
@@ -216,8 +222,12 @@ mod connection_tests {
     #[test]
     fn connection_test_reduziert_token_budget() {
         let body = serde_json::json!({"max_tokens": 16000, "model": "test"});
-        assert_eq!(compact_connection_test_body(body)["max_tokens"], 16);
+        let compact = compact_connection_test_body(body);
+        assert_eq!(compact["max_tokens"], 16);
+        assert!(compact.get("response_format").is_none());
         let body = serde_json::json!({"max_completion_tokens": 16000, "model": "test"});
-        assert_eq!(compact_connection_test_body(body)["max_completion_tokens"], 16);
+        let compact = compact_connection_test_body(body);
+        assert_eq!(compact["max_completion_tokens"], 16);
+        assert!(compact.get("response_format").is_none());
     }
 }
