@@ -5,10 +5,13 @@ Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 (auch andere Coding-Agents) — siehe `AGENTS.md`.
 
+## Version 1.3.3 — 2026-09-15
+
+- Generierung mit DeepSeek V4.1 Flash repariert: Modellname im internen Mapping korrigiert (`deepseek-v4-flash` → `deepseek-flash`). Vorher brach die Generierung mit „Schlüssel nicht gefunden für anthropic" ab, weil ein ungültiger Modellname an DeepSeek geschickt wurde und das Fallback auf einen fehlenden Anthropic-Key fiel.
+- Kimi K3 zum Modell-Mapping hinzugefügt (fehlte im Generierungs-Pfad).
+
 ## Version 1.3.2 — 2026-09-15
 
-- Generierung mit DeepSeek V4.1 Flash: Modellname im internen Mapping korrigiert (`deepseek-v4-flash` → `deepseek-flash`). Vorher brach die Generierung mit „Schlüssel nicht gefunden für anthropic" ab, weil ein ungültiger Modellname an DeepSeek geschickt wurde und das Fallback auf einen fehlenden Anthropic-Key fiel.
-- Kimi K3 zum Modell-Mapping hinzugefügt (fehlte im Generierungs-Pfad).
 - Verbindungstest für OpenAI und DeepSeek repariert: Gültige API-Schlüssel werden nicht mehr wegen einer unnötigen JSON-Antwortvorgabe abgelehnt.
 - DeepSeek V4.1 Flash: Thinking-Modus wird beim Verbindungstest deaktiviert, damit die Antwort nicht in `reasoning_content` landet.
 - Kimi K2.6: Thinking-Modus wird ebenfalls beim Verbindungstest deaktiviert (dasselbe Problem wie DeepSeek). Temperature auf 0.6 gesetzt (K2.6-Anforderung).
