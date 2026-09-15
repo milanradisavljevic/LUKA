@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AlertTriangle, CheckCircle2, Check, Circle, Pencil, RefreshCw, FileText, KeyRound, Database, Lightbulb } from 'lucide-react';
 import { istSprachfach, fachLabel } from '@lehrunterlagen/schema';
 import type { Block } from '@lehrunterlagen/schema';
@@ -40,6 +40,53 @@ const PAPER_TEXT = '#000000';
 const PAPER_MUTED = '#333333';
 const PAPER_BORDER = '#000000';
 const PAPER_SECONDARY = '#555555';
+
+/* ── Seitenumbruch-Schätzung (A4) ── */
+const PAGE_HEIGHT_MM = 297;
+const PAGE_MARGIN_TOP_MM = 20;
+const PAGE_MARGIN_BOTTOM_MM = 20;
+const USABLE_HEIGHT_MM = PAGE_HEIGHT_MM - PAGE_MARGIN_TOP_MM - PAGE_MARGIN_BOTTOM_MM;
+
+function estimateBlockHeight(block: Block): number {
+  const base = 10; // ~10mm pro Textzeile (Durchschnitt)
+  switch (block.typ) {
+    case 'lueckentext': return base * 8 + 20;
+    case 'matching': return base * 6 + 15;
+    case 'multipleChoice': return base * 5 + (block.config.fragen?.length ?? 3) * base * 2;
+    case 'offeneVerstaendnisfrage': return base * 8 + (block.config.fragen?.length ?? 2) * base * 4;
+    case 'offeneSchreibaufgabe': return base * 12 + 30;
+    case 'markieraufgabe': return base * 6 + 15;
+    case 'wordScramble': return base * 5 + 15;
+    case 'kategorisierung': return base * 6 + 20;
+    case 'tabelle': return base * 4 + (block.config.spalten?.length ?? 3) * 8 + 15;
+    case 'stiluebung': return base * 10 + 20;
+    case 'songanalyse': return base * 10 + 20;
+    case 'kreuzwortraetsel': return 80;
+    case 'wortgitter': return 80;
+    case 'vokabeluebung': return base * 6 + 15;
+    case 'fehlerkorrektur': return base * 6 + (block.config.saetze?.length ?? 5) * base * 1.5;
+    case 'roleplay': return base * 8 + 25;
+    case 'rollenkartenSet': return base * 10 + 30;
+    default: return base * 8 + 15;
+  }
+}
+
+function estimateContentHeight(
+  blockCount: number,
+  hasQuelltexte: boolean,
+  hasMerkkasten: boolean,
+): number {
+  let height = 0;
+  // Kopf (Name/Klasse/Datum + Übersichtstabelle)
+  height += 25;
+  // Quelltexte
+  if (hasQuelltexte) height += 40;
+  // Merkkasten
+  if (hasMerkkasten) height += 25;
+  // Blöcke (geschätzt)
+  height += blockCount * 35; // Durchschnitt pro Block
+  return height;
+}
 
 export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
   const [activeTab, setActiveTab] = useState<'schueler' | 'loesung'>('schueler');
@@ -297,6 +344,30 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
   const fehlendeLernziele = gewuenschteLernziele.filter((lz) => !abgedeckteLernziele.has(lz));
   const zeigeCoverage = gewuenschteLernziele.length > 0 && doc; // Nur bei generiertem Dokument + vorhandenen Lernzielen
 
+  // ── Seitenumbrüche berechnen ──
+  const calculatePageBreaks = (): Set<string> => {
+    const breakBeforeBlocks = new Set<string>();
+    const didaktik = doc?.didaktik;
+    const hasMerkkasten = !!didaktik?.merkkasten && ((didaktik.merkkasten.items?.length ?? 0) > 0);
+    let accumulatedMm = estimateContentHeight(
+      bloecke.length,
+      quelltexte.length > 0,
+      hasMerkkasten,
+    );
+    // Start bei ~Seite 1; Seitenwechsel wenn accumulatedMm > USABLE_HEIGHT_MM
+    let pageNumber = 1;
+    for (const block of bloecke) {
+      const blockHeight = estimateBlockHeight(block);
+      if (accumulatedMm + blockHeight > USABLE_HEIGHT_MM * pageNumber && pageNumber > 0) {
+        breakBeforeBlocks.add(block.id);
+        pageNumber++;
+      }
+      accumulatedMm += blockHeight;
+    }
+    return breakBeforeBlocks;
+  };
+  const pageBreakBlocks = calculatePageBreaks();
+
   // ── Schülerfassung ──
   const renderSchuelerFassung = () => (
     <div style={{ fontFamily: 'var(--font)', fontSize: '11pt', color: PAPER_TEXT }}>
@@ -321,10 +392,23 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
       {renderQuelltexte()}
       {renderMerkkasten()}
       {bloecke.map((block) => (
-        <div key={block.id}
-          style={{ marginBottom: '1.25rem', paddingBottom: '1rem', borderBottom: '1px solid #cccccc', cursor: 'pointer' }}
-          onClick={() => setEditingId(editingId === block.id ? null : block.id)}
-        >
+        <React.Fragment key={block.id}>
+          {pageBreakBlocks.has(block.id) && (
+            <div style={{
+              borderTop: '2px dashed #999999',
+              margin: '1rem 0',
+              padding: '0.25rem 0',
+              fontSize: '8pt',
+              color: '#888888',
+              textAlign: 'center',
+            }}>
+              ─── Seitenumbruch ───
+            </div>
+          )}
+          <div
+            style={{ marginBottom: '1.25rem', paddingBottom: '1rem', borderBottom: '1px solid #cccccc', cursor: 'pointer' }}
+            onClick={() => setEditingId(editingId === block.id ? null : block.id)}
+          >
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.375rem', fontSize: '9pt', color: PAPER_SECONDARY }}>
             {zeigePunkte && <span>{block.punkte} Punkte</span>}
             {block.quelleId && <span>Quelle: {resolveQuelleTitel(block.quelleId)}</span>}
@@ -463,6 +547,7 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
             </div>
           )}
         </div>
+        </React.Fragment>
       ))}
       {renderTransferaufgabe()}
     </div>
