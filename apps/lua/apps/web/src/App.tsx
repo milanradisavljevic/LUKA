@@ -283,9 +283,12 @@ export default function App() {
       if (e.key === 'Escape' && paletteOpen) {
         setPaletteOpen(false);
       }
+      // Undo/Redo nur wenn Fokus NICHT in Textfeld/Textarea/contentEditable
+      const tag = (e.target as HTMLElement).tagName;
+      const isTextInput = tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement).isContentEditable;
       // Undo: Ctrl+Z / Cmd+Z
       if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
-        if (canUndo && activeView === 'wizard') {
+        if (canUndo && activeView === 'wizard' && !isTextInput) {
           e.preventDefault();
           undo();
         }
@@ -293,7 +296,7 @@ export default function App() {
       // Redo: Ctrl+Y / Cmd+Y oder Ctrl+Shift+Z / Cmd+Shift+Z
       if (((e.ctrlKey || e.metaKey) && e.key === 'y') ||
           ((e.ctrlKey || e.metaKey) && e.key === 'z' && e.shiftKey)) {
-        if (canRedo && activeView === 'wizard') {
+        if (canRedo && activeView === 'wizard' && !isTextInput) {
           e.preventDefault();
           redo();
         }

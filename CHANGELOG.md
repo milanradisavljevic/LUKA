@@ -21,9 +21,19 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 - Fehlerbehandlung: Fehlgeschlagene KI-Regenerierungen werden dem/der Lehrer:in angezeigt, statt stillschweigend mit Originalblöcken exportiert zu werden.
 - Abbruch: Während des Exports der schweren Variante kann der/die Lehrer:in den Vorgang abbrechen.
 
-### Korrektur & Daten
-- Datenbank-Wiederherstellung: "Datensicherung wiederherstellen"-Button in Einstellungen > Datenbank mit Bestätigungsdialog.
+### Korrektur & Datenbank-Wiederherstellung
+- Datenbank-Wiederherstellung: Vollständige Wiederherstellung aus Sicherungen mit Schema-Validierung, automatischer Sicherung der aktuellen DB vor dem Überschreiben und dauerhafter Aktualisierung des Arbeitspfads. Die Wiederherstellung überlebt einen App-Neustart.
 - API-Schlüssel-Dokumentation aktualisiert: Datenschutzhinweise und Anleitung erklären den `.env.local`-Fallback für Systeme ohne Keyring.
+
+### Aufgaben-Pool
+- Direkter Export: Pool-Einäge können jetzt direkt als DOCX exportiert werden, ohne den Wizard zu durchlaufen. Neuer "Exportieren"-Button neben "Einfügen".
+
+### Verbesserte Abbruchbehandlung
+- Differenzierung-Export: Abbruch während der "leicht"-Phase verhindert unnötigen "schwer"-Export. Kein Export bei 0 offenen Blöcken oder wenn alle Blöcke fehlschlagen.
+
+### Undo-Verbesserungen
+- Undo/Redo stellt jetzt korrekt die ursprüngliche Wizard-Seite wieder her, nicht nur den Dokumentinhalt.
+- Ctrl+Z/Y wird nicht mehr abgefangen, wenn der Fokus in einem Textfeld liegt (erlaubt Browser-eigenes Undo).
 
 ## Version 1.3.3 — 2026-09-15
 

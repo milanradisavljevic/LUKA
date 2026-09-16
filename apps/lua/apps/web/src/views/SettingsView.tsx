@@ -330,8 +330,8 @@ export function SettingsView() {
     setRestoreMsg(null);
     try {
       const { invoke } = await import('@tauri-apps/api/core');
-      await invoke('db_set_path', { newPath: sourcePath });
-      setRestoreMsg(`Datenbank gewechselt: ${sourcePath}. Die App lädt die Daten aus dieser Datei.`);
+      const restoredPath = await invoke<string>('db_restore_from_backup', { backupPath: sourcePath });
+      setRestoreMsg(`Wiederherstellung abgeschlossen. Aktive Datenbank: ${restoredPath}`);
     } catch (e) {
       setRestoreMsg(typeof e === 'string' ? e : e instanceof Error ? e.message : 'Wiederherstellung fehlgeschlagen.');
     }
@@ -714,8 +714,9 @@ export function SettingsView() {
               <RefreshCw size={16} /> Datensicherung wiederherstellen?
             </h3>
             <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: '0 0 1rem', lineHeight: 1.5 }}>
-              Die aktuelle Datenbank wird durch die ausgewählte Datei ersetzt.
-              Dokumente und Einstellungen aus der aktuellen Datenbank gehen dabei verloren, sofern sie nicht vorher exportiert wurden.
+              Die Sicherung wird in den Arbeitsordner kopiert. Die aktuelle Datenbank wird
+              zuvor automatisch gesichert. Nach der Wiederherstellung sind die Daten aus der
+              Sicherung verfügbar — auch nach einem Neustart.
             </p>
             <p style={{ fontSize: '0.75rem', margin: '0 0 1rem', padding: '0.5rem', background: 'var(--color-bg-base)', borderRadius: 'var(--radius)', wordBreak: 'break-all' }}>
               {restoreConfirm}

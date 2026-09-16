@@ -4,7 +4,7 @@ import { LoadingSpinner } from '../components/LoadingSpinner';
 import { fachLabel, FACH_META } from '@lehrunterlagen/schema';
 import type { Block, Fach, Stufe, BlockTyp } from '@lehrunterlagen/schema';
 import { useAufgabenPool } from '../hooks/useAufgabenPool';
-import { parsePoolBlock, parsePoolTags, isKuratiert } from '../lib/pool';
+import { parsePoolBlock, parsePoolTags, isKuratiert, poolEntryToDocument } from '../lib/pool';
 import type { PoolQualityStatus } from '../lib/pool';
 import { importPoolPaket, exportPoolPaket, importStartpaket } from '../lib/poolTransfer';
 import { loadTeacherProfile } from '../lib/profile';
@@ -135,6 +135,61 @@ export function PoolView({ onInsertBlock }: Props) {
     if (block && onInsertBlock) {
       void markUsed(entry.id);
       onInsertBlock(block);
+    }
+  };
+
+  const [exportingPoolId, setExportingPoolId] = useState<string | null>(null);
+
+  const handleDirectExport = async (entry: typeof entries[0]) => {
+    const doc = poolEntryToDocument(entry);
+    if (!doc) {
+      setToast({ id: Date.now(), kind: 'error', text: 'Pool-Eintrag konnte nicht gelesen werden.' });
+      return;
+    }
+    setExportingPoolId(entry.id);
+    try {
+      const { renderDocumentToBlobs } = await import('@lehrunterlagen/renderer');
+      const { RENDER_TEMPLATES, RENDER_LAYOUTS } = await import('@lehrunterlagen/renderer');
+      const template = RENDER_TEMPLATES.klassisch;
+      const layout = RENDER_LAYOUTS.standard;
+      const { schueler, loesung } = await renderDocumentToBlobs(doc, template, layout);
+
+      const thema = (doc.meta.thema ?? 'Pool-Aufgabe').replace(/[^a-zA-Z0-9äöüÄÖÜß\-_ ]/g, '').slice(0, 40);
+      const datum = doc.meta.datum;
+      const schuelerName = `${datum}_${thema}_Schuelerfassung.docx`;
+      const loesungName = `${datum}_${thema}_Loesung.docx`;
+
+      // Tauri: über Rust-Command exportieren; Browser: klassischer Download
+      const inTauri = typeof window !== 'undefined' && '__TAURI__' in window;
+      if (inTauri) {
+        const { invoke } = await import('@tauri-apps/api/core');
+        const { loadSettings } = await import('../lib/storage');
+        const s = loadSettings();
+        const bytes1 = Array.from(new Uint8Array(await schueler.arrayBuffer()));
+        await invoke<string>('export_docx', { dir: s.exportDir ?? '', filename: schuelerName, bytes: bytes1, ask: s.exportAskEachTime ?? false });
+        await new Promise((r) => setTimeout(r, 600));
+        const bytes2 = Array.from(new Uint8Array(await loesung.arrayBuffer()));
+        await invoke<string>('export_docx', { dir: s.exportDir ?? '', filename: loesungName, bytes: bytes2, ask: s.exportAskEachTime ?? false });
+      } else {
+        // Fallback: Blob-Download
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(schueler);
+        a.download = schuelerName;
+        a.click();
+        await new Promise((r) => setTimeout(r, 600));
+        const b = document.createElement('a');
+        b.href = URL.createObjectURL(loesung);
+        b.download = loesungName;
+        b.click();
+      }
+
+      void markUsed(entry.id);
+      setToast({ id: Date.now(), kind: 'info', text: `Exportiert: ${schuelerName}` });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Export fehlgeschlagen';
+      setToast({ id: Date.now(), kind: 'error', text: msg });
+    } finally {
+      setExportingPoolId(null);
     }
   };
 
@@ -417,6 +472,15 @@ export function PoolView({ onInsertBlock }: Props) {
                       Einfügen
                     </button>
                   )}
+                  <button
+                    className="btn-secondary"
+                    onClick={() => handleDirectExport(entry)}
+                    disabled={exportingPoolId === entry.id}
+                    style={{ fontSize: '0.75rem', padding: '0.375rem 0.75rem', flex: '1 1 88px', minWidth: 0, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                  >
+                    {exportingPoolId === entry.id ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
+                    Exportieren
+                  </button>
                   <button
                     className="btn-danger"
                     onClick={() => handleDelete(entry.id, entry.thema)}

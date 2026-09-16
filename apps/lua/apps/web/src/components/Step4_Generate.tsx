@@ -51,6 +51,7 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
   const [niveauSchwer, setNiveauSchwer] = useState(false);
   const [diffCancelled, setDiffCancelled] = useState(false);
   const [diffErrors, setDiffErrors] = useState<string[]>([]);
+  const [diffPartial, setDiffPartial] = useState(false);
   const diffCancelledRef = useRef(false);
   const [qualityPassUsed, setQualityPassUsed] = useState(false);
   const [qualityChanges, setQualityChanges] = useState<string[] | null>(null);
@@ -155,13 +156,21 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
       await exportDocxOverride(state, transformiereLeicht(basis), 'leicht');
     }
 
-    if (niveauSchwer) {
+    if (niveauSchwer && !diffCancelledRef.current) {
       setNiveauExportLabel('Schwerere Fassung wird erzeugt …');
       setDiffErrors([]);
       setDiffCancelled(false);
-      diffCancelledRef.current = false;
+      setDiffPartial(false);
 
       const offeneIds = findeOffeneBlockIds(basis);
+
+      // Keine offenen Blöcke → Warnung, kein Export
+      if (offeneIds.length === 0) {
+        setNiveauExportLabel(null);
+        setDiffErrors([]);
+        return;
+      }
+
       const originalBloecke = new Map<string, Block>(
         offeneIds.map((id) => [id, basis.bloecke.find((b) => b.id === id)!])
       );
@@ -188,13 +197,19 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
         }
       }
 
+      // Cancel-Meldung auch bei letztem Block setzen
+      if (diffCancelledRef.current) {
+        setDiffCancelled(true);
+      }
+
       // Warnung bei Fehlschlägen
       if (fehlgeschlagen.length > 0) {
         setDiffErrors(fehlgeschlagen);
+        setDiffPartial(regeneriert.size > 0);
       }
 
-      // Nur exportieren, wenn nicht komplett abgebrochen
-      if (!diffCancelledRef.current) {
+      // Export nur wenn: nicht abgebrochen UND mindestens ein Block erfolgreich regeneriert
+      if (!diffCancelledRef.current && regeneriert.size > 0) {
         const schwer = { ...basis, bloecke: basis.bloecke.map((b) => regeneriert.get(b.id) ?? b) };
         await exportDocxOverride(state, schwer, 'schwer');
       }
@@ -545,7 +560,12 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
                   {diffErrors.length > 0 && (
                     <p style={{ fontSize: '0.75rem', color: 'var(--color-error)', margin: '0.25rem 0 0', display: 'flex', alignItems: 'flex-start', gap: '0.375rem' }}>
                       <AlertTriangle size={13} style={{ flexShrink: 0, marginTop: '0.1rem' }} />
-                      <span>{diffErrors.length} von {findeOffeneBlockIds(state.generiertesDokument!).length} Aufgaben konnte(n) nicht neu generiert werden. Die exportierte schwere Variante enthält diese Aufgaben unverändert.</span>
+                      <span>
+                        {diffErrors.length} von {findeOffeneBlockIds(state.generiertesDokument!).length} Aufgaben konnte(n) nicht neu generiert werden.
+                        {diffPartial
+                          ? ' Die exportierte schwere Variante enthält die fehlgeschlagenen Aufgaben unverändert.'
+                          : ' Keine Datei exportiert.'}
+                      </span>
                     </p>
                   )}
                 </div>

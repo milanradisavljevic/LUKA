@@ -365,3 +365,111 @@ fn chrono_now() -> String {
     let dur = now.duration_since(std::time::UNIX_EPOCH).unwrap_or_default();
     format!("{:.0}", dur.as_secs())
 }
+
+/// Stellt eine Datenbank aus einer Sicherungsdatei wieder her.
+///
+/// Ablauf:
+/// 1. Validierung: SQLite-Header + LUKA-Schema-Check
+/// 2. Aktuelle DB wird als `.pre-restore` gesichert (VACUUM INTO)
+/// 3. Sicherung wird in den Arbeitspfad kopiert
+/// 4. Verbindung wird neu geöffnet
+/// 5. Arbeitsdatenbank-Pfad wird dauerhaft gespeichert (bleibt auch nach Neustart)
+#[tauri::command]
+pub async fn db_restore_from_backup(
+    state: tauri::State<'_, DbState>,
+    backup_path: String,
+) -> Result<String, String> {
+    let src = std::path::PathBuf::from(backup_path.trim());
+    if !src.exists() {
+        return Err("Sicherungsdatei nicht gefunden.".into());
+    }
+    if !src.is_file() {
+        return Err("Der angegebene Pfad ist keine Datei.".into());
+    }
+
+    // 1. Validierung: SQLite-Header prüfen
+    let header_bytes = std::fs::read(&src)
+        .map_err(|e| format!("Sicherungsdatei konnte nicht gelesen werden: {}", e))?;
+    if header_bytes.len() < 16 || &header_bytes[..16] != b"SQLite format 3\0" {
+        return Err("Die Datei ist keine gültige SQLite-Datenbank.".into());
+    }
+
+    // 1b. LUKA-Schema prüfen — Verbindung öffnen und Tabellen prüfen
+    let test_conn = rusqlite::Connection::open(&src)
+        .map_err(|e| format!("Sicherungsdatei konnte nicht geöffnet werden: {}", e))?;
+    let has_pool: bool = test_conn
+        .query_row(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='aufgabe_pool'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap_or(0)
+        > 0;
+    let has_materials: bool = test_conn
+        .query_row(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='generated_materials'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap_or(0)
+        > 0;
+    if !has_pool && !has_materials {
+        return Err("Die Datei enthält keine LUKA-Datenbank (Tabellen 'aufgabe_pool' und 'generated_materials' fehlen).".into());
+    }
+    drop(test_conn);
+
+    // 2. Aktuelle DB sichern (falls vorhanden und != Ziel)
+    let work_dir = db::resolve_db_path()
+        .parent()
+        .map(|p| p.to_path_buf())
+        .unwrap_or_else(|| std::path::PathBuf::from("."));
+    let current_db = db::resolve_db_path();
+
+    if current_db.exists() && src != current_db {
+        let backup_stamp = chrono_now();
+        let pre_restore_path = work_dir.join(format!("lehr-suite.pre-restore-{}.db", backup_stamp));
+        // VACUUM INTO für konsistente Sicherung
+        {
+            let conn = state.conn()?;
+            conn.execute(
+                "VACUUM INTO ?1",
+                rusqlite::params![pre_restore_path.to_string_lossy()],
+            )
+            .map_err(|e| format!("Sicherung der aktuellen DB fehlgeschlagen: {}", e))?;
+        }
+    }
+
+    // 3. Sicherung in den Arbeitspfad kopieren
+    //    DB schließen, Datei kopieren, wieder öffnen
+    {
+        // Verbindung schließen durch Guard-Reset
+        let mut guard = state.0.lock().map_err(|e| format!("DB-Lock: {}", e))?;
+        *guard = db::open_db().map_err(|e| format!("Temp-DB: {}", e))?;
+    }
+    // Alte DB umbenennen und Sicherung kopieren
+    let stamp = chrono_now();
+    if current_db.exists() {
+        let archived = work_dir.join(format!("lehr-suite.pre-restore-{}.db", stamp));
+        let _ = std::fs::rename(&current_db, &archived);
+        // WAL/SHM-Begleitdateien mitverschieben
+        let _ = std::fs::rename(
+            current_db.with_extension("db-wal"),
+            archived.with_extension("db-wal"),
+        );
+        let _ = std::fs::rename(
+            current_db.with_extension("db-shm"),
+            archived.with_extension("db-shm"),
+        );
+    }
+    std::fs::copy(&src, &current_db)
+        .map_err(|e| format!("Sicherung konnte nicht kopiert werden: {}", e))?;
+
+    // 4. Verbindung neu öffnen
+    let new_conn = db::open_db()?;
+    {
+        let mut guard = state.0.lock().map_err(|e| format!("DB-Lock: {}", e))?;
+        *guard = new_conn;
+    }
+
+    Ok(current_db.to_string_lossy().to_string())
+}

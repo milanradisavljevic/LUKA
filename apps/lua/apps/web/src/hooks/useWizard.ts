@@ -156,6 +156,8 @@ export function useWizard() {
         ausgabeSprache: prev.ausgabeSprache, renderTemplate: prev.renderTemplate,
         renderLayout: prev.renderLayout,
       }, documentId: prev.aktuelleDokumentId });
+      // Step aus der Historie wiederherstellen (nicht den heuristischen aus LOAD_SNAPSHOT)
+      rawDispatch({ type: 'SET_STEP', step: prev.step });
       return;
     }
     if (action.type === 'REDO') {
@@ -170,6 +172,8 @@ export function useWizard() {
         ausgabeSprache: next.ausgabeSprache, renderTemplate: next.renderTemplate,
         renderLayout: next.renderLayout,
       }, documentId: next.aktuelleDokumentId });
+      // Step aus der Historie wiederherstellen
+      rawDispatch({ type: 'SET_STEP', step: next.step });
       return;
     }
 

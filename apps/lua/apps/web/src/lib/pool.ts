@@ -1,4 +1,4 @@
-import type { Block, Fach, Stufe, BlockTyp } from '@lehrunterlagen/schema';
+import type { Block, Fach, Stufe, BlockTyp, DocumentV1 } from '@lehrunterlagen/schema';
 
 export interface PoolEntry {
   id: string;
@@ -62,6 +62,26 @@ export function parsePoolBlock(entry: PoolEntry): Block | null {
   } catch {
     return null;
   }
+}
+
+/** Erzeugt ein minimales DocumentV1 aus einem Pool-Eintrag für direkten Export. */
+export function poolEntryToDocument(entry: PoolEntry): DocumentV1 | null {
+  const block = parsePoolBlock(entry);
+  if (!block) return null;
+  return {
+    schemaVersion: '0.1.0',
+    meta: {
+      fach: entry.fach as DocumentV1['meta']['fach'],
+      stufe: entry.stufe as DocumentV1['meta']['stufe'],
+      thema: entry.thema ?? 'Pool-Aufgabe',
+      datum: new Date().toISOString().slice(0, 10),
+      klasse: '',
+      notizen: entry.quelleHinweis ?? '',
+      schulstufe: entry.schulstufe ?? undefined,
+    },
+    quelltexte: [],
+    bloecke: [block],
+  };
 }
 
 export function parsePoolTags(tags: string | null): string[] {

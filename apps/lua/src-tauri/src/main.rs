@@ -61,6 +61,7 @@ fn main() {
             commands::db::db_resolve_path,
             commands::db::db_set_path,
             commands::db::db_backup,
+            commands::db::db_restore_from_backup,
             commands::natascha_read::db_list_aufgaben,
             commands::natascha_read::db_get_abgaben,
             commands::natascha_read::db_get_fehler_heatmap,
