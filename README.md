@@ -78,7 +78,7 @@ flowchart LR
 | ![Generator „Aus Quelltext": Absicht erfassen](screenshots/mit%20Quelltext.png) | ![Schnell-Übung: ein Thema, ein Aufgabentyp](screenshots/Schnellübung.png) |
 | *„Aus Quelltext": Absicht erfassen — Unterlagentyp, Fach/Stufe, Thema* | *Schnell-Übung: ein Thema, ein Aufgabentyp, sofort im Baukasten* |
 | ![Wahl von KI-Anbieter und Modell](screenshots/LLM-Auswahl.png) | ![Generierung läuft](screenshots/Wartescreen.png) |
-| *KI-Anbieter, Modell und Kreativitätsgrad wählen — BYOK, Schlüssel bleibt im OS-Schlüsselspeicher* | *Die KI formuliert — mit Fortschritt, Zeitangabe und Abbrechen* |
+| *KI-Anbieter, Modell und Kreativitätsgrad wählen — BYOK, Schlüssel im OS-Schlüsselspeicher (oder `.env.local` als Fallback)* | *Die KI formuliert — mit Fortschritt, Zeitangabe und Abbrechen* |
 | ![Fertig generierte Aufgaben in der A4-Vorschau](screenshots/ausgearbeitete%20Aufgaben.png) | ![Übersicht im Dark-Mode](screenshots/Darkmode.png) |
 | *Fertige Aufgaben in der A4-Vorschau — pro Block „Neu generieren" oder „In Pool"* | *Dieselbe App im warmen Dark-Mode (Papier bei Nacht)* |
 

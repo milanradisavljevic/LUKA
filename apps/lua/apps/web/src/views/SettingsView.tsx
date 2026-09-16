@@ -304,6 +304,39 @@ export function SettingsView() {
     }
   };
 
+  const [restoreMsg, setRestoreMsg] = useState<string | null>(null);
+  const [restoreConfirm, setRestoreConfirm] = useState<string | null>(null);
+  const handleRestore = async () => {
+    setRestoreMsg(null);
+    try {
+      const { open } = await import('@tauri-apps/plugin-dialog');
+      const { invoke } = await import('@tauri-apps/api/core');
+      const source = await open({
+        title: 'Datensicherung wiederherstellen',
+        filters: [{ name: 'SQLite-Datenbank', extensions: ['db'] }],
+        multiple: false,
+      });
+      if (!source) return;
+      const sourcePath = typeof source === 'string' ? source : source;
+      // Bestätigungsdialog
+      setRestoreConfirm(sourcePath);
+    } catch (e) {
+      setRestoreMsg(typeof e === 'string' ? e : e instanceof Error ? e.message : 'Fehler beim Auswählen der Datei.');
+    }
+  };
+
+  const confirmRestore = async (sourcePath: string) => {
+    setRestoreConfirm(null);
+    setRestoreMsg(null);
+    try {
+      const { invoke } = await import('@tauri-apps/api/core');
+      await invoke('db_set_path', { newPath: sourcePath });
+      setRestoreMsg(`Datenbank gewechselt: ${sourcePath}. Die App lädt die Daten aus dieser Datei.`);
+    } catch (e) {
+      setRestoreMsg(typeof e === 'string' ? e : e instanceof Error ? e.message : 'Wiederherstellung fehlgeschlagen.');
+    }
+  };
+
   const currentProvider = LLM_PROVIDERS.find((p) => p.id === settings.defaultProvider);
   const labelStyle = { display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.375rem' } as const;
 
@@ -617,7 +650,7 @@ export function SettingsView() {
           {FEATURES.natascha && ' Bei aktiviertem Korrektur-Modul nutzen Generator und Korrektur dieselbe Datei.'}
         </p>
         <DbPath />
-        <div style={{ marginTop: '0.875rem' }}>
+        <div style={{ marginTop: '0.875rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
           <button
             className="btn-secondary"
             onClick={handleBackup}
@@ -625,15 +658,27 @@ export function SettingsView() {
           >
             <Download size={14} /> Datensicherung exportieren
           </button>
-          <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', margin: '0.5rem 0 0' }}>
-            {backupMsg ? (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
-                {backupMsg.startsWith('Sicherung gespeichert') && <Check size={13} aria-hidden="true" style={{ color: 'var(--color-success)' }} />}
-                {backupMsg}
-              </span>
-            ) : 'Schreibt eine kompakte Kopie der Datenbank an einen Ort deiner Wahl.'}
-          </p>
+          <button
+            className="btn-secondary"
+            onClick={handleRestore}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}
+          >
+            <RefreshCw size={14} /> Datensicherung wiederherstellen
+          </button>
         </div>
+        <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', margin: '0.5rem 0 0' }}>
+          {restoreMsg ? (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+              {restoreMsg.startsWith('Datenbank gewechselt') && <Check size={13} aria-hidden="true" style={{ color: 'var(--color-success)' }} />}
+              {restoreMsg}
+            </span>
+          ) : backupMsg ? (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+              {backupMsg.startsWith('Sicherung gespeichert') && <Check size={13} aria-hidden="true" style={{ color: 'var(--color-success)' }} />}
+              {backupMsg}
+            </span>
+          ) : 'Erstellt eine kompakte Kopie oder lädt eine vorhandene Sicherung in die App.'}
+        </p>
       </section>
 
       {/* Abschnitt 5: API-Schluessel */}
@@ -643,6 +688,53 @@ export function SettingsView() {
       }}>
         <SettingsPanel />
       </section>
+
+      {/* Bestätigungsdialog für DB-Restore */}
+      {restoreConfirm && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+            zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '1rem',
+          }}
+          onClick={() => setRestoreConfirm(null)}
+        >
+          <div
+            style={{
+              background: 'var(--color-bg-surface)',
+              borderRadius: 'var(--radius)',
+              padding: '1.5rem',
+              maxWidth: 450,
+              width: '100%',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ margin: '0 0 0.75rem', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <RefreshCw size={16} /> Datensicherung wiederherstellen?
+            </h3>
+            <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: '0 0 1rem', lineHeight: 1.5 }}>
+              Die aktuelle Datenbank wird durch die ausgewählte Datei ersetzt.
+              Dokumente und Einstellungen aus der aktuellen Datenbank gehen dabei verloren, sofern sie nicht vorher exportiert wurden.
+            </p>
+            <p style={{ fontSize: '0.75rem', margin: '0 0 1rem', padding: '0.5rem', background: 'var(--color-bg-base)', borderRadius: 'var(--radius)', wordBreak: 'break-all' }}>
+              {restoreConfirm}
+            </p>
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+              <button className="btn-secondary" onClick={() => setRestoreConfirm(null)}>
+                Abbrechen
+              </button>
+              <button
+                className="btn-primary"
+                onClick={() => confirmRestore(restoreConfirm)}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}
+              >
+                <RefreshCw size={14} /> Wiederherstellen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Speichern/Verwerfen Leiste */}
       <div style={{

@@ -60,7 +60,7 @@ Rechtsklick-„Öffnen"-Trick, deshalb so:
 
 Damit das Generieren läuft, brauchst du einen API-Schlüssel deines KI-Anbieters. Beim ersten Start führt dich die App durch die Einrichtung inklusive Verbindungstest.
 
-1. Beim **ersten Start** wählst du einen Anbieter (empfohlen: Mistral, EU-Anbieter), trägst deinen API-Schlüssel ein und testest die Verbindung direkt im Dialog. Schlüssel werden sicher im Schlüsselspeicher des Betriebssystems abgelegt – nicht im Klartext.
+1. Beim **ersten Start** wählst du einen Anbieter (empfohlen: Mistral, EU-Anbieter), trägst deinen API-Schlüssel ein und testest die Verbindung direkt im Dialog. Schlüssel werden sicher im Schlüsselspeicher des Betriebssystems abgelegt. Auf Systemen ohne Keyring (z. B. WSL) wird eine `.env.local`-Datei im Datenbankordner verwendet.
 2. Später änderst du Anbieter und Standard-Modell jederzeit in den **Einstellungen**. Für günstige Tests eignet sich ein kleines Modell.
 3. Zum schnellen Loslegen mit fertigen Aufgaben: eines der sechs mitgelieferten **Fachpakete** (Ordner `samples/fachpakete/`) über **Aufgaben-Pool → Importieren** einspielen. Verfügbar sind das Startpaket **Medien und Demokratie / Informatik und KI**, **Startpaket Deutschland**, **Medien und Demokratie**, **Informatik und KI**, **Deutsch – Textsorten-Training Oberstufe** sowie **Englisch Oberstufe (CEFR B1–B2)**.
 
@@ -272,7 +272,7 @@ Erstellte Unterlagen und Konfigurationen verwaltest du über die Seitenleiste:
 3. **Verlauf** – jede Generierung/jeder Export wird protokolliert.
 4. **Favoriten** – häufig genutzte Dokumente markieren; **Papierkorb** – Gelöschtes wiederherstellen.
 
-> 💡 Datensicherung: in **Einstellungen → Datenbank → „Datensicherung exportieren"** schreibst du eine Kopie der gesamten lokalen Datenbank an einen Ort deiner Wahl.
+> 💡 Datensicherung: in **Einstellungen → Datenbank** kannst du eine Kopie der gesamten Datenbank exportieren oder eine vorhandene Sicherung wiederherstellen.
 
 ---
 

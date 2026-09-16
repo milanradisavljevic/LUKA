@@ -15,8 +15,10 @@ OpenAI, Mistral, DeepSeek). Alles andere bleibt lokal auf deinem Rechner.
 - **Datenbank** (`~/lehr-suite-bridge/lehr-suite.db`): Klassen, Abgaben, Noten,
   Fehler, Längsschnitte. Liegt nur auf deinem Gerät.
 - **Exporte** (generierte Arbeitsblätter, Feedback-DOCX) im Ausgabeordner.
-- **API-Schlüssel**: im **Schlüsselspeicher des Betriebssystems**, nicht im Klartext
-  in Dateien oder im Repo.
+- **API-Schlüssel**: im **Schlüsselspeicher des Betriebssystems** (Keyring/Credential Store).
+  Auf Systemen ohne Keyring (z. B. einige Linux-Server oder WSL-Umgebungen) werden die
+  Schlüssel als `.env.local`-Datei im Datenbankordner abgelegt — ebenfalls lokal und nicht
+  im Klartext im Repo.
 - Echte Schülerdaten (DBs, Abgaben, Output, Bridge-Inbox) sind per `.gitignore`
   vom Repository ausgeschlossen und gehören **nicht** auf GitHub.
 
