@@ -5,6 +5,26 @@ Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 (auch andere Coding-Agents) — siehe `AGENTS.md`.
 
+## Version 1.3.4 — 2026-09-16
+
+### UX-Verbesserungen
+- Undo/Redo im Wizard: Rückgängig-Wiederholen-Buttons im Footer (Ctrl+Z / Ctrl+Y). Historie wird bei Dokumentwechsel und Reset automatisch geleert.
+- Seitenumbruch-Schätzung in der Vorschau: A4-gestrichelte Trennlinien zeigen, wo wahrscheinlich ein Seitenumbruch liegt.
+- Block-Diff nach Regenerierung: Side-by-Side-Vergleich (Vorher/Nachher) erscheint, wenn eine Aufgabe neu generiert wurde.
+- Merkkasten-Beschriftungen übersetzt (DE/EN). Pool-Dialog schließt korrekt beim Abwählen.
+- Export-Akkordeon steht standardmäßig auf "Weitere Exporte & Werkzeuge" geöffnet.
+- Einstellungen: Ungespeicherte Änderungen werden vor dem Verlassen abgefragt (Dirty-State).
+- Einheitlicher Lade-Spinner (LoadingSpinner) auf allen Ansichten.
+
+### Differenzierung
+- "Leichtere Variante" korrekt bezeichnet: Zeigt jetzt "Mehr Platz für Antworten, kürzere Wortbereiche" statt des irreführenden "Einfachere Aufgaben".
+- Fehlerbehandlung: Fehlgeschlagene KI-Regenerierungen werden dem/der Lehrer:in angezeigt, statt stillschweigend mit Originalblöcken exportiert zu werden.
+- Abbruch: Während des Exports der schweren Variante kann der/die Lehrer:in den Vorgang abbrechen.
+
+### Korrektur & Daten
+- Datenbank-Wiederherstellung: "Datensicherung wiederherstellen"-Button in Einstellungen > Datenbank mit Bestätigungsdialog.
+- API-Schlüssel-Dokumentation aktualisiert: Datenschutzhinweise und Anleitung erklären den `.env.local`-Fallback für Systeme ohne Keyring.
+
 ## Version 1.3.3 — 2026-09-15
 
 - Generierung mit DeepSeek V4.1 Flash repariert: Modellname im internen Mapping korrigiert (`deepseek-v4-flash` → `deepseek-flash`). Vorher brach die Generierung mit „Schlüssel nicht gefunden für anthropic" ab, weil ein ungültiger Modellname an DeepSeek geschickt wurde und das Fallback auf einen fehlenden Anthropic-Key fiel.
