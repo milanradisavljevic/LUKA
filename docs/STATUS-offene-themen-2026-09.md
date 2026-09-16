@@ -43,6 +43,11 @@
 | Testdaten (TEST-7a) | ✅ Vorhanden | — |
 | Restore-Pfad geprüft | ✅ Phase 0 abgeschlossen | `47e879c` |
 | Korrektur-UX Stepper | ✅ Phase 1 abgeschlossen | `47e879c` |
+| Release v1.3.5 | ✅ Tag gepusht, Workflow läuft | `v1.3.5` |
+| Testplan v1.3.5 | ✅ Aktualisiert | `6449acc` |
+| Korrektur-UX Testdaten | ✅ Deutsch (3 Dateien) + Englisch (1 Datei) | — |
+| Feedback-Template | ✅ Erstellt | `6232ff1` |
+| Durchführungsanleitung | ✅ Erstellt | `6232ff1` |
 
 ---
 
@@ -50,11 +55,11 @@
 
 ### 🔴 Hoch (nächste Schritte)
 
-| # | Thema | Aufwand | Impact | Warum jetzt |
-|---|-------|---------|--------|-------------|
-| 1 | **Abnahme mit installiertem Build** | 30-45 Min | Hoch | Gate für Pilot-Feedback — Restore muss mit installiertem Build geprüft werden |
+| # | Thema | Aufwand | Impact | Status |
+|---|-------|---------|--------|--------|
+| 1 | **Abnahme mit installiertem Build** | 30-45 Min | Hoch | ✅ v1.3.5 Tag gepusht, Workflow läuft |
 | 2 | **Murals-Sichtprüfung** | 15 Min | Mittel | Steht auf "Vor Release im echten Windows-Build sichtprüfen" |
-| 3 | **Korrektur-UX testen** | 30-45 Min | Hoch | 4-Schritte-Dialog mit realem Deutsch-/Englischfall prüfen |
+| 3 | **Korrektur-UX testen** | 30-45 Min | Hoch | ✅ Testdaten, Feedback-Template + Durchführungsanleitung bereit |
 | 4 | **Englische Rubriken erweitern** | 1-2 Std | Hoch | A2/B1/B2 sind da, aber keine textsortenspezifischen |
 
 ### 🟡 Mittel (nächste 2-4 Wochen)
