@@ -50,6 +50,8 @@ docs/*
 !docs/szenarien.md
 !docs/TESTPLAN-installer.md
 !docs/STATUS-offene-themen-2026-09.md
+!docs/TESTFEEDBACK-korrektur-ux.md
+!docs/TESTDURCHFUEHRUNG-korrektur-ux.md
 
 # --- Versehentlich angelegte Leerdateien ---
 docs/Textdokument (neu).txt
