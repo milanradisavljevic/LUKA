@@ -1,6 +1,6 @@
 [package]
 name = "lehrunterlagen-tool"
-version = "1.3.4"
+version = "1.3.5"
 description = "Lehrunterlagen-Tool Desktop App"
 authors = ["Lehrunterlagen-Team"]
 edition = "2021"
