@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import {
   Loader2, Sparkles, FileDown, ClipboardList, FileType, CheckCircle2,
   AlertTriangle, Timer, Bot, X, Palette, BookOpen, Target, ShieldCheck,
@@ -49,6 +49,9 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
   const [showWeitere, setShowWeitere] = useState(true);
   const [niveauLeicht, setNiveauLeicht] = useState(false);
   const [niveauSchwer, setNiveauSchwer] = useState(false);
+  const [diffCancelled, setDiffCancelled] = useState(false);
+  const [diffErrors, setDiffErrors] = useState<string[]>([]);
+  const diffCancelledRef = useRef(false);
   const [qualityPassUsed, setQualityPassUsed] = useState(false);
   const [qualityChanges, setQualityChanges] = useState<string[] | null>(null);
   const [exportOptions, setExportOptions] = useState({
@@ -154,22 +157,47 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
 
     if (niveauSchwer) {
       setNiveauExportLabel('Schwerere Fassung wird erzeugt …');
+      setDiffErrors([]);
+      setDiffCancelled(false);
+      diffCancelledRef.current = false;
+
       const offeneIds = findeOffeneBlockIds(basis);
-      // regenerateBlock liefert den neuen Block zurück; die schwere Fassung wird daraus
-      // zusammengesetzt (NICHT aus dem async aktualisierten globalen State → wäre hier stale).
       const originalBloecke = new Map<string, Block>(
         offeneIds.map((id) => [id, basis.bloecke.find((b) => b.id === id)!])
       );
       const regeneriert = new Map<string, Block>();
+      const fehlgeschlagen: string[] = [];
+
       for (let i = 0; i < offeneIds.length; i++) {
+        // Abbruch prüfen
+        if (diffCancelledRef.current) {
+          setDiffCancelled(true);
+          break;
+        }
+
         const id = offeneIds[i]!;
         const neu = await regenerateBlock(state, id, 'Anspruchsvoller, höheres Bloom-Niveau — präzisere Analyse, komplexere Verknüpfungen, weniger Hilfestellung.');
-        if (neu) regeneriert.set(id, neu);
+        if (neu) {
+          regeneriert.set(id, neu);
+        } else {
+          fehlgeschlagen.push(id);
+        }
         // Kleine Pause zwischen den Calls gegen 429 (Free-Tier-Rate-Limits).
-        if (i < offeneIds.length - 1) await new Promise((r) => setTimeout(r, 800));
+        if (i < offeneIds.length - 1 && !diffCancelledRef.current) {
+          await new Promise((r) => setTimeout(r, 800));
+        }
       }
-      const schwer = { ...basis, bloecke: basis.bloecke.map((b) => regeneriert.get(b.id) ?? b) };
-      await exportDocxOverride(state, schwer, 'schwer');
+
+      // Warnung bei Fehlschlägen
+      if (fehlgeschlagen.length > 0) {
+        setDiffErrors(fehlgeschlagen);
+      }
+
+      // Nur exportieren, wenn nicht komplett abgebrochen
+      if (!diffCancelledRef.current) {
+        const schwer = { ...basis, bloecke: basis.bloecke.map((b) => regeneriert.get(b.id) ?? b) };
+        await exportDocxOverride(state, schwer, 'schwer');
+      }
 
       // Vorschau wieder auf die Original-Fassung zurücksetzen.
       for (const [id, block] of originalBloecke) {
@@ -178,6 +206,11 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
     }
     setNiveauExportLabel(null);
   };
+
+  const cancelDiffExport = useCallback(() => {
+    diffCancelledRef.current = true;
+    cancel();
+  }, [cancel]);
 
   return (
     <div>
@@ -464,7 +497,7 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
                     <span>
                       <strong>Leichtere Variante</strong>
                       <span style={{ display: 'block', color: 'var(--color-text-secondary)', fontSize: '0.75rem' }}>
-                        Einfachere Aufgaben für schwächere Schüler/innen · sofort, ohne KI
+                        Mehr Platz für Antworten, kürzere Wortbereiche · sofort, ohne KI
                       </span>
                     </span>
                   </label>
@@ -478,19 +511,42 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
                       </span>
                     </span>
                   </label>
-                  <button
-                    className="btn-secondary"
-                    onClick={exportDifferenzierung}
-                    disabled={exporting || generating || (!niveauLeicht && !niveauSchwer) || !!niveauExportLabel}
-                    style={{ padding: '0.5rem 1rem', fontSize: '0.8125rem', borderStyle: 'dashed',
-                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
-                  >
-                    {niveauExportLabel
-                      ? <><Loader2 size={15} className="spin" /> {niveauExportLabel}</>
-                      : <><FileDown size={15} /> Variante(n) erstellen & exportieren</>}
-                  </button>
+                  {niveauExportLabel && niveauSchwer ? (
+                    <button
+                      className="btn-secondary"
+                      onClick={cancelDiffExport}
+                      style={{ padding: '0.5rem 1rem', fontSize: '0.8125rem', borderStyle: 'dashed',
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
+                        borderColor: 'var(--color-error)', color: 'var(--color-error)' }}
+                    >
+                      <X size={15} /> Abbrechen
+                    </button>
+                  ) : (
+                    <button
+                      className="btn-secondary"
+                      onClick={exportDifferenzierung}
+                      disabled={exporting || generating || (!niveauLeicht && !niveauSchwer) || !!niveauExportLabel}
+                      style={{ padding: '0.5rem 1rem', fontSize: '0.8125rem', borderStyle: 'dashed',
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+                    >
+                      {niveauExportLabel
+                        ? <><Loader2 size={15} className="spin" /> {niveauExportLabel}</>
+                        : <><FileDown size={15} /> Variante(n) erstellen & exportieren</>}
+                    </button>
+                  )}
                   {!niveauLeicht && !niveauSchwer && (
                     <p style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', margin: 0 }}>Wähle mindestens eine Variante aus.</p>
+                  )}
+                  {diffCancelled && (
+                    <p style={{ fontSize: '0.75rem', color: 'var(--color-warning)', margin: '0.25rem 0 0', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                      <AlertTriangle size={13} /> Export abgebrochen. Die bisherigen Änderungen wurden nicht exportiert.
+                    </p>
+                  )}
+                  {diffErrors.length > 0 && (
+                    <p style={{ fontSize: '0.75rem', color: 'var(--color-error)', margin: '0.25rem 0 0', display: 'flex', alignItems: 'flex-start', gap: '0.375rem' }}>
+                      <AlertTriangle size={13} style={{ flexShrink: 0, marginTop: '0.1rem' }} />
+                      <span>{diffErrors.length} von {findeOffeneBlockIds(state.generiertesDokument!).length} Aufgaben konnte(n) nicht neu generiert werden. Die exportierte schwere Variante enthält diese Aufgaben unverändert.</span>
+                    </p>
                   )}
                 </div>
               )}

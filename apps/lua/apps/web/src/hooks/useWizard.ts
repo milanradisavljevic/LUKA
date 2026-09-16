@@ -13,6 +13,9 @@ const NON_UNDOABLE = new Set([
   'UNDO', 'REDO',
 ]);
 
+// Actions die den gesamten Undo/Redo-Stack leeren (Dokumentwechsel, Reset)
+const CLEAR_HISTORY_ON = new Set(['RESET_STATE', 'LOAD_SNAPSHOT']);
+
 // Actions die den Redo-Stack leeren (neuer Edit nach Undo)
 const CLEAR_REDO_ON = new Set([
   'SET_AUFTRAG', 'SET_META',
@@ -175,6 +178,12 @@ export function useWizard() {
       pastRef.current.push(structuredClone(state));
       if (pastRef.current.length > MAX_HISTORY) pastRef.current.shift();
       if (CLEAR_REDO_ON.has(action.type)) futureRef.current = [];
+    }
+
+    // Bei Dokumentwechsel/Reset: gesamten History-Stack leeren
+    if (CLEAR_HISTORY_ON.has(action.type)) {
+      pastRef.current = [];
+      futureRef.current = [];
     }
 
     rawDispatch(action);
