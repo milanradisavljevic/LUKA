@@ -1,10 +1,10 @@
 import { useEffect, useState, useRef } from 'react';
-import { Check, Database, Download, RefreshCw, Terminal } from 'lucide-react';
+import { Check, Database, Download, RefreshCw, Terminal, Loader2 } from 'lucide-react';
 import type { AppSettings, LlmProvider } from '../lib/types';
 import { BLOCK_TYPE_DEFS, LLM_PROVIDERS } from '../lib/constants';
 import { FEATURES } from '../lib/features';
 import { CREATIVITY_PRESETS } from '../lib/creativity';
-import { loadSettings, saveSettings, getDbPath } from '../lib/storage';
+import { loadSettings, saveSettings, getDbPath, hydrateCache } from '../lib/storage';
 import { DEFAULT_LEHRER_PROFIL, loadTeacherProfile, saveTeacherProfile, type LehrerProfil, type ProfileLand } from '../lib/profile';
 import { REGION_AT, REGION_DE, SCHULFORMEN_AT, SCHULFORMEN_DE } from '../lib/profileOptions';
 import { FACH_META, schulstufeLabel, schulstufenFuerLand } from '@lehrunterlagen/schema';
@@ -306,6 +306,7 @@ export function SettingsView() {
 
   const [restoreMsg, setRestoreMsg] = useState<string | null>(null);
   const [restoreConfirm, setRestoreConfirm] = useState<string | null>(null);
+  const [restoring, setRestoring] = useState(false);
   const handleRestore = async () => {
     setRestoreMsg(null);
     try {
@@ -328,12 +329,16 @@ export function SettingsView() {
   const confirmRestore = async (sourcePath: string) => {
     setRestoreConfirm(null);
     setRestoreMsg(null);
+    setRestoring(true);
     try {
       const { invoke } = await import('@tauri-apps/api/core');
-      const restoredPath = await invoke<string>('db_restore_from_backup', { backupPath: sourcePath });
-      setRestoreMsg(`Wiederherstellung abgeschlossen. Aktive Datenbank: ${restoredPath}`);
+      await invoke<string>('db_restore_from_backup', { backupPath: sourcePath });
+      await hydrateCache();
+      setRestoreMsg('Wiederherstellung abgeschlossen. Die App wird neu geladen …');
+      setTimeout(() => window.location.reload(), 1200);
     } catch (e) {
       setRestoreMsg(typeof e === 'string' ? e : e instanceof Error ? e.message : 'Wiederherstellung fehlgeschlagen.');
+      setRestoring(false);
     }
   };
 
@@ -669,7 +674,8 @@ export function SettingsView() {
         <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', margin: '0.5rem 0 0' }}>
           {restoreMsg ? (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
-              {restoreMsg.startsWith('Datenbank gewechselt') && <Check size={13} aria-hidden="true" style={{ color: 'var(--color-success)' }} />}
+              {(restoreMsg.startsWith('Datenbank gewechselt') || restoreMsg.startsWith('Wiederherstellung abgeschlossen')) && <Check size={13} aria-hidden="true" style={{ color: 'var(--color-success)' }} />}
+              {restoring && !restoreMsg.startsWith('Wiederherstellung') && <Loader2 size={13} className="animate-spin" aria-hidden="true" />}
               {restoreMsg}
             </span>
           ) : backupMsg ? (

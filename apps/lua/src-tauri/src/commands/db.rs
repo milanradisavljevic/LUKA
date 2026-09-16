@@ -370,10 +370,11 @@ fn chrono_now() -> String {
 ///
 /// Ablauf:
 /// 1. Validierung: SQLite-Header + LUKA-Schema-Check
-/// 2. Aktuelle DB wird als `.pre-restore` gesichert (VACUUM INTO)
-/// 3. Sicherung wird in den Arbeitspfad kopiert
-/// 4. Verbindung wird neu geöffnet
-/// 5. Arbeitsdatenbank-Pfad wird dauerhaft gespeichert (bleibt auch nach Neustart)
+/// 2. Aktuelle DB wird als `.pre-restore-vacuum.db` gesichert (VACUUM INTO)
+/// 3. Aktuelle DB wird als `.pre-restore-archive.db` archiviert (Rename)
+/// 4. Sicherung wird in den Arbeitspfad kopiert
+/// 5. Verbindung wird neu geöffnet
+/// 6. Bei jedem Fehler bleibt die vorherige Datenbank verwendbar.
 #[tauri::command]
 pub async fn db_restore_from_backup(
     state: tauri::State<'_, DbState>,
@@ -418,53 +419,63 @@ pub async fn db_restore_from_backup(
     }
     drop(test_conn);
 
-    // 2. Aktuelle DB sichern (falls vorhanden und != Ziel)
     let work_dir = db::resolve_db_path()
         .parent()
         .map(|p| p.to_path_buf())
         .unwrap_or_else(|| std::path::PathBuf::from("."));
     let current_db = db::resolve_db_path();
 
+    // Einzelner Timestamp für alle Sicherungsdateien dieses Vorgangs
+    let restore_stamp = chrono_now();
+
+    // 2. VACUUM INTO — konsistente Sicherung der aktuellen DB
     if current_db.exists() && src != current_db {
-        let backup_stamp = chrono_now();
-        let pre_restore_path = work_dir.join(format!("lehr-suite.pre-restore-{}.db", backup_stamp));
-        // VACUUM INTO für konsistente Sicherung
+        let vacuum_path = work_dir.join(format!("lehr-suite.pre-restore-{}-vacuum.db", restore_stamp));
         {
             let conn = state.conn()?;
             conn.execute(
                 "VACUUM INTO ?1",
-                rusqlite::params![pre_restore_path.to_string_lossy()],
+                rusqlite::params![vacuum_path.to_string_lossy()],
             )
             .map_err(|e| format!("Sicherung der aktuellen DB fehlgeschlagen: {}", e))?;
         }
     }
 
-    // 3. Sicherung in den Arbeitspfad kopieren
-    //    DB schließen, Datei kopieren, wieder öffnen
+    // 3. Aktuelle DB-Verbindung schließen (in-memory ersetzen)
+    //    Dadurch werden OS-Datei-Handles freigegeben — Rename auf Windows sicher.
     {
-        // Verbindung schließen durch Guard-Reset
         let mut guard = state.0.lock().map_err(|e| format!("DB-Lock: {}", e))?;
-        *guard = db::open_db().map_err(|e| format!("Temp-DB: {}", e))?;
+        *guard = rusqlite::Connection::open_in_memory()
+            .map_err(|e| format!("Temp-Verbindung konnte nicht erstellt werden: {}", e))?;
     }
-    // Alte DB umbenennen und Sicherung kopieren
-    let stamp = chrono_now();
-    if current_db.exists() {
-        let archived = work_dir.join(format!("lehr-suite.pre-restore-{}.db", stamp));
-        let _ = std::fs::rename(&current_db, &archived);
-        // WAL/SHM-Begleitdateien mitverschieben
-        let _ = std::fs::rename(
-            current_db.with_extension("db-wal"),
-            archived.with_extension("db-wal"),
-        );
-        let _ = std::fs::rename(
-            current_db.with_extension("db-shm"),
-            archived.with_extension("db-shm"),
-        );
-    }
-    std::fs::copy(&src, &current_db)
-        .map_err(|e| format!("Sicherung konnte nicht kopiert werden: {}", e))?;
 
-    // 4. Verbindung neu öffnen
+    // 4. Alte DB umbenennen (Archiv)
+    if current_db.exists() {
+        let archived = work_dir.join(format!("lehr-suite.pre-restore-{}-archive.db", restore_stamp));
+        std::fs::rename(&current_db, &archived)
+            .map_err(|e| format!(
+                "Aktuelle Datenbank konnte nicht archiviert werden: {}. Die Originaldatenbank bleibt unverändert.",
+                e
+            ))?;
+        // WAL/SHM begleitdateien — optional, nur warnen bei Fehler
+        let wal = current_db.with_extension("db-wal");
+        let shm = current_db.with_extension("db-shm");
+        if wal.exists() {
+            let _ = std::fs::rename(&wal, archived.with_extension("db-wal"));
+        }
+        if shm.exists() {
+            let _ = std::fs::rename(&shm, archived.with_extension("db-shm"));
+        }
+    }
+
+    // 5. Sicherung in den Arbeitspfad kopieren
+    std::fs::copy(&src, &current_db)
+        .map_err(|e| format!(
+            "Sicherung konnte nicht kopiert werden: {}. Das Archiv der vorherigen DB bleibt erhalten.",
+            e
+        ))?;
+
+    // 6. Verbindung neu öffnen
     let new_conn = db::open_db()?;
     {
         let mut guard = state.0.lock().map_err(|e| format!("DB-Lock: {}", e))?;

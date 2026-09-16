@@ -135,6 +135,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
   const [showPreview, setShowPreview] = useState(true);
 
   const [analyzeOpen, setAnalyzeOpen] = useState(false);
+  const [analyzeStep, setAnalyzeStep] = useState<1 | 2 | 3 | 4>(1);
   const [analyzeKlasse, setAnalyzeKlasse] = useLocalDraft('analyzeKlasse', '');
   const [analyzeAufgabe, setAnalyzeAufgabe] = useLocalDraft('analyzeAufgabe', '');
   const [analyzeAufgaben, setAnalyzeAufgaben] = useState<string[]>([]);
@@ -504,7 +505,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
       setError(korrekturStatus?.label ?? 'Korrektur-Modul wird noch geprüft.');
       return;
     }
-    if(analyzeKlasse || analyzeFile || batchFiles.length){setAnalyzeOpen(true);return;}
+    if(analyzeKlasse || analyzeFile || batchFiles.length){setAnalyzeStep(1);setAnalyzeOpen(true);return;}
     setSelectedEinsatzId('');
     // Beim erneuten Korrigieren derselben Aufgabe die bereits bestätigte
     // Prüfgrundlage wiederverwenden. So muss die Lehrkraft Quelle und Raster
@@ -514,6 +515,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     setSelectedRubrik(korrekturKontext?.rubrik ?? '');
     setAnalyzeAusgangstext(korrekturKontext?.ausgangstext ?? '');
     setAnalyzeAusgangstextDatei('');
+    setAnalyzeStep(1);
     setAnalyzeOpen(true);
   }, [korrekturStatus, korrekturKontext, selectedAufgabe, selectedKlasse, analyzeKlasse, analyzeFile, batchFiles.length]);
 
@@ -1084,231 +1086,322 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
       {analyzeOpen && (
         <div style={{ position: 'fixed', inset: 0, background: 'var(--color-overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }} onClick={() => { if (!batchRunning && !analyzing) setAnalyzeOpen(false); }}>
           <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="correction-import-title" tabIndex={-1} className="correction-import" style={{ ...cardStyle, width: 760, maxWidth:'calc(100vw - 2rem)', maxHeight: '90vh', overflow: 'auto' }} onClick={(e) => e.stopPropagation()}>
-            <h3 id="correction-import-title" style={{ fontSize: '1.2rem', margin: '0 0 1rem' }}>Korrekturauftrag</h3>
+            <h3 id="correction-import-title" style={{ fontSize: '1.2rem', margin: '0 0 0.25rem' }}>Korrekturauftrag</h3>
+
+            {/* Step indicator */}
+            <div style={{ display: 'flex', gap: '0.25rem', marginBottom: '1rem', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+              {[1,2,3,4].map(s => (
+                <span key={s} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                  {s > 1 && <span style={{ margin: '0 0.125rem' }}>·</span>}
+                  <span style={{ fontWeight: analyzeStep === s ? 700 : 400, color: analyzeStep === s ? 'var(--color-text)' : undefined }}>
+                    {s}. {s === 1 ? 'Auftrag' : s === 2 ? 'Abgaben' : s === 3 ? 'Prüfgrundlage' : 'Prüfen & Start'}
+                  </span>
+                </span>
+              ))}
+            </div>
+
             {error && <p role="alert" className="session-warning">{error}</p>}
             <fieldset disabled={queueRunning} style={{border:0,padding:0,margin:0,minWidth:0}}>
 
-            <div style={{ marginBottom: '0.75rem' }}>
-              <label>Unterrichtseinsatz <span style={{ color: 'var(--color-text-secondary)', fontWeight: 400 }}>(optional)</span></label>
-              <select
-                value={selectedEinsatzId}
-                onChange={(e) => handleEinsatzChange(e.target.value)}
-                style={{ width: '100%' }}
-              >
-                <option value="">Ohne gespeicherte Unterlage</option>
-                {einsatzOptions.map((e) => (
-                  <option key={e.id} value={e.id}>
-                    {(e.titelSnapshot || 'Unbenannte Unterlage')} · {(e.klasseNameSnapshot || 'Klasse offen')} · {formatEinsatzDatum(einsatzAnzeigeDatum(e))}
-                  </option>
-                ))}
-              </select>
-              {selectedEinsatzId && <p style={{ margin: '0.25rem 0 0', fontSize: '0.72rem', color: 'var(--color-text-secondary)' }}>
-                Klasse und Ausgangstext wurden aus dem Einsatz vorbefüllt und bleiben bewusst überschreibbar.
-              </p>}
-            </div>
-
-            <div style={{ marginBottom: '0.75rem' }}>
-              <label>Klasse</label>
-              <select
-                value={analyzeKlasse}
-                onChange={(e) => {
-                  setAnalyzeKlasse(normalizeKlasse(e.target.value));
-                  setAnalyzeAufgabe('');setAssignments({});setSelectedRubrik('');setBatchResults([]);
-                }}
-                style={{ width: '100%' }}
-              >
-                <option value="">Klasse auswählen</option>
-                {analyseKlassen.map((klasse) => (
-                  <option key={klasse.name} value={klasse.name}>{klasse.label}</option>
-                ))}
-              </select>
-            </div>
-
-            <div style={{ marginBottom: '0.75rem' }}>
-              <label>Aufgabe</label>
-              <input
-                type="text"
-                list="korrektur-aufgaben-optionen"
-                value={analyzeAufgabe}
-                onChange={(e) => setAnalyzeAufgabe(e.target.value)}
-                placeholder={analyzeKlasse ? 'Vorhandene Aufgabe wählen oder neue eingeben' : 'Zuerst Klasse auswählen'}
-                disabled={!analyzeKlasse}
-                style={{ width: '100%' }}
-              />
-              <datalist id="korrektur-aufgaben-optionen">
-                {analyzeAufgaben.map((aufgabe) => <option key={aufgabe} value={aufgabe} />)}
-              </datalist>
-            </div>
-
-            <div style={{ marginBottom: '0.75rem' }}>
-              <label>Bewertungsraster</label>
-              <select value={selectedRubrik} onChange={(e) => setSelectedRubrik(e.target.value)} style={{ width: '100%' }}>
-                <option value="">Automatisch — Standard für Fach/Schulstufe</option>
-                {gruppiereRubriken(rubrikListe.rubrics).map((gruppe) => (
-                  <optgroup key={gruppe.fach || 'weitere'} label={gruppe.label}>
-                    {gruppe.rubriken.map((rubrik) => (
-                      <option key={rubrik.filename} value={rubrik.filename}>{rubrikLabel(rubrik)}</option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
-              {!selectedRubrik && rubrikListe.defaultRubric && (
-                <p style={{ margin: '0.25rem 0 0', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
-                  Es gilt: {rubrikLabel(rubrikListe.rubrics.find((rubrik) => rubrik.filename === rubrikListe.defaultRubric) ?? { filename: rubrikListe.defaultRubric })}
-                </p>
-              )}
-            </div>
-
-            {/* Bestätigte Zuordnung: Vorschlag aus dem Dateinamen, Entscheidung bei
-                der Lehrkraft. Automatik = alte Namensheuristik (kann Schüler anlegen). */}
-            {batchFiles.length === 0 && klasseSchueler.length > 0 && (
+            {/* ─── Schritt 1: Auftrag festlegen ─── */}
+            {analyzeStep === 1 && (<>
               <div style={{ marginBottom: '0.75rem' }}>
-                <label>Schüler:in (Zuordnung)</label>
+                <label>Unterrichtseinsatz <span style={{ color: 'var(--color-text-secondary)', fontWeight: 400 }}>(optional)</span></label>
                 <select
-                  value={zuordnungId === '' ? '' : String(zuordnungId)}
-                  onChange={(e) => {
-                    zuordnungTouchedRef.current = true;
-                    setZuordnungId(e.target.value === '' ? '' : Number(e.target.value));
-                  }}
+                  value={selectedEinsatzId}
+                  onChange={(e) => handleEinsatzChange(e.target.value)}
                   style={{ width: '100%' }}
                 >
-                  <option value="">Automatisch (aus Dateiname erkennen)</option>
-                  {klasseSchueler.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.vorname}{s.nachname ? ` ${s.nachname}` : ''}
+                  <option value="">Ohne gespeicherte Unterlage</option>
+                  {einsatzOptions.map((e) => (
+                    <option key={e.id} value={e.id}>
+                      {(e.titelSnapshot || 'Unbenannte Unterlage')} · {(e.klasseNameSnapshot || 'Klasse offen')} · {formatEinsatzDatum(einsatzAnzeigeDatum(e))}
                     </option>
                   ))}
                 </select>
-                {zuordnungId !== '' && !zuordnungTouchedRef.current && (
-                  <p style={{ margin: '0.25rem 0 0', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
-                    Automatisch aus dem Dateinamen erkannt — bitte prüfen.
-                  </p>
+                {selectedEinsatzId && <p style={{ margin: '0.25rem 0 0', fontSize: '0.72rem', color: 'var(--color-text-secondary)' }}>
+                  Klasse und Ausgangstext wurden aus dem Einsatz vorbefüllt und bleiben bewusst überschreibbar.
+                </p>}
+              </div>
+
+              <div style={{ marginBottom: '0.75rem' }}>
+                <label>Klasse</label>
+                <select
+                  value={analyzeKlasse}
+                  onChange={(e) => {
+                    setAnalyzeKlasse(normalizeKlasse(e.target.value));
+                    setAnalyzeAufgabe('');setAssignments({});setSelectedRubrik('');setBatchResults([]);
+                  }}
+                  style={{ width: '100%' }}
+                >
+                  <option value="">Klasse auswählen</option>
+                  {analyseKlassen.map((klasse) => (
+                    <option key={klasse.name} value={klasse.name}>{klasse.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ marginBottom: '0.75rem' }}>
+                <label>Aufgabe</label>
+                <input
+                  type="text"
+                  list="korrektur-aufgaben-optionen"
+                  value={analyzeAufgabe}
+                  onChange={(e) => setAnalyzeAufgabe(e.target.value)}
+                  placeholder={analyzeKlasse ? 'Vorhandene Aufgabe wählen oder neue eingeben' : 'Zuerst Klasse auswählen'}
+                  disabled={!analyzeKlasse}
+                  style={{ width: '100%' }}
+                />
+                <datalist id="korrektur-aufgaben-optionen">
+                  {analyzeAufgaben.map((aufgabe) => <option key={aufgabe} value={aufgabe} />)}
+                </datalist>
+              </div>
+            </>)}
+
+            {/* ─── Schritt 2: Abgaben hinzufügen ─── */}
+            {analyzeStep === 2 && (<>
+              <h4 style={{ fontSize: '0.875rem', margin: '0 0 0.5rem' }}>Dateien auswählen</h4>
+              <button type="button" className="file-drop" onClick={pickFile} style={{width:'100%',padding:'1.25rem',border:'2px dashed var(--color-border)',background:dragActive?'var(--color-bg-selected)':'var(--color-bg-base)',borderRadius:'var(--radius)'}}>
+                <Upload size={20}/> Dateien hierher ziehen oder auswählen<br/><small>Eine oder mehrere Abgaben · DOCX, PDF, TXT, ODT, JPG, PNG</small>
+              </button>
+
+              {batchFiles.map(file=><div className="correction-file-row" key={file}>
+                <div><strong>{baseName(file)}</strong><div>{checkingFiles && !fileChecks[file] ? 'Wird geprüft …' : !fileChecks[file] ? 'Prüfung nicht abgeschlossen' : fileChecks[file]?.visionModus ? 'PDF/Bild: Datei wird unverändert übertragen' : 'Textdatei geprüft'}</div></div>
+                <select aria-label={'Schülerzuordnung für '+baseName(file)} value={assignments[file] ?? ''} onChange={e=>setAssignments(prev=>({...prev,[file]:e.target.value ? Number(e.target.value):''}))}>
+                  <option value="">Automatische Zuordnung — bitte prüfen</option>{klasseSchueler.map(person=><option key={person.id} value={person.id}>{person.vorname} {person.nachname}</option>)}
+                </select>
+                <button type="button" className="btn-secondary" onClick={()=>selectFiles(batchFiles.filter(p=>p!==file))} aria-label={'Entfernen: '+baseName(file)}>Entfernen</button>
+              </div>)}
+
+              {batchResults.length>0 && <div role="status" className="queue-results"><strong>Letzter Bearbeitungsstand</strong>{batchResults.map(r=><p key={r.file}>{baseName(r.file)} — {r.ok?'KI-Vorschlag vorhanden':'Nicht abgeschlossen'} · {r.msg}</p>)}</div>}
+
+              {/* Bestätigte Zuordnung für Einzeldatei */}
+              {batchFiles.length === 0 && klasseSchueler.length > 0 && (
+                <div style={{ marginTop: '0.75rem' }}>
+                  <label>Schüler:in (Zuordnung)</label>
+                  <select
+                    value={zuordnungId === '' ? '' : String(zuordnungId)}
+                    onChange={(e) => {
+                      zuordnungTouchedRef.current = true;
+                      setZuordnungId(e.target.value === '' ? '' : Number(e.target.value));
+                    }}
+                    style={{ width: '100%' }}
+                  >
+                    <option value="">Automatisch (aus Dateiname erkennen)</option>
+                    {klasseSchueler.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.vorname}{s.nachname ? ` ${s.nachname}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Datenschutz */}
+              <div style={{ marginTop: '0.75rem', padding: '0.625rem 0.75rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', background: 'var(--color-bg-base)' }}>
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', cursor: 'pointer', marginBottom: 0 }}>
+                  <input
+                    type="checkbox"
+                    checked={pseudoAktiv}
+                    onChange={(e) => setPseudoAktiv(e.target.checked)}
+                    style={{ marginTop: 2 }}
+                  />
+                  <span style={{ fontSize: '0.8125rem' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontWeight: 600 }}>
+                      <ShieldCheck size={14} /> Personenangaben vor dem Versand ersetzen
+                    </span>
+                    <span style={{ display: 'block', color: 'var(--color-text-secondary)', fontSize: '0.75rem', marginTop: 2 }}>
+                      Namen aus der Klassenliste gehen als Alias (z.&nbsp;B. S-7A-014) an den KI-Anbieter
+                      und werden in der Rückmeldung wieder eingesetzt.
+                    </span>
+                  </span>
+                </label>
+                {pseudoAktiv && batchFiles.length <= 1 && (
+                  <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+                    {pseudoVorschauBusy && <span>Prüfe Datei auf bekannte Namen …</span>}
+                    {!pseudoVorschauBusy && pseudoVorschau?.visionModus && (
+                      <span style={{ color: 'var(--color-warning, #b45309)' }}>
+                        PDF/Bild: Ersetzen im Dokument nicht möglich — die Datei geht unverändert an den Anbieter.
+                      </span>
+                    )}
+                    {!pseudoVorschauBusy && pseudoVorschau?.visionModus && !pseudoVorschau.visionFaehig && (
+                      <span style={{ display: 'block', marginTop: 4, color: 'var(--color-danger, #c0392b)', fontWeight: 600 }}>
+                        Analyse blockiert: Der konfigurierte KI-Anbieter unterstützt diesen PDF-/Bildtyp nicht.
+                      </span>
+                    )}
+                    {!pseudoVorschauBusy && pseudoVorschau && !pseudoVorschau.visionModus && pseudoVorschau.klassenlisteLeer && (
+                      <span>Keine Schülerliste für diese Klasse hinterlegt — es kann nichts erkannt werden.</span>
+                    )}
+                    {!pseudoVorschauBusy && pseudoVorschau && !pseudoVorschau.visionModus && !pseudoVorschau.klassenlisteLeer && (
+                      pseudoVorschau.funde.length === 0
+                        ? <span>Keine Namen aus der Klassenliste in Datei/Dateiname gefunden.</span>
+                        : (
+                          <span>
+                            Wird ersetzt:{' '}
+                            {pseudoVorschau.funde.map((f, i) => (
+                              <span key={f.alias}>
+                                {i > 0 && ', '}
+                                <strong>{f.anzeige}</strong> → {f.alias}
+                                {f.vorkommenText > 0 ? ` (${f.vorkommenText}× im Text)` : ' (im Dateinamen)'}
+                              </span>
+                            ))}
+                          </span>
+                        )
+                    )}
+                  </div>
+                )}
+                {pseudoAktiv && batchFiles.length > 1 && (
+                  <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+                    Gilt für alle Dateien im Stapel; erkannte Namen stehen nach der Analyse im Hinweis-Protokoll.
+                  </div>
                 )}
               </div>
-            )}
+            </>)}
 
-            {/* Prüfgrundlage: Inhalt und Datei sind getrennt, damit der Text nicht
-                versehentlich als Dateipfad an NATASCHA gelangt. */}
-            <div style={{ marginBottom: '0.75rem' }}>
-              <label>Ausgangsmaterial <span style={{ color: 'var(--color-text-secondary)', fontWeight: 400 }}>(optional, für textgebundene Aufgaben empfohlen)</span></label>
-              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.45rem', alignItems: 'center' }}>
-                <button type="button" className="btn-secondary" onClick={pickSourceFile} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.75rem' }}>
-                  <FolderOpen size={14} /> Datei auswählen …
-                </button>
-                {analyzeAusgangstextDatei && <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }} title={analyzeAusgangstextDatei}>
-                  {baseName(analyzeAusgangstextDatei)}
-                  <button type="button" onClick={() => setAnalyzeAusgangstextDatei('')} style={{ marginLeft: 6, border: 0, background: 'none', cursor: 'pointer', color: 'var(--color-text-secondary)' }} aria-label="Ausgangsmaterial entfernen">×</button>
-                </span>}
+            {/* ─── Schritt 3: Prüfgrundlage bestätigen ─── */}
+            {analyzeStep === 3 && (<>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {/* Raster-Card */}
+                <div style={{ padding: '0.625rem 0.75rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', background: 'var(--color-bg-base)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)' }}>Bewertungsraster</div>
+                    <div style={{ fontSize: '0.8125rem', fontWeight: 500 }}>
+                      {rubrikLabel(rubrikListe.rubrics.find(r => r.filename === (selectedRubrik || rubrikListe.defaultRubric)) ?? { filename: selectedRubrik || rubrikListe.defaultRubric || '' })}
+                    </div>
+                  </div>
+                  <button type="button" className="btn-ghost" onClick={() => setAnalyzeStep(1)} style={{ fontSize: '0.75rem' }}>Ändern</button>
+                </div>
+
+                {/* Ausgangsmaterial-Card */}
+                <div style={{ padding: '0.625rem 0.75rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', background: 'var(--color-bg-base)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)' }}>Ausgangsmaterial</div>
+                    <div style={{ fontSize: '0.8125rem', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {analyzeAusgangstextDatei
+                        ? baseName(analyzeAusgangstextDatei)
+                        : analyzeAusgangstext.trim()
+                          ? analyzeAusgangstext.trim().slice(0, 80) + (analyzeAusgangstext.trim().length > 80 ? ' …' : '')
+                          : <span style={{ color: 'var(--color-text-secondary)', fontWeight: 400 }}>Nicht gesetzt — bei textgebundenen Aufgaben empfohlen</span>
+                      }
+                    </div>
+                  </div>
+                  <button type="button" className="btn-ghost" onClick={() => setAnalyzeStep(1)} style={{ fontSize: '0.75rem', flexShrink: 0 }}>Ändern</button>
+                </div>
+
+                {/* Klasse + Aufgabe */}
+                <div style={{ padding: '0.625rem 0.75rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', background: 'var(--color-bg-base)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)' }}>Klasse & Aufgabe</div>
+                    <div style={{ fontSize: '0.8125rem', fontWeight: 500 }}>
+                      {analyzeKlasse || '—'}{analyzeAufgabe && <> · {analyzeAufgabe}</>}
+                    </div>
+                  </div>
+                  <button type="button" className="btn-ghost" onClick={() => setAnalyzeStep(1)} style={{ fontSize: '0.75rem' }}>Ändern</button>
+                </div>
+
+                {/* Abgaben-Zusammenfassung */}
+                <div style={{ padding: '0.625rem 0.75rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', background: 'var(--color-bg-base)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)' }}>Abgaben</div>
+                    <div style={{ fontSize: '0.8125rem', fontWeight: 500 }}>
+                      {batchFiles.length === 0
+                        ? <span style={{ color: 'var(--color-text-secondary)', fontWeight: 400 }}>Keine Dateien ausgewählt</span>
+                        : `${batchFiles.length} Datei${batchFiles.length > 1 ? 'en' : ''}`
+                      }
+                    </div>
+                  </div>
+                  <button type="button" className="btn-ghost" onClick={() => setAnalyzeStep(2)} style={{ fontSize: '0.75rem' }}>Ändern</button>
+                </div>
+
+                {/* Runtime */}
+                <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', padding: '0.5rem 0' }}>
+                  <strong>KI-Anbieter:</strong> {LLM_PROVIDERS.find(p=>p.id===settings.defaultProvider)?.label ?? runtime.provider} · {settings.defaultModel}
+                  {' · '}
+                  <strong>Datenschutz:</strong> {pseudoAktiv ? 'Pseudonymisierung aktiv' : 'Namen werden übertragen'}
+                </div>
               </div>
-              <textarea
-                rows={3}
-                value={analyzeAusgangstext}
-                onChange={(e) => { setAnalyzeAusgangstext(e.target.value); if (e.target.value.trim()) setAnalyzeAusgangstextDatei(''); }}
-                placeholder="Text der Vorlage oder Aufgabenstellung hier einfügen …"
-                style={{ width: '100%', resize: 'vertical' }}
-              />
-              <p style={{ margin: '0.25rem 0 0', fontSize: '0.72rem', color: 'var(--color-text-secondary)' }}>
-                NATASCHA prüft die Abgabe gegen diese Grundlage. Sie wird im Korrekturauftrag gespeichert und später für Folgeübungen angeboten.
-              </p>
-            </div>
+            </>)}
 
-            <h4>Abgaben</h4>
-            <button type="button" className="file-drop" onClick={pickFile} style={{width:'100%',padding:'1.25rem',border:'2px dashed var(--color-border)',background:dragActive?'var(--color-bg-selected)':'var(--color-bg-base)',borderRadius:'var(--radius)'}}>
-              <Upload size={20}/> Dateien hierher ziehen oder auswählen<br/><small>Eine oder mehrere Abgaben · DOCX, PDF, TXT, ODT, JPG, PNG</small>
-            </button>
-            {batchFiles.map(file=><div className="correction-file-row" key={file}>
-              <div><strong>{baseName(file)}</strong><div>{checkingFiles && !fileChecks[file] ? 'Wird geprüft …' : !fileChecks[file] ? 'Prüfung nicht abgeschlossen' : fileChecks[file]?.visionModus ? 'PDF/Bild: Datei wird unverändert übertragen' : 'Textdatei geprüft'}</div></div>
-              <select aria-label={'Schülerzuordnung für '+baseName(file)} value={assignments[file] ?? ''} onChange={e=>setAssignments(prev=>({...prev,[file]:e.target.value ? Number(e.target.value):''}))}>
-                <option value="">Automatische Zuordnung — bitte prüfen</option>{klasseSchueler.map(person=><option key={person.id} value={person.id}>{person.vorname} {person.nachname}</option>)}
-              </select>
-              <button type="button" className="btn-secondary" onClick={()=>selectFiles(batchFiles.filter(p=>p!==file))} aria-label={'Entfernen: '+baseName(file)}>Entfernen</button>
-            </div>)}
-            {batchResults.length>0 && <div role="status" className="queue-results"><strong>Letzter Bearbeitungsstand</strong>{batchResults.map(r=><p key={r.file}>{baseName(r.file)} — {r.ok?'KI-Vorschlag vorhanden':'Nicht abgeschlossen'} · {r.msg}</p>)}</div>}
-            {/* Datenschutz: Redaktionsvorschau + Schalter. Kein stilles Versprechen —
-                die Karte zeigt konkret, was ersetzt wird (oder dass nichts geht). */}
-            <div style={{ marginBottom: '0.75rem', padding: '0.625rem 0.75rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', background: 'var(--color-bg-base)' }}>
-              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', cursor: 'pointer', marginBottom: 0 }}>
-                <input
-                  type="checkbox"
-                  checked={pseudoAktiv}
-                  onChange={(e) => setPseudoAktiv(e.target.checked)}
-                  style={{ marginTop: 2 }}
-                />
-                <span style={{ fontSize: '0.8125rem' }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontWeight: 600 }}>
-                    <ShieldCheck size={14} /> Personenangaben vor dem Versand ersetzen
-                  </span>
-                  <span style={{ display: 'block', color: 'var(--color-text-secondary)', fontSize: '0.75rem', marginTop: 2 }}>
-                    Namen aus der Klassenliste gehen als Alias (z.&nbsp;B. S-7A-014) an den KI-Anbieter
-                    und werden in der Rückmeldung wieder eingesetzt.
-                  </span>
-                </span>
-              </label>
-              {pseudoAktiv && batchFiles.length <= 1 && (
-                <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
-                  {pseudoVorschauBusy && <span>Prüfe Datei auf bekannte Namen …</span>}
-                  {!pseudoVorschauBusy && pseudoVorschau?.visionModus && (
-                    <span style={{ color: 'var(--color-warning, #b45309)' }}>
-                      PDF/Bild: Ersetzen im Dokument nicht möglich — die Datei geht unverändert an den Anbieter.
-                    </span>
-                  )}
-                  {!pseudoVorschauBusy && pseudoVorschau?.visionModus && !pseudoVorschau.visionFaehig && (
-                    <span style={{ display: 'block', marginTop: 4, color: 'var(--color-danger, #c0392b)', fontWeight: 600 }}>
-                      Analyse blockiert: Der konfigurierte KI-Anbieter unterstützt diesen PDF-/Bildtyp nicht.
-                    </span>
-                  )}
-                  {!pseudoVorschauBusy && pseudoVorschau && !pseudoVorschau.visionModus && pseudoVorschau.klassenlisteLeer && (
-                    <span>Keine Schülerliste für diese Klasse hinterlegt — es kann nichts erkannt werden.</span>
-                  )}
-                  {!pseudoVorschauBusy && pseudoVorschau && !pseudoVorschau.visionModus && !pseudoVorschau.klassenlisteLeer && (
-                    pseudoVorschau.funde.length === 0
-                      ? <span>Keine Namen aus der Klassenliste in Datei/Dateiname gefunden.</span>
-                      : (
-                        <span>
-                          Wird ersetzt:{' '}
-                          {pseudoVorschau.funde.map((f, i) => (
-                            <span key={f.alias}>
-                              {i > 0 && ', '}
-                              <strong>{f.anzeige}</strong> → {f.alias}
-                              {f.vorkommenText > 0 ? ` (${f.vorkommenText}× im Text)` : ' (im Dateinamen)'}
-                            </span>
-                          ))}
-                        </span>
-                      )
-                  )}
-                </div>
-              )}
-              {pseudoAktiv && batchFiles.length > 1 && (
-                <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
-                  Gilt für alle Dateien im Stapel; erkannte Namen stehen nach der Analyse im Hinweis-Protokoll.
-                </div>
-              )}
-            </div>
+            {/* ─── Schritt 4: Prüfen & Starten ─── */}
+            {analyzeStep === 4 && (<>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+                {batchFiles.map(file => {
+                  const check = fileChecks[file];
+                  const hasIssue = !check || (check.visionModus && !check.visionFaehig);
+                  return (
+                    <div key={file} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.625rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', background: hasIssue ? 'var(--color-bg-error, #fef2f2)' : 'var(--color-bg-base)' }}>
+                      {hasIssue
+                        ? <AlertTriangle size={14} style={{ color: 'var(--color-error)', flexShrink: 0 }} />
+                        : <CheckCircle2 size={14} style={{ color: 'var(--color-success)', flexShrink: 0 }} />
+                      }
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontSize: '0.8125rem', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{baseName(file)}</div>
+                        <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)' }}>
+                          {!check ? 'Nicht geprüft'
+                            : check.visionModus && !check.visionFaehig ? 'KI-Anbieter unterstützt dieses Format nicht'
+                            : assignments[file] || zuordnungId ? `Zugeordnet: ${klasseSchueler.find(s => s.id === Number(assignments[file] || zuordnungId))?.vorname ?? '?'}`
+                            : 'Automatische Zuordnung (Namenserkennung)'
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                {batchFiles.length === 0 && (
+                  <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>Keine Dateien ausgewählt. Bitte zurück zu Schritt 2.</p>
+                )}
+              </div>
+            </>)}
 
             </fieldset>
-            <p className="runtime-summary"><strong>KI für diesen Auftrag:</strong> {LLM_PROVIDERS.find(p=>p.id===settings.defaultProvider)?.label ?? runtime.provider} · {settings.defaultModel}. Bewertungsraster: {rubrikLabel(rubrikListe.rubrics.find(r=>r.filename===(selectedRubrik || rubrikListe.defaultRubric)) ?? {filename:selectedRubrik || rubrikListe.defaultRubric || 'Bitte auswählen'})}</p>
+
             {analyzeError && <p style={{ color: 'var(--color-error)', fontSize: '0.8125rem' }}>{analyzeError}</p>}
 
-            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-              {queueRunning ? (
-                <button className="btn-secondary" disabled={!batchRunning && activeJobId===null} onClick={async () => { if(batchRunning){batchCancelRef.current=true;}else if(activeJobId!==null && !await cancel(activeJobId)){setError('Der Auftrag konnte noch nicht abgebrochen werden. Bitte erneut versuchen.');} }} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
-                  <XCircle size={14} /> {batchRunning ? 'Stapel nach laufender Datei stoppen' : 'Analyse abbrechen'}
-                </button>
-              ) : (
-                <>
-                  <button className="btn-secondary" onClick={() => setAnalyzeOpen(false)}>Entwurf schließen</button>
-                  {batchFiles.length > 1 ? (
-                    <button className="btn-primary" onClick={handleBatchAnalyze} disabled={checkingFiles || !analyzeKlasse || !analyzeAufgabe || batchFiles.some(file=>!fileChecks[file] || !fileChecks[file]?.visionFaehig)} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
-                      <Files size={14} /> Stapel analysieren ({batchFiles.length})
-                    </button>
-                  ) : (
-                    <button className="btn-primary" onClick={handleAnalyze} disabled={checkingFiles || !fileChecks[analyzeFile] || analyzing || !analyzeFile || !analyzeKlasse || !analyzeAufgabe || (isVisionPath(analyzeFile) && (pseudoVorschauBusy || !pseudoVorschau || !pseudoVorschau.visionFaehig))} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
-                      {analyzing ? <Loader2 size={14} className="spin" /> : <Upload size={14} />}
-                      {analyzing ? 'Analysiere …' : 'KI-Vorschlag erstellen'}
-                    </button>
-                  )}
-                </>
-              )}
+            {/* Navigation buttons */}
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'space-between', marginTop: '1rem' }}>
+              <div>
+                {analyzeStep > 1 && !queueRunning && (
+                  <button className="btn-secondary" onClick={() => setAnalyzeStep((s) => (s - 1) as 1 | 2 | 3 | 4)}>
+                    Zurück
+                  </button>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                {queueRunning ? (
+                  <button className="btn-secondary" disabled={!batchRunning && activeJobId===null} onClick={async () => { if(batchRunning){batchCancelRef.current=true;}else if(activeJobId!==null && !await cancel(activeJobId)){setError('Der Auftrag konnte noch nicht abgebrochen werden. Bitte erneut versuchen.');} }} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                    <XCircle size={14} /> {batchRunning ? 'Stapel nach laufender Datei stoppen' : 'Analyse abbrechen'}
+                  </button>
+                ) : (
+                  <>
+                    <button className="btn-secondary" onClick={() => setAnalyzeOpen(false)}>Entwurf schließen</button>
+                    {analyzeStep < 4 ? (
+                      <button
+                        className="btn-primary"
+                        onClick={() => setAnalyzeStep((s) => (s + 1) as 1 | 2 | 3 | 4)}
+                        disabled={
+                          (analyzeStep === 1 && (!analyzeKlasse || !analyzeAufgabe)) ||
+                          (analyzeStep === 2 && batchFiles.length === 0)
+                        }
+                      >
+                        Weiter
+                      </button>
+                    ) : (
+                      <>
+                        {batchFiles.length > 1 ? (
+                          <button className="btn-primary" onClick={handleBatchAnalyze} disabled={checkingFiles || !analyzeKlasse || !analyzeAufgabe || batchFiles.some(file=>!fileChecks[file] || !fileChecks[file]?.visionFaehig)} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                            <Files size={14} /> Stapel analysieren ({batchFiles.length})
+                          </button>
+                        ) : (
+                          <button className="btn-primary" onClick={handleAnalyze} disabled={checkingFiles || !fileChecks[analyzeFile] || analyzing || !analyzeFile || !analyzeKlasse || !analyzeAufgabe || (isVisionPath(analyzeFile) && (pseudoVorschauBusy || !pseudoVorschau || !pseudoVorschau.visionFaehig))} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                            {analyzing ? <Loader2 size={14} className="spin" /> : <Upload size={14} />}
+                            {analyzing ? 'Analysiere …' : batchFiles.length === 1 ? 'KI-Vorschlag erstellen' : `KI-Vorschlag für ${batchFiles.length} Abgaben erstellen`}
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>

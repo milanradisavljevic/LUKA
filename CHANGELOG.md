@@ -5,6 +5,23 @@ Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 (auch andere Coding-Agents) — siehe `AGENTS.md`.
 
+## Version 1.3.5 — 2026-09-16
+
+### Datenbank-Wiederherstellung (gepatcht)
+- Restore-Pfad vollständig überarbeitet: Einzelner Timestamp für Vacuum- und Archive-Sicherung verhindert Datei-Kollisionen.
+- Temp-Verbindung wird jetzt als In-Memory-Connection geöffnet, sodass OS-Datei-Handles vor dem Umbenennen freigegeben werden (Windows-Kompatibilität).
+- Fehler beim Umbenennen der aktuellen DB werden nicht mehr ignoriert — klare Fehlermeldung statt stiller Fortsetzung.
+- Cache wird nach erfolgreicher Wiederherstellung neu geladen; die App lädt automatisch, sodass alle Daten aktualisiert sind.
+- Bei jedem Fehler bleibt die vorherige Datenbank verwendbar.
+
+### Korrekturauftrag (geführter Dialog)
+- Korrekturauftrag-Anlage ist jetzt ein 4-Schritte-Dialog: (1) Auftrag festlegen, (2) Abgaben hinzufügen, (3) Prüfgrundlage bestätigen, (4) Prüfen & Starten.
+- Schritt 1: Klasse, Aufgabe und optionaler Unterrichtseinsatz.
+- Schritt 2: Datei-Upload, Schülerzuordnung und Datenschutz-Pseudonymisierung.
+- Schritt 3: Kompakte Vorschau-Cards für Bewertungsraster, Ausgangsmaterial und Zuordnung mit „Ändern"-Verknüpfungen.
+- Schritt 4: Status-Liste aller Dateien (bereit/problematisch) mit eindeutigem Start-Button.
+- Navigation über Zurück/Weiter-Buttons mit=validerung je Schritt.
+
 ## Version 1.3.4 — 2026-09-16
 
 ### UX-Verbesserungen
