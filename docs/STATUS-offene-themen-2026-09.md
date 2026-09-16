@@ -16,7 +16,7 @@
 | 3 | Seitenumbruch-Schätzung (A4) | `2e165b6` |
 | 4 | Block-Diff nach Regenerierung | `00f2b83` |
 
-### Bugfix-Phasen (A+B)
+### Bugfix-Phasen (A+B+C+D+E+F+G)
 
 | Fix | Beschreibung | Commit |
 |-----|-------------|--------|
@@ -26,6 +26,11 @@
 | A4 | "Leichter" Label korrigiert | `acfd6f4` |
 | B1 | DB-Restore-UI mit Bestätigungsdialog | `c981fd9` |
 | B2 | Key-Speicherung Dokumentation (.env.local Fallback) | `c981fd9` |
+| C | Installations-Testplan (Akzeptanztest) | `5915296` |
+| D | DB-Restore: Vollständige Wiederherstellung mit Schema-Validierung, automatischer Sicherung, dauerhafter Pfad | `2937716` |
+| E | Differenzierung-Cancel: Kein Reset zwischen leicht/schwer, Cancel-Meldung bei letztem Block, kein Export bei 0 Blocks | `2937716` |
+| F | Undo-Step: Step wird in History gespeichert + wiederhergestellt; Ctrl+Z/Y in Textfeldern ignoriert | `2937716` |
+| G | Pool-Direkt-Export: poolEntryToDocument + Export-Button im PoolView | `2937716` |
 
 ### Release & Abnahme
 
