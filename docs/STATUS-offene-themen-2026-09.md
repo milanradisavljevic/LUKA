@@ -31,6 +31,8 @@
 | E | Differenzierung-Cancel: Kein Reset zwischen leicht/schwer, Cancel-Meldung bei letztem Block, kein Export bei 0 Blocks | `2937716` |
 | F | Undo-Step: Step wird in History gespeichert + wiederhergestellt; Ctrl+Z/Y in Textfeldern ignoriert | `2937716` |
 | G | Pool-Direkt-Export: poolEntryToDocument + Export-Button im PoolView | `2937716` |
+| H | Restore-Pfad repariert: Timestamp-Kollision, Windows-Handles, Fehlerbehandlung, Cache-Reload | `47e879c` |
+| I | Korrektur-UX: 4-Schritte-Dialog (Auftrag → Abgaben → Prüfgrundlage → Prüfen & Start) | `47e879c` |
 
 ### Release & Abnahme
 
@@ -39,6 +41,8 @@
 | Release v1.3.4 | ✅ Released, Build läuft | `edd42e5` |
 | Installations-Testplan | ✅ Erstellt | `5915296` |
 | Testdaten (TEST-7a) | ✅ Vorhanden | — |
+| Restore-Pfad geprüft | ✅ Phase 0 abgeschlossen | `47e879c` |
+| Korrektur-UX Stepper | ✅ Phase 1 abgeschlossen | `47e879c` |
 
 ---
 
@@ -48,10 +52,10 @@
 
 | # | Thema | Aufwand | Impact | Warum jetzt |
 |---|-------|---------|--------|-------------|
-| 1 | **Abnahme mit installiertem Build** | 30-45 Min | Hoch | Gate für Pilot-Feedback — kann nur manuell erfolgen |
+| 1 | **Abnahme mit installiertem Build** | 30-45 Min | Hoch | Gate für Pilot-Feedback — Restore muss mit installiertem Build geprüft werden |
 | 2 | **Murals-Sichtprüfung** | 15 Min | Mittel | Steht auf "Vor Release im echten Windows-Build sichtprüfen" |
-| 3 | **Englische Rubriken erweitern** | 1-2 Std | Hoch | A2/B1/B2 sind da, aber keine textsortenspezifischen |
-| 4 | **FR/IT/ES Basis-Rubriken** | 2-3 Std | Hoch | 0 Rubriken = keine Korrektur für diese Fächer |
+| 3 | **Korrektur-UX testen** | 30-45 Min | Hoch | 4-Schritte-Dialog mit realem Deutsch-/Englischfall prüfen |
+| 4 | **Englische Rubriken erweitern** | 1-2 Std | Hoch | A2/B1/B2 sind da, aber keine textsortenspezifischen |
 
 ### 🟡 Mittel (nächste 2-4 Wochen)
 
