@@ -32,13 +32,13 @@
 | Eigenschaft | Wert |
 |-------------|------|
 | **Klasse** | TEST-7a |
-| **Aufgabe** | SA2 (Schularbeit 2) |
-| **Dateien** | `apps/natascha/input/TEST-7a/Testschueler_Mona.docx` (einzelne Datei) |
+| **Aufgabe** | Essay1 (English Essay) |
+| **Datei** | `apps/natascha/input/TEST-7a/Emma_Schmidt_English.docx` |
 | **Fach** | Englisch |
 | **Schulstufe** | Unterstufe (7. Klasse) |
 | **Erwartung** | 1 Abgabe, KI-Vorschlag mit Note und Fehlern |
 
-**Hinweis:** Die Dateien sind identisch (synthetische Daten), aber der Test prüft den **Dialog-Ablauf**, nicht die fachliche Qualität der Ergebnisse.
+**Wichtig:** Diese Datei ist ein eigenständiger englischer Text (Essay über Climate Change), kein deutscher Dummy-Text. Die Datei ist unabhängig vom Deutschfall und ermöglicht einen echten fachlichen Test.
 
 ---
 
@@ -87,8 +87,8 @@ Die Testperson arbeitet den folgenden Ablauf selbstständig durch. **Nicht einwi
 Gleicher Ablauf, nur mit einer Datei:
 
 1. **"Neue Analyse" klicken**
-2. **Schritt 1:** Klasse TEST-7a, Aufgabe "SA2"
-3. **Schritt 2:** Nur `Testschueler_Mona.docx` wählen
+2. **Schritt 1:** Klasse TEST-7a, Aufgabe "Essay1"
+3. **Schritt 2:** Nur `Emma_Schmidt_English.docx` wählen
 4. **Schritt 3:** Weiter
 5. **Schritt 4:** "KI-Vorschlag erstellen"
 6. **Ergebnis prüfen**

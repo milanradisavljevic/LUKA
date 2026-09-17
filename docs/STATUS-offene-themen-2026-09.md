@@ -1,7 +1,7 @@
 # Offene Themen — Status & Priorisierung
 
-**Stand:** 2026-09-16 (final aktualisiert)
-**Letzter Release:** v1.3.4
+**Stand:** 2026-09-16
+**Letzter Release:** v1.3.5 (Tag gepusht, GitHub-Actions-Workflow wurde getriggert; Installer-Build status unbekannt)
 
 ---
 
@@ -16,7 +16,7 @@
 | 3 | Seitenumbruch-Schätzung (A4) | `2e165b6` |
 | 4 | Block-Diff nach Regenerierung | `00f2b83` |
 
-### Bugfix-Phasen (A+B+C+D+E+F+G)
+### Bugfix-Phasen (A–I)
 
 | Fix | Beschreibung | Commit |
 |-----|-------------|--------|
@@ -34,20 +34,15 @@
 | H | Restore-Pfad repariert: Timestamp-Kollision, Windows-Handles, Fehlerbehandlung, Cache-Reload | `47e879c` |
 | I | Korrektur-UX: 4-Schritte-Dialog (Auftrag → Abgaben → Prüfgrundlage → Prüfen & Start) | `47e879c` |
 
-### Release & Abnahme
+### Testvorbereitung
 
 | Item | Status | Commit |
 |------|--------|--------|
-| Release v1.3.4 | ✅ Released, Build läuft | `edd42e5` |
-| Installations-Testplan | ✅ Erstellt | `5915296` |
-| Testdaten (TEST-7a) | ✅ Vorhanden | — |
-| Restore-Pfad geprüft | ✅ Phase 0 abgeschlossen | `47e879c` |
-| Korrektur-UX Stepper | ✅ Phase 1 abgeschlossen | `47e879c` |
-| Release v1.3.5 | ✅ Tag gepusht, Workflow läuft | `v1.3.5` |
-| Testplan v1.3.5 | ✅ Aktualisiert | `6449acc` |
-| Korrektur-UX Testdaten | ✅ Deutsch (3 Dateien) + Englisch (1 Datei) | — |
-| Feedback-Template | ✅ Erstellt | `6232ff1` |
-| Durchführungsanleitung | ✅ Erstellt | `6232ff1` |
+| Testplan v1.3.5 | ✅ Aktualisiert (Restore-Szenarien + Korrektur-Stepper) | `6449acc` |
+| Deutsch-Testdaten | ✅ 3 DOCX (synthetisch, TEST-7a) | `seed_testdaten.py` |
+| Englisch-Testdaten | ✅ 1 eigenständiger DOCX (Emma_Schmidt, Climate Change Essay) | manuell erstellt |
+| Feedback-Template | ✅ Strukturiert (2 Fälle + Zusammenfassung) | `6232ff1` |
+| Durchführungsanleitung | ✅ Schritt-für-Schritt + Beobachtungsliste | `6232ff1` |
 
 ---
 
@@ -55,46 +50,39 @@
 
 ### 🔴 Hoch (nächste Schritte)
 
-| # | Thema | Aufwand | Impact | Status |
-|---|-------|---------|--------|--------|
-| 1 | **Abnahme mit installiertem Build** | 30-45 Min | Hoch | ✅ v1.3.5 Tag gepusht, Workflow läuft |
-| 2 | **Murals-Sichtprüfung** | 15 Min | Mittel | Steht auf "Vor Release im echten Windows-Build sichtprüfen" |
-| 3 | **Korrektur-UX testen** | 30-45 Min | Hoch | ✅ Testdaten, Feedback-Template + Durchführungsanleitung bereit |
-| 4 | **Englische Rubriken erweitern** | 1-2 Std | Hoch | A2/B1/B2 sind da, aber keine textsortenspezifischen |
+| # | Thema | Aufwand | Status |
+|---|-------|---------|--------|
+| 1 | **Installer-Smoke-Test** (synthetische Daten) | 30-45 Min | ⏳ Ausstehend — Installer-Build muss heruntergeladen und geprüft werden |
+| 2 | **Korrektur-UX Test mit Lehrkraft** (Deutsch + Englisch) | 30-45 Min | ⏳ Ausstehend — Testdaten und Feedback-Template bereit |
+| 3 | **Murals-Sichtprüfung** | 15 Min | ⏳ Ausstehend — im Installer-Test mit erledigen |
 
-### 🟡 Mittel (nächste 2-4 Wochen)
+### 🟡 Mittel (nach Abnahme)
 
-| # | Thema | Aufwand | Impact | Abhängigkeit |
-|---|-------|---------|--------|--------------|
-| 5 | **Pilot-Feedback sammeln** | Laufend | Sehr hoch | Braucht Abnahme (Punkt 1) |
-| 6 | **Code-Block-Typ für Informatik** | 1-2 Tage | Mittel | V2-Entscheidung offen |
-| 7 | **Weitere Fachpakete** | 1-2 Tage pro Fach | Mittel | Braucht Rubriken (Punkte 3-4) |
-| 8 | **In-App-Angabe-Erfassung (vervollständigen)** | 3-5 Tage | Hoch | Closed-Loop-System |
+| # | Thema | Aufwand | Abhängigkeit |
+|---|-------|---------|--------------|
+| 4 | **Pilot-Feedback sammeln** | Laufend | Braucht Abnahme (Punkt 1) + Korrektur-Test (Punkt 2) |
+| 5 | **Englische Rubriken erweitern** | 1-2 Std | Erst nach fachlichem Feedback aus dem Korrektur-Test |
 
-### 🟢 Niedrig / Später
+### 🟢 Niedrig / Später (zurückgestellt bis Pilot-Feedback)
 
 | # | Thema | Aufwand | Wann |
 |---|-------|---------|------|
-| 9 | **MINT-Support** | Großprojekt | Wenn Sprach-Features stabil |
-| 10 | **Schweiz / Lehrplan 21** | 1-2 Wochen | Nach Pilot-Feedback |
-| 11 | **IB Premium** | 2-3 Wochen | Nach Schweiz |
-| 12 | **Font-Glyph-Subsetting** | 1 Tag | When convenient |
-| 13 | **Provider-Preise verifizieren** | 1 Std | When convenient |
-| 14 | **Apple-Signing/Notarization** | 99 EUR/Jahr | Bei Mac-Nachfrage |
-| 15 | **SQLCipher Verschlüsselung** | 3-5 Tage | Mittelfristig |
-| 16 | **Managed-Proxy/Web** | Großprojekt | Langfristig |
-| 17 | **Community-Submission** | 1-2 Wochen | Nach Pilot-Feedback |
+| 6 | FR/IT/ES Basis-Rubriken | 2-3 Std pro Fach | Bei konkretem Bedarf + verfügbarer Lehrkraft |
+| 7 | Code-Block-Typ für Informatik | 1-2 Tage | V2-Entscheidung offen |
+| 8 | MINT-Support | Großprojekt | Wenn Sprach-Features stabil |
+| 9 | Schweiz / Lehrplan 21 | 1-2 Wochen | Nach Pilot-Feedback |
+| 10 | In-App-Angabe-Erfassung | 3-5 Tage | Closed-Loop-System |
 
 ---
 
-## 3. Empfohlenes Vorgehen — diese Woche
+## 3. Nächste Schritte — Reihenfolge
 
-| Tag | Aktion |
-|-----|--------|
-| **Heute** | Abnahme-Testplan mit installiertem Build durchlaufen |
-| **Morgen** | Murals-Sichtprüfung, erste englische Rubrik aktualisieren |
-| **Diese Woche** | 2-3 FR/IT/ES Basis-Rubriken anlegen |
-| **Nächste Woche** | Pilot-Feedback starten (1-2 testende Lehrer:innen) |
+| Reihenfolge | Aktion | Ergebnis |
+|-------------|--------|----------|
+| **1** | Installer-Build herunterladen, Status prüfen | Installierbarer Build vorhanden |
+| **2** | Installer-Smoke-Test mit synthetischen Daten (Testplan) | Geprüfter Stand für Pilot |
+| **3** | Korrektur-UX Test mit Lehrkraft (Deutsch + Englisch) | Strukturiertes Feedback |
+| **4** | Feedback auswerten → Entscheidung für v1.4.0 | Klarheit über nächste Schritte |
 
 ---
 
@@ -104,18 +92,8 @@
 |------|----------|--------|
 | Deutsch | 20+ (alle Textsorten) | ✅ Vollständig |
 | Englisch | 3 (A2, B1, B2) | ⚠️ Keine textsortenspezifischen |
-| Französisch | 0 | ❌ Fehlt |
-| Italienisch | 0 | ❌ Fehlt |
-| Spanisch | 0 | ❌ Fehlt |
+| Französisch | 0 | ❌ Zurückgestellt |
+| Italienisch | 0 | ❌ Zurückgestellt |
+| Spanisch | 0 | ❌ Zurückgestellt |
 
----
-
-## 5. Geplante Features (Masterplan)
-
-| Feature | Priorität | Status |
-|---------|-----------|--------|
-| SRDP-Matura-Modus | P0 | ✅ Done |
-| Aufgabenpool + Fachpakete | P2 | ✅ Done |
-| Schweiz / Lehrplan 21 | P3 | ❌ Nicht begonnen |
-| Deutschland (KMK) | P4 | ⚠️ Teilweise |
-| IB Premium | P5 | ❌ Nicht begonnen |
+**Hinweis:** FR/IT/ES-Rubriken werden erst bei konkretem Bedarf und verfügbarer fachlicher Prüfung angelegt. Die aktuelle Produktwelle konzentriert sich auf Deutsch und Englisch.
