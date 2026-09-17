@@ -21,6 +21,7 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 ### Bugfixes
 - Tafel-Modus Lückentext: Lösungs-Zähler kann nun korrekt über alle Lücken aufdecken, auch wenn `loesung.luecken.length` und `config.anzahlLuecken` differieren.
 - Tafel-Modus Wortgitter: Anzahl Lösungsschritte basiert jetzt auf `platzierungen.length` statt `woerter.length`, sodass nicht platzierte Wörter keine leeren Schritte erzeugen.
+- Windows-Update-Persistenz: App beendet sich nach dem NSIS-Install sofort via `exit(0)` statt nach 2 Sekunden — der Updater kann die EXE jetzt korrekt ersetzen. Close-Handler nutzt ebenfalls `exit(0)` statt `win.destroy()`, damit der gesamte Rust-Prozess terminiert und Datei-Locks freigegeben werden.
 
 ## Version 1.3.5 — 2026-09-16
 

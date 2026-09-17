@@ -118,7 +118,13 @@ export default function App() {
       const off=await win.onCloseRequested(async event => {
         event.preventDefault();
         if(hasActiveWork()) { window.alert('Ein Auftrag läuft noch. Bitte abschließen oder abbrechen, bevor du LUKA beendest.'); return; }
-        try { flushDrafts(); await flushPersistence(); await win.destroy(); }
+        try {
+          flushDrafts(); await flushPersistence();
+          // exit() beendet den gesamten Tauri-Rust-Prozess (inkl. Datei-Locks).
+          // win.destroy() würde nur das WebView schliessen, die EXE bleibt gesperrt.
+          const { exit } = await import('@tauri-apps/plugin-process');
+          await exit(0);
+        }
         catch(e) { window.alert(e instanceof Error ? e.message : 'Speichern fehlgeschlagen. LUKA bleibt geöffnet.'); }
       });
       if(cancelled) off(); else unlisten=off;
