@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Block, QuellText } from '@lehrunterlagen/schema';
-import { buildTafelSlides, clampFontScale } from './tafel';
+import { buildTafelSlides, clampFontScale, countSolutions } from './tafel';
 
 const block = (id: string): Block => ({
   id,
@@ -51,5 +51,32 @@ describe('clampFontScale', () => {
   it('rastet in 0.15er-Schritten ein', () => {
     expect(clampFontScale(1.07)).toBe(1);
     expect(clampFontScale(1.09)).toBe(1.15);
+  });
+});
+
+describe('countSolutions', () => {
+  it('lueckentext: nutzt Maximum aus config und loesung', () => {
+    const b1 = {
+      id: 'b1', typ: 'lueckentext' as const, punkte: 4, arbeitsanweisung: '',
+      config: { anzahlLuecken: 5, wortbank: false, distraktoren: 0 },
+      loesung: { luecken: [{ nr: 1, wort: 'a' }, { nr: 2, wort: 'b' }, { nr: 3, wort: 'c' }] },
+    } as Block;
+    expect(countSolutions(b1)).toBe(5);
+
+    const b2 = {
+      id: 'b2', typ: 'lueckentext' as const, punkte: 4, arbeitsanweisung: '',
+      config: { anzahlLuecken: 3, wortbank: false, distraktoren: 0 },
+      loesung: { luecken: [{ nr: 1, wort: 'a' }, { nr: 2, wort: 'b' }, { nr: 3, wort: 'c' }, { nr: 4, wort: 'd' }, { nr: 5, wort: 'e' }] },
+    } as Block;
+    expect(countSolutions(b2)).toBe(5);
+  });
+
+  it('lueckentext: fallback auf anzahlLuecken wenn loesung leer', () => {
+    const b = {
+      id: 'b1', typ: 'lueckentext' as const, punkte: 4, arbeitsanweisung: '',
+      config: { anzahlLuecken: 6, wortbank: false, distraktoren: 0 },
+      loesung: {},
+    } as Block;
+    expect(countSolutions(b)).toBe(6);
   });
 });

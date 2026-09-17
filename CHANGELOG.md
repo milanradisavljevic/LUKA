@@ -18,6 +18,10 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 - Der Hinweis wird beim Generieren und Regenerieren als zusätzliche Instruction an den LLM übergeben (z.B. „Nimm ausschließlich Wörter aus Absatz 3").
 - Hinweise werden im Tafel-Modus als Hinweis-Card unter dem Block angezeigt.
 
+### Bugfixes
+- Tafel-Modus Lückentext: Lösungs-Zähler kann nun korrekt über alle Lücken aufdecken, auch wenn `loesung.luecken.length` und `config.anzahlLuecken` differieren.
+- Tafel-Modus Wortgitter: Anzahl Lösungsschritte basiert jetzt auf `platzierungen.length` statt `woerter.length`, sodass nicht platzierte Wörter keine leeren Schritte erzeugen.
+
 ## Version 1.3.5 — 2026-09-16
 
 ### Datenbank-Wiederherstellung (gepatcht)

@@ -27,7 +27,7 @@ export function buildTafelSlides(bloecke: Block[], quelltexte: QuellText[] = [])
 export function countSolutions(block: Block): number {
   switch (block.typ) {
     case 'lueckentext':
-      return block.loesung.luecken?.length ?? block.config.anzahlLuecken ?? 0;
+      return Math.max(block.config.anzahlLuecken ?? 0, block.loesung.luecken?.length ?? 0);
     case 'multipleChoice':
       return block.config.fragen?.length ?? 0;
     case 'matching':
@@ -36,7 +36,7 @@ export function countSolutions(block: Block): number {
       return block.config.items?.length ?? 0;
     case 'wortgitter': {
       const gitter = baueWortgitter(block.config.woerter ?? []);
-      return gitter.woerter.length;
+      return gitter.platzierungen.length;
     }
     case 'kreuzwortraetsel': {
       const gitter = baueKreuzwortgitter(block.config.eintraege ?? []);
