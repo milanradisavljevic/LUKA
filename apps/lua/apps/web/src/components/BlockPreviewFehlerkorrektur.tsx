@@ -3,11 +3,15 @@ import type { Block } from '@lehrunterlagen/schema';
 interface Props {
   block: Block;
   showSolution: boolean;
+  solutionStep?: number;
   onUpdate?: (id: string, field: string, value: unknown) => void;
 }
 
-export function BlockPreviewFehlerkorrektur({ block, showSolution }: Props) {
+export function BlockPreviewFehlerkorrektur({ block, showSolution, solutionStep }: Props) {
   if (block.typ !== 'fehlerkorrektur') return null;
+
+  const isRevealed = (satzNr: number) =>
+    solutionStep !== undefined ? satzNr < solutionStep : showSolution;
 
   return (
     <div
@@ -26,7 +30,7 @@ export function BlockPreviewFehlerkorrektur({ block, showSolution }: Props) {
             <span style={{ display: 'block', fontSize: '10pt', color: 'var(--color-text-secondary)' }}>
               ({s.anzahlFehler} Fehler)
             </span>
-            {showSolution && (
+            {isRevealed(s.nr - 1) && (
               <span style={{ display: 'block', marginTop: '0.25rem', padding: '0.25rem 0.5rem', background: 'var(--color-bg-hover)', borderRadius: 4 }}>
                 Korrektur: {block.loesung.korrekturen.find((k) => k.nr === s.nr)?.korrigierterSatz ?? '—'}
               </span>

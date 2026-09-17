@@ -185,6 +185,16 @@ export function BlockCard({ block, dispatch, stufe, index, isSelected, onSelect 
           onChange={(e) => handleChange('clue', e.target.value || undefined)} />
       </div>
 
+      <div style={{ marginBottom: '0.75rem' }}>
+        <label>Hinweis für KI (optional)</label>
+        <input type="text" value={block.hinweis ?? ''}
+          placeholder="z.B. Nimm ausschließlich Wörter aus Absatz 3"
+          onChange={(e) => handleChange('hinweis', e.target.value || undefined)} />
+        <span style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)' }}>
+          Individuelle Vorgabe für diesen Block (z.B. Kreuzwort-Quellen)
+        </span>
+      </div>
+
       <BlockConfigPanel block={block} stufe={stufe} onConfigChange={handleConfigChange} />
     </div>
   );

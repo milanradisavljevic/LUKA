@@ -259,6 +259,9 @@ const BlockBaseSchema = z.object({
   quelleId: z.string().min(1).optional(),
   arbeitsanweisung: z.string().min(1),
   clue: z.string().optional(),
+  // Individueller Hinweis der Lehrkraft für diesen Block (z.B. "Nur Wörter aus Absatz 3").
+  // Wird beim Generieren/Regenerieren als zusätzliche Instruction an den LLM übergeben.
+  hinweis: z.string().optional(),
   // Welche meta.lernziele dieser Block abdeckt (vom LLM getaggt, exakte Strings
   // aus meta.lernziele). Optional + abwärtskompatibel; speist die Coverage-Ansicht.
   lernziele: z.array(z.string().min(1)).optional(),

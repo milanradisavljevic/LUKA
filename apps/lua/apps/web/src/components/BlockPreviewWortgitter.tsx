@@ -4,21 +4,26 @@ import { baueWortgitter } from '@lehrunterlagen/schema';
 interface Props {
   block: Block;
   showSolution: boolean;
+  solutionStep?: number;
   onUpdate?: (id: string, field: string, value: unknown) => void;
 }
 
 const DELTA = { waagrecht: [0, 1], senkrecht: [1, 0], diagonal: [1, 1] } as const;
 
-export function BlockPreviewWortgitter({ block, showSolution }: Props) {
+export function BlockPreviewWortgitter({ block, showSolution, solutionStep }: Props) {
   if (block.typ !== 'wortgitter') return null;
   const gitter = baueWortgitter(block.config.woerter ?? []);
 
+  const isRevealed = (wortIndex: number) =>
+    solutionStep !== undefined ? wortIndex < solutionStep : showSolution;
+
   const loesungsZellen = new Set<string>();
-  if (showSolution) {
-    for (const p of gitter.platzierungen) {
-      const [dr, dc] = DELTA[p.richtung];
-      for (let n = 0; n < p.wort.length; n++) loesungsZellen.add(`${p.zeile + dr * n},${p.spalte + dc * n}`);
-    }
+  for (let wi = 0; wi < gitter.platzierungen.length; wi++) {
+    if (!isRevealed(wi)) continue;
+    const p = gitter.platzierungen[wi];
+    if (!p) continue;
+    const [dr, dc] = DELTA[p.richtung];
+    for (let n = 0; n < p.wort.length; n++) loesungsZellen.add(`${p.zeile + dr * n},${p.spalte + dc * n}`);
   }
 
   const CELL = 22;

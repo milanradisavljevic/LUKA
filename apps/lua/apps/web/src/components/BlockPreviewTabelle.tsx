@@ -3,11 +3,29 @@ import type { Block } from '@lehrunterlagen/schema';
 interface Props {
   block: Block;
   showSolution: boolean;
+  solutionStep?: number;
   onUpdate?: (id: string, field: string, value: unknown) => void;
 }
 
-export function BlockPreviewTabelle({ block, showSolution }: Props) {
+export function BlockPreviewTabelle({ block, showSolution, solutionStep }: Props) {
   if (block.typ !== 'tabelle') return null;
+
+  const lueckenMap = new Map<string, number>();
+  let counter = 0;
+  for (const zeile of block.config.zeilen ?? []) {
+    for (let i = 0; i < (zeile.zellen?.length ?? 0); i++) {
+      const zelle = zeile.zellen?.[i];
+      if (zelle && !('text' in zelle)) {
+        lueckenMap.set(`${zeile.nr},${i}`, counter++);
+      }
+    }
+  }
+
+  const isLueckeRevealed = (key: string) => {
+    const idx = lueckenMap.get(key);
+    if (idx === undefined) return false;
+    return solutionStep !== undefined ? idx < solutionStep : showSolution;
+  };
 
   return (
     <div
@@ -38,14 +56,16 @@ export function BlockPreviewTabelle({ block, showSolution }: Props) {
             <tr key={zeile.nr}>
               {zeile.zellen.map((zelle, i) => {
                 const istLuecke = !('text' in zelle);
+                const key = `${zeile.nr},${i}`;
+                const revealed = istLuecke && isLueckeRevealed(key);
                 const inhalt = 'text' in zelle
                   ? zelle.text
-                  : showSolution
-                    ? (block.loesung.zellen[`${zeile.nr},${i}`] ?? '')
+                  : revealed
+                    ? (block.loesung.zellen[key] ?? '')
                     : '';
-                const zeigeLuecke = istLuecke && !showSolution;
+                const zeigeLuecke = istLuecke && !revealed;
                 return (
-                  <td key={i} style={{ border: '1px solid var(--color-text-muted)', padding: '0.5rem', fontStyle: istLuecke && showSolution ? 'italic' : 'normal', color: istLuecke && showSolution ? 'var(--color-accent)' : istLuecke ? 'var(--color-text-muted)' : '#000' }}>
+                  <td key={i} style={{ border: '1px solid var(--color-text-muted)', padding: '0.5rem', fontStyle: istLuecke && revealed ? 'italic' : 'normal', color: istLuecke && revealed ? 'var(--color-accent)' : istLuecke ? 'var(--color-text-muted)' : '#000' }}>
                     {zeigeLuecke ? '________' : (inhalt || (istLuecke ? '—' : ''))}
                   </td>
                 );

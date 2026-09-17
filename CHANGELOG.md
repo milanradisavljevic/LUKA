@@ -5,6 +5,19 @@ Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 (auch andere Coding-Agents) — siehe `AGENTS.md`.
 
+## Version 1.4.0 — 2026-09-17
+
+### Tafel-Modus: Lösung schrittweise aufdecken
+- Bei Blöcken mit mehreren Unterfragen (Lückentext, Multiple Choice, Matching, Kategorisierung, Wortgitter, Kreuzworträtsel, Tabelle, Markieraufgabe, Wortordnung, Verständnisfragen, Vokabeln, Fehlerkorrektur) können Lösungen jetzt einzeln aufgedeckt werden.
+- „Lösung (L)"-Button zeigt bei mehreren Lösungen einen Zähler (z.B. „Lösung 2/5") und deckt bei jedem Klick die nächste Lösung auf.
+- Bei Folienwechsel wird der Lösungsstand automatisch zurückgesetzt.
+- Bei Blöcken mit nur einer Lösung (Schreibaufgabe, Stilübung, Songanalyse, Rollenspiel) bleibt das bisherige Toggle-Verhalten erhalten.
+
+### Individuelle Hinweise pro Aufgabenblock
+- Neue optionales Feld „Hinweis für KI" im Block-Editor (unter Clue).
+- Der Hinweis wird beim Generieren und Regenerieren als zusätzliche Instruction an den LLM übergeben (z.B. „Nimm ausschließlich Wörter aus Absatz 3").
+- Hinweise werden im Tafel-Modus als Hinweis-Card unter dem Block angezeigt.
+
 ## Version 1.3.5 — 2026-09-16
 
 ### Datenbank-Wiederherstellung (gepatcht)

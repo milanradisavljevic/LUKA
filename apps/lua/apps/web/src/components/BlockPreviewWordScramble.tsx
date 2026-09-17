@@ -3,12 +3,16 @@ import type { Block } from '@lehrunterlagen/schema';
 interface Props {
   block: Block;
   showSolution: boolean;
+  solutionStep?: number;
   onUpdate?: (id: string, field: string, value: unknown) => void;
 }
 
-export function BlockPreviewWordScramble({ block, showSolution }: Props) {
+export function BlockPreviewWordScramble({ block, showSolution, solutionStep }: Props) {
   if (block.typ !== 'wordScramble') return null;
   const saetze = block.config.saetze ?? [];
+
+  const isRevealed = (index: number) =>
+    solutionStep !== undefined ? index < solutionStep : showSolution;
 
   return (
     <div
@@ -38,7 +42,7 @@ export function BlockPreviewWordScramble({ block, showSolution }: Props) {
               </p>
               <p style={{ fontSize: '12pt', letterSpacing: '0.05em' }}>{gemischt.join('  |  ')}</p>
             </div>
-            {showSolution && (
+            {isRevealed(idx) && (
               <div style={{ marginTop: '0.4rem', padding: '0.5rem', background: 'var(--color-bg-hover)', borderRadius: 4 }}>
                 <strong style={{ fontSize: '10pt' }}>Korrekte Anordnung:</strong>
                 <p style={{ fontStyle: 'italic', marginTop: '0.25rem' }}>{satz.wort}</p>

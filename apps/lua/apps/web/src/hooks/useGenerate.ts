@@ -64,73 +64,74 @@ const PROVIDER_MAP = {
 
 
 function blockToRequest(block: Block): BlockRequest {
+  const base = { punkte: block.punkte, quelleId: block.quelleId, hinweis: block.hinweis };
   switch (block.typ) {
     case 'lueckentext':
-      return { typ: 'lueckentext', punkte: block.punkte, quelleId: block.quelleId,
+      return { ...base, typ: 'lueckentext',
         anzahlLuecken: block.config.anzahlLuecken, wortbank: block.config.wortbank,
         distraktoren: block.config.distraktoren };
     case 'matching':
-      return { typ: 'matching', punkte: block.punkte, quelleId: block.quelleId,
+      return { ...base, typ: 'matching',
         anzahlItems: block.config.items.length };
     case 'multipleChoice':
-      return { typ: 'multipleChoice', punkte: block.punkte, quelleId: block.quelleId,
+      return { ...base, typ: 'multipleChoice',
         anzahlFragen: block.config.fragen.length,
         mehrfach: block.config.fragen.some((f) => f.mehrfach) };
     case 'offeneVerstaendnisfrage':
-      return { typ: 'offeneVerstaendnisfrage', punkte: block.punkte, quelleId: block.quelleId,
+      return { ...base, typ: 'offeneVerstaendnisfrage',
         anzahlFragen: block.config.fragen.length };
     case 'offeneSchreibaufgabe':
-      return { typ: 'offeneSchreibaufgabe', punkte: block.punkte, quelleId: block.quelleId,
+      return { ...base, typ: 'offeneSchreibaufgabe',
         textsorte: block.config.textsorte, situation: block.config.situation,
         umfangWorte: block.config.umfangWorte, aspekte: block.config.aspekte };
     case 'markieraufgabe':
-      return { typ: 'markieraufgabe', punkte: block.punkte, quelleId: block.config.quelleId,
+      return { ...base, typ: 'markieraufgabe', quelleId: block.config.quelleId,
         anweisung: block.config.anweisung };
     case 'wordScramble': {
       const manuell = block.config.eingabemodus === 'manuell';
       const gefuellt = (block.config.saetze ?? []).filter((s) => s.wort.trim().length > 0);
-      return { typ: 'wordScramble', punkte: block.punkte, quelleId: block.quelleId,
+      return { ...base, typ: 'wordScramble',
         anzahlSaetze: Math.max(1, block.config.saetze?.length ?? 1),
         ...(manuell && gefuellt.length > 0 ? { saetze: gefuellt } : {}) };
     }
     case 'kategorisierung':
-      return { typ: 'kategorisierung', punkte: block.punkte, quelleId: block.quelleId,
+      return { ...base, typ: 'kategorisierung',
         anzahlItems: block.config.items.length,
         kategorien: block.config.kategorien.map((k) => k.name) };
     case 'tabelle':
-      return { typ: 'tabelle', punkte: block.punkte, quelleId: block.quelleId,
+      return { ...base, typ: 'tabelle',
         spalten: block.config.spalten.map((s) => s.titel) };
     case 'stiluebung':
-      return { typ: 'stiluebung', punkte: block.punkte, quelleId: block.quelleId,
+      return { ...base, typ: 'stiluebung',
         zielniveau: block.config.zielniveau, transformation: block.config.transformation };
     case 'songanalyse':
-      return { typ: 'songanalyse', punkte: block.punkte, quelleId: block.quelleId,
+      return { ...base, typ: 'songanalyse',
         aufgabe: block.config.aufgabe };
     case 'kreuzwortraetsel': {
       const manuell = block.config.eingabemodus === 'manuell';
       const gefuellt = (block.config.eintraege ?? []).filter((e) => e.wort.trim().length > 0);
-      return { typ: 'kreuzwortraetsel', punkte: block.punkte, quelleId: block.quelleId,
+      return { ...base, typ: 'kreuzwortraetsel',
         anzahlWoerter: block.config.anzahlWoerter ?? block.config.eintraege?.length ?? 6,
         ...(manuell && gefuellt.length > 0 ? { eintraege: gefuellt } : {}) };
     }
     case 'wortgitter': {
       const manuell = block.config.eingabemodus === 'manuell';
       const gefuellt = (block.config.woerter ?? []).filter((w) => w.trim().length > 0);
-      return { typ: 'wortgitter', punkte: block.punkte, quelleId: block.quelleId,
+      return { ...base, typ: 'wortgitter',
         anzahlWoerter: block.config.anzahlWoerter ?? block.config.woerter?.length ?? 6,
         ...(manuell && gefuellt.length > 0 ? { woerter: gefuellt } : {}) };
     }
     case 'vokabeluebung': {
       const manuell = block.config.eingabemodus === 'manuell';
       const gefuellt = (block.config.vokabeln ?? []).filter((v) => v.deutsch.trim().length > 0 || v.fremdsprache.trim().length > 0);
-      return { typ: 'vokabeluebung', punkte: block.punkte, quelleId: block.quelleId,
+      return { ...base, typ: 'vokabeluebung',
         anzahlVokabeln: block.config.anzahlVokabeln ?? block.config.vokabeln?.length ?? 6, richtung: block.config.richtung,
         ...(manuell && gefuellt.length > 0 ? { vokabeln: gefuellt } : {}) };
     }
     case 'fehlerkorrektur': {
       const manuell = block.config.eingabemodus === 'manuell';
       const gefuellt = (block.config.saetze ?? []).filter((s) => s.satz.trim().length > 0);
-      return { typ: 'fehlerkorrektur', punkte: block.punkte, quelleId: block.quelleId,
+      return { ...base, typ: 'fehlerkorrektur',
         anzahlSaetze: block.config.saetze.length,
         ...(manuell && gefuellt.length > 0 ? { saetze: gefuellt } : {}) };
     }
@@ -139,9 +140,8 @@ function blockToRequest(block: Block): BlockRequest {
       const gefuellteRollen = (block.config.rollen ?? []).filter((r) => r.name.trim().length > 0 || r.beschreibung.trim().length > 0 || r.aufgabe.trim().length > 0);
       const gefuellteRedemittel = (block.config.redemittel ?? []).filter((r) => r.trim().length > 0);
       return {
+        ...base,
         typ: 'roleplay',
-        punkte: block.punkte,
-        quelleId: block.quelleId,
         situation: block.config.situation,
         setting: block.config.setting,
         ziel: block.config.ziel,
@@ -156,9 +156,8 @@ function blockToRequest(block: Block): BlockRequest {
       const gefuellteRollen = (block.config.rollen ?? []).filter((r) => r.name.trim().length > 0 && !r.name.trim().startsWith('['));
       const gefuellteSzenarien = (block.config.szenarien ?? []).filter((s) => s.titel.trim().length > 0 && !s.titel.startsWith('['));
       return {
+        ...base,
         typ: 'rollenkartenSet',
-        punkte: block.punkte,
-        quelleId: block.quelleId,
         rahmen: block.config.rahmen,
         zeitMinuten: block.config.zeitMinuten,
         anzahlSzenarien: block.config.szenarien?.length ?? 1,
@@ -398,6 +397,8 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
       const { providerId, apiModel } = resolveProvider(state);
       setAktiverProvider(providerId);
       const modus = doc.meta.modus ?? 'text';
+      const blockHinweis = ziel.hinweis?.trim();
+      const mergedHinweis = [hinweis, blockHinweis].filter(Boolean).join(' | ') || undefined;
       const input: GenerateInput = {
         meta: doc.meta,
         quelltexte: modus === 'kompetenz' ? [] : doc.quelltexte,
@@ -405,7 +406,7 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
         stoffItems: buildStoffItems(doc.meta),
         inhaltsModul: buildInhaltsModul(doc.meta),
       };
-      const ergebnis = await runAttempts(providerId, apiModel, input, { ...state, meta: doc.meta, quelltexte: modus === 'kompetenz' ? [] : doc.quelltexte }, hinweis);
+      const ergebnis = await runAttempts(providerId, apiModel, input, { ...state, meta: doc.meta, quelltexte: modus === 'kompetenz' ? [] : doc.quelltexte }, mergedHinweis);
       const neu = ergebnis.bloecke[0];
       if (!neu) throw new Error('Kein Block in der Antwort.');
       // id des Originalblocks beibehalten, restliche Felder ersetzen.

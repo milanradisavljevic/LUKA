@@ -3,15 +3,19 @@ import type { Block } from '@lehrunterlagen/schema';
 interface Props {
   block: Block;
   showSolution: boolean;
+  solutionStep?: number;
   onUpdate?: (id: string, field: string, value: unknown) => void;
 }
 
-export function BlockPreviewVerstaendnisfrage({ block, showSolution }: Props) {
+export function BlockPreviewVerstaendnisfrage({ block, showSolution, solutionStep }: Props) {
   if (block.typ !== 'offeneVerstaendnisfrage') return null;
   const config = block.config;
   const loesung = block.loesung;
   const fragen = config.fragen ?? [];
   const antworten = loesung.antworten ?? {};
+
+  const isRevealed = (frageNr: number) =>
+    solutionStep !== undefined ? frageNr < solutionStep : showSolution;
 
   return (
     <div style={{ fontFamily: 'var(--font)', fontSize: '11pt', lineHeight: 1.6 }}>
@@ -30,7 +34,7 @@ export function BlockPreviewVerstaendnisfrage({ block, showSolution }: Props) {
               {frage.nr}. {frage.frage}
             </p>
 
-            {showSolution && answer ? (
+            {isRevealed(frage.nr - 1) && answer ? (
               <div style={{
                 fontStyle: 'italic', padding: '0.5rem', marginLeft: '1rem',
                 borderLeft: '3px solid var(--color-border)', fontSize: '10.5pt',

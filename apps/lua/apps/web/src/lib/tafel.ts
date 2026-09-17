@@ -1,4 +1,5 @@
 import type { Block, QuellText } from '@lehrunterlagen/schema';
+import { baueKreuzwortgitter, baueWortgitter } from '@lehrunterlagen/schema';
 
 export type TafelSlide =
   | { kind: 'quelltext'; quelltext: QuellText }
@@ -17,6 +18,54 @@ export function buildTafelSlides(bloecke: Block[], quelltexte: QuellText[] = [])
     ...quelltextSlides,
     ...bloecke.map((block) => ({ kind: 'block' as const, block })),
   ];
+}
+
+/**
+ * Anzahl lösbarer Einzelitems pro Block-Typ.
+ * 0 = ganzer Block (Toggle-Verhalten), 1 = ein Item, >1 = schrittweise aufdeckbar.
+ */
+export function countSolutions(block: Block): number {
+  switch (block.typ) {
+    case 'lueckentext':
+      return block.loesung.luecken?.length ?? block.config.anzahlLuecken ?? 0;
+    case 'multipleChoice':
+      return block.config.fragen?.length ?? 0;
+    case 'matching':
+      return block.config.items?.length ?? 0;
+    case 'kategorisierung':
+      return block.config.items?.length ?? 0;
+    case 'wortgitter': {
+      const gitter = baueWortgitter(block.config.woerter ?? []);
+      return gitter.woerter.length;
+    }
+    case 'kreuzwortraetsel': {
+      const gitter = baueKreuzwortgitter(block.config.eintraege ?? []);
+      return gitter.platzierungen.length;
+    }
+    case 'tabelle': {
+      let count = 0;
+      for (const zeile of block.config.zeilen ?? []) {
+        for (const zelle of zeile.zellen ?? []) {
+          if (!('text' in zelle)) count++;
+        }
+      }
+      return count;
+    }
+    case 'markieraufgabe':
+      return block.loesung.stellen?.length ?? 0;
+    case 'wordScramble':
+      return block.config.saetze?.length ?? 0;
+    case 'offeneVerstaendnisfrage':
+      return block.config.fragen?.length ?? 0;
+    case 'vokabeluebung':
+      return block.config.vokabeln?.length ?? 0;
+    case 'fehlerkorrektur':
+      return block.config.saetze?.length ?? 0;
+    case 'umformung':
+      return block.config.aufgaben?.length ?? 0;
+    default:
+      return 0;
+  }
 }
 
 export function clampFontScale(value: number): number {

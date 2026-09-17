@@ -4,16 +4,20 @@ import type { Block } from '@lehrunterlagen/schema';
 interface Props {
   block: Block;
   showSolution: boolean;
+  solutionStep?: number;
   onUpdate?: (id: string, field: string, value: unknown) => void;
 }
 
-export function BlockPreviewMatching({ block, showSolution }: Props) {
+export function BlockPreviewMatching({ block, showSolution, solutionStep }: Props) {
   if (block.typ !== 'matching') return null;
   const config = block.config;
   const loesung = block.loesung;
   const items = config.items ?? [];
   const optionen = config.optionen ?? [];
   const zuordnung = loesung.zuordnung ?? {};
+
+  const isRevealed = (itemNr: number) =>
+    solutionStep !== undefined ? itemNr < solutionStep : showSolution;
 
   return (
     <div style={{ fontFamily: 'var(--font)', fontSize: '11pt', lineHeight: 1.6 }}>
@@ -39,7 +43,7 @@ export function BlockPreviewMatching({ block, showSolution }: Props) {
                 {item.nr}. {item.prompt}
               </td>
               <td style={{ padding: '0.375rem 0.5rem', borderBottom: '1px solid var(--color-border)' }}>
-                {showSolution && zuordnung[String(item.nr)] ? (
+                {isRevealed(item.nr - 1) && zuordnung[String(item.nr)] ? (
                   <span style={{ fontStyle: 'italic', color: '#000', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
                     <ArrowRight size={13} /> {zuordnung[String(item.nr)]}
                   </span>

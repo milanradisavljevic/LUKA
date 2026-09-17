@@ -3,11 +3,15 @@ import type { Block } from '@lehrunterlagen/schema';
 interface Props {
   block: Block;
   showSolution: boolean;
+  solutionStep?: number;
   onUpdate?: (id: string, field: string, value: unknown) => void;
 }
 
-export function BlockPreviewKategorisierung({ block, showSolution }: Props) {
+export function BlockPreviewKategorisierung({ block, showSolution, solutionStep }: Props) {
   if (block.typ !== 'kategorisierung') return null;
+
+  const isRevealed = (itemNr: number) =>
+    solutionStep !== undefined ? itemNr < solutionStep : showSolution;
 
   return (
     <div
@@ -36,11 +40,12 @@ export function BlockPreviewKategorisierung({ block, showSolution }: Props) {
         </thead>
         <tbody>
           {block.config.items.map((item) => {
-            const kat = showSolution ? (block.loesung.zuordnung[String(item.nr)] ?? []).join(', ') : '';
+            const visible = isRevealed(item.nr - 1);
+            const kat = visible ? (block.loesung.zuordnung[String(item.nr)] ?? []).join(', ') : '';
             return (
               <tr key={item.nr}>
                 <td style={{ border: '1px solid var(--color-text-muted)', padding: '0.5rem' }}>{item.text}</td>
-                <td style={{ border: '1px solid var(--color-text-muted)', padding: '0.5rem', fontStyle: showSolution ? 'italic' : 'normal', color: showSolution ? 'var(--color-accent)' : 'var(--color-text-muted)' }}>
+                <td style={{ border: '1px solid var(--color-text-muted)', padding: '0.5rem', fontStyle: visible ? 'italic' : 'normal', color: visible ? 'var(--color-accent)' : 'var(--color-text-muted)' }}>
                   {kat || '—'}
                 </td>
               </tr>

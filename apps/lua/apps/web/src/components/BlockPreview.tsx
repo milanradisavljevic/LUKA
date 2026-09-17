@@ -19,16 +19,21 @@ import { BlockPreviewRoleplay } from './BlockPreviewRoleplay';
 interface Props {
   block: Block;
   showSolution: boolean;
+  solutionStep?: number;
   onUpdate?: (id: string, field: string, value: unknown) => void;
 }
 
-export function BlockPreview({ block, showSolution, onUpdate }: Props) {
+export function BlockPreview({ block, showSolution, solutionStep, onUpdate }: Props) {
+  const extraProps = {
+    ...(onUpdate ? { onUpdate } : {}),
+    ...(solutionStep !== undefined ? { solutionStep } : {}),
+  };
+
   const pass = (C: React.ComponentType<{
     block: Block; showSolution: boolean;
     onUpdate?: (id: string, field: string, value: unknown) => void;
   }>) => (
-    <C block={block} showSolution={showSolution}
-      {...(onUpdate ? { onUpdate } : {})} />
+    <C block={block} showSolution={showSolution} {...extraProps} />
   );
 
   switch (block.typ) {

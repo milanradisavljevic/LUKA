@@ -3,10 +3,11 @@ import type { Block } from '@lehrunterlagen/schema';
 interface Props {
   block: Block;
   showSolution: boolean;
+  solutionStep?: number;
   onUpdate?: (id: string, field: string, value: unknown) => void;
 }
 
-export function BlockPreviewVokabeluebung({ block, showSolution }: Props) {
+export function BlockPreviewVokabeluebung({ block, showSolution, solutionStep }: Props) {
   if (block.typ !== 'vokabeluebung') return null;
   const config = block.config;
   const vokabeln = config.vokabeln ?? [];
@@ -15,6 +16,9 @@ export function BlockPreviewVokabeluebung({ block, showSolution }: Props) {
 
   const quelleLabel = richtung === 'de_fremd' ? 'Deutsch' : 'Fremdsprache';
   const zielLabel = richtung === 'de_fremd' ? 'Fremdsprache' : 'Deutsch';
+
+  const isRevealed = (index: number) =>
+    solutionStep !== undefined ? index < solutionStep : showSolution;
 
   return (
     <div style={{ fontFamily: 'var(--font)', fontSize: '11pt', lineHeight: 1.6 }}>
@@ -44,7 +48,7 @@ export function BlockPreviewVokabeluebung({ block, showSolution }: Props) {
                   )}
                 </td>
                 <td style={{ padding: '0.375rem 0.5rem', borderBottom: '1px solid var(--color-border)' }}>
-                  {showSolution ? (
+                  {isRevealed(i) ? (
                     <span style={{ fontStyle: 'italic', color: '#2e7d32' }}>{loesung}</span>
                   ) : (
                     <span style={{ borderBottom: '1px solid var(--color-border)', display: 'inline-block', minWidth: '8rem', color: 'var(--color-text-secondary)' }}>&nbsp;</span>

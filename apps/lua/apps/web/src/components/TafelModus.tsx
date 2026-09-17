@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Eye, EyeOff, Minus, Plus, X } from 'lucide-react';
 import type { Block, Meta, QuellText } from '@lehrunterlagen/schema';
 import { BlockPreview } from './BlockPreview';
-import { buildTafelSlides, clampFontScale } from '../lib/tafel';
+import { buildTafelSlides, clampFontScale, countSolutions } from '../lib/tafel';
 
 interface Props {
   meta: Meta;
@@ -22,8 +22,16 @@ export function TafelModus({ meta, bloecke, quelltexte, onClose }: Props) {
   const slides = useMemo(() => buildTafelSlides(bloecke, quelltexte), [bloecke, quelltexte]);
   const [index, setIndex] = useState(0);
   const [showSolution, setShowSolution] = useState(false);
+  const [solutionStep, setSolutionStep] = useState(0);
   const [scale, setScale] = useState(1);
   const current = slides[index];
+
+  const totalSteps = useMemo(() => {
+    if (!current || current.kind !== 'block') return 0;
+    return countSolutions(current.block);
+  }, [current]);
+
+  const hasStepwise = totalSteps > 1;
 
   const go = useCallback((delta: number) => {
     setIndex((prev) => Math.min(slides.length - 1, Math.max(0, prev + delta)));
@@ -33,8 +41,21 @@ export function TafelModus({ meta, bloecke, quelltexte, onClose }: Props) {
     setScale((prev) => clampFontScale(prev + delta));
   }, []);
 
+  const advanceSolution = useCallback(() => {
+    if (!hasStepwise) {
+      setShowSolution((v) => !v);
+      return;
+    }
+    setSolutionStep((prev) => {
+      if (prev >= totalSteps) return 0;
+      return prev + 1;
+    });
+    if (!showSolution) setShowSolution(true);
+  }, [hasStepwise, totalSteps, showSolution]);
+
   useEffect(() => {
     setShowSolution(false);
+    setSolutionStep(0);
   }, [index]);
 
   useEffect(() => {
@@ -62,7 +83,7 @@ export function TafelModus({ meta, bloecke, quelltexte, onClose }: Props) {
         return;
       }
       if (event.key.toLowerCase() === 'l') {
-        setShowSolution((value) => !value);
+        advanceSolution();
         return;
       }
       if (event.key === '+' || event.key === '=') {
@@ -76,11 +97,23 @@ export function TafelModus({ meta, bloecke, quelltexte, onClose }: Props) {
 
     window.addEventListener('keydown', handler, true);
     return () => window.removeEventListener('keydown', handler, true);
-  }, [changeScale, go, onClose]);
+  }, [advanceSolution, changeScale, go, onClose]);
 
   if (!current) return null;
 
   const title = meta.thema?.trim() || 'Tafel-Modus';
+
+  const solutionLabel = hasStepwise
+    ? `Lösung ${solutionStep > 0 ? `${Math.min(solutionStep, totalSteps)}/${totalSteps}` : '0/' + totalSteps}`
+    : 'Lösung (L)';
+
+  const solutionIcon = hasStepwise
+    ? solutionStep > 0
+      ? <Eye size={17} />
+      : <EyeOff size={17} />
+    : showSolution
+      ? <EyeOff size={17} />
+      : <Eye size={17} />;
 
   return (
     <div
@@ -117,12 +150,12 @@ export function TafelModus({ meta, bloecke, quelltexte, onClose }: Props) {
           <button
             type="button"
             className="btn-secondary"
-            onClick={() => setShowSolution((value) => !value)}
-            aria-pressed={showSolution}
-            title="Lösung ein- oder ausblenden"
+            onClick={advanceSolution}
+            aria-pressed={hasStepwise ? solutionStep > 0 : showSolution}
+            title={hasStepwise ? 'Nächste Lösung aufdecken (L)' : 'Lösung ein- oder ausblenden (L)'}
           >
-            {showSolution ? <EyeOff size={17} /> : <Eye size={17} />}
-            Lösung (L)
+            {solutionIcon}
+            {solutionLabel}
           </button>
           <button type="button" className="btn-secondary" onClick={onClose} title="Beenden (Esc)">
             <X size={17} />
@@ -146,7 +179,21 @@ export function TafelModus({ meta, bloecke, quelltexte, onClose }: Props) {
             </article>
           ) : (
             <div className="tafel-block">
-              <BlockPreview block={current.block} showSolution={showSolution} />
+              <BlockPreview
+                block={current.block}
+                showSolution={hasStepwise ? solutionStep > 0 : showSolution}
+                solutionStep={hasStepwise ? solutionStep : undefined}
+              />
+              {current.block.hinweis && (
+                <div style={{
+                  marginTop: '0.75rem', padding: '0.5rem 0.75rem',
+                  background: 'rgba(255,255,255,0.08)', borderRadius: 4,
+                  fontSize: '0.85em', fontStyle: 'italic',
+                  borderLeft: '3px solid rgba(255,255,255,0.3)',
+                }}>
+                  <strong>Hinweis:</strong> {current.block.hinweis}
+                </div>
+              )}
             </div>
           )}
         </section>
