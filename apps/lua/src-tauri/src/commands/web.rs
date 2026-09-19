@@ -1,5 +1,7 @@
-use std::net::{IpAddr, Ipv4Addr};
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::time::Duration;
+
+use futures::StreamExt;
 
 const TIMEOUT_SECS: u64 = 15;
 const MAX_LEN: usize = 50_000;
@@ -14,6 +16,13 @@ const USER_AGENT: &str =
 
 /// Lädt eine URL server-seitig (umgeht CORS) und liefert den Lesetext zurück.
 /// HTML wird zu Klartext bereinigt; reiner Text wird unverändert (gekappt) zurückgegeben.
+///
+/// SSRF-Schutz: DNS wird manuell aufgelöst und geprüft. Die geprüften IPs werden
+/// via reqwest `resolve()` an den Client gebunden — reqwest löst den Host danach
+/// nicht mehr neu auf (DNS-Pinning).
+///
+/// Speicher-Schutz: Der Body wird streamend gelesen; bei >5 MB wird abgebrochen,
+/// bevor der gesamte Body im Speicher liegt.
 #[tauri::command]
 pub async fn fetch_url(url: String) -> Result<String, String> {
     let url = url.trim().to_string();
@@ -22,25 +31,33 @@ pub async fn fetch_url(url: String) -> Result<String, String> {
     }
 
     // Redirects manuell verfolgen, damit jeder Hop gegen die SSRF-Denylist
-    // geprüft werden kann (lokale/interne Adressen, Cloud-Metadaten).
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(TIMEOUT_SECS))
-        .user_agent(USER_AGENT)
-        .redirect(reqwest::redirect::Policy::none())
-        .build()
-        .map_err(|e| format!("HTTP-Client-Fehler: {}", e))?;
-
+    // geprüft und die DNS-Ergebnisse an den Client gebunden werden können.
     let mut current = reqwest::Url::parse(&url).map_err(|_| "Ungültige URL.".to_string())?;
     let mut redirects = 0usize;
     let resp = loop {
         if current.scheme() != "http" && current.scheme() != "https" {
             return Err("Nur http(s)-URLs werden unterstützt.".to_string());
         }
-        // SSRF-Schutz: Host auflösen und interne/lokale Ziele ablehnen.
-        // Die aufgelösten Adressen werden verworfen — reqwest löst den DNS
-        // erneut auf. Ein DNS-Rebinding-Race ist dadurch theoretisch möglich,
-        // wird aber durch die Wiederholung in jedem Hop minimiert.
-        let _verified_addrs = validate_public_host(&current).await?;
+
+        // SSRF-Schutz: DNS auflösen, IPs prüfen, an Client binden.
+        let (verified_addrs, port) = validate_public_host(&current).await?;
+
+        // Client mit DNS-Pinning: reqwest nutzt ausschließlich die geprüften IPs.
+        let mut builder = reqwest::Client::builder()
+            .timeout(Duration::from_secs(TIMEOUT_SECS))
+            .user_agent(USER_AGENT)
+            .redirect(reqwest::redirect::Policy::none());
+
+        if let Some(host) = current.host_str() {
+            // Erste geprüfte Adresse binden — alle haben die SSRF-Prüfung bestanden.
+            if let Some(&ip) = verified_addrs.first() {
+                builder = builder.resolve(host, SocketAddr::new(ip, port));
+            }
+        }
+
+        let client = builder
+            .build()
+            .map_err(|e| format!("HTTP-Client-Fehler: {}", e))?;
 
         let r = client
             .get(current.clone())
@@ -82,20 +99,22 @@ pub async fn fetch_url(url: String) -> Result<String, String> {
         .unwrap_or("")
         .to_lowercase();
 
-    // Bytes mit hartem Limit lesen, statt das gesamte Response-Body in den
-    // Speicher zu puffern (Schutz vor Speichererschöpfung).
-    let bytes = resp
-        .bytes()
-        .await
-        .map_err(|e| format!("Antwort konnte nicht gelesen werden: {}", e))?;
-    if bytes.len() > MAX_BODY_BYTES {
-        return Err(format!(
-            "Antwort zu groß ({} bytes, Limit: {} bytes).",
-            bytes.len(),
-            MAX_BODY_BYTES
-        ));
+    // Streamend lesen: Bytes in Chunks sammeln, bei >MAX_BODY_BYTES abbrechen.
+    // Verhindert Speichererschöpfung durch große oder komprimierte Antworten.
+    let mut stream = resp.bytes_stream();
+    let mut body_bytes: Vec<u8> = Vec::new();
+    while let Some(chunk_result) = stream.next().await {
+        let chunk = chunk_result.map_err(|e| format!("Antwort konnte nicht gelesen werden: {}", e))?;
+        body_bytes.extend_from_slice(&chunk);
+        if body_bytes.len() > MAX_BODY_BYTES {
+            return Err(format!(
+                "Antwort zu groß (>{}, Limit: {} bytes).",
+                body_bytes.len(),
+                MAX_BODY_BYTES
+            ));
+        }
     }
-    let body = String::from_utf8_lossy(&bytes).into_owned();
+    let body = String::from_utf8_lossy(&body_bytes).into_owned();
 
     let is_html = content_type.contains("text/html")
         || content_type.contains("application/xhtml")
@@ -136,11 +155,10 @@ fn looks_like_url(url: &str) -> bool {
 /// im lokalen/internen Netz liegt (Loopback, privat, Link-local inkl.
 /// Cloud-Metadaten 169.254.169.254, Multicast, unspecified, CGNAT, ULA …).
 ///
-/// Die aufgelösten Adressen werden zurückgegeben, damit der Aufrufer sie bei
-/// Bedarf für den eigentlichen Request verwenden kann (DNS-Pinning).
-/// Aktuell wird die Prüfung in jedem Redirect-Hop wiederholt, um
-/// DNS-Rebunding-Angriffe zu minimieren.
-async fn validate_public_host(url: &reqwest::Url) -> Result<Vec<IpAddr>, String> {
+/// Rückgabe: (geprüfte Adressen, Port) — der Aufrufer bindet diese Adressen
+/// an den reqwest-Client via `resolve()`, sodass reqwest keine eigenen
+/// DNS-Auflösungen mehr durchführt (DNS-Pinning).
+async fn validate_public_host(url: &reqwest::Url) -> Result<(Vec<IpAddr>, u16), String> {
     let host = url.host_str().ok_or_else(|| "URL ohne Host.".to_string())?;
     let port = url.port_or_known_default().unwrap_or(80);
 
@@ -163,7 +181,7 @@ async fn validate_public_host(url: &reqwest::Url) -> Result<Vec<IpAddr>, String>
             "Adresse aus Sicherheitsgründen blockiert (lokales oder internes Netz).".to_string(),
         );
     }
-    Ok(addrs)
+    Ok((addrs, port))
 }
 
 fn is_blocked_ip(ip: &IpAddr) -> bool {

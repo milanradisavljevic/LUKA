@@ -5,6 +5,13 @@ Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 (auch andere Coding-Agents) — siehe `AGENTS.md`.
 
+## Version 1.4.2 — 2026-09-19
+
+### Sicherheit (Nachbesserung zu v1.4.1)
+- DNS-Pinning: reqwest-Client nutzt die geprüften DNS-Adressen via `resolve()` — Host wird nicht mehr neu aufgelöst (Schutz vor DNS-Rebinding).
+- Streamendes Body-Limit: HTTP-Antworten werden chunkweise gelesen; bei >5 MB wird abgebrochen, bevor der gesamte Body im Speicher liegt.
+- SRDP-Pfad fail-closed: Bei fehlender Klassenzugeordnet oder Pseudonymisierungs-Fehler wird der Text NICHT an den Cloud-Anbieter gesendet.
+
 ## Version 1.4.1 — 2026-09-19
 
 ### Sicherheit

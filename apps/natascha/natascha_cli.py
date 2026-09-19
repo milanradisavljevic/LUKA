@@ -227,12 +227,22 @@ def cmd_srdp_detail(args):
     # Pseudonymisierung: Namen aus der Klassenliste vor dem LLM-Versand
     # durch Aliasse ersetzen (Datenminimierung, P0). Identisch zum
     # Hauptpfad in run_llm_analysis().
+    # Fail-Closed: Bei fehlender Klasse oder Pseudonymisierungs-Fehler
+    # wird der Text NICHT an den Cloud-Anbieter gesendet.
     import pseudonymisierung as pseu
 
     schuelertext = data_row.get("rohtext", "")
     klasse = data_row.get("klasse", "")
     schueler_id = data_row.get("schueler_id")
     textsorte = data_row.get("textsorte", "")
+
+    if not klasse:
+        print(
+            "SRDP-Detail abgebrochen: Keine Klassenzugeordnet — "
+            "Pseudonymisierung nicht möglich (DSGVO).",
+            file=sys.stderr,
+        )
+        return 1
 
     # Schülername aus der DB holen (für die Erkennung im Text)
     schueler_name = ""
@@ -243,17 +253,20 @@ def cmd_srdp_detail(args):
             n = (schueler_row.get("nachname") or "").strip()
             schueler_name = f"{v} {n}".strip()
 
-    pseudo_funde: list[dict] = []
-    if klasse:
-        try:
-            _roster = ndb.get_schueler_by_klasse(db_path, klasse)
-            pseudo_funde = pseu.erkenne_personenangaben(
-                schuelertext, "", schueler_name, _roster
-            )
-            if pseudo_funde:
-                schuelertext = pseu.ersetze_personenangaben(schuelertext, pseudo_funde)
-        except Exception:
-            pass  # Bei Fehler: unverändert weitermachen (kein Abbruch)
+    try:
+        _roster = ndb.get_schueler_by_klasse(db_path, klasse)
+        pseudo_funde = pseu.erkenne_personenangaben(
+            schuelertext, "", schueler_name, _roster
+        )
+        if pseudo_funde:
+            schuelertext = pseu.ersetze_personenangaben(schuelertext, pseudo_funde)
+    except Exception as e:
+        print(
+            f"SRDP-Detail abgebrochen: Pseudonymisierung fehlgeschlagen ({e}). "
+            "Personenangaben dürfen nicht unverschlüsselt gesendet werden.",
+            file=sys.stderr,
+        )
+        return 1
 
     result = nc.generate_srdp_detail(
         schuelertext=schuelertext,
