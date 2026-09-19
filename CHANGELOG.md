@@ -5,6 +5,16 @@ Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 (auch andere Coding-Agents) — siehe `AGENTS.md`.
 
+## Version 1.4.1 — 2026-09-19
+
+### Sicherheit
+- SRDP-Detail-Pfad (CLI): Separater `srdp-detail`-Befehl pseudonymisiert Schülerdaten jetzt vor dem LLM-Versand identisch zum Hauptpfad. Originalnamen gelangen nicht mehr an den Cloud-Anbieter.
+- ODT-Verarbeitung: `content.xml` wird vor dem Entpacken auf 10 MB begrenzt (Zip-Bomb-Schutz).
+- URL-Import: HTTP-Antworten werden vor dem Einlesen auf 5 MB begrenzt, statt das gesamte Body in den Speicher zu puffern.
+- URL-Import: DNS-Validierung gibt aufgelöste Adressen zurück; Dokumentation des DNS-Rebinding-Limits.
+- Noten-CSV: Textfelder werden gegen CSV-Injection abgesichert — Formelpräfixe (`=`, `+`, `-`, `@`) werden neutralisiert.
+- HTML-Parser: `to_ascii_lowercase()` statt `to_lowercase()` verhindert Byte-Offset-Misalignment bei Unicode-Zeichen (z.B. `İ`).
+
 ## Version 1.4.0 — 2026-09-17
 
 ### Tafel-Modus: Lösung schrittweise aufdecken

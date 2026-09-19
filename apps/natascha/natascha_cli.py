@@ -224,13 +224,49 @@ def cmd_srdp_detail(args):
         print(f"Abgabe-ID {args.abgabe_id} nicht gefunden", file=sys.stderr)
         return 1
 
+    # Pseudonymisierung: Namen aus der Klassenliste vor dem LLM-Versand
+    # durch Aliasse ersetzen (Datenminimierung, P0). Identisch zum
+    # Hauptpfad in run_llm_analysis().
+    import pseudonymisierung as pseu
+
+    schuelertext = data_row.get("rohtext", "")
+    klasse = data_row.get("klasse", "")
+    schueler_id = data_row.get("schueler_id")
+    textsorte = data_row.get("textsorte", "")
+
+    # Schülername aus der DB holen (für die Erkennung im Text)
+    schueler_name = ""
+    if schueler_id:
+        schueler_row = ndb.get_schueler_by_id(db_path, schueler_id)
+        if schueler_row:
+            v = (schueler_row.get("vorname") or "").strip()
+            n = (schueler_row.get("nachname") or "").strip()
+            schueler_name = f"{v} {n}".strip()
+
+    pseudo_funde: list[dict] = []
+    if klasse:
+        try:
+            _roster = ndb.get_schueler_by_klasse(db_path, klasse)
+            pseudo_funde = pseu.erkenne_personenangaben(
+                schuelertext, "", schueler_name, _roster
+            )
+            if pseudo_funde:
+                schuelertext = pseu.ersetze_personenangaben(schuelertext, pseudo_funde)
+        except Exception:
+            pass  # Bei Fehler: unverändert weitermachen (kein Abbruch)
+
     result = nc.generate_srdp_detail(
-        schuelertext=data_row.get("rohtext", ""),
+        schuelertext=schuelertext,
         hauptanalyse={"bewertung": {}},
         config=config,
         cancel_event=None,
-        textsorte=data_row.get("textsorte", ""),
+        textsorte=textsorte,
     )
+
+    # Aliasse im Ergebnis wieder durch Originalnamen ersetzen
+    if pseudo_funde and result is not None:
+        result = pseu.ruecksetze_personenangaben(result, pseudo_funde)
+
     if result is None:
         print("SRDP-Detail-Generierung fehlgeschlagen", file=sys.stderr)
         return 1

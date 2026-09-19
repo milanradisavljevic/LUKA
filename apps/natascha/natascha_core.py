@@ -206,11 +206,23 @@ def read_docx_text(docx_path: Path, preserve_italic: bool = True) -> str:
     return "\n".join(parts)
 
 
+_MAX_ODT_XML_BYTES = 10 * 1024 * 1024  # 10 MB entpackt (Zip-Bomb-Schutz)
+
+
 def read_odt_text(path: Path) -> str:
     """Extrahiert den Text aus einer ODT-Datei (OpenDocument Text)."""
     import zipfile
     from xml.etree import ElementTree as ET
     with zipfile.ZipFile(path) as z:
+        try:
+            info = z.getinfo("content.xml")
+        except KeyError:
+            return ""
+        if info.file_size > _MAX_ODT_XML_BYTES:
+            raise ValueError(
+                f"ODT content.xml zu groß ({info.file_size} bytes, "
+                f"Limit: {_MAX_ODT_XML_BYTES}). Datei evtl. beschädigt oder Zip-Bomb."
+            )
         with z.open("content.xml") as f:
             tree = ET.parse(f)
     ns = {"text": "urn:oasis:names:tc:opendocument:xmlns:text:1.0"}

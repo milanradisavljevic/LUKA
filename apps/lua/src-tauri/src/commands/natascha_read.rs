@@ -1024,15 +1024,15 @@ pub async fn db_export_noten_csv(state: tauri::State<'_, DbState>, klasse: Strin
         if let Ok(r) = row {
             csv.push_str(&format!(
                 "{};{};{};{};{};{};{};{};{}\n",
-                r.nachname.unwrap_or_default(),
-                r.vorname.unwrap_or_default(),
-                r.aufgabe,
+                csv_escape(&r.nachname.unwrap_or_default()),
+                csv_escape(&r.vorname.unwrap_or_default()),
+                csv_escape(&r.aufgabe),
                 r.note.map_or(String::new(), |v| format!("{:.1}", v)),
                 r.gesamtstufe.map_or(String::new(), |v| format!("{:.2}", v)),
                 r.wortanzahl.map_or(String::new(), |v| v.to_string()),
-                r.datum.unwrap_or_default(),
-                r.fach.unwrap_or_default(),
-                r.textsorte.unwrap_or_default(),
+                csv_escape(&r.datum.unwrap_or_default()),
+                csv_escape(&r.fach.unwrap_or_default()),
+                csv_escape(&r.textsorte.unwrap_or_default()),
             ));
         }
     }
@@ -1040,6 +1040,19 @@ pub async fn db_export_noten_csv(state: tauri::State<'_, DbState>, klasse: Strin
 }
 
 // ─── Stage 4: LLM-Briefing/Profil lesen ──────────────────────────────────────
+
+/// CSV-Felder sicher formatieren: Anführungszeichen verdoppeln und
+/// Formelpräfixe neutralisieren (Schutz vor CSV-Injection in Excel/Calc).
+fn csv_escape(field: &str) -> String {
+    let f = field.replace('"', "\"\"");
+    if f.starts_with(['=', '+', '-', '@', '\t', '\r']) {
+        format!("'{}", f)
+    } else if f.contains(';') || f.contains('"') || f.contains('\n') {
+        format!("\"{}\"", f)
+    } else {
+        f
+    }
+}
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]

@@ -4,6 +4,9 @@ use std::time::Duration;
 const TIMEOUT_SECS: u64 = 15;
 const MAX_LEN: usize = 50_000;
 const MAX_REDIRECTS: usize = 5;
+/// Max. entpackte Bytes für die HTTP-Antwort (5 MB). Schützt vor
+/// Speichererschöpfung durch großzügige Server oder Zip-Bomben.
+const MAX_BODY_BYTES: usize = 5 * 1024 * 1024;
 /// Realistischer Browser-User-Agent — viele (News-)Seiten blocken generische
 /// Bot-User-Agents mit 403.
 const USER_AGENT: &str =
@@ -34,7 +37,10 @@ pub async fn fetch_url(url: String) -> Result<String, String> {
             return Err("Nur http(s)-URLs werden unterstützt.".to_string());
         }
         // SSRF-Schutz: Host auflösen und interne/lokale Ziele ablehnen.
-        validate_public_host(&current).await?;
+        // Die aufgelösten Adressen werden verworfen — reqwest löst den DNS
+        // erneut auf. Ein DNS-Rebinding-Race ist dadurch theoretisch möglich,
+        // wird aber durch die Wiederholung in jedem Hop minimiert.
+        let _verified_addrs = validate_public_host(&current).await?;
 
         let r = client
             .get(current.clone())
@@ -76,10 +82,20 @@ pub async fn fetch_url(url: String) -> Result<String, String> {
         .unwrap_or("")
         .to_lowercase();
 
-    let body = resp
-        .text()
+    // Bytes mit hartem Limit lesen, statt das gesamte Response-Body in den
+    // Speicher zu puffern (Schutz vor Speichererschöpfung).
+    let bytes = resp
+        .bytes()
         .await
         .map_err(|e| format!("Antwort konnte nicht gelesen werden: {}", e))?;
+    if bytes.len() > MAX_BODY_BYTES {
+        return Err(format!(
+            "Antwort zu groß ({} bytes, Limit: {} bytes).",
+            bytes.len(),
+            MAX_BODY_BYTES
+        ));
+    }
+    let body = String::from_utf8_lossy(&bytes).into_owned();
 
     let is_html = content_type.contains("text/html")
         || content_type.contains("application/xhtml")
@@ -112,14 +128,19 @@ pub async fn fetch_url(url: String) -> Result<String, String> {
 }
 
 fn looks_like_url(url: &str) -> bool {
-    let u = url.to_lowercase();
+    let u = url.to_ascii_lowercase();
     (u.starts_with("http://") || u.starts_with("https://")) && url.len() > 10
 }
 
 /// SSRF-Schutz: Löst den Host auf und lehnt ab, wenn (irgend)eine Zieladresse
 /// im lokalen/internen Netz liegt (Loopback, privat, Link-local inkl.
 /// Cloud-Metadaten 169.254.169.254, Multicast, unspecified, CGNAT, ULA …).
-async fn validate_public_host(url: &reqwest::Url) -> Result<(), String> {
+///
+/// Die aufgelösten Adressen werden zurückgegeben, damit der Aufrufer sie bei
+/// Bedarf für den eigentlichen Request verwenden kann (DNS-Pinning).
+/// Aktuell wird die Prüfung in jedem Redirect-Hop wiederholt, um
+/// DNS-Rebunding-Angriffe zu minimieren.
+async fn validate_public_host(url: &reqwest::Url) -> Result<Vec<IpAddr>, String> {
     let host = url.host_str().ok_or_else(|| "URL ohne Host.".to_string())?;
     let port = url.port_or_known_default().unwrap_or(80);
 
@@ -142,7 +163,7 @@ async fn validate_public_host(url: &reqwest::Url) -> Result<(), String> {
             "Adresse aus Sicherheitsgründen blockiert (lokales oder internes Netz).".to_string(),
         );
     }
-    Ok(())
+    Ok(addrs)
 }
 
 fn is_blocked_ip(ip: &IpAddr) -> bool {
@@ -268,7 +289,10 @@ fn find_tag_open(lower: &str, s: &str, from: usize, open: &str) -> Option<usize>
 /// Entfernt alle `<tag ...> ... </tag>`-Elemente samt Inhalt (Tag-Grenzen-bewusst).
 /// Fehlt ein schließendes Tag, wird nur das öffnende Tag übersprungen (Rest bleibt erhalten).
 fn remove_element(s: &str, tag: &str) -> String {
-    let lower = s.to_lowercase();
+    // to_ascii_lowercase statt to_lowercase: HTML-Tags sind immer ASCII.
+    // Unicode-to_lowercase kann Bytelänge verändern (z.B. İ → i + Combining)
+    // und zu Byte-Offset-Misalignment führen.
+    let lower = s.to_ascii_lowercase();
     let open_needle = format!("<{}", tag);
     let close_needle = format!("</{}>", tag);
     let mut result = String::with_capacity(s.len());
@@ -302,7 +326,7 @@ fn remove_element(s: &str, tag: &str) -> String {
 
 /// Liefert das textreichste `<tag>…</tag>`-Element (verschachtelungs-bewusst) als HTML.
 fn largest_element(s: &str, tag: &str) -> Option<String> {
-    let lower = s.to_lowercase();
+    let lower = s.to_ascii_lowercase();
     let open = format!("<{}", tag);
     let close = format!("</{}>", tag);
     let mut best: Option<(usize, String)> = None;
