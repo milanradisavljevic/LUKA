@@ -28,9 +28,11 @@ export function BugReportModal({ open, onClose }: Props) {
     setErrorMsg('');
     try {
       await invoke<string>('submit_bug_report', {
-        description: description.trim(),
-        includeSystemInfo,
-        contactEmail: contactEmail.trim() || null,
+        payload: {
+          description: description.trim(),
+          includeSystemInfo,
+          contactEmail: contactEmail.trim() || null,
+        },
       });
       setStatus('success');
     } catch (e) {

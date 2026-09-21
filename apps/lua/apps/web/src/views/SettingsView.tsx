@@ -33,7 +33,7 @@ function SmtpSection() {
     setSaving(true); setMessage(null); setError(null);
     try {
       const { invoke } = await import('@tauri-apps/api/core');
-      await invoke('save_smtp_config', { config });
+      await invoke('save_smtp_config', { config: config });
       setMessage('Gespeichert.');
     } catch (e) {
       setError(typeof e === 'string' ? e : e instanceof Error ? e.message : 'Fehler');
