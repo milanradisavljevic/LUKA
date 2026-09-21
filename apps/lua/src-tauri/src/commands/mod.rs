@@ -11,5 +11,6 @@ pub mod export;
 pub mod klassen;
 pub mod profil;
 pub mod einsatz;
+pub mod feedback;
 
 pub mod diagnostics;

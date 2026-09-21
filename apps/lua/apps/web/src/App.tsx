@@ -22,6 +22,7 @@ import { TemplateManager } from './components/TemplateManager';
 import { CommandPalette } from './components/CommandPalette';
 import { TafelModus } from './components/TafelModus';
 import { Sidebar } from './components/Sidebar';
+import { BugReportModal } from './components/BugReportModal';
 import { ThemeToggle } from './components/ThemeToggle';
 import { FirstRunProfil } from './components/FirstRunProfil';
 import { DashboardView } from './views/DashboardView';
@@ -138,6 +139,7 @@ export default function App() {
   const { preference: themePreference, resolved: theme, toggle: toggleTheme } = useTheme();
   const { zoom, reset: resetZoom } = useZoom();
   const [activeView, setActiveView] = useState<ActiveView>('dashboard');
+  const [bugReportOpen, setBugReportOpen] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [einsatzOffer, setEinsatzOffer] = useState<{ materialId: string; titel: string; klasse: string; lernziele: string[] } | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -664,6 +666,7 @@ if (hydrating) {
           currentView={effectiveActiveView}
           onViewChange={setActiveView}
           onNewDocument={handleNewDocument}
+          onBugReport={() => setBugReportOpen(true)}
         />
       )}
 
@@ -863,6 +866,8 @@ if (hydrating) {
       <Toast toast={toast} onClose={() => setToast(null)} />
 
       <UpdateDialog updater={updater} />
+
+      <BugReportModal open={bugReportOpen} onClose={() => setBugReportOpen(false)} />
 
       {/* First-Run-Onboarding: API-Key-Gate */}
       {keyGateState !== 'ready' && (

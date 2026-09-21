@@ -108,6 +108,10 @@ fn main() {
             commands::profil::profil_get,
             commands::profil::profil_save,
             commands::profil::profil_reset,
+            commands::feedback::submit_bug_report,
+            commands::feedback::save_smtp_config,
+            commands::feedback::load_smtp_config,
+            commands::feedback::test_smtp_connection,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
