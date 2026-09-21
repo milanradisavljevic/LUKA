@@ -15,15 +15,18 @@ import { BlockPreviewWortgitter } from './BlockPreviewWortgitter';
 import { BlockPreviewVokabeluebung } from './BlockPreviewVokabeluebung';
 import { BlockPreviewFehlerkorrektur } from './BlockPreviewFehlerkorrektur';
 import { BlockPreviewRoleplay } from './BlockPreviewRoleplay';
+import type { RenderLayout, RenderTemplate } from '@lehrunterlagen/renderer';
 
 interface Props {
   block: Block;
   showSolution: boolean;
   solutionStep?: number;
   onUpdate?: (id: string, field: string, value: unknown) => void;
+  template?: RenderTemplate;
+  layout?: RenderLayout;
 }
 
-export function BlockPreview({ block, showSolution, solutionStep, onUpdate }: Props) {
+export function BlockPreview({ block, showSolution, solutionStep, onUpdate, template, layout }: Props) {
   const extraProps = {
     ...(onUpdate ? { onUpdate } : {}),
     ...(solutionStep !== undefined ? { solutionStep } : {}),
@@ -60,9 +63,9 @@ export function BlockPreview({ block, showSolution, solutionStep, onUpdate }: Pr
     case 'songanalyse':
       return pass(BlockPreviewSonganalyse);
     case 'kreuzwortraetsel':
-      return pass(BlockPreviewKreuzwortraetsel);
+      return <BlockPreviewKreuzwortraetsel block={block} showSolution={showSolution} {...extraProps} template={template} layout={layout} />;
     case 'wortgitter':
-      return pass(BlockPreviewWortgitter);
+      return <BlockPreviewWortgitter block={block} showSolution={showSolution} {...extraProps} template={template} layout={layout} />;
     case 'vokabeluebung':
       return pass(BlockPreviewVokabeluebung);
     case 'fehlerkorrektur':

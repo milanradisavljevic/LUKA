@@ -2350,7 +2350,7 @@ def _call_openai_compat(
     extra_body: dict | None = None,
     cancel_event: threading.Event | None = None,
     vision_content: list[dict] | None = None,
-    max_tokens: int = 4096,
+    max_tokens: int = 16384,
 ) -> str:
     """Ruft eine OpenAI-kompatible Chat-API auf (GLM, Kimi, OpenAI, Ollama).
 
@@ -2530,7 +2530,7 @@ def run_llm_api(
                 extra_body=None if "reasoner" in active_model.lower() else {
                     "response_format": {"type": "json_object"}
                 },
-                max_tokens=8192 if "reasoner" in active_model.lower() else 4096,
+                max_tokens=16384,
             ),
         )
 
@@ -2649,7 +2649,7 @@ def run_anthropic_api(
 
     call_kwargs: dict[str, Any] = dict(
         model=model,
-        max_tokens=4096,
+        max_tokens=16384,
         messages=[{"role": "user", "content": message_content}],
         timeout=timeout,
     )

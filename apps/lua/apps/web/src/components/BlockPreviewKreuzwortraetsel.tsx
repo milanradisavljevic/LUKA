@@ -1,16 +1,20 @@
 import type { Block } from '@lehrunterlagen/schema';
 import { baueKreuzwortgitter } from '@lehrunterlagen/schema';
+import { getDefaultLayout, getDefaultTemplate, pruefeRaetselA4 } from '@lehrunterlagen/renderer';
+import type { RenderLayout, RenderTemplate } from '@lehrunterlagen/renderer';
 
 interface Props {
   block: Block;
   showSolution: boolean;
   solutionStep?: number;
   onUpdate?: (id: string, field: string, value: unknown) => void;
+  template?: RenderTemplate;
+  layout?: RenderLayout;
 }
 
 const DELTA = { waagrecht: [0, 1] as const, senkrecht: [1, 0] as const };
 
-export function BlockPreviewKreuzwortraetsel({ block, showSolution, solutionStep }: Props) {
+export function BlockPreviewKreuzwortraetsel({ block, showSolution, solutionStep, template = getDefaultTemplate(), layout = getDefaultLayout() }: Props) {
   if (block.typ !== 'kreuzwortraetsel') return null;
   const gitter = baueKreuzwortgitter(block.config.eintraege ?? []);
 
@@ -31,13 +35,19 @@ export function BlockPreviewKreuzwortraetsel({ block, showSolution, solutionStep
     }
   }
 
-  const CELL = 26;
+  const pruefung = pruefeRaetselA4(block, template, layout);
+  const CELL = Math.min(26, Math.max(8, Math.floor(pruefung.zellgroesse / 15)));
 
   return (
     <div role="region" aria-label="Kreuzworträtsel Vorschau" style={{ fontFamily: 'var(--font)', fontSize: '11pt', lineHeight: 1.6 }}>
       <p style={{ marginBottom: '0.75rem' }}>
         <strong>Arbeitsanweisung:</strong> {block.arbeitsanweisung}
       </p>
+      {!pruefung.passt && (
+        <p role="alert" style={{ margin: '0 0 0.75rem', padding: '0.5rem 0.625rem', border: '1px solid var(--color-warning)', color: 'var(--color-warning)', fontSize: '9pt' }}>
+          <strong>Nicht A4-tauglich:</strong> {pruefung.grund}
+        </p>
+      )}
 
       {gitter.zeilen === 0 ? (
         <p style={{ fontSize: '9pt', color: 'var(--color-text-secondary)', fontStyle: 'italic' }}>

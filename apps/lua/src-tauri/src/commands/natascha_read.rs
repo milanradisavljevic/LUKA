@@ -1311,4 +1311,39 @@ mod tests {
         ).unwrap();
         assert_eq!(historie_count, 0, "Abhängige Historien müssen per CASCADE verschwinden");
     }
+
+    // ── Sicherheits-Regressionstests: CSV-Injection ───────────────────────
+
+    #[test]
+    fn csv_escape_neutralizes_formula_prefixes() {
+        // csv_escape verdoppelt zuerst Anführungszeichen, dann prüft Präfix.
+        assert_eq!(csv_escape("=CMD(calc)"), "'=CMD(calc)");
+        assert_eq!(csv_escape("+SUM(A1:A10)"), "'+SUM(A1:A10)");
+        assert_eq!(csv_escape("-100"), "'-100");
+        assert_eq!(csv_escape("@SUMME"), "'@SUMME");
+        assert_eq!(csv_escape("\tformula"), "'\tformula");
+        assert_eq!(csv_escape("\rformula"), "'\rformula");
+    }
+
+    #[test]
+    fn csv_escape_quotes_fields_with_semicolons() {
+        assert_eq!(csv_escape("hallo;welt"), "\"hallo;welt\"");
+    }
+
+    #[test]
+    fn csv_escape_doubles_internal_quotes() {
+        assert_eq!(csv_escape("test\"value"), "\"test\"\"value\"");
+    }
+
+    #[test]
+    fn csv_escape_handles_newlines() {
+        assert_eq!(csv_escape("zeile1\nzeile2"), "\"zeile1\nzeile2\"");
+    }
+
+    #[test]
+    fn csv_escape_passthrough_normal_text() {
+        assert_eq!(csv_escape("Müller"), "Müller");
+        assert_eq!(csv_escape("Test 123"), "Test 123");
+        assert_eq!(csv_escape(""), "");
+    }
 }

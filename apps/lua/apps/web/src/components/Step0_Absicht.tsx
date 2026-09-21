@@ -25,6 +25,7 @@ import {
 interface Props {
   state: AppState;
   dispatch: React.Dispatch<AppAction>;
+  freshStart?: boolean;
   firstRunHint?: boolean;
   onDismissFirstRunHint?: () => void;
   onNavigateToTemplates?: () => void;
@@ -58,13 +59,14 @@ function getLastDocumentDefaults() {
 export function Step0_Absicht({
   state,
   dispatch,
+  freshStart = false,
   firstRunHint = false,
   onDismissFirstRunHint,
   onNavigateToTemplates,
   onNavigateToKompetenz,
   onDraftFachChange,
 }: Props) {
-  const lastDoc = useMemo(() => getLastDocumentDefaults(), []);
+  const lastDoc = useMemo(() => freshStart ? null : getLastDocumentDefaults(), [freshStart]);
   const lastMeta = lastDoc?.snapshot.meta;
 
   const [typ, setTyp] = useState<NonNullable<Auftrag['typ']>>(lastMeta?.typ ?? 'schularbeit');

@@ -1,5 +1,6 @@
 """Tests für die Pseudonymisierung vor dem LLM-Versand (DSGVO-Datenminimierung)."""
 import json
+import sqlite3
 import sys
 from pathlib import Path
 from unittest.mock import patch
@@ -138,3 +139,31 @@ def test_dsgvo_regression_kein_klarname_im_prompt(tmp_path):
     assert data["zusammenfassung"] == "Mia Muster argumentiert schlüssig."
     # Übertragung war pseudonymisiert und wurde als Hinweis ausgewiesen.
     assert any("Personenangabe" in e for e in errors)
+
+
+def test_srdp_detail_fail_closed_ohne_klasse(tmp_path: Path) -> None:
+    """SRDP-Detail-Pfad: Ohne Klasse darf kein LLM-Call erfolgen (Fail-Closed)."""
+    import natascha_cli as cli
+    import natascha_db as ndb
+
+    db_path = tmp_path / "test.db"
+    ndb.init_db(db_path)
+    # Abgabe ohne Klasse einfügen
+    with sqlite3.connect(str(db_path)) as conn:
+        conn.execute(
+            "INSERT INTO abgabe (schueler_id, klasse, aufgabe, dateiname, "
+            "datei_hash, rohtext) VALUES (1, '', 'SA1', 'test.docx', 'abc', 'Text')"
+        )
+
+    # cmd_srdp_detail mit leerer Klasse muss Fehler liefern
+    class _Args:
+        abgabe_id = 1
+
+    # Patch db_path über die globale Variable
+    old_db = cli._DB_PATH_OVERRIDE
+    cli._DB_PATH_OVERRIDE = db_path
+    try:
+        rc = cli.cmd_srdp_detail(_Args())
+        assert rc == 1, "Fail-Closed: Return-Code 1 bei fehlender Klasse"
+    finally:
+        cli._DB_PATH_OVERRIDE = old_db

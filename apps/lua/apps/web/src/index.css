@@ -241,6 +241,64 @@
   color: var(--color-text-primary);
 }
 
+/* Tafel-Modus: Lightmode (Beamer / helles Klassenzimmer) */
+.tafel-overlay.tafel-light {
+  --color-bg-base: #F5F5F0;
+  --color-bg-surface: #FFFFFF;
+  --color-bg-elevated: #FAFAF5;
+  --color-bg-input: #F0F0EB;
+  --color-bg-hover: #E8E8E3;
+  --color-bg-selected: rgba(0,100,80,0.10);
+  --color-bg-backdrop: rgba(245,245,240,0.96);
+
+  --color-text-primary: #1A1A1A;
+  --color-text-secondary: #555555;
+  --color-text-muted: #888888;
+
+  --color-border: #D0D0C8;
+  --color-border-focus: #2B8A6E;
+  --color-accent: #2B8A6E;
+  --color-accent-hover: #1E6B54;
+
+  --color-error: #D32F2F;
+  --color-error-bg: #FDECEA;
+  --color-success: #2E7D32;
+  --color-success-bg: #E8F5E9;
+  --color-warning: #F57F17;
+  --color-warning-bg: #FFF8E1;
+  --color-info: #2B8A6E;
+  --color-info-bg: rgba(43,138,110,0.08);
+  --color-shadow: rgba(0,0,0,0.12);
+  --color-overlay: rgba(0,0,0,0.3);
+  --color-highlight: #C75B39;
+  --color-highlight-bg: rgba(199,91,57,0.08);
+
+  background:
+    radial-gradient(circle at 22% 18%, rgba(43,138,110,0.06), transparent 28rem),
+    radial-gradient(circle at 82% 72%, rgba(199,91,57,0.04), transparent 26rem),
+    var(--color-bg-base);
+  color: var(--color-text-primary);
+}
+
+.tafel-overlay.tafel-light .tafel-header {
+  background: rgba(245,245,240,0.92);
+  border-bottom-color: var(--color-border);
+}
+
+.tafel-overlay.tafel-light .tafel-header-actions .btn-secondary {
+  background: rgba(255,255,255,0.9);
+  color: var(--color-text-primary);
+  border-color: var(--color-border);
+}
+
+.tafel-overlay.tafel-light .tafel-slide {
+  border-color: rgba(0,0,0,0.12);
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.8), rgba(255,255,255,0.6)),
+    #FFFFFF;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+}
+
 .tafel-header {
   display: flex;
   align-items: center;

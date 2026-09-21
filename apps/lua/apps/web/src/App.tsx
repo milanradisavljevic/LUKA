@@ -143,6 +143,7 @@ export default function App() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [tafelOpen, setTafelOpen] = useState(false);
   const [draftAtmosphereFach, setDraftAtmosphereFach] = useState<Fach | null>(null);
+  const [freshStart, setFreshStart] = useState(false);
   // Such- + Befehls-Palette: Index aus gecachten Quellen + statischer Nav/Befehle.
   const commandSources = useMemo<SearchCommandSource[]>(() => {
     const fromCommands = COMMANDS.map((c) => ({
@@ -431,6 +432,7 @@ export default function App() {
       return;
     }
     setDraftAtmosphereFach(null);
+    setFreshStart(false);
     dispatch({ type: 'LOAD_SNAPSHOT', snapshot: doc.snapshot, documentId: doc.id });
     setActiveView('wizard');
   }, [state.bloecke.length, state.generiertesDokument, dispatch]);
@@ -441,6 +443,7 @@ export default function App() {
       return;
     }
     setDraftAtmosphereFach(null);
+    setFreshStart(true);
     dispatch({ type: 'RESET_STATE' });
     setActiveView('wizard');
   }, [state.bloecke.length, state.generiertesDokument, dispatch]);
@@ -470,6 +473,7 @@ export default function App() {
     };
     const block = createDefaultBlock(config.typ, meta);
     setDraftAtmosphereFach(null);
+    setFreshStart(false);
     dispatch({ type: 'RESET_STATE' });
     dispatch({ type: 'SET_META', meta });
     dispatch({ type: 'ADD_BLOCK', block });
@@ -485,6 +489,7 @@ export default function App() {
     }
     setPendingUebung(prefill);
     setDraftAtmosphereFach(null);
+    setFreshStart(false);
     dispatch({ type: 'RESET_STATE' });
     setActiveView('wizard');
   }, [state.bloecke.length, state.generiertesDokument, dispatch]);
@@ -554,6 +559,7 @@ export default function App() {
           <Step0_Absicht
             state={state}
             dispatch={dispatch}
+            freshStart={freshStart}
             firstRunHint={showFirstRunWizardHint}
             onDismissFirstRunHint={() => setShowFirstRunWizardHint(false)}
             onNavigateToTemplates={() => setActiveView('templates')}

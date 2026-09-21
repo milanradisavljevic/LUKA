@@ -6,7 +6,7 @@ import { getBlockLabel } from '../lib/blockDefaults';
 import { appendHistoryEntry, loadSettings } from '../lib/storage';
 import { computeCoverage } from '../lib/coverage';
 import { istEntwurfsQuelle } from '../lib/stoffkatalog';
-import { RENDER_TEMPLATES, RENDER_LAYOUTS } from '@lehrunterlagen/renderer';
+import { RENDER_TEMPLATES, RENDER_LAYOUTS, pruefeRaetselA4 } from '@lehrunterlagen/renderer';
 
 export function useExport() {
   const [exporting, setExporting] = useState(false);
@@ -24,6 +24,18 @@ export function useExport() {
       const { renderDocumentToBlobs } = await import('@lehrunterlagen/renderer');
       const template = RENDER_TEMPLATES[state.renderTemplate];
       const layout = RENDER_LAYOUTS[state.renderLayout];
+      const unpassendeRaetsel: { index: number; pruefung: ReturnType<typeof pruefeRaetselA4> }[] = [];
+      for (const [index, block] of doc.bloecke.entries()) {
+        if (block.typ !== 'kreuzwortraetsel' && block.typ !== 'wortgitter') continue;
+        const pruefung = pruefeRaetselA4(block, template, layout);
+        if (!pruefung.passt) unpassendeRaetsel.push({ index, pruefung });
+      }
+      if (unpassendeRaetsel.length > 0) {
+        const details = unpassendeRaetsel
+          .map(({ index, pruefung }) => `Aufgabe ${index + 1}: ${pruefung.grund}`)
+          .join('\n');
+        throw new Error(`DOCX-Export nicht möglich: Ein Rätsel passt nicht lesbar auf eine A4-Seite.\n${details}`);
+      }
       const { schueler, loesung } = await renderDocumentToBlobs(doc, template, layout);
 
       const thema = sanitizeFilename(doc.meta.thema).slice(0, 40);

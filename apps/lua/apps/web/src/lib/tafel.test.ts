@@ -44,13 +44,13 @@ describe('buildTafelSlides', () => {
 
 describe('clampFontScale', () => {
   it('begrenzt auf die erlaubten Schriftgrößen', () => {
-    expect(clampFontScale(0.1)).toBe(0.85);
-    expect(clampFontScale(2)).toBe(1.6);
+    expect(clampFontScale(0.1)).toBe(0.5);
+    expect(clampFontScale(3)).toBe(2.5);
   });
 
-  it('rastet in 0.15er-Schritten ein', () => {
-    expect(clampFontScale(1.07)).toBe(1);
-    expect(clampFontScale(1.09)).toBe(1.15);
+  it('rastet in 0.25er-Schritten ein', () => {
+    expect(clampFontScale(1.1)).toBe(1);
+    expect(clampFontScale(1.2)).toBe(1.25);
   });
 });
 

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { AlertTriangle, CheckCircle2, Check, Circle, Pencil, RefreshCw, FileText, KeyRound, Database, Lightbulb } from 'lucide-react';
 import { istSprachfach, fachLabel } from '@lehrunterlagen/schema';
+import { RENDER_LAYOUTS, RENDER_TEMPLATES, getDefaultLayout, getDefaultTemplate, pruefeRaetselA4 } from '@lehrunterlagen/renderer';
+import type { RenderLayout, RenderTemplate } from '@lehrunterlagen/renderer';
 import type { Block } from '@lehrunterlagen/schema';
 import type { AppState, AppAction } from '../lib/types';
 import { BlockPreview } from './BlockPreview';
@@ -47,7 +49,7 @@ const PAGE_MARGIN_TOP_MM = 20;
 const PAGE_MARGIN_BOTTOM_MM = 20;
 const USABLE_HEIGHT_MM = PAGE_HEIGHT_MM - PAGE_MARGIN_TOP_MM - PAGE_MARGIN_BOTTOM_MM;
 
-function estimateBlockHeight(block: Block): number {
+function estimateBlockHeight(block: Block, template: RenderTemplate = getDefaultTemplate(), layout: RenderLayout = getDefaultLayout()): number {
   const base = 10; // ~10mm pro Textzeile (Durchschnitt)
   switch (block.typ) {
     case 'lueckentext': return base * 8 + 20;
@@ -61,8 +63,8 @@ function estimateBlockHeight(block: Block): number {
     case 'tabelle': return base * 4 + (block.config.spalten?.length ?? 3) * 8 + 15;
     case 'stiluebung': return base * 10 + 20;
     case 'songanalyse': return base * 10 + 20;
-    case 'kreuzwortraetsel': return 80;
-    case 'wortgitter': return 80;
+    case 'kreuzwortraetsel':
+    case 'wortgitter': return pruefeRaetselA4(block, template, layout).benoetigteHoehe / (1440 / 25.4);
     case 'vokabeluebung': return base * 6 + 15;
     case 'fehlerkorrektur': return base * 6 + (block.config.saetze?.length ?? 5) * base * 1.5;
     case 'roleplay': return base * 8 + 25;
@@ -131,6 +133,8 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
   const bloecke = doc ? doc.bloecke : state.bloecke;
   const quelltexte = doc ? doc.quelltexte : state.quelltexte;
   const meta = doc ? doc.meta : state.meta;
+  const renderTemplate = RENDER_TEMPLATES[state.renderTemplate];
+  const renderLayout = RENDER_LAYOUTS[state.renderLayout];
 
   const handleUpdate = (id: string, field: string, value: unknown) => {
     setEditierteIds((prev) => new Set(prev).add(id));
@@ -358,7 +362,7 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
     // Start bei ~Seite 1; Seitenwechsel wenn accumulatedMm > USABLE_HEIGHT_MM
     let pageNumber = 1;
     for (const block of bloecke) {
-      const blockHeight = estimateBlockHeight(block);
+      const blockHeight = estimateBlockHeight(block, renderTemplate, renderLayout);
       if (accumulatedMm + blockHeight > USABLE_HEIGHT_MM * pageNumber && pageNumber > 0) {
         breakBeforeBlocks.add(block.id);
         pageNumber++;
@@ -421,7 +425,7 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
               <strong>Beispiel:</strong> {block.beispiel.trim()}
             </p>
           )}
-          <BlockPreview block={block} showSolution={false}
+          <BlockPreview block={block} showSolution={false} template={renderTemplate} layout={renderLayout}
             onUpdate={editingId === block.id ? handleUpdate : undefined} />
           {/* Block-Regenerieren — nur bei generiertem Dokument */}
           {doc && (
@@ -599,7 +603,7 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
               <strong>Beispiel:</strong> {block.beispiel.trim()}
             </p>
           )}
-          <BlockPreview block={block} showSolution={true} />
+          <BlockPreview block={block} showSolution={true} template={renderTemplate} layout={renderLayout} />
         </div>
       ))}
       {renderTransferaufgabe()}

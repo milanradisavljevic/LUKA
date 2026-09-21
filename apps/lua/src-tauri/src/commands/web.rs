@@ -605,4 +605,32 @@ mod tests {
         assert!(!text.contains("Logo"));
         assert!(!text.contains("Titel"));
     }
+
+    // ── Sicherheits-Regressionstests ──────────────────────────────────────
+
+    #[tokio::test]
+    async fn validate_public_host_returns_addrs_and_port() {
+        // Öffentliche DNS-Auflösung muss Adresse + Port zurückgeben.
+        let url = reqwest::Url::parse("https://example.com/").unwrap();
+        let result = validate_public_host(&url).await;
+        assert!(result.is_ok(), "example.com sollte auflösbar sein: {:?}", result.err());
+        let (addrs, port) = result.unwrap();
+        assert!(!addrs.is_empty(), "Mindestens eine Adresse erwartet");
+        assert_eq!(port, 443, "HTTPS-Port erwartet");
+        // Keine Adresse darf intern/blockiert sein.
+        assert!(!addrs.iter().any(is_blocked_ip), "Keine internen Adressen erlaubt");
+    }
+
+    #[test]
+    fn to_ascii_lowercase_prevents_unicode_byte_misalignment() {
+        //to_ascii_lowercase verändert die Bytelänge nicht (anders als to_lowercase).
+        let s = "İstanbul"; // İ (U+0130) → 2 Bytes in UTF-8
+        let lower = s.to_ascii_lowercase();
+        assert_eq!(s.len(), lower.len(), "Bytelänge darf sich nicht ändern");
+        // HTML-Tags sind ASCII — to_ascii_lowercase reicht.
+        let html = "<ARTIKEL><P>Hallo</P></ARTIKEL>";
+        let lhtml = html.to_ascii_lowercase();
+        assert!(lhtml.contains("<artikel>"));
+        assert!(lhtml.contains("<p>"));
+    }
 }

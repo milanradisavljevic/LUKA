@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { renderDocument, renderDocumentToBlobs, renderSelbstlernToBlob, renderSelbsteinschaetzungToBlob, type KorrekturrasterDokument } from './index.js';
+import { RENDER_LAYOUTS, RENDER_TEMPLATES, pruefeRaetselA4, renderDocument, renderDocumentToBlobs, renderSelbstlernToBlob, renderSelbsteinschaetzungToBlob, type KorrekturrasterDokument } from './index.js';
 import type { DocumentV1 } from '@lehrunterlagen/schema';
 
 // ZIP magic bytes — every .docx starts with PK\x03\x04
@@ -31,6 +31,48 @@ const baseQuelltext: DocumentV1['quelltexte'] = [
 function makeDoc(bloecke: DocumentV1['bloecke'], stufe: 'oberstufe' | 'unterstufe' = 'oberstufe'): DocumentV1 {
   return { schemaVersion: '0.1.0', meta: baseMeta(stufe), quelltexte: baseQuelltext, bloecke };
 }
+
+describe('A4-Prüfung für Rätsel', () => {
+  const template = RENDER_TEMPLATES.klassisch;
+
+  it('akzeptiert ein kleines Kreuzworträtsel und hält seine Breite im Satzspiegel', () => {
+    const block: Extract<DocumentV1['bloecke'][number], { typ: 'kreuzwortraetsel' }> = {
+      id: 'cross-small', typ: 'kreuzwortraetsel', punkte: 4, arbeitsanweisung: 'Löse das Rätsel.',
+      config: { eintraege: [{ wort: 'HAUS', hinweis: 'Gebäude' }, { wort: 'MAUS', hinweis: 'Kleines Tier' }] },
+    };
+    const pruefung = pruefeRaetselA4(block, template, RENDER_LAYOUTS.standard);
+    expect(pruefung.passt).toBe(true);
+    expect(pruefung.benoetigteBreite).toBeLessThanOrEqual(pruefung.verfuegbareBreite);
+  });
+
+  it('blockiert ein zu breites Wortgitter statt es über den Seitenrand zu drücken', () => {
+    const block: Extract<DocumentV1['bloecke'][number], { typ: 'wortgitter' }> = {
+      id: 'word-too-wide', typ: 'wortgitter', punkte: 4, arbeitsanweisung: 'Finde die Wörter.',
+      config: { woerter: ['A'.repeat(60)] },
+    };
+    const pruefung = pruefeRaetselA4(block, template, RENDER_LAYOUTS.standard);
+    expect(pruefung.passt).toBe(false);
+    expect(pruefung.grund).toContain('60 × 60');
+  });
+
+  it('berücksichtigt die kleinere Innenfläche des gerahmten Layouts', () => {
+    const block: Extract<DocumentV1['bloecke'][number], { typ: 'kreuzwortraetsel' }> = {
+      id: 'cross-frame', typ: 'kreuzwortraetsel', punkte: 4, arbeitsanweisung: 'Löse das Rätsel.',
+      config: { eintraege: [{ wort: 'HAUS', hinweis: 'Gebäude' }] },
+    };
+    const standard = pruefeRaetselA4(block, template, RENDER_LAYOUTS.standard);
+    const gerahmt = pruefeRaetselA4(block, template, RENDER_LAYOUTS.gerahmt);
+    expect(gerahmt.verfuegbareBreite).toBe(standard.verfuegbareBreite - 280);
+  });
+
+  it('verweigert den DOCX-Export bei einem nicht passenden Rätsel', async () => {
+    const doc = makeDoc([{
+      id: 'word-too-wide', typ: 'wortgitter', punkte: 4, arbeitsanweisung: 'Finde die Wörter.',
+      config: { woerter: ['A'.repeat(60)] },
+    }]);
+    await expect(renderDocument(doc)).rejects.toThrow('Mindestens 180 Twips');
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Return shape

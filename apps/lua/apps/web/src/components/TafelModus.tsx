@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, Eye, EyeOff, Minus, Plus, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Eye, EyeOff, Minus, Plus, Sun, Moon, X } from 'lucide-react';
 import type { Block, Meta, QuellText } from '@lehrunterlagen/schema';
 import { BlockPreview } from './BlockPreview';
 import { buildTafelSlides, clampFontScale, countSolutions } from '../lib/tafel';
@@ -24,6 +24,7 @@ export function TafelModus({ meta, bloecke, quelltexte, onClose }: Props) {
   const [showSolution, setShowSolution] = useState(false);
   const [solutionStep, setSolutionStep] = useState(0);
   const [scale, setScale] = useState(1);
+  const [tafelLight, setTafelLight] = useState(false);
   const current = slides[index];
 
   const totalSteps = useMemo(() => {
@@ -87,11 +88,11 @@ export function TafelModus({ meta, bloecke, quelltexte, onClose }: Props) {
         return;
       }
       if (event.key === '+' || event.key === '=') {
-        changeScale(0.15);
+        changeScale(0.25);
         return;
       }
       if (event.key === '-' || event.key === '_') {
-        changeScale(-0.15);
+        changeScale(-0.25);
       }
     };
 
@@ -117,7 +118,7 @@ export function TafelModus({ meta, bloecke, quelltexte, onClose }: Props) {
 
   return (
     <div
-      className="tafel-overlay"
+      className={`tafel-overlay${tafelLight ? ' tafel-light' : ''}`}
       role="dialog"
       aria-modal="true"
       aria-label="Tafel-Modus"
@@ -141,11 +142,17 @@ export function TafelModus({ meta, bloecke, quelltexte, onClose }: Props) {
           <button type="button" className="btn-secondary" onClick={() => go(1)} disabled={index === slides.length - 1} title="Nächste Folie">
             <ChevronRight size={17} />
           </button>
-          <button type="button" className="btn-secondary" onClick={() => changeScale(-0.15)} title="Schrift kleiner">
+          <button type="button" className="btn-secondary" onClick={() => changeScale(-0.25)} title="Schrift kleiner">
             <Minus size={17} />
           </button>
-          <button type="button" className="btn-secondary" onClick={() => changeScale(0.15)} title="Schrift größer">
+          <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', minWidth: '3rem', textAlign: 'center' }}>
+            {Math.round(scale * 100)}%
+          </span>
+          <button type="button" className="btn-secondary" onClick={() => changeScale(0.25)} title="Schrift größer">
             <Plus size={17} />
+          </button>
+          <button type="button" className="btn-secondary" onClick={() => setTafelLight((v) => !v)} title={tafelLight ? 'Zurück zum Dunkelmodus' : 'Zum Hellmodus wechseln'}>
+            {tafelLight ? <Moon size={17} /> : <Sun size={17} />}
           </button>
           <button
             type="button"

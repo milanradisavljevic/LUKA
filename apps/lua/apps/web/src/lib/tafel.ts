@@ -5,9 +5,9 @@ export type TafelSlide =
   | { kind: 'quelltext'; quelltext: QuellText }
   | { kind: 'block'; block: Block };
 
-const FONT_SCALE_MIN = 0.85;
-const FONT_SCALE_MAX = 1.6;
-const FONT_SCALE_STEP = 0.15;
+const FONT_SCALE_MIN = 0.5;
+const FONT_SCALE_MAX = 2.5;
+const FONT_SCALE_STEP = 0.25;
 
 export function buildTafelSlides(bloecke: Block[], quelltexte: QuellText[] = []): TafelSlide[] {
   const quelltextSlides: TafelSlide[] = quelltexte

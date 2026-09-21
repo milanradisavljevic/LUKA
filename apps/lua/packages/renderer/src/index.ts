@@ -27,6 +27,7 @@ import type { RenderTemplate } from './template.js';
 import { RENDER_TEMPLATES, getDefaultTemplate } from './template.js';
 import type { RenderLayout, RenderLayoutId } from './layout.js';
 import { RENDER_LAYOUTS, getDefaultLayout } from './layout.js';
+import { pruefeRaetselA4, RaetselPasstNichtAufA4Error } from './puzzleLayout.js';
 import { baueWortbank, shuffle, baueKreuzwortgitter, baueWortgitter, bereinigeQuelltext, fachLabel as fachLabelOf } from '@lehrunterlagen/schema';
 
 const DEFAULT_TEMPLATE = RENDER_TEMPLATES.klassisch;
@@ -692,6 +693,11 @@ function buildDocumentChildren(
   template: RenderTemplate,
   layout: RenderLayout = getDefaultLayout(),
 ): (Paragraph | Table)[] {
+  for (const block of doc.bloecke) {
+    if (block.typ !== 'kreuzwortraetsel' && block.typ !== 'wortgitter') continue;
+    const pruefung = pruefeRaetselA4(block, template, layout);
+    if (!pruefung.passt) throw new RaetselPasstNichtAufA4Error(pruefung);
+  }
   const quelltextMap = new Map<string, QuellText>(
     doc.quelltexte.map((q) => [q.id, q]),
   );
@@ -1320,8 +1326,8 @@ export function renderBlockChildren(block: Block, ctx: RenderBlockCtx): (Paragra
     case 'tabelle': return buildTabelle(block, mode, template);
     case 'stiluebung': return buildStiluebung(block, mode, template);
     case 'songanalyse': return buildSonganalyse(block, mode, template);
-    case 'kreuzwortraetsel': return buildKreuzwortraetsel(block, mode, template);
-    case 'wortgitter': return buildWortgitter(block, mode, template);
+    case 'kreuzwortraetsel': return buildKreuzwortraetsel(block, mode, template, ctx.layout);
+    case 'wortgitter': return buildWortgitter(block, mode, template, ctx.layout);
     case 'vokabeluebung': return buildVokabeluebung(block, mode, template);
     case 'umformung': return buildUmformung(block, mode, template);
     case 'fehlerkorrektur': return buildFehlerkorrektur(block, mode, template, fach);
@@ -2683,12 +2689,16 @@ function buildKreuzwortraetsel(
   block: Extract<Block, { typ: 'kreuzwortraetsel' }>,
   mode: Mode,
   template: RenderTemplate,
+  layout: RenderLayout,
 ): (Paragraph | Table)[] {
   const result: (Paragraph | Table)[] = [];
   const gitter = baueKreuzwortgitter(block.config.eintraege ?? []);
   if (gitter.zeilen === 0) return result;
 
-  const CELL = 460; // twips (~0.8 cm) je Zelle
+  const pruefung = pruefeRaetselA4(block, template, layout);
+  if (!pruefung.passt) throw new RaetselPasstNichtAufA4Error(pruefung);
+  const CELL = pruefung.zellgroesse;
+
   const cellBorder = { top: thinBorder(template), bottom: thinBorder(template), left: thinBorder(template), right: thinBorder(template) };
   const leerBorder = { top: NO_BORDER, bottom: NO_BORDER, left: NO_BORDER, right: NO_BORDER };
 
@@ -2722,7 +2732,7 @@ function buildKreuzwortraetsel(
         children: [new Paragraph({ children: kinder })],
       }));
     }
-    rows.push(new TableRow({ height: { value: CELL, rule: HeightRule.ATLEAST }, children: cells }));
+    rows.push(new TableRow({ cantSplit: true, height: { value: CELL, rule: HeightRule.ATLEAST }, children: cells }));
   }
 
   result.push(new Table({
@@ -2764,6 +2774,7 @@ function buildWortgitter(
   block: Extract<Block, { typ: 'wortgitter' }>,
   mode: Mode,
   template: RenderTemplate,
+  layout: RenderLayout,
 ): (Paragraph | Table)[] {
   const result: (Paragraph | Table)[] = [];
   const gitter = baueWortgitter(block.config.woerter ?? []);
@@ -2777,7 +2788,10 @@ function buildWortgitter(
     for (let n = 0; n < p.wort.length; n++) loesungsZellen.add(`${p.zeile + dr * n},${p.spalte + dc * n}`);
   }
 
-  const CELL = 420;
+  const pruefung = pruefeRaetselA4(block, template, layout);
+  if (!pruefung.passt) throw new RaetselPasstNichtAufA4Error(pruefung);
+  const CELL = pruefung.zellgroesse;
+
   const cellBorder = { top: thinBorder(template), bottom: thinBorder(template), left: thinBorder(template), right: thinBorder(template) };
   const rows: TableRow[] = [];
   for (let r = 0; r < gitter.zeilen; r++) {
@@ -2796,7 +2810,7 @@ function buildWortgitter(
         })],
       }));
     }
-    rows.push(new TableRow({ height: { value: CELL, rule: HeightRule.ATLEAST }, children: cells }));
+    rows.push(new TableRow({ cantSplit: true, height: { value: CELL, rule: HeightRule.ATLEAST }, children: cells }));
   }
   result.push(new Table({
     rows,
@@ -2994,6 +3008,7 @@ function chunkArray<T>(arr: T[], size: number): T[][] {
 
 
 export { RENDER_TEMPLATES, getDefaultTemplate };
+export { pruefeRaetselA4, RaetselPasstNichtAufA4Error } from './puzzleLayout.js';
 export type { RenderTemplate, RenderTemplateId } from './template.js';
 export type { RenderLayout, RenderLayoutId } from './layout.js';
 export { RENDER_LAYOUTS, getDefaultLayout } from './layout.js';

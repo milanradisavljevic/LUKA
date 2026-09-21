@@ -1156,6 +1156,28 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
                   {analyzeAufgaben.map((aufgabe) => <option key={aufgabe} value={aufgabe} />)}
                 </datalist>
               </div>
+
+              <div style={{ marginBottom: '0.75rem' }}>
+                <label>Ausgangsmaterial <span style={{ color: 'var(--color-text-secondary)', fontWeight: 400 }}>(optional)</span></label>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    value={analyzeAusgangstextDatei ? baseName(analyzeAusgangstextDatei) : analyzeAusgangstext}
+                    onChange={(e) => { setAnalyzeAusgangstextDatei(''); setAnalyzeAusgangstext(e.target.value); }}
+                    placeholder="Text eingeben oder Datei wählen"
+                    style={{ flex: 1 }}
+                  />
+                  <button type="button" className="btn-secondary" onClick={pickSourceFile} style={{ flexShrink: 0 }}>
+                    Datei
+                  </button>
+                </div>
+                {analyzeAusgangstextDatei && (
+                  <p style={{ margin: '0.25rem 0 0', fontSize: '0.72rem', color: 'var(--color-text-secondary)' }}>
+                    Datei: {baseName(analyzeAusgangstextDatei)}
+                    <button type="button" className="btn-ghost" onClick={() => setAnalyzeAusgangstextDatei('')} style={{ marginLeft: '0.5rem', fontSize: '0.72rem' }}>entfernen</button>
+                  </p>
+                )}
+              </div>
             </>)}
 
             {/* ─── Schritt 2: Abgaben hinzufügen ─── */}
