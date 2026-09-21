@@ -102,6 +102,7 @@ pub async fn test_smtp_connection(config: SmtpConfig) -> Result<String, String> 
 #[derive(Debug, Deserialize)]
 pub struct BugReportPayload {
     pub description: String,
+    #[serde(rename = "includeSystemInfo")]
     pub include_system_info: bool,
     pub contact_email: Option<String>,
 }
