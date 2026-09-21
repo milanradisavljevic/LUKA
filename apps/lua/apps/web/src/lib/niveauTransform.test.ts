@@ -5,9 +5,10 @@ import type { DocumentV1 } from '@lehrunterlagen/schema';
 function makeDoc(blocks: any[]): DocumentV1 {
   return {
     schemaVersion: '0.1.0',
-    meta: { titel: 'Test', fach: 'Deutsch', stufe: '9', schulstufe: 'Oberstufe' },
+    meta: { titel: 'Test', fach: 'deutsch', stufe: '9', schulstufe: 'Oberstufe', thema: '', datum: '', klasse: '', notizen: '' },
     bloecke: blocks.map((b, i) => ({ id: `b${i}`, punkte: 10, ...b })),
-  } as DocumentV1;
+    quelltexte: [],
+  } as unknown as DocumentV1;
 }
 
 describe('transformiereLeicht — offene Typen', () => {
@@ -17,7 +18,7 @@ describe('transformiereLeicht — offene Typen', () => {
       config: { fragen: [{ nr: 1, frage: 'Warum?', zeilen: 4 }, { nr: 2, frage: 'Wie?', zeilen: 6 }] },
     }]);
     const result = transformiereLeicht(doc);
-    const cfg = result.bloecke[0].config as any;
+    const cfg = result.bloecke[0]!.config as any;
     expect(cfg.fragen[0].zeilen).toBe(6);
     expect(cfg.fragen[1].zeilen).toBe(8);
   });
@@ -28,7 +29,7 @@ describe('transformiereLeicht — offene Typen', () => {
       config: { umfangWorte: { min: 100, max: 200 }, aspekte: ['Aspekt 1'] },
     }]);
     const result = transformiereLeicht(doc);
-    const cfg = result.bloecke[0].config as any;
+    const cfg = result.bloecke[0]!.config as any;
     expect(cfg.umfangWorte.min).toBe(70);
     expect(cfg.umfangWorte.max).toBe(140);
   });
@@ -42,7 +43,7 @@ describe('transformiereLeicht — geschlossene Typen', () => {
       loesung: { luecken: [{ nr: 1, wort: 'a' }, { nr: 2, wort: 'b' }, { nr: 3, wort: 'c' }, { nr: 4, wort: 'd' }, { nr: 5, wort: 'e' }, { nr: 6, wort: 'f' }, { nr: 7, wort: 'g' }] },
     }]);
     const result = transformiereLeicht(doc);
-    const cfg = result.bloecke[0].config as any;
+    const cfg = result.bloecke[0]!.config as any;
     expect(cfg.anzahlLuecken).toBe(4);
     expect(cfg.distraktoren).toBe(2);
   });
@@ -60,12 +61,12 @@ describe('transformiereLeicht — geschlossene Typen', () => {
       },
     }]);
     const result = transformiereLeicht(doc);
-    const cfg = result.bloecke[0].config as any;
+    const cfg = result.bloecke[0]!.config as any;
     expect(cfg.fragen.length).toBe(3);
     // Debug: log actual values
-    const mehfachValues = cfg.fragen.map((f: any) => f.mehrfach);
-    console.log('mehrfach values:', JSON.stringify(mehrfachValues));
-    expect(mehrfachValues.every((v: any) => v === false)).toBe(true);
+    const mehfachValues = cfg.fragen.map((f: any) => f.mehfach);
+    console.log('mehrfach values:', JSON.stringify(mehfachValues));
+    expect(mehfachValues.every((v: any) => v === false)).toBe(true);
   });
 
   it('matching: max. 3 Items, optionen = items + 1', () => {
@@ -77,7 +78,7 @@ describe('transformiereLeicht — geschlossene Typen', () => {
       },
     }]);
     const result = transformiereLeicht(doc);
-    const cfg = result.bloecke[0].config as any;
+    const cfg = result.bloecke[0]!.config as any;
     expect(cfg.items.length).toBe(3);
     expect(cfg.optionen.length).toBe(4);
   });
@@ -91,7 +92,7 @@ describe('transformiereLeicht — geschlossene Typen', () => {
       },
     }]);
     const result = transformiereLeicht(doc);
-    const cfg = result.bloecke[0].config as any;
+    const cfg = result.bloecke[0]!.config as any;
     expect(cfg.items.length).toBe(4);
     expect(cfg.kategorien.length).toBe(2);
   });
@@ -106,7 +107,7 @@ describe('transformiereLeicht — geschlossene Typen', () => {
       },
     }]);
     const result = transformiereLeicht(doc);
-    const cfg = result.bloecke[0].config as any;
+    const cfg = result.bloecke[0]!.config as any;
     expect(cfg.vokabeln.length).toBe(5);
     expect(cfg.anzahlVokabeln).toBe(5);
     expect(cfg.richtung).toBe('de_fremd');
@@ -126,7 +127,7 @@ describe('transformiereLeicht — geschlossene Typen', () => {
       },
     }]);
     const result = transformiereLeicht(doc);
-    const cfg = result.bloecke[0].config as any;
+    const cfg = result.bloecke[0]!.config as any;
     expect(cfg.saetze.length).toBe(3);
   });
 
@@ -136,7 +137,7 @@ describe('transformiereLeicht — geschlossene Typen', () => {
       config: { saetze: [{ wort: 'a' }, { wort: 'b' }, { wort: 'c' }, { wort: 'd' }, { wort: 'e' }] },
     }]);
     const result = transformiereLeicht(doc);
-    const cfg = result.bloecke[0].config as any;
+    const cfg = result.bloecke[0]!.config as any;
     expect(cfg.saetze.length).toBe(4);
   });
 
@@ -155,7 +156,7 @@ describe('transformiereLeicht — geschlossene Typen', () => {
       loesung: { zellen: [{ nr: 1, wort: 'L1' }, { nr: 2, wort: 'L2' }, { nr: 3, wort: 'L3' }, { nr: 4, wort: 'L4' }] },
     }]);
     const result = transformiereLeicht(doc);
-    const cfg = result.bloecke[0].config as any;
+    const cfg = result.bloecke[0]!.config as any;
     expect(cfg.zeilen.length).toBe(3);
   });
 });
@@ -167,7 +168,7 @@ describe('transformiereLeicht — unveränderte Typen', () => {
       config: { situation: 'Sit', rollen: [{ name: 'A', beschreibung: 'B' }] },
     }]);
     const result = transformiereLeicht(doc);
-    expect(result.bloecke[0].typ).toBe('roleplay');
+    expect(result.bloecke[0]!.typ).toBe('roleplay');
   });
 });
 

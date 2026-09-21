@@ -112,7 +112,7 @@ export function transformiereLeicht(doc: DocumentV1): DocumentV1 {
           ...zeile,
           zellen: zeile.zellen.map((zelle, idx) => {
             // ~50% der Lücken füllen (gerade Indizes)
-            if (zelle.luecke && idx % 2 === 0) {
+            if ('luecke' in zelle && zelle.luecke && idx % 2 === 0) {
               const loesung = (block as any).loesung?.zellen ?? [];
               const ersatz = lueckeLoesung(zelle, loesung);
               if (ersatz) return { text: ersatz };
@@ -128,7 +128,7 @@ export function transformiereLeicht(doc: DocumentV1): DocumentV1 {
           ...block,
           config: {
             ...block.config,
-            vokabeln: block.config.vokabeln.slice(0, 5),
+            vokabeln: (block.config.vokabeln ?? []).slice(0, 5),
             anzahlVokabeln: Math.min(block.config.anzahlVokabeln ?? 8, 5),
             richtung: 'de_fremd' as const,
           },
