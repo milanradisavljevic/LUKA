@@ -184,9 +184,12 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
   const effectiveRuntime = useMemo(() => {
     const pKey = analyzeProvider || settings.defaultProvider;
     const mLabel = analyzeModel || settings.defaultModel;
+    // Sicherheitsnetz: Pruefe ob das Modell zum Provider gehoert
+    const providerModels = LLM_PROVIDERS.find(p => p.id === pKey)?.models ?? [];
+    const safeMLabel = providerModels.includes(mLabel) ? mLabel : (providerModels[0] ?? mLabel);
     return {
       provider: PROVIDER_KEY_IDS[pKey] ?? pKey,
-      model: MODEL_MAP[mLabel] ?? mLabel,
+      model: MODEL_MAP[safeMLabel] ?? safeMLabel,
     };
   }, [analyzeProvider, analyzeModel, settings.defaultProvider, settings.defaultModel]);
   const [queueContext,setQueueContext]=useLocalDraft('correction-context','');
@@ -1209,7 +1212,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   <select
                     value={analyzeProvider || settings.defaultProvider}
-                    onChange={(e) => { setAnalyzeProvider(e.target.value); setAnalyzeModel(''); }}
+                    onChange={(e) => { setAnalyzeProvider(e.target.value); setAnalyzeModel(LLM_PROVIDERS.find(p => p.id === e.target.value)?.models[0] ?? ''); }}
                     style={{ flex: 1 }}
                   >
                     {LLM_PROVIDERS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
@@ -1505,7 +1508,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
 
                 {/* Runtime + Datenschutz */}
                 <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', padding: '0.5rem 0' }}>
-                  <strong>KI-Anbieter:</strong> {LLM_PROVIDERS.find(p => p.id === (analyzeProvider || settings.defaultProvider))?.label ?? effectiveRuntime.provider} · {analyzeModel || settings.defaultModel}
+                  <strong>KI-Anbieter:</strong> {LLM_PROVIDERS.find(p => p.id === (analyzeProvider || settings.defaultProvider))?.label ?? effectiveRuntime.provider} · {(() => { const pKey = analyzeProvider || settings.defaultProvider; const mLabel = analyzeModel || settings.defaultModel; const models = LLM_PROVIDERS.find(p => p.id === pKey)?.models ?? []; return models.includes(mLabel) ? mLabel : (models[0] ?? mLabel); })()}
                   {' · '}
                   <strong>Datenschutz:</strong> {pseudoAktiv ? 'Pseudonymisierung aktiv' : 'Namen werden übertragen'}
                 </div>
