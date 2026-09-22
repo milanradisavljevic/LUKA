@@ -2427,6 +2427,90 @@ def _call_openai_compat(
             return f"FEHLER: API-Aufruf fehlgeschlagen: {e}"
 
 
+# ── Token-Schaetzung & Kontext-Budget ────────────────────────────────────
+
+# Modell-spezifische Context-Windows (Token) und Output-Limits
+_MODEL_LIMITS: dict[str, dict[str, int]] = {
+    # Mistral
+    "mistral-medium-3-5": {"context": 256_000, "max_output": 32_000},
+    "mistral-medium-latest": {"context": 256_000, "max_output": 32_000},
+    "mistral-small-2603": {"context": 256_000, "max_output": 16_000},
+    "mistral-small-latest": {"context": 256_000, "max_output": 16_000},
+    # DeepSeek
+    "deepseek-chat": {"context": 128_000, "max_output": 8_000},
+    "deepseek-v4-pro": {"context": 128_000, "max_output": 16_000},
+    "deepseek-flash": {"context": 64_000, "max_output": 8_000},
+    # Claude
+    "claude-sonnet-4-6": {"context": 200_000, "max_output": 32_000},
+    "claude-opus-4-8": {"context": 200_000, "max_output": 32_000},
+    "claude-haiku-4-5-20251001": {"context": 200_000, "max_output": 8_192},
+    # OpenAI
+    "gpt-5.4": {"context": 128_000, "max_output": 16_000},
+    "gpt-5.4-mini": {"context": 128_000, "max_output": 16_000},
+    "gpt-5.4-nano": {"context": 128_000, "max_output": 16_000},
+}
+
+# Fallback fuer unbekannte Modelle
+_DEFAULT_LIMITS = {"context": 128_000, "max_output": 16_000}
+
+
+def _estimate_tokens(text: str) -> int:
+    """Grobe Token-Schaetzung: 1 Token ~ 4 Zeichen Deutsch (RLM-basiert)."""
+    return max(1, len(text) // 4)
+
+
+def _get_model_limits(model: str) -> dict[str, int]:
+    """Gibt Context-Window und Max-Output fuer ein Modell zurueck."""
+    return _MODEL_LIMITS.get(model, _DEFAULT_LIMITS)
+
+
+def _check_context_budget(
+    provider: str,
+    model: str,
+    prompt: str,
+) -> str | None:
+    """Prueft ob der Prompt in das Context Window des Modells passt.
+
+    Gibt None zurueck wenn alles OK ist, oder eine FEHLER-Meldung.
+    """
+    limits = _get_model_limits(model)
+    context_limit = limits["context"]
+    # 80% des Context-Limits als sichere Obergrenze (Platz fuer System-Prompt + Output)
+    safe_limit = int(context_limit * 0.80)
+
+    prompt_tokens = _estimate_tokens(prompt)
+
+    if prompt_tokens > safe_limit:
+        return (
+            f"FEHLER: Text zu lang fuer {model} "
+            f"({prompt_tokens:,} geschätzte Tokens, Limit {safe_limit:,}). "
+            "Bitte kuerzeren Text verwenden oder ein Modell mit groesserem Context Window waehlen."
+        )
+    return None
+
+
+def _dynamic_max_tokens(model: str, prompt: str) -> int:
+    """Berechnet ein passendes max_tokens basierend auf Input-Laenge und Modell.
+
+    Korrekturen brauchen typisch 4k-8k Output. Bei langen Texten (OA-Kommentar,
+    Erörterung) bis 12k. Nie mehr als das Modell-Output-Limit.
+    """
+    limits = _get_model_limits(model)
+    model_max = limits["max_output"]
+    prompt_tokens = _estimate_tokens(prompt)
+
+    # Dynamische Berechnung basierend auf Input-Groesse
+    if prompt_tokens < 3000:
+        needed = 4096   # kurze Texte: 4k Output
+    elif prompt_tokens < 6000:
+        needed = 8192   # mittlere Texte: 8k Output
+    else:
+        needed = 12288  # lange Texte: 12k Output
+
+    # Nicht mehr als das Modell kann, aber mindestens 4096
+    return min(model_max, max(4096, needed))
+
+
 def _should_retry_with_stable_model(response: str) -> bool:
     """Erkennt typische Provider-Antworten fuer nicht verfuegbare Modellnamen."""
     if not response.startswith("FEHLER:"):
@@ -2565,20 +2649,28 @@ def run_llm_api(
             return "FEHLER: MISTRAL_API_KEY nicht gesetzt (.env prüfen)"
         base_url = os.environ.get("MISTRAL_BASE_URL", "https://api.mistral.ai/v1")
         selected_model = model or "mistral-small-latest"
-        return _with_model_fallback(
-            provider,
+        # Kontext-Budget pruefen vor dem API-Aufruf
+        budget_error = _check_context_budget(provider, selected_model, prompt)
+        if budget_error:
+            return budget_error
+        max_out = _dynamic_max_tokens(selected_model, prompt)
+        response = _call_openai_compat(
+            base_url,
+            api_key,
             selected_model,
-            "mistral-small-latest",
-            lambda active_model: _call_openai_compat(
-                base_url,
-                api_key,
-                active_model,
-                prompt,
-                timeout,
-                extra_body={"response_format": {"type": "json_object"}},
-                cancel_event=cancel_event,
-            ),
+            prompt,
+            timeout,
+            extra_body={"response_format": {"type": "json_object"}},
+            cancel_event=cancel_event,
+            max_tokens=max_out,
         )
+        # Kein Fallback bei Mistral — klarer Fehler statt stiler Wechsel
+        if response.startswith("FEHLER:") and _should_retry_with_stable_model(response):
+            return (
+                f"FEHLER: Modell '{selected_model}' ist nicht verfügbar. "
+                "Bitte in den Einstellungen ein anderes Modell wählen."
+            )
+        return response
 
     if provider == "kimi":
         api_key = os.environ.get("KIMI_API_KEY", "")

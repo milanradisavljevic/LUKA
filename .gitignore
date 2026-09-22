@@ -28,6 +28,7 @@ __pycache__/
 *.db
 apps/natascha/output/
 apps/natascha/input/
+apps/natascha/benchmarks/
 apps/natascha/abgegebene Arbeiten/
 apps/natascha/Screenshots/
 

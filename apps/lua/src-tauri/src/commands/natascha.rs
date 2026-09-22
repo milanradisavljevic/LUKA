@@ -589,6 +589,12 @@ fn categorize_cli_error(stderr: &str) -> String {
             || s.contains("unauthorized"))
     {
         "API-Key fehlt oder ist ungültig — bitte in den Einstellungen hinterlegen."
+    } else if (s.contains("modell") || s.contains("model")) && (s.contains("nicht verfügbar") || s.contains("nicht verfuegbar") || s.contains("not available") || s.contains("not found") || s.contains("does not exist") || s.contains("invalid model")) {
+        "Modell ist nicht verfügbar — bitte in den Einstellungen ein anderes Modell wählen."
+    } else if s.contains("text zu lang") || s.contains("context") && (s.contains("length") || s.contains("limit") || s.contains("exceeded") || s.contains("too many") || s.contains("too long") || s.contains("maximum")) {
+        "Text zu lang für dieses Modell — bitte kürzeren Text verwenden."
+    } else if s.contains("schema") || (s.contains("validierung") && s.contains("fehlgeschlagen")) {
+        "KI-Antwort entspricht nicht dem erwarteten Format — bitte erneut versuchen."
     } else if s.contains("datei nicht gefunden") || s.contains("no such file") {
         "Datei nicht gefunden."
     } else if s.contains("timeout")
@@ -1225,6 +1231,43 @@ mod tests {
         let msg = categorize_cli_error("some unknown error occurred");
         assert!(msg.contains("Analyse fehlgeschlagen"));
         assert!(msg.contains("some unknown error"));
+    }
+
+    #[test]
+    fn categorize_cli_error_model_not_available() {
+        let msg = categorize_cli_error("FEHLER: Modell 'mistral-medium-3-5' ist nicht verfügbar");
+        assert!(msg.contains("Modell ist nicht verfügbar"));
+    }
+
+    #[test]
+    fn categorize_cli_error_model_not_found() {
+        let msg = categorize_cli_error("model not found: deepseek-unknown");
+        assert!(msg.contains("nicht verfügbar") || msg.contains("nicht verfuegbar"));
+    }
+
+    #[test]
+    fn categorize_cli_error_context_limit() {
+        let msg = categorize_cli_error("context_length_exceeded: maximum context length is 32000");
+        assert!(msg.contains("Text zu lang"));
+    }
+
+    #[test]
+    fn categorize_cli_error_text_too_long() {
+        let msg = categorize_cli_error("FEHLER: Text zu lang fuer mistral-medium-3-5 (50000 Tokens)");
+        assert!(msg.contains("Text zu lang"));
+    }
+
+    #[test]
+    fn categorize_cli_error_schema_validation() {
+        let msg = categorize_cli_error("Schema-Validierung fehlgeschlagen: required field missing");
+        assert!(msg.contains("erwarteten Format"));
+    }
+
+    #[test]
+    fn categorize_cli_error_fallback_before_api_key() {
+        // "modell nicht verfügbar" soll VOR "api key" greifen (Reihenfolge Matters)
+        let msg = categorize_cli_error("modell nicht verfügbar und 401 unauthorized");
+        assert!(msg.contains("Modell ist nicht verfügbar"));
     }
 
     #[test]

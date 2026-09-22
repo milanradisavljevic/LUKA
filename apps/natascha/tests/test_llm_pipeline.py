@@ -96,7 +96,7 @@ def test_run_llm_api_dispatches_deepseek_reasoner_with_more_tokens(monkeypatch) 
     assert model == "deepseek-reasoner"
     assert prompt == "Ping"
     assert kwargs["extra_body"] is None
-    assert kwargs["max_tokens"] == 8192
+    assert kwargs["max_tokens"] == 16384
 
 
 class _FakeOpenAICompatResponse:
