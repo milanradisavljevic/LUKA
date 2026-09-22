@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Loader2, Send, CheckCircle, AlertCircle } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { useDialogFocus } from '../hooks/useDialogFocus';
@@ -6,6 +6,13 @@ import { useDialogFocus } from '../hooks/useDialogFocus';
 interface Props {
   open: boolean;
   onClose: () => void;
+}
+
+interface SmtpConfig {
+  host: string;
+  port: number;
+  username: string;
+  password: string;
 }
 
 type Status = 'idle' | 'sending' | 'success' | 'error';
@@ -16,14 +23,22 @@ export function BugReportModal({ open, onClose }: Props) {
   const [contactEmail, setContactEmail] = useState('');
   const [status, setStatus] = useState<Status>('idle');
   const [errorMsg, setErrorMsg] = useState('');
+  const [smtpConfig, setSmtpConfig] = useState<SmtpConfig | null>(null);
   const dialogRef = useDialogFocus(open, () => { if (status !== 'sending') onClose(); });
+
+  useEffect(() => {
+    if (!open) return;
+    if (!(window as any).__TAURI_INTERNALS__) return;
+    invoke<SmtpConfig>('load_smtp_config').then(setSmtpConfig).catch(() => {});
+  }, [open]);
 
   if (!open) return null;
 
-  const canSend = description.trim().length >= 10 && status !== 'sending';
+  const smtpReady = smtpConfig && smtpConfig.username && smtpConfig.password;
+  const canSend = description.trim().length >= 10 && status !== 'sending' && !!smtpReady;
 
   const handleSend = async () => {
-    if (!canSend) return;
+    if (!canSend || !smtpConfig) return;
     setStatus('sending');
     setErrorMsg('');
     try {
@@ -32,6 +47,10 @@ export function BugReportModal({ open, onClose }: Props) {
           description: description.trim(),
           includeSystemInfo,
           contactEmail: contactEmail.trim() || null,
+          smtpHost: smtpConfig.host,
+          smtpPort: smtpConfig.port,
+          smtpUsername: smtpConfig.username,
+          smtpPassword: smtpConfig.password,
         },
       });
       setStatus('success');
@@ -80,15 +99,15 @@ export function BugReportModal({ open, onClose }: Props) {
               <h2 id="bug-report-title" style={{ fontSize: '1rem', color: 'var(--color-text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <CheckCircle size={18} style={{ color: 'var(--color-success, #16a34a)' }} /> Fehlermeldung gesendet
               </h2>
-              <button className="btn-secondary" onClick={handleClose} aria-label="Schließen" style={{ padding: '0.25rem 0.4rem', display: 'inline-flex' }}>
+              <button className="btn-secondary" onClick={handleClose} aria-label="Schliessen" style={{ padding: '0.25rem 0.4rem', display: 'inline-flex' }}>
                 <X size={16} />
               </button>
             </div>
             <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>
-              Vielen Dank! Die Fehlermeldung wurde an uns weitergeleitet. Bei Rückfragen melden wir uns per E-Mail.
+              Vielen Dank! Die Fehlermeldung wurde an uns weitergeleitet. Bei Rueckfragen melden wir uns per E-Mail.
             </p>
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button className="btn-primary" onClick={handleClose}>Schließen</button>
+              <button className="btn-primary" onClick={handleClose}>Schliessen</button>
             </div>
           </>
         ) : (
@@ -97,7 +116,7 @@ export function BugReportModal({ open, onClose }: Props) {
               <h2 id="bug-report-title" style={{ fontSize: '1rem', color: 'var(--color-text-primary)' }}>
                 Fehler melden
               </h2>
-              <button className="btn-secondary" onClick={handleClose} aria-label="Schließen" style={{ padding: '0.25rem 0.4rem', display: 'inline-flex' }}>
+              <button className="btn-secondary" onClick={handleClose} aria-label="Schliessen" style={{ padding: '0.25rem 0.4rem', display: 'inline-flex' }}>
                 <X size={16} />
               </button>
             </div>
@@ -109,7 +128,7 @@ export function BugReportModal({ open, onClose }: Props) {
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Beschreibe den Fehler so genau wie möglich…"
+                placeholder="Beschreibe den Fehler so genau wie moeglich..."
                 rows={5}
                 style={{
                   width: '100%', resize: 'vertical',
@@ -128,13 +147,13 @@ export function BugReportModal({ open, onClose }: Props) {
                 style={{ accentColor: 'var(--color-accent)' }}
               />
               <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>
-                Systeminfos anhängen (Version, Betriebssystem)
+                Systeminfos anhaengen (Version, Betriebssystem)
               </span>
             </label>
 
             <label style={{ display: 'block', marginBottom: '1rem' }}>
               <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', display: 'block', marginBottom: '0.25rem' }}>
-                E-Mail für Rückfragen (optional)
+                E-Mail fuer Rueckfragen (optional)
               </span>
               <input
                 type="email"
@@ -149,6 +168,12 @@ export function BugReportModal({ open, onClose }: Props) {
                 }}
               />
             </label>
+
+            {!smtpReady && (
+              <div role="alert" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', padding: '0.5rem', borderRadius: 'var(--radius)', background: 'var(--color-error-bg, #fef2f2)', color: 'var(--color-error, #dc2626)', fontSize: '0.8125rem' }}>
+                <AlertCircle size={14} /> SMTP nicht konfiguriert. Bitte zuerst in den Einstellungen unter "SMTP / Fehlermeldungen" einrichten.
+              </div>
+            )}
 
             {status === 'error' && (
               <div role="alert" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', padding: '0.5rem', borderRadius: 'var(--radius)', background: 'var(--color-error-bg, #fef2f2)', color: 'var(--color-error, #dc2626)', fontSize: '0.8125rem' }}>

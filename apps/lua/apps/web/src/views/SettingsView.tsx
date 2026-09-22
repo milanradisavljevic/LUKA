@@ -64,7 +64,7 @@ function SmtpSection() {
         <Mail size={16} /> SMTP / Fehlermeldungen
       </h3>
       <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', margin: '0 0 1rem' }}>
-        Konfiguration fuer den Versand von Fehlermeldungen per E-Mail. Bei Gmail: Ein App-Passwort ist noetig (Google Account > Sicherheit > 2-Faktor-Authentifizierung > App-Passwort).
+        Konfiguration fuer den Versand von Fehlermeldungen per E-Mail. Bei Gmail: Ein App-Passwort ist noetig (Google Account &gt; Sicherheit &gt; 2-Faktor-Authentifizierung &gt; App-Passwort).
       </p>
 
       {loading ? (

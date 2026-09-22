@@ -105,13 +105,19 @@ pub struct BugReportPayload {
     #[serde(rename = "includeSystemInfo")]
     pub include_system_info: bool,
     pub contact_email: Option<String>,
+    #[serde(rename = "smtpHost")]
+    pub smtp_host: String,
+    #[serde(rename = "smtpPort")]
+    pub smtp_port: u16,
+    #[serde(rename = "smtpUsername")]
+    pub smtp_username: String,
+    #[serde(rename = "smtpPassword")]
+    pub smtp_password: String,
 }
 
 #[tauri::command]
 pub async fn submit_bug_report(payload: BugReportPayload) -> Result<String, String> {
-    let config = load_smtp_config().await?;
-
-    if config.username.is_empty() || config.password.is_empty() {
+    if payload.smtp_username.is_empty() || payload.smtp_password.is_empty() {
         return Err(
             "SMTP nicht konfiguriert. Bitte zuerst in den Einstellungen unter \
              'SMTP / Fehlermeldungen' einrichten."
@@ -139,7 +145,7 @@ pub async fn submit_bug_report(payload: BugReportPayload) -> Result<String, Stri
         }
     }
 
-    let from_mailbox: Mailbox = format!("LUKA Bug-Report <{}>", config.username)
+    let from_mailbox: Mailbox = format!("LUKA Bug-Report <{}>", payload.smtp_username)
         .parse()
         .map_err(|e| format!("Absender-Adresse ungueltig: {e}"))?;
 
@@ -160,11 +166,11 @@ pub async fn submit_bug_report(payload: BugReportPayload) -> Result<String, Stri
         .body(body)
         .map_err(|e| format!("Nachrichtenbau-Fehler: {e}"))?;
 
-    let creds = Credentials::new(config.username.clone(), config.password.clone());
+    let creds = Credentials::new(payload.smtp_username.clone(), payload.smtp_password.clone());
 
-    let transport = AsyncSmtpTransport::<Tokio1Executor>::starttls_relay(&config.host)
+    let transport = AsyncSmtpTransport::<Tokio1Executor>::starttls_relay(&payload.smtp_host)
         .map_err(|e| format!("SMTP-Relay-Fehler: {e}"))?
-        .port(config.port)
+        .port(payload.smtp_port)
         .credentials(creds)
         .build();
 
