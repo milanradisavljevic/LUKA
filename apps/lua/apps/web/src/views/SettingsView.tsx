@@ -12,7 +12,7 @@ import { SettingsPanel } from '../components/SettingsPanel';
 import { ViewShell } from './_ViewShell';
 
 function SmtpSection() {
-  const [config, setConfig] = useState({ host: 'smtp.proton.me', port: 465, username: '', password: '' });
+  const [config, setConfig] = useState({ host: 'smtp.gmail.com', port: 587, username: '', password: '' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -64,7 +64,7 @@ function SmtpSection() {
         <Mail size={16} /> SMTP / Fehlermeldungen
       </h3>
       <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', margin: '0 0 1rem' }}>
-        Konfiguration für den Versand von Fehlermeldungen per E-Mail.
+        Konfiguration fuer den Versand von Fehlermeldungen per E-Mail. Bei Gmail: Ein App-Passwort ist noetig (Google Account > Sicherheit > 2-Faktor-Authentifizierung > App-Passwort).
       </p>
 
       {loading ? (

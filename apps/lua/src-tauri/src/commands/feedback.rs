@@ -8,8 +8,8 @@ use serde::{Deserialize, Serialize};
 use crate::keystore;
 
 const SMTP_CONFIG_SERVICE: &str = "lehr-suite-smtp";
-const DEFAULT_SMTP_HOST: &str = "smtp.proton.me";
-const DEFAULT_SMTP_PORT: u16 = 465;
+const DEFAULT_SMTP_HOST: &str = "smtp.gmail.com";
+const DEFAULT_SMTP_PORT: u16 = 587;
 const BUG_REPORT_TO: &str = "milan.radisavljevic@proton.me";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
