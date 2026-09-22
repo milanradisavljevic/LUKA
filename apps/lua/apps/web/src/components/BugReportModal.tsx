@@ -129,7 +129,7 @@ export function BugReportModal({ open, onClose }: Props) {
                 style={{ accentColor: 'var(--color-accent)' }}
               />
               <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>
-                Systeminfos anhaengen (Version, Betriebssystem)
+                Systeminfos anhängen (Version, Betriebssystem)
               </span>
             </label>
 

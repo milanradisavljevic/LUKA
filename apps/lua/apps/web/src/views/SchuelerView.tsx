@@ -282,7 +282,7 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
 
   const sichtbareKlassen = filterKlassenNachArchiv(klassen, bekannteKlassen, zeigeArchivierte);
 
-  const trendIcon = (r: string) => r === 'steigt' ? '↑' : r === 'faellt' ? '↓' : '→';
+  const trendIcon = (r: string) => r === 'steigt' ? '↑' : r === 'fällt' ? '↓' : '→';
 
   return (
     <ViewShell title="Schüler" description="Schülerprofil und Längsschnitt.">

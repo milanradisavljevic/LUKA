@@ -640,9 +640,9 @@ fn trend_berechnen(serie: &[Option<f64>], besser_ist_groesser: bool) -> TrendEin
     let richtung = if delta.abs() < 0.5 {
         "stabil".to_string()
     } else if besser_ist_groesser {
-        if delta > 0.0 { "steigt".to_string() } else { "faellt".to_string() }
+        if delta > 0.0 { "steigt".to_string() } else { "fällt".to_string() }
     } else {
-        if delta < 0.0 { "steigt".to_string() } else { "faellt".to_string() }
+        if delta < 0.0 { "steigt".to_string() } else { "fällt".to_string() }
     };
     TrendEintrag { start: Some(*start), ende: Some(*ende), richtung }
 }

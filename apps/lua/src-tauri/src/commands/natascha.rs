@@ -491,7 +491,7 @@ async fn run_cli_and_capture(
             let _ = terminate_process(job_id);
             stderr_task.abort();
             return Err(format!(
-                "{label} hat laenger als {} Minuten gedauert und wurde abgebrochen.",
+                "{label} hat länger als {} Minuten gedauert und wurde abgebrochen.",
                 NATASCHA_CLI_TIMEOUT_SECS / 60
             ));
         }
@@ -588,7 +588,7 @@ fn categorize_cli_error(stderr: &str) -> String {
             || s.contains("authentication")
             || s.contains("unauthorized"))
     {
-        "API-Key fehlt oder ist ungueltig — bitte in den Einstellungen hinterlegen."
+        "API-Key fehlt oder ist ungültig — bitte in den Einstellungen hinterlegen."
     } else if s.contains("datei nicht gefunden") || s.contains("no such file") {
         "Datei nicht gefunden."
     } else if s.contains("timeout")
@@ -597,15 +597,15 @@ fn categorize_cli_error(stderr: &str) -> String {
         || s.contains("getaddrinfo")
         || s.contains("temporary failure in name resolution")
     {
-        "Netzwerkfehler — keine Verbindung zum LLM-Anbieter. Internet/Proxy pruefen."
+        "Netzwerkfehler — keine Verbindung zum LLM-Anbieter. Internet/Proxy prüfen."
     } else if s.contains("rate limit") || s.contains("429") {
-        "Anbieter-Ratenlimit erreicht — bitte 1-2 Minuten warten und erneut versuchen."
+        "Anbieter-Ratenlimit erreicht — bitte 1–2 Minuten warten und erneut versuchen."
     } else if s.contains("modulenotfounderror") || s.contains("no module named") {
-        "Python-Abhaengigkeit fehlt — bitte requirements installieren (apps/natascha)."
+        "Python-Abhängigkeit fehlt — bitte requirements installieren (apps/natascha)."
     } else if s.contains("json") && (s.contains("decode") || s.contains("parse") || s.contains("valid")) {
-        "Ungueltiges KI-Ergebnis — die Antwort konnte nicht ausgewertet werden. Erneut versuchen."
+        "Ungültiges KI-Ergebnis — die Antwort konnte nicht ausgewertet werden. Erneut versuchen."
     } else if s.contains("unsupported") || s.contains("not supported") || s.contains("format") {
-        "Dateiformat nicht unterstuetzt — bitte DOCX, TXT oder Bild verwenden."
+        "Dateiformat nicht unterstützt — bitte DOCX, TXT oder Bild verwenden."
     } else if s.contains("leere antwort") || s.contains("empty response") {
         "KI-Antwort war leer — bitte erneut versuchen."
     } else {
@@ -1181,5 +1181,67 @@ mod tests {
         assert!(!failed.available);
         assert_eq!(failed.code, "sidecar_unstartable");
         assert_eq!(failed.diagnostic.as_deref(), Some("probe failed"));
+    }
+
+    #[test]
+    fn categorize_cli_error_api_key() {
+        let msg = categorize_cli_error("401 Unauthorized: api key invalid");
+        assert!(msg.contains("ungültig"));
+    }
+
+    #[test]
+    fn categorize_cli_error_rate_limit() {
+        let msg = categorize_cli_error("HTTP 429: rate limit exceeded");
+        assert!(msg.contains("Ratenlimit"));
+        assert!(msg.contains("1–2 Minuten"));
+    }
+
+    #[test]
+    fn categorize_cli_error_network() {
+        let msg = categorize_cli_error("getaddrinfo failed: connection refused");
+        assert!(msg.contains("Netzwerkfehler"));
+    }
+
+    #[test]
+    fn categorize_cli_error_invalid_json() {
+        let msg = categorize_cli_error("json decode error: unexpected token");
+        assert!(msg.contains("Ungültiges KI-Ergebnis"));
+    }
+
+    #[test]
+    fn categorize_cli_error_unsupported_format() {
+        let msg = categorize_cli_error("unsupported format: .xlsx");
+        assert!(msg.contains("Dateiformat nicht unterstützt"));
+    }
+
+    #[test]
+    fn categorize_cli_error_empty_response() {
+        let msg = categorize_cli_error("leere antwort vom Server");
+        assert!(msg.contains("KI-Antwort war leer"));
+    }
+
+    #[test]
+    fn categorize_cli_error_fallback_to_detail() {
+        let msg = categorize_cli_error("some unknown error occurred");
+        assert!(msg.contains("Analyse fehlgeschlagen"));
+        assert!(msg.contains("some unknown error"));
+    }
+
+    #[test]
+    fn emit_stderr_progress_valid_json() {
+        // Kein Crash bei gueltigem JSON
+        emit_stderr_progress(r#"{"stage":"llm","message":"Analyse laeuft"}"#, None, 42);
+    }
+
+    #[test]
+    fn emit_stderr_progress_invalid_json() {
+        // Kein Crash bei ungueltigem JSON
+        emit_stderr_progress("not json at all", None, 42);
+    }
+
+    #[test]
+    fn emit_stderr_progress_missing_fields() {
+        // JSON ohne stage → wird ignoriert (kein Panic)
+        emit_stderr_progress(r#"{"message":"test"}"#, None, 42);
     }
 }

@@ -37,6 +37,28 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 - Der „Neue Unterlage"-Button setzt alle Felder zurück — kein Überbleibsel der vorherigen Aufgabe mehr.
 - „Weiterarbeiten" und „Aus Vorlage starten" funktionieren wie gewohnt.
 
+## Version 1.5.1 — 2026-09-22
+
+### Das ist neu
+
+**Korrektur-Dialog überarbeitet**
+- Neuer 5-Schritte-Führungsassistent: Klasse & Aufgabe → Textsorte & Raster → Material → Abgaben → Übersicht & Start.
+- KI-Anbieter und Modell können direkt im Korrektur-Dialog gewählt werden — ohne vorher in die Einstellungen zu wechseln.
+- Textsorten-Auswahl: Oberstufe bietet die 7 offiziellen SRDP-Textsorten plus Empfehlung; Unterstufe die altersgerechten Textsorten.
+- Das passende Bewertungsraster wird automatisch vorgeschlagen.
+
+**Fortschritt sichtbar**
+- Während der KI-Analyse wird der aktuelle Arbeitsschritt angezeigt: Abgabe lesen → Bewertungsgrundlage laden → KI analysiert → Ergebnis speichern.
+- Bei Stapelanalysen zeigt ein Fortschrittsbalken den aktuellen Stand.
+
+**Fehlermeldungen verständlicher**
+- Fehler werden in klaren Kategorien angezeigt (API-Key, Netzwerk, Ratenlimit, Dateiformat) — statt technischer Rohdaten.
+- Bei Ratenlimit: Klare Meldung mit Wartezeit-Hinweis.
+
+**Umlaute zuverlässig**
+- Korrekturen mit Umlauten (ä, ö, ü, ß) werden jetzt zuverlässig verarbeitet.
+- Auf Windows gab es bisher teilweise Ersatzzeichen.
+
 ## Unveröffentlicht
 
 ## Version 1.4.2 — 2026-09-19
