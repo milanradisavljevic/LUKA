@@ -17,7 +17,7 @@ pub struct SmtpConfig {
     pub host: String,
     pub port: u16,
     pub username: String,
-    #[serde(skip)]
+    #[serde(skip_serializing)]
     pub password: String,
 }
 
