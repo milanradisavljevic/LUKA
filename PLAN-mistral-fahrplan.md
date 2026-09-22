@@ -39,12 +39,12 @@ Pfad: `apps/natascha/input/6i/Schularbeit_5/`
 | Schritt | Aufwand | Abhängigkeit | Status |
 |---------|---------|--------------|--------|
 | Plan speichern | klein | — | ✅ |
-| 1.1 Modellwahl strikt | klein | — | ⏳ |
-| 1.2 Token-Budget | mittel | — | ⏳ |
-| 1.3 Dynamisches max_tokens | klein | 1.2 | ⏳ |
-| 1.4 Neue Fehlerkategorien (Rust) | klein | — | ⏳ |
-| 0.1-0.2 Benchmark-Ordner + EH | klein | — | ⏳ |
-| 1.7 Model-Map prüfen | klein | — | ⏳ |
+| 1.1 Modellwahl strikt | klein | — | ✅ |
+| 1.2 Token-Budget | mittel | — | ✅ |
+| 1.3 Dynamisches max_tokens | klein | 1.2 | ✅ |
+| 1.4 Neue Fehlerkategorien (Rust) | klein | — | ✅ |
+| 0.1-0.2 Benchmark-Ordner + EH | klein | — | ✅ |
+| 1.7 Model-Map prüfen | klein | — | ✅ |
 | 2.1-2.3 Evaluation | groß | 1.1-1.6 | ⏳ |
 | 2.4 Neue Filter | mittel | 2.1-2.3 | ⏳ |
 | 3.1 Unsicherheits-Flag | mittel | 2.1-2.3 | ⏳ |
