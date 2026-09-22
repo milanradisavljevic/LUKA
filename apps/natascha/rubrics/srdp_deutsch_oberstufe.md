@@ -130,13 +130,13 @@ Empfehlung fuer die Unterrichtspraxis:
 - klare Struktur ohne Nebensaechliches
 - keine neue Argumentation oder Wertung
 
-### Offener Brief
+### Offener Brief (zusaetzliche Textsorte, nicht im BMB-Leitfaden)
 - klarer Adressatenbezug und situative Einbettung
 - argumentierende, appellative Ausrichtung
 - sachlich respektvoller Ton trotz Positionierung
 - konkrete Forderung oder Erwartung
 
-### Empfehlung / Rezension
+### Empfehlung / Rezension (zusaetzliche Textsorte, nicht im BMB-Leitfaden)
 - nachvollziehbare Bewertung mit Kriterien
 - informative Kurzbeschreibung des Gegenstands
 - adressatenbezogene Empfehlung

@@ -2394,7 +2394,7 @@ def _call_openai_compat(
     }
     req = urllib.request.Request(url, data=payload, headers=headers, method="POST")
     retry_status = {429, 503}
-    max_retries = 3
+    max_retries = 1  # Maximal 1x automatisch wiederholen (nach 2s), dann Fehler.
     for attempt in range(max_retries + 1):
         try:
             with urllib.request.urlopen(req, timeout=timeout) as resp:

@@ -117,6 +117,8 @@ export function useNatascha() {
   const analyzeBusy=useRef(false);
   const [activeJobId,setActiveJobId]=useState<number|null>(null);
   const [analyzeError, setAnalyzeError] = useState<string | null>(null);
+  const [progressStage, setProgressStage] = useState<string | null>(null);
+  const [progressMessage, setProgressMessage] = useState<string | null>(null);
 
   const analyze = useCallback(async (
     filePath: string,
@@ -134,6 +136,8 @@ export function useNatascha() {
       const {listen}=await import('@tauri-apps/api/event');
       unlisten=await listen<{job_id:number;stage:string;message:string}>('natascha://progress',event=>{
         if(event.payload.stage==='start' && event.payload.message==='Korrektur-Analyse gestartet')setActiveJobId(event.payload.job_id);
+        setProgressStage(event.payload.stage);
+        setProgressMessage(event.payload.message);
       });
       const settings = loadSettings();
       const result = await invoke<string>('natascha_analyze', {
@@ -166,6 +170,8 @@ export function useNatascha() {
       analyzeBusy.current=false;
       finishActivity();
       setAnalyzing(false);
+      setProgressStage(null);
+      setProgressMessage(null);
     }
   }, []);
 
@@ -486,6 +492,8 @@ export function useNatascha() {
     analyzeError,
     analyze,
     activeJobId,
+    progressStage,
+    progressMessage,
     personenVorschau,
     cancel,
     listKlassen,

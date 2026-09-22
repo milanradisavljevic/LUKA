@@ -1,7 +1,8 @@
 import { useLocalDraft, beginActivity } from '../lib/workSession';
 import { uniqueTextAnchor } from '../lib/textAnchors';
-import { correctionRuntime } from '../lib/runtimeModel';
-import { LLM_PROVIDERS } from '../lib/constants';
+import { correctionRuntime, MODEL_MAP } from '../lib/runtimeModel';
+import { LLM_PROVIDERS, PROVIDER_KEY_IDS } from '../lib/constants';
+import { SRDP_DEUTSCH_TEXTSORTEN } from '@lehrunterlagen/schema';
 import { useDialogFocus } from '../hooks/useDialogFocus';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { GraduationCap, Save, AlertTriangle, Loader2, Upload, FolderOpen, FileDown, ChevronRight, Eye, EyeOff, Files, XCircle, CheckCircle2, ShieldCheck, RefreshCw } from 'lucide-react';
@@ -114,7 +115,7 @@ interface KorrekturViewProps {
 }
 
 export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
-  const { analyze, activeJobId, cancel, analyzing, analyzeError, listKlassen, listAufgaben, getAbgaben, getAbgabeDetail, getKorrekturKontext, upsertLehrerFeedback, generateFeedbackDocx, retroImport, personenVorschau, listSchueler, listRubrics } = useNatascha();
+  const { analyze, activeJobId, cancel, analyzing, analyzeError, progressStage, progressMessage, listKlassen, listAufgaben, getAbgaben, getAbgabeDetail, getKorrekturKontext, upsertLehrerFeedback, generateFeedbackDocx, retroImport, personenVorschau, listSchueler, listRubrics } = useNatascha();
   const { list: listEinsaetze } = useEinsatz();
   const { klassen: klassenMeta, refresh: refreshKlassenMeta } = useKlassenMeta();
 
@@ -135,15 +136,19 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
   const [showPreview, setShowPreview] = useState(true);
 
   const [analyzeOpen, setAnalyzeOpen] = useState(false);
-  const [analyzeStep, setAnalyzeStep] = useState<1 | 2 | 3 | 4>(1);
+  const [analyzeStep, setAnalyzeStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [analyzeKlasse, setAnalyzeKlasse] = useLocalDraft('analyzeKlasse', '');
   const [analyzeAufgabe, setAnalyzeAufgabe] = useLocalDraft('analyzeAufgabe', '');
   const [analyzeAufgaben, setAnalyzeAufgaben] = useState<string[]>([]);
   const [analyzeFile, setAnalyzeFile] = useLocalDraft('analyzeFile', '');
   const [rubrikListe, setRubrikListe] = useState<RubrikListe>({ rubrics: [], defaultRubric: '' });
   const [selectedRubrik, setSelectedRubrik] = useLocalDraft('selectedRubrik', '');
-  // Ausgangstext (Angabe/Quelltext der Arbeit) — optional. Schließt den In-App-Closed-Loop:
-  // wird mitanalysiert und kann später die passgenaue Übung vorbefüllen.
+  // Textsorte: kuratierte Auswahl basierend auf Schulstufe
+  const [analyzeTextsorte, setAnalyzeTextsorte] = useLocalDraft('analyzeTextsorte', '');
+  // Anbieter/Modell pro Auftrag (Default: Settings)
+  const [analyzeProvider, setAnalyzeProvider] = useLocalDraft('analyzeProvider', '');
+  const [analyzeModel, setAnalyzeModel] = useLocalDraft('analyzeModel', '');
+  // Ausgangstext (Angabe/Quelltext der Arbeit) — optional.
   const [analyzeAusgangstext, setAnalyzeAusgangstext] = useLocalDraft('analyzeAusgangstext', '');
   const [analyzeAusgangstextDatei, setAnalyzeAusgangstextDatei] = useLocalDraft('analyzeAusgangstextDatei', '');
   const [selectedEinsatzId, setSelectedEinsatzId] = useLocalDraft('selectedEinsatzId', '');
@@ -175,6 +180,15 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
   const [settings,setSettings]=useState(loadSettings);
   useEffect(()=>subscribeSettings(setSettings),[]);
   const runtime=correctionRuntime(settings);
+  // Effektiver Runtime: Wizard-Overrides wenn gesetzt, sonst Settings
+  const effectiveRuntime = useMemo(() => {
+    const pKey = analyzeProvider || settings.defaultProvider;
+    const mLabel = analyzeModel || settings.defaultModel;
+    return {
+      provider: PROVIDER_KEY_IDS[pKey] ?? pKey,
+      model: MODEL_MAP[mLabel] ?? mLabel,
+    };
+  }, [analyzeProvider, analyzeModel, settings.defaultProvider, settings.defaultModel]);
   const [queueContext,setQueueContext]=useLocalDraft('correction-context','');
   const contextKey=JSON.stringify([analyzeKlasse,analyzeAufgabe,selectedRubrik,analyzeAusgangstext,analyzeAusgangstextDatei,selectedEinsatzId,runtime.provider,runtime.model,pseudoAktiv,assignments]);
   const [fileChecks,setFileChecks]=useState<Record<string,PersonenVorschau | null>>({});
@@ -585,7 +599,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     setAnalyzeSuccess(null);
     const einsatz = einsatzOptions.find((e) => e.id === selectedEinsatzId);
     let result;
-    try { result = await analyze(analyzeFile, analyzeKlasse, analyzeAufgabe, { runtime, fach: analyseKlasseMeta?.fach || undefined, schulstufe: analyseKlasseMeta?.schulstufe || undefined, ausgangstext: analyzeAusgangstextDatei ? undefined : (analyzeAusgangstext.trim() || undefined), ausgangstextDatei: analyzeAusgangstextDatei || undefined, rubric: selectedRubrik || rubrikListe.defaultRubric || undefined, pseudonymisierung: pseudoAktiv, schuelerId: assignments[analyzeFile] || (zuordnungId === '' ? undefined : zuordnungId), einsatzId: einsatz?.id, materialId: einsatz?.materialId ?? undefined });
+    try { result = await analyze(analyzeFile, analyzeKlasse, analyzeAufgabe, { runtime: effectiveRuntime, fach: analyseKlasseMeta?.fach || undefined, schulstufe: analyseKlasseMeta?.schulstufe || undefined, textsorte: analyzeTextsorte || undefined, ausgangstext: analyzeAusgangstextDatei ? undefined : (analyzeAusgangstext.trim() || undefined), ausgangstextDatei: analyzeAusgangstextDatei || undefined, rubric: selectedRubrik || rubrikListe.defaultRubric || undefined, pseudonymisierung: pseudoAktiv, schuelerId: assignments[analyzeFile] || (zuordnungId === '' ? undefined : zuordnungId), einsatzId: einsatz?.id, materialId: einsatz?.materialId ?? undefined });
     } catch(e) { setError(e instanceof Error ? e.message : String(e)); return; }
     const resultErrors = analyseHinweise(result);
     const duplicate = resultErrors.some((entry) => /duplikat|bereits analysiert/i.test(entry));
@@ -667,7 +681,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
       setBatchCurrent(i + 1);
       try {
         const einsatz = einsatzOptions.find((e) => e.id === selectedEinsatzId);
-        const result = await analyze(file, analyzeKlasse, analyzeAufgabe, { runtime, fach: analyseKlasseMeta?.fach || undefined, schulstufe: analyseKlasseMeta?.schulstufe || undefined, ausgangstext: analyzeAusgangstextDatei ? undefined : (analyzeAusgangstext.trim() || undefined), ausgangstextDatei: analyzeAusgangstextDatei || undefined, rubric: selectedRubrik || rubrikListe.defaultRubric || undefined, pseudonymisierung: pseudoAktiv, schuelerId: assignments[file] || undefined, einsatzId: einsatz?.id, materialId: einsatz?.materialId ?? undefined });
+        const result = await analyze(file, analyzeKlasse, analyzeAufgabe, { runtime: effectiveRuntime, fach: analyseKlasseMeta?.fach || undefined, schulstufe: analyseKlasseMeta?.schulstufe || undefined, textsorte: analyzeTextsorte || undefined, ausgangstext: analyzeAusgangstextDatei ? undefined : (analyzeAusgangstext.trim() || undefined), ausgangstextDatei: analyzeAusgangstextDatei || undefined, rubric: selectedRubrik || rubrikListe.defaultRubric || undefined, pseudonymisierung: pseudoAktiv, schuelerId: assignments[file] || undefined, einsatzId: einsatz?.id, materialId: einsatz?.materialId ?? undefined });
         if (result) {
           const note = result?.analysis?.notenempfehlung?.note;
           const resultErrors = analyseHinweise(result);
@@ -744,8 +758,40 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
         </section>
       )}
 
-      {(batchRunning || analyzing) && <p role="status">{batchRunning ? 'Stapel: Datei '+batchCurrent+' von '+batchFiles.length : 'KI-Vorschlag wird erstellt'} — du kannst innerhalb von LUKA weiterarbeiten.</p>}
-      <div style={{marginBottom:'1rem'}}><button className="btn-secondary" disabled={queueRunning} onClick={()=>{setBatchFiles([]);setBatchResults([]);setAnalyzeFile('');setAnalyzeAufgabe('');setSelectedRubrik('');setAnalyzeAusgangstext('');setAnalyzeAusgangstextDatei('');setSelectedEinsatzId('');setAssignments({});setAnalyzeOpen(true);}}>Neuer Korrekturauftrag</button></div>
+      {(batchRunning || analyzing) && (
+        <div role="status" style={{ marginBottom: '0.75rem' }}>
+          {batchRunning ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.8125rem' }}>Stapel: Datei {batchCurrent} von {batchFiles.length}</span>
+              <div style={{ flex: 1, height: 6, background: 'var(--color-border)', borderRadius: 3, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${batchFiles.length > 0 ? (batchCurrent / batchFiles.length) * 100 : 0}%`, background: 'var(--color-accent)', borderRadius: 3, transition: 'width 0.3s ease' }} />
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{ width: 16, height: 16, border: '2px solid var(--color-accent)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                <span style={{ fontSize: '0.8125rem' }}>{progressMessage || 'KI-Vorschlag wird erstellt'}</span>
+              </div>
+              <div style={{ display: 'flex', gap: '0.25rem', fontSize: '0.6875rem', color: 'var(--color-text-secondary)' }}>
+                {['input', 'rubric', 'llm', 'done'].map((phase, i) => {
+                  const phaseLabels: Record<string, string> = { input: 'Abgabe lesen', rubric: 'Grundlage laden', llm: 'KI analysiert', done: 'Ergebnis speichern' };
+                  const phases = ['input', 'rubric', 'llm', 'done'];
+                  const currentIdx = progressStage ? phases.indexOf(progressStage) : -1;
+                  const active = i <= currentIdx;
+                  return (
+                    <span key={phase} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', color: active ? 'var(--color-accent)' : undefined, fontWeight: active ? 600 : 400 }}>
+                      {active ? '\u2713' : '\u25CB'} {phaseLabels[phase]}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}> — du kannst innerhalb von LUKA weiterarbeiten.</span>
+        </div>
+      )}
+      <div style={{marginBottom:'1rem'}}><button className="btn-secondary" disabled={queueRunning} onClick={()=>{setBatchFiles([]);setBatchResults([]);setAnalyzeFile('');setAnalyzeKlasse('');setAnalyzeAufgabe('');setSelectedRubrik('');setAnalyzeTextsorte('');setAnalyzeProvider('');setAnalyzeModel('');setAnalyzeAusgangstext('');setAnalyzeAusgangstextDatei('');setSelectedEinsatzId('');setAssignments({});setPseudoAktiv(true);setError(null);setAnalyzeSuccess(null);setAnalyzeStep(1);setAnalyzeOpen(true);}}>Neuer Korrekturauftrag</button></div>
       {batchResults.length>0 && !analyzeOpen && <details className="queue-results"><summary>Letzter Auftrag: {batchResults.filter(r=>r.ok).length} abgeschlossen</summary>{batchResults.map(r=><p key={r.file}>{baseName(r.file)} — {r.msg}</p>)}<button className="btn-secondary" onClick={()=>setAnalyzeOpen(true)}>Auftrag öffnen / fehlende Dateien fortsetzen</button></details>}
       <div className="correction-workspace" style={{ display: 'grid', gridTemplateColumns: 'minmax(180px, 240px) minmax(0, 1fr)', gap: '1.25rem' }}>
           <div style={cardStyle}>
@@ -1090,11 +1136,11 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
 
             {/* Step indicator */}
             <div style={{ display: 'flex', gap: '0.25rem', marginBottom: '1rem', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
-              {[1,2,3,4].map(s => (
+              {[1,2,3,4,5].map(s => (
                 <span key={s} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
                   {s > 1 && <span style={{ margin: '0 0.125rem' }}>·</span>}
                   <span style={{ fontWeight: analyzeStep === s ? 700 : 400, color: analyzeStep === s ? 'var(--color-text)' : undefined }}>
-                    {s}. {s === 1 ? 'Auftrag' : s === 2 ? 'Abgaben' : s === 3 ? 'Prüfgrundlage' : 'Prüfen & Start'}
+                    {s}. {s === 1 ? 'Klasse & Aufgabe' : s === 2 ? 'Textsorte & Raster' : s === 3 ? 'Material' : s === 4 ? 'Abgaben' : 'Übersicht'}
                   </span>
                 </span>
               ))}
@@ -1103,7 +1149,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
             {error && <p role="alert" className="session-warning">{error}</p>}
             <fieldset disabled={queueRunning} style={{border:0,padding:0,margin:0,minWidth:0}}>
 
-            {/* ─── Schritt 1: Auftrag festlegen ─── */}
+            {/* ─── Schritt 1: Klasse & Aufgabe + Anbieter/Modell ─── */}
             {analyzeStep === 1 && (<>
               <div style={{ marginBottom: '0.75rem' }}>
                 <label>Unterrichtseinsatz <span style={{ color: 'var(--color-text-secondary)', fontWeight: 400 }}>(optional)</span></label>
@@ -1130,7 +1176,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
                   value={analyzeKlasse}
                   onChange={(e) => {
                     setAnalyzeKlasse(normalizeKlasse(e.target.value));
-                    setAnalyzeAufgabe('');setAssignments({});setSelectedRubrik('');setBatchResults([]);
+                    setAnalyzeAufgabe('');setAssignments({});setSelectedRubrik('');setAnalyzeTextsorte('');setBatchResults([]);
                   }}
                   style={{ width: '100%' }}
                 >
@@ -1157,6 +1203,98 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
                 </datalist>
               </div>
 
+              {/* KI-Anbieter & Modell */}
+              <div style={{ padding: '0.625rem 0.75rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', background: 'var(--color-bg-base)', marginBottom: '0.75rem' }}>
+                <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)', marginBottom: '0.375rem' }}>KI-Anbieter & Modell</div>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <select
+                    value={analyzeProvider || settings.defaultProvider}
+                    onChange={(e) => { setAnalyzeProvider(e.target.value); setAnalyzeModel(''); }}
+                    style={{ flex: 1 }}
+                  >
+                    {LLM_PROVIDERS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
+                  </select>
+                  <select
+                    value={analyzeModel || settings.defaultModel}
+                    onChange={(e) => setAnalyzeModel(e.target.value)}
+                    style={{ flex: 1 }}
+                  >
+                    {(LLM_PROVIDERS.find(p => p.id === (analyzeProvider || settings.defaultProvider))?.models ?? []).map((m) => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                </div>
+                <p style={{ margin: '0.25rem 0 0', fontSize: '0.6875rem', color: 'var(--color-text-secondary)' }}>
+                  Standard: {LLM_PROVIDERS.find(p => p.id === settings.defaultProvider)?.label} · {settings.defaultModel}
+                </p>
+              </div>
+            </>)}
+
+            {/* ─── Schritt 2: Textsorte & Bewertungsraster ─── */}
+            {analyzeStep === 2 && (<>
+              <div style={{ marginBottom: '0.75rem' }}>
+                <label>Textsorte</label>
+                <select
+                  value={analyzeTextsorte}
+                  onChange={(e) => {
+                    setAnalyzeTextsorte(e.target.value);
+                    // Auto-Vorschlag: Passendes Raster basierend auf Textsorte
+                    const matching = rubrikListe.rubrics.find(r =>
+                      r.textsorte?.toLowerCase().includes(e.target.value.toLowerCase())
+                    );
+                    if (matching) setSelectedRubrik(matching.filename);
+                  }}
+                  style={{ width: '100%' }}
+                >
+                  <option value="">Textsorte auswählen</option>
+                  {(analyseKlasseMeta?.schulstufe === 'oberstufe'
+                    ? [...SRDP_DEUTSCH_TEXTSORTEN]
+                    : ['Erzählung', 'Beschreibung', 'Bericht', 'Zusammenfassung', 'Kommentar', 'Leserbrief']
+                  ).map((ts) => <option key={ts} value={ts}>{ts}</option>)}
+                </select>
+                <p style={{ margin: '0.25rem 0 0', fontSize: '0.6875rem', color: 'var(--color-text-secondary)' }}>
+                  {analyseKlasseMeta?.schulstufe === 'oberstufe'
+                    ? 'Oberstufe: 7 offizielle SRDP-Textsorten + Empfehlung'
+                    : 'Unterstufe: altersgerechte Textsorten'}
+                </p>
+              </div>
+
+              <div style={{ marginBottom: '0.75rem' }}>
+                <label>Bewertungsraster</label>
+                <select
+                  value={selectedRubrik || rubrikListe.defaultRubric}
+                  onChange={(e) => setSelectedRubrik(e.target.value)}
+                  style={{ width: '100%' }}
+                >
+                  {rubrikListe.rubrics.length === 0 && <option value="">Keine Raster verfügbar</option>}
+                  {rubrikListe.rubrics.map((r) => (
+                    <option key={r.filename} value={r.filename}>
+                      {rubrikLabel(r)}{r.textsorte ? ` (${r.textsorte})` : ''}
+                    </option>
+                  ))}
+                </select>
+                {analyzeTextsorte && rubrikListe.rubrics.length > 0 && (
+                  <p style={{ margin: '0.25rem 0 0', fontSize: '0.6875rem', color: 'var(--color-text-secondary)' }}>
+                    {rubrikListe.rubrics.filter(r => r.textsorte?.toLowerCase().includes(analyzeTextsorte.toLowerCase())).length > 0
+                      ? `Raster filtert nach "${analyzeTextsorte}"`
+                      : `Kein Raster spezifisch für "${analyzeTextsorte}" — generisches Raster wird verwendet`}
+                  </p>
+                )}
+              </div>
+
+              {/* Vorschau: Was wird analysiert */}
+              <div style={{ padding: '0.625rem 0.75rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', background: 'var(--color-bg-base)' }}>
+                <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)', marginBottom: '0.25rem' }}>Analyse-Kontext</div>
+                <div style={{ fontSize: '0.8125rem' }}>
+                  <strong>{analyzeKlasse || '—'}</strong>{analyzeAufgabe && <> · {analyzeAufgabe}</>}
+                  {analyzeTextsorte && <> · <span style={{ color: 'var(--color-accent)' }}>{analyzeTextsorte}</span></>}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.25rem' }}>
+                  Raster: {rubrikLabel(rubrikListe.rubrics.find(r => r.filename === (selectedRubrik || rubrikListe.defaultRubric)) ?? { filename: selectedRubrik || rubrikListe.defaultRubric || '' })}
+                </div>
+              </div>
+            </>)}
+
+            {/* ─── Schritt 3: Ausgangsmaterial & Erwartungshorizont ─── */}
+            {analyzeStep === 3 && (<>
               <div style={{ marginBottom: '0.75rem' }}>
                 <label>Ausgangsmaterial <span style={{ color: 'var(--color-text-secondary)', fontWeight: 400 }}>(optional)</span></label>
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
@@ -1177,11 +1315,13 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
                     <button type="button" className="btn-ghost" onClick={() => setAnalyzeAusgangstextDatei('')} style={{ marginLeft: '0.5rem', fontSize: '0.72rem' }}>entfernen</button>
                   </p>
                 )}
+                <p style={{ margin: '0.25rem 0 0', fontSize: '0.6875rem', color: 'var(--color-text-secondary)' }}>
+                  Bei textgebundenen Aufgaben (Textanalyse, Textinterpretation) wird der Quelltext empfohlen.
+                </p>
               </div>
             </>)}
-
-            {/* ─── Schritt 2: Abgaben hinzufügen ─── */}
-            {analyzeStep === 2 && (<>
+            {/* ─── Schritt 4: Abgaben hinzufügen ─── */}
+            {analyzeStep === 4 && (<>
               <h4 style={{ fontSize: '0.875rem', margin: '0 0 0.5rem' }}>Dateien auswählen</h4>
               <button type="button" className="file-drop" onClick={pickFile} style={{width:'100%',padding:'1.25rem',border:'2px dashed var(--color-border)',background:dragActive?'var(--color-bg-selected)':'var(--color-bg-base)',borderRadius:'var(--radius)'}}>
                 <Upload size={20}/> Dateien hierher ziehen oder auswählen<br/><small>Eine oder mehrere Abgaben · DOCX, PDF, TXT, ODT, JPG, PNG</small>
@@ -1280,36 +1420,9 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
               </div>
             </>)}
 
-            {/* ─── Schritt 3: Prüfgrundlage bestätigen ─── */}
-            {analyzeStep === 3 && (<>
+            {/* ─── Schritt 5: Übersicht & Start ─── */}
+            {analyzeStep === 5 && (<>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {/* Raster-Card */}
-                <div style={{ padding: '0.625rem 0.75rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', background: 'var(--color-bg-base)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)' }}>Bewertungsraster</div>
-                    <div style={{ fontSize: '0.8125rem', fontWeight: 500 }}>
-                      {rubrikLabel(rubrikListe.rubrics.find(r => r.filename === (selectedRubrik || rubrikListe.defaultRubric)) ?? { filename: selectedRubrik || rubrikListe.defaultRubric || '' })}
-                    </div>
-                  </div>
-                  <button type="button" className="btn-ghost" onClick={() => setAnalyzeStep(1)} style={{ fontSize: '0.75rem' }}>Ändern</button>
-                </div>
-
-                {/* Ausgangsmaterial-Card */}
-                <div style={{ padding: '0.625rem 0.75rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', background: 'var(--color-bg-base)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)' }}>Ausgangsmaterial</div>
-                    <div style={{ fontSize: '0.8125rem', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {analyzeAusgangstextDatei
-                        ? baseName(analyzeAusgangstextDatei)
-                        : analyzeAusgangstext.trim()
-                          ? analyzeAusgangstext.trim().slice(0, 80) + (analyzeAusgangstext.trim().length > 80 ? ' …' : '')
-                          : <span style={{ color: 'var(--color-text-secondary)', fontWeight: 400 }}>Nicht gesetzt — bei textgebundenen Aufgaben empfohlen</span>
-                      }
-                    </div>
-                  </div>
-                  <button type="button" className="btn-ghost" onClick={() => setAnalyzeStep(1)} style={{ fontSize: '0.75rem', flexShrink: 0 }}>Ändern</button>
-                </div>
-
                 {/* Klasse + Aufgabe */}
                 <div style={{ padding: '0.625rem 0.75rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', background: 'var(--color-bg-base)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
@@ -1321,7 +1434,34 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
                   <button type="button" className="btn-ghost" onClick={() => setAnalyzeStep(1)} style={{ fontSize: '0.75rem' }}>Ändern</button>
                 </div>
 
-                {/* Abgaben-Zusammenfassung */}
+                {/* Textsorte + Raster */}
+                <div style={{ padding: '0.625rem 0.75rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', background: 'var(--color-bg-base)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)' }}>Textsorte & Raster</div>
+                    <div style={{ fontSize: '0.8125rem', fontWeight: 500 }}>
+                      {analyzeTextsorte || '—'} · {rubrikLabel(rubrikListe.rubrics.find(r => r.filename === (selectedRubrik || rubrikListe.defaultRubric)) ?? { filename: selectedRubrik || rubrikListe.defaultRubric || '' })}
+                    </div>
+                  </div>
+                  <button type="button" className="btn-ghost" onClick={() => setAnalyzeStep(2)} style={{ fontSize: '0.75rem' }}>Ändern</button>
+                </div>
+
+                {/* Ausgangsmaterial */}
+                <div style={{ padding: '0.625rem 0.75rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', background: 'var(--color-bg-base)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)' }}>Ausgangsmaterial</div>
+                    <div style={{ fontSize: '0.8125rem', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {analyzeAusgangstextDatei
+                        ? baseName(analyzeAusgangstextDatei)
+                        : analyzeAusgangstext.trim()
+                          ? analyzeAusgangstext.trim().slice(0, 80) + (analyzeAusgangstext.trim().length > 80 ? ' …' : '')
+                          : <span style={{ color: 'var(--color-text-secondary)', fontWeight: 400 }}>Nicht gesetzt</span>
+                      }
+                    </div>
+                  </div>
+                  <button type="button" className="btn-ghost" onClick={() => setAnalyzeStep(3)} style={{ fontSize: '0.75rem', flexShrink: 0 }}>Ändern</button>
+                </div>
+
+                {/* Abgaben */}
                 <div style={{ padding: '0.625rem 0.75rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', background: 'var(--color-bg-base)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)' }}>Abgaben</div>
@@ -1332,46 +1472,43 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
                       }
                     </div>
                   </div>
-                  <button type="button" className="btn-ghost" onClick={() => setAnalyzeStep(2)} style={{ fontSize: '0.75rem' }}>Ändern</button>
+                  <button type="button" className="btn-ghost" onClick={() => setAnalyzeStep(4)} style={{ fontSize: '0.75rem' }}>Ändern</button>
                 </div>
 
-                {/* Runtime */}
+                {/* Per-file review cards */}
+                {batchFiles.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {batchFiles.map(file => {
+                      const check = fileChecks[file];
+                      const hasIssue = !check || (check.visionModus && !check.visionFaehig);
+                      return (
+                        <div key={file} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.625rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', background: hasIssue ? 'var(--color-bg-error, #fef2f2)' : 'var(--color-bg-base)' }}>
+                          {hasIssue
+                            ? <AlertTriangle size={14} style={{ color: 'var(--color-error)', flexShrink: 0 }} />
+                            : <CheckCircle2 size={14} style={{ color: 'var(--color-success)', flexShrink: 0 }} />
+                          }
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ fontSize: '0.8125rem', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{baseName(file)}</div>
+                            <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)' }}>
+                              {!check ? 'Nicht geprüft'
+                                : check.visionModus && !check.visionFaehig ? 'KI-Anbieter unterstützt dieses Format nicht'
+                                : assignments[file] || zuordnungId ? `Zugeordnet: ${klasseSchueler.find(s => s.id === Number(assignments[file] || zuordnungId))?.vorname ?? '?'}`
+                                : 'Automatische Zuordnung (Namenserkennung)'
+                              }
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Runtime + Datenschutz */}
                 <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', padding: '0.5rem 0' }}>
-                  <strong>KI-Anbieter:</strong> {LLM_PROVIDERS.find(p=>p.id===settings.defaultProvider)?.label ?? runtime.provider} · {settings.defaultModel}
+                  <strong>KI-Anbieter:</strong> {LLM_PROVIDERS.find(p => p.id === (analyzeProvider || settings.defaultProvider))?.label ?? effectiveRuntime.provider} · {analyzeModel || settings.defaultModel}
                   {' · '}
                   <strong>Datenschutz:</strong> {pseudoAktiv ? 'Pseudonymisierung aktiv' : 'Namen werden übertragen'}
                 </div>
-              </div>
-            </>)}
-
-            {/* ─── Schritt 4: Prüfen & Starten ─── */}
-            {analyzeStep === 4 && (<>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
-                {batchFiles.map(file => {
-                  const check = fileChecks[file];
-                  const hasIssue = !check || (check.visionModus && !check.visionFaehig);
-                  return (
-                    <div key={file} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.625rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', background: hasIssue ? 'var(--color-bg-error, #fef2f2)' : 'var(--color-bg-base)' }}>
-                      {hasIssue
-                        ? <AlertTriangle size={14} style={{ color: 'var(--color-error)', flexShrink: 0 }} />
-                        : <CheckCircle2 size={14} style={{ color: 'var(--color-success)', flexShrink: 0 }} />
-                      }
-                      <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ fontSize: '0.8125rem', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{baseName(file)}</div>
-                        <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)' }}>
-                          {!check ? 'Nicht geprüft'
-                            : check.visionModus && !check.visionFaehig ? 'KI-Anbieter unterstützt dieses Format nicht'
-                            : assignments[file] || zuordnungId ? `Zugeordnet: ${klasseSchueler.find(s => s.id === Number(assignments[file] || zuordnungId))?.vorname ?? '?'}`
-                            : 'Automatische Zuordnung (Namenserkennung)'
-                          }
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-                {batchFiles.length === 0 && (
-                  <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>Keine Dateien ausgewählt. Bitte zurück zu Schritt 2.</p>
-                )}
               </div>
             </>)}
 
@@ -1383,7 +1520,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
             <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'space-between', marginTop: '1rem' }}>
               <div>
                 {analyzeStep > 1 && !queueRunning && (
-                  <button className="btn-secondary" onClick={() => setAnalyzeStep((s) => (s - 1) as 1 | 2 | 3 | 4)}>
+                  <button className="btn-secondary" onClick={() => setAnalyzeStep((s) => (s - 1) as 1 | 2 | 3 | 4 | 5)}>
                     Zurück
                   </button>
                 )}
@@ -1396,13 +1533,13 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
                 ) : (
                   <>
                     <button className="btn-secondary" onClick={() => setAnalyzeOpen(false)}>Entwurf schließen</button>
-                    {analyzeStep < 4 ? (
+                    {analyzeStep < 5 ? (
                       <button
                         className="btn-primary"
-                        onClick={() => setAnalyzeStep((s) => (s + 1) as 1 | 2 | 3 | 4)}
+                        onClick={() => setAnalyzeStep((s) => (s + 1) as 1 | 2 | 3 | 4 | 5)}
                         disabled={
                           (analyzeStep === 1 && (!analyzeKlasse || !analyzeAufgabe)) ||
-                          (analyzeStep === 2 && batchFiles.length === 0)
+                          (analyzeStep === 4 && batchFiles.length === 0)
                         }
                       >
                         Weiter

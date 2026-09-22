@@ -11,7 +11,7 @@ use std::collections::BTreeMap;
 use std::process::{Command as StdCommand, Stdio};
 use std::sync::Mutex;
 use tauri::{AppHandle, Emitter};
-use tokio::io::AsyncWriteExt;
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
 use tokio::time::{timeout, Duration};
 
@@ -338,6 +338,7 @@ fn build_cli_command(dir: &str, python: &str) -> Result<Command, String> {
     if let Some(sidecar) = bundled_cli() {
         let mut cmd = background_command(sidecar);
         inject_provider_keys(&mut cmd);
+        cmd.env("PYTHONIOENCODING", "utf-8");
         cmd.arg("--db-path").arg(db_path.as_os_str());
         if let Some(parent) = std::env::current_exe()
             .ok()
@@ -351,6 +352,7 @@ fn build_cli_command(dir: &str, python: &str) -> Result<Command, String> {
     let py = resolve_python(python);
     let mut cmd = background_command(&py);
     inject_provider_keys(&mut cmd);
+    cmd.env("PYTHONIOENCODING", "utf-8");
     cmd.arg(natascha_dir.join("natascha_cli.py"))
         .arg("--db-path")
         .arg(db_path.as_os_str())
@@ -398,8 +400,30 @@ async fn natascha_status(dir: &str, python: &str) -> NataschaStatus {
     status_from_probe("python", probe_command(cmd).await)
 }
 
-/// Helper: Führt die CLI aus, gibt stdout (JSON) zurück. Bei Fehler eine
-/// kategorisierte, lesbare Meldung statt rohem stderr/Traceback.
+/// Parst eine JSON-Zeile von stderr und sendet ein Progress-Event an das Frontend.
+/// Python schreibt `{"stage": "...", "message": "..."}` pro Fortschritts-Phase.
+fn emit_stderr_progress(line: &str, app: Option<&AppHandle>, job_id: u64) {
+    if let Ok(val) = serde_json::from_str::<serde_json::Value>(line) {
+        let raw_stage = val.get("stage").and_then(|s| s.as_str()).unwrap_or("");
+        let msg = val.get("message").and_then(|m| m.as_str()).unwrap_or("");
+        // stage muss &'static str sein — auf bekannte Werte mappen.
+        let stage: &'static str = match raw_stage {
+            "start" => "start",
+            "input" => "input",
+            "rubric" => "rubric",
+            "llm" => "llm",
+            "done" => "done",
+            "error" => "error",
+            "timeout" => "timeout",
+            "cancelled" => "cancelled",
+            _ => return,
+        };
+        emit_progress(app, Some(job_id), stage, msg.to_string());
+    }
+}
+
+/// Fuehrt die CLI aus, gibt stdout (JSON) zurueck. Liest stderr zeilenweise,
+/// um Python-Fortschritts-Events weiterzuleiten (statt nur am Ende).
 async fn run_cli_and_capture(
     mut cmd: Command,
     app: Option<&AppHandle>,
@@ -409,7 +433,7 @@ async fn run_cli_and_capture(
     cmd.stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .kill_on_drop(true);
-    let child = cmd.spawn().map_err(|e| {
+    let mut child = cmd.spawn().map_err(|e| {
         format!(
             "Python konnte nicht gestartet werden: {e}. Ist Python installiert? \
              Ggf. den Python-Befehl in den Einstellungen setzen."
@@ -423,9 +447,36 @@ async fn run_cli_and_capture(
     }
     let _registration = ProcessRegistration(job_id);
     emit_progress(app, Some(job_id), "start", format!("{label} gestartet"));
-    let output = match timeout(
+
+    // stderr zeilenweise lesen — Python schreibt JSON-Fortschritts-Events.
+    let stderr = child.stderr.take().expect("stderr muss piped sein");
+    let app_clone = app.cloned();
+    let stderr_task = tokio::spawn(async move {
+        let mut reader = BufReader::new(stderr).lines();
+        while let Ok(Some(line)) = reader.next_line().await {
+            emit_stderr_progress(&line, app_clone.as_ref(), job_id);
+        }
+    });
+
+    // stdout komplett lesen (JSON-Ergebnis).
+    let stdout = child.stdout.take().expect("stdout muss piped sein");
+    let stdout_result = {
+        let mut reader = BufReader::new(stdout);
+        let mut buf = String::new();
+        loop {
+            match reader.read_line(&mut buf).await {
+                Ok(0) => break,
+                Ok(_) => {},
+                Err(e) => return Err(format!("CLI-Aufruf fehlgeschlagen: {e}")),
+            }
+        }
+        buf
+    };
+
+    // Auf Prozess-Ende warten (mit Timeout).
+    let status = match timeout(
         Duration::from_secs(NATASCHA_CLI_TIMEOUT_SECS),
-        child.wait_with_output(),
+        child.wait(),
     )
     .await
     {
@@ -438,26 +489,29 @@ async fn run_cli_and_capture(
                 format!("{label} nach Timeout abgebrochen"),
             );
             let _ = terminate_process(job_id);
+            stderr_task.abort();
             return Err(format!(
                 "{label} hat laenger als {} Minuten gedauert und wurde abgebrochen.",
                 NATASCHA_CLI_TIMEOUT_SECS / 60
             ));
         }
     };
+
+    let _ = stderr_task.await;
     ACTIVE_PROCESSES.lock().map_err(|_| "Prozessstatus nicht verfügbar")?.remove(&job_id);
-    if !output.status.success() {
+
+    if !status.success() {
         emit_progress(
             app,
             Some(job_id),
             "error",
             format!("{label} fehlgeschlagen"),
         );
-        return Err(categorize_cli_error(&String::from_utf8_lossy(
-            &output.stderr,
-        )));
+        // stderr wurde bereits gelesen; falls noch Reste da sind, erfassen.
+        return Err(categorize_cli_error(&stdout_result));
     }
     emit_progress(app, Some(job_id), "done", format!("{label} abgeschlossen"));
-    Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+    Ok(stdout_result.trim().to_string())
 }
 
 fn terminate_process(job_id: u64) -> Result<(), String> {
@@ -525,7 +579,7 @@ pub fn natascha_cancel(app: AppHandle, job_id: Option<u64>) -> Result<(), String
     Ok(())
 }
 
-/// Übersetzt typische CLI/LLM-Fehler in verständliche Meldungen (statt Traceback).
+/// Uebersetzt typische CLI/LLM-Fehler in verstaendliche Meldungen (statt Traceback).
 fn categorize_cli_error(stderr: &str) -> String {
     let s = stderr.to_lowercase();
     let hint = if s.contains("api")
@@ -534,7 +588,7 @@ fn categorize_cli_error(stderr: &str) -> String {
             || s.contains("authentication")
             || s.contains("unauthorized"))
     {
-        "API-Key fehlt oder ist ungültig — bitte in den Einstellungen hinterlegen."
+        "API-Key fehlt oder ist ungueltig — bitte in den Einstellungen hinterlegen."
     } else if s.contains("datei nicht gefunden") || s.contains("no such file") {
         "Datei nicht gefunden."
     } else if s.contains("timeout")
@@ -543,11 +597,17 @@ fn categorize_cli_error(stderr: &str) -> String {
         || s.contains("getaddrinfo")
         || s.contains("temporary failure in name resolution")
     {
-        "Netzwerkfehler — keine Verbindung zum LLM-Anbieter. Internet/Proxy prüfen."
+        "Netzwerkfehler — keine Verbindung zum LLM-Anbieter. Internet/Proxy pruefen."
     } else if s.contains("rate limit") || s.contains("429") {
-        "Anbieter-Ratenlimit erreicht — bitte später erneut versuchen."
+        "Anbieter-Ratenlimit erreicht — bitte 1-2 Minuten warten und erneut versuchen."
     } else if s.contains("modulenotfounderror") || s.contains("no module named") {
-        "Python-Abhängigkeit fehlt — bitte requirements installieren (apps/natascha)."
+        "Python-Abhaengigkeit fehlt — bitte requirements installieren (apps/natascha)."
+    } else if s.contains("json") && (s.contains("decode") || s.contains("parse") || s.contains("valid")) {
+        "Ungueltiges KI-Ergebnis — die Antwort konnte nicht ausgewertet werden. Erneut versuchen."
+    } else if s.contains("unsupported") || s.contains("not supported") || s.contains("format") {
+        "Dateiformat nicht unterstuetzt — bitte DOCX, TXT oder Bild verwenden."
+    } else if s.contains("leere antwort") || s.contains("empty response") {
+        "KI-Antwort war leer — bitte erneut versuchen."
     } else {
         ""
     };

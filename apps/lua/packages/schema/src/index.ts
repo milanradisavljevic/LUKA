@@ -78,8 +78,9 @@ export function fachLabel(fach: Fach): string {
 }
 
 /**
- * Kuratierte Textsorten-Auswahl für den Deutsch-SRDP-Übungsspike.
- * Das ist bewusst eine einzelne Aufgabe, kein amtliches Prüfungspaket.
+ * Kuratierte Textsorten-Auswahl fuer die Deutsch-SRDP-Korrektur (Oberstufe).
+ * Die ersten 7 sind die offiziellen BMB-Leitfaden-Textsorten.
+ * "Empfehlung" ist eine zusaetzliche, nicht offizielle SRDP-Textsorte.
  */
 export const SRDP_DEUTSCH_TEXTSORTEN = [
   'Erörterung',
@@ -88,8 +89,8 @@ export const SRDP_DEUTSCH_TEXTSORTEN = [
   'Textanalyse',
   'Textinterpretation',
   'Zusammenfassung',
-  'Empfehlung',
   'Meinungsrede',
+  'Empfehlung', // zusaetzlich, nicht im BMB-Leitfaden
 ] as const;
 
 /** Wortumfang der kuratierten Einzelaufgabe im Deutsch-SRDP-Übungsspike. */

@@ -28,6 +28,14 @@ import sys
 import time
 from pathlib import Path
 
+# UTF-8 erzwingen, damit Umlaute und Sonderzeichen auf Windows (cp1252) nicht
+# zu UnicodeEncodeError oder Ersatzzeichen fuehren. Muss VOR jeglicher
+# stdout/stderr-Ausgabe erfolgen.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8")
+
 PROJECT_ROOT = Path(__file__).resolve().parent
 
 # Von --db-path gesetzt (gemeinsame DB mit LUA). Überschreibt den Config-Pfad,
