@@ -5,11 +5,15 @@ Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 (auch andere Coding-Agents) — siehe `AGENTS.md`.
 
-## Unveröffentlicht
-
-## Version 1.5.0 — 2026-09-21
+## Version 1.5.0 — 2026-09-22
 
 ### Das ist neu
+
+**Fehler direkt melden**
+- Fehlermeldungen lassen sich direkt aus LUKA versenden. Eine eigene Mail- oder
+  SMTP-Einrichtung ist dafür nicht mehr nötig.
+- Das Formular erinnert daran, keine Schüler- oder Zugangsdaten zu senden;
+  Systeminfos bleiben sichtbar und können abgewählt werden.
 
 **Kompakteres Layout**
 - Neue 3-Spalten-Ansicht: Seitenleiste, Bearbeitungsbereich und Eigenschaftenpanel passen sich flexibel an die Fenstergröße an.
@@ -32,6 +36,8 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 **Neue Unterlage startet komplett frisch**
 - Der „Neue Unterlage"-Button setzt alle Felder zurück — kein Überbleibsel der vorherigen Aufgabe mehr.
 - „Weiterarbeiten" und „Aus Vorlage starten" funktionieren wie gewohnt.
+
+## Unveröffentlicht
 
 ## Version 1.4.2 — 2026-09-19
 

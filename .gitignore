@@ -61,6 +61,8 @@ docs/Textdokument (neu).txt
 /*.png
 /transformiere_jsons.py
 ChatGPT Image*.png
+/*this-session-is-being-continued-from-a-previous-c.txt
+infrastructure/feedback-worker/.wrangler/
 
 # Lokale PyInstaller-Zwischenergebnisse
 apps/natascha/build/

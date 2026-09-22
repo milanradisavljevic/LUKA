@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { Check, Database, Download, RefreshCw, Terminal, Loader2, Mail, Send } from 'lucide-react';
+import { Check, Database, Download, RefreshCw, Terminal, Loader2 } from 'lucide-react';
 import type { AppSettings, LlmProvider } from '../lib/types';
 import { BLOCK_TYPE_DEFS, LLM_PROVIDERS } from '../lib/constants';
 import { FEATURES } from '../lib/features';
@@ -10,102 +10,6 @@ import { REGION_AT, REGION_DE, SCHULFORMEN_AT, SCHULFORMEN_DE } from '../lib/pro
 import { FACH_META, schulstufeLabel, schulstufenFuerLand } from '@lehrunterlagen/schema';
 import { SettingsPanel } from '../components/SettingsPanel';
 import { ViewShell } from './_ViewShell';
-
-function SmtpSection() {
-  const [config, setConfig] = useState({ host: 'smtp.gmail.com', port: 587, username: '', password: '' });
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [testing, setTesting] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    if (!(window as any).__TAURI_INTERNALS__) { setLoading(false); return; }
-    import('@tauri-apps/api/core').then(m => m.invoke<{ host: string; port: number; username: string; password: string }>('load_smtp_config'))
-      .then(c => { if (active && c) setConfig(c); })
-      .catch(() => {})
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
-  }, []);
-
-  const handleSave = async () => {
-    setSaving(true); setMessage(null); setError(null);
-    try {
-      const { invoke } = await import('@tauri-apps/api/core');
-      await invoke('save_smtp_config', { config: config });
-      setMessage('Gespeichert.');
-    } catch (e) {
-      setError(typeof e === 'string' ? e : e instanceof Error ? e.message : 'Fehler');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleTest = async () => {
-    setTesting(true); setMessage(null); setError(null);
-    try {
-      const { invoke } = await import('@tauri-apps/api/core');
-      const result = await invoke<string>('test_smtp_connection', { config });
-      setMessage(result);
-    } catch (e) {
-      setError(typeof e === 'string' ? e : e instanceof Error ? e.message : 'Fehler');
-    } finally {
-      setTesting(false);
-    }
-  };
-
-  const sectionStyle = { padding: '1.25rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', background: 'var(--color-bg-surface)' } as const;
-  const inputStyle = { width: '100%', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', padding: '0.5rem', fontSize: '0.8125rem' } as const;
-
-  return (
-    <section style={sectionStyle}>
-      <h3 style={{ fontSize: '0.9375rem', margin: '0 0 0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <Mail size={16} /> SMTP / Fehlermeldungen
-      </h3>
-      <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', margin: '0 0 1rem' }}>
-        Konfiguration fuer den Versand von Fehlermeldungen per E-Mail. Bei Gmail: Ein App-Passwort ist noetig (Google Account &gt; Sicherheit &gt; 2-Faktor-Authentifizierung &gt; App-Passwort).
-      </p>
-
-      {loading ? (
-        <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}><Loader2 size={14} className="spin" /> Lade Konfiguration…</p>
-      ) : (
-        <div style={{ display: 'grid', gap: '0.75rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 100px', gap: '0.5rem' }}>
-            <label style={{ fontSize: '0.8125rem' }}>
-              <span style={{ color: 'var(--color-text-secondary)', display: 'block', marginBottom: '0.25rem' }}>SMTP-Server</span>
-              <input value={config.host} onChange={e => setConfig({ ...config, host: e.target.value })} style={inputStyle} />
-            </label>
-            <label style={{ fontSize: '0.8125rem' }}>
-              <span style={{ color: 'var(--color-text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Port</span>
-              <input type="number" value={config.port} onChange={e => setConfig({ ...config, port: parseInt(e.target.value) || 465 })} style={inputStyle} />
-            </label>
-          </div>
-          <label style={{ fontSize: '0.8125rem' }}>
-            <span style={{ color: 'var(--color-text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Benutzername (E-Mail)</span>
-            <input value={config.username} onChange={e => setConfig({ ...config, username: e.target.value })} style={inputStyle} placeholder="name@proton.me" />
-          </label>
-          <label style={{ fontSize: '0.8125rem' }}>
-            <span style={{ color: 'var(--color-text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Passwort</span>
-            <input type="password" value={config.password} onChange={e => setConfig({ ...config, password: e.target.value })} style={inputStyle} />
-          </label>
-
-          {message && <p style={{ fontSize: '0.8125rem', color: 'var(--color-success, #16a34a)', margin: 0 }}>{message}</p>}
-          {error && <p role="alert" style={{ fontSize: '0.8125rem', color: 'var(--color-error, #dc2626)', margin: 0 }}>{error}</p>}
-
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button className="btn-primary" onClick={handleSave} disabled={saving} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
-              {saving ? <Loader2 size={14} className="spin" /> : <Check size={14} />} Speichern
-            </button>
-            <button className="btn-secondary" onClick={handleTest} disabled={testing || !config.username || !config.password} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
-              {testing ? <Loader2 size={14} className="spin" /> : <Send size={14} />} Test-E-Mail senden
-            </button>
-          </div>
-        </div>
-      )}
-    </section>
-  );
-}
 
 function InstallationStatus() {
  const [info,setInfo]=useState<{version:string;executable:string;temporary:boolean}|null>(null);
@@ -790,9 +694,6 @@ export function SettingsView() {
       }}>
         <SettingsPanel />
       </section>
-
-      {/* Abschnitt 6: SMTP / Fehlermeldungen */}
-      <SmtpSection />
 
       {/* Bestätigungsdialog für DB-Restore */}
       {restoreConfirm && (

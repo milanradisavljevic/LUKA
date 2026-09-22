@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { X, Loader2, Send, CheckCircle, AlertCircle } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { useDialogFocus } from '../hooks/useDialogFocus';
@@ -6,13 +6,6 @@ import { useDialogFocus } from '../hooks/useDialogFocus';
 interface Props {
   open: boolean;
   onClose: () => void;
-}
-
-interface SmtpConfig {
-  host: string;
-  port: number;
-  username: string;
-  password: string;
 }
 
 type Status = 'idle' | 'sending' | 'success' | 'error';
@@ -23,22 +16,14 @@ export function BugReportModal({ open, onClose }: Props) {
   const [contactEmail, setContactEmail] = useState('');
   const [status, setStatus] = useState<Status>('idle');
   const [errorMsg, setErrorMsg] = useState('');
-  const [smtpConfig, setSmtpConfig] = useState<SmtpConfig | null>(null);
   const dialogRef = useDialogFocus(open, () => { if (status !== 'sending') onClose(); });
-
-  useEffect(() => {
-    if (!open) return;
-    if (!(window as any).__TAURI_INTERNALS__) return;
-    invoke<SmtpConfig>('load_smtp_config').then(setSmtpConfig).catch(() => {});
-  }, [open]);
 
   if (!open) return null;
 
-  const smtpReady = smtpConfig && smtpConfig.username && smtpConfig.password;
-  const canSend = description.trim().length >= 10 && status !== 'sending' && !!smtpReady;
+  const canSend = description.trim().length >= 10 && status !== 'sending';
 
   const handleSend = async () => {
-    if (!canSend || !smtpConfig) return;
+    if (!canSend) return;
     setStatus('sending');
     setErrorMsg('');
     try {
@@ -47,10 +32,6 @@ export function BugReportModal({ open, onClose }: Props) {
           description: description.trim(),
           includeSystemInfo,
           contactEmail: contactEmail.trim() || null,
-          smtpHost: smtpConfig.host,
-          smtpPort: smtpConfig.port,
-          smtpUsername: smtpConfig.username,
-          smtpPassword: smtpConfig.password,
         },
       });
       setStatus('success');
@@ -128,7 +109,8 @@ export function BugReportModal({ open, onClose }: Props) {
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Beschreibe den Fehler so genau wie moeglich..."
+                placeholder={'Was ist passiert? Was hättest du erwartet? Wie lässt es sich nachstellen?'}
+                maxLength={4000}
                 rows={5}
                 style={{
                   width: '100%', resize: 'vertical',
@@ -151,6 +133,10 @@ export function BugReportModal({ open, onClose }: Props) {
               </span>
             </label>
 
+            <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', margin: '-0.25rem 0 0.75rem' }}>
+              Bitte keine Schülerdaten, Zugangsdaten oder anderen vertraulichen Inhalte eingeben. Dein Bericht wird zur Bearbeitung an LUKA weitergeleitet.
+            </p>
+
             <label style={{ display: 'block', marginBottom: '1rem' }}>
               <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', display: 'block', marginBottom: '0.25rem' }}>
                 E-Mail fuer Rueckfragen (optional)
@@ -168,12 +154,6 @@ export function BugReportModal({ open, onClose }: Props) {
                 }}
               />
             </label>
-
-            {!smtpReady && (
-              <div role="alert" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', padding: '0.5rem', borderRadius: 'var(--radius)', background: 'var(--color-error-bg, #fef2f2)', color: 'var(--color-error, #dc2626)', fontSize: '0.8125rem' }}>
-                <AlertCircle size={14} /> SMTP nicht konfiguriert. Bitte zuerst in den Einstellungen unter "SMTP / Fehlermeldungen" einrichten.
-              </div>
-            )}
 
             {status === 'error' && (
               <div role="alert" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', padding: '0.5rem', borderRadius: 'var(--radius)', background: 'var(--color-error-bg, #fef2f2)', color: 'var(--color-error, #dc2626)', fontSize: '0.8125rem' }}>

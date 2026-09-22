@@ -14,6 +14,10 @@ on:
 jobs:
   release:
     name: ${{ matrix.name }} bauen & veröffentlichen
+    env:
+      # Öffentliche Worker-Adresse; keine Zugangsdaten. Rust liest sie beim
+      # Build ein, damit der Bug-Report im Installer sofort funktioniert.
+      LUKA_BUG_REPORT_ENDPOINT: https://luka-feedback.milanradisavljevic7.workers.dev/v1/reports
     strategy:
       fail-fast: false
       max-parallel: 1

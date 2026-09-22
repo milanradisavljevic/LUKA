@@ -28,8 +28,17 @@ OpenAI, Mistral, DeepSeek). Alles andere bleibt lokal auf deinem Rechner.
   die API des gewählten Anbieters. Ohne diese Übertragung ist keine KI-Korrektur möglich.
 - Für **Schüler-Profile** werden Längsschnitt-Daten datenminimiert aufbereitet, bevor
   sie an die KI gehen (keine vollständigen Rohtexte mehr als nötig).
-- Es findet **keine** sonstige Cloud-Synchronisierung statt; LUKA sendet nichts an
-  eigene Server (es gibt keine).
+- Beim freiwilligen **Fehler melden**-Formular sendet LUKA nur die eingegebene
+  Beschreibung, die freiwillige Kontakt-E-Mail und – wenn angehakt –
+  App-Version, Betriebssystem und Architektur an einen kleinen LUKA-Endpoint
+  bei Cloudflare. Dieser leitet den Bericht über Resend an
+  `milanradisavljevic7@gmail.com` weiter. Keine Datenbank, Abgaben, Dokumente,
+  API-Schlüssel oder Anhänge werden automatisch mitgesendet.
+- Für Fehlerberichte sind Cloudflare (Annahme und kurzfristige Begrenzung) und
+  Resend (E-Mail-Zustellung) technische Auftragsverarbeiter. Bitte in das freie
+  Textfeld keine Schülerdaten, Zugangsdaten oder andere vertrauliche Inhalte
+  schreiben.
+- Es findet **keine** sonstige Cloud-Synchronisierung statt.
 
 ## Empfehlungen für den Schuleinsatz
 

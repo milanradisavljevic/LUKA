@@ -1,198 +1,198 @@
-use std::fmt;
+use std::time::Duration;
 
-use lettre::message::{header::ContentType, Mailbox, Message};
-use lettre::transport::smtp::authentication::Credentials;
-use lettre::{AsyncSmtpTransport, AsyncTransport, Tokio1Executor};
+use reqwest::{Client, StatusCode, Url};
 use serde::{Deserialize, Serialize};
 
-use crate::keystore;
-
-const SMTP_CONFIG_SERVICE: &str = "lehr-suite-smtp";
-const DEFAULT_SMTP_HOST: &str = "smtp.gmail.com";
-const DEFAULT_SMTP_PORT: u16 = 587;
-const BUG_REPORT_TO: &str = "milan.radisavljevic@proton.me";
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SmtpConfig {
-    pub host: String,
-    pub port: u16,
-    pub username: String,
-    #[serde(skip_serializing)]
-    pub password: String,
-}
-
-impl Default for SmtpConfig {
-    fn default() -> Self {
-        Self {
-            host: DEFAULT_SMTP_HOST.to_string(),
-            port: DEFAULT_SMTP_PORT,
-            username: String::new(),
-            password: String::new(),
-        }
-    }
-}
-
-impl fmt::Display for SmtpConfig {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}:{}", self.host, self.port)
-    }
-}
-
-fn config_json_key() -> String {
-    format!("{SMTP_CONFIG_SERVICE}-config")
-}
-
-fn password_key() -> String {
-    format!("{SMTP_CONFIG_SERVICE}-password")
-}
-
-#[tauri::command]
-pub async fn load_smtp_config() -> Result<SmtpConfig, String> {
-    let config_json = keystore::load_key(&config_json_key()).unwrap_or_default();
-    let mut config: SmtpConfig = if config_json.is_empty() {
-        SmtpConfig::default()
-    } else {
-        serde_json::from_str(&config_json).unwrap_or_default()
-    };
-    config.password = keystore::load_key(&password_key()).unwrap_or_default();
-    Ok(config)
-}
-
-#[tauri::command]
-pub async fn save_smtp_config(config: SmtpConfig) -> Result<(), String> {
-    let mut config = config;
-    let password = config.password.clone();
-    config.password = String::new();
-    let json = serde_json::to_string(&config).map_err(|e| e.to_string())?;
-    keystore::save_key(&config_json_key(), &json)?;
-    keystore::save_key(&password_key(), &password)?;
-    Ok(())
-}
-
-#[tauri::command]
-pub async fn test_smtp_connection(config: SmtpConfig) -> Result<String, String> {
-    if config.username.is_empty() || config.password.is_empty() {
-        return Err("Benutzername und Passwort muessen angegeben werden.".into());
-    }
-
-    let creds = Credentials::new(config.username.clone(), config.password.clone());
-
-    let transport = AsyncSmtpTransport::<Tokio1Executor>::starttls_relay(&config.host)
-        .map_err(|e| format!("SMTP-Relay-Fehler: {e}"))?
-        .port(config.port)
-        .credentials(creds)
-        .build();
-
-    let test_msg = Message::builder()
-        .from(Mailbox::new(None, "test@lehr-suite.local".parse().unwrap()))
-        .to(Mailbox::new(None, "test@lehr-suite.local".parse().unwrap()))
-        .subject("LUKA SMTP-Test")
-        .header(ContentType::TEXT_PLAIN)
-        .body(String::from("Test"))
-        .map_err(|e| format!("Nachrichtenbau-Fehler: {e}"))?;
-
-    transport
-        .send(test_msg)
-        .await
-        .map_err(|e| format!("SMTP-Verbindung fehlgeschlagen: {e}"))?;
-
-    Ok("Verbindung erfolgreich hergestellt.".into())
-}
+// This is a public endpoint, not a credential. It is supplied at build time
+// after the Cloudflare Worker has been deployed. Never add a mail password or
+// an API key to this application.
+const BUG_REPORT_ENDPOINT: Option<&str> = option_env!("LUKA_BUG_REPORT_ENDPOINT");
+const DESCRIPTION_MIN_CHARS: usize = 10;
+const DESCRIPTION_MAX_CHARS: usize = 4_000;
 
 #[derive(Debug, Deserialize)]
 pub struct BugReportPayload {
     pub description: String,
     #[serde(rename = "includeSystemInfo")]
     pub include_system_info: bool,
+    #[serde(rename = "contactEmail")]
     pub contact_email: Option<String>,
-    #[serde(rename = "smtpHost")]
-    pub smtp_host: String,
-    #[serde(rename = "smtpPort")]
-    pub smtp_port: u16,
-    #[serde(rename = "smtpUsername")]
-    pub smtp_username: String,
-    #[serde(rename = "smtpPassword")]
-    pub smtp_password: String,
+}
+
+#[derive(Debug, Serialize, PartialEq)]
+struct BugReportRequest {
+    description: String,
+    #[serde(rename = "contactEmail", skip_serializing_if = "Option::is_none")]
+    contact_email: Option<String>,
+    #[serde(rename = "systemInfo", skip_serializing_if = "Option::is_none")]
+    system_info: Option<SystemInfo>,
+}
+
+#[derive(Debug, Serialize, PartialEq)]
+struct SystemInfo {
+    #[serde(rename = "appVersion")]
+    app_version: String,
+    os: String,
+    arch: String,
 }
 
 #[tauri::command]
 pub async fn submit_bug_report(payload: BugReportPayload) -> Result<String, String> {
-    if payload.smtp_username.is_empty() || payload.smtp_password.is_empty() {
-        return Err(
-            "SMTP nicht konfiguriert. Bitte zuerst in den Einstellungen unter \
-             'SMTP / Fehlermeldungen' einrichten."
-                .into(),
-        );
+    let request = build_request(payload)?;
+    let endpoint = configured_endpoint()?;
+    let client = Client::builder()
+        .connect_timeout(Duration::from_secs(8))
+        .timeout(Duration::from_secs(15))
+        .build()
+        .map_err(|_| "Der Bericht konnte nicht vorbereitet werden. Bitte versuche es erneut.".to_string())?;
+
+    let response = client
+        .post(endpoint)
+        .header("User-Agent", format!("LUKA/{}", env!("CARGO_PKG_VERSION")))
+        .json(&request)
+        .send()
+        .await
+        .map_err(|_| "Der Bericht konnte nicht gesendet werden. Bitte prüfe deine Internetverbindung und versuche es erneut.".to_string())?;
+
+    if response.status().is_success() {
+        Ok("Fehlermeldung erfolgreich weitergeleitet.".into())
+    } else {
+        Err(response_error_message(response.status()))
+    }
+}
+
+fn build_request(payload: BugReportPayload) -> Result<BugReportRequest, String> {
+    let description = payload.description.trim().to_string();
+    let length = description.chars().count();
+    if !(DESCRIPTION_MIN_CHARS..=DESCRIPTION_MAX_CHARS).contains(&length) {
+        return Err(format!(
+            "Bitte beschreibe den Fehler mit mindestens {DESCRIPTION_MIN_CHARS} und höchstens {DESCRIPTION_MAX_CHARS} Zeichen."
+        ));
+    }
+    if contains_disallowed_control_characters(&description) {
+        return Err("Die Beschreibung enthält nicht unterstützte Steuerzeichen.".into());
     }
 
-    let mut body = String::new();
-    body.push_str("=== LUKA Bug-Report ===\n\n");
-    body.push_str(&format!("Datum: {}\n", chrono_now()));
-    body.push_str(&format!("Beschreibung:\n{}\n\n", payload.description));
-
-    if payload.include_system_info {
-        body.push_str("--- Systeminfos ---\n");
-        body.push_str(&format!("App-Version: {}\n", env!("CARGO_PKG_VERSION")));
-        body.push_str(&format!("Betriebssystem: {}\n", std::env::consts::OS));
-        body.push_str(&format!("Architektur: {}\n", std::env::consts::ARCH));
-        body.push('\n');
-    }
-
-    if let Some(email) = &payload.contact_email {
-        if !email.is_empty() {
-            let line = format!("Kontakt-E-Mail: {}\n", email);
-            body.push_str(&line);
+    let contact_email = payload
+        .contact_email
+        .map(|email| email.trim().to_string())
+        .filter(|email| !email.is_empty());
+    if let Some(email) = &contact_email {
+        if !is_valid_contact_email(email) {
+            return Err("Bitte gib eine gültige E-Mail-Adresse für Rückfragen ein.".into());
         }
     }
 
-    let from_mailbox: Mailbox = format!("LUKA Bug-Report <{}>", payload.smtp_username)
-        .parse()
-        .map_err(|e| format!("Absender-Adresse ungueltig: {e}"))?;
-
-    let to_mailbox: Mailbox = format!("Luka Entwicklung <{BUG_REPORT_TO}>")
-        .parse()
-        .map_err(|e| format!("Empfaenger-Adresse ungueltig: {e}"))?;
-
-    let subject = format!(
-        "[LUKA Bug] {}",
-        truncate(&payload.description, 60)
-    );
-
-    let email = Message::builder()
-        .from(from_mailbox)
-        .to(to_mailbox)
-        .subject(subject)
-        .header(ContentType::TEXT_PLAIN)
-        .body(body)
-        .map_err(|e| format!("Nachrichtenbau-Fehler: {e}"))?;
-
-    let creds = Credentials::new(payload.smtp_username.clone(), payload.smtp_password.clone());
-
-    let transport = AsyncSmtpTransport::<Tokio1Executor>::starttls_relay(&payload.smtp_host)
-        .map_err(|e| format!("SMTP-Relay-Fehler: {e}"))?
-        .port(payload.smtp_port)
-        .credentials(creds)
-        .build();
-
-    transport
-        .send(email)
-        .await
-        .map_err(|e| format!("E-Mail-Versand fehlgeschlagen: {e}"))?;
-
-    Ok("Bug-Report erfolgreich gesendet.".into())
+    Ok(BugReportRequest {
+        description,
+        contact_email,
+        system_info: payload.include_system_info.then(|| SystemInfo {
+            app_version: env!("CARGO_PKG_VERSION").to_string(),
+            os: std::env::consts::OS.to_string(),
+            arch: std::env::consts::ARCH.to_string(),
+        }),
+    })
 }
 
-fn truncate(s: &str, max_chars: usize) -> String {
-    if s.len() <= max_chars {
-        s.to_string()
-    } else {
-        format!("{}...", &s[..max_chars])
+fn configured_endpoint() -> Result<Url, String> {
+    let endpoint = BUG_REPORT_ENDPOINT.ok_or_else(|| {
+        "Der Versand für Fehlermeldungen ist in dieser LUKA-Version noch nicht eingerichtet.".to_string()
+    })?;
+    let url = Url::parse(endpoint)
+        .map_err(|_| "Der Versand für Fehlermeldungen ist in dieser LUKA-Version nicht korrekt eingerichtet.".to_string())?;
+    if url.scheme() != "https" || url.host_str().is_none() {
+        return Err("Der Versand für Fehlermeldungen ist in dieser LUKA-Version nicht korrekt eingerichtet.".into());
+    }
+    Ok(url)
+}
+
+fn response_error_message(status: StatusCode) -> String {
+    match status {
+        StatusCode::TOO_MANY_REQUESTS => {
+            "Zu viele Fehlermeldungen in kurzer Zeit. Bitte warte kurz und versuche es dann erneut."
+                .into()
+        }
+        status if status.is_client_error() => {
+            "Die Fehlermeldung konnte nicht verarbeitet werden. Bitte prüfe deine Angaben und versuche es erneut."
+                .into()
+        }
+        _ => "Der Versanddienst ist gerade nicht erreichbar. Bitte versuche es später erneut.".into(),
     }
 }
 
-fn chrono_now() -> String {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| format!("Unix-{}", d.as_secs()))
-        .unwrap_or_else(|_| "unbekannt".into())
+fn is_valid_contact_email(email: &str) -> bool {
+    email.len() <= 254
+        && !email.chars().any(|character| character.is_control() || character.is_whitespace())
+        && email.split('@').count() == 2
+        && email
+            .split_once('@')
+            .is_some_and(|(local, domain)| !local.is_empty() && domain.contains('.') && !domain.starts_with('.') && !domain.ends_with('.'))
+}
+
+fn contains_disallowed_control_characters(value: &str) -> bool {
+    value
+        .chars()
+        .any(|character| character.is_control() && !matches!(character, '\n' | '\r' | '\t'))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn payload(description: &str) -> BugReportPayload {
+        BugReportPayload {
+            description: description.into(),
+            include_system_info: false,
+            contact_email: None,
+        }
+    }
+
+    #[test]
+    fn accepts_a_valid_minimal_report() {
+        let request = build_request(payload("LUKA startet nicht")).unwrap();
+        assert_eq!(request.description, "LUKA startet nicht");
+        assert_eq!(request.contact_email, None);
+        assert_eq!(request.system_info, None);
+    }
+
+    #[test]
+    fn rejects_short_or_overlong_reports() {
+        assert!(build_request(payload("Zu kurz")).is_err());
+        assert!(build_request(payload(&"a".repeat(DESCRIPTION_MAX_CHARS + 1))).is_err());
+    }
+
+    #[test]
+    fn validates_optional_contact_email() {
+        let mut valid = payload("Die Vorschau zeigt einen leeren Bereich");
+        valid.contact_email = Some("lehrkraft@example.org".into());
+        assert_eq!(
+            build_request(valid).unwrap().contact_email.as_deref(),
+            Some("lehrkraft@example.org")
+        );
+
+        let mut invalid = payload("Die Vorschau zeigt einen leeren Bereich");
+        invalid.contact_email = Some("keine-adresse".into());
+        assert!(build_request(invalid).is_err());
+    }
+
+    #[test]
+    fn includes_only_requested_system_information() {
+        let mut report = payload("Die Vorschau zeigt einen leeren Bereich");
+        report.include_system_info = true;
+        let request = build_request(report).unwrap();
+        assert_eq!(request.system_info.unwrap().app_version, env!("CARGO_PKG_VERSION"));
+    }
+
+    #[test]
+    fn contact_email_validation_rejects_whitespace_and_multiple_at_signs() {
+        assert!(!is_valid_contact_email("frau beispiel@example.org"));
+        assert!(!is_valid_contact_email("frau@beispiel@example.org"));
+    }
+
+    #[test]
+    fn maps_rate_limit_client_and_service_failures_without_provider_details() {
+        assert!(response_error_message(StatusCode::TOO_MANY_REQUESTS).contains("Zu viele"));
+        assert!(response_error_message(StatusCode::BAD_REQUEST).contains("Angaben"));
+        assert!(response_error_message(StatusCode::BAD_GATEWAY).contains("später"));
+    }
 }
