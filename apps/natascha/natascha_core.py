@@ -994,7 +994,7 @@ def run_llm_analysis(
     # Duplikat-Erkennung (Hash-Check)
     if ndb is not None and file_path is not None and file_path.exists():
         try:
-            db_path = ndb.get_db_path(config)
+            db_path = db_path_override or ndb.get_db_path(config)
             ndb.init_db(db_path)
             file_hash = ndb._file_hash(file_path)
             existing = ndb.get_abgabe_by_hash(db_path, file_hash)
@@ -1180,7 +1180,13 @@ def run_llm_analysis(
 
         if raw_response.startswith("FEHLER"):
             errors.append(f"API-Fehler (Versuch {attempt}): {raw_response}")
-            # Bei API-Fehlern lohnt sich kein Retry mit gleichem Prompt
+            # Rate-Limit: mit Backoff wiederholen (sonst gibt es sofort auf)
+            if "429" in raw_response and attempt < effective_max_retries:
+                wait = min(30, 5 * attempt)
+                logging.info("Rate-Limit, Retry %d/%d nach %ds", attempt, effective_max_retries, wait)
+                time.sleep(wait)
+                continue
+            # Bei anderen API-Fehlern lohnt sich kein Retry mit gleichem Prompt
             return None, errors
 
         # Versuch, JSON zu extrahieren
@@ -2498,7 +2504,7 @@ def _call_openai_compat(
     }
     req = urllib.request.Request(url, data=payload, headers=headers, method="POST")
     retry_status = {429, 503}
-    max_retries = 1  # Maximal 1x automatisch wiederholen (nach 2s), dann Fehler.
+    max_retries = 2  # 2x automatisch wiederholen (2s, 4s), dann Fehler.
     for attempt in range(max_retries + 1):
         try:
             with urllib.request.urlopen(req, timeout=timeout) as resp:
