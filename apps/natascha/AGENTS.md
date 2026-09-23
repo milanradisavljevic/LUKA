@@ -8,7 +8,7 @@
 
 **NATASCHA** (Normbasierte Analyse von Textproduktionen – Automatisierte Schularbeits-Correction als Hilfe-Agent) ist ein Python-TUI-Dashboard für Lehrkräfte. Es liest Schüler-Abgaben (DOCX, PDF, Bilder), schickt sie an LLM-APIs zur Analyse, validiert das JSON-Ergebnis gegen ein Schema und erzeugt daraus formatierte DOCX-Feedback-Dokumente.
 
-- **Version:** 0.7.3
+- **Version:** 0.7.10
 - **Python:** >= 3.11
 - **Lizenz:** MIT
 - **Primärsprache:** Deutsch (Code-Kommentare, UI, Dokumentation, Rubriken)

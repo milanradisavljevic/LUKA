@@ -114,7 +114,26 @@
 
 ---
 
-## Szenario 9 — Quelltext-Check
+## Szenario 11 — Korrektur-Vertrauensstufe & Lehrkraft-Aktionen
+
+**Schritte:**
+1. Korrektur → Neue Analyse starten und eine Abgabe analysieren.
+2. In der Fehlerliste die Vertrauensstufen-Badges (grün/gelb/rot) begutachten.
+3. Einen Fehler **verwerfen**, einen anderen **ändern** (Text eingeben, Enter).
+4. **Freigeben** klicken.
+5. **Feedback-DOCX** erzeugen.
+
+**Erwartet:**
+- Jeder Fehler zeigt eine Vertrauensstufe (grüner/gelber/roter Punkt).
+- Nach Freigabe: verworfene Fehler sind im Text grau + durchgestrichen,
+  geänderte farbig hervorgehoben.
+- Vor dem DOCX-Export erscheint eine Zusammenfassung (✓/✎/✕-Zähler).
+- Verworfene Fehler fehlen im DOCX; geänderte nutzen den Lehrkraft-Text.
+- Verworfene Fehler werden in der DB mit `lehrkraft_aktion='verworfen'` gespeichert.
+
+---
+
+## Szenario 12 — Quelltext-Check (ehem. 9)
 
 **Schritte:**
 1. Step1: Quelltext mit 50 Wörtern und kurzen Sätzen eingeben.

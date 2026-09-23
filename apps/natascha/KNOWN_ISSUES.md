@@ -1,7 +1,36 @@
 # KNOWN ISSUES
 
-> Stand: 2026-05-29 (nach Audit v0.7.3). Neue Befunde aus dem Audit siehe auch
+> Stand: 2026-09-23 (nach Phase 3). Neue Befunde aus dem Audit siehe auch
 > `SECURITY_AUDIT.md` und `CODE_REVIEW.md`.
+
+---
+
+## [MITTEL] Qualitätsfilter im Vision-Modus komplett ausgesetzt
+
+**Status:** Offen — bewusst verschoben bis Text-Pfad das Quality-Gate besteht
+**Problem:** `compute_vertrauensstufe` und die Phase-2-Filter (`drop_duplicate_fehler`,
+`validate_note_begrundung`, `verify_fehler_extent`) prüfen Zitate gegen den
+Schülertext. Im Vision-Modus (PDF/Bild) liegt kein extrahierter Text vor —
+alle Filter werden deshalb übersprungen und die Vertrauensstufe ist pauschal
+`"mittel"`.
+**Auswirkung:** Bei PDF-/Bild-Abgaben sind die Qualitätsfilter inaktiv;
+Fehlerquote und Vertrauensstufe sind weniger aussagekräftig.
+**Geplanter Fix:** Zitatprüfung gegen `transkription` (OCR) ermöglichen,
+sobald der Text-Pfad das Gate besteht (Phase 4D).
+
+---
+
+## [MITTEL] Mistral Medium 3.5 unterstützt keinen Vision-Input
+
+**Status:** Offen — bewusst so implementiert
+**Problem:** `mistral-medium-3-5` und `mistral-small-2603` sind reine
+Textmodelle. Wird im Vision-Modus ein Mistral-Provider gewählt, bricht die
+Analyse mit klarer Fehlermeldung ab (kein stiller Fallback auf ein
+Vision-fähiges Modell).
+**Auswirkung:** PDF-/Bild-Abgaben laufen mit Mistral nicht. Workaround:
+Anthropic- oder OpenAI-Vision-Modelle wählen.
+**Geplanter Fix:** Support für ein Mistral-Vision-Modell (Pixtral) prüfen,
+sobald der Text-Pfad produktiv ist.
 
 ---
 

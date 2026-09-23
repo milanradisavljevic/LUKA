@@ -1,6 +1,42 @@
 # CHANGELOG
 
-## [0.7.9] – 2026-05-30 (aktuell)
+## [0.7.10] – 2026-09-23 (aktuell)
+
+### Features — Vertrauensstufen & Lehrkraft-Steuerung (Phase 3)
+
+- **Vertrauensstufe pro Fehler:** `compute_vertrauensstufe()` berechnet post-hoc
+  `"hoch" | "mittel" | "niedrig"` aus den bestehenden Filter-Signalen (exakter
+  Zitat-Treffer, Zitatlänge, Pseudo-Korrektur, Titelambiguität). Vision-Modus
+  ohne Textprüfung liefert pauschal `"mittel"`. Wird nach Schema-Validierung
+  angehängt (Pattern wie `data["datei"]`) und bricht `feedback_schema.json` nicht.
+- **DB-Spalten:** `fehler_historie` um `vertrauensstufe`, `lehrkraft_aktion`,
+  `lehrkraft_korrektur` erweitert (additiv via `ALTER TABLE` in `init_db`).
+- **`update_fehler_status()`:** Setzt Lehrkraft-Aktion
+  (`uebernommen | geaendert | verworfen | NULL`) pro Fehler-Eintrag.
+- **DOCX-Filterung:** `_reconstruct_feedback_from_db()` und
+  `parse_feedback_data()` lassen verworfene Fehler aus und nutzen bei
+  `geaendert` den Lehrkraft-Korrekturtext.
+
+### Quality-Filter (Phase 2)
+
+- **`drop_duplicate_fehler()`:** Entfernt doppelte Einträge (zitat+korrektur+typ).
+- **`validate_note_begrundung()`:** Warnt bei Widerspruch zwischen Note und
+  Begründung (nur Warnung, keine Datenänderung).
+- **`verify_fehler_extent()`:** Entfernt Zitate >12 Wörter und Pseudo-Korrekturen,
+  die unverändert im Text vorkommen.
+
+### Bugfixes
+
+- **Duplikat-Check:** `run_llm_analysis` nutzt jetzt `db_path_override` für den
+  Hash-Check — Wechseln der DB wird nicht mehr durch alte Einträge blockiert.
+- **429-Retry:** Outer Loop wiederholt bei Rate-Limit mit Backoff (5s/10s/15s,
+  max 3 Versuche); innerer Retry von 1 auf 2 erhöht.
+
+### Tests
+
+- 192 Python-Tests bestehen (+7 für Vertrauensstufe, +14 für Phase-2-Filter).
+
+## [0.7.9] – 2026-05-30
 
 ### Bugfixes & UX
 

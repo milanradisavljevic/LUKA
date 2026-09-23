@@ -40,3 +40,11 @@
 
 - [ ] Leere oder nur aus Whitespace bestehende Quelltexte werden nicht als gültige Quelltexte gezählt.
 - [ ] Hochgeladene Dateien werden als Text extrahiert (kein Binärmüll im State).
+
+## Korrektur & Feedback-DOCX
+
+- [ ] Fehler mit `lehrkraft_aktion == 'verworfen'` erscheinen **nie** im Feedback-DOCX.
+- [ ] Fehler mit `lehrkraft_aktion == 'geaendert'` nutzen den Text aus `lehrkraft_korrektur` statt dem KI-Vorschlag.
+- [ ] Die Vertrauensstufe wird nach Schema-Validierung angehängt (`"hoch"|"mittel"|"niedrig"`), nie vorher — `feedback_schema.json` bleibt kompatibel.
+- [ ] `fehler_historie`-Migration ist additiv (ALTER TABLE), bestehende Zeilen bleiben unverändert.
+- [ ] Bei Rate-Limit (HTTP 429) wird automatisch mit Backoff wiederholt, nicht abgebrochen.

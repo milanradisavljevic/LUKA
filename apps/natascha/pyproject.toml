@@ -4,7 +4,7 @@ build-backend = "setuptools.backends._legacy:_Backend"
 
 [project]
 name = "natascha"
-version = "0.7.0"
+version = "0.7.10"
 description = "Normbasierte Analyse von Textproduktionen – Automatisierte Schularbeits-Correction als Hilfe-Agent"
 requires-python = ">=3.11"
 license = "MIT"

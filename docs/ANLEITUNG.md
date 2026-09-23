@@ -150,9 +150,27 @@ lokale NATASCHA-Installation.
 4. Nach der Analyse siehst du Note, Kriterien, Fehlerliste und den markierten
    Text. Eine bestätigte Schülerzuordnung hat Vorrang vor der Dateinamen-
    Erkennung. Eigene Lehrernote und Kommentar kannst du speichern.
-5. Erzeuge über **Feedback-DOCX** ein Rückmeldedokument. Die Datei landet im
-   lokalen Feedback-Ordner; die Erfolgskarte zeigt den Dateinamen und öffnet
-   auf Wunsch den Ordner.
+
+   Jeder KI-Vorschlag in der Fehlerliste zeigt eine **Vertrauensstufe** als
+   farbigen Punkt: grün (hohe Sicherheit), gelb (mittlere Sicherheit) rot
+   (niedrige Sicherheit). Prüfe besonders die gelben und roten Vorschläge.
+
+   Pro Vorschlag kannst du drei Aktionen ausführen:
+   - **Übernehmen** — der Vorschlag wird als korrekt markiert.
+   - **Ändern** — du bearbeitest den Korrekturtext direkt (Enter speichert,
+     Escape bricht ab).
+   - **Verwerfen** — der Vorschlag wird gestrichen und erscheint weder im
+     Text noch im Feedback-DOCX.
+
+   Die Aktionen werden erst beim Klick auf **Freigeben** in der Datenbank
+   gespeichert. Verworfene Fehler erscheinen im markierten Text grau und
+   durchgestrichen, geänderte farbig hervorgehoben.
+
+5. Erzeuge über **Feedback-DOCX** ein Rückmeldedokument. Vor dem Export
+   zeigt eine Zusammenfassung, wie viele Vorschläge übernommen, geändert
+   oder verworfen wurden — verworfene Fehler werden nicht ins DOCX
+   geschrieben. Die Datei landet im lokalen Feedback-Ordner; die
+   Erfolgskarte zeigt den Dateinamen und öffnet auf Wunsch den Ordner.
 6. Unter **Meine Klassen** und **Schüler** findest du Fehler-Heatmaps,
    Notenverteilungen, Trends und Längsschnitte. **Übungsblatt zu Top-Fehlern**
    übernimmt die Schwerpunkte direkt in den Generator.

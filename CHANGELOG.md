@@ -5,38 +5,6 @@ Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 (auch andere Coding-Agents) — siehe `AGENTS.md`.
 
-## Version 1.5.0 — 2026-09-22
-
-### Das ist neu
-
-**Fehler direkt melden**
-- Fehlermeldungen lassen sich direkt aus LUKA versenden. Eine eigene Mail- oder
-  SMTP-Einrichtung ist dafür nicht mehr nötig.
-- Das Formular erinnert daran, keine Schüler- oder Zugangsdaten zu senden;
-  Systeminfos bleiben sichtbar und können abgewählt werden.
-
-**Kompakteres Layout**
-- Neue 3-Spalten-Ansicht: Seitenleiste, Bearbeitungsbereich und Eigenschaftenpanel passen sich flexibel an die Fenstergröße an.
-- Bento-Stil-Karten für Aufgabenpool, KI-Assistent und Export — übersichtlicher und moderner.
-- Kompaktere Typografie mit weniger Abständen — mehr Inhalt auf einen Blick.
-
-**Tafel-Modus verbessert**
-- Neuer Hellmodus für Beamer und helles Klassenzimmer — per Sun/Moon-Button umschaltbar.
-- Zoom jetzt spürbarer: 25%-Schritte von 50% bis 250% mit Prozentanzeige im Header.
-- Zoom auch per Tastatur mit +/- steuerbar.
-
-**Kreuzworträtsel & Wortgitter passen sich an**
-- Exportierte Rätsel passen ihre Feldgröße automatisch an die DIN-A4-Seite an — auch bei großen Rastern mit vielen Spalten.
-- Vorschau und Export zeigen jetzt dieselbe Rastergröße.
-
-**Korrektur-Modus stabilisiert**
-- Ausgangsmaterial kann jetzt direkt im Korrektur-Dialog eingegeben oder als Datei angehängt werden.
-- Token-Budget für KI-Analysen erhöht — auch umfangreiche Korrekturen werden vollständig ausgewertet.
-
-**Neue Unterlage startet komplett frisch**
-- Der „Neue Unterlage"-Button setzt alle Felder zurück — kein Überbleibsel der vorherigen Aufgabe mehr.
-- „Weiterarbeiten" und „Aus Vorlage starten" funktionieren wie gewohnt.
-
 ## Unveröffentlicht
 
 ### Vertrauensstufen & Lehrkraft-Steuerung (Phase 3)
@@ -78,7 +46,37 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 - Korrekturen mit Umlauten (ä, ö, ü, ß) werden jetzt zuverlässig verarbeitet.
 - Auf Windows gab es bisher teilweise Ersatzzeichen.
 
-## Unveröffentlicht
+## Version 1.5.0 — 2026-09-22
+
+### Das ist neu
+
+**Fehler direkt melden**
+- Fehlermeldungen lassen sich direkt aus LUKA versenden. Eine eigene Mail- oder
+  SMTP-Einrichtung ist dafür nicht mehr nötig.
+- Das Formular erinnert daran, keine Schüler- oder Zugangsdaten zu senden;
+  Systeminfos bleiben sichtbar und können abgewählt werden.
+
+**Kompakteres Layout**
+- Neue 3-Spalten-Ansicht: Seitenleiste, Bearbeitungsbereich und Eigenschaftenpanel passen sich flexibel an die Fenstergröße an.
+- Bento-Stil-Karten für Aufgabenpool, KI-Assistent und Export — übersichtlicher und moderner.
+- Kompaktere Typografie mit weniger Abständen — mehr Inhalt auf einen Blick.
+
+**Tafel-Modus verbessert**
+- Neuer Hellmodus für Beamer und helles Klassenzimmer — per Sun/Moon-Button umschaltbar.
+- Zoom jetzt spürbarer: 25%-Schritte von 50% bis 250% mit Prozentanzeige im Header.
+- Zoom auch per Tastatur mit +/- steuerbar.
+
+**Kreuzworträtsel & Wortgitter passen sich an**
+- Exportierte Rätsel passen ihre Feldgröße automatisch an die DIN-A4-Seite an — auch bei großen Rastern mit vielen Spalten.
+- Vorschau und Export zeigen jetzt dieselbe Rastergröße.
+
+**Korrektur-Modus stabilisiert**
+- Ausgangsmaterial kann jetzt direkt im Korrektur-Dialog eingegeben oder als Datei angehängt werden.
+- Token-Budget für KI-Analysen erhöht — auch umfangreiche Korrekturen werden vollständig ausgewertet.
+
+**Neue Unterlage startet komplett frisch**
+- Der „Neue Unterlage"-Button setzt alle Felder zurück — kein Überbleibsel der vorherigen Aufgabe mehr.
+- „Weiterarbeiten" und „Aus Vorlage starten" funktionieren wie gewohnt.
 
 ## Version 1.4.2 — 2026-09-19
 

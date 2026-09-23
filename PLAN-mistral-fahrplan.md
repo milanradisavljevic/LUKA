@@ -149,13 +149,65 @@ Kein Ergebnis wird ungeprüft übernommen.
 
 ## Offene Fragen (vor Implementierung)
 
-1. Soll `vertrauensstufe` im LLM-Prompt angefordert werden oder rein post-hoc berechnet werden?
-2. Soll die Ampel-UI in der bestehenden Korrektur-Liste erscheinen oder in einem neuen Review-Modus?
-3. Braucht es eine neue DB-Tabelle für Lehrkraft-Edits oder reicht JSON in `feedback_data/`?
-4. Soll Phase 3 auf den Gate-Ergebnissen aufbauen (erst wenn Benchmark grün) oder parallel laufen?
+1. Soll `vertrauensstufe` im LLM-Prompt angefordert werden oder rein post-hoc berechnet werden? → **ENTSCHEIDEN: post-hoc (umgesetzt, Phase 3.1)**
+2. Soll die Ampel-UI in der bestehenden Korrektur-Liste erscheinen oder in einem neuen Review-Modus? → **ENTSCHEIDEN: bestehende Liste (umgesetzt, Phase 3.2)**
+3. Braucht es eine neue DB-Tabelle für Lehrkraft-Edits oder reicht JSON in `feedback_data/`? → **ENTSCHEIDEN: DB-Spalten in `fehler_historie` (umgesetzt, Phase 3.0)**
+4. Soll Phase 3 auf den Gate-Ergebnissen aufbauen (erst wenn Benchmark grün) oder parallel laufen? → **ENTSCHEIDEN: parallel (umgesetzt)**
 
 ## Tests und Release-Gates
 
 - Unit-Tests für Modellwahl ohne Fallback, Token-/Kontextgrenzen, Mistral-Antwortformate, Fehlerklassifikation
 - Pipeline-Tests mit gemockten Mistral-Antworten
 - Vor jeder Phase: Python-Tests, Web-Typecheck, Rust-Check
+
+## Phase 4 – Härten, Doku & Benchmark-Diversität
+
+**Status:** 4A (Doku) ✅ abgeschlossen 2026-09-23; 4B–4D offen.
+**Voraussetzung:** Live-Benchmark läuft erst nach Rate-Limit-Reset (Mitternacht UTC).
+
+### 4A — Doku-Pflicht (✅ erledigt)
+
+| # | Aufgabe | Datei |
+|---|---------|-------|
+| 4A.1 | CHANGELOG repariert (Unveröffentlicht oben, Duplikatblock entfernt, 1.5.0 wiederhergestellt) | `CHANGELOG.md` |
+| 4A.2 | Phase-3-Eintrag (0.7.10) | `apps/natascha/CHANGELOG.md` |
+| 4A.3 | §Korrigieren Schritte 4–5 erweitert (Ampel, Aktionen, Export-Zusammenfassung) | `docs/ANLEITUNG.md` |
+| 4A.4 | Szenario 11 „Korrektur-Vertrauensstufe & Lehrkraft-Aktionen" | `docs/szenarien.md` |
+| 4A.5 | Invarianten „Korrektur & Feedback-DOCX" (5 Regeln) | `docs/invarianten.md` |
+| 4A.6 | KNOWN_ISSUES: Vision-Filter ausgesetzt + Mistral-Vision unsupported | `apps/natascha/KNOWN_ISSUES.md` |
+| 4A.7 | Versions-Drift gefixt (pyproject 0.7.10) + Plan-Phase-4-Sektion | `pyproject.toml`, dieser Plan |
+
+### 4B — Testlücken & a11y (Phase-3-Härtung) — offen
+
+| # | Aufgabe | Datei |
+|---|---------|-------|
+| 4B.1 | Test `update_fehler_status` (Python: anlegen/ändern/verwerfen/zurücksetzen) | `tests/test_db.py` |
+| 4B.2 | Test DOCX-Filterung (verworfen raus, geaendert rein) | `tests/test_feedback.py` |
+| 4B.3 | Test `db_update_fehler_status` (Rust) | `natascha_read.rs` mod tests |
+| 4B.4 | Test `_estimate_tokens` + `_check_context_budget` + Mistral-kein-Fallback | `tests/test_llm_pipeline.py` |
+| 4B.5 | a11y: `aria-label` auf Ampel-Punkte, `aria-pressed` auf Toggle, `aria-label` auf Edit-Input, Touch-Targets vergrößern | `KorrekturView.tsx` |
+| 4B.6 | `avgStufe`-Heuristik verbessern (aktuell: 1 hoch + 1 niedrig → „hoch") | `KorrekturView.tsx` |
+
+### 4C — Benchmark-Diversifizierung — offen
+
+| # | Aufgabe | Datei |
+|---|---------|-------|
+| 4C.1 | Runner: Per-Case-Config (JSON-Override pro Datei statt Single-DEFAULT_CONFIG) | `benchmarks/run_benchmark.py` |
+| 4C.2 | Zweiten Benchmark-Satz (TEST-7a Englisch, 4 DOCX) anlegen | `benchmarks/cases_en/` |
+| 4C.3 | Mischtabelle: Klasse/Textsorte/Rubrik je Fall | `run_benchmark.py` |
+
+### 4D — Vision/PDF (bewusst verschoben, nach Gate) — offen
+
+Erst nach bestandenem Qualitäts-Gate. Enthält: Mistral-Vision-Modell (Pixtral),
+Zitatprüfung gegen `transkription` (OCR), Vision-Filter aktivieren, Pseudonymisierung für Bilder.
+
+## Live-Benchmark (nächster Schritt)
+
+Sobald das Mistral-Rate-Limit zurückgesetzt ist (Mitternacht UTC):
+```bash
+cd apps/natascha/benchmarks
+python3 run_benchmark.py --provider mistral --model mistral-medium-3-5
+python3 evaluiere.py          # interaktive Lehrkraft-Bewertung
+python3 evaluiere.py --gate-only  # Gate-Entscheidung
+```
+Gate: 0 kritische Halluzinationen, ≥90% Zitate belegbar, ≥90% verwendbar.
