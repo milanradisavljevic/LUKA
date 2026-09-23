@@ -46,6 +46,8 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 - Neue Fehlermeldungen: „Modell nicht verfügbar", „Text zu lang", „Format nicht erwartet" werden jetzt erkannt und verständlich angezeigt.
 - Neue Qualitätsfilter: Doppelte Korrekturen werden entfernt; Note-Begründung wird auf Widersprüche geprüft; zu lange oder bereits korrekte Zitate werden gefiltert.
 - Benchmark-Infrastruktur: 11 Referenzfälle (Klasse 6i, Kommentar) können automatisiert evaluiert werden; interaktives Lehrkraft-Bewertungsprotokoll mit Qualitäts-Gate.
+- Fehlerbehebung: Duplikat-Erkennung nutzt jetzt den korrekten Datenbankpfad — Wechseln der Datenbank wird nicht mehr durch alte Einträge blockiert.
+- Fehlerbehebung: Bei API-Überlastung (Rate-Limit) wird automatisch mit Pause wiederholt, statt sofort abzubrechen.
 
 ## Version 1.5.1 — 2026-09-22
 

@@ -52,11 +52,18 @@ Pfad: `apps/natascha/input/6i/Schularbeit_5/`
 | B3: verify_fehler_extent | klein | — | ✅ |
 | C: evaluiere.py | mittel | A | ✅ |
 | D: Gate + CHANGELOG | klein | A+C | ✅ |
-| **Live-Benchmark laufen lassen** | **groß** | **MISTRAL_API_KEY** | **⏳ NÄCHSTER SCHRITT** |
+| Fix: Duplikat-Check db_path_override | klein | — | ✅ |
+| Fix: 429-Retry mit Backoff | klein | — | ✅ |
+| **Live-Benchmark laufen lassen** | **groß** | **Rate-Limit Reset** | **⏳ BLOCKIERT** |
 | **Lehrkraft-Bewertung durchführen** | **groß** | **Live-Benchmark** | ⏳ |
 | **Gate-Entscheidung treffen** | **klein** | **Bewertung** | ⏳ |
 | 3.1 Unsicherheits-Flag | mittel | Gate | ⏳ |
 | 3.2 Lehrkraft-Interaktion | groß | 3.1 | ⏳ |
+
+### Blocker (Stand 2026-09-23)
+
+- **Mistral API Rate-Limit** (code 1300): account-weit, beide Modelle, auch nach 60s Wartezeit. Reset voraussichtlich Mitternacht UTC.
+- Benchmark kann erst danach live laufen; Infrastruktur (Runner + Evaluiere) steht.
 
 ## Phase 0 – Ausgangslage absichern
 
@@ -109,13 +116,40 @@ Pfad: `apps/natascha/input/6i/Schularbeit_5/`
 
 ## Phase 3 – Vertrauen und Lehrkraft-Workflow
 
-### 3.1 Unsicherheits-Flag
-- Zitate die nicht 100% belegt sind → als "prüfen" markieren
-- Konfidenz-Level aus dem Prompt ableiten
+**Ziel:** Die Lehrkraft behält die Kontrolle. Die KI schlägt vor, die Lehrkraft entscheidet.
+Kein Ergebnis wird ungeprüft übernommen.
 
-### 3.2 Lehrkraft-Interaktion
-- Einzelne Vorschläge übernehmen/ändern/verwerfen
-- Endergebnis bleibt immer Lehrkraft-Korrektur
+### 3.1 Unsicherheits-Flag (Vertrauensstufe pro Vorschlag)
+
+- Jeder Fehler-Eintrag erhält eine `vertrauensstufe`: `"hoch" | "mittel" | "niedrig"`
+- Ableitung:
+  - **hoch**: Zitat exakt im Text, Korrektur NICHT im Text, Typ plausibel
+  - **mittel**: Zitat nach Normalisierung belegt, aber Kleinkorrekturen nötig
+  - **niedrig**: Zitat nicht 100% belegt, oder Korrektur nur Marginalie
+- Filter `verify_fehler_extent` liefert bereits Signale → um Vertrauensstufe erweitern
+- Schema-Ergänzung: optionales Feld `vertrauensstufe` in `feedback_schema.json`
+- UI: Ampel-Anzeige (grün/gelb/rot) am Fehler-Eintrag in der Korrektur-Ansicht
+- Dateien: `natascha_core.py`, `feedback_schema.json`, `KorrekturView.tsx`
+
+### 3.2 Lehrkraft-Interaktion (Einzelvorschläge bearbeiten)
+
+- Pro Fehler-Eintrag: **Übernehmen** / **Ändern** / **Verwerfen** / **Prüfen** (offen)
+- Änderungen werden protokolliert (`lehrkraftAktion`, `lehrkraftNotiz`)
+- Endergebnis = KI-Vorschläge + Lehrkraft-Edits → DOCX-Feedback
+- Optionale Markierung „unsicher" durch die Lehrkraft ergänzt Ampel
+- Dateien: `KorrekturView.tsx`, `natascha_core.py` (Persistenz)
+
+### 3.3 Zusammenfassung im Korrektur-Dialog
+
+- Zusammenfassung vor DOCX-Erstellung: X Vorschläge, Y übernommen, Z verworfen, Ø Vertrauensstufe
+- Option: nur Vorschläge mit Vertrauensstufe „hoch" automatisch vorchecken
+
+## Offene Fragen (vor Implementierung)
+
+1. Soll `vertrauensstufe` im LLM-Prompt angefordert werden oder rein post-hoc berechnet werden?
+2. Soll die Ampel-UI in der bestehenden Korrektur-Liste erscheinen oder in einem neuen Review-Modus?
+3. Braucht es eine neue DB-Tabelle für Lehrkraft-Edits oder reicht JSON in `feedback_data/`?
+4. Soll Phase 3 auf den Gate-Ergebnissen aufbauen (erst wenn Benchmark grün) oder parallel laufen?
 
 ## Tests und Release-Gates
 
