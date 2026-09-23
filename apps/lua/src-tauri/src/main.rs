@@ -68,6 +68,7 @@ fn main() {
             commands::natascha_read::db_get_notenverteilung,
             commands::natascha_read::db_get_klassen_statistik,
             commands::natascha_read::db_upsert_lehrer_feedback,
+            commands::natascha_read::db_update_fehler_status,
             commands::natascha_read::db_get_abgabe_detail,
             commands::natascha_read::db_get_korrektur_kontext,
             commands::natascha_read::db_list_schueler,

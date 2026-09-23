@@ -81,7 +81,10 @@ CREATE TABLE IF NOT EXISTS fehler_historie (
     zitat TEXT,
     korrektur TEXT,
     typ TEXT NOT NULL,
-    erklaerung TEXT
+    erklaerung TEXT,
+    vertrauensstufe TEXT,
+    lehrkraft_aktion TEXT,
+    lehrkraft_korrektur TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_abgabe_hash ON abgabe(datei_hash);
@@ -203,6 +206,10 @@ def init_db(db_path: Path | str) -> None:
         context_columns = {row[1] for row in conn.execute("PRAGMA table_info(korrekturauftrag)")}
         if context_columns and "rubrik_titel" not in context_columns:
             conn.execute("ALTER TABLE korrekturauftrag ADD COLUMN rubrik_titel TEXT NOT NULL DEFAULT ''")
+        fehler_columns = {row[1] for row in conn.execute("PRAGMA table_info(fehler_historie)")}
+        for column in ("vertrauensstufe", "lehrkraft_aktion", "lehrkraft_korrektur"):
+            if column not in fehler_columns:
+                conn.execute(f"ALTER TABLE fehler_historie ADD COLUMN {column} TEXT")
         conn.commit()
 
 
@@ -437,14 +444,37 @@ def insert_fehler(
     korrektur: str,
     typ: str,
     erklaerung: str = "",
+    vertrauensstufe: str | None = None,
 ) -> None:
     with sqlite3.connect(str(db_path)) as conn:
         conn.execute(
-            "INSERT INTO fehler_historie (abgabe_id, zitat, korrektur, typ, erklaerung)"
-            " VALUES (?, ?, ?, ?, ?)",
-            (abgabe_id, zitat, korrektur, typ, erklaerung),
+            "INSERT INTO fehler_historie"
+            " (abgabe_id, zitat, korrektur, typ, erklaerung, vertrauensstufe)"
+            " VALUES (?, ?, ?, ?, ?, ?)",
+            (abgabe_id, zitat, korrektur, typ, erklaerung, vertrauensstufe),
         )
         conn.commit()
+
+
+def update_fehler_status(
+    db_path: Path | str,
+    fehler_id: int,
+    aktion: str | None,
+    lehrkraft_korrektur: str | None = None,
+) -> bool:
+    """Setzt die Lehrkraft-Aktion fuer einen Fehler-Eintrag.
+
+    aktion: 'uebernommen' | 'geaendert' | 'verworfen' | None (zuruecksetzen)
+    Gibt True zurueck, wenn eine Zeile betroffen war.
+    """
+    with sqlite3.connect(str(db_path)) as conn:
+        cur = conn.execute(
+            "UPDATE fehler_historie SET lehrkraft_aktion=?, lehrkraft_korrektur=?"
+            " WHERE id=?",
+            (aktion, lehrkraft_korrektur if aktion == "geaendert" else None, fehler_id),
+        )
+        conn.commit()
+        return cur.rowcount > 0
 
 
 # ---------------------------------------------------------------------------
@@ -990,13 +1020,16 @@ def save_analysis_to_db(
         # Fehler
         for fehler in data.get("fehler", []):
             conn.execute(
-                "INSERT INTO fehler_historie (abgabe_id, zitat, korrektur, typ, erklaerung) VALUES (?, ?, ?, ?, ?)",
+                "INSERT INTO fehler_historie"
+                " (abgabe_id, zitat, korrektur, typ, erklaerung, vertrauensstufe)"
+                " VALUES (?, ?, ?, ?, ?, ?)",
                 (
                     abgabe_id,
                     fehler.get("zitat", ""),
                     fehler.get("korrektur", ""),
                     fehler.get("typ", ""),
                     fehler.get("erklaerung", ""),
+                    fehler.get("vertrauensstufe"),
                 ),
             )
         conn.commit()

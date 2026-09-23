@@ -39,6 +39,13 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## Unveröffentlicht
 
+### Vertrauensstufen & Lehrkraft-Steuerung (Phase 3)
+- Jeder KI-Korrekturvorschlag zeigt eine Vertrauensstufe (grün/gelb/rot) — die Lehrkraft sieht sofort, welche Vorschläge sicher und welche unsicher sind.
+- Einzelne Vorschläge können übernommen, geändert oder verworfen werden — die Entscheidung wird gespeichert und ins Feedback-DOCX übernommen.
+- Verworfene Fehler erscheinen im Text gestrichen und grau, geänderte farbig hervorgehoben.
+- Vor dem DOCX-Export zeigt eine Zusammenfassung, wie viele Vorschläge übernommen, geändert oder verworfen wurden.
+- Verworfene Fehler werden nicht mehr ins Feedback-DOCX geschrieben.
+
 ### Mistral-Modellwahl strikt & Qualitätsfilter (Phase 1+2)
 - Mistral: Kein stiller Modell-Wechsel mehr. Wird ein gewähltes Modell nicht verfügbar, gibt es einen klaren Fehler statt eines stillen Fallbacks.
 - Token-Budget: Textlänge wird vor dem API-Aufruf geprüft. Zu lange Texte werden mit verständlicher Meldung abgebrochen statt mit Kontextfehler.

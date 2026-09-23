@@ -1265,15 +1265,22 @@ def parse_feedback_data(payload: dict[str, Any]) -> FeedbackData:
             ))
 
     raw_fehler = payload.get("fehler", [])
-    fehler: list[SprachFehler] = [
-        SprachFehler(
+    fehler: list[SprachFehler] = []
+    for e in raw_fehler:
+        if not isinstance(e, dict):
+            continue
+        # Phase 3: Lehrkraft-Entscheidungen respektieren
+        if e.get("lehrkraft_aktion") == "verworfen":
+            continue
+        korrektur = str(e.get("korrektur", ""))
+        if e.get("lehrkraft_aktion") == "geaendert" and e.get("lehrkraft_korrektur"):
+            korrektur = str(e["lehrkraft_korrektur"])
+        fehler.append(SprachFehler(
             zitat=str(e.get("zitat", "")),
-            korrektur=str(e.get("korrektur", "")),
+            korrektur=korrektur,
             typ=str(e.get("typ", "G")),
             erklaerung=str(e.get("erklaerung", "")),
-        )
-        for e in raw_fehler if isinstance(e, dict)
-    ]
+        ))
 
     return FeedbackData(
         datei=str(payload["datei"]),

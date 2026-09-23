@@ -1259,6 +1259,15 @@ def run_llm_analysis(
             data["fehler"] = filter_title_false_positives(data["fehler"], docx_text_llm)
             data["fehler"] = verify_fehler_extent(data["fehler"], docx_text_llm)
 
+        # Vertrauensstufe post-hoc berechnen (nach Schema-Validierung,
+        # bricht feedback_schema.json nicht — Pattern wie data["datei"]).
+        if data.get("fehler"):
+            compute_vertrauensstufe(
+                data["fehler"],
+                docx_text_llm if not vision_mode else None,
+                vision_mode=vision_mode,
+            )
+
         # Note-Begruendung-Konsistenz (warnt nur)
         validate_note_begrundung(data)
 
@@ -1607,6 +1616,69 @@ def verify_fehler_extent(fehler_list: list[dict], schuelertext: str) -> list[dic
     if entfernt:
         logging.warning("Erweiterte Zitat-Pruefung: %d Eintraege entfernt", entfernt)
     return behalten
+
+
+def compute_vertrauensstufe(
+    fehler_list: list[dict],
+    schuelertext: str | None,
+    vision_mode: bool = False,
+) -> list[dict]:
+    """Berechnet post-hoc die Vertrauensstufe pro Fehler-Eintrag.
+
+    Liefert jedem ueberlebenden Eintrag ein Feld ``vertrauensstufe`` mit
+    ``"hoch"``, ``"mittel"`` oder ``"niedrig"``. Die Stufe wird NACH der
+    Schema-Validierung angehaengt (Pattern wie data["datei"]) und bricht
+    feedback_schema.json nicht.
+
+    Signale:
+    - Exakter Zitat-Treffer + <=6 Woerter + Korrektur nicht im Text -> hoch
+    - Satzzeichen-streift getroffen, 7-12 Woerter, Titelanfang-ambig,
+      Satzzeichen-Anhaengsel legitim, oder Vision-Modus -> mittel
+    - Sonst (Restposten der ueberlebt hat) -> niedrig
+    """
+    if not fehler_list:
+        return []
+
+    normalized_text = " ".join((schuelertext or "").lower().split())
+    stripped_text = re.sub(r"[^\w\s]", "", normalized_text) if normalized_text else ""
+
+    paragraphs = [p.strip().lower() for p in (schuelertext or "").split("\n") if p.strip()]
+    first_words = {p.split()[0] for p in paragraphs if p.split()}
+
+    for fehler in fehler_list:
+        if vision_mode or not normalized_text:
+            fehler["vertrauensstufe"] = "mittel"
+            continue
+
+        zitat = " ".join((fehler.get("zitat") or "").lower().split())
+        korrektur = " ".join((fehler.get("korrektur") or "").lower().split())
+        wortanzahl = len(zitat.split())
+
+        # Exakter Treffer?
+        exakt = zitat and zitat in normalized_text
+        # Satzzeichen-streift getroffen?
+        stripped_zitat = re.sub(r"[^\w\s]", "", zitat)
+        streift = bool(stripped_zitat) and bool(stripped_text) and stripped_zitat in stripped_text
+
+        # Korrektur bereits im Text? (Pseudo-Korrektur-Signal)
+        korrektur_im_text = bool(korrektur) and len(korrektur) > 3 and korrektur in normalized_text
+
+        # Titelanfang-ambig (R + "klein" + Absatzanfang)?
+        titel_ambig = (
+            fehler.get("typ") == "R"
+            and "klein" in (fehler.get("erklaerung") or "").lower()
+            and bool(zitat.split())
+            and zitat.split()[0] in first_words
+        )
+
+        if exakt and wortanzahl <= 6 and not korrektur_im_text and not titel_ambig:
+            fehler["vertrauensstufe"] = "hoch"
+        elif exakt or streift or titel_ambig or wortanzahl > 6:
+            fehler["vertrauensstufe"] = "mittel"
+        else:
+            fehler["vertrauensstufe"] = "niedrig"
+
+    return fehler_list
 
 
 def generate_srdp_detail(

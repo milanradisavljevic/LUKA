@@ -278,6 +278,28 @@ pub async fn db_upsert_lehrer_feedback(
     Ok(())
 }
 
+#[tauri::command]
+pub async fn db_update_fehler_status(
+    state: tauri::State<'_, DbState>,
+    fehler_id: i64,
+    aktion: Option<String>,
+    lehrkraft_korrektur: Option<String>,
+) -> Result<bool, String> {
+    let guard = state.conn()?;
+    let conn = &*guard;
+    // bei 'geaendert' den Korrekturtext speichern, sonst zuruecksetzen
+    let korrektur = if aktion.as_deref() == Some("geaendert") {
+        lehrkraft_korrektur
+    } else {
+        None
+    };
+    let changed = conn.execute(
+        "UPDATE fehler_historie SET lehrkraft_aktion=?, lehrkraft_korrektur=? WHERE id=?",
+        rusqlite::params![aktion, korrektur, fehler_id],
+    ).map_err(|e| format!("update fehler_status: {}", e))?;
+    Ok(changed > 0)
+}
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct KriteriumRow {
@@ -298,6 +320,9 @@ pub struct FehlerRow {
     pub korrektur: Option<String>,
     pub typ: String,
     pub erklaerung: Option<String>,
+    pub vertrauensstufe: Option<String>,
+    pub lehrkraft_aktion: Option<String>,
+    pub lehrkraft_korrektur: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -366,11 +391,11 @@ pub async fn db_get_abgabe_detail(state: tauri::State<'_, DbState>, abgabe_id: i
     };
 
     let fehler: Vec<FehlerRow> = {
-        let mut stmt = conn.prepare("SELECT id, abgabe_id, zitat, korrektur, typ, erklaerung FROM fehler_historie WHERE abgabe_id=?1 ORDER BY typ, id")
+        let mut stmt = conn.prepare("SELECT id, abgabe_id, zitat, korrektur, typ, erklaerung, vertrauensstufe, lehrkraft_aktion, lehrkraft_korrektur FROM fehler_historie WHERE abgabe_id=?1 ORDER BY typ, id")
             .map_err(|e| format!("prepare fehler: {}", e))?;
         let mut result = Vec::new();
         let rows = stmt.query_map(rusqlite::params![abgabe_id], |row| {
-            Ok(FehlerRow { id: row.get(0)?, abgabe_id: row.get(1)?, zitat: row.get(2)?, korrektur: row.get(3)?, typ: row.get(4)?, erklaerung: row.get(5)? })
+            Ok(FehlerRow { id: row.get(0)?, abgabe_id: row.get(1)?, zitat: row.get(2)?, korrektur: row.get(3)?, typ: row.get(4)?, erklaerung: row.get(5)?, vertrauensstufe: row.get(6)?, lehrkraft_aktion: row.get(7)?, lehrkraft_korrektur: row.get(8)? })
         }).map_err(|e| format!("query fehler: {}", e))?;
         for row in rows {
             if let Ok(f) = row { result.push(f); }

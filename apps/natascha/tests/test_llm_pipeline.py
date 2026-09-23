@@ -681,3 +681,50 @@ class TestVerifyFehlerExtent:
         # Korrektur kommt NICHT im Text vor → echte Korrektur
         fehler = [{"zitat": "Bucher die", "korrektur": "Bücher, die", "typ": "Z"}]
         assert len(nc.verify_fehler_extent(fehler, self.TEXT)) == 1
+
+
+class TestComputeVertrauensstufe:
+    """Phase 3: post-hoc Vertrauensstufe pro Fehler."""
+
+    TEXT = (
+        "Die neue Literatur wird durch Social Media bestimmt. "
+        "Viele Jugendliche lesen Bucher die sie auf TikTok entdecken. "
+        "Das ist eine positive Entwicklung fuer das Leseverhalten."
+    )
+
+    def test_exakter_treffer_kurz_hoch(self) -> None:
+        fehler = [{"zitat": "Viele Jugendliche lesen", "korrektur": "Viele Jugendliche lesen auch", "typ": "G"}]
+        result = nc.compute_vertrauensstufe(fehler, self.TEXT)
+        assert result[0]["vertrauensstufe"] == "hoch"
+
+    def test_satzzeichen_streift_mittel(self) -> None:
+        # Zitat mit fehlendem Satzzeichen das im Text steht → Streift-Treffer
+        fehler = [{"zitat": "entdecken Das", "korrektur": "entdecken. Das", "typ": "Z"}]
+        result = nc.compute_vertrauensstufe(fehler, self.TEXT)
+        # Streift-Treffer (ohne Satzzeichen matcht) → mittel
+        assert result[0]["vertrauensstufe"] in ("hoch", "mittel")
+
+    def test_langes_zitat_mittel(self) -> None:
+        zitat = "Die neue Literatur wird durch Social Media bestimmt und das ist wichtig"
+        fehler = [{"zitat": zitat, "korrektur": "besser", "typ": "A"}]
+        result = nc.compute_vertrauensstufe(fehler, self.TEXT)
+        assert result[0]["vertrauensstufe"] == "mittel"
+
+    def test_korrektur_im_text_runtergestuft(self) -> None:
+        # Korrektur kommt im Text vor → Pseudo-Korrektur-Signal → nicht hoch
+        fehler = [{"zitat": "positive Entwiklung", "korrektur": "positive Entwicklung", "typ": "R"}]
+        result = nc.compute_vertrauensstufe(fehler, self.TEXT)
+        assert result[0]["vertrauensstufe"] in ("mittel", "niedrig")
+
+    def test_vision_modus_pauschal_mittel(self) -> None:
+        fehler = [{"zitat": "irgendwas", "korrektur": "irgendwasanders", "typ": "G"}]
+        result = nc.compute_vertrauensstufe(fehler, None, vision_mode=True)
+        assert result[0]["vertrauensstufe"] == "mittel"
+
+    def test_leere_liste(self) -> None:
+        assert nc.compute_vertrauensstufe([], self.TEXT) == []
+
+    def test_kein_text_pauschal_mittel(self) -> None:
+        fehler = [{"zitat": "test", "korrektur": "test2", "typ": "G"}]
+        result = nc.compute_vertrauensstufe(fehler, None)
+        assert result[0]["vertrauensstufe"] == "mittel"

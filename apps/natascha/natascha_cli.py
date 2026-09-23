@@ -382,7 +382,8 @@ def _reconstruct_feedback_from_db(db_path, abgabe_id, abgabe):
         (abgabe_id,),
     ).fetchall()
     fehler_rows = conn.execute(
-        "SELECT zitat, korrektur, typ, erklaerung FROM fehler_historie WHERE abgabe_id = ?",
+        "SELECT zitat, korrektur, typ, erklaerung, lehrkraft_aktion, lehrkraft_korrektur"
+        " FROM fehler_historie WHERE abgabe_id = ?",
         (abgabe_id,),
     ).fetchall()
 
@@ -413,15 +414,21 @@ def _reconstruct_feedback_from_db(db_path, abgabe_id, abgabe):
         for k in krit_rows
     ]
 
-    fehler = [
-        gf.SprachFehler(
-            zitat=str(f["zitat"] or ""),
-            korrektur=str(f["korrektur"] or ""),
-            typ=str(f["typ"] or "G"),
-            erklaerung=str(f["erklaerung"] or ""),
+    fehler = []
+    for f in fehler_rows:
+        if f["lehrkraft_aktion"] == "verworfen":
+            continue
+        korrektur = str(f["korrektur"] or "")
+        if f["lehrkraft_aktion"] == "geaendert" and f["lehrkraft_korrektur"]:
+            korrektur = str(f["lehrkraft_korrektur"])
+        fehler.append(
+            gf.SprachFehler(
+                zitat=str(f["zitat"] or ""),
+                korrektur=korrektur,
+                typ=str(f["typ"] or "G"),
+                erklaerung=str(f["erklaerung"] or ""),
+            )
         )
-        for f in fehler_rows
-    ]
 
     note = abgabe.get("note")
     gesamtstufe = abgabe.get("gesamtstufe")

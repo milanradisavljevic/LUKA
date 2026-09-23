@@ -57,8 +57,11 @@ Pfad: `apps/natascha/input/6i/Schularbeit_5/`
 | **Live-Benchmark laufen lassen** | **groß** | **Rate-Limit Reset** | **⏳ BLOCKIERT** |
 | **Lehrkraft-Bewertung durchführen** | **groß** | **Live-Benchmark** | ⏳ |
 | **Gate-Entscheidung treffen** | **klein** | **Bewertung** | ⏳ |
-| 3.1 Unsicherheits-Flag | mittel | Gate | ⏳ |
-| 3.2 Lehrkraft-Interaktion | groß | 3.1 | ⏳ |
+| 3.0 Fundament (DB + Types) | klein | — | ✅ |
+| 3.1 Vertrauensstufe (post-hoc) | mittel | 3.0 | ✅ |
+| 3.2 Lehrkraft-Interaktion (UI) | groß | 3.0+3.1 | ✅ |
+| 3.3 DOCX-Filter + Zusammenfassung | mittel | 3.0 | ✅ |
+| 3.4 Verifikation | klein | alle | ✅ |
 
 ### Blocker (Stand 2026-09-23)
 

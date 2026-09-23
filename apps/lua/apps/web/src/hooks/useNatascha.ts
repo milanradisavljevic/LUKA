@@ -42,6 +42,9 @@ interface FehlerRow {
   korrektur: string | null;
   typ: string;
   erklaerung: string | null;
+  vertrauensstufe: string | null;
+  lehrkraftAktion: string | null;
+  lehrkraftKorrektur: string | null;
 }
 
 interface LehrerFeedbackRow {
@@ -305,6 +308,22 @@ export function useNatascha() {
     }
   }, []);
 
+  const updateFehlerStatus = useCallback(async (
+    fehlerId: number,
+    aktion: string | null,
+    lehrkraftKorrektur?: string,
+  ): Promise<boolean> => {
+    try {
+      return await invoke<boolean>('db_update_fehler_status', {
+        fehlerId,
+        aktion,
+        lehrkraftKorrektur: lehrkraftKorrektur ?? null,
+      });
+    } catch {
+      return false;
+    }
+  }, []);
+
   const listSchueler = useCallback(async (klasse: string): Promise<SchuelerInfo[]> => {
     try {
       return await invoke<SchuelerInfo[]>('db_list_schueler', { klasse });
@@ -508,6 +527,7 @@ export function useNatascha() {
     getAbgabeDetail,
     getKorrekturKontext,
     upsertLehrerFeedback,
+    updateFehlerStatus,
     listSchueler,
     insertSchueler,
     deleteSchueler,

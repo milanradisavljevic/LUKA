@@ -48,7 +48,10 @@ CREATE TABLE IF NOT EXISTS fehler_historie (
     zitat TEXT,
     korrektur TEXT,
     typ TEXT NOT NULL,
-    erklaerung TEXT
+    erklaerung TEXT,
+    vertrauensstufe TEXT,
+    lehrkraft_aktion TEXT,
+    lehrkraft_korrektur TEXT
 );
 
 CREATE TABLE IF NOT EXISTS lehrer_feedback (
