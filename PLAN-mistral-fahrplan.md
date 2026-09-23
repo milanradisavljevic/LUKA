@@ -45,9 +45,17 @@ Pfad: `apps/natascha/input/6i/Schularbeit_5/`
 | 1.4 Neue Fehlerkategorien (Rust) | klein | — | ✅ |
 | 0.1-0.2 Benchmark-Ordner + EH | klein | — | ✅ |
 | 1.7 Model-Map prüfen | klein | — | ✅ |
-| 2.1-2.3 Evaluation | groß | 1.1-1.6 | ⏳ |
-| 2.4 Neue Filter | mittel | 2.1-2.3 | ⏳ |
-| 3.1 Unsicherheits-Flag | mittel | 2.1-2.3 | ⏳ |
+| A: Batch-Runner | mittel | — | ✅ |
+| A2: 11 DOCX kopieren | klein | — | ✅ |
+| B1: drop_duplicate_fehler | klein | — | ✅ |
+| B2: validate_note_begrundung | klein | — | ✅ |
+| B3: verify_fehler_extent | klein | — | ✅ |
+| C: evaluiere.py | mittel | A | ✅ |
+| D: Gate + CHANGELOG | klein | A+C | ✅ |
+| **Live-Benchmark laufen lassen** | **groß** | **MISTRAL_API_KEY** | **⏳ NÄCHSTER SCHRITT** |
+| **Lehrkraft-Bewertung durchführen** | **groß** | **Live-Benchmark** | ⏳ |
+| **Gate-Entscheidung treffen** | **klein** | **Bewertung** | ⏳ |
+| 3.1 Unsicherheits-Flag | mittel | Gate | ⏳ |
 | 3.2 Lehrkraft-Interaktion | groß | 3.1 | ⏳ |
 
 ## Phase 0 – Ausgangslage absichern
