@@ -170,3 +170,140 @@ def test_reconstruct_feedback_from_db_ohne_kriterien_none(tmp_path: Path) -> Non
     db.insert_fehler(db_path, abgabe_id, "z", "k", "G")
     result = cli._reconstruct_feedback_from_db(db_path, abgabe_id, {"dateiname": "a.docx"})
     assert result is None
+
+
+# ── Fix: JSON-Pfad (Produktionsfall) respektiert Lehrkraft-Aktionen ─
+
+
+def _analyse_payload() -> dict:
+    """Minimal gueltiger Analyse-Payload wie ihn run_llm_analysis auf Platt legt."""
+    return {
+        "datei": "json-path.docx",
+        "textsorte": "Kommentar",
+        "fach": "Deutsch",
+        "schulstufe": "Oberstufe",
+        "rubrik": "srdp_deutsch_oberstufe.md",
+        "bewertung": {
+            "inhalt": {
+                "stufe": 3,
+                "punkte": 3,
+                "gewicht": 1.0,
+                "staerken": ["s"],
+                "schwaechen": ["w"],
+                "vorschlaege": ["v"],
+            }
+        },
+        "fehler": [
+            {"zitat": "offen", "korrektur": "KI-A", "typ": "G", "erklaerung": "e1"},
+            {"zitat": "raus", "korrektur": "KI-B", "typ": "R", "erklaerung": "e2"},
+            {"zitat": "geaendert", "korrektur": "KI-C", "typ": "Z", "erklaerung": "e3"},
+        ],
+    }
+
+
+def test_merge_lehrkraft_aktionen_json_pfad(tmp_path: Path) -> None:
+    db_path = tmp_path / "natascha.db"
+    db.init_db(db_path)
+    json_path = tmp_path / "analysis.json"
+    json_path.write_text(json.dumps(_analyse_payload()), encoding="utf-8")
+    abgabe_id = db.insert_abgabe(
+        db_path,
+        None, "CLI-TEST", "SA1", "json-path.docx", "h-json-pfad",
+        feedback_json_path=str(json_path),
+        fach="Deutsch", schulstufe="Oberstufe", textsorte="Kommentar",
+        rubrik="srdp_deutsch_oberstufe.md",
+    )
+    db.insert_kriterium(db_path, abgabe_id, "inhalt", 3.0, 0.5)
+    korrekturen = {"offen": "KI-A", "raus": "KI-B", "geaendert": "KI-C"}
+    typen = {"offen": "G", "raus": "R", "geaendert": "Z"}
+    for zitat in ("offen", "raus", "geaendert"):
+        db.insert_fehler(db_path, abgabe_id, zitat, korrekturen[zitat], typen[zitat])
+    with sqlite3.connect(db_path) as conn:
+        ids = [r[0] for r in conn.execute(
+            "SELECT id FROM fehler_historie WHERE abgabe_id=? ORDER BY id", (abgabe_id,)
+        )]
+    db.update_fehler_status(db_path, ids[1], "verworfen")
+    db.update_fehler_status(db_path, ids[2], "geaendert", "Lehrkraft-Text")
+
+    payload = json.loads(json_path.read_text(encoding="utf-8"))
+    cli._merge_lehrkraft_aktionen(db_path, abgabe_id, payload)
+    zitate = {f["zitat"]: f for f in payload["fehler"]}
+    assert zitate["offen"].get("lehrkraft_aktion") is None
+    assert zitate["raus"]["lehrkraft_aktion"] == "verworfen"
+    assert zitate["geaendert"]["lehrkraft_aktion"] == "geaendert"
+    assert zitate["geaendert"]["lehrkraft_korrektur"] == "Lehrkraft-Text"
+
+
+def test_feedback_docx_json_pfad_filtert_nach_lehrkraft(tmp_path: Path) -> None:
+    """Produktionspfad: JSON existiert + Aktionen in DB → DOCX ohne verworfene Fehler."""
+    import generate_feedback as gf
+
+    db_path = tmp_path / "natascha.db"
+    db.init_db(db_path)
+    json_path = tmp_path / "analysis.json"
+    json_path.write_text(json.dumps(_analyse_payload()), encoding="utf-8")
+    abgabe_id = db.insert_abgabe(
+        db_path,
+        None, "CLI-TEST", "SA1", "json-path.docx", "h-docx-pfad",
+        feedback_json_path=str(json_path),
+        fach="Deutsch", schulstufe="Oberstufe", textsorte="Kommentar",
+        rubrik="srdp_deutsch_oberstufe.md",
+    )
+    db.insert_kriterium(db_path, abgabe_id, "inhalt", 3.0, 0.5)
+    korrekturen = {"offen": "KI-A", "raus": "KI-B", "geaendert": "KI-C"}
+    typen = {"offen": "G", "raus": "R", "geaendert": "Z"}
+    for zitat in ("offen", "raus", "geaendert"):
+        db.insert_fehler(db_path, abgabe_id, zitat, korrekturen[zitat], typen[zitat])
+    with sqlite3.connect(db_path) as conn:
+        ids = [r[0] for r in conn.execute(
+            "SELECT id FROM fehler_historie WHERE abgabe_id=? ORDER BY id", (abgabe_id,)
+        )]
+    db.update_fehler_status(db_path, ids[1], "verworfen")
+    db.update_fehler_status(db_path, ids[2], "geaendert", "Lehrkraft-Text")
+
+    out = tmp_path / "feedback.docx"
+    result = run_cli(db_path, "feedback-docx", str(abgabe_id), "--output", str(out))
+    assert result["abgabe_id"] == abgabe_id
+    assert out.is_file()
+
+    # Gleicher Codepfad wie cmd_feedback_docx: JSON laden + Merge + parse
+    payload = json.loads(json_path.read_text(encoding="utf-8"))
+    cli._merge_lehrkraft_aktionen(db_path, abgabe_id, payload)
+    data = gf.parse_feedback_data(payload)
+    assert data.fehler is not None
+    zitate = [f.zitat for f in data.fehler]
+    assert "raus" not in zitate, "verworfener Fehler darf nicht im DOCX landen"
+    geaendert = next(f for f in data.fehler if f.zitat == "geaendert")
+    assert geaendert.korrektur == "Lehrkraft-Text"
+
+
+def test_load_rubric_header_safe_ueberlebt_non_utf8(tmp_path: Path) -> None:
+    """R1–R3-Regression: eine kaputte Rubrik-Datei darf list-rubrics nicht
+    crashen — der Header wird uebersprungen, der Dateiname bleibt sichtbar."""
+    # Ungueltige UTF-8-Sequenz (0xE4 ohne Continuation), die read_text()
+    # mit strict-utf-8 abstuerzen wuerde
+    bad = tmp_path / "kaputt.md"
+    bad.write_bytes(b"<!-- luka-rubrik\ntitel: Andr\xe4\xe4xxx\nfach: deutsch\n-->\n\n# Kaputt\n")
+    good = tmp_path / "gut.md"
+    good.write_text(
+        "<!-- luka-rubrik\n"
+        "titel: Saubere Rubrik\n"
+        "fach: deutsch\n"
+        "schulstufe: unterstufe\n"
+        "-->\n\n# Gute Rubrik\n",
+        encoding="utf-8",
+    )
+
+    import natascha_core as nc
+
+    result_bad = cli._load_rubric_header_safe(nc, bad, bad.name)
+    assert result_bad["filename"] == "kaputt.md"
+    # roher Text wird mit errors=replace gelesen; Header-Parser darf nicht werfen
+    assert isinstance(result_bad.get("titel", ""), str)
+
+    result_good = cli._load_rubric_header_safe(nc, good, good.name)
+    assert result_good["filename"] == "gut.md"
+    assert result_good["titel"] == "Saubere Rubrik"
+
+    missing = cli._load_rubric_header_safe(nc, tmp_path / "fehlt.md", "fehlt.md")
+    assert missing == {"filename": "fehlt.md"}

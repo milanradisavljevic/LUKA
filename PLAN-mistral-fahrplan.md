@@ -190,6 +190,19 @@ Kein Ergebnis wird ungeprüft übernommen.
 
 **Verifikation 4B:** Python 216 ✅ · Web 232 ✅ · Typecheck OK · Cargo 105+2ignored ✅ · ruff (neue Files) OK.
 
+### 4B-fix — „Bewertungsraster konnten nicht geladen werden" (✅ erledigt 2026-09-23)
+
+| # | Aufgabe | Datei | Status |
+|---|---------|-------|--------|
+| R1 | stderr in `run_cli_and_capture` puffern → `categorize_cli_error` statt stdout (Tracebacks wieder sichtbar) | `natascha.rs` | ✅ |
+| R2 | `listRubrics`-Catch hängt Original-Details an die generische Meldung an | `useNatascha.ts` | ✅ |
+| R3 | `cmd_list_rubrics` liest Rubrikdateien mit `errors="replace"` / überspringt unlesbare — eine defekte Datei crasht nicht das gesamte Listing | `natascha_cli.py` | ✅ |
+| R4 | Readiness-`probe_command` nutzt `list-rubrics` statt `analyze --help` (Testet Config/DB/Rubriken wirklich) | `natascha.rs` | ✅ |
+| R5 | Regression: `_load_rubric_header_safe` mit ungültigem UTF-8 | `tests/test_cli_e2e.py` | ✅ +1 |
+| R6 | JSON-Pfad `cmd_feedback_docx`: Lehrkraft-Aktionen aus DB in Analyse-JSON mergen (verworfen/geändert respektiert) + Fixture-Pflichtfelder (`punkte`/`vorschlaege`) | `natascha_cli.py`, `tests/test_cli_e2e.py` | ✅ +2 |
+
+**Verifikation R1–R6:** Python 219 ✅ · Web 232 ✅ · Typecheck OK · Cargo 105+2ignored ✅ · ruff (neue Files) OK.
+
 ### 4C — Benchmark-Diversifizierung — offen
 
 | # | Aufgabe | Datei |

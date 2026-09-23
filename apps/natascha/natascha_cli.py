@@ -368,6 +368,58 @@ def _apply_provider_override(config: dict, args) -> dict:
     return cfg
 
 
+def _norm_aktion_key(text) -> str:
+    """Kanonische Form fuer Zitat/Korrektur-Matching (identisch zur Duplikat-Erkennung)."""
+    return " ".join((str(text or "")).split()).lower()
+
+
+def _merge_lehrkraft_aktionen(db_path, abgabe_id, payload: dict) -> None:
+    """Mischt Lehrkraft-Entscheidungen aus fehler_historie in den Analyse-Payload.
+
+    Im LUA-Flow liegt zur Analyse immer ein Feedback-JSON auf Platte
+    (feedback_json_path), die Lehrkraft-Aktionen (verworfen/geaendert) stehen
+    aber nur in der DB. Ohne diesen Merge wuerde feedback-docx verworfene
+    Fehler trotzdem ins DOCX schreiben. Gematcht wird ueber normalisiertes
+    (zitat, korrektur, typ); Eintraege ohne typ fallen auf (zitat, korrektur)
+    zurueck.
+    """
+    import sqlite3
+
+    try:
+        with sqlite3.connect(str(db_path)) as conn:
+            rows = conn.execute(
+                "SELECT zitat, korrektur, typ, lehrkraft_aktion, lehrkraft_korrektur"
+                " FROM fehler_historie WHERE abgabe_id = ? AND lehrkraft_aktion IS NOT NULL",
+                (abgabe_id,),
+            ).fetchall()
+    except sqlite3.Error:
+        return
+
+    aktionen: dict[tuple[str, str, str], tuple[str, str | None]] = {}
+    for zitat, korrektur, typ, aktion, lehrkraft_korrektur in rows:
+        zitat_key = _norm_aktion_key(zitat)
+        korrektur_key = _norm_aktion_key(korrektur)
+        typ_key = _norm_aktion_key(typ)
+        aktionen[(zitat_key, korrektur_key, typ_key)] = (aktion, lehrkraft_korrektur)
+        # Sekundaerschluessel ohne typ fuer Payloads, deren Eintraege kein typ tragen
+        aktionen.setdefault((zitat_key, korrektur_key, ""), (aktion, lehrkraft_korrektur))
+
+    for fehler in payload.get("fehler") or []:
+        if not isinstance(fehler, dict):
+            continue
+        zitat_key = _norm_aktion_key(fehler.get("zitat"))
+        korrektur_key = _norm_aktion_key(fehler.get("korrektur"))
+        treffer = aktionen.get((zitat_key, korrektur_key, _norm_aktion_key(fehler.get("typ"))))
+        if treffer is None:
+            treffer = aktionen.get((zitat_key, korrektur_key, ""))
+        if treffer is None:
+            continue
+        aktion, lehrkraft_korrektur = treffer
+        fehler["lehrkraft_aktion"] = aktion
+        if aktion == "geaendert" and lehrkraft_korrektur:
+            fehler["lehrkraft_korrektur"] = lehrkraft_korrektur
+
+
 def _reconstruct_feedback_from_db(db_path, abgabe_id, abgabe):
     """Baut FeedbackData direkt aus DB-Tabellen, wenn kein JSON auf Platte liegt.
     Kriterien-Texte (Staerken/Schwaachen/Vorschlaege) sind leer — nur Struktur."""
@@ -472,9 +524,18 @@ def cmd_feedback_docx(args):
     abgabe = dict(row)
 
     feedback_json_path = abgabe.get("feedback_json_path", "")
+    data = None
     if feedback_json_path and Path(feedback_json_path).is_file():
-        data = gf.load_feedback_json(Path(feedback_json_path))
-    else:
+        try:
+            payload = json.loads(Path(feedback_json_path).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            payload = None
+        if isinstance(payload, dict):
+            # Lehrkraft-Entscheidungen (DB) in den Analyse-Payload einmischen,
+            # BEVOR parse_feedback_data verworfene/geaenderte Fehler umsetzt.
+            _merge_lehrkraft_aktionen(db_path, abgabe_id, payload)
+            data = gf.parse_feedback_data(payload)
+    if data is None:
         data = _reconstruct_feedback_from_db(db_path, abgabe_id, abgabe)
         if data is None:
             print("Kein Feedback-JSON und keine Kriterien in der DB fuer diese Abgabe", file=sys.stderr)
@@ -577,6 +638,23 @@ def cmd_add_aufgabe(args):
     return 0
 
 
+def _load_rubric_header_safe(nc, path: Path, filename: str) -> dict:
+    """Liest den Rubrik-Header robuster: Encoding-/IO-Fehler duerfen das
+    Gesamt-Listing nicht abbrechen (eine kaputte Datei wuerde sonst alle
+    Raster unsichtbar machen)."""
+    if not path.exists():
+        return {"filename": filename}
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return {"filename": filename}
+    try:
+        header = nc.parse_rubrik_header(text)
+    except Exception:
+        header = {}
+    return {"filename": filename, **header}
+
+
 def cmd_list_rubrics(args):
     nc, ndb, config, db_path = _load_env_and_config()
     fach = args.fach or config.get("defaults", {}).get("fach", "")
@@ -585,9 +663,7 @@ def cmd_list_rubrics(args):
     rubrics_dir = nc.resolve_path(config, "rubrics")
     rubrics = []
     for filename in filenames:
-        path = rubrics_dir / filename
-        header = nc.parse_rubrik_header(path.read_text(encoding="utf-8")) if path.exists() else {}
-        rubrics.append({"filename": filename, **header})
+        rubrics.append(_load_rubric_header_safe(nc, rubrics_dir / filename, filename))
     _json_out({
         "rubrics": rubrics,
         "defaultRubric": nc.default_rubric_for(fach, schulstufe, config),

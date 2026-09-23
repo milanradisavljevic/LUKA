@@ -27,6 +27,13 @@
 
 ### Bugfixes
 
+- **`list-rubrics` robuster:** Ungültige UTF-8-Rubrikdateien oder OS-Fehler
+  brechen das Listing nicht mehr ab — betroffene Dateien liefern nur den
+  Dateinamen, der Rest bleibt nutzbar (`_load_rubric_header_safe`).
+- **JSON-Pfad DOCX:** `cmd_feedback_docx` mischt Lehrkraft-Aktionen aus
+  `fehler_historie` in die Analyse-JSON ein (`_merge_lehrkraft_aktionen`),
+  bevor `parse_feedback_data` verworfene/geänderte Fehler umsetzt — der
+  Produktionspfad (JSON auf Platte) filtert jetzt wie der DB-Rekonstruktionspfad.
 - **Duplikat-Check:** `run_llm_analysis` nutzt jetzt `db_path_override` für den
   Hash-Check — Wechseln der DB wird nicht mehr durch alte Einträge blockiert.
 - **429-Retry:** Outer Loop wiederholt bei Rate-Limit mit Backoff (5s/10s/15s,
@@ -34,8 +41,9 @@
 
 ### Tests
 
-- **Phase 4B:** +24 Tests (Lehrkraft-Aktionen, Migration, DOCX-Filterung beider
-  Pfade, Token-Budget, Mistral-kein-Fallback). Stand: **216 Python-Tests grün**.
+- **Phase 4B + Fixes:** +27 Tests (Lehrkraft-Aktionen, Migration, DOCX-Filterung
+  beider Pfade inkl. JSON-Pfad-Merge, Token-Budget, Mistral-kein-Fallback,
+  Rubrik-Header-Encoding). Stand: **219 Python-Tests grün**.
 - Phase 3+2: 192 Tests (+7 Vertrauensstufe, +14 Phase-2-Filter).
 
 ## [0.7.9] – 2026-05-30

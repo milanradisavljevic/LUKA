@@ -361,7 +361,11 @@ export function useNatascha() {
         dir: s.nataschaDir ?? '', python: s.pythonCommand ?? '', fach, schulstufe,
       });
       return JSON.parse(result) as RubrikListe;
-    } catch { throw new Error('Bewertungsraster konnten nicht geladen werden. Bitte erneut versuchen.'); }
+    } catch (e) {
+      const detail = e instanceof Error ? e.message : String(e);
+      const suffix = detail && detail !== 'undefined' ? ` (${detail})` : '';
+      throw new Error(`Bewertungsraster konnten nicht geladen werden. Bitte erneut versuchen.${suffix}`);
+    }
   }, []);
 
   const deleteSchueler = useCallback(async (schuelerId: number): Promise<void> => {

@@ -7,6 +7,13 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## Unveröffentlicht
 
+### Fehlerbehebung — Bewertungsraster-Liste
+- Beim Laden der Bewertungsraster im Korrektur-Dialog erschien manchmal „Bewertungsraster konnten nicht geladen werden", auch wenn die App einsatzbereit war. Die echte Fehlerursache (z. B. eine beschädigte Raster-Datei oder ein Python-Fehler) wurde bisher durch eine generische Meldung verdeckt. Der Klarertext und die Startprüfung zeigen jetzt die tatsächliche Ursache.
+- Eine einzelne unlesbare Raster-Datei blockiert nicht mehr das gesamte Raster-Listing; die übrigen Raster bleiben nutzbar.
+
+### Fehlerbehebung — Feedback-DOCX mit gespeicherter Analyse
+- Wird eine Analyse-JSON aus der DB exportiert, fließen die Lehrkraft-Entscheidungen (verworfen/geändert) jetzt auch in diesen Pfad ein — verworfene Fehler landen nicht mehr im DOCX, geänderte nutzen den Lehrkraft-Text.
+
 ### Vertrauensstufen & Lehrkraft-Steuerung (Phase 3)
 - Jeder KI-Korrekturvorschlag zeigt eine Vertrauensstufe (grün/gelb/rot) — die Lehrkraft sieht sofort, welche Vorschläge sicher und welche unsicher sind.
 - Einzelne Vorschläge können übernommen, geändert oder verworfen werden — die Entscheidung wird gespeichert und ins Feedback-DOCX übernommen.

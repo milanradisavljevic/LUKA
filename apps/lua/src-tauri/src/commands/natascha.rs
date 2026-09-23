@@ -360,31 +360,38 @@ fn build_cli_command(dir: &str, python: &str) -> Result<Command, String> {
     Ok(cmd)
 }
 
-/// Führt einen nicht-destruktiven Starttest aus. `--help` beendet sich vor
-/// jeder Datenbank- oder LLM-Initialisierung und prüft trotzdem, ob das
-/// gebündelte bzw. konfigurierte Modul tatsächlich ausführbar ist.
+/// Führt einen nicht-destruktiven Starttest aus. `list-rubrics` lädt Config,
+/// DB und die Rubrikdateien — also genau die Pfade, die der Korrektur-Dialog
+/// später braucht. Frühere `--help`-Proben endeten vor `_load_env_and_config`
+/// und meldeten „einsatzbereit", obwohl Imports/Config/Rubriken defekt.
 async fn probe_command(mut cmd: Command) -> Result<(), String> {
     cmd.kill_on_drop(true);
-    let output = timeout(Duration::from_secs(8), cmd.arg("--help").output())
+    cmd.arg("list-rubrics");
+    let output = timeout(Duration::from_secs(15), cmd.output())
         .await
         .map_err(|_| "Die Prüfung des Korrektur-Moduls hat zu lange gedauert.".to_string())?
         .map_err(|e| format!("Korrektur-Modul konnte nicht gestartet werden: {e}"))?;
     if output.status.success() {
         Ok(())
     } else {
-        let detail = String::from_utf8_lossy(&output.stderr).trim().to_string();
-        Err(if detail.is_empty() {
-            format!("Korrektur-Modul beendet sich mit Status {}.", output.status)
-        } else {
-            detail
-        })
+        let detail = {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let combined = format!("{stderr}\n{stdout}");
+            let trimmed = combined.trim().to_string();
+            if trimmed.is_empty() {
+                format!("Korrektur-Modul beendet sich mit Status {}.", output.status)
+            } else {
+                categorize_cli_error(&trimmed)
+            }
+        };
+        Err(detail)
     }
 }
 
 async fn natascha_status(dir: &str, python: &str) -> NataschaStatus {
     if let Some(sidecar) = bundled_cli() {
-        let mut cmd = background_command(sidecar);
-        cmd.arg("analyze");
+        let cmd = background_command(sidecar);
         return status_from_probe("bundled", probe_command(cmd).await);
     }
 
@@ -449,13 +456,21 @@ async fn run_cli_and_capture(
     emit_progress(app, Some(job_id), "start", format!("{label} gestartet"));
 
     // stderr zeilenweise lesen — Python schreibt JSON-Fortschritts-Events.
+    // Nicht-JSON-Zeilen (Tracebacks, Warnungen) werden zusätzlich gepuffert,
+    // damit `categorize_cli_error` beim Fehlschlag echte Details liefern kann.
     let stderr = child.stderr.take().expect("stderr muss piped sein");
     let app_clone = app.cloned();
     let stderr_task = tokio::spawn(async move {
         let mut reader = BufReader::new(stderr).lines();
+        let mut captured = String::new();
         while let Ok(Some(line)) = reader.next_line().await {
             emit_stderr_progress(&line, app_clone.as_ref(), job_id);
+            if !line.trim().is_empty() {
+                captured.push_str(&line);
+                captured.push('\n');
+            }
         }
+        captured
     });
 
     // stdout komplett lesen (JSON-Ergebnis).
@@ -497,7 +512,7 @@ async fn run_cli_and_capture(
         }
     };
 
-    let _ = stderr_task.await;
+    let stderr_captured = stderr_task.await.unwrap_or_default();
     ACTIVE_PROCESSES.lock().map_err(|_| "Prozessstatus nicht verfügbar")?.remove(&job_id);
 
     if !status.success() {
@@ -507,8 +522,13 @@ async fn run_cli_and_capture(
             "error",
             format!("{label} fehlgeschlagen"),
         );
-        // stderr wurde bereits gelesen; falls noch Reste da sind, erfassen.
-        return Err(categorize_cli_error(&stdout_result));
+        // stderr (Tracebacks etc.) hat Vorrang; stdout nur als Fallback.
+        let detail_source = if stderr_captured.trim().is_empty() {
+            stdout_result.as_str()
+        } else {
+            stderr_captured.as_str()
+        };
+        return Err(categorize_cli_error(detail_source));
     }
     emit_progress(app, Some(job_id), "done", format!("{label} abgeschlossen"));
     Ok(stdout_result.trim().to_string())
