@@ -360,6 +360,30 @@ export function checkLernzielCoverage(doc: DocumentV1, meta: { lernziele?: strin
 }
 
 // ---------------------------------------------------------------------------
+// 5b) Fehlerkorrektur: Anzahl Saetze (advisory)
+// ---------------------------------------------------------------------------
+
+/** Warnung, wenn die KI weniger Sätze erzeugt hat als die Lehrkraft vorgegeben hat. */
+export function checkFehlerkorrekturAnzahl(doc: DocumentV1): QualityIssue[] {
+  const issues: QualityIssue[] = [];
+  for (const block of doc.bloecke) {
+    if (block.typ !== 'fehlerkorrektur') continue;
+    const cfg = block.config as { anzahlSaetze?: number; saetze?: unknown[] };
+    const soll = cfg.anzahlSaetze;
+    if (soll == null) continue;
+    const ist = cfg.saetze?.length ?? 0;
+    if (ist < soll) {
+      issues.push({
+        blockId: block.id,
+        severity: 'warning',
+        message: `Fehlerkorrektur: nur ${ist} von ${soll} angeforderten Saetzen erzeugt.`,
+      });
+    }
+  }
+  return issues;
+}
+
+// ---------------------------------------------------------------------------
 // 6) LLM-Judge-Hook (Stub fuer spaetere Anbindung)
 // ---------------------------------------------------------------------------
 
@@ -418,6 +442,7 @@ export async function runQualityChecks(
       ...checkDuplicates(doc),
       ...checkDuplicateQuestions(doc),
       ...checkLernzielCoverage(doc, meta ?? {}),
+      ...checkFehlerkorrekturAnzahl(doc),
     ];
     let judge: LlmJudgeResult = { score: 1, issues: [] };
     if (judgeCfg?.enabled !== false && complete) {
@@ -446,6 +471,7 @@ export async function runQualityChecks(
     ...checkDuplicateQuestions(doc),
     ...checkSchreibaufgabe(doc, quelltexte),
     ...checkLernzielCoverage(doc, meta ?? {}),
+    ...checkFehlerkorrekturAnzahl(doc),
   ];
   // Audit A5: umformung/fehlerkorrektur tragen KI-erfundene Musterlösungen auch im
   // Text-Modus (Quelltext-Grounding greift dort nicht). Der Kompetenz-Judge prüft

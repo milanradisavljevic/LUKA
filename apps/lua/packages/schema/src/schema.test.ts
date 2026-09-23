@@ -1073,6 +1073,25 @@ describe('FehlerkorrekturBlockSchema', () => {
     });
     expect(result.success).toBe(false);
   });
+
+  it('accepts optional anzahlSaetze in config', () => {
+    const result = FehlerkorrekturBlockSchema.safeParse({
+      id: 'b13',
+      typ: 'fehlerkorrektur',
+      punkte: 4,
+      arbeitsanweisung: 'Korrigiere.',
+      config: {
+        eingabemodus: 'ki',
+        anzahlSaetze: 6,
+        saetze: [{ nr: 1, satz: 'X', anzahlFehler: 1 }],
+      },
+      loesung: { korrekturen: [{ nr: 1, korrigierterSatz: 'Y', fehler: [{ stelle: 'X', art: 'R' }] }] },
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect((result.data.config as { anzahlSaetze?: number }).anzahlSaetze).toBe(6);
+    }
+  });
 });
 
 // ---------------------------------------------------------------------------

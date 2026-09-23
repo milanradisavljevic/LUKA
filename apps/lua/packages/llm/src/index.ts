@@ -16,7 +16,7 @@ export { refineDocument, type RefineComplete } from './refine.js';
 export { normalizeDocument } from './normalize.js';
 export { transformToSchema } from './transform.js';
 export { buildRepairMessage } from './prompt.js';
-export { runQualityChecks, checkGrounding, checkDuplicates, checkSchreibaufgabe, checkLernzielCoverage, llmJudgeHook, type QualityIssue, type LlmJudgeResult, type QualityCheckResult } from './quality.js';
+export { runQualityChecks, checkGrounding, checkDuplicates, checkSchreibaufgabe, checkLernzielCoverage, checkFehlerkorrekturAnzahl, llmJudgeHook, type QualityIssue, type LlmJudgeResult, type QualityCheckResult } from './quality.js';
 export { runJudge, istRisikoTyp } from './judge.js';
 
 export { getProvider } from './provider-registry.js';

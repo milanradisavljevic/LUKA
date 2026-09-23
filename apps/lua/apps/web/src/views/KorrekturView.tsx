@@ -93,13 +93,6 @@ function annotateText(
   for (const f of fehler) {
     if (!f.zitat) continue;
     const aktion = aktionen?.[f.id]?.aktion ?? f.lehrkraftAktion ?? null;
-    if (aktion === 'verworfen') {
-      // verworfene Fehler: markieren aber grau + durchgestrichen
-      const idx = uniqueTextAnchor(text, f.zitat);
-      if (idx === null) continue;
-      segs.push({ start: idx, end: idx + f.zitat.length, typ: f.typ, aktion });
-      continue;
-    }
     const idx = uniqueTextAnchor(text, f.zitat);
     if (idx === null) continue;
     segs.push({ start: idx, end: idx + f.zitat.length, typ: f.typ, aktion });
@@ -489,12 +482,14 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
       selectedAbgabe.abgabe.schuelerId ?? null,
     );
     // Phase 3: offene Lehrkraft-Aktionen an DB senden
+    let aktionenOk = true;
     if (ok) {
       const pending = Object.entries(fehlerAktionen).filter(([id, a]) => a.aktion !== null);
       for (const [idStr, a] of pending) {
-        await updateFehlerStatus(Number(idStr), a.aktion, a.korrektur);
+        const saved = await updateFehlerStatus(Number(idStr), a.aktion, a.korrektur);
+        if (!saved) aktionenOk = false;
       }
-      if (pending.length > 0) {
+      if (pending.length > 0 && aktionenOk) {
         setSelectedAbgabe(current => {
           if (!current || current.abgabe.id !== selectedAbgabe.abgabe.id) return current;
           return {
@@ -509,13 +504,15 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
         setFehlerAktionen({});
       }
     }
-    if (ok) {
+    if (ok && aktionenOk) {
       setSaveMsg('Freigegeben und gespeichert');
       setFeedbackDrafts(previous=>{const next={...previous};const draft=next[selectedAbgabe.abgabe.id];if(!draft || (draft.note===savedNote && draft.comment===savedComment))delete next[selectedAbgabe.abgabe.id];return next;});
       setTimeout(() => setSaveMsg(null), 2000);
       const savedFeedback={id:selectedAbgabe.lehrerFeedback?.id ?? 0,noteFinal:note,noteAppSnapshot:selectedAbgabe.abgabe.note,lehrerKommentar:teacherComment || null,erstelltAm:null,geaendertAm:null};
       setSelectedAbgabe(current=>current?.abgabe.id===selectedAbgabe.abgabe.id ? {...current,lehrerFeedback:savedFeedback,abgabe:{...current.abgabe,hatLehrerFeedback:true,noteFinal:note}} : current);
       setAbgaben(rows=>rows.map(row=>row.id===selectedAbgabe.abgabe.id ? {...row,hatLehrerFeedback:true,noteFinal:note}:row));
+    } else if (ok) {
+      setError('Feedback gespeichert, aber Lehrkraft-Aktionen konnten nicht gespeichert werden — bitte erneut speichern.');
     } else {
       setError('Speichern fehlgeschlagen');
     }

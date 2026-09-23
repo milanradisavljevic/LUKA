@@ -669,3 +669,21 @@ def test_update_fehler_status_korrektur_nur_bei_geaendert(db_path: Path) -> None
 
 def test_update_fehler_status_unbekannte_id_false(db_path: Path) -> None:
     assert db.update_fehler_status(db_path, 99999, "uebernommen") is False
+
+
+def test_update_fehler_status_lehnt_ungueltige_aktion_ab(db_path: Path) -> None:
+    abgabe_id = db.insert_abgabe(db_path, None, "6A", "SA1", "a.docx", "h1")
+    db.insert_fehler(db_path, abgabe_id, "Zitat", "KI-Korrektur", "G")
+    fid = _last_fehler_id(db_path)
+
+    with pytest.raises(ValueError, match="Ungueltige Aktion"):
+        db.update_fehler_status(db_path, fid, "quatsch")
+
+    with sqlite3.connect(db_path) as conn:
+        row = conn.execute(
+            "SELECT lehrkraft_aktion FROM fehler_historie WHERE id=?", (fid,)
+        ).fetchone()
+    assert row == (None,)
+
+    # None bleibt erlaubt (Zuruecksetzen)
+    assert db.update_fehler_status(db_path, fid, None) is True

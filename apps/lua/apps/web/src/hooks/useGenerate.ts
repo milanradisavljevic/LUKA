@@ -63,7 +63,7 @@ const PROVIDER_MAP = {
 // Modellnamen werden mit der Korrektur gemeinsam aufgelöst.
 
 
-function blockToRequest(block: Block): BlockRequest {
+export function blockToRequest(block: Block): BlockRequest {
   const base = { punkte: block.punkte, quelleId: block.quelleId, hinweis: block.hinweis };
   switch (block.typ) {
     case 'lueckentext':
@@ -132,7 +132,7 @@ function blockToRequest(block: Block): BlockRequest {
       const manuell = block.config.eingabemodus === 'manuell';
       const gefuellt = (block.config.saetze ?? []).filter((s) => s.satz.trim().length > 0);
       return { ...base, typ: 'fehlerkorrektur',
-        anzahlSaetze: block.config.saetze.length,
+        anzahlSaetze: Math.max(1, block.config.anzahlSaetze ?? block.config.saetze?.length ?? 1),
         ...(manuell && gefuellt.length > 0 ? { saetze: gefuellt } : {}) };
     }
     case 'roleplay': {

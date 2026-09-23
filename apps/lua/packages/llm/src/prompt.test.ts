@@ -349,6 +349,20 @@ describe('buildMessages — Kompetenz-Modus', () => {
     expect(system.content).toContain('Command Terms');
   });
 
+  it('fehlerkorrektur: anzahlSaetze im System-Prompt (GENAU-N-Regel) und als verbindliche Vorgabe', () => {
+    const messages = buildMessages({
+      meta: baseMeta,
+      quelltexte: [{ id: 'q1', titel: 'Test', inhalt: 'Text.', herkunft: { typ: 'upload' as const, ref: 't.docx' } }],
+      bloecke: [{ typ: 'fehlerkorrektur' as const, punkte: 4, anzahlSaetze: 6 }],
+      stoffItems: [],
+    });
+    const system = messages.find((m) => m.role === 'system')!;
+    expect(system.content).toContain('GENAU anzahlSaetze Saetze');
+    expect(system.content).toContain('anzahlSaetze');
+    const user = messages.find((m) => m.role === 'user')!;
+    expect(user.content).toContain('"anzahlSaetze": 6');
+  });
+
   it('Text-Modus bleibt unveraendert (Default ohne modus)', () => {
     const system = buildMessages(input()).find((m) => m.role === 'system')!;
     expect(system.content).toContain('Leite alle Inhalte strikt aus den gegebenen Quelltexten ab');

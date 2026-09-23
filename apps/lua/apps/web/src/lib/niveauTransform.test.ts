@@ -117,6 +117,7 @@ describe('transformiereLeicht — geschlossene Typen', () => {
     const doc = makeDoc([{
       typ: 'fehlerkorrektur',
       config: {
+        anzahlSaetze: 5,
         saetze: [
           { nr: 1, satz: 'S1', anzahlFehler: 1 },
           { nr: 2, satz: 'S2', anzahlFehler: 1 },
@@ -129,6 +130,7 @@ describe('transformiereLeicht — geschlossene Typen', () => {
     const result = transformiereLeicht(doc);
     const cfg = result.bloecke[0]!.config as any;
     expect(cfg.saetze.length).toBe(3);
+    expect(cfg.anzahlSaetze).toBe(3);
   });
 
   it('wordScramble: max. 4 Sätze', () => {

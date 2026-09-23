@@ -295,6 +295,12 @@ pub(crate) fn update_fehler_status_impl(
     aktion: Option<String>,
     lehrkraft_korrektur: Option<String>,
 ) -> Result<bool, String> {
+    // Whitelist analog natascha_db.update_fehler_status
+    if let Some(a) = aktion.as_deref() {
+        if !matches!(a, "uebernommen" | "geaendert" | "verworfen") {
+            return Err(format!("Ungueltige Aktion: {}", a));
+        }
+    }
     // bei 'geaendert' den Korrekturtext speichern, sonst zuruecksetzen
     let korrektur = if aktion.as_deref() == Some("geaendert") {
         lehrkraft_korrektur
@@ -1433,5 +1439,25 @@ mod tests {
     fn update_fehler_status_unbekannte_id_false() {
         let conn = setup();
         assert!(!update_fehler_status_impl(&conn, 99999, Some("uebernommen".into()), None).unwrap());
+    }
+
+    #[test]
+    fn update_fehler_status_lehnt_ungueltige_aktion_ab() {
+        let conn = setup();
+        seed(&conn);
+        let fid: i64 = conn.query_row(
+            "SELECT id FROM fehler_historie ORDER BY id LIMIT 1", [], |r| r.get(0),
+        ).unwrap();
+
+        let err = update_fehler_status_impl(&conn, fid, Some("quatsch".into()), None).unwrap_err();
+        assert!(err.contains("Ungueltige Aktion"));
+        let aktion: Option<String> = conn.query_row(
+            "SELECT lehrkraft_aktion FROM fehler_historie WHERE id=?1",
+            rusqlite::params![fid], |r| r.get(0),
+        ).unwrap();
+        assert_eq!(aktion, None);
+
+        // None bleibt erlaubt (Zuruecksetzen)
+        assert!(update_fehler_status_impl(&conn, fid, None, None).unwrap());
     }
 }

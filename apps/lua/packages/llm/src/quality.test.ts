@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { checkGrounding, checkDuplicates, checkDuplicateQuestions, runQualityChecks, llmJudgeHook, checkSchreibaufgabe, checkLernzielCoverage } from './quality.js';
+import { checkGrounding, checkDuplicates, checkDuplicateQuestions, runQualityChecks, llmJudgeHook, checkSchreibaufgabe, checkLernzielCoverage, checkFehlerkorrekturAnzahl } from './quality.js';
 import type { DocumentV1, QuellText } from '@lehrunterlagen/schema';
 
 const mockMeta = {
@@ -324,6 +324,49 @@ describe('runQualityChecks', () => {
     );
     expect(calls).toBe(0);
     expect(issues.filter((i) => i.message.includes('Kompetenz-Judge:'))).toHaveLength(0);
+  });
+});
+
+describe('checkFehlerkorrekturAnzahl', () => {
+  const fehlerkorrekturDoc = (anzahlSaetze: number | undefined, saetzeLen: number): DocumentV1 => ({
+    schemaVersion: '0.1.0',
+    meta: mockMeta,
+    quelltexte: mockQuelltexte,
+    bloecke: [
+      {
+        id: 'b1',
+        typ: 'fehlerkorrektur',
+        punkte: 4,
+        arbeitsanweisung: 'Finde und korrigiere die Fehler.',
+        config: {
+          ...(anzahlSaetze != null ? { anzahlSaetze } : {}),
+          saetze: Array.from({ length: saetzeLen }, (_, i) => ({
+            nr: i + 1,
+            satz: `Satz ${i + 1} mit test.`,
+            anzahlFehler: 1,
+          })),
+        },
+        loesung: {
+          korrekturen: Array.from({ length: saetzeLen }, (_, i) => ({
+            nr: i + 1,
+            korrigierterSatz: `Satz ${i + 1} mit Test.`,
+            fehler: [{ stelle: 'test', art: 'R' as const }],
+          })),
+        },
+      },
+    ],
+  });
+
+  it('warnt wenn weniger Saetze als anzahlSaetze erzeugt wurden', () => {
+    const issues = checkFehlerkorrekturAnzahl(fehlerkorrekturDoc(6, 3));
+    expect(issues).toHaveLength(1);
+    expect(issues[0]!.severity).toBe('warning');
+    expect(issues[0]!.message).toContain('3 von 6');
+  });
+
+  it('ist still wenn Anzahl passt oder anzahlSaetze fehlt', () => {
+    expect(checkFehlerkorrekturAnzahl(fehlerkorrekturDoc(4, 4))).toHaveLength(0);
+    expect(checkFehlerkorrekturAnzahl(fehlerkorrekturDoc(undefined, 2))).toHaveLength(0);
   });
 });
 

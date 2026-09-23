@@ -655,6 +655,8 @@ export const FehlerkorrekturBlockSchema = BlockBaseSchema.extend({
   typ: z.literal('fehlerkorrektur'),
   config: z.object({
     eingabemodus: z.enum(['ki', 'manuell']).optional(),
+    // Lehrkraft-Vorgabe: genau diese Anzahl Saetze erzeugen (KI-Modus).
+    anzahlSaetze: z.number().int().positive().optional(),
     saetze: z.array(z.object({
       nr: z.number().int().positive(),
       satz: z.string().min(1),

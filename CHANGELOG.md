@@ -14,6 +14,14 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 ### Fehlerbehebung — Feedback-DOCX mit gespeicherter Analyse
 - Wird eine Analyse-JSON aus der DB exportiert, fließen die Lehrkraft-Entscheidungen (verworfen/geändert) jetzt auch in diesen Pfad ein — verworfene Fehler landen nicht mehr im DOCX, geänderte nutzen den Lehrkraft-Text.
 
+### Fehlerbehebung — Korrektur-Modul speichern & Aktionen
+- Beim Speichern von Feedback werden Lehrkraft-Aktionen (übernehmen/ändern/verwerfen) auf Erfolg geprüft. Schlägt eine Aktion fehl, bleiben die offenen Aktionen erhalten und eine verständliche Meldung erscheint — nichts geht still verloren.
+- Ungültige Aktionen werden auf DB-Seite abgelehnt, statt still zu speichern.
+
+### Fehlerbehebung — Fehlerkorrektur: „Anzahl Sätze"
+- Die in den Bloeck-Einstellungen gewählte Anzahl an Sätzen wird im KI-Modus jetzt zuverlässig an die Generierung übergeben — vorher konnte die Auswahl wirkungslos bleiben.
+- Die Anweisung an das KI-Modell ist präziser (genau N Sätze, fortlaufende Nummerierung). Fehlen danach Sätze, erscheint eine Warnung in der Qualitätsprüfung.
+
 ### Vertrauensstufen & Lehrkraft-Steuerung (Phase 3)
 - Jeder KI-Korrekturvorschlag zeigt eine Vertrauensstufe (grün/gelb/rot) — die Lehrkraft sieht sofort, welche Vorschläge sicher und welche unsicher sind.
 - Einzelne Vorschläge können übernommen, geändert oder verworfen werden — die Entscheidung wird gespeichert und ins Feedback-DOCX übernommen.

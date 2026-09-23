@@ -27,6 +27,9 @@
 
 ### Bugfixes
 
+- **Aktionen-Whitelist:** `update_fehler_status()` akzeptiert nur noch
+  `uebernommen | geaendert | verworfen | NULL` und wirft bei sonstigen Werten
+  einen `ValueError` — ungültige Werte landen nicht still in der DB.
 - **`list-rubrics` robuster:** Ungültige UTF-8-Rubrikdateien oder OS-Fehler
   brechen das Listing nicht mehr ab — betroffene Dateien liefern nur den
   Dateinamen, der Rest bleibt nutzbar (`_load_rubric_header_safe`).
@@ -41,9 +44,9 @@
 
 ### Tests
 
-- **Phase 4B + Fixes:** +27 Tests (Lehrkraft-Aktionen, Migration, DOCX-Filterung
-  beider Pfade inkl. JSON-Pfad-Merge, Token-Budget, Mistral-kein-Fallback,
-  Rubrik-Header-Encoding). Stand: **219 Python-Tests grün**.
+- **Phase 4B + Fixes:** +28 Tests (Lehrkraft-Aktionen inkl. Ungültig-Wert,
+  Migration, DOCX-Filterung beider Pfade inkl. JSON-Pfad-Merge, Token-Budget,
+  Mistral-kein-Fallback, Rubrik-Header-Encoding). Stand: **220 Python-Tests grün**.
 - Phase 3+2: 192 Tests (+7 Vertrauensstufe, +14 Phase-2-Filter).
 
 ## [0.7.9] – 2026-05-30

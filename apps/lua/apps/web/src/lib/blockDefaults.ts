@@ -184,6 +184,8 @@ export function createDefaultBlock(typ: Block['typ'], meta?: Meta): Block {
         ...base,
         typ: 'fehlerkorrektur',
         config: {
+          eingabemodus: 'ki',
+          anzahlSaetze: 1,
           saetze: [{ nr: 1, satz: '', anzahlFehler: 1 }],
         },
         loesung: { korrekturen: [] },

@@ -1,5 +1,22 @@
 # LUKA Korrektur: Qualitäts- und Mistral-Fahrplan
 
+## Review-Fixes A+B (Korrektur-Modul + Fehlerkorrektur-Anzahl) — 2026-09-23
+
+Kombinierter Fix aus dem Code-Review. A1 (JSON-Pfad-Merge) war bereits in R6 erledigt.
+
+| # | Aufgabe | Datei | Status |
+|---|---------|-------|--------|
+| A1 | Lehrkraft-Aktionen im JSON-Pfad DOCX + E2E-Tests | `natascha_cli.py`, `test_cli_e2e.py` | ✅ (R6) |
+| A2 | `handleSaveFeedback` prüft `updateFehlerStatus`; bei Fehlschlag `fehlerAktionen` behalten + klare Meldung | `KorrekturView.tsx` | ✅ |
+| A3 | Toten `verworfen`-Zweig in `annotateText` entfernen (Rendering bleibt via `seg.aktion`) | `KorrekturView.tsx` | ✅ |
+| A4 | aktion-Whitelist (`uebernommen\|geaendert\|verworfen\|None`) in Python + Rust, sonst Fehler | `natascha_db.py`, `natascha_read.rs` | ✅ +2 Tests |
+| B5 | `blockToRequest` exportiert; fehlerkorrektur nutzt `config.anzahlSaetze` (nicht `saetze.length`) | `useGenerate.ts` | ✅ |
+| B6 | Prompt: „GENAU anzahlSaetze Saetze" + `anzahlSaetze` in verbindliche Vorgaben + Ausgabe als `config.anzahlSaetze` | `prompt.ts` | ✅ |
+| B7 | Tests: `useGenerate.test.ts` (4), `prompt.test.ts` (1), `quality.test.ts` (2), `schema.test.ts` (1); advisory `checkFehlerkorrekturAnzahl` | web/llm/schema | ✅ |
+| B8 | Schema optional `config.anzahlSaetze`; Defaults + Niveau-Transform; CHANGELOGs | schema, web, docs | ✅ |
+
+**Verifikation A2–B8:** Python 220 ✅ · Web 236 · Schema 151 · LLM 164 (alle ✅) · Cargo 106 ✅ · Typecheck ✅ · ruff (neue/änderte) OK.
+
 ## Leitentscheidung
 
 LUKA priorisiert zuerst zuverlässige, nachvollziehbare **Deutsch-DOCX-Korrekturen**.

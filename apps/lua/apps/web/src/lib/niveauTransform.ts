@@ -139,6 +139,7 @@ export function transformiereLeicht(doc: DocumentV1): DocumentV1 {
           ...block,
           config: {
             ...block.config,
+            anzahlSaetze: Math.min(block.config.anzahlSaetze ?? block.config.saetze.length, 3),
             saetze: block.config.saetze.slice(0, 3),
           },
         };

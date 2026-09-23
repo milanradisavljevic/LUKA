@@ -467,6 +467,8 @@ def update_fehler_status(
     aktion: 'uebernommen' | 'geaendert' | 'verworfen' | None (zuruecksetzen)
     Gibt True zurueck, wenn eine Zeile betroffen war.
     """
+    if aktion is not None and aktion not in ("uebernommen", "geaendert", "verworfen"):
+        raise ValueError(f"Ungueltige Aktion: {aktion!r}")
     with sqlite3.connect(str(db_path)) as conn:
         cur = conn.execute(
             "UPDATE fehler_historie SET lehrkraft_aktion=?, lehrkraft_korrektur=?"
