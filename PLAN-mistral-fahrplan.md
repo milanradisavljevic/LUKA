@@ -162,7 +162,7 @@ Kein Ergebnis wird ungeprüft übernommen.
 
 ## Phase 4 – Härten, Doku & Benchmark-Diversität
 
-**Status:** 4A (Doku) ✅ abgeschlossen 2026-09-23; 4B–4D offen.
+**Status:** 4A (Doku) ✅ abgeschlossen 2026-09-23; 4B (Tests & a11y) ✅ abgeschlossen 2026-09-23; 4C–4D offen.
 **Voraussetzung:** Live-Benchmark läuft erst nach Rate-Limit-Reset (Mitternacht UTC).
 
 ### 4A — Doku-Pflicht (✅ erledigt)
@@ -177,16 +177,18 @@ Kein Ergebnis wird ungeprüft übernommen.
 | 4A.6 | KNOWN_ISSUES: Vision-Filter ausgesetzt + Mistral-Vision unsupported | `apps/natascha/KNOWN_ISSUES.md` |
 | 4A.7 | Versions-Drift gefixt (pyproject 0.7.10) + Plan-Phase-4-Sektion | `pyproject.toml`, dieser Plan |
 
-### 4B — Testlücken & a11y (Phase-3-Härtung) — offen
+### 4B — Testlücken & a11y (Phase-3-Härtung) (✅ erledigt 2026-09-23)
 
-| # | Aufgabe | Datei |
-|---|---------|-------|
-| 4B.1 | Test `update_fehler_status` (Python: anlegen/ändern/verwerfen/zurücksetzen) | `tests/test_db.py` |
-| 4B.2 | Test DOCX-Filterung (verworfen raus, geaendert rein) | `tests/test_feedback.py` |
-| 4B.3 | Test `db_update_fehler_status` (Rust) | `natascha_read.rs` mod tests |
-| 4B.4 | Test `_estimate_tokens` + `_check_context_budget` + Mistral-kein-Fallback | `tests/test_llm_pipeline.py` |
-| 4B.5 | a11y: `aria-label` auf Ampel-Punkte, `aria-pressed` auf Toggle, `aria-label` auf Edit-Input, Touch-Targets vergrößern | `KorrekturView.tsx` |
-| 4B.6 | `avgStufe`-Heuristik verbessern (aktuell: 1 hoch + 1 niedrig → „hoch") | `KorrekturView.tsx` |
+| # | Aufgabe | Datei | Status |
+|---|---------|-------|--------|
+| 4B.1 | Test `update_fehler_status` (Aktionen, Korrektur nur bei geaendert, Migration, insert mit vertrauensstufe) | `tests/test_db.py` | ✅ +5 |
+| 4B.2 | Test DOCX-Filterung — JSON-Pfad (`parse_feedback_data`) + DB-Pfad (`_reconstruct_feedback_from_db`) | `tests/test_feedback.py`, `tests/test_cli_e2e.py` | ✅ +6 |
+| 4B.3 | `update_fehler_status_impl` extrahiert (Repo-Konvention) + 2 In-Memory-SQLite-Tests | `natascha_read.rs` | ✅ +2 |
+| 4B.4 | `_estimate_tokens`, `_check_context_budget` (80%-Limit), `_dynamic_max_tokens`, Mistral-kein-Fallback + Budget-vor-Call | `tests/test_llm_pipeline.py` | ✅ +14 |
+| 4B.5 | a11y: `aria-label`/`role=img` auf Ampel-Punkte & Zähler, `aria-pressed` auf ✓/✎/✕, `aria-label` auf Edit-Input, Touch-Targets ≥24px | `KorrekturView.tsx` | ✅ |
+| 4B.6 | `averageVertrauensstufe` als Pure Function (Majorität, Gleichstand→mittel) + 6 Tests | `src/lib/vertrauensstufe.ts` + `.test.ts` | ✅ |
+
+**Verifikation 4B:** Python 216 ✅ · Web 232 ✅ · Typecheck OK · Cargo 105+2ignored ✅ · ruff (neue Files) OK.
 
 ### 4C — Benchmark-Diversifizierung — offen
 

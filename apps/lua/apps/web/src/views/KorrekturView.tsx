@@ -17,6 +17,7 @@ import { anzeigeName } from '../lib/anzeigeName';
 import { gruppiereRubriken, rubrikLabel } from '../lib/rubrikAuswahl';
 import { InfoDot } from '../components/ui/InfoDot';
 import { isKorrekturReady, type KorrekturStatus } from '../lib/korrekturStatus';
+import { averageVertrauensstufe, VERTRAUENS_COLORS, VERTRAUENS_LABELS } from '../lib/vertrauensstufe';
 
 function isTauri(): boolean {
   return typeof window !== 'undefined' && (window as any).__TAURI_INTERNALS__ !== undefined;
@@ -79,8 +80,6 @@ function analyseHinweise(result: unknown): string[] {
 
 const FEHLER_COLORS: Record<string, string> = { R: '#e74c3c', G: '#27ae60', Z: '#3498db', A: '#f39c12' };
 const FEHLER_LABELS: Record<string, string> = { R: 'Rechtschreibung', G: 'Grammatik', Z: 'Zeichensetzung', A: 'Ausdruck' };
-const VERTRAUENS_COLORS: Record<string, string> = { hoch: '#27ae60', mittel: '#f39c12', niedrig: '#e74c3c' };
-const VERTRAUENS_LABELS: Record<string, string> = { hoch: 'Hohe Sicherheit', mittel: 'Mittlere Sicherheit', niedrig: 'Niedrige Sicherheit' };
 
 /** Annotiert rohtext: findet jedes fehler.zitat und wraps es in ein farbiges <mark>.
  *  Verworfene Fehler werden grau/durchgestrichen, geaenderte hervorgehoben. */
@@ -1114,24 +1113,20 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
                       const uebernommen = aktionCount('uebernommen');
                       const geaendert = aktionCount('geaendert');
                       const offen = total - verworfen - uebernommen - geaendert;
-                      const stufen = selectedAbgabe.fehler
-                        .map(f => f.vertrauensstufe)
-                        .filter((s): s is string => !!s);
-                      const avgStufe = stufen.length
-                        ? (stufen.filter(s => s === 'hoch').length >= stufen.length / 2 ? 'hoch'
-                          : stufen.filter(s => s === 'niedrig').length > stufen.length / 4 ? 'niedrig' : 'mittel')
-                        : null;
+                      const avgStufe = averageVertrauensstufe(
+                        selectedAbgabe.fehler.map(f => f.vertrauensstufe),
+                      );
                       return (
                       <div style={{ marginBottom: '1.25rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '0.375rem' }}>
                           <h5 style={{ fontSize: '0.8125rem', margin: 0 }}>Fehler ({total})</h5>
                           <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)', display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
-                            {uebernommen > 0 && <span style={{ color: '#27ae60' }}>✓ {uebernommen}</span>}
-                            {geaendert > 0 && <span style={{ color: '#9b59b6' }}>✎ {geaendert}</span>}
-                            {verworfen > 0 && <span style={{ color: '#e74c3c' }}>✕ {verworfen}</span>}
-                            {offen > 0 && <span style={{ color: 'var(--color-text-secondary)' }}>○ {offen}</span>}
+                            {uebernommen > 0 && <span style={{ color: '#27ae60' }} title={`${uebernommen} übernommen`} aria-label={`${uebernommen} übernommen`}>✓ {uebernommen}</span>}
+                            {geaendert > 0 && <span style={{ color: '#9b59b6' }} title={`${geaendert} geändert`} aria-label={`${geaendert} geändert`}>✎ {geaendert}</span>}
+                            {verworfen > 0 && <span style={{ color: '#e74c3c' }} title={`${verworfen} verworfen`} aria-label={`${verworfen} verworfen`}>✕ {verworfen}</span>}
+                            {offen > 0 && <span style={{ color: 'var(--color-text-secondary)' }} title={`${offen} offen`} aria-label={`${offen} offen`}>○ {offen}</span>}
                             {avgStufe && (
-                              <span title={VERTRAUENS_LABELS[avgStufe]} style={{ width: 8, height: 8, borderRadius: '50%', background: VERTRAUENS_COLORS[avgStufe], display: 'inline-block' }} />
+                              <span role="img" aria-label={`Durchschnittliche Vertrauensstufe: ${VERTRAUENS_LABELS[avgStufe]}`} title={VERTRAUENS_LABELS[avgStufe]} style={{ width: 8, height: 8, borderRadius: '50%', background: VERTRAUENS_COLORS[avgStufe], display: 'inline-block' }} />
                             )}
                           </span>
                         </div>
@@ -1152,12 +1147,12 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
                                   {FEHLER_LABELS[f.typ] ?? f.typ}
                                 </span>
                                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                                  {stufe && (
-                                    <span title={VERTRAUENS_LABELS[stufe] ?? stufe} style={{ width: 8, height: 8, borderRadius: '50%', background: VERTRAUENS_COLORS[stufe] ?? '#999', flexShrink: 0 }} />
+                                  {stufe && (stufe in VERTRAUENS_LABELS) && (
+                                    <span role="img" aria-label={`Vertrauensstufe: ${VERTRAUENS_LABELS[stufe as keyof typeof VERTRAUENS_LABELS]}`} title={VERTRAUENS_LABELS[stufe as keyof typeof VERTRAUENS_LABELS]} style={{ width: 8, height: 8, borderRadius: '50%', background: VERTRAUENS_COLORS[stufe as keyof typeof VERTRAUENS_COLORS] ?? '#999', flexShrink: 0 }} />
                                   )}
-                                  {aktion === 'uebernommen' && <Check size={13} style={{ color: '#27ae60' }} />}
-                                  {aktion === 'geaendert' && <Pencil size={13} style={{ color: '#9b59b6' }} />}
-                                  {aktion === 'verworfen' && <X size={13} style={{ color: '#e74c3c' }} />}
+                                  {aktion === 'uebernommen' && <Check size={13} aria-label="übernommen" style={{ color: '#27ae60' }} />}
+                                  {aktion === 'geaendert' && <Pencil size={13} aria-label="geändert" style={{ color: '#9b59b6' }} />}
+                                  {aktion === 'verworfen' && <X size={13} aria-label="verworfen" style={{ color: '#e74c3c' }} />}
                                 </span>
                               </div>
                               {f.zitat && <div style={{ fontSize: '0.75rem', fontStyle: 'italic', color: 'var(--color-text-secondary)', marginTop: '0.125rem', textDecoration: isVerworfen ? 'line-through' : 'none' }}>"{f.zitat}"</div>}
@@ -1167,7 +1162,8 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
                                     value={editKorrektur}
                                     onChange={(e) => setEditKorrektur(e.target.value)}
                                     autoFocus
-                                    style={{ flex: 1, fontSize: '0.75rem', padding: '0.2rem 0.375rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)' }}
+                                    aria-label="Korrekturtext bearbeiten"
+                                    style={{ flex: 1, fontSize: '0.75rem', padding: '0.2rem 0.375rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', minHeight: 24 }}
                                     onKeyDown={(e) => {
                                       if (e.key === 'Enter') {
                                         setFehlerAktionen(prev => ({ ...prev, [f.id]: { aktion: 'geaendert', korrektur: editKorrektur } }));
@@ -1182,14 +1178,16 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
                                       setEditFehlerId(null);
                                     }}
                                     title="Speichern"
-                                    style={{ border: 'none', background: '#9b59b6', color: '#fff', borderRadius: 'var(--radius)', padding: '0.15rem 0.4rem', cursor: 'pointer', display: 'inline-flex' }}
+                                    aria-label="Korrektur speichern"
+                                    style={{ border: 'none', background: '#9b59b6', color: '#fff', borderRadius: 'var(--radius)', padding: '0.15rem 0.4rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 24, minHeight: 24 }}
                                   >
                                     <Check size={13} />
                                   </button>
                                   <button
                                     onClick={() => setEditFehlerId(null)}
                                     title="Abbrechen"
-                                    style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg-base)', color: 'var(--color-text-secondary)', borderRadius: 'var(--radius)', padding: '0.15rem 0.4rem', cursor: 'pointer', display: 'inline-flex' }}
+                                    aria-label="Bearbeitung abbrechen"
+                                    style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg-base)', color: 'var(--color-text-secondary)', borderRadius: 'var(--radius)', padding: '0.15rem 0.4rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 24, minHeight: 24 }}
                                   >
                                     <X size={13} />
                                   </button>
@@ -1205,21 +1203,27 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
                                   <button
                                     onClick={() => setFehlerAktionen(prev => ({ ...prev, [f.id]: { aktion: aktion === 'uebernommen' ? null : 'uebernommen' } }))}
                                     title={aktion === 'uebernommen' ? 'Zurücksetzen' : 'Übernehmen'}
-                                    style={{ border: '1px solid var(--color-border)', background: aktion === 'uebernommen' ? '#27ae6022' : 'var(--color-bg-base)', color: aktion === 'uebernommen' ? '#27ae60' : 'var(--color-text-secondary)', borderRadius: 'var(--radius)', padding: '0.15rem 0.4rem', cursor: 'pointer', fontSize: '0.6875rem', display: 'inline-flex', alignItems: 'center', gap: 2 }}
+                                    aria-label={aktion === 'uebernommen' ? 'Übernahme zurücksetzen' : 'Vorschlag übernehmen'}
+                                    aria-pressed={aktion === 'uebernommen'}
+                                    style={{ border: '1px solid var(--color-border)', background: aktion === 'uebernommen' ? '#27ae6022' : 'var(--color-bg-base)', color: aktion === 'uebernommen' ? '#27ae60' : 'var(--color-text-secondary)', borderRadius: 'var(--radius)', padding: '0.25rem 0.5rem', cursor: 'pointer', fontSize: '0.6875rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 2, minHeight: 24, minWidth: 24 }}
                                   >
                                     <Check size={12} /> Übernehmen
                                   </button>
                                   <button
                                     onClick={() => { setEditFehlerId(f.id); setEditKorrektur(effektiveKorrektur ?? ''); }}
                                     title="Ändern"
-                                    style={{ border: '1px solid var(--color-border)', background: aktion === 'geaendert' ? '#9b59b622' : 'var(--color-bg-base)', color: aktion === 'geaendert' ? '#9b59b6' : 'var(--color-text-secondary)', borderRadius: 'var(--radius)', padding: '0.15rem 0.4rem', cursor: 'pointer', fontSize: '0.6875rem', display: 'inline-flex', alignItems: 'center', gap: 2 }}
+                                    aria-label="Korrektur ändern"
+                                    aria-pressed={aktion === 'geaendert'}
+                                    style={{ border: '1px solid var(--color-border)', background: aktion === 'geaendert' ? '#9b59b622' : 'var(--color-bg-base)', color: aktion === 'geaendert' ? '#9b59b6' : 'var(--color-text-secondary)', borderRadius: 'var(--radius)', padding: '0.25rem 0.5rem', cursor: 'pointer', fontSize: '0.6875rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 2, minHeight: 24, minWidth: 24 }}
                                   >
                                     <Pencil size={12} /> Ändern
                                   </button>
                                   <button
                                     onClick={() => setFehlerAktionen(prev => ({ ...prev, [f.id]: { aktion: aktion === 'verworfen' ? null : 'verworfen' } }))}
                                     title={aktion === 'verworfen' ? 'Wiederherstellen' : 'Verwerfen'}
-                                    style={{ border: '1px solid var(--color-border)', background: aktion === 'verworfen' ? '#e74c3c22' : 'var(--color-bg-base)', color: aktion === 'verworfen' ? '#e74c3c' : 'var(--color-text-secondary)', borderRadius: 'var(--radius)', padding: '0.15rem 0.4rem', cursor: 'pointer', fontSize: '0.6875rem', display: 'inline-flex', alignItems: 'center', gap: 2 }}
+                                    aria-label={aktion === 'verworfen' ? 'Verwerfung zurücksetzen' : 'Vorschlag verwerfen'}
+                                    aria-pressed={aktion === 'verworfen'}
+                                    style={{ border: '1px solid var(--color-border)', background: aktion === 'verworfen' ? '#e74c3c22' : 'var(--color-bg-base)', color: aktion === 'verworfen' ? '#e74c3c' : 'var(--color-text-secondary)', borderRadius: 'var(--radius)', padding: '0.25rem 0.5rem', cursor: 'pointer', fontSize: '0.6875rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 2, minHeight: 24, minWidth: 24 }}
                                   >
                                     <X size={12} /> Verwerfen
                                   </button>

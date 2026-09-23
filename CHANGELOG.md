@@ -13,6 +13,8 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 - Verworfene Fehler erscheinen im Text gestrichen und grau, geänderte farbig hervorgehoben.
 - Vor dem DOCX-Export zeigt eine Zusammenfassung, wie viele Vorschläge übernommen, geändert oder verworfen wurden.
 - Verworfene Fehler werden nicht mehr ins Feedback-DOCX geschrieben.
+- Barrierefreiheit: Ampel-Punkte, Aktionsbuttons (✓/✎/✕) und das Korrektur-Editierfeld haben jetzt sprechende Screenreader-Labels; Aktionsbuttons melden ihren Zustand (aria-pressed); Touch-Targets mindestens 24px.
+- Durchschnittliche Vertrauensstufe: Bei geteilter Meinung (z. B. ein grüner und ein roter Vorschlag) wird konservativ „mittel" angezeigt statt „hoch".
 
 ### Mistral-Modellwahl strikt & Qualitätsfilter (Phase 1+2)
 - Mistral: Kein stiller Modell-Wechsel mehr. Wird ein gewähltes Modell nicht verfügbar, gibt es einen klaren Fehler statt eines stillen Fallbacks.
@@ -23,6 +25,11 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 - Benchmark-Infrastruktur: 11 Referenzfälle (Klasse 6i, Kommentar) können automatisiert evaluiert werden; interaktives Lehrkraft-Bewertungsprotokoll mit Qualitäts-Gate.
 - Fehlerbehebung: Duplikat-Erkennung nutzt jetzt den korrekten Datenbankpfad — Wechseln der Datenbank wird nicht mehr durch alte Einträge blockiert.
 - Fehlerbehebung: Bei API-Überlastung (Rate-Limit) wird automatisch mit Pause wiederholt, statt sofort abzubrechen.
+
+### Härtung Phase 4B — Tests & Bedienbarkeit
+- 24 neue Python-Tests: Lehrkraft-Aktionen in der DB, Migration der neuen Spalten, DOCX-Filterung (beide Exportpfade), Token-Budget-Grenzen und Mistral-Fallback-Verhalten.
+- 2 neue Rust-Tests für die Lehrkraft-Aktionsspeicherung (Rust-DB-Seite).
+- 6 neue Web-Tests für die Durchschnitts-Berechnung der Vertrauensstufe.
 
 ## Version 1.5.1 — 2026-09-22
 

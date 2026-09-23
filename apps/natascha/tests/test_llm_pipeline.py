@@ -728,3 +728,110 @@ class TestComputeVertrauensstufe:
         fehler = [{"zitat": "test", "korrektur": "test2", "typ": "G"}]
         result = nc.compute_vertrauensstufe(fehler, None)
         assert result[0]["vertrauensstufe"] == "mittel"
+
+
+# =====================================================================
+# Phase 1: Token-Budget, Kontext-Grenzen, Mistral kein Fallback
+# =====================================================================
+
+
+class TestEstimateTokens:
+    def test_leerer_text_mindestens_eins(self) -> None:
+        assert nc._estimate_tokens("") == 1
+
+    def test_vier_zeichen_gibt_eins(self) -> None:
+        assert nc._estimate_tokens("abcd") == 1
+
+    def test_deutscher_text_schaetzung(self) -> None:
+        # 400 Zeichen → 100 Tokens
+        text = "x" * 400
+        assert nc._estimate_tokens(text) == 100
+
+
+class TestCheckContextBudget:
+    def test_kurzer_prompt_ok(self) -> None:
+        assert nc._check_context_budget("mistral", "mistral-medium-3-5", "Hallo") is None
+
+    def test_ueber_80_prozent_limit(self) -> None:
+        # mistral-medium: 256k * 0.8 = 204_800 safe → 204_801 Tokens = 819_204 Zeichen
+        prompt = "x" * (204_801 * 4 + 4)
+        err = nc._check_context_budget("mistral", "mistral-medium-3-5", prompt)
+        assert err is not None
+        assert err.startswith("FEHLER:")
+        assert "Text zu lang" in err
+        assert "mistral-medium-3-5" in err
+
+    def test_unbekanntes_modell_default_limit(self) -> None:
+        # Default 128k * 0.8 = 102_400 → 102_401 Tokens überschreiten
+        prompt = "x" * (102_401 * 4 + 4)
+        err = nc._check_context_budget("qwen", "gibtsnicht", prompt)
+        assert err is not None
+        assert "gibtsnicht" in err
+
+    def test_unterhalb_limit_kein_fehler(self) -> None:
+        # 100k Tokens unter 204_800 → OK
+        prompt = "x" * (100_000 * 4)
+        assert nc._check_context_budget("mistral", "mistral-medium-3-5", prompt) is None
+
+
+class TestDynamicMaxTokens:
+    def test_kurzer_prompt_4k(self) -> None:
+        assert nc._dynamic_max_tokens("mistral-medium-3-5", "kurz") == 4096
+
+    def test_mittlerer_prompt_8k(self) -> None:
+        prompt = "x" * (4000 * 4)  # ~4000 Tokens
+        assert nc._dynamic_max_tokens("mistral-medium-3-5", prompt) == 8192
+
+    def test_langer_prompt_12k(self) -> None:
+        prompt = "x" * (7000 * 4)  # ~7000 Tokens
+        assert nc._dynamic_max_tokens("mistral-medium-3-5", prompt) == 12288
+
+    def test_nie_mehr_als_modell_limit(self) -> None:
+        # mistral-small: max_output 16k → 12288 passt; bei Modell mit 8k max → 8k
+        prompt = "x" * (7000 * 4)
+        assert nc._dynamic_max_tokens("deepseek-chat", prompt) == 8000
+
+
+class TestMistralKeinFallback:
+    """Mistral: model-not-found → klarer Fehler, KEIN stiller Modellwechsel."""
+
+    def test_model_not_found_gibt_klaren_ohne_fallback(self, monkeypatch) -> None:
+        monkeypatch.setenv("MISTRAL_API_KEY", "test-key")
+        config = _load_config()
+        config["api"]["provider"] = "mistral"
+        config["api"]["model"] = "mistral-gibts-nicht"
+
+        calls: list[str] = []
+
+        def fake_call(base_url, api_key, model, prompt, timeout, **kwargs):
+            calls.append(model)
+            return "FEHLER: model_not_found: The model does not exist"
+
+        monkeypatch.setattr(nc, "_call_openai_compat", fake_call)
+
+        result = nc.run_llm_api("Ping", config)
+        assert "nicht verfügbar" in result
+        assert "mistral-gibts-nicht" in result
+        # genau ein Aufruf — kein Fallback auf anderes Modell
+        assert calls == ["mistral-gibts-nicht"]
+
+    def test_budget_error_vor_api_call(self, monkeypatch) -> None:
+        monkeypatch.setenv("MISTRAL_API_KEY", "test-key")
+        config = _load_config()
+        config["api"]["provider"] = "mistral"
+        config["api"]["model"] = "mistral-medium-3-5"
+
+        calls: list[int] = []
+
+        def fake_call(*args, **kwargs):
+            calls.append(1)
+            return "OK"
+
+        monkeypatch.setattr(nc, "_call_openai_compat", fake_call)
+
+        riesiger_prompt = "x" * (204_801 * 4 + 4)
+        result = nc.run_llm_api(riesiger_prompt, config)
+        assert result.startswith("FEHLER:")
+        assert "Text zu lang" in result
+        # API wurde nie aufgerufen
+        assert calls == []

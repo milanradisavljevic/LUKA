@@ -6,8 +6,8 @@ Connection oeffnet und die Daten ueber Aufrufe hinweg persistieren muessen).
 
 from __future__ import annotations
 
-import sys
 import sqlite3
+import sys
 from pathlib import Path
 
 import pytest
@@ -563,3 +563,109 @@ def test_get_klassen_statistik_progress(db_path: Path) -> None:
     assert sa2["avg_note"] == pytest.approx(4.0, abs=0.01)
     assert sa2["n"] == 1
     assert sa2["avg_criteria"]["inhalt"] == pytest.approx(2.0, abs=0.01)
+
+
+# ── Phase 3: Vertrauensstufe + Lehrkraft-Status ───────────────────────────
+
+
+def test_init_db_migrates_old_fehler_historie_columns(tmp_path: Path) -> None:
+    """Legacy-DB ohne die 3 neuen Spalten wird via init_db additiv erweitert."""
+    p = tmp_path / "legacy_fehler.db"
+    with sqlite3.connect(p) as conn:
+        conn.execute(
+            """CREATE TABLE fehler_historie (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                abgabe_id INTEGER NOT NULL,
+                zitat TEXT NOT NULL DEFAULT '',
+                korrektur TEXT NOT NULL DEFAULT '',
+                typ TEXT NOT NULL DEFAULT '',
+                erklaerung TEXT NOT NULL DEFAULT ''
+            )"""
+        )
+        conn.execute(
+            "INSERT INTO fehler_historie (abgabe_id, zitat, korrektur, typ)"
+            " VALUES (1, 'alt', 'neu', 'G')"
+        )
+    db.init_db(p)
+    with sqlite3.connect(p) as conn:
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(fehler_historie)")}
+        row = conn.execute(
+            "SELECT zitat, vertrauensstufe, lehrkraft_aktion FROM fehler_historie"
+        ).fetchone()
+    assert {"vertrauensstufe", "lehrkraft_aktion", "lehrkraft_korrektur"} <= columns
+    assert row == ("alt", None, None)
+
+
+def test_insert_fehler_with_vertrauensstufe(db_path: Path) -> None:
+    abgabe_id = db.insert_abgabe(db_path, None, "6A", "SA1", "a.docx", "h1")
+    db.insert_fehler(
+        db_path, abgabe_id, "Zitat alt", "Korrektur neu", "G", "Erklaerung", "hoch"
+    )
+    with sqlite3.connect(db_path) as conn:
+        row = conn.execute(
+            "SELECT zitat, vertrauensstufe, lehrkraft_aktion FROM fehler_historie"
+        ).fetchone()
+    assert row == ("Zitat alt", "hoch", None)
+
+
+def _last_fehler_id(db_path: Path) -> int:
+    with sqlite3.connect(db_path) as conn:
+        return int(conn.execute("SELECT MAX(id) FROM fehler_historie").fetchone()[0])
+
+
+def test_update_fehler_status_setzt_aktionen(db_path: Path) -> None:
+    abgabe_id = db.insert_abgabe(db_path, None, "6A", "SA1", "a.docx", "h1")
+    db.insert_fehler(db_path, abgabe_id, "Zitat", "KI-Korrektur", "G")
+    fid = _last_fehler_id(db_path)
+
+    assert db.update_fehler_status(db_path, fid, "uebernommen") is True
+    with sqlite3.connect(db_path) as conn:
+        row = conn.execute(
+            "SELECT lehrkraft_aktion, lehrkraft_korrektur FROM fehler_historie"
+            " WHERE id=?",
+            (fid,),
+        ).fetchone()
+    assert row == ("uebernommen", None)
+
+    assert db.update_fehler_status(db_path, fid, "verworfen") is True
+    with sqlite3.connect(db_path) as conn:
+        row = conn.execute(
+            "SELECT lehrkraft_aktion FROM fehler_historie WHERE id=?", (fid,)
+        ).fetchone()
+    assert row == ("verworfen",)
+
+    assert db.update_fehler_status(db_path, fid, None) is True
+    with sqlite3.connect(db_path) as conn:
+        row = conn.execute(
+            "SELECT lehrkraft_aktion FROM fehler_historie WHERE id=?", (fid,)
+        ).fetchone()
+    assert row == (None,)
+
+
+def test_update_fehler_status_korrektur_nur_bei_geaendert(db_path: Path) -> None:
+    abgabe_id = db.insert_abgabe(db_path, None, "6A", "SA1", "a.docx", "h1")
+    db.insert_fehler(db_path, abgabe_id, "Zitat", "KI-Korrektur", "G")
+    fid = _last_fehler_id(db_path)
+
+    assert db.update_fehler_status(db_path, fid, "geaendert", "Lehrkraft-Text") is True
+    with sqlite3.connect(db_path) as conn:
+        row = conn.execute(
+            "SELECT lehrkraft_aktion, lehrkraft_korrektur FROM fehler_historie"
+            " WHERE id=?",
+            (fid,),
+        ).fetchone()
+    assert row == ("geaendert", "Lehrkraft-Text")
+
+    # Bei anderer Aktion wird lehrkraft_korrektur zurueckgesetzt
+    assert db.update_fehler_status(db_path, fid, "uebernommen", "SollFallenWeg") is True
+    with sqlite3.connect(db_path) as conn:
+        row = conn.execute(
+            "SELECT lehrkraft_aktion, lehrkraft_korrektur FROM fehler_historie"
+            " WHERE id=?",
+            (fid,),
+        ).fetchone()
+    assert row == ("uebernommen", None)
+
+
+def test_update_fehler_status_unbekannte_id_false(db_path: Path) -> None:
+    assert db.update_fehler_status(db_path, 99999, "uebernommen") is False

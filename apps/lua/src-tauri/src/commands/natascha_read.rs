@@ -286,7 +286,15 @@ pub async fn db_update_fehler_status(
     lehrkraft_korrektur: Option<String>,
 ) -> Result<bool, String> {
     let guard = state.conn()?;
-    let conn = &*guard;
+    update_fehler_status_impl(&guard, fehler_id, aktion, lehrkraft_korrektur)
+}
+
+pub(crate) fn update_fehler_status_impl(
+    conn: &rusqlite::Connection,
+    fehler_id: i64,
+    aktion: Option<String>,
+    lehrkraft_korrektur: Option<String>,
+) -> Result<bool, String> {
     // bei 'geaendert' den Korrekturtext speichern, sonst zuruecksetzen
     let korrektur = if aktion.as_deref() == Some("geaendert") {
         lehrkraft_korrektur
@@ -1370,5 +1378,60 @@ mod tests {
         assert_eq!(csv_escape("Müller"), "Müller");
         assert_eq!(csv_escape("Test 123"), "Test 123");
         assert_eq!(csv_escape(""), "");
+    }
+
+    // ── Phase 3: update_fehler_status (Lehrkraft-Aktionen) ───────────────
+
+    #[test]
+    fn update_fehler_status_setzt_aktionen() {
+        let conn = setup();
+        seed(&conn);
+        let fid: i64 = conn.query_row(
+            "SELECT id FROM fehler_historie ORDER BY id LIMIT 1", [], |r| r.get(0),
+        ).unwrap();
+
+        assert!(update_fehler_status_impl(&conn, fid, Some("uebernommen".into()), None).unwrap());
+        let (aktion, korrektur): (Option<String>, Option<String>) = conn.query_row(
+            "SELECT lehrkraft_aktion, lehrkraft_korrektur FROM fehler_historie WHERE id=?1",
+            rusqlite::params![fid], |r| Ok((r.get(0)?, r.get(1)?)),
+        ).unwrap();
+        assert_eq!(aktion.as_deref(), Some("uebernommen"));
+        assert_eq!(korrektur, None);
+
+        // geaendert mit Text speichern
+        assert!(update_fehler_status_impl(
+            &conn, fid, Some("geaendert".into()), Some("Lehrkraft-Text".into())
+        ).unwrap());
+        let (aktion, korrektur): (Option<String>, Option<String>) = conn.query_row(
+            "SELECT lehrkraft_aktion, lehrkraft_korrektur FROM fehler_historie WHERE id=?1",
+            rusqlite::params![fid], |r| Ok((r.get(0)?, r.get(1)?)),
+        ).unwrap();
+        assert_eq!(aktion.as_deref(), Some("geaendert"));
+        assert_eq!(korrektur.as_deref(), Some("Lehrkraft-Text"));
+
+        // anderer Aktion → Korrektur wird zurueckgesetzt
+        assert!(update_fehler_status_impl(
+            &conn, fid, Some("verworfen".into()), Some("SollFallenWeg".into())
+        ).unwrap());
+        let (aktion, korrektur): (Option<String>, Option<String>) = conn.query_row(
+            "SELECT lehrkraft_aktion, lehrkraft_korrektur FROM fehler_historie WHERE id=?1",
+            rusqlite::params![fid], |r| Ok((r.get(0)?, r.get(1)?)),
+        ).unwrap();
+        assert_eq!(aktion.as_deref(), Some("verworfen"));
+        assert_eq!(korrektur, None);
+
+        // None → zurücksetzen
+        assert!(update_fehler_status_impl(&conn, fid, None, None).unwrap());
+        let aktion: Option<String> = conn.query_row(
+            "SELECT lehrkraft_aktion FROM fehler_historie WHERE id=?1",
+            rusqlite::params![fid], |r| r.get(0),
+        ).unwrap();
+        assert_eq!(aktion, None);
+    }
+
+    #[test]
+    fn update_fehler_status_unbekannte_id_false() {
+        let conn = setup();
+        assert!(!update_fehler_status_impl(&conn, 99999, Some("uebernommen".into()), None).unwrap());
     }
 }

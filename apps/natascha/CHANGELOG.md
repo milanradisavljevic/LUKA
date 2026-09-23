@@ -34,7 +34,9 @@
 
 ### Tests
 
-- 192 Python-Tests bestehen (+7 für Vertrauensstufe, +14 für Phase-2-Filter).
+- **Phase 4B:** +24 Tests (Lehrkraft-Aktionen, Migration, DOCX-Filterung beider
+  Pfade, Token-Budget, Mistral-kein-Fallback). Stand: **216 Python-Tests grün**.
+- Phase 3+2: 192 Tests (+7 Vertrauensstufe, +14 Phase-2-Filter).
 
 ## [0.7.9] – 2026-05-30
 

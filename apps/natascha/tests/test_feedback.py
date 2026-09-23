@@ -165,3 +165,56 @@ def test_document_header_with_config() -> None:
     header_text = " ".join(p.text for p in header.paragraphs)
     assert "Mag. Mueller" in header_text
     assert "BRG Wien" in header_text
+
+
+# ── Phase 3: Lehrkraft-Entscheidungen im DOCX ─────────────────────────────
+
+
+def _payload_with_fehler(fehler: list[dict]) -> dict:
+    payload = json.loads((FIXTURES / "mia_feedback.json").read_text(encoding="utf-8"))
+    payload["fehler"] = fehler
+    return payload
+
+
+def test_parse_feedback_data_verworfene_fehler_entfallen() -> None:
+    payload = _payload_with_fehler([
+        {"zitat": "behalten", "korrektur": "Korrektur A", "typ": "G"},
+        {"zitat": "raus", "korrektur": "Korrektur B", "typ": "R",
+         "lehrkraft_aktion": "verworfen"},
+    ])
+    data = gf.parse_feedback_data(payload)
+    assert data.fehler is not None
+    zitate = [f.zitat for f in data.fehler]
+    assert zitate == ["behalten"]
+
+
+def test_parse_feedback_data_geaenderte_nutzen_lehrkraft_korrektur() -> None:
+    payload = _payload_with_fehler([
+        {"zitat": "alt", "korrektur": "KI-Text", "typ": "G",
+         "lehrkraft_aktion": "geaendert", "lehrkraft_korrektur": "Neuer Lehrkraft-Text"},
+        {"zitat": "leer", "korrektur": "Original", "typ": "Z",
+         "lehrkraft_aktion": "geaendert", "lehrkraft_korrektur": ""},
+    ])
+    data = gf.parse_feedback_data(payload)
+    assert data.fehler is not None
+    assert data.fehler[0].korrektur == "Neuer Lehrkraft-Text"
+    # geaendert ohne Text → Original bleibt
+    assert data.fehler[1].korrektur == "Original"
+
+
+def test_parse_feedback_data_ohne_aktion_unveraendert() -> None:
+    payload = _payload_with_fehler([
+        {"zitat": "z", "korrektur": "KI", "typ": "G",
+         "lehrkraft_aktion": "uebernommen"},
+    ])
+    data = gf.parse_feedback_data(payload)
+    assert data.fehler is not None
+    assert data.fehler[0].korrektur == "KI"
+
+
+def test_parse_feedback_data_alle_verworfen_fehler_none() -> None:
+    payload = _payload_with_fehler([
+        {"zitat": "a", "korrektur": "b", "typ": "G", "lehrkraft_aktion": "verworfen"},
+    ])
+    data = gf.parse_feedback_data(payload)
+    assert data.fehler is None
