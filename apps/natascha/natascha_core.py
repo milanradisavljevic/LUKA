@@ -1243,6 +1243,7 @@ def run_llm_analysis(
         # Nullnummern-Filter: Einträge ohne sichtbare Korrektur raus (auch Vision).
         if data.get("fehler"):
             data["fehler"] = drop_unbrauchbare_fehler(data["fehler"])
+            data["fehler"] = drop_duplicate_fehler(data["fehler"])
 
         # Halluzinationsfilter: Fehler-Zitate gegen den Text prüfen, den das
         # LLM gesehen hat (Alias-Fassung) — Zitate enthalten ggf. Aliasse.
@@ -1250,6 +1251,10 @@ def run_llm_analysis(
             data["fehler"] = verify_fehler_against_text(data["fehler"], docx_text_llm)
             data["fehler"] = drop_satzzeichen_anhaengsel(data["fehler"], docx_text_llm)
             data["fehler"] = filter_title_false_positives(data["fehler"], docx_text_llm)
+            data["fehler"] = verify_fehler_extent(data["fehler"], docx_text_llm)
+
+        # Note-Begruendung-Konsistenz (warnt nur)
+        validate_note_begrundung(data)
 
         # Konsistenzcheck: Fehleranzahl vs. Sprachrichtigkeit-Note
         fehler_count = len(data.get("fehler", []))
@@ -1497,6 +1502,105 @@ def filter_title_false_positives(fehler_list: list, schuelertext: str) -> list:
                 continue
         filtered.append(f)
     return filtered
+
+
+# ── Phase-2 Filter: Duplikate, Note-Begründung, erweiterte Zitatprüfung ──
+
+
+def drop_duplicate_fehler(fehler_list: list[dict]) -> list[dict]:
+    """Entfernt doppelte Fehler-Eintraege (gleiches zitat+korrektur+typ).
+
+    Live-Eval P2: Modelle liefern gelegentlich denselben Fehler doppelt —
+    unbrauchbar fuer Feedback und verfaelscht die Fehleranzahl.
+    Reihenfolge wird erhalten: der erste Eintrag gewinnt.
+    """
+    if not fehler_list:
+        return []
+    gesehen: set[tuple[str, str, str]] = set()
+    behalten: list[dict] = []
+    entfernt = 0
+    for fehler in fehler_list:
+        key = (
+            " ".join((fehler.get("zitat") or "").split()).lower(),
+            " ".join((fehler.get("korrektur") or "").split()).lower(),
+            fehler.get("typ") or "",
+        )
+        if key in gesehen:
+            entfernt += 1
+            continue
+        gesehen.add(key)
+        behalten.append(fehler)
+    if entfernt:
+        logging.warning("Doppelte Fehler-Eintraege entfernt: %d", entfernt)
+    return behalten
+
+
+def validate_note_begrundung(data: dict[str, Any]) -> list[str]:
+    """Prueft ob Notenempfehlung und Begruendung widersprechen.
+
+    Gibt eine Liste mit Warnhinweisen zurueck (leer wenn OK).
+    Warnt nur — die Note wird von der App ohnehin ueberschrieben.
+    """
+    hinweise: list[str] = []
+    ne = data.get("notenempfehlung")
+    if not isinstance(ne, dict):
+        return hinweise
+    note = ne.get("note")
+    begruendung = (ne.get("begruendung") or "").lower()
+    if not isinstance(note, int) or not begruendung:
+        return hinweise
+
+    negativ_marker = ("schwach", "schlecht", "mangelhaft", "ungenuegend", "unzureichend")
+    positiv_marker = ("sehr gut", "hervorragend", "ausgezeichnet", "vorzueglich")
+
+    if note <= 2 and any(m in begruendung for m in negativ_marker):
+        hinweise.append(
+            f"Note {note} passt nicht zur Begruendung "
+            f"(negativer Begriff in positiver Note): '{ne.get('begruendung', '')[:80]}'"
+        )
+    if note >= 4 and any(m in begruendung for m in positiv_marker):
+        hinweise.append(
+            f"Note {note} passt nicht zur Begruendung "
+            f"(positiver Begriff in negativer Note): '{ne.get('begruendung', '')[:80]}'"
+        )
+    for h in hinweise:
+        logging.warning("Note-Begruendung-Pruefung: %s", h)
+    return hinweise
+
+
+def verify_fehler_extent(fehler_list: list[dict], schuelertext: str) -> list[dict]:
+    """Erweiterte Zitat-Pruefung: entfernt Zitate die zu lang oder bereits korrekt sind.
+
+    Ergaenzt verify_fehler_against_text:
+    - Zitat laenger als 12 Woerter (Schema erwartet 1-6) → entfernen
+    - Korrektur kommt unveraendert im Text vor → keine Korrektur noetig
+    """
+    if not fehler_list or not schuelertext:
+        return fehler_list or []
+    norm_text = " ".join(schuelertext.lower().split())
+    behalten: list[dict] = []
+    entfernt = 0
+    for fehler in fehler_list:
+        zitat = " ".join((fehler.get("zitat") or "").split())
+        korrektur = " ".join((fehler.get("korrektur") or "").split())
+
+        # Zitat zu lang (Schema: 1-6 Woerter, Toleranz bis 12)
+        if len(zitat.split()) > 12:
+            entfernt += 1
+            continue
+
+        # Korrektur kommt unveraendert im Text vor → Pseudo-Korrektur
+        if korrektur and len(korrektur) > 3:
+            if " ".join(korrektur.lower().split()) in norm_text:
+                # Nur wenn Zitat und Korrektur NICHT identisch (sonst drop_unbrauchbare)
+                if " ".join(zitat.lower().split()) != " ".join(korrektur.lower().split()):
+                    entfernt += 1
+                    continue
+
+        behalten.append(fehler)
+    if entfernt:
+        logging.warning("Erweiterte Zitat-Pruefung: %d Eintraege entfernt", entfernt)
+    return behalten
 
 
 def generate_srdp_detail(

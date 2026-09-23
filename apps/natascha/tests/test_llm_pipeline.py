@@ -588,3 +588,96 @@ class TestSatzzeichenAnhaengsel:
     def test_normale_korrekturen_unberuehrt(self) -> None:
         fehler = [{"zitat": "Auswahl weil", "korrektur": "Auswahl, weil", "typ": "Z"}]
         assert len(nc.drop_satzzeichen_anhaengsel(fehler, self.TEXT)) == 1
+
+
+class TestDropDuplicateFehler:
+    """P2: Doppelte Fehler-Eintraege entfernen."""
+
+    def test_identische_eintraege_entfernt(self) -> None:
+        fehler = [
+            {"zitat": "geht", "korrektur": "geht gut", "typ": "G"},
+            {"zitat": "geht", "korrektur": "geht gut", "typ": "G"},
+            {"zitat": "anderes", "korrektur": "besseres", "typ": "R"},
+        ]
+        result = nc.drop_duplicate_fehler(fehler)
+        assert len(result) == 2
+
+    def test_reihenfolge_erhalten(self) -> None:
+        fehler = [
+            {"zitat": "erster", "korrektur": "verbesserter", "typ": "R"},
+            {"zitat": "zweiter", "korrektur": "verbesserter2", "typ": "R"},
+            {"zitat": "erster", "korrektur": "verbesserter", "typ": "R"},
+        ]
+        result = nc.drop_duplicate_fehler(fehler)
+        assert len(result) == 2
+        assert result[0]["zitat"] == "erster"
+
+    def test_case_insensitive_duplikat(self) -> None:
+        fehler = [
+            {"zitat": "Geht gut", "korrektur": "geht besser", "typ": "G"},
+            {"zitat": "geht gut", "korrektur": "Geht besser", "typ": "G"},
+        ]
+        result = nc.drop_duplicate_fehler(fehler)
+        assert len(result) == 1
+
+    def test_leere_liste(self) -> None:
+        assert nc.drop_duplicate_fehler([]) == []
+
+
+class TestValidateNoteBegruendung:
+    """P2: Note und Begruendung duerfen sich nicht widersprechen."""
+
+    def test_note_1_mit_negativer_begruendung_warnt(self) -> None:
+        data = {"notenempfehlung": {"note": 1, "begruendung": "schwache Argumentation"}}
+        hinweise = nc.validate_note_begrundung(data)
+        assert len(hinweise) == 1
+
+    def test_note_5_mit_positiver_begruendung_warnt(self) -> None:
+        data = {"notenempfehlung": {"note": 5, "begruendung": "sehr gute Argumentation"}}
+        hinweise = nc.validate_note_begrundung(data)
+        assert len(hinweise) == 1
+
+    def test_note_4_mit_neutraler_begruendung_ok(self) -> None:
+        data = {"notenempfehlung": {"note": 4, "begruendung": "einige Schwächen"}}
+        assert nc.validate_note_begrundung(data) == []
+
+    def test_note_4_mit_positiver_begruendung_warnt(self) -> None:
+        data = {"notenempfehlung": {"note": 4, "begruendung": "sehr gute Analyse"}}
+        hinweise = nc.validate_note_begrundung(data)
+        assert len(hinweise) == 1
+
+    def test_kein_notenempfehlung_ok(self) -> None:
+        assert nc.validate_note_begrundung({}) == []
+
+    def test_note_3_neutral_ok(self) -> None:
+        data = {"notenempfehlung": {"note": 3, "begruendung": "solide Arbeit"}}
+        assert nc.validate_note_begrundung(data) == []
+
+
+class TestVerifyFehlerExtent:
+    """P2: Erweiterte Zitat-Pruefung (Laenge, Pseudo-Korrekturen)."""
+
+    TEXT = (
+        "Die neue Literatur wird durch Social Media bestimmt. "
+        "Viele Jugendliche lesen Bucher die sie auf TikTok entdecken. "
+        "Das ist eine positive Entwicklung fuer das Leseverhalten."
+    )
+
+    def test_zitat_zu_lang_entfernt(self) -> None:
+        zitat = "Die neue Literatur wird durch Social Media bestimmt und das ist wirklich wichtig"
+        fehler = [{"zitat": zitat, "korrektur": "besser", "typ": "A"}]
+        assert nc.verify_fehler_extent(fehler, self.TEXT) == []
+
+    def test_kurzes_zitat_behalten(self) -> None:
+        fehler = [{"zitat": "Bucher die sie", "korrektur": "Bücher, die sie", "typ": "Z"}]
+        assert len(nc.verify_fehler_extent(fehler, self.TEXT)) == 1
+
+    def test_korrektur_bereits_im_text_entfernt(self) -> None:
+        # Korrektur "positive Entwicklung" kommt im Text vor → Pseudo-Korrektur
+        fehler = [{"zitat": "gute Entwicklung", "korrektur": "positive Entwicklung", "typ": "A"}]
+        assert nc.verify_fehler_extent(fehler, self.TEXT) == []
+
+    def test_tatsaechliche_korrektur_behalten(self) -> None:
+        # Korrektur kommt NICHT im Text vor → echte Korrektur
+        fehler = [{"zitat": "Bucher die", "korrektur": "Bücher, die", "typ": "Z"}]
+        assert len(nc.verify_fehler_extent(fehler, self.TEXT)) == 1

@@ -37,6 +37,16 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 - Der „Neue Unterlage"-Button setzt alle Felder zurück — kein Überbleibsel der vorherigen Aufgabe mehr.
 - „Weiterarbeiten" und „Aus Vorlage starten" funktionieren wie gewohnt.
 
+## Unveröffentlicht
+
+### Mistral-Modellwahl strikt & Qualitätsfilter (Phase 1+2)
+- Mistral: Kein stiller Modell-Wechsel mehr. Wird ein gewähltes Modell nicht verfügbar, gibt es einen klaren Fehler statt eines stillen Fallbacks.
+- Token-Budget: Textlänge wird vor dem API-Aufruf geprüft. Zu lange Texte werden mit verständlicher Meldung abgebrochen statt mit Kontextfehler.
+- Dynamisches Antwortbudget: max_tokens richtet sich nach der Textlänge (4k/8k/12k) statt pauschal 16k.
+- Neue Fehlermeldungen: „Modell nicht verfügbar", „Text zu lang", „Format nicht erwartet" werden jetzt erkannt und verständlich angezeigt.
+- Neue Qualitätsfilter: Doppelte Korrekturen werden entfernt; Note-Begründung wird auf Widersprüche geprüft; zu lange oder bereits korrekte Zitate werden gefiltert.
+- Benchmark-Infrastruktur: 11 Referenzfälle (Klasse 6i, Kommentar) können automatisiert evaluiert werden; interaktives Lehrkraft-Bewertungsprotokoll mit Qualitäts-Gate.
+
 ## Version 1.5.1 — 2026-09-22
 
 ### Das ist neu
