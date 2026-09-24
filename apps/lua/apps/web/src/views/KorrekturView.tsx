@@ -1,11 +1,11 @@
 import { useLocalDraft, beginActivity } from '../lib/workSession';
 import { uniqueTextAnchor } from '../lib/textAnchors';
-import { correctionRuntime, MODEL_MAP } from '../lib/runtimeModel';
+import { MODEL_MAP } from '../lib/runtimeModel';
 import { LLM_PROVIDERS, PROVIDER_KEY_IDS } from '../lib/constants';
-import { SRDP_DEUTSCH_TEXTSORTEN } from '@lehrunterlagen/schema';
+import { textsortenFuer, textsortenHint } from '../lib/textsortenAuswahl';
 import { useDialogFocus } from '../hooks/useDialogFocus';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { GraduationCap, Save, AlertTriangle, Loader2, Upload, FolderOpen, FileDown, ChevronRight, Eye, EyeOff, Files, XCircle, CheckCircle2, ShieldCheck, RefreshCw, Check, X, Pencil, Undo2 } from 'lucide-react';
+import { GraduationCap, Save, AlertTriangle, Loader2, Upload, FolderOpen, FileDown, ChevronRight, Eye, EyeOff, Files, XCircle, CheckCircle2, ShieldCheck, RefreshCw, Check, X, Pencil, Undo2, Trash2 } from 'lucide-react';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { loadDocuments, loadSettings, subscribeSettings } from '../lib/storage';
 import { useNatascha, type PersonenVorschau, type RubrikListe, type SchuelerInfo, type KorrekturKontext } from '../hooks/useNatascha';
@@ -18,6 +18,10 @@ import { gruppiereRubriken, rubrikLabel } from '../lib/rubrikAuswahl';
 import { InfoDot } from '../components/ui/InfoDot';
 import { isKorrekturReady, type KorrekturStatus } from '../lib/korrekturStatus';
 import { averageVertrauensstufe, VERTRAUENS_COLORS, VERTRAUENS_LABELS } from '../lib/vertrauensstufe';
+import { createCorrectionRunSnapshot, shouldShowCorrectionRunError } from '../lib/correctionRun';
+import { korrekturLandFuerProfil, korrekturLandHinweis, istGueltigeLehrernote, maxLehrernote } from '../lib/korrekturLand';
+import { schaetzeBatch, formatTokenzahl, ANTWORT_TOKENS_PRO_ABGABE } from '../lib/batchSchaetzung';
+import { loadTeacherProfile } from '../lib/profile';
 
 function isTauri(): boolean {
   return typeof window !== 'undefined' && (window as any).__TAURI_INTERNALS__ !== undefined;
@@ -45,10 +49,15 @@ interface AbgabeDetail {
     hatLehrerFeedback: boolean;
     noteFinal: number | null;
     rohtext: string | null;
+    revisionId: number | null;
+    provider: string | null;
+    model: string | null;
   };
   kriterien: { id: number; kriteriumName: string; stufe: number | null; gewichtung: number | null }[];
   fehler: FehlerRow[];
   lehrerFeedback: { id: number; noteFinal: number | null; noteAppSnapshot: number | null; lehrerKommentar: string | null; erstelltAm: string | null; geaendertAm: string | null } | null;
+  revisions: { id: number; revisionNo: number; provider: string; model: string; status: string; isActive: boolean; createdAt: string | null }[];
+  qualitaetswarnungen?: { code: string; message: string }[];
 }
 
 interface KlasseInfo { klasse: string; anzahlAbgaben: number; }
@@ -140,14 +149,29 @@ function annotateText(
 interface KorrekturViewProps {
   /** Cross-Nav: Klick auf einen Schülernamen → Schüler-Ansicht. */
   onOpenSchueler?: (klasse: string, schuelerId: number) => void;
+  /** Cross-Nav (L1): aus der Klassenansicht direkt in eine konkrete Korrektur springen. */
+  preselect?: { abgabeId: number; klasse: string; aufgabe: string } | null;
+  onConsumePreselect?: () => void;
 }
 
-export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
-  const { analyze, activeJobId, cancel, analyzing, analyzeError, progressStage, progressMessage, listKlassen, listAufgaben, getAbgaben, getAbgabeDetail, getKorrekturKontext, upsertLehrerFeedback, updateFehlerStatus, generateFeedbackDocx, retroImport, personenVorschau, listSchueler, listRubrics } = useNatascha();
+export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }: KorrekturViewProps = {}) {
+  const { analyze, activeJobId, cancel, analyzing, progressStage, progressMessage, listKlassen, listAufgaben, getAbgaben, getAbgabeDetail, getKorrekturKontext, upsertLehrerFeedback, updateFehlerStatus, activateKorrekturRevision, deleteKorrekturRevision, generateFeedbackDocx, retroImport, personenVorschau, listSchueler, listRubrics } = useNatascha();
   const { list: listEinsaetze } = useEinsatz();
   const { klassen: klassenMeta, refresh: refreshKlassenMeta } = useKlassenMeta();
 
   const [klassen, setKlassen] = useState<KlasseInfo[]>([]);
+  // L2: Land/Skala aus dem Lehrerprofil (AT: SRDP 1-5, DE: Klassenarbeit 1-6,
+  // CH: bewusst blockiert — keine still falsche Skala). undefined = lädt noch.
+  const [profilLand, setProfilLand] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    let active = true;
+    void loadTeacherProfile().then((p) => {
+      if (active) setProfilLand(p?.land ?? 'AT');
+    });
+    return () => { active = false; };
+  }, []);
+  const korrekturLand = profilLand === undefined ? 'at' : korrekturLandFuerProfil(profilLand);
+  const landHinweis = korrekturLandHinweis(korrekturLand);
   const [selectedKlasse, setSelectedKlasse] = useState<string | null>(null);
   const [aufgaben, setAufgaben] = useState<string[]>([]);
   const [selectedAufgabe, setSelectedAufgabe] = useState<string | null>(null);
@@ -160,6 +184,8 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [analysisFailure, setAnalysisFailure] = useState<string | null>(null);
+  const [revisionOfAbgabeId, setRevisionOfAbgabeId] = useState<number | null>(null);
 
   const [showPreview, setShowPreview] = useState(true);
 
@@ -200,6 +226,8 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
   const [feedbackDrafts,setFeedbackDrafts] = useLocalDraft<Record<string,{note:string;comment:string}>>('feedback',{});
   const feedbackRef=useRef(feedbackDrafts); feedbackRef.current=feedbackDrafts;
   // Phase 3: Lehrkraft-Aktionen pro Fehler (lokal, bei Freigeben an DB)
+  // L2: „Nur unsichere“-Filter über der Fehlerliste (Ampel-Review-Modus).
+  const [nurUnsichere, setNurUnsichere] = useState(false);
   const [fehlerAktionen, setFehlerAktionen] = useState<Record<number, { aktion: string | null; korrektur?: string }>>({});
   const [editFehlerId, setEditFehlerId] = useState<number | null>(null);
   const [editKorrektur, setEditKorrektur] = useState('');
@@ -211,24 +239,27 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
   const [assignments,setAssignments]=useLocalDraft<Record<string,number | ''>>('correction-assignments',{});
   const [settings,setSettings]=useState(loadSettings);
   useEffect(()=>subscribeSettings(setSettings),[]);
-  const runtime=correctionRuntime(settings);
   // Effektiver Runtime: Wizard-Overrides wenn gesetzt, sonst Settings
   const effectiveRuntime = useMemo(() => {
     const pKey = analyzeProvider || settings.defaultProvider;
     const mLabel = analyzeModel || settings.defaultModel;
-    // Sicherheitsnetz: Pruefe ob das Modell zum Provider gehoert
-    const providerModels = LLM_PROVIDERS.find(p => p.id === pKey)?.models ?? [];
-    const safeMLabel = providerModels.includes(mLabel) ? mLabel : (providerModels[0] ?? mLabel);
     return {
       provider: PROVIDER_KEY_IDS[pKey] ?? pKey,
-      model: MODEL_MAP[safeMLabel] ?? safeMLabel,
+      model: MODEL_MAP[mLabel] ?? mLabel,
     };
   }, [analyzeProvider, analyzeModel, settings.defaultProvider, settings.defaultModel]);
   const [queueContext,setQueueContext]=useLocalDraft('correction-context','');
-  const contextKey=JSON.stringify([analyzeKlasse,analyzeAufgabe,selectedRubrik,analyzeAusgangstext,analyzeAusgangstextDatei,selectedEinsatzId,runtime.provider,runtime.model,pseudoAktiv,assignments]);
+  const contextKey=JSON.stringify([analyzeKlasse,analyzeAufgabe,selectedRubrik,analyzeAusgangstext,analyzeAusgangstextDatei,selectedEinsatzId,effectiveRuntime.provider,effectiveRuntime.model,pseudoAktiv,assignments,revisionOfAbgabeId]);
   const [fileChecks,setFileChecks]=useState<Record<string,PersonenVorschau | null>>({});
   const [checkingFiles,setCheckingFiles]=useState(false);
-  const modalRef=useDialogFocus(analyzeOpen,()=>{if(!analyzing && !batchRunning)setAnalyzeOpen(false);});
+  const closeAnalyze = useCallback(() => {
+    if (analyzing || batchRunning) return;
+    setAnalysisFailure(null);
+    setError(null);
+    setRevisionOfAbgabeId(null);
+    setAnalyzeOpen(false);
+  }, [analyzing, batchRunning]);
+  const modalRef=useDialogFocus(analyzeOpen,closeAnalyze);
   const queueRunning=analyzing || batchRunning;
   const selectFiles=useCallback((paths:string[])=>{
     const accepted=paths.filter(f=>/\.(docx|pdf|txt|odt|jpe?g|png)$/i.test(f));
@@ -381,9 +412,9 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
   useEffect(()=>{
     if(!analyzeOpen || !isTauri())return;
     let active=true;
-    void listRubrics(analyseKlasseMeta?.fach,analyseKlasseMeta?.schulstufe).then(value=>{if(active)setRubrikListe(value);}).catch(e=>{if(active)setError(String(e));});
+    void listRubrics(analyseKlasseMeta?.fach,analyseKlasseMeta?.schulstufe,selectedRubrik||undefined).then(value=>{if(active)setRubrikListe(value);}).catch(e=>{if(active)setError(String(e));});
     return ()=>{active=false;};
-  },[analyzeOpen,analyseKlasseMeta?.fach,analyseKlasseMeta?.schulstufe,listRubrics]);
+  },[analyzeOpen,analyseKlasseMeta?.fach,analyseKlasseMeta?.schulstufe,selectedRubrik,listRubrics]);
 
   useEffect(()=>{
     if(!analyzeOpen || !analyzeKlasse || queueRunning)return;
@@ -392,13 +423,13 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
       const checks:Record<string,PersonenVorschau | null>={};
       for(const file of batchFiles){
         if(!active)return;
-        checks[file]=await personenVorschau(file,analyzeKlasse,runtime);
+        checks[file]=await personenVorschau(file,analyzeKlasse,effectiveRuntime);
         if(active)setFileChecks({...checks});
       }
       if(active)setCheckingFiles(false);
     })();
     return ()=>{active=false;};
-  },[analyzeOpen,analyzeKlasse,batchFiles,personenVorschau,runtime.provider,runtime.model,queueRunning]);
+  },[analyzeOpen,analyzeKlasse,batchFiles,personenVorschau,effectiveRuntime.provider,effectiveRuntime.model,queueRunning]);
 
   const loadAufgaben = useCallback(async (klasse: string) => {
     const request=++listRequest.current;detailRequest.current++;
@@ -464,10 +495,29 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     finally { setLoading(false); }
   }, [getAbgabeDetail]);
 
+  // Cross-Nav (L1): aus der Klassenansicht (Abgaben-Tabelle) direkt in die
+  // konkrete Korrektur springen — Klasse/Aufgabe/Abgabe laden wie ein Klick
+  // durch die drei linken Auswahl-Ebenen.
+  const preselectRef = useRef<typeof preselect>(null);
+  useEffect(() => {
+    if (!preselect || preselectRef.current === preselect) return;
+    preselectRef.current = preselect;
+    let cancelled = false;
+    void (async () => {
+      setSelectedKlasse(preselect.klasse);
+      await loadAbgaben(preselect.klasse, preselect.aufgabe);
+      if (cancelled) return;
+      await loadDetail(preselect.abgabeId);
+      onConsumePreselect?.();
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preselect]);
+
   const handleSaveFeedback = useCallback(async () => {
     if (!selectedAbgabe || saveLock.current) return false;
     const note=teacherNote.trim() ? Number(teacherNote) : null;
-    if(note === null || !Number.isFinite(note) || note < 1 || note > 5){setError('Bitte eine gültige Lehrernote zwischen 1 und 5 eingeben.');return false;}
+    if(note === null || !istGueltigeLehrernote(note, korrekturLand)){setError(`Bitte eine gültige Lehrernote zwischen 1 und ${maxLehrernote(korrekturLand)} eingeben.`);return false;}
     const savedNote=teacherNote, savedComment=teacherComment;
     saveLock.current=true;
     const finish=beginActivity('Feedback speichern');
@@ -518,7 +568,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     }
     setSaving(false);saveLock.current=false;finish();
     return ok;
-  }, [selectedAbgabe, teacherNote, teacherComment, upsertLehrerFeedback, updateFehlerStatus, fehlerAktionen, loadDetail, saving, setFeedbackDrafts]);
+  }, [selectedAbgabe, teacherNote, teacherComment, upsertLehrerFeedback, updateFehlerStatus, fehlerAktionen, loadDetail, saving, setFeedbackDrafts, korrekturLand]);
 
   const [retroBusy, setRetroBusy] = useState(false);
   const handleRetroImport = useCallback(async () => {
@@ -588,13 +638,20 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     setDocxErfolg(null);
     setFehlerAktionen({});
     setEditFehlerId(null);
+    setNurUnsichere(false);
   }, [selectedAbgabe?.abgabe.id]);
 
   const handleOpenAnalyze = useCallback(() => {
     setError(null);
+    setAnalysisFailure(null);
+    setRevisionOfAbgabeId(null);
     setAnalyzeSuccess(null);
     if (!isKorrekturReady(korrekturStatus)) {
       setError(korrekturStatus?.label ?? 'Korrektur-Modul wird noch geprüft.');
+      return;
+    }
+    if (profilLand !== undefined && korrekturLand === null) {
+      setError('Die Korrektur-Skala für dein Profil-Land (Schweiz) folgt in einer kommenden Version. Bitte Profil auf Österreich oder Deutschland setzen.');
       return;
     }
     if(analyzeKlasse || analyzeFile || batchFiles.length){setAnalyzeStep(1);setAnalyzeOpen(true);return;}
@@ -609,7 +666,63 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     setAnalyzeAusgangstextDatei('');
     setAnalyzeStep(1);
     setAnalyzeOpen(true);
-  }, [korrekturStatus, korrekturKontext, selectedAufgabe, selectedKlasse, analyzeKlasse, analyzeFile, batchFiles.length]);
+  }, [korrekturStatus, korrekturKontext, selectedAufgabe, selectedKlasse, analyzeKlasse, analyzeFile, batchFiles.length, profilLand, korrekturLand]);
+
+  const handleReanalyze = useCallback(() => {
+    if (!selectedAbgabe) return;
+    setError(null);
+    setAnalysisFailure(null);
+    setAnalyzeSuccess(null);
+    setRevisionOfAbgabeId(selectedAbgabe.abgabe.id);
+    setAnalyzeKlasse(selectedAbgabe.abgabe.klasse);
+    setAnalyzeAufgabe(selectedAbgabe.abgabe.aufgabe);
+    setAnalyzeFile('');
+    setBatchFiles([]);
+    setBatchResults([]);
+    setAssignments({});
+    setSelectedRubrik(korrekturKontext?.klasse === selectedAbgabe.abgabe.klasse && korrekturKontext?.aufgabe === selectedAbgabe.abgabe.aufgabe ? korrekturKontext.rubrik : '');
+    setAnalyzeAusgangstext(korrekturKontext?.ausgangstext ?? '');
+    setAnalyzeAusgangstextDatei('');
+    setAnalyzeProvider('');
+    setAnalyzeModel('');
+    setAnalyzeStep(1);
+    setAnalyzeOpen(true);
+  }, [selectedAbgabe, korrekturKontext, setAnalyzeKlasse, setAnalyzeAufgabe, setAnalyzeFile, setBatchFiles, setBatchResults, setAssignments, setSelectedRubrik, setAnalyzeAusgangstext, setAnalyzeAusgangstextDatei, setAnalyzeProvider, setAnalyzeModel]);
+
+  const handleActivateRevision = useCallback(async (revisionId: number) => {
+    if (!selectedAbgabe) return;
+    try {
+      await activateKorrekturRevision(selectedAbgabe.abgabe.id, revisionId);
+      await loadDetail(selectedAbgabe.abgabe.id);
+      setAbgaben(await getAbgaben(selectedAbgabe.abgabe.klasse, selectedAbgabe.abgabe.aufgabe));
+    } catch {
+      setError('Die Korrekturversion konnte nicht aktiviert werden. Deine bisherigen Daten bleiben erhalten.');
+    }
+  }, [selectedAbgabe, activateKorrekturRevision, loadDetail, getAbgaben]);
+
+  const handleDeleteRevision = useCallback(async (revisionId: number) => {
+    if (!selectedAbgabe) return;
+    if (!window.confirm('Diese Korrekturversion samt KI-Ergebnissen und Lehrkraft-Feedback löschen? Schülerprofil und Originaldatei bleiben erhalten.')) return;
+    const { id, klasse, aufgabe } = selectedAbgabe.abgabe;
+    try {
+      const removedAbgabe = await deleteKorrekturRevision(id, revisionId);
+      if (removedAbgabe) {
+        setSelectedAbgabe(null);
+        setTeacherNote('');
+        setTeacherComment('');
+        const refreshed = await listKlassen();
+        setKlassen(refreshed);
+        await loadAufgaben(klasse);
+      } else {
+        await loadDetail(id);
+        setAbgaben(await getAbgaben(klasse, aufgabe));
+        const refreshed = await listKlassen();
+        setKlassen(refreshed);
+      }
+    } catch {
+      setError('Die Korrekturversion konnte nicht gelöscht werden. Es wurden keine Schülerdaten oder Originaldateien entfernt.');
+    }
+  }, [selectedAbgabe, deleteKorrekturRevision, listKlassen, loadAufgaben, loadDetail, getAbgaben]);
 
   // Redaktionsvorschau nachladen, sobald Datei + Klasse feststehen (debounced —
   // der Call spawnt den Python-Sidecar, nicht bei jedem Tastendruck).
@@ -622,7 +735,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     setPseudoVorschau(null);
     setPseudoVorschauBusy(true);
     const t = setTimeout(async () => {
-      const v = await personenVorschau(analyzeFile, analyzeKlasse.trim(), runtime);
+      const v = await personenVorschau(analyzeFile, analyzeKlasse.trim(), effectiveRuntime);
       if (aktiv) {
         setPseudoVorschau(v);
         setPseudoVorschauBusy(false);
@@ -633,7 +746,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
       clearTimeout(t);
       setPseudoVorschauBusy(false);
     };
-  }, [analyzeOpen, analyzeFile, analyzeKlasse, personenVorschau, runtime.provider, runtime.model]);
+  }, [analyzeOpen, analyzeFile, analyzeKlasse, personenVorschau, effectiveRuntime.provider, effectiveRuntime.model]);
 
   // Schülerliste der Klasse für die bestätigte Zuordnung laden.
   useEffect(() => {
@@ -674,11 +787,25 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
       return;
     }
     setError(null);
+    setAnalysisFailure(null);
     setAnalyzeSuccess(null);
     const einsatz = einsatzOptions.find((e) => e.id === selectedEinsatzId);
     let result;
-    try { result = await analyze(analyzeFile, analyzeKlasse, analyzeAufgabe, { runtime: effectiveRuntime, fach: analyseKlasseMeta?.fach || undefined, schulstufe: analyseKlasseMeta?.schulstufe || undefined, textsorte: analyzeTextsorte || undefined, ausgangstext: analyzeAusgangstextDatei ? undefined : (analyzeAusgangstext.trim() || undefined), ausgangstextDatei: analyzeAusgangstextDatei || undefined, rubric: selectedRubrik || rubrikListe.defaultRubric || undefined, pseudonymisierung: pseudoAktiv, schuelerId: assignments[analyzeFile] || (zuordnungId === '' ? undefined : zuordnungId), einsatzId: einsatz?.id, materialId: einsatz?.materialId ?? undefined });
-    } catch(e) { setError(e instanceof Error ? e.message : String(e)); return; }
+    const correctionRun = createCorrectionRunSnapshot({
+      provider: effectiveRuntime.provider,
+      model: effectiveRuntime.model,
+      pseudonymization: pseudoAktiv,
+      basis: {
+        klasse: analyzeKlasse,
+        aufgabe: analyzeAufgabe,
+        rubrik: selectedRubrik || rubrikListe.defaultRubric || '',
+        ausgangstext: analyzeAusgangstextDatei ? '' : analyzeAusgangstext.trim(),
+        unterrichtseinsatzId: einsatz?.id ?? null,
+        materialId: einsatz?.materialId ?? null,
+      },
+    });
+    try { result = await analyze(analyzeFile, analyzeKlasse, analyzeAufgabe, { runtime: { provider: correctionRun.provider, model: correctionRun.model }, fach: analyseKlasseMeta?.fach || undefined, schulstufe: analyseKlasseMeta?.schulstufe || undefined, textsorte: analyzeTextsorte || undefined, land: korrekturLand ?? 'at', ausgangstext: analyzeAusgangstextDatei ? undefined : (analyzeAusgangstext.trim() || undefined), ausgangstextDatei: analyzeAusgangstextDatei || undefined, rubric: correctionRun.basis.rubrik || undefined, pseudonymisierung: correctionRun.privacyMode === 'pseudonymisiert', schuelerId: assignments[analyzeFile] || (zuordnungId === '' ? undefined : zuordnungId), einsatzId: correctionRun.basis.unterrichtseinsatzId ?? undefined, materialId: correctionRun.basis.materialId ?? undefined, revisionOfAbgabeId: revisionOfAbgabeId ?? undefined });
+    } catch(e) { setAnalysisFailure(e instanceof Error ? e.message : String(e)); setAnalyzeStep(5); return; }
     const resultErrors = analyseHinweise(result);
     const duplicate = resultErrors.some((entry) => /duplikat|bereits analysiert/i.test(entry));
     if (result) {
@@ -691,6 +818,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
       setQueueContext(contextKey);
       setBatchResults([{file:analyzeFile,ok:!duplicate,msg:duplicate ? 'Bereits analysiert' : 'KI-Vorschlag vorhanden — bitte prüfen'}]);
       setAnalyzeOpen(false);
+      setRevisionOfAbgabeId(null);
       // Die Grundlage bleibt für weitere Abgaben und Wiederaufnahme erhalten.
       const refreshed = await listKlassen();
       setKlassen(refreshed);
@@ -698,9 +826,9 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
         await loadAufgaben(analyzeKlasse);
       }
     } else {
-      setError(analyzeError ?? 'Analyse fehlgeschlagen');
+      setAnalysisFailure('Analyse fehlgeschlagen. Bitte Anbieter und Modell prüfen und manuell erneut versuchen.');
     }
-  }, [runtime.provider, runtime.model, contextKey, rubrikListe.defaultRubric, assignments, analyze, analyzeFile, analyzeKlasse, analyzeAufgabe, analyseKlasseMeta, analyzeAusgangstext, analyzeAusgangstextDatei, analyzeError, listKlassen, loadAufgaben, pseudoVorschau, pseudoVorschauBusy, pseudoAktiv, selectedRubrik, zuordnungId, einsatzOptions, selectedEinsatzId]);
+  }, [effectiveRuntime.provider, effectiveRuntime.model, revisionOfAbgabeId, contextKey, rubrikListe.defaultRubric, assignments, analyze, analyzeFile, analyzeKlasse, analyzeAufgabe, analyseKlasseMeta, analyzeAusgangstext, analyzeAusgangstextDatei, listKlassen, loadAufgaben, pseudoVorschau, pseudoVorschauBusy, pseudoAktiv, selectedRubrik, zuordnungId, einsatzOptions, selectedEinsatzId]);
 
   const annotatedNodes = useMemo(() => {
     const rohtext = selectedAbgabe?.abgabe.rohtext;
@@ -709,9 +837,9 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
   }, [selectedAbgabe, fehlerAktionen]);
 
   const pickFile=useCallback(async()=>{
-    try{const {open}=await import('@tauri-apps/plugin-dialog');const paths=await open({multiple:true,filters:[{name:'Abgaben',extensions:['docx','pdf','txt','odt','jpg','jpeg','png']}]});if(paths)selectFiles(Array.isArray(paths)?paths:[paths]);}
+    try{const {open}=await import('@tauri-apps/plugin-dialog');const paths=await open({multiple:revisionOfAbgabeId === null,filters:[{name:'Abgaben',extensions:['docx','pdf','txt','odt','jpg','jpeg','png']}]});if(paths)selectFiles(Array.isArray(paths)?paths:[paths]);}
     catch{setError('Die Dateiauswahl konnte nicht geöffnet werden. Bitte erneut versuchen.');}
-  },[selectFiles]);
+  },[selectFiles, revisionOfAbgabeId]);
 
   const pickSourceFile = useCallback(async () => {
     try {
@@ -734,6 +862,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     const finishActivity=beginActivity('Korrekturstapel');
     try {
     setError(null);
+    setAnalysisFailure(null);
     setAnalyzeSuccess(null);
     setBatchRunning(true);
     setBatchResults([]);
@@ -742,7 +871,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
 
     const visionFiles = batchFiles.filter(isVisionPath);
     if (visionFiles.length > 0) {
-      const visionChecks = await Promise.all(visionFiles.map((file) => personenVorschau(file, analyzeKlasse, runtime)));
+      const visionChecks = await Promise.all(visionFiles.map((file) => personenVorschau(file, analyzeKlasse, effectiveRuntime)));
       if (visionChecks.some((preview) => !preview || (preview.visionModus && !preview.visionFaehig))) {
         setBatchRunning(false);
         setError('Mindestens eine PDF/Bild-Abgabe kann mit dem konfigurierten KI-Anbieter nicht analysiert werden. Bitte einen Vision-fähigen Anbieter oder DOCX/TXT verwenden.');
@@ -750,6 +879,20 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
       }
     }
 
+    const correctionRun = createCorrectionRunSnapshot({
+      provider: effectiveRuntime.provider,
+      model: effectiveRuntime.model,
+      pseudonymization: pseudoAktiv,
+      basis: {
+        klasse: analyzeKlasse,
+        aufgabe: analyzeAufgabe,
+        rubrik: selectedRubrik || rubrikListe.defaultRubric || '',
+        ausgangstext: analyzeAusgangstextDatei ? '' : analyzeAusgangstext.trim(),
+        unterrichtseinsatzId: einsatzOptions.find((item) => item.id === selectedEinsatzId)?.id ?? null,
+        materialId: einsatzOptions.find((item) => item.id === selectedEinsatzId)?.materialId ?? null,
+      },
+    });
+    const failedRuns: string[] = [];
     const results: { file: string; ok: boolean; msg: string }[] = queueContext === contextKey ? batchResults.filter(r=>r.ok && batchFiles.includes(r.file)) : [];
     setQueueContext(contextKey);
     for (let i = 0; i < batchFiles.length; i++) {
@@ -759,17 +902,19 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
       setBatchCurrent(i + 1);
       try {
         const einsatz = einsatzOptions.find((e) => e.id === selectedEinsatzId);
-        const result = await analyze(file, analyzeKlasse, analyzeAufgabe, { runtime: effectiveRuntime, fach: analyseKlasseMeta?.fach || undefined, schulstufe: analyseKlasseMeta?.schulstufe || undefined, textsorte: analyzeTextsorte || undefined, ausgangstext: analyzeAusgangstextDatei ? undefined : (analyzeAusgangstext.trim() || undefined), ausgangstextDatei: analyzeAusgangstextDatei || undefined, rubric: selectedRubrik || rubrikListe.defaultRubric || undefined, pseudonymisierung: pseudoAktiv, schuelerId: assignments[file] || undefined, einsatzId: einsatz?.id, materialId: einsatz?.materialId ?? undefined });
+        const result = await analyze(file, analyzeKlasse, analyzeAufgabe, { runtime: { provider: correctionRun.provider, model: correctionRun.model }, fach: analyseKlasseMeta?.fach || undefined, schulstufe: analyseKlasseMeta?.schulstufe || undefined, textsorte: analyzeTextsorte || undefined, land: korrekturLand ?? 'at', ausgangstext: analyzeAusgangstextDatei ? undefined : (analyzeAusgangstext.trim() || undefined), ausgangstextDatei: analyzeAusgangstextDatei || undefined, rubric: correctionRun.basis.rubrik || undefined, pseudonymisierung: correctionRun.privacyMode === 'pseudonymisiert', schuelerId: assignments[file] || undefined, einsatzId: correctionRun.basis.unterrichtseinsatzId ?? undefined, materialId: correctionRun.basis.materialId ?? undefined });
         if (result) {
           const note = result?.analysis?.notenempfehlung?.note;
           const resultErrors = analyseHinweise(result);
           const duplicate = resultErrors.some((entry) => /duplikat|bereits analysiert/i.test(entry));
           results.push({ file, ok: !duplicate, msg: duplicate ? 'Übersprungen (bereits analysiert)' : `${note != null ? `Note ${note}` : 'OK'}${resultErrors.length ? ` · ${resultErrors.join(' ')}` : ''}` });
         } else {
-          results.push({ file, ok: false, msg: analyzeError ?? 'fehlgeschlagen' });
+          failedRuns.push(`${baseName(file)}: Analyse fehlgeschlagen.`);
+          results.push({ file, ok: false, msg: 'Nicht abgeschlossen — Details in Schritt 5' });
         }
       } catch (e) {
-        results.push({ file, ok: false, msg: e instanceof Error ? e.message : String(e) });
+        failedRuns.push(`${baseName(file)}: ${e instanceof Error ? e.message : 'Analyse fehlgeschlagen.'}`);
+        results.push({ file, ok: false, msg: 'Nicht abgeschlossen — Details in Schritt 5' });
       }
       setBatchResults([...results]);
     }
@@ -777,12 +922,16 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
     setBatchRunning(false);
     const okCount = results.filter((r) => r.ok).length;
     setAnalyzeSuccess(`Stapel fertig: ${okCount}/${batchFiles.length} erfolgreich${batchCancelRef.current ? ' (abgebrochen)' : ''}.`);
+    if (failedRuns.length > 0) {
+      setAnalysisFailure(failedRuns.join('\n'));
+      setAnalyzeStep(5);
+    }
     const refreshed = await listKlassen();
     setKlassen(refreshed);
     if (analyzeKlasse) await loadAufgaben(analyzeKlasse);
-    } catch(e) {setError(e instanceof Error ? e.message : String(e));}
+    } catch(e) {setAnalysisFailure(e instanceof Error ? e.message : 'Der Korrekturstapel konnte nicht abgeschlossen werden.');setAnalyzeStep(5);}
     finally {setBatchRunning(false);batchStarting.current=false;finishActivity();}
-  }, [runtime.provider, runtime.model, contextKey, queueContext, rubrikListe.defaultRubric, assignments, batchResults, checkingFiles, fileChecks, batchFiles, analyzeKlasse, analyzeAufgabe, analyseKlasseMeta, analyzeAusgangstext, analyzeAusgangstextDatei, analyze, analyzeError, personenVorschau, listKlassen, loadAufgaben, pseudoAktiv, selectedRubrik, einsatzOptions, selectedEinsatzId]);
+  }, [effectiveRuntime.provider, effectiveRuntime.model, contextKey, queueContext, rubrikListe.defaultRubric, assignments, batchResults, checkingFiles, fileChecks, batchFiles, analyzeKlasse, analyzeAufgabe, analyseKlasseMeta, analyzeAusgangstext, analyzeAusgangstextDatei, analyze, personenVorschau, listKlassen, loadAufgaben, pseudoAktiv, selectedRubrik, einsatzOptions, selectedEinsatzId]);
 
   const cardStyle = {
     padding: '1.25rem', border: '1px solid var(--color-border)',
@@ -869,7 +1018,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
           <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}> — du kannst innerhalb von LUKA weiterarbeiten.</span>
         </div>
       )}
-      <div style={{marginBottom:'1rem'}}><button className="btn-secondary" disabled={queueRunning} onClick={()=>{setBatchFiles([]);setBatchResults([]);setAnalyzeFile('');setAnalyzeKlasse('');setAnalyzeAufgabe('');setSelectedRubrik('');setAnalyzeTextsorte('');setAnalyzeProvider('');setAnalyzeModel('');setAnalyzeAusgangstext('');setAnalyzeAusgangstextDatei('');setSelectedEinsatzId('');setAssignments({});setPseudoAktiv(true);setError(null);setAnalyzeSuccess(null);setAnalyzeStep(1);setAnalyzeOpen(true);}}>Neuer Korrekturauftrag</button></div>
+      <div style={{marginBottom:'1rem'}}><button className="btn-secondary" disabled={queueRunning} onClick={()=>{setBatchFiles([]);setBatchResults([]);setAnalyzeFile('');setAnalyzeKlasse('');setAnalyzeAufgabe('');setSelectedRubrik('');setAnalyzeTextsorte('');setAnalyzeProvider('');setAnalyzeModel('');setAnalyzeAusgangstext('');setAnalyzeAusgangstextDatei('');setSelectedEinsatzId('');setAssignments({});setPseudoAktiv(true);setError(null);setAnalysisFailure(null);setRevisionOfAbgabeId(null);setAnalyzeSuccess(null);setAnalyzeStep(1);setAnalyzeOpen(true);}}>Neuer Korrekturauftrag</button></div>
       {batchResults.length>0 && !analyzeOpen && <details className="queue-results"><summary>Letzter Auftrag: {batchResults.filter(r=>r.ok).length} abgeschlossen</summary>{batchResults.map(r=><p key={r.file}>{baseName(r.file)} — {r.msg}</p>)}<button className="btn-secondary" onClick={()=>setAnalyzeOpen(true)}>Auftrag öffnen / fehlende Dateien fortsetzen</button></details>}
       <div className="correction-workspace" style={{ display: 'grid', gridTemplateColumns: 'minmax(180px, 240px) minmax(0, 1fr)', gap: '1.25rem' }}>
           <div style={cardStyle}>
@@ -1084,6 +1233,29 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
                       </div>
                     </div>
 
+                    <div style={{ padding: '0.65rem 0.75rem', marginBottom: '1rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', background: 'var(--color-bg-base)', fontSize: '0.75rem' }}>
+                      <strong>KI-Lauf:</strong> {selectedAbgabe.abgabe.provider ?? 'Anbieter unbekannt'} · {selectedAbgabe.abgabe.model ?? 'Modell unbekannt'}
+                      {selectedAbgabe.revisions.find((revision) => revision.isActive) && <> · Version {selectedAbgabe.revisions.find((revision) => revision.isActive)?.revisionNo}</>}
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginBottom: '1rem' }}>
+                      <button className="btn-secondary" onClick={handleReanalyze} style={{ fontSize: '0.75rem' }}><RefreshCw size={13} /> Neu korrigieren</button>
+                    </div>
+                    {selectedAbgabe.revisions.length > 0 && (
+                      <div style={{ marginBottom: '1rem' }}>
+                        <h5 style={{ fontSize: '0.8125rem', margin: '0 0 0.4rem' }}>Korrekturversionen</h5>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                          {selectedAbgabe.revisions.map((revision) => (
+                            <div key={revision.id} style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+                              <button className="btn-secondary" aria-pressed={revision.isActive} onClick={() => void handleActivateRevision(revision.id)} style={{ flex: 1, textAlign: 'left', fontSize: '0.72rem', borderColor: revision.isActive ? 'var(--color-accent)' : undefined }}>
+                                Version {revision.revisionNo} · {revision.provider} · {revision.model}{revision.isActive ? ' · aktiv' : ''}
+                              </button>
+                              <button className="btn-secondary" title={`Version ${revision.revisionNo} löschen`} aria-label={`Version ${revision.revisionNo} löschen`} onClick={() => void handleDeleteRevision(revision.id)} style={{ padding: '0.3rem' }}><Trash2 size={13} /></button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {selectedAbgabe.kriterien.length > 0 && (
                       <div style={{ marginBottom: '1.25rem' }}>
                         <h5 style={{ fontSize: '0.8125rem', margin: '0 0 0.5rem' }}>Kriterien</h5>
@@ -1101,6 +1273,16 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
                       </div>
                     )}
 
+                    {(selectedAbgabe.qualitaetswarnungen?.length ?? 0) > 0 && (
+                      <div role="alert" style={{ marginBottom: '1rem', padding: '0.625rem 0.75rem', border: '1px solid color-mix(in srgb, var(--color-warning, #f59e0b) 55%, var(--color-border))', borderRadius: 'var(--radius)', background: 'var(--color-bg-surface, #fffaf0)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8125rem', fontWeight: 700, marginBottom: '0.25rem' }}>
+                          <AlertTriangle size={14} /> Qualitätsprüfung — bitte kurz prüfen
+                        </div>
+                        <ul style={{ margin: 0, paddingLeft: '1.1rem', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+                          {(selectedAbgabe.qualitaetswarnungen ?? []).map((w, i) => <li key={i}>{w.message}</li>)}
+                        </ul>
+                      </div>
+                    )}
                     {selectedAbgabe.fehler.length > 0 && (() => {
                       const total = selectedAbgabe.fehler.length;
                       const aktionCount = (a: string) => selectedAbgabe.fehler.filter(f =>
@@ -1113,11 +1295,27 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
                       const avgStufe = averageVertrauensstufe(
                         selectedAbgabe.fehler.map(f => f.vertrauensstufe),
                       );
+                      // „Nur unsichere“ (L2): Review-Modus für die Ampel — zeigt
+                      // gelb/rot, damit die Lehrkraft gezielt die kritischen
+                      // Vorschläge durchgeht.
+                      const unsicherCount = selectedAbgabe.fehler.filter(f => f.vertrauensstufe === 'mittel' || f.vertrauensstufe === 'niedrig').length;
+                      const sichtbareFehler = nurUnsichere
+                        ? selectedAbgabe.fehler.filter(f => f.vertrauensstufe === 'mittel' || f.vertrauensstufe === 'niedrig')
+                        : selectedAbgabe.fehler;
                       return (
                       <div style={{ marginBottom: '1.25rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '0.375rem' }}>
                           <h5 style={{ fontSize: '0.8125rem', margin: 0 }}>Fehler ({total})</h5>
                           <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)', display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                            <button
+                              type="button"
+                              aria-pressed={nurUnsichere}
+                              onClick={() => setNurUnsichere(v => !v)}
+                              style={{ background: nurUnsichere ? 'var(--color-accent)' : 'transparent', color: nurUnsichere ? '#fff' : 'var(--color-text-secondary)', border: '1px solid var(--color-border)', borderRadius: '999px', padding: '0.1rem 0.5rem', fontSize: '0.6875rem', cursor: 'pointer' }}
+                              title="Zeigt nur Vorschläge mittlerer und niedriger Vertrauensstufe"
+                            >
+                              Nur unsichere ({unsicherCount})
+                            </button>
                             {uebernommen > 0 && <span style={{ color: '#27ae60' }} title={`${uebernommen} übernommen`} aria-label={`${uebernommen} übernommen`}>✓ {uebernommen}</span>}
                             {geaendert > 0 && <span style={{ color: '#9b59b6' }} title={`${geaendert} geändert`} aria-label={`${geaendert} geändert`}>✎ {geaendert}</span>}
                             {verworfen > 0 && <span style={{ color: '#e74c3c' }} title={`${verworfen} verworfen`} aria-label={`${verworfen} verworfen`}>✕ {verworfen}</span>}
@@ -1129,7 +1327,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
                         </div>
                         <p style={{fontSize:'0.8rem', margin:'0 0 0.5rem'}}>Nur eindeutig zuordenbare Zitate werden im Text markiert. Wiederholte oder abweichende Formulierungen bitte anhand des Zitats prüfen.</p>
                         <div style={{ maxHeight: '48vh', overflowY: 'auto', paddingRight: '0.25rem' }}>
-                          {selectedAbgabe.fehler.map((f) => {
+                          {sichtbareFehler.map((f) => {
                             const aktion = fehlerAktionen[f.id]?.aktion ?? f.lehrkraftAktion ?? null;
                             const stufe = f.vertrauensstufe;
                             const effektiveKorrektur = fehlerAktionen[f.id]?.korrektur ?? f.lehrkraftKorrektur ?? f.korrektur;
@@ -1322,7 +1520,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
         </div>
 
       {analyzeOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'var(--color-overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }} onClick={() => { if (!batchRunning && !analyzing) setAnalyzeOpen(false); }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--color-overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }} onClick={closeAnalyze}>
           <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="correction-import-title" tabIndex={-1} className="correction-import" style={{ ...cardStyle, width: 760, maxWidth:'calc(100vw - 2rem)', maxHeight: '90vh', overflow: 'auto' }} onClick={(e) => e.stopPropagation()}>
             <h3 id="correction-import-title" style={{ fontSize: '1.2rem', margin: '0 0 0.25rem' }}>Korrekturauftrag</h3>
 
@@ -1361,6 +1559,12 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
                   Klasse und Ausgangstext wurden aus dem Einsatz vorbefüllt und bleiben bewusst überschreibbar.
                 </p>}
               </div>
+
+              {landHinweis && (
+                <div style={{ marginBottom: '0.75rem', padding: '0.5rem 0.75rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', background: 'var(--color-bg-base)', fontSize: '0.72rem', color: 'var(--color-text-secondary)' }}>
+                  {landHinweis}
+                </div>
+              )}
 
               <div style={{ marginBottom: '0.75rem' }}>
                 <label>Klasse</label>
@@ -1401,14 +1605,14 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   <select
                     value={analyzeProvider || settings.defaultProvider}
-                    onChange={(e) => { setAnalyzeProvider(e.target.value); setAnalyzeModel(LLM_PROVIDERS.find(p => p.id === e.target.value)?.models[0] ?? ''); }}
+                    onChange={(e) => { setAnalysisFailure(null); setError(null); setAnalyzeProvider(e.target.value); setAnalyzeModel(LLM_PROVIDERS.find(p => p.id === e.target.value)?.models[0] ?? ''); }}
                     style={{ flex: 1 }}
                   >
                     {LLM_PROVIDERS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
                   </select>
                   <select
                     value={analyzeModel || settings.defaultModel}
-                    onChange={(e) => setAnalyzeModel(e.target.value)}
+                    onChange={(e) => { setAnalysisFailure(null); setError(null); setAnalyzeModel(e.target.value); }}
                     style={{ flex: 1 }}
                   >
                     {(LLM_PROVIDERS.find(p => p.id === (analyzeProvider || settings.defaultProvider))?.models ?? []).map((m) => <option key={m} value={m}>{m}</option>)}
@@ -1437,15 +1641,11 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
                   style={{ width: '100%' }}
                 >
                   <option value="">Textsorte auswählen</option>
-                  {(analyseKlasseMeta?.schulstufe === 'oberstufe'
-                    ? [...SRDP_DEUTSCH_TEXTSORTEN]
-                    : ['Erzählung', 'Beschreibung', 'Bericht', 'Zusammenfassung', 'Kommentar', 'Leserbrief']
-                  ).map((ts) => <option key={ts} value={ts}>{ts}</option>)}
+                  {textsortenFuer(analyseKlasseMeta?.fach, analyseKlasseMeta?.schulstufe)
+                    .map((ts) => <option key={ts} value={ts}>{ts}</option>)}
                 </select>
                 <p style={{ margin: '0.25rem 0 0', fontSize: '0.6875rem', color: 'var(--color-text-secondary)' }}>
-                  {analyseKlasseMeta?.schulstufe === 'oberstufe'
-                    ? 'Oberstufe: 7 offizielle SRDP-Textsorten + Empfehlung'
-                    : 'Unterstufe: altersgerechte Textsorten'}
+                  {textsortenHint(analyseKlasseMeta?.fach, analyseKlasseMeta?.schulstufe)}
                 </p>
               </div>
 
@@ -1526,6 +1726,19 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
                 </select>
                 <button type="button" className="btn-secondary" onClick={()=>selectFiles(batchFiles.filter(p=>p!==file))} aria-label={'Entfernen: '+baseName(file)}>Entfernen</button>
               </div>)}
+
+              {batchFiles.length >= 2 && (() => {
+                const sch = schaetzeBatch(batchFiles.map(file => fileChecks[file] ?? {}));
+                return (
+                  <div style={{ marginTop: '0.75rem', padding: '0.5rem 0.75rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', background: 'var(--color-bg-base)', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+                    <strong style={{ color: 'var(--color-text)' }}>Mengenschätzung:</strong>{' '}
+                    {sch.woerter !== null
+                      ? <>≈ {formatTokenzahl(sch.gesamtTokens ?? 0)} Tokens gesamt ({sch.dateien} Abgaben, davon ≈ {formatTokenzahl(sch.eingabeTokens ?? 0)} Eingabe)</>
+                      : <>{sch.dateien} Abgaben, je ≈ {formatTokenzahl(ANTWORT_TOKENS_PRO_ABGABE)} Antwort-Tokens</>}
+                    {' '}— bei Ratenlimits den Stapel zeitlich staffeln.
+                  </div>
+                );
+              })()}
 
               {batchResults.length>0 && <div role="status" className="queue-results"><strong>Letzter Bearbeitungsstand</strong>{batchResults.map(r=><p key={r.file}>{baseName(r.file)} — {r.ok?'KI-Vorschlag vorhanden':'Nicht abgeschlossen'} · {r.msg}</p>)}</div>}
 
@@ -1697,7 +1910,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
 
                 {/* Runtime + Datenschutz */}
                 <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', padding: '0.5rem 0' }}>
-                  <strong>KI-Anbieter:</strong> {LLM_PROVIDERS.find(p => p.id === (analyzeProvider || settings.defaultProvider))?.label ?? effectiveRuntime.provider} · {(() => { const pKey = analyzeProvider || settings.defaultProvider; const mLabel = analyzeModel || settings.defaultModel; const models = LLM_PROVIDERS.find(p => p.id === pKey)?.models ?? []; return models.includes(mLabel) ? mLabel : (models[0] ?? mLabel); })()}
+                  <strong>KI-Anbieter:</strong> {LLM_PROVIDERS.find(p => p.id === (analyzeProvider || settings.defaultProvider))?.label ?? effectiveRuntime.provider} · {analyzeModel || settings.defaultModel}
                   {' · '}
                   <strong>Datenschutz:</strong> {pseudoAktiv ? 'Pseudonymisierung aktiv' : 'Namen werden übertragen'}
                 </div>
@@ -1706,13 +1919,13 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
 
             </fieldset>
 
-            {analyzeError && <p style={{ color: 'var(--color-error)', fontSize: '0.8125rem' }}>{analyzeError}</p>}
+            {shouldShowCorrectionRunError(analyzeStep) && analysisFailure && <p role="alert" style={{ color: 'var(--color-error)', fontSize: '0.8125rem', whiteSpace: 'pre-line' }}>{analysisFailure}</p>}
 
             {/* Navigation buttons */}
             <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'space-between', marginTop: '1rem' }}>
               <div>
                 {analyzeStep > 1 && !queueRunning && (
-                  <button className="btn-secondary" onClick={() => setAnalyzeStep((s) => (s - 1) as 1 | 2 | 3 | 4 | 5)}>
+                  <button className="btn-secondary" onClick={() => { setAnalysisFailure(null); setError(null); setAnalyzeStep((s) => (s - 1) as 1 | 2 | 3 | 4 | 5); }}>
                     Zurück
                   </button>
                 )}
@@ -1724,7 +1937,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
                   </button>
                 ) : (
                   <>
-                    <button className="btn-secondary" onClick={() => setAnalyzeOpen(false)}>Entwurf schließen</button>
+                    <button className="btn-secondary" onClick={closeAnalyze}>Entwurf schließen</button>
                     {analyzeStep < 5 ? (
                       <button
                         className="btn-primary"
@@ -1745,7 +1958,7 @@ export function KorrekturView({ onOpenSchueler }: KorrekturViewProps = {}) {
                         ) : (
                           <button className="btn-primary" onClick={handleAnalyze} disabled={checkingFiles || !fileChecks[analyzeFile] || analyzing || !analyzeFile || !analyzeKlasse || !analyzeAufgabe || (isVisionPath(analyzeFile) && (pseudoVorschauBusy || !pseudoVorschau || !pseudoVorschau.visionFaehig))} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
                             {analyzing ? <Loader2 size={14} className="spin" /> : <Upload size={14} />}
-                            {analyzing ? 'Analysiere …' : batchFiles.length === 1 ? 'KI-Vorschlag erstellen' : `KI-Vorschlag für ${batchFiles.length} Abgaben erstellen`}
+                            {analyzing ? 'Analysiere …' : analysisFailure ? 'Erneut versuchen' : batchFiles.length === 1 ? 'KI-Vorschlag erstellen' : `KI-Vorschlag für ${batchFiles.length} Abgaben erstellen`}
                           </button>
                         )}
                       </>

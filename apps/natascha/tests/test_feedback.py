@@ -26,22 +26,139 @@ def make_paths(tmp_path: Path) -> gf.ProjectPaths:
 
 
 def test_load_feedback_json_parses_fixture() -> None:
-    data = gf.load_feedback_json(FIXTURES / "mia_feedback.json")
+    data = gf.load_feedback_json(FIXTURES / "beispiel_deutsch_mit_fehlern.json")
 
-    assert data.schueler == "Mia Muster"
+    assert data.schueler == "TokenA SuffixA"
     assert data.fach == "Deutsch"
     assert len(data.bewertung) == 4
     assert data.notenempfehlung.note == 3
 
 
 def test_build_feedback_document_contains_expected_sections() -> None:
-    data = gf.load_feedback_json(FIXTURES / "emma_b2_feedback.json")
+    data = gf.load_feedback_json(FIXTURES / "beispiel_englisch_b2_feedback.json")
     document = gf.build_feedback_document(data)
     text = "\n".join(paragraph.text for paragraph in document.paragraphs)
 
     assert "KORRIGIERTE SCHÜLERARBEIT" in text
     assert "TASK ACHIEVEMENT" in text
     assert "Empfohlene Note: 2" in text
+    assert "Die Note ist eine Empfehlung" in text
+    assert "SRDP-Standard" not in text
+
+
+def test_naechste_schritte_sektion_mit_fehlern() -> None:
+    """L3: Top-Fehlerschwerpunkte + Übungstipps + neutraler Abschlusssatz."""
+    data = gf.load_feedback_json(FIXTURES / "beispiel_englisch_b2_feedback.json")
+    assert data.fehler, "Fixture braucht Fehler für diesen Test"
+    document = gf.build_feedback_document(data)
+    text = "\n".join(paragraph.text for paragraph in document.paragraphs)
+
+    assert "NÄCHSTE SCHRITTE — WORAN DU ARBEITEN KANNST" in text
+    # emma_b2: Typen G, R, Z → mindestens ein passender Tipp
+    assert "Grammatik" in text or "Rechtschreibung" in text or "Zeichensetzung" in text
+    assert "Diese Schwerpunkte üben wir gezielt weiter." in text
+
+
+def test_fehlerprotokoll_kopfzeile_wird_auf_folgeseiten_wiederholt() -> None:
+    data = gf.load_feedback_json(FIXTURES / "beispiel_englisch_b2_feedback.json")
+    document = gf.build_feedback_document(data)
+    header = ("Nr.", "Typ", "Zitat", "Korrektur", "Erklärung")
+    table = next(
+        table for table in document.tables
+        if tuple(cell.text for cell in table.rows[0].cells) == header
+    )
+
+    table_properties = table.rows[0]._tr.get_or_add_trPr()
+    assert table_properties.find(gf.qn("w:tblHeader")) is not None
+    assert all(
+        cell.paragraphs[0].paragraph_format.keep_with_next
+        for cell in table.rows[0].cells
+    )
+
+
+def test_naechste_schritte_ohne_fehlern() -> None:
+    """Ohne Fehler keine Sektion."""
+    data = gf.load_feedback_json(FIXTURES / "beispiel_deutsch_fehlerfrei.json")
+    assert not data.fehler
+    document = gf.build_feedback_document(data)
+    text = "\n".join(paragraph.text for paragraph in document.paragraphs)
+
+    assert "NÄCHSTE SCHRITTE" not in text
+    assert "Diese Schwerpunkte üben wir gezielt weiter." not in text
+
+
+def test_folgeuebung_renderer_gibt_nur_dateinamen_aus() -> None:
+    payload = json.loads(
+        (FIXTURES / "beispiel_deutsch_fehlerfrei.json").read_text(encoding="utf-8")
+    )
+    data = gf.parse_feedback_data(payload)
+    data.folgeuebung = gf.FolgeuebungHinweis(
+        status="beigelegt",
+        titel="Kommas sicher setzen",
+        dateiname=r"C:\\private\\folgeuebung.docx",
+        material_id="material-123",
+    )
+    document = gf.build_feedback_document(data)
+    text = "\n".join(paragraph.text for paragraph in document.paragraphs)
+
+    assert "FOLGEÜBUNG" in text
+    assert "Kommas sicher setzen" in text
+    assert "folgeuebung.docx" in text
+    assert "private" not in text
+
+
+def test_folgeuebung_ohne_beleg_wird_nicht_behauptet() -> None:
+    payload = json.loads(
+        (FIXTURES / "beispiel_deutsch_fehlerfrei.json").read_text(encoding="utf-8")
+    )
+    payload["folgeuebung"] = {"status": "keine"}
+    data = gf.parse_feedback_data(payload)
+    document = gf.build_feedback_document(data)
+    text = "\n".join(paragraph.text for paragraph in document.paragraphs)
+
+    assert "FOLGEÜBUNG" not in text
+
+
+def test_analyse_payload_kann_keine_beilage_behaupten() -> None:
+    payload = json.loads(
+        (FIXTURES / "beispiel_deutsch_fehlerfrei.json").read_text(encoding="utf-8")
+    )
+    payload["folgeuebung"] = {
+        "status": "beigelegt",
+        "titel": "Nicht belegt",
+        "dateiname": "erfunden_Schuelerfassung.docx",
+        "material_id": "beliebig",
+    }
+
+    data = gf.parse_feedback_data(payload)
+    document = gf.build_feedback_document(data)
+    text = "\n".join(paragraph.text for paragraph in document.paragraphs)
+
+    assert data.folgeuebung is None
+    assert "FOLGEÜBUNG" not in text
+
+
+def test_sachfach_bewertung_erscheint_getrennt_von_sprachfehlern() -> None:
+    payload = json.loads(
+        (FIXTURES / "beispiel_deutsch_fehlerfrei.json").read_text(encoding="utf-8")
+    )
+    payload["fach"] = "Geschichte"
+    payload["sachfach_bewertung"] = {
+        "operator_erfuellung": {
+            "stufe": "gut",
+            "punkte": 4,
+            "staerken": ["Der Operator wird vollständig bearbeitet."],
+            "schwaechen": [],
+            "vorschlaege": ["Eine Quelle noch genauer einordnen."],
+        }
+    }
+    data = gf.parse_feedback_data(payload)
+    document = gf.build_feedback_document(data)
+    text = "\n".join(paragraph.text for paragraph in document.paragraphs)
+
+    assert "FACHLICHE BEWERTUNG" in text
+    assert "OPERATOR-ERFÜLLUNG" in text
+    assert "Sprachrichtigkeit und Ausdruck" in text
 
 
 def test_process_file_creates_docx_and_can_be_reopened(tmp_path: Path) -> None:
@@ -49,14 +166,14 @@ def test_process_file_creates_docx_and_can_be_reopened(tmp_path: Path) -> None:
     paths.feedback_data_dir.mkdir(parents=True, exist_ok=True)
     paths.output_dir.mkdir(parents=True, exist_ok=True)
 
-    source = FIXTURES / "max_feedback.json"
+    source = FIXTURES / "beispiel_deutsch_fehlerfrei.json"
     target = paths.feedback_data_dir / source.name
     target.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
 
     message = gf.process_file(target, paths, force=False, dry_run=False)
 
     output_path = (
-        paths.output_dir / "Kommentar -Krass, Digga!...- Max Muster_feedback.docx"
+        paths.output_dir / "Kommentar -Krass, Digga!...- Beispielperson B_feedback.docx"
     )
     assert "Gespeichert" in message
     assert output_path.exists()
@@ -72,7 +189,7 @@ def test_process_file_skips_existing_output_without_force(tmp_path: Path) -> Non
     paths.feedback_data_dir.mkdir(parents=True, exist_ok=True)
     paths.output_dir.mkdir(parents=True, exist_ok=True)
 
-    source = FIXTURES / "mia_feedback.json"
+    source = FIXTURES / "beispiel_deutsch_mit_fehlern.json"
     target = paths.feedback_data_dir / source.name
     target.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
     existing = paths.output_dir / "deutsch digga_feedback.docx"
@@ -104,7 +221,7 @@ def test_main_logs_invalid_json(tmp_path: Path, monkeypatch) -> None:
 
 
 def test_summary_table_present_in_output() -> None:
-    data = gf.load_feedback_json(FIXTURES / "mia_feedback.json")
+    data = gf.load_feedback_json(FIXTURES / "beispiel_deutsch_mit_fehlern.json")
     doc = gf.build_feedback_document(data)
     assert len(doc.tables) >= 2
     noten_table = next(
@@ -127,7 +244,7 @@ def test_grade_color_five_stages() -> None:
 
 
 def test_page_format_is_a4() -> None:
-    data = gf.load_feedback_json(FIXTURES / "mia_feedback.json")
+    data = gf.load_feedback_json(FIXTURES / "beispiel_deutsch_mit_fehlern.json")
     doc = gf.build_feedback_document(data)
     section = doc.sections[0]
     assert abs(section.page_width.cm - 21.0) < 0.5
@@ -135,7 +252,7 @@ def test_page_format_is_a4() -> None:
 
 
 def test_footer_contains_natascha() -> None:
-    data = gf.load_feedback_json(FIXTURES / "mia_feedback.json")
+    data = gf.load_feedback_json(FIXTURES / "beispiel_deutsch_mit_fehlern.json")
     doc = gf.build_feedback_document(data)
     footer = doc.sections[0].footer
     text = " ".join(p.text for p in footer.paragraphs)
@@ -143,19 +260,19 @@ def test_footer_contains_natascha() -> None:
 
 
 def test_header_contains_datei_without_config() -> None:
-    data = gf.load_feedback_json(FIXTURES / "mia_feedback.json")
+    data = gf.load_feedback_json(FIXTURES / "beispiel_deutsch_mit_fehlern.json")
     doc = gf.build_feedback_document(data, config=None)
     all_table_text = " ".join(
         cell.text for table in doc.tables for row in table.rows for cell in row.cells
     )
-    assert "Mia Muster" in all_table_text
+    assert "TokenA SuffixA" in all_table_text
 
 
 def test_document_header_with_config() -> None:
-    data = gf.load_feedback_json(FIXTURES / "mia_feedback.json")
+    data = gf.load_feedback_json(FIXTURES / "beispiel_deutsch_mit_fehlern.json")
     config = {
         "docx": {
-            "teacher_name": "Mag. Mueller",
+            "teacher_name": "Lehrkraft Beispiel",
             "school_name": "BRG Wien",
             "logo_path": "",
         }
@@ -163,7 +280,7 @@ def test_document_header_with_config() -> None:
     doc = gf.build_feedback_document(data, config=config)
     header = doc.sections[0].header
     header_text = " ".join(p.text for p in header.paragraphs)
-    assert "Mag. Mueller" in header_text
+    assert "Lehrkraft Beispiel" in header_text
     assert "BRG Wien" in header_text
 
 
@@ -171,7 +288,7 @@ def test_document_header_with_config() -> None:
 
 
 def _payload_with_fehler(fehler: list[dict]) -> dict:
-    payload = json.loads((FIXTURES / "mia_feedback.json").read_text(encoding="utf-8"))
+    payload = json.loads((FIXTURES / "beispiel_deutsch_mit_fehlern.json").read_text(encoding="utf-8"))
     payload["fehler"] = fehler
     return payload
 

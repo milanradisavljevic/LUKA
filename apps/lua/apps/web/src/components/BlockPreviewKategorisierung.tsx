@@ -10,6 +10,7 @@ interface Props {
 export function BlockPreviewKategorisierung({ block, showSolution, solutionStep }: Props) {
   if (block.typ !== 'kategorisierung') return null;
 
+  const items = block.config.items ?? [];
   const isRevealed = (itemNr: number) =>
     solutionStep !== undefined ? itemNr < solutionStep : showSolution;
 
@@ -39,7 +40,7 @@ export function BlockPreviewKategorisierung({ block, showSolution, solutionStep 
           </tr>
         </thead>
         <tbody>
-          {block.config.items.map((item) => {
+          {items.map((item) => {
             const visible = isRevealed(item.nr - 1);
             const kat = visible ? (block.loesung.zuordnung[String(item.nr)] ?? []).join(', ') : '';
             return (
@@ -55,7 +56,7 @@ export function BlockPreviewKategorisierung({ block, showSolution, solutionStep 
       </table>
 
       <p style={{ fontSize: '9pt', color: 'var(--color-text-secondary)' }}>
-        Verfügbare Kategorien: {block.config.kategorien.map((k) => k.name).join(', ')}
+        Verfügbare Kategorien: {(block.config.kategorien ?? []).map((k) => k.name).join(', ')}
       </p>
     </div>
   );

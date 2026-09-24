@@ -6,9 +6,10 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, L
 import { useNatascha, type RubrikListe } from '../hooks/useNatascha';
 import type { KlasseInfo } from '../lib/storage';
 import type { SchuelerProfilRow } from '../hooks/useNatascha';
-import { KATEGORIE_TO_BLOCKTYPEN, type NataschaPrefill, type BridgeBeispiel } from '../lib/nataschaBridge';
-import { FACH_META, fachLabel } from '@lehrunterlagen/schema';
-import type { BlockTyp, Fach } from '@lehrunterlagen/schema';
+import { KATEGORIE_TO_BLOCKTYPEN, fehlerkorrekturZuerst, type NataschaPrefill, type BridgeBeispiel } from '../lib/nataschaBridge';
+import { FACH_META, fachLabel, stufeFromSchulstufe } from '@lehrunterlagen/schema';
+import type { BlockTyp, Fach, Land, Stufe } from '@lehrunterlagen/schema';
+import { loadTeacherProfile } from '../lib/profile';
 import { ViewShell } from './_ViewShell';
 import { KiTextBlock } from '../components/KiTextBlock';
 import { InfoDot } from '../components/ui/InfoDot';
@@ -26,6 +27,19 @@ const CSV_WARNUNG_LABELS: Record<CsvImportWarnung, string> = {
   dubletten_in_datei: 'Doppelt in dieser Datei',
   dubletten_im_bestand: 'Bereits in der Klasse vorhanden',
   vorname_fehlt: 'Vorname fehlt',
+};
+
+/** Längsschnitt-Trend-Schlüssel → lesbare Labels (K1/K3 = SRDP-Notenbereiche:
+ *  K1 = Inhalt & Textstruktur, K3 = Stil, Ausdruck & Sprachrichtigkeit). */
+const TREND_LABELS: Record<string, string> = {
+  noteApp: 'KI-Note',
+  noteLehrer: 'Lehrernote',
+  k1: 'K1 · Inhalt & Struktur',
+  k3: 'K3 · Stil & Sprachrichtigkeit',
+  inhalt: 'Inhalt',
+  textstruktur: 'Textstruktur',
+  ausdruck: 'Ausdruck',
+  sprachrichtigkeit: 'Sprachrichtigkeit',
 };
 
 interface SchuelerViewProps {
@@ -67,9 +81,18 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
   const [csvVorschau, setCsvVorschau] = useState<{ klasse: string; pruefung: CsvImportPruefung } | null>(null);
   const [csvImportBusy, setCsvImportBusy] = useState(false);
   const [zeigeArchivierte, setZeigeArchivierte] = useState(false);
+  const [land, setLand] = useState<Land | undefined>();
   const csvInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { listKlassen().then(setKlassen); }, [listKlassen]);
+
+  useEffect(() => {
+    let active = true;
+    loadTeacherProfile()
+      .then((profile) => { if (active && profile?.land) setLand(profile.land); })
+      .catch(() => { /* Profil ist optional; Step 0 verwendet dann den Profilwert selbst. */ });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     listRubrics(aufFach, aufStufe).then((r) => { setRubrics(r.rubrics); setAufRubric(r.defaultRubric || r.rubrics[0]?.filename || ''); });
@@ -145,18 +168,30 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
     }
     const s = laengsschnitt.schueler;
     const name = [s.vorname, s.nachname].filter(Boolean).join(' ') || 'Schüler';
+    const klassenKontext = bekannteKlassen.find((k) => k.name === s.klasse);
     // Echte Schülerfehler (zitat/korrektur) der Schwerpunkte mitgeben → kuratierbar in Step0.
     const fehler: BridgeBeispiel[] = [];
     for (const f of top) {
       for (const b of (f.beispiele ?? [])) {
         if (b.zitat && b.zitat.trim()) {
-          fehler.push({ typ: f.typ as BridgeBeispiel['typ'], zitat: b.zitat.trim(), korrektur: (b.korrektur ?? '').trim() });
+          fehler.push({ typ: f.typ as BridgeBeispiel['typ'], zitat: b.zitat.trim(), korrektur: (b.korrektur ?? '').trim(), clusterId: f.clusterId ?? undefined, regelMuster: f.regelMuster ?? undefined });
         }
       }
     }
     // Jüngste Aufgabe aus dem Verlauf ableiten, um den passenden Ausgangstext zu holen.
-    const verlauf = (laengsschnitt.verlauf ?? []) as Array<{ aufgabe?: string; datum?: string | null; ausgangstext?: string }>;
+    const verlauf = (laengsschnitt.verlauf ?? []) as Array<{
+      aufgabe?: string;
+      datum?: string | null;
+      ausgangstext?: string;
+      fach?: string | null;
+      schulstufe?: number | string | null;
+      textsorte?: string | null;
+    }>;
     const juengste = verlauf[verlauf.length - 1];
+    const letzteSchulstufe = juengste?.schulstufe == null ? NaN : Number(juengste.schulstufe);
+    const letzteStufe = Number.isFinite(letzteSchulstufe)
+      ? stufeFromSchulstufe(letzteSchulstufe, land)
+      : undefined;
     let ausgangstext: string | undefined = juengste?.ausgangstext?.trim() || undefined;
     if (!ausgangstext && s.klasse && juengste?.aufgabe) {
       const text = await quelltextGet(s.klasse, juengste.aufgabe);
@@ -164,16 +199,22 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
     }
     const prefill: NataschaPrefill = {
       thema: `Übung zu Schwächen – ${name}`,
-      fach: 'deutsch',
-      stufe: 'oberstufe',
+      // Die Schüleransicht kennt den Kontext über die Klassenmetadaten. Bei
+      // älteren Klassen ohne Metadaten übernimmt Step 0 seine Profilwerte.
+      land: klassenKontext?.land ?? land,
+      fach: (klassenKontext?.fach ?? juengste?.fach) as Fach | undefined,
+      stufe: (klassenKontext?.stufe ?? letzteStufe) as Stufe | undefined,
+      schulstufe: klassenKontext?.schulstufe ?? (Number.isFinite(letzteSchulstufe) ? letzteSchulstufe : undefined),
+      textsorte: juengste?.textsorte ?? undefined,
       fokusThemen,
-      gewuenschteAufgabenarten: arten,
+      gewuenschteAufgabenarten: fehlerkorrekturZuerst(arten),
       notizen: `Automatisch aus dem Längsschnitt von ${name} (${s.klasse}) erzeugt. Schwerpunkte: ${fokusThemen.join(', ')}.`,
       fehler: fehler.length > 0 ? fehler.slice(0, 12) : undefined,
       ausgangstext,
+      loopQuelle: { klasse: s.klasse, aufgabe: juengste?.aufgabe || undefined },
     };
     onGenerateUebung(prefill);
-  }, [laengsschnitt, onGenerateUebung, quelltextGet]);
+  }, [bekannteKlassen, land, laengsschnitt, onGenerateUebung, quelltextGet]);
 
   const handleGenerateProfil = useCallback(async () => {
     if (!selectedSchuelerId) return;
@@ -283,6 +324,10 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
   const sichtbareKlassen = filterKlassenNachArchiv(klassen, bekannteKlassen, zeigeArchivierte);
 
   const trendIcon = (r: string) => r === 'steigt' ? '↑' : r === 'fällt' ? '↓' : '→';
+
+  // K1/K3 sind die SRDP-Notenbereiche (K1 = Inhalt + Textstruktur,
+  // K3 = Stil + Sprachrichtigkeit); die Roh-Schlüssel kommen aus dem Längsschnitt.
+  const trendLabel = (key: string): string => TREND_LABELS[key] ?? key;
 
   return (
     <ViewShell title="Schüler" description="Schülerprofil und Längsschnitt.">
@@ -522,11 +567,12 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
                   <>
                     <div style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-muted)', marginBottom: '0.375rem' }}>
                       Entwicklung über {laengsschnitt.anzahlAbgaben} Arbeiten
+                      <InfoDot text="K1 = Inhalt & Textstruktur, K3 = Stil, Ausdruck & Sprachrichtigkeit (SRDP-Kompetenzbereiche). Die Stufen sind 1 (nicht erfüllt) bis 5 (sehr gut)." />
                     </div>
                     <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                       {Object.entries(laengsschnitt.trend as Record<string, { start: number | null; ende: number | null; richtung: string }>).map(([key, t]) => (
                         <div key={key} style={{ padding: '0.375rem 0.75rem', background: 'var(--color-bg-base)', borderRadius: 'var(--radius)', fontSize: '0.8125rem' }}>
-                          <span style={{ fontWeight: 600 }}>{key === 'noteApp' ? 'KI-Note' : key === 'noteLehrer' ? 'Lehrernote' : key}</span>{' '}
+                          <span style={{ fontWeight: 600 }}>{trendLabel(key)}</span>{' '}
                           {trendIcon(t.richtung)}{' '}
                           <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.75rem' }}>
                             {t.start !== null ? t.start.toFixed(1) : '—'} → {t.ende !== null ? t.ende.toFixed(1) : '—'}
@@ -602,16 +648,19 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
 
               {/* Abgaben-Tabelle */}
               <div style={cardStyle}>
-                <h5 style={{ fontSize: '0.875rem', margin: '0 0 0.75rem' }}>Abgaben im Detail</h5>
+                <h5 style={{ fontSize: '0.875rem', margin: '0 0 0.75rem' }}>
+                  Abgaben im Detail
+                  <InfoDot text="KI = Notenempfehlung der Korrektur, Lehrer = deine Endnote. K1 = Inhalt & Textstruktur, K3 = Stil, Ausdruck & Sprachrichtigkeit (Stufen 1–5)." />
+                </h5>
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8125rem' }}>
                     <thead>
                       <tr style={{ borderBottom: '2px solid var(--color-border)' }}>
                         <th style={{ textAlign: 'left', padding: '0.375rem 0.5rem' }}>Aufgabe</th>
-                        <th style={{ textAlign: 'center', padding: '0.375rem 0.5rem' }}>KI</th>
-                        <th style={{ textAlign: 'center', padding: '0.375rem 0.5rem' }}>Lehrer</th>
-                        <th style={{ textAlign: 'center', padding: '0.375rem 0.5rem' }}>K1</th>
-                        <th style={{ textAlign: 'center', padding: '0.375rem 0.5rem' }}>K3</th>
+                        <th style={{ textAlign: 'center', padding: '0.375rem 0.5rem' }} title="Notenempfehlung der Korrektur">KI</th>
+                        <th style={{ textAlign: 'center', padding: '0.375rem 0.5rem' }} title="Deine Endnote">Lehrer</th>
+                        <th style={{ textAlign: 'center', padding: '0.375rem 0.5rem' }} title="Inhalt & Textstruktur">K1</th>
+                        <th style={{ textAlign: 'center', padding: '0.375rem 0.5rem' }} title="Stil, Ausdruck & Sprachrichtigkeit">K3</th>
                       </tr>
                     </thead>
                     <tbody>

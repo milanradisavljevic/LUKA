@@ -9,10 +9,10 @@ zu überschreiben. Jede Version enthält Timestamp und Modell-Info.
 
 ```
 feedback_data/
-  Flora_Lex_analysis.json                          ← aktuelle Version
+  schuelerarbeit_a_analysis.json                   ← aktuelle Version
   .history/
-    Flora_Lex_analysis_20260524_153012_gpt41.json   ← Archiv
-    Flora_Lex_analysis_20260524_162345_sonnet4.json  ← Archiv
+  schuelerarbeit_a_analysis_20260524_153012_gpt41.json   ← Archiv
+  schuelerarbeit_a_analysis_20260524_162345_sonnet4.json  ← Archiv
 ```
 
 - `_analysis.json` bleibt der aktuelle, aktive Dateiname (keine Änderung
@@ -60,7 +60,7 @@ def archive_existing_analysis(analysis_path: Path) -> Path | None:
         slug = "unknown"
     
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    stem = analysis_path.stem  # z.B. "Flora_Lex_analysis"
+    stem = analysis_path.stem  # z.B. "schuelerarbeit_a_analysis"
     archive_name = f"{stem}_{timestamp}_{slug}.json"
     archive_path = history_dir / archive_name
     
@@ -99,7 +99,7 @@ Tastenkürzel `v` (für Versionen): Zeigt eine Liste aller Versionen
 im `.history/`-Ordner mit Datum, Modell und Note:
 
 ```
-┌─ Versionshistorie: Flora Lex ──────────────────┐
+┌─ Versionshistorie: Schuelerarbeit A ───────────┐
 │                                                  │
 │  2026-05-24 16:23  sonnet4    Note: 2 (Gut)     │
 │  2026-05-24 15:30  gpt41      Note: 3 (Befr.)   │

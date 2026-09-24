@@ -13,6 +13,17 @@ export interface LlmJudgeResult {
   issues: string[];
 }
 
+const JUDGE_FAILURE_PREFIX = 'Selbstkontrolle des gewählten Modells nicht verfügbar: ';
+
+function judgeFailureMessage(error: unknown): string {
+  const detail = error instanceof Error ? error.message : String(error);
+  return `${JUDGE_FAILURE_PREFIX}${detail || 'unbekannter Fehler'}. Die Aufgabe wurde ohne Selbstkontrolle erstellt.`;
+}
+
+function isJudgeFailure(message: string): boolean {
+  return message.startsWith(JUDGE_FAILURE_PREFIX);
+}
+
 // ---------------------------------------------------------------------------
 // Stoppwoerter (DE + EN), die beim Grounding-Check ignoriert werden.
 // ---------------------------------------------------------------------------
@@ -407,9 +418,15 @@ export async function llmJudgeHook(
   if (cfg?.enabled === false || !complete) {
     return { score: 1, issues: [] };
   }
-  const issues = await runJudge(doc, quelltexte, complete);
-  const score = issues.length === 0 ? 1 : Math.max(0, 1 - issues.length * 0.2);
-  return { score, issues: issues.map((i) => i.message) };
+  try {
+    const issues = await runJudge(doc, quelltexte, complete);
+    const score = issues.length === 0 ? 1 : Math.max(0, 1 - issues.length * 0.2);
+    return { score, issues: issues.map((i) => i.message) };
+  } catch (error) {
+    // Die Gegenprüfung ist advisory. Ein Provider-/Transportfehler darf die
+    // bereits validierte Generierung nicht verwerfen.
+    return { score: 1, issues: [judgeFailureMessage(error)] };
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -451,7 +468,15 @@ export async function runQualityChecks(
         niveau: meta?.kompetenzNiveau,
         fach: meta?.fach,
       };
-      const judgeIssues = await runKompetenzJudge(doc, ctx, complete);
+      let judgeIssues: QualityIssue[];
+      try {
+        judgeIssues = await runKompetenzJudge(doc, ctx, complete);
+      } catch (error) {
+        const message = judgeFailureMessage(error);
+        issues.push({ blockId: 'system', severity: 'warning', message });
+        judge = { score: 1, issues: [message] };
+        return { issues, judge };
+      }
       // Judge ist ADVISORY: seine Befunde werden als WARNUNGEN gefuehrt und blockieren die
       // Generierung NIE (ein Judge-Fehlalarm darf keine Uebung verwerfen). Der "harte"-Anteil
       // fliesst nur in den informativen Score; die Lehrkraft sieht die Hinweise in der Vorschau.
@@ -478,9 +503,18 @@ export async function runQualityChecks(
   // genau diese Blocktypen; ohne solche Blöcke macht er keine Calls. ADVISORY:
   // Befunde werden zu Warnungen herabgestuft und blockieren nie.
   if (judgeCfg?.enabled !== false && complete) {
-    const kjIssues = await runKompetenzJudge(doc, { fach: meta?.fach }, complete);
-    issues.push(...kjIssues.map((i) => ({ ...i, severity: 'warning' as const })));
+    try {
+      const kjIssues = await runKompetenzJudge(doc, { fach: meta?.fach }, complete);
+      issues.push(...kjIssues.map((i) => ({ ...i, severity: 'warning' as const })));
+    } catch (error) {
+      issues.push({ blockId: 'system', severity: 'warning', message: judgeFailureMessage(error) });
+    }
   }
   const judge = await llmJudgeHook(doc, quelltexte, judgeCfg, complete);
+  for (const message of judge.issues) {
+    if (isJudgeFailure(message)) {
+      issues.push({ blockId: 'system', severity: 'warning', message });
+    }
+  }
   return { issues, judge };
 }

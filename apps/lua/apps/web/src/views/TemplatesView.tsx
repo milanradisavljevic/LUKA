@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import { fachLabel } from '@lehrunterlagen/schema';
 import type { Meta, Block } from '@lehrunterlagen/schema';
 import { getEmptyLoesung } from '../components/TemplateManager';
+import { hydrateBlockConfig } from '../lib/blockDefaults';
 import { ViewShell } from './_ViewShell';
 
 const STORAGE_KEY = 'lehrunterlagen-templates';
@@ -70,7 +71,7 @@ export function TemplatesView({ meta, bloecke, onLoad }: Props) {
   const handleLoad = (tpl: StoredTemplate) => {
     const restoredBlocks = tpl.bloecke.map((b, i) => {
       const loesung = getEmptyLoesung(b.typ);
-      return { ...b, id: `b${i + 1}`, loesung } as Block;
+      return { ...b, id: `b${i + 1}`, config: hydrateBlockConfig(b.typ, b.config), loesung } as Block;
     });
     onLoad(tpl.meta, restoredBlocks);
   };

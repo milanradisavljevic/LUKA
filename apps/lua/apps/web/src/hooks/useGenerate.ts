@@ -43,14 +43,8 @@ function buildInhaltsModul(meta: AppState['meta']): { titel: string; beschreibun
 // Phasen der Generierung — die UI (Kimi) zeigt daraus eine Fortschrittsanzeige.
 export type GenerateStage = 'idle' | 'sende' | 'validiere' | 'korrigiere' | 'qualitaet' | 'fertig' | 'fehler';
 
-// Ersatz-Anbieter nur bei Transport-/API-Fehlern (nicht bei ungültigem Output).
-// Standardmäßig DeepSeek bevorzugt (User-Setting), Anthropic als Fallback.
-const FALLBACK_MODEL: Record<string, string> = {
-  anthropic: 'claude-haiku-4-5-20251001',
-  deepseek: 'deepseek-chat',
-};
-const FALLBACK_ORDER = ['deepseek', 'anthropic'];
-
+// Kein Anbieter-Fallback bei der Unterlagen-Generierung: Es läuft immer der
+// bewusst gewählte Anbieter/Modell. Bei Fehler klare Meldung — kein stiller Wechsel.
 const PROVIDER_MAP = {
   claude: 'anthropic',
   chatgpt: 'openai',
@@ -72,7 +66,7 @@ export function blockToRequest(block: Block): BlockRequest {
         distraktoren: block.config.distraktoren };
     case 'matching':
       return { ...base, typ: 'matching',
-        anzahlItems: block.config.items.length };
+        anzahlItems: Math.max(1, block.config.items?.length ?? 4) };
     case 'multipleChoice':
       return { ...base, typ: 'multipleChoice',
         anzahlFragen: block.config.fragen.length,
@@ -96,8 +90,8 @@ export function blockToRequest(block: Block): BlockRequest {
     }
     case 'kategorisierung':
       return { ...base, typ: 'kategorisierung',
-        anzahlItems: block.config.items.length,
-        kategorien: block.config.kategorien.map((k) => k.name) };
+        anzahlItems: Math.max(1, block.config.items?.length ?? 6),
+        kategorien: (block.config.kategorien ?? []).map((k) => k.name) };
     case 'tabelle':
       return { ...base, typ: 'tabelle',
         spalten: block.config.spalten.map((s) => s.titel) };
@@ -135,6 +129,25 @@ export function blockToRequest(block: Block): BlockRequest {
         anzahlSaetze: Math.max(1, block.config.anzahlSaetze ?? block.config.saetze?.length ?? 1),
         ...(manuell && gefuellt.length > 0 ? { saetze: gefuellt } : {}) };
     }
+    case 'quellenanalyse':
+      return { ...base, typ: 'quellenanalyse', quelleId: block.config.quelleId,
+        quellentyp: block.config.quellentyp,
+        anzahlAuftraege: block.config.auftraege.length,
+        auftraege: block.config.auftraege };
+    case 'timeline': {
+      const gefuellt = (block.config.ereignisse ?? []).filter((e) => e.titel.trim().length > 0 || e.beschreibung.trim().length > 0);
+      return { ...base, typ: 'timeline', quelleId: block.config.quelleId,
+        zeitraum: block.config.zeitraum,
+        anzahlEreignisse: block.config.ereignisse.length,
+        ...(gefuellt.length > 0 ? { ereignisse: gefuellt } : {}) };
+    }
+    case 'diagrammanalyse': {
+      const daten = block.config.daten.filter((d) => d.label.trim().length > 0 || d.wert.trim().length > 0);
+      return { ...base, typ: 'diagrammanalyse', quelleId: block.config.quelleId,
+        diagrammtyp: block.config.diagrammtyp, titel: block.config.titel, einheit: block.config.einheit,
+        anzahlDatenpunkte: block.config.daten.length, anzahlAuftraege: block.config.auftraege.length,
+        daten, auftraege: block.config.auftraege };
+    }
     case 'roleplay': {
       const manuell = block.config.eingabemodus === 'manuell';
       const gefuellteRollen = (block.config.rollen ?? []).filter((r) => r.name.trim().length > 0 || r.beschreibung.trim().length > 0 || r.aufgabe.trim().length > 0);
@@ -168,6 +181,11 @@ export function blockToRequest(block: Block): BlockRequest {
     case 'umformung':
       throw new Error('Blocktyp "umformung" wird nicht mehr unterstützt.');
   }
+}
+
+/** Gegenprüfung teilt den ausdrücklich gewählten Datenweg der Generierung. */
+export function buildJudgeConfig(provider: string, model: string, enabled: boolean) {
+  return { provider, model, enabled };
 }
 
 /** Prüft, ob wir in einer Tauri-Umgebung laufen. */
@@ -205,7 +223,9 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
   };
 
-  // Ein Anbieter, 2 Versuche (mit Reparaturrunde). Wirft bei Transportfehler mit TRANSPORT-Prefix.
+  // Ein Anbieter (bewusst gewählt), 2 Versuche mit Reparaturrunde.
+  // Fehler vom Backend kommen mit TRANSPORT-Prefix und werden oben als
+  // „Anbieter nicht erreichbar" angezeigt — es erfolgt aber kein Anbieter-Wechsel.
   const runAttempts = useCallback(async (
     providerId: string, apiModel: string, input: GenerateInput, state: AppState, extraHinweis?: string,
     judgeCfg?: { provider: string; model?: string; enabled?: boolean },
@@ -328,40 +348,22 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
         stoffItems: buildStoffItems(state.meta),
         inhaltsModul: buildInhaltsModul(state.meta),
       };
-      const judgeCfg = settings.judgeEnabled !== false ? {
-        provider: 'deepseek',
-        model: 'deepseek-chat',
-        enabled: true,
-      } : { provider: 'deepseek', model: 'deepseek-chat', enabled: false as const };
+      // Die Gegenprüfung ist kein eigener, versteckter Datenweg: Sie verwendet
+      // immer exakt den Anbieter und das Modell der gerade gewählten Generierung.
+      const judgeCfg = buildJudgeConfig(providerId, apiModel, settings.judgeEnabled !== false);
 
-      // Anbieter-Kette: gewählter Anbieter, dann bei TRANSPORTfehler ein westlicher Ersatz.
-      const chain: Array<{ providerId: string; apiModel: string }> = [{ providerId, apiModel }];
-      const fb = FALLBACK_ORDER.find((p) => p !== providerId);
-      if (fb) chain.push({ providerId: fb, apiModel: FALLBACK_MODEL[fb]! });
-
-      let lastErr: unknown = null;
-      for (let i = 0; i < chain.length; i++) {
-        const cand = chain[i]!;
-        setAktiverProvider(cand.providerId);
-        try {
-          const document = await runAttempts(cand.providerId, cand.apiModel, input, state, undefined, judgeCfg);
-          dispatch({ type: 'SET_GENERIERTES_DOKUMENT', dokument: document });
-          setStage('fertig');
-          return true;
-        } catch (err) {
-          lastErr = err;
-          const msg = errToMessage(err);
-          if (msg === '__CANCELLED__') { setStage('idle'); return false; }
-          // Nur bei echtem Transportfehler auf Ersatz-Anbieter wechseln.
-          const istTransport = msg.startsWith(TRANSPORT);
-          if (istTransport && i < chain.length - 1) {
-            console.warn(`[useGenerate] ${cand.providerId} nicht erreichbar, wechsle zu ${chain[i + 1]!.providerId}`);
-            continue;
-          }
-          throw err;
-        }
+      // Immer der gewählte Anbieter — kein stiller Wechsel (auch nicht bei Transportfehlern).
+      setAktiverProvider(providerId);
+      try {
+        const document = await runAttempts(providerId, apiModel, input, state, undefined, judgeCfg);
+        dispatch({ type: 'SET_GENERIERTES_DOKUMENT', dokument: document });
+        setStage('fertig');
+        return true;
+      } catch (err) {
+        const msg = errToMessage(err);
+        if (msg === '__CANCELLED__') { setStage('idle'); return false; }
+        throw err;
       }
-      throw lastErr ?? new Error('Generierung fehlgeschlagen');
     } catch (err) {
       let msg = errToMessage(err).replace(TRANSPORT, 'Anbieter nicht erreichbar:');
       const rohText = (err as any)?.rohText as string | undefined;
@@ -380,7 +382,12 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
 
   // Einen einzelnen Block neu generieren (optional mit Hinweis wie „kürzer", „schwieriger").
   // Ersetzt den Block im bereits generierten Dokument. Kein Anbieter-Fallback (günstig halten).
-  const regenerateBlock = useCallback(async (state: AppState, blockId: string, hinweis?: string): Promise<Block | null> => {
+  const regenerateBlock = useCallback(async (
+    state: AppState,
+    blockId: string,
+    hinweis?: string,
+    metaOverride?: Partial<DocumentV1['meta']>,
+  ): Promise<Block | null> => {
     const doc = state.generiertesDokument;
     if (!doc) { setError('Kein generiertes Dokument vorhanden.'); return null; }
     const ziel = doc.bloecke.find((b) => b.id === blockId);
@@ -396,17 +403,18 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
     try {
       const { providerId, apiModel } = resolveProvider(state);
       setAktiverProvider(providerId);
-      const modus = doc.meta.modus ?? 'text';
+      const generierungsMeta = { ...doc.meta, ...metaOverride };
+      const modus = generierungsMeta.modus ?? 'text';
       const blockHinweis = ziel.hinweis?.trim();
       const mergedHinweis = [hinweis, blockHinweis].filter(Boolean).join(' | ') || undefined;
       const input: GenerateInput = {
-        meta: doc.meta,
+        meta: generierungsMeta,
         quelltexte: modus === 'kompetenz' ? [] : doc.quelltexte,
         bloecke: [blockToRequest(ziel)],
-        stoffItems: buildStoffItems(doc.meta),
-        inhaltsModul: buildInhaltsModul(doc.meta),
+        stoffItems: buildStoffItems(generierungsMeta),
+        inhaltsModul: buildInhaltsModul(generierungsMeta),
       };
-      const ergebnis = await runAttempts(providerId, apiModel, input, { ...state, meta: doc.meta, quelltexte: modus === 'kompetenz' ? [] : doc.quelltexte }, mergedHinweis);
+      const ergebnis = await runAttempts(providerId, apiModel, input, { ...state, meta: generierungsMeta, quelltexte: modus === 'kompetenz' ? [] : doc.quelltexte }, mergedHinweis);
       const neu = ergebnis.bloecke[0];
       if (!neu) throw new Error('Kein Block in der Antwort.');
       // id des Originalblocks beibehalten, restliche Felder ersetzen.

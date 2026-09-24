@@ -27,10 +27,7 @@
     },
     "fach": {
       "type": "string",
-      "enum": [
-        "Deutsch",
-        "Englisch"
-      ]
+      "description": "Fachbezeichnung, einschließlich Sachfächern; Sprachrichtigkeit bleibt ein separater Zusatzbefund."
     },
     "schulstufe": {
       "type": "string",
@@ -61,6 +58,17 @@
       "type": "array",
       "items": { "type": "string" },
       "description": "Genau 3 konkrete Verbesserungsbereiche."
+    },
+    "sachfach_bewertung": {
+      "type": "object",
+      "description": "Separate fachliche Bewertung für Sachfächer, getrennt von Sprachrichtigkeit und Ausdruck.",
+      "properties": {
+        "operator_erfuellung": { "$ref": "#/$defs/kriterium" },
+        "inhaltliche_genauigkeit": { "$ref": "#/$defs/kriterium" },
+        "fachbegriffe": { "$ref": "#/$defs/kriterium" },
+        "erwartungshorizont_bezug": { "$ref": "#/$defs/kriterium" }
+      },
+      "additionalProperties": false
     },
     "transkription": {
       "type": "string",

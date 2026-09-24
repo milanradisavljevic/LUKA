@@ -78,13 +78,14 @@ Wenn du in **Einstellungen → Mein Profil** das Land **Deutschland** auswählst
 - **Profil:** Im Profil kannst du deutsche Bundesländer und Schulformen auswählen. Diese Angaben helfen der KI, Szenarien und Beispiele passend zu deinem Schulort und deiner Schulart zu formulieren.
 - **Kompetenz-Modus:** Bei Land Deutschland ist der deutsche Lehrplan-Katalog der **Kultusministerkonferenz (KMK)** für alle Fächer vorausgewählt. Er ist als **kuratierter Entwurf** gekennzeichnet: Die Inhalte sind sorgfältig zusammengestellt, aber kein amtliches Dokument.
 - **Abitur-Training (KMK-Format):** Bei Land Deutschland wird aus dem Matura-Training das Abitur-Training — eine textbezogene Einzelaufgabe nach den sechs KMK-Aufgabenarten (Interpretation, Analyse, Erörterung, materialgestütztes Schreiben) mit zwei bis drei nach den **Anforderungsbereichen AFB I–III** gestaffelten Arbeitsaufträgen und passendem Erwartungshorizont. Wie das Matura-Training ein Übungsformat, **kein amtliches Prüfungsmaterial**.
+- **Deutsch-Korrektur im deutschen Schulsystem:** Bei Land Deutschland korrigiert LUKA das Fach **Deutsch** als **Klassenarbeit** mit deutscher **Notenskala 1–6** (Notenempfehlung „sehr gut" bis „ungenügend"); die eigene Lehrernote kann entsprechend 1–6 sein. Österreichische Sprachbesonderheiten (z. B. „Jänner", „heuer") werden nicht als Fehler gezählt. Für die Schweiz erscheint im Korrektur-Dialog eine klare Meldung, dass die Schweizer Skala noch folgt.
 - **Startpaket Deutschland:** Das neue Paket mit acht Aufgaben liegt auf GitHub unter `samples/fachpakete/`. Importiere die JSON-Datei über **Aufgaben-Pool → Importieren**, genauso wie die anderen Fachpakete.
 
 > 💡 Die Auswahl des Landes bleibt eine Profileinstellung. Prüfe bei offiziellen Prüfungen und landesspezifischen Vorgaben weiterhin die aktuellen Hinweise deines Bundeslands.
 
 ## Fächer
 
-LUKA unterstützt alle textbasierten AHS-Fächer in einer Codebase:
+LUKA unterstützt derzeit folgende textbasierte Fächer:
 
 - **Sprachfächer:** Deutsch, Englisch, Französisch, Spanisch, Italienisch, Latein.
   - Inhalte werden in der Zielsprache erzeugt.
@@ -92,11 +93,28 @@ LUKA unterstützt alle textbasierten AHS-Fächer in einer Codebase:
   - Latein wird als Sprachfach behandelt, aber ohne CEFR-Bezug.
 - **Sachfächer:** Geschichte, Geographie, Religion, Ethik, Psychologie, Philosophie, Medien und Demokratie, Informatik und Künstliche Intelligenz.
   - Inhalte werden deutschsprachig erzeugt.
-  - Textsorten und Bewertungskataloge orientieren sich vorerst am Deutsch-Modell.
+  - Für Quellenarbeit kann der Blocktyp **Quellenanalyse** mit Operatoren,
+    Schreibraum, fachlicher Erwartung und konkreten Quellenbelegen verwendet werden.
+  - Für historische Einordnung gibt es außerdem **Timeline / Datierung**:
+    Ereigniskarten werden chronologisch geordnet; Datierungen erscheinen nur,
+    wenn sie aus dem Material belegt sind.
+  - **Diagramm-/Datenanalyse** trennt Datenpunkte von materialgebundenen
+    Operatorfragen. Jede Lösung muss mindestens einen konkreten Datenbeleg
+    nennen.
+  - Bei einer Sachfach-Korrektur werden Operator-Erfüllung, Inhaltsgenauigkeit,
+    Fachbegriffe und Erwartungshorizont getrennt von Sprachrichtigkeit bewertet;
+    Sprachfehler bleiben ein ergänzender Befund.
 
 Du wählst das Fach in Schritt **Absicht** oder im **Kompetenz-Modus**. Daraufhin passt LUKA automatisch Sprache, verfügbare Blocktypen und didaktische Hinweise an.
 
-> 💡 Sachfächer sind in v1 mit den deutschsprachigen Katalogen nutzbar. Fachspezifische Kompetenzkataloge (z. B. Geschichts-Quellenanalyse) folgen in späteren Updates.
+> **Bewusste Grenze:** Mathematik und performative Fächer (z. B. Musik- oder
+> Sportpraxis) sind nicht als vollwertige Textkorrektur-Fächer freigegeben.
+> LUKA kann dafür Unterlagen erstellen, behauptet aber keine automatische
+> fachliche Korrektur.
+
+> 💡 Quellenanalyse, Timeline / Datierung und Diagramm-/Datenanalyse sind fachspezifische Sachfach-Blöcke. Prüfe bei
+> historischen Aufgaben weiterhin, ob die gewählte Quelle tatsächlich im
+> Dokument vorhanden ist und die Arbeitsaufträge sie sichtbar voraussetzen.
 
 ---
 
@@ -118,7 +136,7 @@ Der Generator führt dich in fünf Schritten von der Absicht zum fertigen DOCX.
 
 **Export-Varianten:** „Beide Dokumente" (Schülerfassung + Lösung), „Korrekturraster", im Kompetenz-Modus zusätzlich „Kompetenznachweis", sowie „Als PDF". Für PDF exportierst du zuerst die Schülerfassung als DOCX und wählst danach den Speicherort im nativen Datei-Dialog; dafür muss LibreOffice installiert sein. Vor dem Export prüft ein **Quality-Gate** Lernziel-Abdeckung und Wortzahl der Schreibaufgaben – bei Auffälligkeiten kannst du „Nochmal prüfen" oder „Trotzdem exportieren".
 
-**Differenzierung (leichter / schwerer):** Im Akkordeon „Differenzierung" (nach dem Generieren) erzeugst du zusätzlich zur Standardfassung (mittel = „Beide Dokumente") gezielt eine *leichtere* und/oder *schwerere* Variante: Häkchen setzen, dann „Variante(n) erstellen & exportieren". *Leicht* vereinfacht offene Aufgaben ohne KI-Kosten; *schwer* generiert die offenen Aufgaben anspruchsvoller neu. Dateinamen tragen `_leicht`/`_schwer`.
+**Differenzierung (leichter / schwerer):** Im Akkordeon „Differenzierung" (nach dem Generieren) erzeugst du zusätzlich zur Standardfassung (mittel = „Beide Dokumente") gezielt eine *leichtere* und/oder *schwerere* Variante: Häkchen setzen, dann „Variante(n) erstellen & exportieren". *Leicht* vereinfacht unterstützte Aufgaben ohne KI-Kosten. Bei *schwer* werden offene Aufgaben mit dem gewählten Modell anspruchsvoller neu erzeugt; geschlossene Lückentexte verlieren eine vorhandene Wortbank. Weitere Lücken werden nur mit vollständig vorhandenem Lösungsschlüssel ergänzt; bei Cloze-Texten müssen auch die nummerierten Textmarker passen. Nicht sicher transformierbare Teile bleiben unverändert. Dateinamen tragen `_leicht`/`_schwer`.
 
 **Manuell oder Hybrid festlegen:** Bei Kreuzworträtsel, Wortgitter, Vokabelübung, Fehlerkorrektur und „Wörter ordnen" kannst du im Block-Editor auf „Selbst festlegen" umschalten. Gib eigene Wörter, Sätze oder Vokabeln ein — die KI übernimmt sie wortgleich und ergänzt nur noch fehlende Einträge, bis die gewünschte Anzahl erreicht ist. So bleibst du Herrin/Herr der Inhalte, sparst aber trotzdem Zeit.
 
@@ -143,10 +161,25 @@ lokale NATASCHA-Installation.
    textgebundene Aufgaben wird es empfohlen, weil es gemeinsam mit der Rubrik
    und dem Auftrag gespeichert und später für Folgeübungen wieder angezeigt
    wird.
-3. Wähle das **Bewertungsraster**. Vor dem Versand zeigt LUKA bei Textabgaben
+3. Wähle die **Textsorte** und das **Bewertungsraster**. Die Textsorten-Liste passt
+   sich dem Fach an: Für **Deutsch** erscheinen die gewohnten (Oberstufe: SRDP)
+   Textsorten, für **Englisch** kuratierte EN-Textsorten (Oberstufe SRDP-orientiert:
+   Article, Blog, Email, Essay, Letter, Proposal, Report, Review; Unterstufe u. a.
+   Email, Blog, Story). **Französisch, Spanisch und Italienisch** verwenden eigene
+   kuratierte Textsortenfamilien und Grundraster; **Latein** verwendet text- und
+   übersetzungsbezogene Aufgaben ohne CEFR-Übertragung. Diese Listen sind eine
+   fachbezogene Auswahl und keine amtliche Vollständigkeitsbehauptung. Die Raster-Liste zeigt nur das passende Fach —
+   fachfremde Raster werden ausgeblendet. Vor dem Versand zeigt LUKA bei Textabgaben
    eine Redaktionsvorschau; erkannte Namen aus der gewählten Klasse werden
    standardmäßig durch stabile Aliasse ersetzt. Bei PDF- und Bildabgaben kann
    LUKA den sichtbaren Inhalt nicht automatisch redigieren.
+   Bei Sachfächern werden Operator-Erfüllung, Inhaltsgenauigkeit, Fachbegriffe
+   und Erwartungshorizont getrennt von Sprachrichtigkeit bewertet. Die verwendete
+   Erwartungshorizont-Fassung wird je Korrektur-Revision unverändert dokumentiert.
+   Unter **Weitere Exporte & Werkzeuge → Digitale Selbstkontrolle** können
+   geschlossene Aufgaben mit vollständigem Antwortschlüssel lokal geprüft werden.
+   Das funktioniert ohne KI-Aufruf und ohne Upload; offene oder sachfachliche
+   Aufgaben werden nicht automatisch bewertet.
 4. Nach der Analyse siehst du Note, Kriterien, Fehlerliste und den markierten
    Text. Eine bestätigte Schülerzuordnung hat Vorrang vor der Dateinamen-
    Erkennung. Eigene Lehrernote und Kommentar kannst du speichern.
@@ -166,14 +199,55 @@ lokale NATASCHA-Installation.
    gespeichert. Verworfene Fehler erscheinen im markierten Text grau und
    durchgestrichen, geänderte farbig hervorgehoben.
 
+   Über der Fehlerliste gibt es zwei Hilfsmittel: Den Umschalter **„Nur
+   unsichere"**, der gezielt die gelben und roten Vorschläge zeigt, und den
+   Kasten **„Qualitätsprüfung"**, der erscheint, wenn die Fehlerliste und die
+   Sprachrichtigkeits-Note stark widersprechen (z. B. viele Fehler, aber „gut"
+   bewertet) — das ist ein Hinweis zum Nachprüfen, keine Notenänderung.
+
+   Bei einem **Stapel** ab zwei Abgaben zeigt Schritt 4 eine Mengenschätzung
+   (geschätzte Tokens) — hilfreich, um bei Anbieter-Ratenlimits den Stapel
+   zeitlich zu staffeln.
+
 5. Erzeuge über **Feedback-DOCX** ein Rückmeldedokument. Vor dem Export
    zeigt eine Zusammenfassung, wie viele Vorschläge übernommen, geändert
    oder verworfen wurden — verworfene Fehler werden nicht ins DOCX
-   geschrieben. Die Datei landet im lokalen Feedback-Ordner; die
-   Erfolgskarte zeigt den Dateinamen und öffnet auf Wunsch den Ordner.
+   geschrieben. Enthält die Fehlerliste Schwerpunkte, endet das Dokument
+   mit der Sektion **„Nächste Schritte — woran du arbeiten kannst"**:
+   zu den zwei bis drei häufigsten Fehlertypen ein konkreter Übungstipp
+   (Rechtschreib-Kartei, Kommas beim lauten Lesen, Satzkerne/Zeitformen,
+   Synonyme statt Füllwörter). Die Datei landet im lokalen Feedback-Ordner;
+   die Erfolgskarte zeigt den Dateinamen und öffnet auf Wunsch den Ordner.
 6. Unter **Meine Klassen** und **Schüler** findest du Fehler-Heatmaps,
    Notenverteilungen, Trends und Längsschnitte. **Übungsblatt zu Top-Fehlern**
-   übernimmt die Schwerpunkte direkt in den Generator.
+   übernimmt die Schwerpunkte direkt in den Generator. Die dabei erzeugten
+   Folgeübungen merken sich ihre Herkunft: Die Fehlerkorrektur-Aufgabe baut
+   die Fehler ein, die die Klasse tatsächlich gemacht hat (du kannst die
+   Vorschläge vor dem Generieren frei anpassen oder abwählen).
+
+   Für jede Klasse lässt sich im Klassenformular ein eigenes **Land/
+   Schulsystem** festlegen. „Profilstandard“ übernimmt das Land aus dem
+   Lehrkraftprofil; eine ausdrücklich gesetzte Klassenangabe hat beim
+   Vorbereiten von Folgeübungen Vorrang.
+
+   Bei ausreichend bestätigten Lehrkraftnoten schlägt die Klassenansicht zwei
+   oder drei **Niveaugruppen** vor. Die Sortierung berücksichtigt das
+   Schulsystem: In der Schweiz ist 6 die stärkste und 1 die schwächste Note;
+   für Österreich und Deutschland gilt die umgekehrte Zahlenrichtung. Öffne
+   eine Gruppe, prüfe die angezeigte Einteilung und ordne Schüler/innen bei
+   Bedarf neu zu oder nimm sie aus der Übung heraus. Erst danach wird die
+   Gruppenübung vorbereitet.
+
+   Im **Statistik-Tab** der Klassenansicht zeigt der Abschnitt „Folgeübungen",
+   wie sich die Fehlerkategorien seit einer Übung entwickelt haben — es wird
+   der Korrekturlauf vor der Übung mit dem ersten danach verglichen
+   (Fehler pro Abgabe, z. B. „Zeichensetzung: 2,9 → 1,0"). Das zeigt die
+   Entwicklung, es ist kein Beweis der Ursache: Korrekturläufe am selben Tag
+   wie die Übung bleiben bewusst unberücksichtigt.
+   Zusätzlich zeigt die Wirksamkeitskarte wiederkehrende strukturierte
+   Fehler-Cluster, sobald ein Regelmuster in mindestens zwei Aufgabenläufen
+   vorkommt. Nicht strukturierte Altfehler bleiben in der R/G/Z/A-Ansicht und
+   werden in der Clusterkurve nicht als Null gezählt.
 
 Bereits vorhandene Analyse-JSONs können über **Retro-Import** nachträglich in
 die gemeinsame lokale Datenbank übernommen werden. Ohne gebündeltes Modul zeigt

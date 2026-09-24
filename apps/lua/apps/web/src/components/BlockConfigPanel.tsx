@@ -952,6 +952,192 @@ export function BlockConfigPanel({ block, stufe, onConfigChange }: Props) {
     );
   }
 
+  if (block.typ === 'quellenanalyse') {
+    type Auftrag = { nr: number; operator: string; frage: string; zeilen: number };
+    const auftraege = (config.auftraege as Auftrag[] | undefined) ?? [];
+    const updateAuftrag = (i: number, key: keyof Auftrag, value: string | number) => {
+      set('auftraege', auftraege.map((a, idx) => idx === i ? { ...a, [key]: value } : a));
+    };
+    const addAuftrag = () => set('auftraege', [...auftraege, {
+      nr: auftraege.length + 1, operator: 'analysieren', frage: '', zeilen: 5,
+    }]);
+    const removeAuftrag = (i: number) => {
+      if (auftraege.length <= 1) return;
+      set('auftraege', auftraege.filter((_, idx) => idx !== i).map((a, idx) => ({ ...a, nr: idx + 1 })));
+    };
+    return (
+      <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
+        <h3 style={{ marginBottom: '0.75rem', fontSize: '0.8125rem' }}>Quellenanalyse</h3>
+        <ConfigField label="Quelltext-ID">
+          <input type="text" value={String(config.quelleId ?? '')} placeholder="z. B. q1"
+            onChange={(e) => set('quelleId', e.target.value)} />
+        </ConfigField>
+        <ConfigField label="Quellentyp">
+          <select value={String(config.quellentyp ?? 'text')} onChange={(e) => set('quellentyp', e.target.value)}>
+            <option value="text">Textquelle</option>
+            <option value="rede">Rede / politischer Text</option>
+            <option value="bild">Bildquelle</option>
+            <option value="karikatur">Karikatur</option>
+            <option value="statistik">Statistik</option>
+          </select>
+        </ConfigField>
+        <ConfigField label={`Arbeitsaufträge (${auftraege.length})`}>
+          {auftraege.map((a, i) => (
+            <div key={i} style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', padding: '0.5rem', marginBottom: '0.5rem' }}>
+              <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.4rem' }}>
+                <select value={a.operator} onChange={(e) => updateAuftrag(i, 'operator', e.target.value)}>
+                  <option value="beschreiben">Beschreiben</option>
+                  <option value="analysieren">Analysieren</option>
+                  <option value="einordnen">Einordnen</option>
+                  <option value="beurteilen">Beurteilen</option>
+                </select>
+                <input type="number" min={2} max={20} value={a.zeilen}
+                  title="Schreibzeilen"
+                  onChange={(e) => updateAuftrag(i, 'zeilen', Math.max(2, Math.min(20, parseInt(e.target.value) || 5)))} />
+                <button type="button" onClick={() => removeAuftrag(i)} disabled={auftraege.length <= 1} title="Auftrag entfernen"><X size={14} /></button>
+              </div>
+              <textarea rows={2} style={{ width: '100%' }} value={a.frage}
+                placeholder="Textgebundener Arbeitsauftrag"
+                onChange={(e) => updateAuftrag(i, 'frage', e.target.value)} />
+            </div>
+          ))}
+          <button type="button" className="btn-secondary" onClick={addAuftrag} disabled={auftraege.length >= 6} style={{ fontSize: '0.75rem' }}>
+            + Auftrag hinzufügen
+          </button>
+        </ConfigField>
+        <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.25rem' }}>
+          Die Lösung verlangt zu jedem Auftrag eine fachliche Erwartung und mindestens einen belegten Quellenbezug.
+        </p>
+      </div>
+    );
+  }
+
+  if (block.typ === 'timeline') {
+    type Ereignis = { nr: number; titel: string; beschreibung: string };
+    const ereignisse = (config.ereignisse as Ereignis[] | undefined) ?? [];
+    const updateEreignis = (i: number, key: keyof Ereignis, value: string) => {
+      set('ereignisse', ereignisse.map((e, idx) => idx === i ? { ...e, [key]: value } : e));
+    };
+    const addEreignis = () => {
+      if (ereignisse.length >= 12) return;
+      set('ereignisse', [...ereignisse, { nr: ereignisse.length + 1, titel: '', beschreibung: '' }]);
+    };
+    const removeEreignis = (i: number) => {
+      if (ereignisse.length <= 2) return;
+      set('ereignisse', ereignisse.filter((_, idx) => idx !== i).map((e, idx) => ({ ...e, nr: idx + 1 })));
+    };
+    return (
+      <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
+        <h3 style={{ marginBottom: '0.75rem', fontSize: '0.8125rem' }}>Timeline / Datierung</h3>
+        <ConfigField label="Quelltext-ID (optional)">
+          <input type="text" value={String(config.quelleId ?? '')} placeholder="z. B. q1"
+            onChange={(e) => set('quelleId', e.target.value || undefined)} />
+        </ConfigField>
+        <ConfigField label="Zeitraum (optional)">
+          <input type="text" value={String(config.zeitraum ?? '')} placeholder="z. B. Französische Revolution"
+            onChange={(e) => set('zeitraum', e.target.value)} />
+        </ConfigField>
+        <ConfigField label={`Ereignisse (${ereignisse.length})`}>
+          {ereignisse.map((e, i) => (
+            <div key={i} style={{ display: 'grid', gridTemplateColumns: '2rem 1fr auto', gap: '0.4rem', marginBottom: '0.5rem', alignItems: 'start' }}>
+              <span style={{ paddingTop: '0.45rem', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>{i + 1}.</span>
+              <div style={{ display: 'grid', gap: '0.3rem' }}>
+                <input value={e.titel} placeholder="Ereignistitel" onChange={(ev) => updateEreignis(i, 'titel', ev.target.value)} />
+                <textarea rows={2} value={e.beschreibung} placeholder="Kurze, quellengebundene Beschreibung" onChange={(ev) => updateEreignis(i, 'beschreibung', ev.target.value)} />
+              </div>
+              <button type="button" onClick={() => removeEreignis(i)} disabled={ereignisse.length <= 2} title="Ereignis entfernen"><X size={14} /></button>
+            </div>
+          ))}
+          <button type="button" className="btn-secondary" onClick={addEreignis} disabled={ereignisse.length >= 12} style={{ fontSize: '0.75rem' }}>
+            + Ereignis hinzufügen
+          </button>
+        </ConfigField>
+        <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.25rem' }}>
+          Die Schüler ordnen die Ereigniskarten; das Lösungsblatt enthält die chronologische Reihenfolge und Datierungen.
+        </p>
+      </div>
+    );
+  }
+
+  if (block.typ === 'diagrammanalyse') {
+    type Datenpunkt = { label: string; wert: string };
+    type Auftrag = { nr: number; operator: string; frage: string; zeilen: number };
+    const daten = (config.daten as Datenpunkt[] | undefined) ?? [];
+    const auftraege = (config.auftraege as Auftrag[] | undefined) ?? [];
+    const updateDaten = (i: number, key: keyof Datenpunkt, value: string) => {
+      set('daten', daten.map((d, idx) => idx === i ? { ...d, [key]: value } : d));
+    };
+    const updateAuftrag = (i: number, key: keyof Auftrag, value: string | number) => {
+      set('auftraege', auftraege.map((a, idx) => idx === i ? { ...a, [key]: value } : a));
+    };
+    const addDaten = () => {
+      if (daten.length >= 15) return;
+      set('daten', [...daten, { label: '', wert: '' }]);
+    };
+    const removeDaten = (i: number) => {
+      if (daten.length <= 2) return;
+      set('daten', daten.filter((_, idx) => idx !== i));
+    };
+    const addAuftrag = () => {
+      if (auftraege.length >= 6) return;
+      set('auftraege', [...auftraege, { nr: auftraege.length + 1, operator: 'auswerten', frage: '', zeilen: 5 }]);
+    };
+    const removeAuftrag = (i: number) => {
+      if (auftraege.length <= 1) return;
+      set('auftraege', auftraege.filter((_, idx) => idx !== i).map((a, idx) => ({ ...a, nr: idx + 1 })));
+    };
+    return (
+      <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
+        <h3 style={{ marginBottom: '0.75rem', fontSize: '0.8125rem' }}>Diagramm-/Datenanalyse</h3>
+        <ConfigField label="Quelltext-ID (optional)">
+          <input type="text" value={String(config.quelleId ?? '')} placeholder="z. B. q1"
+            onChange={(e) => set('quelleId', e.target.value || undefined)} />
+        </ConfigField>
+        <div style={{ display: 'flex', gap: '0.4rem' }}>
+          <ConfigField label="Darstellung">
+            <select value={String(config.diagrammtyp ?? 'balken')} onChange={(e) => set('diagrammtyp', e.target.value)}>
+              <option value="balken">Balken</option><option value="linie">Linie</option><option value="kreis">Kreis</option><option value="tabelle">Tabelle</option>
+            </select>
+          </ConfigField>
+          <ConfigField label="Einheit">
+            <input value={String(config.einheit ?? '')} placeholder="z. B. %" onChange={(e) => set('einheit', e.target.value)} />
+          </ConfigField>
+        </div>
+        <ConfigField label="Titel">
+          <input value={String(config.titel ?? '')} placeholder="Titel der Datenquelle" onChange={(e) => set('titel', e.target.value)} />
+        </ConfigField>
+        <ConfigField label={`Datenpunkte (${daten.length})`}>
+          {daten.map((d, i) => (
+            <div key={i} style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.4rem' }}>
+              <input style={{ flex: 1 }} value={d.label} placeholder="Kategorie" onChange={(e) => updateDaten(i, 'label', e.target.value)} />
+              <input style={{ flex: 1 }} value={d.wert} placeholder="Wert" onChange={(e) => updateDaten(i, 'wert', e.target.value)} />
+              <button type="button" onClick={() => removeDaten(i)} disabled={daten.length <= 2} title="Datenpunkt entfernen"><X size={14} /></button>
+            </div>
+          ))}
+          <button type="button" className="btn-secondary" onClick={addDaten} disabled={daten.length >= 15} style={{ fontSize: '0.75rem' }}>+ Datenpunkt</button>
+        </ConfigField>
+        <ConfigField label={`Arbeitsaufträge (${auftraege.length})`}>
+          {auftraege.map((a, i) => (
+            <div key={i} style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', padding: '0.5rem', marginBottom: '0.5rem' }}>
+              <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.4rem' }}>
+                <select value={a.operator} onChange={(e) => updateAuftrag(i, 'operator', e.target.value)}>
+                  <option value="beschreiben">Beschreiben</option><option value="auswerten">Auswerten</option><option value="erklaeren">Erklären</option><option value="beurteilen">Beurteilen</option>
+                </select>
+                <input type="number" min={2} max={20} value={a.zeilen} title="Schreibzeilen" onChange={(e) => updateAuftrag(i, 'zeilen', Math.max(2, Math.min(20, parseInt(e.target.value) || 5)))} />
+                <button type="button" onClick={() => removeAuftrag(i)} disabled={auftraege.length <= 1} title="Auftrag entfernen"><X size={14} /></button>
+              </div>
+              <textarea rows={2} style={{ width: '100%' }} value={a.frage} placeholder="Datengebundener Arbeitsauftrag" onChange={(e) => updateAuftrag(i, 'frage', e.target.value)} />
+            </div>
+          ))}
+          <button type="button" className="btn-secondary" onClick={addAuftrag} disabled={auftraege.length >= 6} style={{ fontSize: '0.75rem' }}>+ Auftrag hinzufügen</button>
+        </ConfigField>
+        <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.25rem' }}>
+          Jede Lösung muss mindestens einen konkreten Datenbeleg nennen; Modell und Daten bleiben getrennt prüfbar.
+        </p>
+      </div>
+    );
+  }
+
   if (block.typ === 'roleplay') {
     const modus = (config.eingabemodus as 'ki' | 'manuell') ?? 'ki';
     type Rolle = { name: string; beschreibung: string; aufgabe: string; redemittel: string[] };

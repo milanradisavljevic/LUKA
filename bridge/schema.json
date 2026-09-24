@@ -14,8 +14,26 @@
     },
     "klasse": { "type": "string", "minLength": 1, "examples": ["6i"] },
     "aufgabe": { "type": "string", "minLength": 1, "examples": ["SA2"] },
-    "fach": { "type": "string", "enum": ["deutsch", "englisch"] },
+    "fach": {
+      "type": "string",
+      "enum": [
+        "deutsch", "englisch", "franzoesisch", "spanisch", "italienisch", "latein",
+        "geschichte", "geographie", "religion", "ethik", "psychologie", "philosophie",
+        "mediendemokratie", "informatikki"
+      ]
+    },
+    "land": {
+      "type": "string",
+      "enum": ["AT", "DE", "CH"],
+      "description": "v2, optional: ausdrücklich gesetztes Land der Klasse; fehlt bei Profilstandard."
+    },
     "schulstufe": { "type": "string", "enum": ["oberstufe", "unterstufe"] },
+    "schulstufeNummer": {
+      "type": "integer",
+      "minimum": 5,
+      "maximum": 13,
+      "description": "v2, optional: konkrete Schulstufe/Klasse aus Abgabe oder Klassenprofil."
+    },
     "textsorte": { "type": "string", "examples": ["Kommentar"] },
     "ausgangstext": {
       "type": "string",
@@ -57,7 +75,9 @@
           "zitat": { "type": "string", "description": "Fehlerhafte Stelle (anonymisiert)." },
           "korrektur": { "type": "string", "description": "Korrekte Fassung." },
           "erklaerung": { "type": "string" },
-          "haeufigkeit": { "type": "integer", "minimum": 1 }
+          "haeufigkeit": { "type": "integer", "minimum": 1 },
+          "clusterId": { "type": "string", "minLength": 1 },
+          "regelMuster": { "type": "string", "minLength": 1 }
         }
       }
     },

@@ -101,8 +101,8 @@ Die Action-Methoden sollen alle FileInfo-Objekte im aktuellen View auf markiert/
 
 Im ListItem-Rendering der Dateiliste: Das Markierungs-Symbol (Checkbox) LINKS vor den Dateinamen setzen, nicht rechts dahinter.
 
-Aktuell (geschätzt): `Flora Lex.docx          ○`
-Neu: `☑ Flora Lex.docx` bzw. `☐ Flora Lex.docx`
+Aktuell (geschätzt): `Schuelerarbeit_A.docx          ○`
+Neu: `☑ Schuelerarbeit_A.docx` bzw. `☐ Schuelerarbeit_A.docx`
 
 Die Checkbox soll visuell klar unterscheidbar sein (z. B. via Rich-Markup `[bold green]☑[/]` für markiert, `☐` für nicht markiert).
 

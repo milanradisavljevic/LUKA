@@ -386,7 +386,7 @@ Fehlertypen: R, A, SZ, G durchgehend markiert. Schätzung: Note 3-4.
 DNS statt DNA, Rutowski statt Rutkowski. "Nicht des do Trotz".
 "Gelungener Schluss" positiv vermerkt. Schätzung: Note 3-4.
 
-**Max Muster:** Klare Haltung, eindeutiger Textbezug. Aber:
+**Beispielperson B:** Klare Haltung, eindeutiger Textbezug. Aber:
 zu wenig differenzierte Argumentation, stellenweise unsaubere Struktur,
 starke Ausdrucksschwächen (umgangssprachlich, holprige Satzkonstruktionen).
 Fehler: A, R, SZ, G zahlreich. Schätzung: Note 3.
@@ -432,7 +432,7 @@ Beim Speichern einer Analyse die vorherige Version archivieren:
 ```
 feedback_data/
   .history/
-    Flora_Lex_analysis_20260524_gpt41.json
+    schuelerarbeit_a_analysis_20260524_gpt41.json
 ```
 
 Siehe TASK_VERSIONIERUNG.md für Details.

@@ -13,6 +13,7 @@ pub struct KlasseMeta {
     pub id: Option<String>,
     pub name: String,
     pub fach: Option<String>,
+    pub land: Option<String>,
     pub stufe: Option<String>,
     pub schulstufe: Option<i32>,
     pub schuljahr: Option<String>,
@@ -30,7 +31,7 @@ pub async fn klassen_meta_list(state: tauri::State<'_, DbState>) -> Result<Vec<K
 pub(crate) fn klassen_meta_list_impl(conn: &rusqlite::Connection) -> Result<Vec<KlasseMeta>, String> {
     let mut stmt = conn
         .prepare(
-            "SELECT id, name, fach, stufe, schulstufe, schuljahr, notizen, archiviert, created_at \
+            "SELECT id, name, fach, land, stufe, schulstufe, schuljahr, notizen, archiviert, created_at \
              FROM lua_klassen ORDER BY archiviert ASC, name ASC",
         )
         .map_err(|e| format!("klassen_meta_list prepare: {e}"))?;
@@ -40,12 +41,13 @@ pub(crate) fn klassen_meta_list_impl(conn: &rusqlite::Connection) -> Result<Vec<
                 id: row.get(0)?,
                 name: row.get(1)?,
                 fach: row.get(2)?,
-                stufe: row.get(3)?,
-                schulstufe: row.get(4)?,
-                schuljahr: row.get(5)?,
-                notizen: row.get(6)?,
-                archiviert: row.get::<_, i64>(7)? != 0,
-                created_at: row.get(8)?,
+                land: row.get(3)?,
+                stufe: row.get(4)?,
+                schulstufe: row.get(5)?,
+                schuljahr: row.get(6)?,
+                notizen: row.get(7)?,
+                archiviert: row.get::<_, i64>(8)? != 0,
+                created_at: row.get(9)?,
             })
         })
         .map_err(|e| format!("klassen_meta_list query: {e}"))?;
@@ -68,17 +70,25 @@ pub async fn klassen_meta_upsert(
     if name.is_empty() {
         return Err("Klassenname darf nicht leer sein.".to_string());
     }
+    let land_ungueltig = meta
+        .land
+        .as_deref()
+        .is_some_and(|land| !["AT", "DE", "CH"].contains(&land));
+    if land_ungueltig {
+        return Err("Land muss AT, DE oder CH sein.".to_string());
+    }
     let id = meta.id.filter(|id| !id.trim().is_empty()).unwrap_or_else(|| Uuid::new_v4().to_string());
     conn.execute(
-        "INSERT INTO lua_klassen (id, name, fach, stufe, schulstufe, schuljahr, notizen, archiviert) \
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8) \
+        "INSERT INTO lua_klassen (id, name, fach, land, stufe, schulstufe, schuljahr, notizen, archiviert) \
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9) \
          ON CONFLICT(name) DO UPDATE SET \
-           fach=excluded.fach, stufe=excluded.stufe, schulstufe=excluded.schulstufe, \
+           fach=excluded.fach, land=excluded.land, stufe=excluded.stufe, schulstufe=excluded.schulstufe, \
            schuljahr=excluded.schuljahr, notizen=excluded.notizen, archiviert=excluded.archiviert",
         rusqlite::params![
             id,
             name,
             meta.fach,
+            meta.land,
             meta.stufe,
             meta.schulstufe,
             meta.schuljahr,
@@ -272,6 +282,7 @@ mod tests {
             id: None,
             name: name.to_string(),
             fach: Some("deutsch".to_string()),
+            land: Some("AT".to_string()),
             stufe: Some("oberstufe".to_string()),
             schulstufe: Some(7),
             schuljahr: Some("2026/27".to_string()),
@@ -283,12 +294,12 @@ mod tests {
 
     fn upsert(conn: &Connection, meta: &KlasseMeta) {
         conn.execute(
-            "INSERT INTO lua_klassen (id, name, fach, stufe, schulstufe, schuljahr, notizen, archiviert) \
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8) \
+            "INSERT INTO lua_klassen (id, name, fach, land, stufe, schulstufe, schuljahr, notizen, archiviert) \
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9) \
              ON CONFLICT(name) DO UPDATE SET \
-               fach=excluded.fach, stufe=excluded.stufe, schulstufe=excluded.schulstufe, \
+               fach=excluded.fach, land=excluded.land, stufe=excluded.stufe, schulstufe=excluded.schulstufe, \
                schuljahr=excluded.schuljahr, notizen=excluded.notizen, archiviert=excluded.archiviert",
-            rusqlite::params![uuid::Uuid::new_v4().to_string(), meta.name, meta.fach, meta.stufe, meta.schulstufe, meta.schuljahr, meta.notizen, meta.archiviert as i64],
+            rusqlite::params![uuid::Uuid::new_v4().to_string(), meta.name, meta.fach, meta.land, meta.stufe, meta.schulstufe, meta.schuljahr, meta.notizen, meta.archiviert as i64],
         ).unwrap();
     }
 
@@ -300,6 +311,7 @@ mod tests {
         assert_eq!(liste.len(), 1);
         assert_eq!(liste[0].name, "7A");
         assert_eq!(liste[0].fach.as_deref(), Some("deutsch"));
+        assert_eq!(liste[0].land.as_deref(), Some("AT"));
         assert_eq!(liste[0].schulstufe, Some(7));
         assert!(liste[0]
             .id
@@ -315,10 +327,12 @@ mod tests {
         upsert(&conn, &beispiel("7A"));
         let mut geaendert = beispiel("7A");
         geaendert.fach = Some("englisch".to_string());
+        geaendert.land = Some("DE".to_string());
         upsert(&conn, &geaendert);
         let liste = klassen_meta_list_impl(&conn).unwrap();
         assert_eq!(liste.len(), 1);
         assert_eq!(liste[0].fach.as_deref(), Some("englisch"));
+        assert_eq!(liste[0].land.as_deref(), Some("DE"));
     }
 
     #[test]

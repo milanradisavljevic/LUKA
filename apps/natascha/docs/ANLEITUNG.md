@@ -73,8 +73,8 @@ input/
     SA_Thema_Genderneutrale_Mode/
       ausgangstext/
         [optional: Vorlage/Aufgabenstellung].docx
-      Eva 6i.docx
-      Max 6i.docx
+      Schuelerarbeit_A_6i.docx
+      Schuelerarbeit_B_6i.docx
       ...
 ```
 
@@ -143,7 +143,7 @@ Aus dem Analyse-JSON wird automatisch ein DOCX-Feedback erstellt:
 - Blau: Verbesserungsvorschläge
 - Vollständige Fehlerliste mit Korrekturen
 
-Das fertige Dokument: `output/6i/SA_Thema_Genderneutrale_Mode/Eva_feedback.docx`
+Das fertige Dokument: `output/6i/SA_Thema_Genderneutrale_Mode/Schuelerarbeit_A_feedback.docx`
 
 ---
 
@@ -197,10 +197,10 @@ output/
   6i/
     SA_Thema_Genderneutrale_Mode/
       feedback_data/
-        Eva_analysis.json  # Analyse-Daten
-        Max_analysis.json
-      Eva_feedback.docx    # Fertiges Feedback
-      Max_feedback.docx
+        Schuelerarbeit_A_analysis.json  # Analyse-Daten
+        Schuelerarbeit_B_analysis.json
+      Schuelerarbeit_A_feedback.docx    # Fertiges Feedback
+      Schuelerarbeit_B_feedback.docx
 ```
 
 ---

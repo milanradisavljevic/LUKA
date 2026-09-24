@@ -101,15 +101,27 @@ SRDP_WORTLAUT: dict[str, dict[int, str]] = {
         0: "nicht erfüllt",
         1: "Text gedanklich und formal überwiegend der Textsorte angemessen strukturiert",
         2: "Text gedanklich und formal weitgehend der Textsorte angemessen strukturiert",
-        3: "Text gedanklich und formal durchgehend der Textsorte angemessen und klar strukturiert",
-        4: "Text gedanklich und formal durchgehend der Textsorte angemessen, klar, zielgerichtet und ggf. eigenständig strukturiert",
+        3: (
+            "Text gedanklich und formal durchgehend der Textsorte angemessen "
+            "und klar strukturiert"
+        ),
+        4: (
+            "Text gedanklich und formal durchgehend der Textsorte angemessen, "
+            "klar, zielgerichtet und ggf. eigenständig strukturiert"
+        ),
     },
     "bezugnahme": {
         0: "nicht erfüllt",
-        1: "Bezugnahme auf die Textbeilage(n) im Sinne der geforderten Textsorte überwiegend erkennbar",
+        1: (
+            "Bezugnahme auf die Textbeilage(n) im Sinne der geforderten Textsorte "
+            "überwiegend erkennbar"
+        ),
         2: "Bezugnahme auf die Textbeilage(n) im Sinne der geforderten Textsorte realisiert",
         3: "gelungene Verknüpfung mit der/den Textbeilage(n) im Sinne der geforderten Textsorte",
-        4: "besonders gelungene Verknüpfung mit der/den Textbeilage(n) im Sinne der geforderten Textsorte",
+        4: (
+            "besonders gelungene Verknüpfung mit der/den Textbeilage(n) im Sinne "
+            "der geforderten Textsorte"
+        ),
     },
     "kohaesion": {
         0: "nicht erfüllt",
@@ -127,10 +139,22 @@ SRDP_WORTLAUT: dict[str, dict[int, str]] = {
     },
     "wortwahl": {
         0: "nicht erfüllt",
-        1: "überwiegend angemessene und semantisch korrekte Ausdrucksweise sowie geringe Varianz in der Wortwahl",
-        2: "weitgehend angemessene und semantisch korrekte Ausdrucksweise sowie variantenreiche Wortwahl",
-        3: "durchgehend angemessene und semantisch korrekte Ausdrucksweise sowie präzise und variantenreiche Wortwahl",
-        4: "durchgehend angemessene und semantisch korrekte Ausdrucksweise sowie besonders präzise, differenzierte und variantenreiche Wortwahl",
+        1: (
+            "überwiegend angemessene und semantisch korrekte Ausdrucksweise sowie "
+            "geringe Varianz in der Wortwahl"
+        ),
+        2: (
+            "weitgehend angemessene und semantisch korrekte Ausdrucksweise sowie "
+            "variantenreiche Wortwahl"
+        ),
+        3: (
+            "durchgehend angemessene und semantisch korrekte Ausdrucksweise sowie "
+            "präzise und variantenreiche Wortwahl"
+        ),
+        4: (
+            "durchgehend angemessene und semantisch korrekte Ausdrucksweise sowie "
+            "besonders präzise, differenzierte und variantenreiche Wortwahl"
+        ),
     },
     "satzstrukturen": {
         0: "nicht erfüllt",
@@ -235,6 +259,16 @@ class SprachFehler:
 
 
 @dataclass(slots=True)
+class FolgeuebungHinweis:
+    """Wahrheitsgemäßer Verweis auf eine tatsächlich verfügbare Folgeübung."""
+
+    status: str  # "beigelegt" | "in_luka" | "keine"
+    titel: str | None = None
+    dateiname: str | None = None
+    material_id: str | None = None
+
+
+@dataclass(slots=True)
 class GradeRecommendation:
     """Zusammenfassung der Notenempfehlung."""
 
@@ -269,6 +303,8 @@ class FeedbackData:
     staerken_global: list[str] | None = None
     verbesserungsbereiche: list[str] | None = None
     srdp_detail: dict[str, Any] | None = None
+    folgeuebung: FolgeuebungHinweis | None = None
+    sachfach_bewertung: dict[str, CriterionFeedback] | None = None
 
 
 @dataclass(slots=True)
@@ -322,6 +358,7 @@ def add_section_header(doc: Document, text: str, color: RGBColor = C_HEADER) -> 
     run.font.color.rgb = color
     paragraph.paragraph_format.space_before = Pt(8)
     paragraph.paragraph_format.space_after = Pt(2)
+    paragraph.paragraph_format.keep_with_next = True
 
 
 def add_label(doc: Document, label: str, value: str) -> None:
@@ -443,7 +480,8 @@ def add_lehrer_kommentar_block(
             )
             add_body(
                 doc,
-                f"  K1 (Inhalt + Textstruktur): Note {data.notenempfehlung.k1_note}{k1_schnitt_str}",
+                f"  K1 (Inhalt + Textstruktur): "
+                f"Note {data.notenempfehlung.k1_note}{k1_schnitt_str}",
             )
         if data.notenempfehlung.k3_note is not None:
             k3_schnitt_str = (
@@ -453,7 +491,8 @@ def add_lehrer_kommentar_block(
             )
             add_body(
                 doc,
-                f"  K3/1 (Stil + Sprachnormen): Note {data.notenempfehlung.k3_note}{k3_schnitt_str}",
+                f"  K3/1 (Stil + Sprachnormen): "
+                f"Note {data.notenempfehlung.k3_note}{k3_schnitt_str}",
             )
         if data.notenempfehlung.sonderregel:
             add_body(
@@ -1253,6 +1292,17 @@ def parse_feedback_data(payload: dict[str, Any]) -> FeedbackData:
         parse_criterion(key, value) for key, value in payload["bewertung"].items()
     ]
 
+    sachfach_bewertung: dict[str, CriterionFeedback] | None = None
+    raw_sachfach = payload.get("sachfach_bewertung")
+    if raw_sachfach is not None:
+        if not isinstance(raw_sachfach, dict):
+            raise ValueError("Feld 'sachfach_bewertung' muss ein Objekt sein.")
+        sachfach_bewertung = {
+            key: parse_criterion(key, value)
+            for key, value in raw_sachfach.items()
+            if isinstance(value, dict)
+        } or None
+
     raw_hinweise = payload.get("hinweise", [])
     hinweise: list[WordLevelHinweis] = []
     for item in raw_hinweise:
@@ -1282,6 +1332,10 @@ def parse_feedback_data(payload: dict[str, Any]) -> FeedbackData:
             erklaerung=str(e.get("erklaerung", "")),
         ))
 
+    # Folgeübungen werden nicht aus Analyse-JSON übernommen. Nur der CLI-Pfad
+    # kann den Hinweis nach Abgleich mit Material-ID und Exportdatei setzen.
+    folgeuebung: FolgeuebungHinweis | None = None
+
     return FeedbackData(
         datei=str(payload["datei"]),
         schueler=str(payload["schueler"]) if payload.get("schueler") else None,
@@ -1303,6 +1357,8 @@ def parse_feedback_data(payload: dict[str, Any]) -> FeedbackData:
         srdp_detail=(
             payload.get("srdp_detail") if isinstance(payload.get("srdp_detail"), dict) else None
         ),
+        folgeuebung=folgeuebung,
+        sachfach_bewertung=sachfach_bewertung,
     )
 
 
@@ -1327,6 +1383,10 @@ def criterion_label(data: FeedbackData, key: str) -> str:
         "sprachrichtigkeit": "NORMATIVE SPRACHRICHTIGKEIT"
         if data.schulstufe == "Oberstufe"
         else "SPRACHRICHTIGKEIT",
+        "operator_erfuellung": "OPERATOR-ERFÜLLUNG",
+        "inhaltliche_genauigkeit": "INHALTLICHE GENAUIGKEIT",
+        "fachbegriffe": "FACHBEGRIFFE",
+        "erwartungshorizont_bezug": "ERWARTUNGSHORIZONT-BEZUG",
     }
     english_labels = {
         "task_achievement": "TASK ACHIEVEMENT",
@@ -1334,14 +1394,14 @@ def criterion_label(data: FeedbackData, key: str) -> str:
         "lexical_range_accuracy": "LEXICAL RANGE AND ACCURACY",
         "grammatical_range_accuracy": "GRAMMATICAL RANGE AND ACCURACY",
     }
-    labels = german_labels if data.fach == "Deutsch" else english_labels
+    labels = english_labels if data.fach == "Englisch" else german_labels
     return labels.get(key, key.replace("_", " ").upper())
 
 
 def ordered_criteria(data: FeedbackData) -> list[CriterionFeedback]:
     """Sortiert Kriterien in einer fachlich passenden Reihenfolge."""
 
-    desired = GERMAN_ORDER if data.fach == "Deutsch" else ENGLISH_ORDER
+    desired = ENGLISH_ORDER if data.fach == "Englisch" else GERMAN_ORDER
     rank = {name: index for index, name in enumerate(desired)}
     return sorted(data.bewertung, key=lambda item: rank.get(item.key, len(rank)))
 
@@ -1431,11 +1491,17 @@ def add_fehlerprotokoll(doc: Document, fehler_list: list[SprachFehler]) -> None:
     table = doc.add_table(rows=1, cols=5)
     table.style = "Table Grid"
 
+    header_pr = table.rows[0]._tr.get_or_add_trPr()
+    repeat_header = OxmlElement("w:tblHeader")
+    repeat_header.set(qn("w:val"), "true")
+    header_pr.append(repeat_header)
+
     hdr = table.rows[0].cells
     for i, col_title in enumerate(("Nr.", "Typ", "Zitat", "Korrektur", "Erklärung")):
         p = hdr[i].paragraphs[0]
         run = p.add_run(col_title)
         run.bold = True
+        p.paragraph_format.keep_with_next = True
         p.paragraph_format.space_before = Pt(2)
         p.paragraph_format.space_after = Pt(2)
         shading = OxmlElement("w:shd")
@@ -1465,6 +1531,90 @@ def add_fehlerprotokoll(doc: Document, fehler_list: list[SprachFehler]) -> None:
     run = p.add_run(summary)
     run.bold = True
     run.font.size = Pt(10)
+
+
+# Deterministische Übungstipps je Fehlertyp (L3, „Nächste Schritte") — schüler-
+# freundlich, fach- und textsortenneutral, ohne LLM (kein Halluzinationsrisiko).
+_NAECHSTE_SCHRITTE_TIPPS: dict[str, tuple[str, str]] = {
+    "R": (
+        "Rechtschreibung",
+        "Schreibe die drei Wörter, die du am häufigsten falsch schreibst, auf eine "
+        "Karte und übe sie täglich kurz — in kleinen Portionen bleibt es am besten hängen.",
+    ),
+    "G": (
+        "Grammatik",
+        "Markiere in deinen Sätzen die Satzkerne (Wer tut was?) und prüfe die "
+        "Zeitformen — lies den Satz danach noch einmal langsam durch.",
+    ),
+    "Z": (
+        "Zeichensetzung",
+        "Lies deine Sätze laut: Vor dass, weil, obwohl und vor Relativsätzen "
+        "(der, die, das, welcher) gehört ein Komma.",
+    ),
+    "A": (
+        "Ausdruck",
+        "Ersetze Füllwörter (sozusagen, eigentlich, sehr) durch konkretere Wörter — "
+        "ein Synonymwörterbuch hilft beim präziseren Formulieren.",
+    ),
+}
+
+
+def add_naechste_schritte(doc: Document, fehler_list: list[SprachFehler]) -> None:
+    """Rendert Übungstipps zu den Top-Fehlerschwerpunkten (L3).
+
+    Das Feedback soll nicht bei der Fehlerliste enden: Der Schüler bekommt zu
+    seinen 2–3 häufigsten Fehlertypen je einen konkreten Übungstipp. Rein
+    deterministisch aus den (bereits lehrkraftgefilterten) Typ-Counts.
+    """
+    counts: dict[str, int] = {}
+    for f in fehler_list:
+        counts[f.typ] = counts.get(f.typ, 0) + 1
+    top = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))[:3]
+    if not top:
+        return
+
+    add_section_header(doc, "NÄCHSTE SCHRITTE — WORAN DU ARBEITEN KANNST")
+    for typ, anzahl in top:
+        eintrag = _NAECHSTE_SCHRITTE_TIPPS.get(typ)
+        if not eintrag:
+            continue
+        label, tipp = eintrag
+        p = doc.add_paragraph()
+        run = p.add_run(f"{label} ({anzahl}×): ")
+        run.bold = True
+        p.add_run(tipp)
+    p = doc.add_paragraph()
+    run = p.add_run("Diese Schwerpunkte üben wir gezielt weiter.")
+    run.italic = True
+    run.font.size = Pt(10)
+
+
+def add_folgeuebung_hinweis(
+    doc: Document, hinweis: FolgeuebungHinweis
+) -> None:
+    """Zeigt nur einen belegten oder explizit in LUKA vorhandenen Verweis.
+
+    Es werden keine lokalen Pfade ausgegeben. Ein fehlender oder unbekannter
+    Status darf nicht als beiliegendes Übungsblatt dargestellt werden.
+    """
+    if hinweis.status == "keine":
+        return
+
+    add_section_header(doc, "FOLGEÜBUNG")
+    titel = f" „{hinweis.titel}“" if hinweis.titel else ""
+    if hinweis.status == "beigelegt":
+        # Nur der Dateiname ist für die Lehrkraft nützlich; Elternverzeichnisse
+        # oder absolute Pfade gehören nicht in ein Schülerdokument.
+        sichtbarer_name = Path((hinweis.dateiname or "").replace("\\", "/")).name
+        add_body(
+            doc,
+            f"Eine passende Folgeübung{titel} liegt bei: {sichtbarer_name}.",
+        )
+    elif hinweis.status == "in_luka":
+        add_body(
+            doc,
+            f"Eine passende Folgeübung{titel} wurde in LUKA erzeugt und kann dort geöffnet werden.",
+        )
 
 
 def _add_srdp_table(
@@ -1658,9 +1808,43 @@ def build_feedback_document(
         )
         add_divider(doc)
 
+    if data.sachfach_bewertung:
+        add_section_header(doc, "FACHLICHE BEWERTUNG")
+        add_body(
+            doc,
+            "Die fachlichen Kriterien werden getrennt von Sprachrichtigkeit und "
+            "Ausdruck betrachtet.",
+        )
+        for criterion in data.sachfach_bewertung.values():
+            add_section_header(doc, criterion_label(data, criterion.key))
+            if bewertungsmodus == "benotet":
+                add_label(
+                    doc,
+                    "Bewertung",
+                    f"{criterion.stufe} [{criterion.punkte:g} Punkte]",
+                )
+            doc.add_paragraph()
+            render_list_section(doc, "Stärken:", criterion.staerken, color=C_STRENGTH)
+            doc.add_paragraph()
+            render_list_section(
+                doc, "Schwächen / Fehler:", criterion.schwaechen, color=C_WEAKNESS
+            )
+            doc.add_paragraph()
+            render_list_section(
+                doc, "Verbesserungsvorschläge:", criterion.vorschlaege, color=C_SUGGESTION
+            )
+        add_divider(doc)
+
     if data.fehler:
         add_fehlerprotokoll(doc, data.fehler)
         add_divider(doc)
+        add_naechste_schritte(doc, data.fehler)
+        add_divider(doc)
+
+    if data.folgeuebung:
+        add_folgeuebung_hinweis(doc, data.folgeuebung)
+        if data.folgeuebung.status != "keine":
+            add_divider(doc)
 
     if data.srdp_detail and bewertungsmodus == "benotet":
         add_srdp_raster(doc, data.srdp_detail)
@@ -1706,7 +1890,6 @@ def build_feedback_document(
                     value = f"{value} x {criterion.gewicht:g} %"
                 add_label(doc, label, value)
 
-        doc.add_paragraph()
         add_label(doc, "Durchschnitt", f"{data.notenempfehlung.durchschnitt:.2f}")
 
         note_paragraph = doc.add_paragraph()
@@ -1725,16 +1908,12 @@ def build_feedback_document(
                 f"Sonderregel: {data.notenempfehlung.sonderregel} – automatisch Nicht genügend.",
             )
 
-        doc.add_paragraph()
         add_body(doc, "Begründung:")
         add_body(doc, data.notenempfehlung.begruendung)
-        doc.add_paragraph()
         add_body(
             doc,
-            "Hinweis: Diese Empfehlung wurde nach SRDP-Standard berechnet. "
-            "Die endgültige Note liegt im Ermessen der Lehrkraft.",
+            "Die Note ist eine Empfehlung; die endgültige Entscheidung trifft die Lehrkraft.",
         )
-        add_divider(doc)
     else:
         add_section_header(doc, "HAUSAUFGABE – KEINE BENOTUNG")
         add_divider(doc)

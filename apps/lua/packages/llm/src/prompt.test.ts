@@ -71,6 +71,66 @@ describe('buildMessages — Bloom-Steuerung (C1)', () => {
     expect(user!.content).toContain('Medienkonsum bei Jugendlichen');
   });
 
+  it('sendet Gruppensteuerung, aber keine lokalen Schüler-IDs an das Modell', () => {
+    const messages = buildMessages(input({
+      niveaugruppe: {
+        id: 'foerder',
+        label: 'Förderung',
+        schwierigkeit: 'leicht',
+        schuelerIds: [741852, 963258],
+        notenbereich: { min: 4, max: 6 },
+      },
+    }));
+    const user = messages.find((message) => message.role === 'user');
+    expect(user!.content).toContain('"label": "Förderung"');
+    expect(user!.content).toContain('"schwierigkeit": "leicht"');
+    expect(user!.content).not.toContain('schuelerIds');
+    expect(user!.content).not.toContain('741852');
+    expect(user!.content).not.toContain('963258');
+  });
+
+  it('übermittelt echte Fehlermuster-Häufigkeiten nur als Priorisierung', () => {
+    const messages = buildMessages(input({ bridgeFehler: [
+      { typ: 'Z', zitat: 'Schüler die', korrektur: 'Schüler, die', haeufigkeit: 7 },
+    ] }));
+    const user = messages.find((message) => message.role === 'user');
+    expect(user!.content).toContain('"haeufigkeit": 7');
+    expect(user!.content).toContain('nicht als Zahl der betroffenen Schüler');
+    expect(user!.content).toContain('den Fehler mehrfach zu erfinden');
+  });
+
+  it('begrenzt Operatoren deterministisch auf die niedrigere gemeinsame Niveaustufe', () => {
+    const messages = buildMessages(input({ schwierigkeit: 'schwer', kompetenzNiveau: 'basis' }));
+    const user = messages.find((message) => message.role === 'user');
+    expect(user!.content).toContain('hoechstens AFB I');
+    expect(user!.content).toContain('die niedrigere der beiden Niveaustufen begrenzt die Operatoren');
+    expect(user!.content).toContain('kleinschrittigen Hilfen');
+  });
+
+  it('erlaubt AFB III nur, wenn Schwierigkeit und Kompetenzniveau es beide tragen', () => {
+    const messages = buildMessages(input({ schwierigkeit: 'schwer', kompetenzNiveau: 'erweitert' }));
+    const user = messages.find((message) => message.role === 'user');
+    expect(user!.content).toContain('hoechstens AFB III');
+    expect(user!.content).toContain('wenig Hilfen');
+  });
+
+  it('entfernt Schüler-IDs auch im Kompetenzmodus aus dem Prompt', () => {
+    const messages = buildMessages(input({
+      modus: 'kompetenz',
+      niveaugruppe: {
+        id: 'basis',
+        label: 'Basis',
+        schwierigkeit: 'mittel',
+        schuelerIds: [741852],
+        notenbereich: { min: 2, max: 4 },
+      },
+    }));
+    const user = messages.find((message) => message.role === 'user');
+    expect(user!.content).toContain('"label": "Basis"');
+    expect(user!.content).not.toContain('schuelerIds');
+    expect(user!.content).not.toContain('741852');
+  });
+
   it('Messages-Struktur: erst System, dann User', () => {
     const messages = buildMessages(input());
     expect(messages[0]?.role).toBe('system');
@@ -83,6 +143,60 @@ describe('buildMessages — Bloom-Steuerung (C1)', () => {
     const system = messages[0];
     expect(system?.content).toContain('Kein Layout, keine Markdown-Zaeune');
     expect(system?.content).toContain('Antworte AUSSCHLIESSLICH mit dem JSON-Array');
+  });
+});
+
+describe('buildMessages — Quellenanalyse', () => {
+  it('verlangt fachliche Erwartung und Quellenbeleg', () => {
+    const messages = buildMessages({
+      ...input({ fach: 'geschichte' }),
+      bloecke: [{
+        typ: 'quellenanalyse' as const,
+        punkte: 12,
+        quelleId: 'q1',
+        quellentyp: 'rede',
+        anzahlAuftraege: 1,
+        auftraege: [{ nr: 1, operator: 'analysieren', frage: 'Welche Absicht?', zeilen: 5 }],
+      }],
+    });
+    expect(messages[0]?.content).toContain('quellenanalyse');
+    expect(messages[0]?.content).toContain('mindestens einen konkreten Quellenbezug');
+  });
+});
+
+describe('buildMessages — Timeline', () => {
+  it('fordert eindeutige Chronologie und belegte Datierungen', () => {
+    const messages = buildMessages({
+      ...input({ fach: 'geschichte' }),
+      bloecke: [{
+        typ: 'timeline' as const,
+        punkte: 8,
+        anzahlEreignisse: 2,
+        ereignisse: [
+          { nr: 1, titel: 'Ereignis A', beschreibung: 'A' },
+          { nr: 2, titel: 'Ereignis B', beschreibung: 'B' },
+        ],
+      }],
+    });
+    expect(messages[0]?.content).toContain('timeline');
+    expect(messages[0]?.content).toContain('chronologischer Reihenfolge');
+  });
+});
+
+describe('buildMessages — Diagramm-/Datenanalyse', () => {
+  it('verlangt materialgebundene Datenbelege', () => {
+    const messages = buildMessages({
+      ...input({ fach: 'geographie' }),
+      bloecke: [{
+        typ: 'diagrammanalyse' as const,
+        punkte: 10,
+        diagrammtyp: 'balken', titel: 'Nutzung', anzahlDatenpunkte: 2, anzahlAuftraege: 1,
+        daten: [{ label: 'A', wert: '40' }, { label: 'B', wert: '60' }],
+        auftraege: [{ nr: 1, operator: 'auswerten', frage: 'Vergleiche.', zeilen: 4 }],
+      }],
+    });
+    expect(messages[0]?.content).toContain('diagrammanalyse');
+    expect(messages[0]?.content).toContain('konkreten Datenpunkt');
   });
 });
 
@@ -122,6 +236,26 @@ describe('buildMessages — NATASCHA-Fehlerschwerpunkte (fokusThemen)', () => {
     const messages = buildMessages(input());
     const user = messages.find((m) => m.role === 'user');
     expect(user!.content).not.toContain('Fehlerschwerpunkte der Klasse');
+  });
+});
+
+describe('buildMessages — echte Klassenfehler (bridgeFehler, L1)', () => {
+  it('User-Message enthaelt die Bridge-Fehler-Anweisung mit zitat/korrektur', () => {
+    const messages = buildMessages(input({
+      bridgeFehler: [{ typ: 'Z', zitat: 'Regale die sich', korrektur: 'Regale, die sich', clusterId: 'Z:relativsatz', regelMuster: 'Komma vor Relativsatz' }],
+    }));
+    const user = messages.find((m) => m.role === 'user');
+    expect(user!.content).toContain('BRIDGE-FEHLER (echte Klassenfehler)');
+    expect(user!.content).toContain('Regale, die sich');
+    // Struktur: die Fehler reisen strukturiert im meta-Objekt mit.
+    expect(user!.content).toContain('"bridgeFehler"');
+    expect(user!.content).toContain('Komma vor Relativsatz');
+  });
+
+  it('Ohne bridgeFehler erscheint keine Bridge-Fehler-Anweisung', () => {
+    const messages = buildMessages(input());
+    const user = messages.find((m) => m.role === 'user');
+    expect(user!.content).not.toContain('BRIDGE-FEHLER');
   });
 });
 
@@ -312,6 +446,22 @@ describe('buildRefinementMessages — Qualitätspass', () => {
     const english = buildRefinementMessages(refinementDoc({ typ: 'matura', stufe: 'oberstufe', fach: 'englisch' }));
     expect(english[0]!.content).not.toContain('ZUSAETZLICHER SRDP-MASSSTAB');
   });
+
+  it('entfernt lokale Schüler-IDs auch aus dem Qualitätspass-Prompt', () => {
+    const doc = refinementDoc({
+      niveaugruppe: {
+        id: 'vertiefung',
+        label: 'Vertiefung',
+        schwierigkeit: 'schwer',
+        schuelerIds: [741852],
+        notenbereich: { min: 1, max: 2 },
+      },
+    });
+    const user = buildRefinementMessages(doc as never).find((message) => message.role === 'user')!;
+    expect(user.content).toContain('"label": "Vertiefung"');
+    expect(user.content).not.toContain('schuelerIds');
+    expect(user.content).not.toContain('741852');
+  });
 });
 
 describe('buildMessages — Kompetenz-Modus', () => {
@@ -371,10 +521,10 @@ describe('buildMessages — Kompetenz-Modus', () => {
 });
 
 describe('buildMessages — Deutschland-Modus (meta.land)', () => {
-  it('haengt den DEUTSCHLAND-MODUS-Hinweis an, wenn land === DE (Text-Modus)', () => {
+  it('haengt den DEUTSCHES-SCHULSYSTEM-MODUS-Hinweis an, wenn land === DE (Text-Modus)', () => {
     const messages = buildMessages(input({ land: 'DE' }));
     const system = messages.find((m) => m.role === 'system')!;
-    expect(system.content).toContain('DEUTSCHLAND-MODUS');
+    expect(system.content).toContain('DEUTSCHES-SCHULSYSTEM-MODUS');
     expect(system.content).toContain('Abitur (nicht Matura)');
   });
 
@@ -386,7 +536,7 @@ describe('buildMessages — Deutschland-Modus (meta.land)', () => {
       stoffItems: [],
     });
     const system = messages.find((m) => m.role === 'system')!;
-    expect(system.content).toContain('DEUTSCHLAND-MODUS');
+    expect(system.content).toContain('DEUTSCHES-SCHULSYSTEM-MODUS');
   });
 
   it('Zielgruppe bei land=DE als "Klasse N" statt AHS-Zaehlung', () => {
@@ -400,7 +550,7 @@ describe('buildMessages — Deutschland-Modus (meta.land)', () => {
     const messages = buildMessages(input({ schulstufe: 7 }));
     const system = messages.find((m) => m.role === 'system')!;
     const user = messages.find((m) => m.role === 'user')!;
-    expect(system.content).not.toContain('DEUTSCHLAND-MODUS');
+    expect(system.content).not.toContain('DEUTSCHES-SCHULSYSTEM-MODUS');
     expect(system.content).toContain('OESTERREICHISCHES DEUTSCH');
     expect(user.content).toContain('3. Klasse AHS');
   });

@@ -36,6 +36,9 @@ pub struct AbgabeInfo {
     pub hat_lehrer_feedback: bool,
     pub note_final: Option<f64>,
     pub rohtext: Option<String>,
+    pub revision_id: Option<i64>,
+    pub provider: Option<String>,
+    pub model: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -91,9 +94,9 @@ pub async fn db_get_abgaben(state: tauri::State<'_, DbState>, klasse: String, au
     let conn = &*guard;
 
     let sql = if aufgabe.is_some() {
-        "SELECT a.id, a.schueler_id, a.unterrichtseinsatz_id, a.material_id, a.klasse, a.aufgabe, a.dateiname, a.datum, a.note, a.gesamtstufe, a.wortanzahl, a.fach, a.schulstufe, a.textsorte, s.vorname, s.nachname, CASE WHEN lf.id IS NOT NULL THEN 1 ELSE 0 END, lf.note_final FROM abgabe a LEFT JOIN schueler s ON a.schueler_id=s.id LEFT JOIN lehrer_feedback lf ON a.id=lf.abgabe_id WHERE a.klasse=?1 AND a.aufgabe=?2 ORDER BY s.nachname, s.vorname, a.dateiname"
+        "SELECT a.id, a.schueler_id, a.unterrichtseinsatz_id, a.material_id, a.klasse, a.aufgabe, a.dateiname, a.datum, a.note, a.gesamtstufe, a.wortanzahl, a.fach, a.schulstufe, a.textsorte, s.vorname, s.nachname, CASE WHEN lf.id IS NOT NULL THEN 1 ELSE 0 END, lf.note_final, r.id, r.provider, r.model FROM abgabe a LEFT JOIN schueler s ON a.schueler_id=s.id LEFT JOIN lehrer_feedback lf ON a.id=lf.abgabe_id LEFT JOIN korrektur_revision r ON r.abgabe_id=a.id AND r.is_active=1 WHERE a.klasse=?1 AND a.aufgabe=?2 ORDER BY s.nachname, s.vorname, a.dateiname"
     } else {
-        "SELECT a.id, a.schueler_id, a.unterrichtseinsatz_id, a.material_id, a.klasse, a.aufgabe, a.dateiname, a.datum, a.note, a.gesamtstufe, a.wortanzahl, a.fach, a.schulstufe, a.textsorte, s.vorname, s.nachname, CASE WHEN lf.id IS NOT NULL THEN 1 ELSE 0 END, lf.note_final FROM abgabe a LEFT JOIN schueler s ON a.schueler_id=s.id LEFT JOIN lehrer_feedback lf ON a.id=lf.abgabe_id WHERE a.klasse=?1 ORDER BY a.aufgabe, s.nachname, s.vorname, a.dateiname"
+        "SELECT a.id, a.schueler_id, a.unterrichtseinsatz_id, a.material_id, a.klasse, a.aufgabe, a.dateiname, a.datum, a.note, a.gesamtstufe, a.wortanzahl, a.fach, a.schulstufe, a.textsorte, s.vorname, s.nachname, CASE WHEN lf.id IS NOT NULL THEN 1 ELSE 0 END, lf.note_final, r.id, r.provider, r.model FROM abgabe a LEFT JOIN schueler s ON a.schueler_id=s.id LEFT JOIN lehrer_feedback lf ON a.id=lf.abgabe_id LEFT JOIN korrektur_revision r ON r.abgabe_id=a.id AND r.is_active=1 WHERE a.klasse=?1 ORDER BY a.aufgabe, s.nachname, s.vorname, a.dateiname"
     };
 
     let params: Vec<Box<dyn rusqlite::types::ToSql>> = if let Some(ref af) = aufgabe {
@@ -125,6 +128,9 @@ pub async fn db_get_abgaben(state: tauri::State<'_, DbState>, klasse: String, au
             hat_lehrer_feedback: row.get::<_, i64>(16)? != 0,
             note_final: row.get(17)?,
             rohtext: None,
+            revision_id: row.get(18)?,
+            provider: row.get(19)?,
+            model: row.get(20)?,
         })
     }).map_err(|e| format!("query: {}", e))?;
     Ok(rows.filter_map(|r| r.ok()).collect())
@@ -334,6 +340,8 @@ pub struct FehlerRow {
     pub korrektur: Option<String>,
     pub typ: String,
     pub erklaerung: Option<String>,
+    pub cluster_id: Option<String>,
+    pub regel_muster: Option<String>,
     pub vertrauensstufe: Option<String>,
     pub lehrkraft_aktion: Option<String>,
     pub lehrkraft_korrektur: Option<String>,
@@ -346,6 +354,29 @@ pub struct AbgabeDetail {
     pub kriterien: Vec<KriteriumRow>,
     pub fehler: Vec<FehlerRow>,
     pub lehrer_feedback: Option<LehrerFeedbackRow>,
+    pub revisions: Vec<KorrekturRevisionInfo>,
+    /// System-Qualitätswarnungen aus der Analyse-JSON (z. B. Fehlerliste vs.
+    /// Sprachrichtigkeits-Note). Advisory — ändern nie eine Note.
+    #[serde(default)]
+    pub qualitaetswarnungen: Vec<QualitaetsWarnung>,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct QualitaetsWarnung {
+    pub code: String,
+    pub message: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct KorrekturRevisionInfo {
+    pub id: i64,
+    pub revision_no: i64,
+    pub provider: String,
+    pub model: String,
+    pub status: String,
+    pub is_active: bool,
+    pub created_at: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -365,7 +396,7 @@ pub async fn db_get_abgabe_detail(state: tauri::State<'_, DbState>, abgabe_id: i
     let conn = &*guard;
 
     let abgabe = conn.query_row(
-        "SELECT a.id, a.schueler_id, a.unterrichtseinsatz_id, a.material_id, a.klasse, a.aufgabe, a.dateiname, a.datum, a.note, a.gesamtstufe, a.wortanzahl, a.fach, a.schulstufe, a.textsorte, s.vorname, s.nachname, CASE WHEN lf.id IS NOT NULL THEN 1 ELSE 0 END, lf.note_final, a.rohtext FROM abgabe a LEFT JOIN schueler s ON a.schueler_id=s.id LEFT JOIN lehrer_feedback lf ON a.id=lf.abgabe_id WHERE a.id=?1",
+        "SELECT a.id, a.schueler_id, a.unterrichtseinsatz_id, a.material_id, a.klasse, a.aufgabe, a.dateiname, a.datum, a.note, a.gesamtstufe, a.wortanzahl, a.fach, a.schulstufe, a.textsorte, s.vorname, s.nachname, CASE WHEN lf.id IS NOT NULL THEN 1 ELSE 0 END, lf.note_final, a.rohtext, r.id, r.provider, r.model, a.feedback_json_path FROM abgabe a LEFT JOIN schueler s ON a.schueler_id=s.id LEFT JOIN lehrer_feedback lf ON a.id=lf.abgabe_id LEFT JOIN korrektur_revision r ON r.abgabe_id=a.id AND r.is_active=1 WHERE a.id=?1",
         rusqlite::params![abgabe_id], |row| {
             Ok(AbgabeInfo {
                 id: row.get(0)?,
@@ -387,9 +418,41 @@ pub async fn db_get_abgabe_detail(state: tauri::State<'_, DbState>, abgabe_id: i
                 hat_lehrer_feedback: row.get::<_, i64>(16)? != 0,
                 note_final: row.get(17)?,
                 rohtext: row.get(18)?,
+                revision_id: row.get(19)?,
+                provider: row.get(20)?,
+                model: row.get(21)?,
             })
         }
     ).map_err(|e| format!("query abgabe: {}", e))?;
+    let feedback_json_path: Option<String> = conn
+        .query_row(
+            "SELECT feedback_json_path FROM abgabe WHERE id=?1",
+            rusqlite::params![abgabe_id],
+            |row| row.get(0),
+        )
+        .ok()
+        .flatten();
+
+    // Qualitätswarnungen aus der Analyse-JSON lesen (advisory, L2). Fehlende/
+    // unlesbare Datei ist kein Fehler — Warnungen sind optional.
+    let qualitaetswarnungen: Vec<QualitaetsWarnung> = feedback_json_path
+        .filter(|p| !p.trim().is_empty())
+        .and_then(|p| std::fs::read_to_string(p).ok())
+        .and_then(|raw| {
+            let value: serde_json::Value = serde_json::from_str(&raw).ok()?;
+            let list = value.get("qualitaetswarnungen")?.as_array()?.clone();
+            Some(
+                list.iter()
+                    .filter_map(|w| {
+                        Some(QualitaetsWarnung {
+                            code: w.get("code")?.as_str()?.to_string(),
+                            message: w.get("message")?.as_str()?.to_string(),
+                        })
+                    })
+                    .collect(),
+            )
+        })
+        .unwrap_or_default();
 
     let kriterien: Vec<KriteriumRow> = {
         let mut stmt = conn.prepare("SELECT id, abgabe_id, kriterium_name, stufe, gewichtung, datum FROM kriterium_historie WHERE abgabe_id=?1 ORDER BY kriterium_name")
@@ -405,11 +468,11 @@ pub async fn db_get_abgabe_detail(state: tauri::State<'_, DbState>, abgabe_id: i
     };
 
     let fehler: Vec<FehlerRow> = {
-        let mut stmt = conn.prepare("SELECT id, abgabe_id, zitat, korrektur, typ, erklaerung, vertrauensstufe, lehrkraft_aktion, lehrkraft_korrektur FROM fehler_historie WHERE abgabe_id=?1 ORDER BY typ, id")
+        let mut stmt = conn.prepare("SELECT id, abgabe_id, zitat, korrektur, typ, erklaerung, cluster_id, regel_muster, vertrauensstufe, lehrkraft_aktion, lehrkraft_korrektur FROM fehler_historie WHERE abgabe_id=?1 ORDER BY typ, id")
             .map_err(|e| format!("prepare fehler: {}", e))?;
         let mut result = Vec::new();
         let rows = stmt.query_map(rusqlite::params![abgabe_id], |row| {
-            Ok(FehlerRow { id: row.get(0)?, abgabe_id: row.get(1)?, zitat: row.get(2)?, korrektur: row.get(3)?, typ: row.get(4)?, erklaerung: row.get(5)?, vertrauensstufe: row.get(6)?, lehrkraft_aktion: row.get(7)?, lehrkraft_korrektur: row.get(8)? })
+            Ok(FehlerRow { id: row.get(0)?, abgabe_id: row.get(1)?, zitat: row.get(2)?, korrektur: row.get(3)?, typ: row.get(4)?, erklaerung: row.get(5)?, cluster_id: row.get(6)?, regel_muster: row.get(7)?, vertrauensstufe: row.get(8)?, lehrkraft_aktion: row.get(9)?, lehrkraft_korrektur: row.get(10)? })
         }).map_err(|e| format!("query fehler: {}", e))?;
         for row in rows {
             if let Ok(f) = row { result.push(f); }
@@ -432,7 +495,190 @@ pub async fn db_get_abgabe_detail(state: tauri::State<'_, DbState>, abgabe_id: i
         }
     ).ok();
 
-    Ok(AbgabeDetail { abgabe, kriterien, fehler, lehrer_feedback })
+    let revisions = {
+        let mut stmt = conn.prepare(
+            "SELECT id, revision_no, provider, model, status, is_active, created_at FROM korrektur_revision WHERE abgabe_id=?1 ORDER BY revision_no DESC",
+        ).map_err(|e| format!("prepare korrektur-revisionen: {e}"))?;
+        let rows = stmt.query_map([abgabe_id], |row| Ok(KorrekturRevisionInfo {
+            id: row.get(0)?, revision_no: row.get(1)?, provider: row.get(2)?,
+            model: row.get(3)?, status: row.get(4)?, is_active: row.get::<_, i64>(5)? != 0,
+            created_at: row.get(6)?,
+        })).map_err(|e| format!("query korrektur-revisionen: {e}"))?;
+        rows.collect::<Result<Vec<_>, _>>().map_err(|e| format!("Korrektur-revisionen lesen: {e}"))?
+    };
+
+    Ok(AbgabeDetail { abgabe, kriterien, fehler, lehrer_feedback, revisions, qualitaetswarnungen })
+}
+
+fn snapshot_active_revision(conn: &rusqlite::Connection, abgabe_id: i64) -> Result<(), String> {
+    let revision_id = conn.query_row(
+        "SELECT id FROM korrektur_revision WHERE abgabe_id=?1 AND is_active=1",
+        [abgabe_id], |row| row.get::<_, i64>(0),
+    ).optional().map_err(|e| format!("Aktive Revision lesen: {e}"))?;
+    let Some(revision_id) = revision_id else { return Ok(()); };
+
+    let kriterien = {
+        let mut stmt = conn.prepare("SELECT kriterium_name, stufe, gewichtung FROM kriterium_historie WHERE abgabe_id=?1 ORDER BY id")
+            .map_err(|e| format!("Kriterien sichern: {e}"))?;
+        let rows = stmt.query_map([abgabe_id], |row| Ok(serde_json::json!({
+            "kriterium_name": row.get::<_, String>(0)?,
+            "stufe": row.get::<_, Option<f64>>(1)?,
+            "gewichtung": row.get::<_, Option<f64>>(2)?,
+        }))).map_err(|e| format!("Kriterien lesen: {e}"))?
+            .collect::<Result<Vec<_>, _>>().map_err(|e| format!("Kriterien sichern: {e}"))?;
+        rows
+    };
+    let fehler = {
+        let mut stmt = conn.prepare("SELECT zitat, korrektur, typ, erklaerung, vertrauensstufe, lehrkraft_aktion, lehrkraft_korrektur FROM fehler_historie WHERE abgabe_id=?1 ORDER BY id")
+            .map_err(|e| format!("Fehler sichern: {e}"))?;
+        let rows = stmt.query_map([abgabe_id], |row| Ok(serde_json::json!({
+            "zitat": row.get::<_, Option<String>>(0)?,
+            "korrektur": row.get::<_, Option<String>>(1)?,
+            "typ": row.get::<_, String>(2)?,
+            "erklaerung": row.get::<_, Option<String>>(3)?,
+            "vertrauensstufe": row.get::<_, Option<String>>(4)?,
+            "lehrkraft_aktion": row.get::<_, Option<String>>(5)?,
+            "lehrkraft_korrektur": row.get::<_, Option<String>>(6)?,
+        }))).map_err(|e| format!("Fehler lesen: {e}"))?
+            .collect::<Result<Vec<_>, _>>().map_err(|e| format!("Fehler sichern: {e}"))?;
+        rows
+    };
+    let feedback = conn.query_row(
+        "SELECT note_final, note_app_snapshot, lehrer_kommentar, erstellt_am, geaendert_am FROM lehrer_feedback WHERE abgabe_id=?1",
+        [abgabe_id], |row| Ok((
+            row.get::<_, Option<f64>>(0)?, row.get::<_, Option<f64>>(1)?,
+            row.get::<_, Option<String>>(2)?, row.get::<_, Option<String>>(3)?,
+            row.get::<_, Option<String>>(4)?,
+        )),
+    ).optional().map_err(|e| format!("Lehrkraft-Feedback sichern: {e}"))?
+        .unwrap_or((None, None, None, None, None));
+    conn.execute(
+        "UPDATE korrektur_revision SET kriterien_json=?1, fehler_json=?2, lehrer_note_final=?3, \
+         lehrer_note_app_snapshot=?4, lehrer_kommentar=?5, lehrer_feedback_erstellt_am=?6, \
+         lehrer_feedback_geaendert_am=?7 WHERE id=?8",
+        rusqlite::params![
+            serde_json::to_string(&kriterien).map_err(|e| e.to_string())?,
+            serde_json::to_string(&fehler).map_err(|e| e.to_string())?,
+            feedback.0, feedback.1, feedback.2, feedback.3, feedback.4, revision_id,
+        ],
+    ).map_err(|e| format!("Revision sichern: {e}"))?;
+    Ok(())
+}
+
+fn activate_korrektur_revision_impl(
+    conn: &rusqlite::Connection,
+    abgabe_id: i64,
+    revision_id: i64,
+) -> Result<(), String> {
+    let target = conn.query_row(
+        "SELECT note, gesamtstufe, kriterien_json, fehler_json, lehrer_note_final, \
+         lehrer_note_app_snapshot, lehrer_kommentar, lehrer_feedback_erstellt_am, \
+         lehrer_feedback_geaendert_am FROM korrektur_revision WHERE id=?1 AND abgabe_id=?2",
+        rusqlite::params![revision_id, abgabe_id], |row| Ok((
+            row.get::<_, Option<f64>>(0)?, row.get::<_, Option<f64>>(1)?,
+            row.get::<_, String>(2)?, row.get::<_, String>(3)?,
+            row.get::<_, Option<f64>>(4)?, row.get::<_, Option<f64>>(5)?,
+            row.get::<_, Option<String>>(6)?, row.get::<_, Option<String>>(7)?,
+            row.get::<_, Option<String>>(8)?,
+        )),
+    ).optional().map_err(|e| format!("Revision laden: {e}"))?
+        .ok_or_else(|| "Korrekturversion nicht gefunden.".to_string())?;
+
+    snapshot_active_revision(conn, abgabe_id)?;
+    conn.execute("UPDATE korrektur_revision SET is_active=0 WHERE abgabe_id=?1", [abgabe_id])
+        .map_err(|e| format!("Aktive Version lösen: {e}"))?;
+    conn.execute("DELETE FROM kriterium_historie WHERE abgabe_id=?1", [abgabe_id])
+        .map_err(|e| format!("Alte Kriterien ersetzen: {e}"))?;
+    conn.execute("DELETE FROM fehler_historie WHERE abgabe_id=?1", [abgabe_id])
+        .map_err(|e| format!("Alte Fehler ersetzen: {e}"))?;
+    conn.execute("DELETE FROM lehrer_feedback WHERE abgabe_id=?1", [abgabe_id])
+        .map_err(|e| format!("Altes Feedback ersetzen: {e}"))?;
+
+    let kriterien: Vec<serde_json::Value> = serde_json::from_str(&target.2)
+        .map_err(|_| "Gespeicherte Kriterien dieser Version sind beschädigt.".to_string())?;
+    for item in kriterien {
+        conn.execute(
+            "INSERT INTO kriterium_historie (abgabe_id, kriterium_name, stufe, gewichtung) VALUES (?1, ?2, ?3, ?4)",
+            rusqlite::params![abgabe_id, item["kriterium_name"].as_str().unwrap_or(""), item["stufe"].as_f64(), item["gewichtung"].as_f64()],
+        ).map_err(|e| format!("Kriterien aktivieren: {e}"))?;
+    }
+    let fehler: Vec<serde_json::Value> = serde_json::from_str(&target.3)
+        .map_err(|_| "Gespeicherte Fehler dieser Version sind beschädigt.".to_string())?;
+    for item in fehler {
+        conn.execute(
+            "INSERT INTO fehler_historie (abgabe_id, zitat, korrektur, typ, erklaerung, vertrauensstufe, lehrkraft_aktion, lehrkraft_korrektur) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+            rusqlite::params![
+                abgabe_id, item["zitat"].as_str(), item["korrektur"].as_str(),
+                item["typ"].as_str().unwrap_or(""), item["erklaerung"].as_str(),
+                item["vertrauensstufe"].as_str(), item["lehrkraft_aktion"].as_str(),
+                item["lehrkraft_korrektur"].as_str(),
+            ],
+        ).map_err(|e| format!("Fehler aktivieren: {e}"))?;
+    }
+    if target.4.is_some() || target.5.is_some() || target.6.is_some() {
+        let (schueler_id, klasse, aufgabe) = conn.query_row(
+            "SELECT schueler_id, klasse, aufgabe FROM abgabe WHERE id=?1", [abgabe_id],
+            |row| Ok((row.get::<_, Option<i64>>(0)?, row.get::<_, String>(1)?, row.get::<_, String>(2)?)),
+        ).map_err(|e| format!("Abgabe für Feedback laden: {e}"))?;
+        conn.execute(
+            "INSERT INTO lehrer_feedback (abgabe_id, schueler_id, klasse, aufgabe, note_final, note_app_snapshot, lehrer_kommentar, erstellt_am, geaendert_am) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, COALESCE(?8, CURRENT_TIMESTAMP), COALESCE(?9, CURRENT_TIMESTAMP))",
+            rusqlite::params![abgabe_id, schueler_id, klasse, aufgabe, target.4, target.5, target.6, target.7, target.8],
+        ).map_err(|e| format!("Lehrkraft-Feedback aktivieren: {e}"))?;
+    }
+    conn.execute("UPDATE korrektur_revision SET is_active=1 WHERE id=?1", [revision_id])
+        .map_err(|e| format!("Version aktivieren: {e}"))?;
+    conn.execute("UPDATE abgabe SET note=?1, gesamtstufe=?2 WHERE id=?3", rusqlite::params![target.0, target.1, abgabe_id])
+        .map_err(|e| format!("Notenprojektion aktualisieren: {e}"))?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn db_activate_korrektur_revision(
+    state: tauri::State<'_, DbState>, abgabe_id: i64, revision_id: i64,
+) -> Result<(), String> {
+    let mut guard = state.conn()?;
+    let tx = guard.transaction().map_err(|e| format!("Revisionstransaktion starten: {e}"))?;
+    activate_korrektur_revision_impl(&tx, abgabe_id, revision_id)?;
+    tx.commit().map_err(|e| format!("Version speichern: {e}"))
+}
+
+#[tauri::command]
+pub async fn db_delete_korrektur_revision(
+    state: tauri::State<'_, DbState>, abgabe_id: i64, revision_id: i64,
+) -> Result<bool, String> {
+    let mut guard = state.conn()?;
+    let tx = guard.transaction().map_err(|e| format!("Revisionstransaktion starten: {e}"))?;
+    let removed_abgabe = delete_korrektur_revision_impl(&tx, abgabe_id, revision_id)?;
+    tx.commit().map_err(|e| format!("Löschung speichern: {e}"))?;
+    Ok(removed_abgabe)
+}
+
+fn delete_korrektur_revision_impl(
+    conn: &rusqlite::Connection,
+    abgabe_id: i64,
+    revision_id: i64,
+) -> Result<bool, String> {
+    let active = conn.query_row(
+        "SELECT is_active FROM korrektur_revision WHERE id=?1 AND abgabe_id=?2",
+        rusqlite::params![revision_id, abgabe_id], |row| row.get::<_, i64>(0),
+    ).optional().map_err(|e| format!("Version prüfen: {e}"))?
+        .ok_or_else(|| "Korrekturversion nicht gefunden.".to_string())? != 0;
+    if active { snapshot_active_revision(conn, abgabe_id)?; }
+    conn.execute("DELETE FROM korrektur_revision WHERE id=?1 AND abgabe_id=?2", rusqlite::params![revision_id, abgabe_id])
+        .map_err(|e| format!("Korrekturversion löschen: {e}"))?;
+    let fallback = conn.query_row(
+        "SELECT id FROM korrektur_revision WHERE abgabe_id=?1 ORDER BY revision_no DESC LIMIT 1",
+        [abgabe_id], |row| row.get::<_, i64>(0),
+    ).optional().map_err(|e| format!("Verbleibende Version suchen: {e}"))?;
+    let removed_abgabe = if let Some(fallback_id) = fallback {
+        activate_korrektur_revision_impl(conn, abgabe_id, fallback_id)?;
+        false
+    } else {
+        conn.execute("DELETE FROM abgabe WHERE id=?1", [abgabe_id])
+            .map_err(|e| format!("Abgabe ohne Korrekturversion entfernen: {e}"))?;
+        true
+    };
+    Ok(removed_abgabe)
 }
 
 #[derive(Serialize)]
@@ -586,6 +832,9 @@ pub struct LaengsschnittEintrag {
     pub datum: Option<String>,
     pub note_app: Option<f64>,
     pub note_lehrer: Option<f64>,
+    pub fach: Option<String>,
+    pub schulstufe: Option<String>,
+    pub textsorte: Option<String>,
     pub kriterien: std::collections::HashMap<String, Option<f64>>,
     pub k1: Option<f64>,
     pub k3: Option<f64>,
@@ -605,6 +854,8 @@ pub struct Fehlerschwerpunkt {
     pub typ: String,
     pub label: String,
     pub anzahl: i64,
+    pub cluster_id: Option<String>,
+    pub regel_muster: Option<String>,
     pub beispiele: Vec<FehlerBeispiel>,
 }
 
@@ -706,7 +957,7 @@ pub async fn db_get_schueler_laengsschnitt(state: tauri::State<'_, DbState>, sch
         "SELECT a.id, a.schueler_id, a.klasse, a.aufgabe, a.dateiname, a.datum, a.note, a.gesamtstufe, a.wortanzahl, a.fach, a.schulstufe, a.textsorte, a.korrekturauftrag_id, COALESCE(k.ausgangstext, '') FROM abgabe a LEFT JOIN korrekturauftrag k ON k.id=a.korrekturauftrag_id WHERE a.schueler_id=?1 ORDER BY a.datum, a.id"
     ).map_err(|e| format!("prepare abgaben: {}", e))?;
     let abgabe_rows = abgabe_stmt.query_map(rusqlite::params![schueler_id], |row| {
-        Ok((row.get::<_, i64>(0)?, row.get::<_, String>(3)?, row.get::<_, Option<String>>(5)?, row.get::<_, Option<f64>>(6)?, row.get::<_, Option<String>>(12)?, row.get::<_, String>(13)?))
+        Ok((row.get::<_, i64>(0)?, row.get::<_, String>(3)?, row.get::<_, Option<String>>(5)?, row.get::<_, Option<f64>>(6)?, row.get::<_, Option<String>>(9)?, row.get::<_, Option<String>>(10)?, row.get::<_, Option<String>>(11)?, row.get::<_, Option<String>>(12)?, row.get::<_, String>(13)?))
     }).map_err(|e| format!("query abgaben: {}", e))?;
 
     let mut verlauf = Vec::new();
@@ -716,11 +967,11 @@ pub async fn db_get_schueler_laengsschnitt(state: tauri::State<'_, DbState>, sch
     let mut all_k3: Vec<Option<f64>> = Vec::new();
     let mut all_kriterien: std::collections::HashMap<String, Vec<Option<f64>>> = std::collections::HashMap::new();
     let mut abgabe_ids: Vec<i64> = Vec::new();
-    let mut fehler_by_typ: std::collections::HashMap<String, Vec<(Option<String>, Option<String>)>> = std::collections::HashMap::new();
+    let mut fehler_by_cluster: std::collections::HashMap<String, (String, Option<String>, Vec<(Option<String>, Option<String>)>)> = std::collections::HashMap::new();
     let mut kalib_paare: Vec<(f64, f64)> = Vec::new();
 
     for row in abgabe_rows {
-        if let Ok((aid, aufgabe, datum, note_app, korrekturauftrag_id, ausgangstext)) = row {
+        if let Ok((aid, aufgabe, datum, note_app, fach, schulstufe, textsorte, korrekturauftrag_id, ausgangstext)) = row {
             abgabe_ids.push(aid);
             let note_lehrer: Option<f64> = conn.query_row(
                 "SELECT note_final FROM lehrer_feedback WHERE abgabe_id=?1",
@@ -742,15 +993,18 @@ pub async fn db_get_schueler_laengsschnitt(state: tauri::State<'_, DbState>, sch
                 all_kriterien.entry(key.to_string()).or_default().push(*val);
             }
 
-            let fehler_rows: Vec<(String, Option<String>, Option<String>)> = {
-                let mut s = conn.prepare("SELECT typ, zitat, korrektur FROM fehler_historie WHERE abgabe_id=?1")
+            let fehler_rows: Vec<(String, Option<String>, Option<String>, Option<String>, Option<String>)> = {
+                let mut s = conn.prepare("SELECT typ, zitat, korrektur, cluster_id, regel_muster FROM fehler_historie WHERE abgabe_id=?1")
                     .map_err(|e| format!("prepare fehler: {}", e))?;
-                let r = s.query_map(rusqlite::params![aid], |row| Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?, row.get::<_, Option<String>>(2)?)))
+                let r = s.query_map(rusqlite::params![aid], |row| Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?, row.get::<_, Option<String>>(2)?, row.get::<_, Option<String>>(3)?, row.get::<_, Option<String>>(4)?)))
                     .map_err(|e| format!("query fehler: {}", e))?;
                 r.filter_map(|x| x.ok()).collect()
             };
-            for (typ, zitat, korrektur) in &fehler_rows {
-                fehler_by_typ.entry(typ.to_string()).or_default().push((zitat.clone(), korrektur.clone()));
+            for (typ, zitat, korrektur, cluster_id, regel_muster) in &fehler_rows {
+                let key = cluster_id.clone().unwrap_or_else(|| typ.to_string());
+                let entry = fehler_by_cluster.entry(key).or_insert_with(|| (typ.to_string(), regel_muster.clone(), Vec::new()));
+                if entry.1.is_none() { entry.1 = regel_muster.clone(); }
+                entry.2.push((zitat.clone(), korrektur.clone()));
             }
 
             if let (Some(app), Some(lehrer)) = (note_app, note_lehrer) {
@@ -763,7 +1017,7 @@ pub async fn db_get_schueler_laengsschnitt(state: tauri::State<'_, DbState>, sch
             all_k3.push(k3);
 
             let krit_map: std::collections::HashMap<String, Option<f64>> = norm.into_iter().map(|(k, v)| (k, v)).collect();
-            verlauf.push(LaengsschnittEintrag { abgabe_id: aid, aufgabe, korrekturauftrag_id, ausgangstext, datum, note_app, note_lehrer, kriterien: krit_map, k1, k3 });
+            verlauf.push(LaengsschnittEintrag { abgabe_id: aid, aufgabe, korrekturauftrag_id, ausgangstext, datum, note_app, note_lehrer, fach, schulstufe, textsorte, kriterien: krit_map, k1, k3 });
         }
     }
 
@@ -778,11 +1032,11 @@ pub async fn db_get_schueler_laengsschnitt(state: tauri::State<'_, DbState>, sch
         }
     }
 
-    let mut fehlerschwerpunkte: Vec<Fehlerschwerpunkt> = fehler_by_typ.iter().map(|(typ, beispiele)| {
+    let mut fehlerschwerpunkte: Vec<Fehlerschwerpunkt> = fehler_by_cluster.iter().map(|(cluster_id, (typ, regel_muster, beispiele))| {
         let mut unique: Vec<(Option<String>, Option<String>)> = beispiele.clone();
         unique.dedup();
         let top3: Vec<FehlerBeispiel> = unique.iter().take(3).map(|(zitat, korrektur)| FehlerBeispiel { zitat: zitat.clone(), korrektur: korrektur.clone() }).collect();
-        Fehlerschwerpunkt { typ: typ.clone(), label: fehler_label(typ), anzahl: beispiele.len() as i64, beispiele: top3 }
+        Fehlerschwerpunkt { typ: typ.clone(), label: regel_muster.clone().unwrap_or_else(|| fehler_label(typ)), anzahl: beispiele.len() as i64, cluster_id: if cluster_id == typ { None } else { Some(cluster_id.clone()) }, regel_muster: regel_muster.clone(), beispiele: top3 }
     }).collect();
     fehlerschwerpunkte.sort_by(|a, b| b.anzahl.cmp(&a.anzahl));
 
@@ -873,6 +1127,12 @@ pub struct FehlerTrendPunkt {
     /// typ → Fehler pro Abgabe (2 Dezimalen) — normalisiert, weil die
     /// Abgabenzahl je Schularbeit schwankt und Rohzahlen sonst täuschen
     pub fehler_pro_abgabe: std::collections::BTreeMap<String, f64>,
+    /// cluster_id → Gesamtanzahl strukturierter Fehler dieses Regelmusters.
+    pub cluster_fehler: std::collections::BTreeMap<String, i64>,
+    /// cluster_id → strukturierte Fehler pro Abgabe.
+    pub cluster_fehler_pro_abgabe: std::collections::BTreeMap<String, f64>,
+    /// cluster_id → lesbares Regelmuster für die Anzeige.
+    pub cluster_labels: std::collections::BTreeMap<String, String>,
 }
 
 #[tauri::command]
@@ -901,6 +1161,9 @@ pub(crate) fn fehler_trend_impl(conn: &rusqlite::Connection, klasse: &str) -> Re
             n_abgaben,
             fehler: std::collections::BTreeMap::new(),
             fehler_pro_abgabe: std::collections::BTreeMap::new(),
+            cluster_fehler: std::collections::BTreeMap::new(),
+            cluster_fehler_pro_abgabe: std::collections::BTreeMap::new(),
+            cluster_labels: std::collections::BTreeMap::new(),
         });
     }
 
@@ -922,9 +1185,50 @@ pub(crate) fn fehler_trend_impl(conn: &rusqlite::Connection, klasse: &str) -> Re
         }
     }
 
+    let mut cluster_stmt = conn.prepare(
+        "SELECT a.aufgabe, fh.cluster_id, \
+                MIN(NULLIF(TRIM(fh.regel_muster), '')), COUNT(*) \
+         FROM fehler_historie fh \
+         JOIN abgabe a ON a.id=fh.abgabe_id \
+         WHERE a.klasse=?1 AND fh.cluster_id IS NOT NULL AND TRIM(fh.cluster_id) <> '' \
+         GROUP BY a.aufgabe, fh.cluster_id",
+    ).map_err(|e| format!("prepare fehlertrend cluster: {}", e))?;
+    let cluster_rows = cluster_stmt.query_map(rusqlite::params![klasse], |row| {
+        Ok((
+            row.get::<_, String>(0)?,
+            row.get::<_, String>(1)?,
+            row.get::<_, Option<String>>(2)?,
+            row.get::<_, i64>(3)?,
+        ))
+    }).map_err(|e| format!("query fehlertrend cluster: {}", e))?;
+
+    for row in cluster_rows.filter_map(|r| r.ok()) {
+        let (aufgabe, cluster_id, regel_muster, anzahl) = row;
+        if let Some(punkt) = punkte.get_mut(&aufgabe) {
+            punkt.cluster_fehler.insert(cluster_id.clone(), anzahl);
+            if punkt.n_abgaben > 0 {
+                let pro_abgabe = (anzahl as f64 / punkt.n_abgaben as f64 * 100.0).round() / 100.0;
+                punkt.cluster_fehler_pro_abgabe.insert(cluster_id.clone(), pro_abgabe);
+            }
+            punkt.cluster_labels.insert(
+                cluster_id.clone(),
+                regel_muster.unwrap_or(cluster_id),
+            );
+        }
+    }
+
     let mut result: Vec<FehlerTrendPunkt> = punkte.into_values().collect();
     result.sort_by(|a, b| a.datum.cmp(&b.datum).then(a.aufgabe.cmp(&b.aufgabe)));
     Ok(result)
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct KalibrierungTextsorte {
+    pub textsorte: String,
+    pub paare: i64,
+    pub mittlere_abweichung: Option<f64>,
+    pub tendenz: String,
 }
 
 #[derive(Serialize)]
@@ -936,19 +1240,24 @@ pub struct KalibrierungResult {
     pub n_mit_feedback: i64,
     pub n_gesamt: i64,
     pub tendenz: String,
+    /// KI-Note vs. Lehrernote je Textsorte (L2) — nur Textsorten mit ≥ 2 Paaren.
+    #[serde(default)]
+    pub nach_textsorte: Vec<KalibrierungTextsorte>,
 }
 
 #[tauri::command]
 pub async fn db_get_klassen_kalibrierung(state: tauri::State<'_, DbState>, klasse: String, aufgabe: Option<String>) -> Result<KalibrierungResult, String> {
     let guard = state.conn()?;
-    let conn = &*guard;
+    kalibrierung_impl(&guard, &klasse, aufgabe.as_deref())
+}
 
+pub(crate) fn kalibrierung_impl(conn: &rusqlite::Connection, klasse: &str, aufgabe: Option<&str>) -> Result<KalibrierungResult, String> {
     let where_clause = if aufgabe.is_some() { "a.klasse=?1 AND a.aufgabe=?2 AND lf.note_final IS NOT NULL" } else { "a.klasse=?1 AND lf.note_final IS NOT NULL" };
     let sql = format!("SELECT COUNT(*) as n_fb, AVG(lf.note_app_snapshot) as app_avg, AVG(lf.note_final) as lehrer_avg FROM lehrer_feedback lf JOIN abgabe a ON a.id=lf.abgabe_id WHERE {}", where_clause);
-    let params: Vec<Box<dyn rusqlite::types::ToSql>> = if let Some(ref af) = aufgabe {
-        vec![Box::new(klasse.clone()), Box::new(af.clone())]
+    let params: Vec<Box<dyn rusqlite::types::ToSql>> = if let Some(af) = aufgabe {
+        vec![Box::new(klasse.to_string()), Box::new(af.to_string())]
     } else {
-        vec![Box::new(klasse.clone())]
+        vec![Box::new(klasse.to_string())]
     };
     let param_refs: Vec<&dyn rusqlite::types::ToSql> = params.iter().map(|p| p.as_ref()).collect();
 
@@ -971,6 +1280,42 @@ pub async fn db_get_klassen_kalibrierung(state: tauri::State<'_, DbState>, klass
         None => "n/a".to_string(),
     };
 
+    // L2: Kalibrierung je Textsorte (nur mit ≥ 2 Paaren — darunter ist der
+    // Durchschnitt mehr Anekdote als Signal). Gleiche Paar-Definition wie oben.
+    let ts_sql = format!(
+        "SELECT COALESCE(NULLIF(TRIM(a.textsorte), ''), 'Ohne Textsorte') AS ts, COUNT(*) AS paare, \
+         AVG(ABS(lf.note_final - lf.note_app_snapshot)) AS mittl_abw, \
+         AVG(lf.note_final - lf.note_app_snapshot) AS gerichtet \
+         FROM lehrer_feedback lf JOIN abgabe a ON a.id=lf.abgabe_id WHERE {} GROUP BY ts HAVING paare >= 2 ORDER BY paare DESC",
+        where_clause
+    );
+    let mut nach_textsorte: Vec<KalibrierungTextsorte> = Vec::new();
+    let ts_stmt = conn.prepare(&ts_sql);
+    if let Ok(mut stmt) = ts_stmt {
+        if let Ok(rows) = stmt.query_map(param_refs.as_slice(), |row| {
+            let paare: i64 = row.get(1)?;
+            let mittl: Option<f64> = row.get(2)?;
+            let gerichtet: Option<f64> = row.get(3)?;
+            Ok((row.get::<_, String>(0)?, paare, mittl, gerichtet))
+        }) {
+            for row in rows.filter_map(|r| r.ok()) {
+                let (ts, paare, mittl, gerichtet) = row;
+                let ts_tendenz = match gerichtet {
+                    Some(d) if d < -0.3 => "app milder".to_string(),
+                    Some(d) if d > 0.3 => "app strenger".to_string(),
+                    Some(_) => "deckungsgleich".to_string(),
+                    None => "n/a".to_string(),
+                };
+                nach_textsorte.push(KalibrierungTextsorte {
+                    textsorte: ts,
+                    paare,
+                    mittlere_abweichung: mittl.map(|v| (v * 100.0).round() / 100.0),
+                    tendenz: ts_tendenz,
+                });
+            }
+        }
+    }
+
     Ok(KalibrierungResult {
         app_avg: app_avg.map(|v| (v * 100.0).round() / 100.0),
         lehrer_avg: lehrer_avg.map(|v| (v * 100.0).round() / 100.0),
@@ -978,6 +1323,7 @@ pub async fn db_get_klassen_kalibrierung(state: tauri::State<'_, DbState>, klass
         n_mit_feedback: n_fb,
         n_gesamt,
         tendenz,
+        nach_textsorte,
     })
 }
 
@@ -987,34 +1333,63 @@ pub struct FehlerDetailRow {
     pub zitat: Option<String>,
     pub korrektur: Option<String>,
     pub erklaerung: Option<String>,
+    pub cluster_id: Option<String>,
+    pub regel_muster: Option<String>,
     pub vorname: Option<String>,
     pub dateiname: String,
+    pub haeufigkeit: i64,
+}
+
+fn fehler_detail_aus_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<FehlerDetailRow> {
+    Ok(FehlerDetailRow {
+        zitat: row.get(0)?,
+        korrektur: row.get(1)?,
+        erklaerung: row.get(2)?,
+        cluster_id: row.get(3)?,
+        regel_muster: row.get(4)?,
+        vorname: row.get(5)?,
+        dateiname: row.get(6)?,
+        haeufigkeit: row.get(7)?,
+    })
+}
+
+fn query_fehler_detail(
+    conn: &rusqlite::Connection,
+    klasse: &str,
+    typ: &str,
+    aufgabe: Option<&str>,
+    limit: i64,
+) -> Result<Vec<FehlerDetailRow>, String> {
+    let sql = if aufgabe.is_some() {
+        "SELECT fh.zitat, fh.korrektur, fh.erklaerung, fh.cluster_id, fh.regel_muster, s.vorname, a.dateiname, \
+         COUNT(*) OVER (PARTITION BY fh.zitat, fh.korrektur, fh.cluster_id, fh.regel_muster) \
+         FROM fehler_historie fh JOIN abgabe a ON fh.abgabe_id=a.id \
+         LEFT JOIN schueler s ON a.schueler_id=s.id \
+         WHERE a.klasse=?1 AND fh.typ=?2 AND a.aufgabe=?3 ORDER BY fh.zitat LIMIT ?4"
+    } else {
+        "SELECT fh.zitat, fh.korrektur, fh.erklaerung, fh.cluster_id, fh.regel_muster, s.vorname, a.dateiname, \
+         COUNT(*) OVER (PARTITION BY fh.zitat, fh.korrektur, fh.cluster_id, fh.regel_muster) \
+         FROM fehler_historie fh JOIN abgabe a ON fh.abgabe_id=a.id \
+         LEFT JOIN schueler s ON a.schueler_id=s.id \
+         WHERE a.klasse=?1 AND fh.typ=?2 ORDER BY fh.zitat LIMIT ?3"
+    };
+    let mut stmt = conn.prepare(sql).map_err(|e| format!("prepare fehler_detail: {e}"))?;
+    let rows = if let Some(aufgabe) = aufgabe {
+        stmt.query_map(rusqlite::params![klasse, typ, aufgabe, limit], fehler_detail_aus_row)
+            .map_err(|e| format!("query fehler_detail: {e}"))?
+            .collect::<rusqlite::Result<Vec<_>>>()
+    } else {
+        stmt.query_map(rusqlite::params![klasse, typ, limit], fehler_detail_aus_row)
+            .map_err(|e| format!("query fehler_detail: {e}"))?
+            .collect::<rusqlite::Result<Vec<_>>>()
+    };
+    rows.map_err(|e| format!("read fehler_detail: {e}"))
 }
 
 #[tauri::command]
 pub async fn db_get_fehler_detail(state: tauri::State<'_, DbState>, klasse: String, typ: String, aufgabe: Option<String>, limit: Option<i64>) -> Result<Vec<FehlerDetailRow>, String> {
     let guard = state.conn()?;
-    let conn = &*guard;
-    let limit = limit.unwrap_or(50);
-
-    let sql = if aufgabe.is_some() {
-        "SELECT fh.zitat, fh.korrektur, fh.erklaerung, s.vorname, a.dateiname FROM fehler_historie fh JOIN abgabe a ON fh.abgabe_id=a.id LEFT JOIN schueler s ON a.schueler_id=s.id WHERE a.klasse=?1 AND fh.typ=?2 AND a.aufgabe=?3 ORDER BY fh.zitat LIMIT ?4"
-    } else {
-        "SELECT fh.zitat, fh.korrektur, fh.erklaerung, s.vorname, a.dateiname FROM fehler_historie fh JOIN abgabe a ON fh.abgabe_id=a.id LEFT JOIN schueler s ON a.schueler_id=s.id WHERE a.klasse=?1 AND fh.typ=?2 ORDER BY fh.zitat LIMIT ?3"
-    };
-
-    let params: Vec<Box<dyn rusqlite::types::ToSql>> = if let Some(ref af) = aufgabe {
-        vec![Box::new(klasse), Box::new(typ), Box::new(af.clone()), Box::new(limit)]
-    } else {
-        vec![Box::new(klasse), Box::new(typ), Box::new(limit)]
-    };
-    let param_refs: Vec<&dyn rusqlite::types::ToSql> = params.iter().map(|p| p.as_ref()).collect();
-
-    let mut stmt = conn.prepare(sql).map_err(|e| format!("prepare fehler_detail: {}", e))?;
-    let rows = stmt.query_map(param_refs.as_slice(), |row| {
-        Ok(FehlerDetailRow { zitat: row.get(0)?, korrektur: row.get(1)?, erklaerung: row.get(2)?, vorname: row.get(3)?, dateiname: row.get(4)? })
-    }).map_err(|e| format!("query fehler_detail: {}", e))?;
-    Ok(rows.filter_map(|r| r.ok()).collect())
+    query_fehler_detail(&guard, &klasse, &typ, aufgabe.as_deref(), limit.unwrap_or(50))
 }
 
 #[derive(Serialize)]
@@ -1188,6 +1563,36 @@ mod tests {
         conn
     }
 
+    #[test]
+    fn fehlerdetail_zaehlt_muster_im_aktuellen_filterbereich() {
+        let conn = setup();
+        conn.execute(
+            "INSERT INTO abgabe (klasse, aufgabe, dateiname, datei_hash) VALUES ('7a','SA1','a.docx','h1')",
+            [],
+        ).unwrap();
+        let abgabe1 = conn.last_insert_rowid();
+        conn.execute(
+            "INSERT INTO abgabe (klasse, aufgabe, dateiname, datei_hash) VALUES ('7a','SA2','b.docx','h2')",
+            [],
+        ).unwrap();
+        let abgabe2 = conn.last_insert_rowid();
+        for abgabe_id in [abgabe1, abgabe1, abgabe2] {
+            conn.execute(
+                "INSERT INTO fehler_historie (abgabe_id, zitat, korrektur, typ, cluster_id, regel_muster) \
+                 VALUES (?1, 'das Haus', 'das Haus,', 'Z', 'komma_relativsatz', 'Komma vor Relativsatz')",
+                rusqlite::params![abgabe_id],
+            ).unwrap();
+        }
+
+        let in_aufgabe = query_fehler_detail(&conn, "7a", "Z", Some("SA1"), 10).unwrap();
+        assert_eq!(in_aufgabe.len(), 2);
+        assert!(in_aufgabe.iter().all(|row| row.haeufigkeit == 2));
+
+        let gesamt = query_fehler_detail(&conn, "7a", "Z", None, 10).unwrap();
+        assert_eq!(gesamt.len(), 3);
+        assert!(gesamt.iter().all(|row| row.haeufigkeit == 3));
+    }
+
     /// Seedet 2 Schüler (7a), 1 Abgabe (SA1) + 4 Fehler (3×Z, 1×G).
     fn seed(conn: &Connection) {
         let s1 = insert_schueler_impl(conn, "7a", "Mona", Some("Muster")).unwrap();
@@ -1297,6 +1702,112 @@ mod tests {
         let conn = setup();
         seed_fehler_trend(&conn);
         assert!(fehler_trend_impl(&conn, "9z").unwrap().is_empty());
+    }
+
+    #[test]
+    fn fehler_trend_aggregiert_cluster_und_normalisiert_pro_abgabe() {
+        let conn = setup();
+        let abgabe = |aufgabe: &str, datum: &str, hash: &str| -> i64 {
+            conn.execute(
+                "INSERT INTO abgabe (klasse, aufgabe, dateiname, datei_hash, datum) \
+                 VALUES ('9a', ?1, 'synthetisch.docx', ?2, ?3)",
+                rusqlite::params![aufgabe, hash, datum],
+            ).unwrap();
+            conn.last_insert_rowid()
+        };
+        let sa1_a = abgabe("SA1", "2026-01-10", "cluster-sa1-a");
+        let sa1_b = abgabe("SA1", "2026-01-10", "cluster-sa1-b");
+        let sa2_a = abgabe("SA2", "2026-03-10", "cluster-sa2-a");
+        abgabe("SA2", "2026-03-10", "cluster-sa2-b");
+
+        for (abgabe_id, regel) in [
+            (sa1_a, "Komma vor Relativsatz"),
+            (sa1_b, "Komma vor Relativsatz"),
+            (sa2_a, "Komma vor Relativsatz"),
+        ] {
+            conn.execute(
+                "INSERT INTO fehler_historie (abgabe_id, typ, cluster_id, regel_muster) \
+                 VALUES (?1, 'Z', 'Z:relativsatz', ?2)",
+                rusqlite::params![abgabe_id, regel],
+            ).unwrap();
+        }
+
+        let trend = fehler_trend_impl(&conn, "9a").unwrap();
+        assert_eq!(trend.len(), 2);
+        assert_eq!(trend[0].cluster_fehler["Z:relativsatz"], 2);
+        assert!((trend[0].cluster_fehler_pro_abgabe["Z:relativsatz"] - 1.0).abs() < 0.001);
+        assert_eq!(trend[0].cluster_labels["Z:relativsatz"], "Komma vor Relativsatz");
+        assert_eq!(trend[1].cluster_fehler["Z:relativsatz"], 1);
+        assert!((trend[1].cluster_fehler_pro_abgabe["Z:relativsatz"] - 0.5).abs() < 0.001);
+    }
+
+    /// L2: Kalibrierung gruppiert nach Textsorte — nur Textsorten mit ≥ 2 Paaren.
+    #[test]
+    fn kalibrierung_nach_textsorte_gruppiert_und_filtert() {
+        let conn = setup();
+        let abgabe = |textsorte: &str, hash: &str| -> i64 {
+            conn.execute(
+                "INSERT INTO abgabe (klasse, aufgabe, dateiname, datei_hash, textsorte) \
+                 VALUES ('7a','SA1','x.docx',?2,?1)",
+                rusqlite::params![textsorte, hash],
+            ).unwrap();
+            conn.last_insert_rowid()
+        };
+        // Erörterung: 2 Paare (App 3.0 → Lehrer 4.0 = Lehrer milder, Abw 1.0)
+        for hash in ["k1", "k2"] {
+            let id = abgabe("Erörterung", hash);
+            conn.execute(
+                "INSERT INTO lehrer_feedback (abgabe_id, klasse, aufgabe, note_app_snapshot, note_final) VALUES (?1, '7a', 'SA1', 3.0, 4.0)",
+                rusqlite::params![id],
+            ).unwrap();
+        }
+        // Textanalyse: 3 Paare (Abw 0.5)
+        for hash in ["t1", "t2", "t3"] {
+            let id = abgabe("Textanalyse", hash);
+            conn.execute(
+                "INSERT INTO lehrer_feedback (abgabe_id, klasse, aufgabe, note_app_snapshot, note_final) VALUES (?1, '7a', 'SA1', 2.5, 3.0)",
+                rusqlite::params![id],
+            ).unwrap();
+        }
+        // Kommentar: nur 1 Paar → fällt unter die Schwelle weg
+        let id = abgabe("Kommentar", "c1");
+        conn.execute(
+            "INSERT INTO lehrer_feedback (abgabe_id, klasse, aufgabe, note_app_snapshot, note_final) VALUES (?1, '7a', 'SA1', 3.0, 5.0)",
+            rusqlite::params![id],
+        ).unwrap();
+
+        let result = kalibrierung_impl(&conn, "7a", None).unwrap();
+        assert_eq!(result.n_mit_feedback, 6);
+        let sorten: Vec<&str> = result.nach_textsorte.iter().map(|t| t.textsorte.as_str()).collect();
+        assert_eq!(sorten, vec!["Textanalyse", "Erörterung"]); // paare DESC
+        let ta = result.nach_textsorte.iter().find(|t| t.textsorte == "Textanalyse").unwrap();
+        assert_eq!(ta.paare, 3);
+        assert!((ta.mittlere_abweichung.unwrap() - 0.5).abs() < 0.001);
+        let er = result.nach_textsorte.iter().find(|t| t.textsorte == "Erörterung").unwrap();
+        assert!((er.mittlere_abweichung.unwrap() - 1.0).abs() < 0.001);
+        assert!(!sorten.contains(&"Kommentar"));
+    }
+
+    /// L2: Abgaben ohne Textsorte landen unter „Ohne Textsorte".
+    #[test]
+    fn kalibrierung_ohne_textsorte_buendelt_neutrale_gruppe() {
+        let conn = setup();
+        for hash in ["a1", "a2"] {
+            conn.execute(
+                "INSERT INTO abgabe (klasse, aufgabe, dateiname, datei_hash) \
+                 VALUES ('7a','SA1','x.docx',?1)",
+                rusqlite::params![hash],
+            ).unwrap();
+            let id = conn.last_insert_rowid();
+            conn.execute(
+                "INSERT INTO lehrer_feedback (abgabe_id, klasse, aufgabe, note_app_snapshot, note_final) VALUES (?1, '7a', 'SA1', 3.0, 3.0)",
+                rusqlite::params![id],
+            ).unwrap();
+        }
+        let result = kalibrierung_impl(&conn, "7a", None).unwrap();
+        assert_eq!(result.nach_textsorte.len(), 1);
+        assert_eq!(result.nach_textsorte[0].textsorte, "Ohne Textsorte");
+        assert_eq!(result.nach_textsorte[0].tendenz, "deckungsgleich");
     }
 
     /// Schülerlöschung entfernt Profil, Abgabe und abhängige Historien gemeinsam.
@@ -1459,5 +1970,94 @@ mod tests {
 
         // None bleibt erlaubt (Zuruecksetzen)
         assert!(update_fehler_status_impl(&conn, fid, None, None).unwrap());
+    }
+
+    fn seed_korrektur_revisionen(conn: &Connection) -> (i64, i64, i64, i64) {
+        let student_id = insert_schueler_impl(conn, "TEST-6A", "Synthetic", Some("Learner")).unwrap();
+        conn.execute(
+            "INSERT INTO abgabe (schueler_id, klasse, aufgabe, dateiname, datei_hash, note, gesamtstufe) \
+             VALUES (?1, 'TEST-6A', 'Kommentar', 'synthetic.docx', 'synthetic-hash', 3, 2.5)",
+            [student_id],
+        ).unwrap();
+        let abgabe_id = conn.last_insert_rowid();
+        conn.execute(
+            "INSERT INTO korrektur_revision (abgabe_id, revision_no, provider, model, privacy_mode, is_active, note, gesamtstufe, kriterien_json, fehler_json, lehrer_note_final, lehrer_note_app_snapshot, lehrer_kommentar) \
+             VALUES (?1, 1, 'mistral', 'mistral-medium-3-5', 'pseudonymisiert', 1, 3, 2.5, \
+             '[{\"kriterium_name\":\"Inhalt\",\"stufe\":2.5,\"gewichtung\":1.0}]', \
+             '[{\"zitat\":\"synthetic old\",\"korrektur\":\"old fix\",\"typ\":\"G\"}]', 2, 3, 'synthetic feedback')",
+            [abgabe_id],
+        ).unwrap();
+        let revision_one = conn.last_insert_rowid();
+        conn.execute(
+            "INSERT INTO korrektur_revision (abgabe_id, revision_no, provider, model, privacy_mode, is_active, note, gesamtstufe, kriterien_json, fehler_json) \
+             VALUES (?1, 2, 'deepseek', 'deepseek-flash', 'pseudonymisiert', 0, 4, 3.5, \
+             '[{\"kriterium_name\":\"Inhalt\",\"stufe\":3.5,\"gewichtung\":1.0}]', \
+             '[{\"zitat\":\"synthetic new\",\"korrektur\":\"new fix\",\"typ\":\"R\"}]')",
+            [abgabe_id],
+        ).unwrap();
+        let revision_two = conn.last_insert_rowid();
+        conn.execute(
+            "INSERT INTO kriterium_historie (abgabe_id, kriterium_name, stufe, gewichtung) VALUES (?1, 'Inhalt', 2.5, 1.0)",
+            [abgabe_id],
+        ).unwrap();
+        conn.execute(
+            "INSERT INTO fehler_historie (abgabe_id, zitat, korrektur, typ) VALUES (?1, 'synthetic old', 'old fix', 'G')",
+            [abgabe_id],
+        ).unwrap();
+        conn.execute(
+            "INSERT INTO lehrer_feedback (abgabe_id, schueler_id, klasse, aufgabe, note_final, note_app_snapshot, lehrer_kommentar) VALUES (?1, ?2, 'TEST-6A', 'Kommentar', 2, 3, 'synthetic feedback')",
+            rusqlite::params![abgabe_id, student_id],
+        ).unwrap();
+        (abgabe_id, student_id, revision_one, revision_two)
+    }
+
+    #[test]
+    fn revision_aktivierung_sichert_alte_daten_und_stellt_neue_projektion_her() {
+        let conn = setup();
+        let (abgabe_id, _student_id, revision_one, revision_two) = seed_korrektur_revisionen(&conn);
+
+        let tx = conn.unchecked_transaction().unwrap();
+        activate_korrektur_revision_impl(&tx, abgabe_id, revision_two).unwrap();
+        tx.commit().unwrap();
+
+        let (active_id, note): (i64, f64) = conn.query_row(
+            "SELECT r.id, a.note FROM korrektur_revision r JOIN abgabe a ON a.id=r.abgabe_id WHERE r.abgabe_id=?1 AND r.is_active=1",
+            [abgabe_id], |row| Ok((row.get(0)?, row.get(1)?)),
+        ).unwrap();
+        assert_eq!(active_id, revision_two);
+        assert_eq!(note, 4.0);
+        let current_quote: String = conn.query_row(
+            "SELECT zitat FROM fehler_historie WHERE abgabe_id=?1", [abgabe_id], |row| row.get(0),
+        ).unwrap();
+        assert_eq!(current_quote, "synthetic new");
+        let archived_feedback: Option<String> = conn.query_row(
+            "SELECT lehrer_kommentar FROM korrektur_revision WHERE id=?1", [revision_one], |row| row.get(0),
+        ).unwrap();
+        assert_eq!(archived_feedback.as_deref(), Some("synthetic feedback"));
+
+        activate_korrektur_revision_impl(&conn, abgabe_id, revision_one).unwrap();
+        let restored_note: f64 = conn.query_row(
+            "SELECT note_final FROM lehrer_feedback WHERE abgabe_id=?1", [abgabe_id], |row| row.get(0),
+        ).unwrap();
+        assert_eq!(restored_note, 2.0);
+    }
+
+    #[test]
+    fn revisionsloeschung_aktiviert_fallback_und_entfernt_nur_abgabe_ohne_revisionen() {
+        let conn = setup();
+        let (abgabe_id, student_id, revision_one, revision_two) = seed_korrektur_revisionen(&conn);
+
+        assert!(!delete_korrektur_revision_impl(&conn, abgabe_id, revision_one).unwrap());
+        let active_id: i64 = conn.query_row(
+            "SELECT id FROM korrektur_revision WHERE abgabe_id=?1 AND is_active=1", [abgabe_id], |row| row.get(0),
+        ).unwrap();
+        assert_eq!(active_id, revision_two);
+        assert_eq!(list_schueler_impl(&conn, "TEST-6A").unwrap().len(), 1);
+
+        assert!(delete_korrektur_revision_impl(&conn, abgabe_id, revision_two).unwrap());
+        let abgabe_count: i64 = conn.query_row("SELECT COUNT(*) FROM abgabe WHERE id=?1", [abgabe_id], |row| row.get(0)).unwrap();
+        assert_eq!(abgabe_count, 0);
+        let student_count: i64 = conn.query_row("SELECT COUNT(*) FROM schueler WHERE id=?1", [student_id], |row| row.get(0)).unwrap();
+        assert_eq!(student_count, 1);
     }
 }

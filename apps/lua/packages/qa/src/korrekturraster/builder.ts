@@ -37,6 +37,8 @@ function waehleKatalog(block: Block, fach: DocumentV1['meta']['fach'], typ?: Doc
     case 'vokabeluebung':
     case 'umformung':
     case 'fehlerkorrektur':
+    case 'timeline':
+    case 'diagrammanalyse':
       // Geschlossene Blocks: eine Zeile "Richtig/Falsch"
       return [{ kriterium: 'Richtig/Falsch', beschreibung: 'Volle Punkte bei richtiger Antwort, 0 bei falsch', maxPunkte: block.punkte }];
 
@@ -51,6 +53,9 @@ function waehleKatalog(block: Block, fach: DocumentV1['meta']['fach'], typ?: Doc
 
     case 'songanalyse':
       return SONGANALYSE;
+
+    case 'quellenanalyse':
+      return QUELLENANALYSE;
 
     case 'offeneVerstaendnisfrage':
       return readingComprehension(block.config.fragen.length);

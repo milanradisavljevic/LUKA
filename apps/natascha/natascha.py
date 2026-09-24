@@ -4514,6 +4514,10 @@ class NataschaApp(App):
                     klasse=_klasse or "",
                     aufgabe=_aufgabe or "",
                     erwartungshorizont_name=fi.erwartungshorizont,
+                    erwartungshorizont=(
+                        nc.load_erwartungshorizont(self.config, _klasse or "", _aufgabe or "")
+                        or ""
+                    ),
                     rubric_name=fi.rubric,
                 )
 

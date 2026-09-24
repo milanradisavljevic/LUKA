@@ -15,6 +15,9 @@ import { BlockPreviewWortgitter } from './BlockPreviewWortgitter';
 import { BlockPreviewVokabeluebung } from './BlockPreviewVokabeluebung';
 import { BlockPreviewFehlerkorrektur } from './BlockPreviewFehlerkorrektur';
 import { BlockPreviewRoleplay } from './BlockPreviewRoleplay';
+import { BlockPreviewQuellenanalyse } from './BlockPreviewQuellenanalyse';
+import { BlockPreviewTimeline } from './BlockPreviewTimeline';
+import { BlockPreviewDiagrammAnalyse } from './BlockPreviewDiagrammAnalyse';
 import type { RenderLayout, RenderTemplate } from '@lehrunterlagen/renderer';
 
 interface Props {
@@ -70,6 +73,12 @@ export function BlockPreview({ block, showSolution, solutionStep, onUpdate, temp
       return pass(BlockPreviewVokabeluebung);
     case 'fehlerkorrektur':
       return pass(BlockPreviewFehlerkorrektur);
+    case 'quellenanalyse':
+      return pass(BlockPreviewQuellenanalyse);
+    case 'timeline':
+      return pass(BlockPreviewTimeline);
+    case 'diagrammanalyse':
+      return pass(BlockPreviewDiagrammAnalyse);
     case 'roleplay':
       return pass(BlockPreviewRoleplay);
   }

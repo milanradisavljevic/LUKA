@@ -95,7 +95,9 @@ def cmd_analyze(args):
     # Fehlt fach/schulstufe/textsorte, aus der Aufgaben-Config ableiten — so wirkt
     # eine in der App angelegte Aufgabe (inkl. Rubrik) direkt bei der Korrektur.
     auf_cfg = nc.get_aufgabe_cfg(config, args.klasse, args.aufgabe) or {}
-    fach = args.fach or auf_cfg.get("fach", "")
+    # LUA sendet die Fach-Enum klein ('englisch') — Schema-Enum und rubric_mapping
+    # erwarten die kanonische Schreibweise ('Englisch') (L3).
+    fach = nc.kanonisches_fach(args.fach or auf_cfg.get("fach", ""))
     schulstufe = args.schulstufe or auf_cfg.get("schulstufe", "")
     textsorte = args.textsorte or auf_cfg.get("textsorte", "")
     rubric_name = args.rubric or auf_cfg.get("rubric", "")
@@ -160,6 +162,23 @@ def cmd_analyze(args):
         rubrik_inhalt=rubric,
         rubrik_titel=rubrik_titel,
         erwartungshorizont=erwartungshorizont_text,
+        revision_of_abgabe_id=args.revision_of_abgabe_id,
+        correction_basis={
+            "klasse": args.klasse,
+            "aufgabe": args.aufgabe,
+            "fach": fach,
+            "schulstufe": schulstufe,
+            "textsorte": textsorte,
+            "land": getattr(args, "land", "at"),
+            "rubrik_name": rubric_name,
+            "rubrik_titel": rubrik_titel,
+            "rubrik_inhalt": rubric,
+            "erwartungshorizont": erwartungshorizont_text,
+            "unterrichtseinsatz_id": args.einsatz_id,
+            "material_id": args.material_id,
+        },
+        dichte_prompt_variante=getattr(args, "benchmark_fehlerdichte_prompt", "neutral"),
+        land=getattr(args, "land", "at"),
     )
 
     if data is None:
@@ -173,9 +192,18 @@ def cmd_analyze(args):
         for e in errors:
             print(f"Hinweis: {e}", file=sys.stderr)
 
-    result = {"analysis": data, "errors": errors, "provider": config.get("api", {}).get("provider"), "model": config.get("api", {}).get("model"), "rubric": rubric_name}
+    result = {
+        "analysis": data,
+        "errors": errors,
+        "qualityWarnings": data.get("qualitaetswarnungen", []),
+        "provider": config.get("api", {}).get("provider"),
+        "model": config.get("api", {}).get("model"),
+        "rubric": rubric_name,
+    }
     if data.get("_abgabe_id"):
         result["abgabe_id"] = data["_abgabe_id"]
+    if data.get("_revision_id"):
+        result["revision_id"] = data["_revision_id"]
     _json_out(result)
     return 0
 
@@ -220,6 +248,9 @@ def cmd_personen_vorschau(args):
             "visionModus": vision,
             "visionFaehig": (not vision) or nc.is_vision_capable(provider, model, file_path),
             "klassenlisteLeer": len(roster) == 0,
+            # L2: Wortzahl für die Batch-Mengenschätzung im Korrektur-Dialog
+            # (Textdateien; Vision-Dateien sind hier null).
+            "woerter": len(text.split()) if text else None,
         }
     )
     return 0
@@ -508,6 +539,80 @@ def _reconstruct_feedback_from_db(db_path, abgabe_id, abgabe):
     )
 
 
+def _follow_up_from_loop_material(db_path, abgabe):
+    """Liefert einen DB-belegten Hinweis zum neuesten passenden LUKA-Material.
+
+    "Beigelegt" wird nur mit einer existierenden Schüler-DOCX-Datei behauptet,
+    die über Material-ID und Exportverlauf mit genau diesem Material verknüpft ist.
+    """
+    import sqlite3
+    from contextlib import closing
+
+    import generate_feedback as gf
+
+    klasse = str(abgabe.get("klasse") or "").strip()
+    aufgabe = str(abgabe.get("aufgabe") or "").strip()
+    if not klasse:
+        return None
+
+    try:
+        with closing(sqlite3.connect(str(db_path))) as conn:
+            rows = conn.execute(
+                "SELECT gm.id, gm.title, lh.exported_files_json "
+                "FROM generated_materials gm "
+                "LEFT JOIN lua_history lh ON lh.saved_document_id = gm.id "
+                "WHERE gm.is_deleted = 0 AND gm.loop_klasse = ? "
+                "AND (gm.loop_aufgabe = ? OR gm.loop_aufgabe IS NULL) "
+                "ORDER BY gm.updated_at DESC, gm.id DESC, lh.timestamp DESC",
+                (klasse, aufgabe),
+            ).fetchall()
+    except sqlite3.Error:
+        return None
+
+    if not rows:
+        return None
+
+    material_id, title, _ = rows[0]
+    exported_files: list[str] = []
+    for row_material_id, _, raw_files in rows:
+        if row_material_id != material_id or not raw_files:
+            continue
+        try:
+            files = json.loads(raw_files)
+        except (TypeError, json.JSONDecodeError):
+            continue
+        if isinstance(files, list):
+            exported_files.extend(path for path in files if isinstance(path, str))
+
+    # Ein Browser-Download protokolliert nur den Dateinamen, keinen belegbaren
+    # lokalen Pfad. Eine „Beilage“ erfordert daher eine existierende Datei.
+    for raw_path in exported_files:
+        path = Path(raw_path).expanduser()
+        if (
+            not path.is_absolute()
+            or path.suffix.lower() != ".docx"
+            or not path.stem.lower().endswith("_schuelerfassung")
+        ):
+            continue
+        try:
+            exists = path.is_file()
+        except (OSError, ValueError):
+            continue
+        if exists:
+            return gf.FolgeuebungHinweis(
+                status="beigelegt",
+                titel=str(title).strip() if title else None,
+                dateiname=path.name,
+                material_id=str(material_id),
+            )
+
+    return gf.FolgeuebungHinweis(
+        status="in_luka",
+        titel=str(title).strip() if title else None,
+        material_id=str(material_id),
+    )
+
+
 def cmd_feedback_docx(args):
     nc, ndb, config, db_path = _load_env_and_config()
     import generate_feedback as gf
@@ -525,12 +630,23 @@ def cmd_feedback_docx(args):
 
     feedback_json_path = abgabe.get("feedback_json_path", "")
     data = None
+    try:
+        revision = ndb.get_korrektur_revision_for_abgabe(db_path, abgabe_id)
+        payload = json.loads(revision.get("analysis_json", "{}")) if revision else None
+        if isinstance(payload, dict) and payload:
+            _merge_lehrkraft_aktionen(db_path, abgabe_id, payload)
+            data = gf.parse_feedback_data(payload)
+    except (OSError, ValueError, TypeError):
+        data = None
     if feedback_json_path and Path(feedback_json_path).is_file():
-        try:
-            payload = json.loads(Path(feedback_json_path).read_text(encoding="utf-8"))
-        except (OSError, ValueError):
+        if data is None:
+            try:
+                payload = json.loads(Path(feedback_json_path).read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                payload = None
+        else:
             payload = None
-        if isinstance(payload, dict):
+        if data is None and isinstance(payload, dict):
             # Lehrkraft-Entscheidungen (DB) in den Analyse-Payload einmischen,
             # BEVOR parse_feedback_data verworfene/geaenderte Fehler umsetzt.
             _merge_lehrkraft_aktionen(db_path, abgabe_id, payload)
@@ -540,6 +656,10 @@ def cmd_feedback_docx(args):
         if data is None:
             print("Kein Feedback-JSON und keine Kriterien in der DB fuer diese Abgabe", file=sys.stderr)
             return 1
+
+    # Folgeübungsangaben aus Analyse-JSON sind nicht vertrauenswürdig. Der
+    # Hinweis wird ausschließlich aus Material- und Exportdaten der DB gebaut.
+    data.folgeuebung = _follow_up_from_loop_material(db_path, abgabe)
 
     # Lehrkraft-Name aus dem LUKA-Profil hat Vorrang vor dem Config-Default:
     # Kommentare/Metadaten der DOCX sollen die tatsächliche Lehrkraft ausweisen.
@@ -659,7 +779,12 @@ def cmd_list_rubrics(args):
     nc, ndb, config, db_path = _load_env_and_config()
     fach = args.fach or config.get("defaults", {}).get("fach", "")
     schulstufe = args.schulstufe or config.get("defaults", {}).get("schulstufe", "")
-    filenames = nc.rubric_options_for(args.fach or "", args.schulstufe or "", config)
+    filenames = nc.rubric_options_for(
+        args.fach or "",
+        args.schulstufe or "",
+        config,
+        current_rubric=getattr(args, "current_rubric", "") or "",
+    )
     rubrics_dir = nc.resolve_path(config, "rubrics")
     rubrics = []
     for filename in filenames:
@@ -805,6 +930,7 @@ def main():
     p_analyze.add_argument("--fach", default="")
     p_analyze.add_argument("--schulstufe", default="")
     p_analyze.add_argument("--textsorte", default="")
+    p_analyze.add_argument("--land", default="at", choices=["at", "de"], help="Land/Skala: at=SRDP 1-5 (Default), de=Klassenarbeit 1-6")
     p_analyze.add_argument("--schueler", default="")
     p_analyze.add_argument("--bewertungsmodus", default="benotet", choices=["benotet", "formativ"])
     p_analyze.add_argument("--ausgangstext", default=None, help=argparse.SUPPRESS)
@@ -814,7 +940,15 @@ def main():
     p_analyze.add_argument("--material-id", default=None)
     p_analyze.add_argument("--erwartungshorizont", default="")
     p_analyze.add_argument("--rubric", default="")
+    p_analyze.add_argument("--revision-of-abgabe-id", type=int)
     p_analyze.add_argument("--max-retries", type=int, default=3)
+    p_analyze.add_argument(
+        "--benchmark-fehlerdichte-prompt",
+        dest="benchmark_fehlerdichte_prompt",
+        choices=("neutral", "legacy"),
+        default="neutral",
+        help=argparse.SUPPRESS,
+    )
     p_analyze.add_argument("--cancel-timeout", type=int, default=None)
     p_analyze.add_argument("--quiet", action="store_true")
     p_analyze.add_argument(
@@ -884,6 +1018,11 @@ def main():
     p_lr = sub.add_parser("list-rubrics", help="Verfuegbare Rubriken auflisten")
     p_lr.add_argument("--fach", default="")
     p_lr.add_argument("--schulstufe", default="")
+    p_lr.add_argument(
+        "--current-rubric",
+        default="",
+        help="Aktuell zugewiesene Rubrik — erscheint immer in der Liste (L3)",
+    )
 
     # Rubrik-Editor
     sub.add_parser("list-rubric-files", help="Alle Rubrik-Markdown-Dateien (roh) auflisten")

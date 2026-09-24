@@ -271,7 +271,10 @@ export function HistoryView({ onCreateNew }: Props) {
                   {fachLabel(e.fach)} · {STUFE_LABEL[e.stufe] ?? e.stufe} · {e.blockCount} Block{e.blockCount !== 1 ? 'e' : ''} · {e.totalPunkte} Punkte
                   {e.llmProvider ? ` · ${e.llmProvider}${e.modelName ? ` (${e.modelName})` : ''}` : ''}
                 </p>
-                {e.exportedFiles.length > 0 && <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginTop: '0.5rem' }}>{e.exportedFiles.map((f) => <span key={f} style={{ fontSize: '0.6875rem', background: 'var(--color-bg-base)', color: 'var(--color-text-secondary)', padding: '0.125rem 0.5rem', borderRadius: '4px' }}>{f}</span>)}</div>}
+                {e.exportedFiles.length > 0 && <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginTop: '0.5rem' }}>{e.exportedFiles.map((f) => {
+                  const name = f.replace(/\\/g, '/').split('/').pop() || f;
+                  return <span key={f} style={{ fontSize: '0.6875rem', background: 'var(--color-bg-base)', color: 'var(--color-text-secondary)', padding: '0.125rem 0.5rem', borderRadius: '4px' }}>{name}</span>;
+                })}</div>}
               </div>
             ))}
           </div>

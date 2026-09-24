@@ -16,12 +16,12 @@ except ImportError:
 
 
 KLASSE = "TEST-7a"
-DATEINAME = "Emma_Schmidt_English.docx"
+DATEINAME = "benchmark_en_a2_essay.docx"
 
 
 def main() -> int:
     doc = Document()
-    doc.add_paragraph("Emma Schmidt")
+    doc.add_paragraph("Synthetic English Benchmark Case")
     doc.add_paragraph("")
     doc.add_paragraph("Climate Change and Its Effects on Our Daily Lives")
     doc.add_paragraph("")

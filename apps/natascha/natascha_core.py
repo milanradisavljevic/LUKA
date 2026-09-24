@@ -6,6 +6,8 @@ NATASCHA Core – Gemeinsame Logik-Funktionen fuer Wizard und Dashboard.
 from __future__ import annotations
 
 import base64
+import copy
+import hashlib
 import json
 import logging
 import os
@@ -19,8 +21,9 @@ import tomllib
 import urllib.error
 import urllib.request
 from datetime import datetime
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import tomlkit
 
@@ -114,6 +117,17 @@ def _resolve_project_root() -> Path:
 PROJECT_ROOT = _resolve_project_root()
 
 VERSION = "0.6.0"
+
+
+@dataclass(frozen=True)
+class CorrectionRun:
+    """Unveränderlicher Schnappschuss der Eingaben eines Korrekturlaufs."""
+
+    provider: str
+    model: str
+    privacy_mode: str
+    basis_json: str
+    started_at: str
 
 
 def _load_dotenv() -> None:
@@ -558,14 +572,29 @@ def load_example_fixture() -> str:
     return candidates[0].read_text(encoding="utf-8")
 
 
-def _fehler_anweisungen(fach: str, wortanzahl: int = 0) -> str:
+FehlerdichtePromptVariante = Literal["neutral", "legacy"]
+
+
+def _fehler_anweisungen(
+    fach: str,
+    wortanzahl: int = 0,
+    land: str = "at",
+    dichte_prompt_variante: FehlerdichtePromptVariante = "neutral",
+) -> str:
     """Gemeinsame 'fehler'-Regeln für Text- und Vision-Prompt (Audit N3/N4/N5).
 
     Fach-konditioniert (die Nachsuch-Checkliste ist sprachspezifisch) und mit
     an die Textlänge gekoppelter Fehler-Erwartung statt Pauschalspanne.
-    wortanzahl=0 (Vision: Text unbekannt) lässt den Zahlen-Anker weg.
+    wortanzahl=0 (Vision: Text unbekannt) lässt die Wortzahl-Info weg.
+    land='de' ersetzt den Österreich-Block durch eine deutsche Variante.
     """
-    ist_englisch = fach.strip().lower().startswith("engl")
+    fach_key = (fach or "").strip().lower()
+    ist_englisch = fach_key.startswith("engl")
+    ist_franz = fach_key.startswith(("franz", "fran"))
+    ist_spanisch = fach_key.startswith(("span", "espan"))
+    ist_italienisch = fach_key.startswith(("ital", "italien"))
+    ist_latein = fach_key.startswith(("latein", "latin"))
+    arbeit_begriff = "Klassenarbeiten" if land == "de" else "Schularbeiten"
     kopf = (
         "- 'fehler': VOLLSTÄNDIGE Liste ALLER Sprachfehler im Schülertext. KEIN LIMIT.\n"
         "  Jeder Eintrag: 'zitat' (1–6 Wörter, wortgetreu), 'korrektur' (korrekte Fassung),\n"
@@ -583,6 +612,53 @@ def _fehler_anweisungen(fach: str, wortanzahl: int = 0) -> str:
             "  Zeitformen und Aspekt (past simple vs. present perfect), Subjekt-Verb-Kongruenz\n"
             "  (3rd person -s), Wortstellung (SVO, Adverbien), Präpositionen, Artikel,\n"
             "  False Friends und Kollokationen.\n"
+        )
+        austria = ""
+    elif ist_franz:
+        beispiele = (
+            "  Beispiele:\n"
+            "  {\"zitat\":\"les fille\",\"korrektur\":\"les filles\",\"typ\":\"G\",\"erklaerung\":\"Numerus beim Nomen\"}\n"
+            "  {\"zitat\":\"a Paris\",\"korrektur\":\"à Paris\",\"typ\":\"R\",\"erklaerung\":\"Akzent und Präposition\"}\n"
+            "  {\"zitat\":\"faire une photo\",\"korrektur\":\"prendre une photo\",\"typ\":\"A\",\"erklaerung\":\"französische Kollokation\"}\n"
+        )
+        checkliste = (
+            "  Genus und Numerus, Artikel und Adjektivkongruenz, Verbformen und Zeiten,\n"
+            "  Pronomen, Präpositionen, Akzente, Verneinung sowie typische Kollokationen.\n"
+        )
+        austria = ""
+    elif ist_spanisch:
+        beispiele = (
+            "  Beispiele:\n"
+            "  {\"zitat\":\"la problema\",\"korrektur\":\"el problema\",\"typ\":\"G\",\"erklaerung\":\"Genus des Nomens\"}\n"
+            "  {\"zitat\":\"el esta aqui\",\"korrektur\":\"él está aquí\",\"typ\":\"R\",\"erklaerung\":\"Akzente bei Pronomen und Verb\"}\n"
+            "  {\"zitat\":\"depende a\",\"korrektur\":\"depende de\",\"typ\":\"A\",\"erklaerung\":\"spanische Präposition\"}\n"
+        )
+        checkliste = (
+            "  Genus und Numerus, Verbkonjugation und Zeiten, ser/estar, por/para,\n"
+            "  Pronomen, Akzente, Satzstellung und idiomatische Wendungen.\n"
+        )
+        austria = ""
+    elif ist_italienisch:
+        beispiele = (
+            "  Beispiele:\n"
+            "  {\"zitat\":\"le ragazzo\",\"korrektur\":\"il ragazzo\",\"typ\":\"G\",\"erklaerung\":\"Artikel und Genus\"}\n"
+            "  {\"zitat\":\"qual e\",\"korrektur\":\"qual è\",\"typ\":\"R\",\"erklaerung\":\"Akzent\"}\n"
+            "  {\"zitat\":\"fare una decisione\",\"korrektur\":\"prendere una decisione\",\"typ\":\"A\",\"erklaerung\":\"italienische Kollokation\"}\n"
+        )
+        checkliste = (
+            "  Genus und Numerus, Artikel und Präpositionen, Verbformen und Zeiten,\n"
+            "  Pronomen, Akzente, Doppelkonsonanten und typische Kollokationen.\n"
+        )
+        austria = ""
+    elif ist_latein:
+        beispiele = (
+            "  Beispiele:\n"
+            "  {\"zitat\":\"puellae amat\",\"korrektur\":\"puella amat\",\"typ\":\"G\",\"erklaerung\":\"Subjekt im Nominativ\"}\n"
+            "  {\"zitat\":\"magnus puella\",\"korrektur\":\"magna puella\",\"typ\":\"G\",\"erklaerung\":\"Kongruenz von Adjektiv und Nomen\"}\n"
+        )
+        checkliste = (
+            "  Kasusfunktionen, Kongruenz, Verbformen und Satzgefüge, Partizipien,\n"
+            "  Ablativkonstruktionen, indirekte Rede, Wortbedeutung und Textbelege.\n"
         )
         austria = ""
     else:
@@ -605,15 +681,36 @@ def _fehler_anweisungen(fach: str, wortanzahl: int = 0) -> str:
             "  NICHT in die 'fehler'-Liste auf — auch nicht als Ausdruck/Stil-Eintrag oder\n"
             "  als Eintrag ohne Änderung.\n"
         )
-    if wortanzahl > 0:
+        if land == "de":
+            austria = (
+                "  Bewertet wird nach der deutschen Standardvariante des Deutschen. Österreichische\n"
+                "  Besonderheiten (z. B. 'Jänner', 'heuer', 'Marille', Perfekt mit 'sein' bei\n"
+                "  Positionsverben wie 'bin gesessen') sind KEINE Rechtschreib- oder Grammatikfehler —\n"
+                "  markiere solche Formen höchstens als Eintrag in 'hinweise', nicht in 'fehler'.\n"
+            )
+    if dichte_prompt_variante not in {"neutral", "legacy"}:
+        raise ValueError("Unbekannte Fehlerdichte-Promptvariante.")
+    if dichte_prompt_variante == "legacy":
+        if wortanzahl > 0:
+            erwartung = (
+                f"  Der Schülertext hat etwa {wortanzahl} Wörter. Faustregel bei Schularbeiten:\n"
+                "  ungefähr ein Sprachfehler je 25–40 Wörter. Findest du deutlich weniger,\n"
+                "  lies den Text nochmals und suche gezielt nach:\n"
+            )
+        else:
+            erwartung = (
+                "  Findest du auffällig wenige Fehler, lies den Text nochmals und suche gezielt nach:\n"
+            )
+    elif wortanzahl > 0:
         erwartung = (
-            f"  Der Schülertext hat etwa {wortanzahl} Wörter. Faustregel bei Schularbeiten:\n"
-            "  ungefähr ein Sprachfehler je 25–40 Wörter. Findest du deutlich weniger,\n"
-            "  lies den Text nochmals und suche gezielt nach:\n"
+            f"  Der Schülertext hat etwa {wortanzahl} Wörter. Prüfe ihn vollständig und textgebunden;\n"
+            f"  die Wortzahl und der Begriff {arbeit_begriff} sind KEIN Maß dafür, wie viele Fehler\n"
+            "  du finden musst. Beginne ohne erwartete Fehlerzahl und belege jeden Befund im Text.\n"
         )
     else:
         erwartung = (
-            "  Findest du auffällig wenige Fehler, lies den Text nochmals und suche gezielt nach:\n"
+            "  Die Wortzahl ist nicht verfügbar. Beginne ohne erwartete Fehlerzahl und belege\n"
+            "  jeden Befund direkt im Text. Ein fehlerfreier Text ist möglich.\n"
         )
     return (
         kopf
@@ -627,6 +724,39 @@ def _fehler_anweisungen(fach: str, wortanzahl: int = 0) -> str:
         + erwartung
         + checkliste
         + austria
+    )
+
+
+def _sprachfach_prompt_hinweis(fach: str, textsorte: str) -> str:
+    """Fachfamilien-Hinweis für Französisch, Spanisch, Italienisch und Latein.
+
+    Das Feedback bleibt auf Deutsch, aber die Fehler- und Textsortenlogik darf
+    nicht stillschweigend auf Deutsch oder Englisch zurückfallen.
+    """
+    fach_key = (fach or "").strip().lower()
+    if fach_key.startswith(("franz", "fran")):
+        sprache = "Französisch"
+        zusatz = "Akzente, Genus/Numerus, Verbformen und französische Textsortenmerkmale"
+    elif fach_key.startswith(("span", "espan")):
+        sprache = "Spanisch"
+        zusatz = "Akzente, Genus/Numerus, Verbformen sowie ser/estar und por/para"
+    elif fach_key.startswith(("ital", "italien")):
+        sprache = "Italienisch"
+        zusatz = "Akzente, Genus/Numerus, Verbformen, Präpositionen und italienische Kollokationen"
+    elif fach_key.startswith(("latein", "latin")):
+        return (
+            "SPRACHFACH-HINWEIS: Dies ist Latein, kein CEFR-Fach. Prüfe bei der Textsorte "
+            f"{textsorte or 'Übersetzung/Textanalyse'} zuerst Textverständnis, Formen, Syntax, "
+            "Übersetzungsgenauigkeit und belegten Kulturbezug. Erfinde keine Textstellen oder "
+            "Sachinformationen. Erklärungen und Feedback schreibe auf Deutsch.\n"
+        )
+    else:
+        return ""
+    return (
+        f"SPRACHFACH-HINWEIS: Dies ist {sprache}. Bewerte die Arbeit als {textsorte or 'gewählte Textsorte'} "
+        f"und nicht nach einem deutschen Textsortenmuster. Prüfe insbesondere {zusatz}. "
+        "Die Erklärungen und das Lehrerfeedback schreibe auf Deutsch; Zitate und Korrekturen "
+        f"bleiben im Original der Zielsprache.\n"
     )
 
 
@@ -660,6 +790,8 @@ def build_analysis_prompt(
     klasse: str = "",
     aufgabe: str = "",
     erwartungshorizont_name: str = "",
+    land: str = "at",
+    dichte_prompt_variante: FehlerdichtePromptVariante = "neutral",
 ) -> str:
     schema = load_schema_for_mode(config, bewertungsmodus)
     example = load_example_fixture()
@@ -685,9 +817,16 @@ def build_analysis_prompt(
     else:
         noten_instruction = "Berechne eine Notenempfehlung.\n"
 
+    # Nur der Kopf ist land-spezifisch; der Rest des Prompts bleibt identisch
+    # (Benchmark-Baseline: AT-Pfad byte-gleich).
+    if land == "de":
+        rollenkopf = "Du bist ein Korrekturassistent für deutsche Klassenarbeiten (Gymnasium).\n"
+    else:
+        rollenkopf = "Du bist ein Korrekturassistent für österreichische Gymnasium-Schularbeiten.\n"
+
     return (
-        "Du bist ein Korrekturassistent für österreichische Gymnasium-Schularbeiten.\n"
-        f"Fach: {fach}\nSchulstufe: {schulstufe}\nTextsorte: {textsorte}\n"
+        rollenkopf
+        + f"Fach: {fach}\nSchulstufe: {schulstufe}\nTextsorte: {textsorte}\n"
         + (f"Schüler/in: {schueler}\n" if schueler else "")
         + "\n"
         "BEWERTUNGSRASTER:\n---\n"
@@ -710,6 +849,8 @@ def build_analysis_prompt(
         "AUFGABE:\n"
         "Analysiere den Schülertext anhand des Bewertungsrasters.\n"
         + criteria_instruction
+        + _sachfach_korrektur_hinweis(fach)
+        + _sprachfach_prompt_hinweis(fach, textsorte)
         + "PUNKTE-SKALA: Vergib für jedes Kriterium GENAU eine ganzzahlige Punktzahl von 1 bis 5 "
         "(1 = nicht erfüllt, 2 = schwach/unzureichend, 3 = ausreichend/befriedigend, "
         "4 = gut, 5 = sehr gut). Orientiere dich strikt an den Stufenbeschreibungen im Raster. "
@@ -727,7 +868,7 @@ def build_analysis_prompt(
         "  'kommentar': kurze direkte Anmerkung dazu, wie eine Randnotiz einer Lehrerin\n"
         "  Beispiel: {\"zitat\": \"mega geil\", \"kommentar\": \"Register überdenken — zu umgangssprachlich\"}\n"
         "  WICHTIG: 'zitat' darf NIE länger als 5 Wörter sein. Keine ganzen Sätze als Zitat!\n"
-        + _fehler_anweisungen(fach, len(docx_text.split()))
+        + _fehler_anweisungen(fach, len(docx_text.split()), land, dichte_prompt_variante)
         + "ACHTUNG: Trage Sprachfehler AUSSCHLIESSLICH im Top-Level-Array 'fehler' ein. "
         "Verwende NICHT 'fehler_detail' oder 'fehlerschwerpunkte' innerhalb der Kriterien. "
         "Diese Felder sind veraltet und werden vom System ignoriert.\n"
@@ -753,6 +894,8 @@ def build_vision_prompt(
     klasse: str = "",
     aufgabe: str = "",
     erwartungshorizont_name: str = "",
+    land: str = "at",
+    dichte_prompt_variante: FehlerdichtePromptVariante = "neutral",
 ) -> str:
     """Baut den Text-Teil des Prompts für Vision-Analyse (PDF/Bild-Input).
 
@@ -782,9 +925,15 @@ def build_vision_prompt(
     else:
         noten_instruction = "Berechne eine Notenempfehlung.\n"
 
+    # Nur der Kopf ist land-spezifisch (Spiegel zu build_analysis_prompt).
+    if land == "de":
+        rollenkopf = "Du bist ein Korrekturassistent für deutsche Klassenarbeiten (Gymnasium).\n"
+    else:
+        rollenkopf = "Du bist ein Korrekturassistent für österreichische Gymnasium-Schularbeiten.\n"
+
     return (
-        "Du bist ein Korrekturassistent für österreichische Gymnasium-Schularbeiten.\n"
-        f"Fach: {fach}\nSchulstufe: {schulstufe}\nTextsorte: {textsorte}\n"
+        rollenkopf
+        + f"Fach: {fach}\nSchulstufe: {schulstufe}\nTextsorte: {textsorte}\n"
         + (f"Schüler/in: {schueler}\n" if schueler else "")
         + "\n"
         "BEWERTUNGSRASTER:\n---\n"
@@ -817,6 +966,8 @@ def build_vision_prompt(
         "AUFGABE:\n"
         "Analysiere die im Bild/PDF sichtbare handgeschriebene Schülerarbeit anhand des Rasters.\n"
         + criteria_instruction
+        + _sachfach_korrektur_hinweis(fach)
+        + _sprachfach_prompt_hinweis(fach, textsorte)
         + "PUNKTE-SKALA: Vergib für jedes Kriterium GENAU eine ganzzahlige Punktzahl von 1 bis 5 "
         "(1 = nicht erfüllt, 2 = schwach/unzureichend, 3 = ausreichend/befriedigend, "
         "4 = gut, 5 = sehr gut). Orientiere dich strikt an den Stufenbeschreibungen im Raster. "
@@ -838,7 +989,7 @@ def build_vision_prompt(
         "  'kommentar': kurze direkte Anmerkung dazu, wie eine Randnotiz einer Lehrerin\n"
         "  Beispiel: {\"zitat\": \"mega geil\", \"kommentar\": \"Register überdenken — zu umgangssprachlich\"}\n"
         "  WICHTIG: 'zitat' darf NIE länger als 5 Wörter sein. Keine ganzen Sätze als Zitat!\n"
-        + _fehler_anweisungen(fach)
+        + _fehler_anweisungen(fach, 0, land, dichte_prompt_variante)
         + "ACHTUNG: Trage Sprachfehler AUSSCHLIESSLICH im Top-Level-Array 'fehler' ein. "
         "Verwende NICHT 'fehler_detail' oder 'fehlerschwerpunkte' innerhalb der Kriterien. "
         "Diese Felder sind veraltet und werden vom System ignoriert.\n"
@@ -967,11 +1118,17 @@ def run_llm_analysis(
     rubrik_inhalt: str = "",
     rubrik_titel: str = "",
     erwartungshorizont: str = "",
+    revision_of_abgabe_id: int | None = None,
+    correction_basis: dict[str, Any] | None = None,
+    land: str = "at",
+    dichte_prompt_variante: FehlerdichtePromptVariante = "neutral",
 ) -> tuple[dict[str, Any] | None, list[str]]:
     """
     Fuehrt die vollstaendige LLM-Analyse durch: Prompt bauen, API aufrufen,
-    JSON extrahieren, gegen Schema validieren. Bei Fehlern wird bis zu
-    *max_retries*-mal wiederholt.
+    JSON extrahieren, gegen Schema validieren. ``max_retries`` steuert aus
+    Kompatibilitätsgründen die maximale Zahl der Analyseversuche. Auch bei
+    ``0`` wird stets ein erster Versuch ausgeführt; nur Wiederholungen werden
+    damit unterdrückt.
 
     Wenn file_path auf eine PDF- oder Bilddatei zeigt, wird Vision-Modus aktiviert:
     Die Datei wird base64-enkodiert und als multimodaler Content-Block übertragen.
@@ -988,6 +1145,11 @@ def run_llm_analysis(
     if ndb is not None:
         klasse = ndb.normalize_klasse(klasse)
         aufgabe = ndb.normalize_aufgabe(aufgabe)
+    config = copy.deepcopy(config)
+    api_snapshot = config.setdefault("api", {})
+    run_provider = str(api_snapshot.get("provider", "unbekannt"))
+    run_model = str(api_snapshot.get("model", ""))
+    run_started_at = datetime.now().astimezone().isoformat(timespec="seconds")
 
     schema = load_schema_for_mode(config, bewertungsmodus)
 
@@ -998,7 +1160,10 @@ def run_llm_analysis(
             ndb.init_db(db_path)
             file_hash = ndb._file_hash(file_path)
             existing = ndb.get_abgabe_by_hash(db_path, file_hash)
-            if existing:
+            if revision_of_abgabe_id is not None:
+                if not existing or int(existing.get("id", -1)) != revision_of_abgabe_id:
+                    return None, ["Die ausgewählte Originaldatei stimmt nicht mit der Abgabe überein."]
+            elif existing:
                 # Versuche, gespeichertes JSON zu laden
                 json_path_str = existing.get("feedback_json_path", "")
                 if json_path_str and Path(json_path_str).exists():
@@ -1131,6 +1296,8 @@ def run_llm_analysis(
             has_vision_ausgangstext=(ausgangstext_vision_block is not None),
             klasse=klasse, aufgabe=aufgabe,
             erwartungshorizont_name=erwartungshorizont_name,
+            land=land,
+            dichte_prompt_variante=dichte_prompt_variante,
         )
         effective_max_retries = 1  # Retries ohne Bild weniger hilfreich
     else:
@@ -1148,8 +1315,10 @@ def run_llm_analysis(
                 config, schueler_llm, bewertungsmodus, ausgangstext_text=None,
                 klasse=klasse, aufgabe=aufgabe,
                 erwartungshorizont_name=erwartungshorizont_name,
+                land=land,
+                dichte_prompt_variante=dichte_prompt_variante,
             )
-            effective_max_retries = max_retries
+            effective_max_retries = max(1, max_retries)
         else:
             vision_content = None
             original_prompt = build_analysis_prompt(
@@ -1157,11 +1326,38 @@ def run_llm_analysis(
                 bewertungsmodus, ausgangstext_text=ausgangstext_text,
                 klasse=klasse, aufgabe=aufgabe,
                 erwartungshorizont_name=erwartungshorizont_name,
+                land=land,
+                dichte_prompt_variante=dichte_prompt_variante,
             )
-            effective_max_retries = max_retries
+            effective_max_retries = max(1, max_retries)
 
     errors: list[str] = list(ausgangstext_warnings)
     current_prompt = original_prompt
+    correction_run = CorrectionRun(
+        provider=run_provider,
+        model=run_model,
+        privacy_mode="pseudonymisiert" if pseudonymisierung else "nicht_pseudonymisiert",
+        basis_json=json.dumps(
+            {
+                **(correction_basis or {}),
+                "klasse": klasse,
+                "aufgabe": aufgabe,
+                "fach": fach,
+                "schulstufe": schulstufe,
+                "textsorte": textsorte,
+                "land": land,
+                "rubrik_inhalt": rubric_content,
+                "ausgangstext": ausgangstext_text or "",
+                "bewertungsmodus": bewertungsmodus,
+                "erwartungshorizont_name": erwartungshorizont_name,
+                "erwartungshorizont": erwartungshorizont or "",
+                "erwartungshorizont_version": erwartungshorizont_version(erwartungshorizont),
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+        ),
+        started_at=run_started_at,
+    )
 
     for attempt in range(1, effective_max_retries + 1):
         if cancel_event is not None and cancel_event.is_set():
@@ -1179,23 +1375,17 @@ def run_llm_analysis(
             return None, errors
 
         if raw_response.startswith("FEHLER"):
-            errors.append(f"API-Fehler (Versuch {attempt}): {raw_response}")
-            # Rate-Limit: mit Backoff wiederholen (sonst gibt es sofort auf)
-            if "429" in raw_response and attempt < effective_max_retries:
-                wait = min(30, 5 * attempt)
-                logging.info("Rate-Limit, Retry %d/%d nach %ds", attempt, effective_max_retries, wait)
-                time.sleep(wait)
-                continue
-            # Bei anderen API-Fehlern lohnt sich kein Retry mit gleichem Prompt
-            return None, errors
+            # Provider- und Ausgabefehler werden nicht identisch wiederholt.
+            # Die Meldung enthält nur Kategorie und Handlungsoption, nie Rohdaten.
+            return None, [raw_response]
 
         # Versuch, JSON zu extrahieren
         try:
             data = extract_json_from_llm(raw_response)
-        except (json.JSONDecodeError, AttributeError) as e:
-            errors.append(f"JSON-Extraktion fehlgeschlagen (Versuch {attempt}): {e}")
+        except (json.JSONDecodeError, AttributeError):
+            errors.append("[schema_invalid] Die KI-Antwort entsprach nicht dem erwarteten Format.")
             current_prompt = _build_retry_prompt(
-                original_prompt, f"Kein gueltiges JSON gefunden: {e}", raw_response, attempt
+                original_prompt, "Kein gültiges JSON gefunden", raw_response, attempt
             )
             time.sleep(_RETRY_BACKOFF_SECONDS * attempt)
             continue
@@ -1214,10 +1404,7 @@ def run_llm_analysis(
         # Gegen Schema validieren
         validation_errors = validate_against_schema(data, schema)
         if validation_errors:
-            errors.append(
-                f"Schema-Validierung fehlgeschlagen (Versuch {attempt}): "
-                f"{'; '.join(validation_errors[:3])}"
-            )
+            errors.append("[schema_invalid] Die KI-Antwort entsprach nicht dem erwarteten Format.")
             current_prompt = _build_retry_prompt(
                 original_prompt,
                 f"Schema-Verletzung: {'; '.join(validation_errors[:3])}",
@@ -1238,6 +1425,8 @@ def run_llm_analysis(
             data["schulstufe"] = schulstufe
         if textsorte:
             data["textsorte"] = textsorte
+        if land:
+            data["land"] = land
         if rubric_name:
             data["rubrik"] = rubric_name
         if schueler:
@@ -1268,37 +1457,69 @@ def run_llm_analysis(
                 vision_mode=vision_mode,
             )
 
-        # Note-Begruendung-Konsistenz (warnt nur)
-        validate_note_begrundung(data)
+        # Note-Begruendung-Konsistenz: Die Warnungen sind Systemhinweise und
+        # bewusst von den pädagogischen ``hinweise`` des LLM getrennt.
+        qualitaetswarnungen = validate_note_begrundung(data)
+        if qualitaetswarnungen:
+            data["qualitaetswarnungen"] = [
+                {
+                    "code": "note_begruendung_widerspruch",
+                    "message": hinweis,
+                }
+                for hinweis in qualitaetswarnungen
+            ]
 
-        # Konsistenzcheck: Fehleranzahl vs. Sprachrichtigkeit-Note
-        fehler_count = len(data.get("fehler", []))
-        sprach_key = next(
-            (k for k in data.get("bewertung", {}) if "sprach" in k.lower()), None
-        )
-        if sprach_key:
-            sprachnote = data["bewertung"][sprach_key].get("punkte", 3)
-            if fehler_count > 15 and sprachnote >= 4:
-                logging.warning(
-                    "Inkonsistenz: %d Fehler aber Sprachrichtigkeit-Note %s",
-                    fehler_count,
-                    sprachnote,
+        # Konsistenzcheck: Fehlerliste vs. Sprachrichtigkeits-Note (advisory, L2).
+        # Die Warnungen sind Systemhinweise und bewusst von den pädagogischen
+        # 'hinweise' des LLM getrennt — sie ändern nie eine Note.
+        if data.get("bewertung") and docx_text_llm and not ist_sachfach(fach):
+            fehler_warnungen = konsistenzwarnung_fehler_vs_note(
+                data.get("fehler", []), data["bewertung"], len(docx_text_llm.split())
+            )
+            if fehler_warnungen:
+                for w in fehler_warnungen:
+                    logging.warning("Konsistenz: %s", w)
+                data.setdefault("qualitaetswarnungen", []).extend(
+                    {"code": "fehler_note_inkonsistenz", "message": w}
+                    for w in fehler_warnungen
                 )
 
         # SRDP-Detailbewertung (zweiter LLM-Call) — vor Notenberechnung, damit Note daraus folgt.
         # Auch hier die Alias-Fassung, sonst gingen die Namen im zweiten Call doch raus.
-        if bewertungsmodus == "benotet" and docx_text_llm and not vision_mode:
+        # SRDP ist österreichspezifisch — für DE entfällt der zweite Call (Notenberechnung
+        # rechnet direkt aus den Kriterien, siehe berechne_note_de), für Englisch ebenfalls
+        # (der SRDP-Prompt ist deutschlehrkraft-spezifisch; die Note rechnet aus den
+        # Kriterien der Englisch-Rubrik via KRITERIUM_KEY_VARIANTS).
+        if (
+            bewertungsmodus == "benotet"
+            and docx_text_llm
+            and not vision_mode
+            and land != "de"
+            and fach.strip().lower() != "englisch"
+        ):
             srdp = generate_srdp_detail(
                 docx_text_llm, data, config, cancel_event=cancel_event, textsorte=textsorte
             )
             if srdp:
                 data["srdp_detail"] = srdp
 
-        # App-Notenberechnung — aus SRDP-Detail wenn vorhanden, sonst Fallback auf Hauptanalyse
-        if bewertungsmodus == "benotet" and data.get("bewertung"):
+        # App-Notenberechnung — aus SRDP-Detail wenn vorhanden, sonst Fallback auf Hauptanalyse.
+        # DE nutzt die 1-6-Klassenarbeit-Skala (berechne_note_de), AT bleibt unverändert.
+        sachfach_notenbasis = (
+            data.get("sachfach_bewertung")
+            if ist_sachfach(fach) and isinstance(data.get("sachfach_bewertung"), dict)
+            else None
+        )
+        notenbasis = sachfach_notenbasis or data.get("bewertung")
+        if bewertungsmodus == "benotet" and isinstance(notenbasis, dict) and notenbasis:
             if "notenempfehlung" in data:
                 data["notenempfehlung_llm"] = data["notenempfehlung"]
-            if schulstufe.lower() in ("oberstufe", "ahs-oberstufe"):
+            if sachfach_notenbasis:
+                app_note = berechne_note_sachfach(notenbasis, land=land)
+            elif land == "de":
+                gew = parse_gewichtung(rubric_content) if rubric_content else None
+                app_note = berechne_note_de(data["bewertung"], gew)
+            elif schulstufe.lower() in ("oberstufe", "ahs-oberstufe"):
                 app_note = berechne_note_srdp(
                     data["bewertung"], data.get("srdp_detail")
                 )
@@ -1323,7 +1544,7 @@ def run_llm_analysis(
         # In Datenbank speichern (Tracking, Heatmap, Duplikat-Erkennung)
         if ndb is not None and file_path is not None and file_path.exists():
             try:
-                db_path = ndb.get_db_path(config)
+                db_path = db_path_override or ndb.get_db_path(config)
                 ndb.init_db(db_path)
                 wortanzahl = count_words(file_path)
 
@@ -1366,9 +1587,16 @@ def run_llm_analysis(
                     rubrik_inhalt=rubrik_inhalt,
                     rubrik_titel=rubrik_titel,
                     erwartungshorizont=erwartungshorizont,
+                    provider=correction_run.provider,
+                    model=correction_run.model,
+                    privacy_mode=correction_run.privacy_mode,
+                    revision_of_abgabe_id=revision_of_abgabe_id,
+                    correction_basis=json.loads(correction_run.basis_json),
+                    started_at=correction_run.started_at,
                 )
                 if abgabe_id and abgabe_id > 0:
                     data["_abgabe_id"] = abgabe_id
+                    data["_revision_id"] = data.get("_revision_id")
                 else:
                     # save gab -1 (Duplikat): bestehende Abgabe-ID nachschlagen,
                     # damit Lehrer-Feedback trotzdem zugeordnet werden kann
@@ -1378,19 +1606,17 @@ def run_llm_analysis(
                     if existing and existing.get("id"):
                         data["_abgabe_id"] = existing["id"]
             except Exception:
-                # DB-Fehler duerfen Analyse nicht blockieren
-                pass
+                logging.exception("Korrekturergebnis konnte nicht revisionssicher gespeichert werden")
+                return None, ["[provider_unavailable] Das Ergebnis konnte nicht sicher gespeichert werden. Bitte erneut versuchen."]
 
         # Warnhinweise (Ausgangstext, Pseudonymisierung) auch bei Erfolg
         # zurückgeben — die Lehrkraft soll sehen, was übertragen wurde.
         # Retry-Fehlermeldungen früherer Versuche bleiben bewusst draußen.
-        return data, list(ausgangstext_warnings)
+        return data, list(ausgangstext_warnings) + [
+            f"Qualitätswarnung: {hinweis}" for hinweis in qualitaetswarnungen
+        ]
 
-    errors.append(
-        f"Analyse nach {effective_max_retries} Versuchen fehlgeschlagen. "
-        "Siehe fehlerlog.txt fuer Details."
-    )
-    return None, errors
+    return None, ["[schema_invalid] Die KI-Antwort entsprach wiederholt nicht dem erwarteten Format. Bitte Anbieter/Modell prüfen und manuell erneut versuchen."]
 
 
 def drop_unbrauchbare_fehler(fehler_list: list[dict]) -> list[dict]:
@@ -1550,6 +1776,44 @@ def drop_duplicate_fehler(fehler_list: list[dict]) -> list[dict]:
     return behalten
 
 
+def konsistenzwarnung_fehler_vs_note(
+    fehler: list[dict[str, Any]], bewertung: dict, wortanzahl: int
+) -> list[str]:
+    """Advisory: Fehlerliste gegen die Sprachrichtigkeits-Stufe spiegeln (L2).
+
+    Die Fehlerliste fließt nicht direkt in die Notenberechnung ein — eine große
+    Liste neben einer guten Sprachnote (oder umgekehrt) ist aber ein Verdacht auf
+    Über-/Untererkennung. Rückgabe: Warnungen für 'qualitaetswarnungen'; es wird
+    nie eine Note geändert.
+    """
+    if wortanzahl <= 0 or not isinstance(bewertung, dict):
+        return []
+    sprach_key = next((k for k in bewertung if "sprach" in str(k).lower()), None)
+    if not sprach_key:
+        return []
+    val = bewertung.get(sprach_key)
+    stufe = val.get("punkte", 3) if isinstance(val, dict) else val
+    try:
+        stufe = float(stufe)
+    except (TypeError, ValueError):
+        return []
+
+    count = len(fehler or [])
+    dichte = count / wortanzahl * 100
+    warnungen: list[str] = []
+    if stufe >= 4 and dichte > 8:
+        warnungen.append(
+            f"Die Fehlerliste nennt {count} Fehler ({dichte:.1f} pro 100 Wörter), "
+            f"aber die Sprachrichtigkeit ist mit Stufe {stufe:.0f} bewertet — bitte prüfen."
+        )
+    if stufe <= 2 and dichte < 1:
+        warnungen.append(
+            f"Die Fehlerliste nennt nur {count} Fehler ({dichte:.1f} pro 100 Wörter), "
+            f"aber die Sprachrichtigkeit ist mit Stufe {stufe:.0f} bewertet — bitte prüfen."
+        )
+    return warnungen
+
+
 def validate_note_begrundung(data: dict[str, Any]) -> list[str]:
     """Prueft ob Notenempfehlung und Begruendung widersprechen.
 
@@ -1584,15 +1848,18 @@ def validate_note_begrundung(data: dict[str, Any]) -> list[str]:
 
 
 def verify_fehler_extent(fehler_list: list[dict], schuelertext: str) -> list[dict]:
-    """Erweiterte Zitat-Pruefung: entfernt Zitate die zu lang oder bereits korrekt sind.
+    """Erweiterte Zitat-Pruefung: entfernt nur eindeutig unbrauchbare Zitate.
 
     Ergaenzt verify_fehler_against_text:
     - Zitat laenger als 12 Woerter (Schema erwartet 1-6) → entfernen
-    - Korrektur kommt unveraendert im Text vor → keine Korrektur noetig
+    - Kommt eine Korrektur im selben Satz wie das Zitat bereits vor, bleibt
+      der Eintrag erhalten, wird aber als lokal mehrdeutig markiert. Dass eine
+      korrekte Form *an anderer Stelle* steht, ist kein Beweis gegen den
+      zitierten Fehler und darf ihn nicht unterdruecken.
     """
     if not fehler_list or not schuelertext:
         return fehler_list or []
-    norm_text = " ".join(schuelertext.lower().split())
+    saetze = re.split(r"(?<=[.!?])\s+", schuelertext)
     behalten: list[dict] = []
     entfernt = 0
     for fehler in fehler_list:
@@ -1604,13 +1871,23 @@ def verify_fehler_extent(fehler_list: list[dict], schuelertext: str) -> list[dic
             entfernt += 1
             continue
 
-        # Korrektur kommt unveraendert im Text vor → Pseudo-Korrektur
-        if korrektur and len(korrektur) > 3:
-            if " ".join(korrektur.lower().split()) in norm_text:
-                # Nur wenn Zitat und Korrektur NICHT identisch (sonst drop_unbrauchbare)
-                if " ".join(zitat.lower().split()) != " ".join(korrektur.lower().split()):
-                    entfernt += 1
-                    continue
+        norm_zitat = " ".join(zitat.lower().split())
+        norm_korrektur = " ".join(korrektur.lower().split())
+
+        # Eine korrigierte Form im lokalen Satzkontext ist ein Unsicherheitssignal,
+        # aber keine ausreichende Grundlage, einen belegten Fehler zu entfernen.
+        if korrektur and len(korrektur) > 3 and norm_zitat != norm_korrektur:
+            lokaler_satz = next(
+                (
+                    " ".join(satz.lower().split())
+                    for satz in saetze
+                    if norm_zitat and norm_zitat in " ".join(satz.lower().split())
+                ),
+                "",
+            )
+            if norm_korrektur and norm_korrektur in lokaler_satz:
+                fehler = dict(fehler)
+                fehler["korrektur_lokal_ambig"] = True
 
         behalten.append(fehler)
     if entfernt:
@@ -1631,7 +1908,7 @@ def compute_vertrauensstufe(
     feedback_schema.json nicht.
 
     Signale:
-    - Exakter Zitat-Treffer + <=6 Woerter + Korrektur nicht im Text -> hoch
+    - Exakter Zitat-Treffer + <=6 Woerter ohne lokale Korrektur-Ambiguität -> hoch
     - Satzzeichen-streift getroffen, 7-12 Woerter, Titelanfang-ambig,
       Satzzeichen-Anhaengsel legitim, oder Vision-Modus -> mittel
     - Sonst (Restposten der ueberlebt hat) -> niedrig
@@ -1651,7 +1928,6 @@ def compute_vertrauensstufe(
             continue
 
         zitat = " ".join((fehler.get("zitat") or "").lower().split())
-        korrektur = " ".join((fehler.get("korrektur") or "").lower().split())
         wortanzahl = len(zitat.split())
 
         # Exakter Treffer?
@@ -1660,8 +1936,7 @@ def compute_vertrauensstufe(
         stripped_zitat = re.sub(r"[^\w\s]", "", zitat)
         streift = bool(stripped_zitat) and bool(stripped_text) and stripped_zitat in stripped_text
 
-        # Korrektur bereits im Text? (Pseudo-Korrektur-Signal)
-        korrektur_im_text = bool(korrektur) and len(korrektur) > 3 and korrektur in normalized_text
+        lokal_ambig = bool(fehler.get("korrektur_lokal_ambig"))
 
         # Titelanfang-ambig (R + "klein" + Absatzanfang)?
         titel_ambig = (
@@ -1671,9 +1946,9 @@ def compute_vertrauensstufe(
             and zitat.split()[0] in first_words
         )
 
-        if exakt and wortanzahl <= 6 and not korrektur_im_text and not titel_ambig:
+        if exakt and wortanzahl <= 6 and not lokal_ambig and not titel_ambig:
             fehler["vertrauensstufe"] = "hoch"
-        elif exakt or streift or titel_ambig or wortanzahl > 6:
+        elif exakt or streift or titel_ambig or lokal_ambig or wortanzahl > 6:
             fehler["vertrauensstufe"] = "mittel"
         else:
             fehler["vertrauensstufe"] = "niedrig"
@@ -1772,6 +2047,18 @@ def generate_srdp_detail(
 # ---------------------------------------------------------------------------
 
 _BEZ = {1: "Sehr gut", 2: "Gut", 3: "Befriedigend", 4: "Genügend", 5: "Nicht genügend"}
+
+# Deutsches Schulsystem (Sek I): übliche 1-6-Skala der Klassenarbeit. Die
+# internen Kriterien-Stufen (1=nicht erfüllt … 5=sehr gut) bleiben unverändert;
+# nur die Ausgabe-Note wird invertiert und um „ungenügend" erweitert.
+_BEZ_DE = {
+    1: "sehr gut",
+    2: "gut",
+    3: "befriedigend",
+    4: "ausreichend",
+    5: "mangelhaft",
+    6: "ungenügend",
+}
 
 # Kriteriumsnamen variieren je nach Rubrik (Deutsch/Englisch). Diese Zuordnung mappt die
 # vier SRDP-Hauptkriterien (kanonisch) auf die möglichen Schlüssel in `bewertung`/
@@ -1934,6 +2221,39 @@ def berechne_note_srdp(
     )
 
 
+def berechne_note_sachfach(
+    bewertung: dict,
+    land: str = "at",
+) -> dict:
+    """Berechnet eine Fachnote ausschließlich aus dem getrennten Sachfach-Objekt."""
+    werte = [
+        float(value.get("punkte", 3) if isinstance(value, dict) else value)
+        for value in bewertung.values()
+        if isinstance(value, dict) and value.get("punkte") is not None
+    ]
+    schnitt = sum(werte) / len(werte) if werte else 3.0
+    if land == "de":
+        note = 6 if schnitt <= 1.5 else max(1, min(6, round(6 - schnitt)))
+        bezeichnung = _BEZ_DE[note]
+        schema = "de-1-6"
+    else:
+        note = max(1, min(5, round(6 - schnitt)))
+        bezeichnung = _BEZ[note]
+        schema = "at-1-5"
+    return {
+        "note": note,
+        "bezeichnung": bezeichnung,
+        "durchschnitt": round(schnitt, 2),
+        "begruendung": (
+            f"Fachliche Sachfach-Bewertung aus {len(werte)} Kriterien; "
+            f"gewichteter Schnitt {schnitt:.2f}. Sprachrichtigkeit ist ergänzend."
+        ),
+        "quelle": "app_sachfach",
+        "land": land,
+        "bewertungsschema": schema,
+    }
+
+
 def berechne_note_unterstufe(
     bewertung: dict, gewichtung: dict | None = None
 ) -> dict:
@@ -1963,6 +2283,60 @@ def berechne_note_unterstufe(
         "durchschnitt": round(total, 2),
         "begruendung": f"Gewichteter Durchschnitt {total:.2f} ({detail_str}).",
         "quelle": "app",
+    }
+
+
+def berechne_note_de(
+    bewertung: dict, gewichtung: dict | None = None
+) -> dict:
+    """Notenberechnung für das deutsche Schulsystem (Klassenarbeit, Sek I): 1-6-Skala.
+
+    Die Kriterien-Stufen (1=nicht erfüllt … 5=sehr gut) sind identisch zu AT;
+    die Ausgabe-Note wird invertiert (Note = 6 − Stufe) und um „ungenügend"
+    erweitert. Sonderregel analog SRDP: Ist der gewichtete Schnitt ≤ 1,5
+    (Arbeit praktisch nicht erfüllt), wird direkt 6 erteilt.
+    """
+    if not gewichtung:
+        gewichtung = {
+            "inhalt": 0.25,
+            "textstruktur": 0.25,
+            "ausdruck": 0.25,
+            "sprachrichtigkeit": 0.25,
+        }
+
+    total = 0.0
+    details: dict[str, float] = {}
+    for key, weight in gewichtung.items():
+        val = bewertung.get(key, {})
+        stufe = float(val.get("punkte", 3) if isinstance(val, dict) else 3)
+        total += stufe * weight
+        details[key] = stufe
+
+    detail_str = ", ".join(f"{k}: Stufe {v:.0f}" for k, v in details.items())
+
+    if total <= 1.5:
+        return {
+            "note": 6,
+            "bezeichnung": _BEZ_DE[6],
+            "durchschnitt": round(total, 2),
+            "begruendung": (
+                f"Gewichteter Durchschnitt {total:.2f} ({detail_str}). "
+                "Arbeit nicht erfüllt — ungenügend."
+            ),
+            "quelle": "app",
+            "land": "de",
+            "bewertungsschema": "de-1-6",
+        }
+
+    note = max(1, min(6, round(6 - total)))
+    return {
+        "note": note,
+        "bezeichnung": _BEZ_DE[note],
+        "durchschnitt": round(total, 2),
+        "begruendung": f"Gewichteter Durchschnitt {total:.2f} ({detail_str}).",
+        "quelle": "app",
+        "land": "de",
+        "bewertungsschema": "de-1-6",
     }
 
 
@@ -2156,6 +2530,15 @@ def _erwartungshorizont_block(
     )
 
 
+def erwartungshorizont_version(text: str) -> str:
+    """Liefert eine stabile, datensparsame Fassung-ID für einen EH-Inhalt."""
+    normalized = (text or "").replace("\r\n", "\n").strip()
+    if not normalized:
+        return ""
+    digest = hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:16]
+    return f"sha256:{digest}"
+
+
 def save_erwartungshorizont_to_config(klasse: str, aufgabe: str, eh_filename: str) -> None:
     """Trägt den EH-Dateinamen in natascha_config.toml ein."""
     doc = _load_toml_doc()
@@ -2318,26 +2701,91 @@ def log_tui_error(paths: gf.ProjectPaths, message: str) -> None:
         f.write(f"[TUI] {message}\n")
 
 
+def kanonisches_fach(fach: str) -> str:
+    """Kanonisiert die Fach-Bezeichnung für Schema und Config-Mapping (L3).
+
+    LUA sendet die Fach-Enum klein ('englisch', 'deutsch'), während
+    feedback_schema.json (Enum) und rubric_mapping ('Deutsch'/'Englisch')
+    die kanonische Schreibweise erwarten. Andere Fächer werden getrimmt und
+    erstbuchstabiert übernommen.
+    """
+    f = (fach or "").strip()
+    if not f:
+        return ""
+    lower = f.lower()
+    if lower == "deutsch":
+        return "Deutsch"
+    if lower == "englisch":
+        return "Englisch"
+    return f[0].upper() + f[1:]
+
+
+_SACHFACH_KORREKTUR = {
+    "geschichte",
+    "geographie",
+    "sozialkunde",
+    "politik",
+    "religion",
+    "ethik",
+    "psychologie",
+    "philosophie",
+    "medien und demokratie",
+    "mediendemokratie",
+    "informatik",
+    "informatikki",
+    "informatik und künstliche intelligenz",
+}
+
+
+def ist_sachfach(fach: str) -> bool:
+    """Erkennt technische und sichtbare Bezeichnungen der unterstützten Sachfächer."""
+    return (fach or "").strip().casefold() in _SACHFACH_KORREKTUR
+
+
+def _sachfach_korrektur_hinweis(fach: str) -> str:
+    """Ergänzt die Analyse um eine fachliche, sprachlich getrennte Bewertung."""
+    if not ist_sachfach(fach):
+        return ""
+    return (
+        "SACHFACH-KORREKTUR (fachlich getrennt von Sprachrichtigkeit):\n"
+        "Erstelle zusätzlich zum allgemeinen 'bewertung'-Objekt ein separates "
+        "'sachfach_bewertung'-Objekt mit genau diesen möglichen Schlüsseln: "
+        "'operator_erfuellung', 'inhaltliche_genauigkeit', 'fachbegriffe' und "
+        "'erwartungshorizont_bezug'. Jedes verwendete Kriterium enthält "
+        "'stufe', 'punkte', 'staerken', 'schwaechen' und 'vorschlaege'. Prüfe "
+        "die Erfüllung des Operators, die inhaltliche Genauigkeit nur anhand "
+        "des Schülertexts und der vorliegenden Quellen bzw. des "
+        "Erwartungshorizonts, die fachlich präzise Verwendung von Begriffen und "
+        "die Abdeckung des Erwartungshorizonts. Erfinde keine Belege. "
+        "Sprachfehler bleiben im allgemeinen Fehlerobjekt ergänzend; sie "
+        "ersetzen keine fachliche Inhaltsbewertung.\n"
+    )
+
+
 def rubric_options_for(
     fach: str,
     schulstufe: str,
     config: dict[str, Any],
     current_rubric: str = "",
 ) -> list[str]:
-    """Gibt alle verfügbaren Rubrik-Dateien zurück, gefiltert nach Schulstufe.
+    """Gibt alle verfügbaren Rubrik-Dateien zurück, gefiltert nach Fach und Schulstufe.
 
-    Schulstufen-spezifische Rubriken werden getrennt; neutrale/custom Rubriken
-    bleiben in beiden Stufen auswählbar. Die aktuell zugewiesene Rubrik
-    erscheint immer in der Liste, auch wenn sie nicht zur Schulstufe passt.
+    Fach: Rubriken mit `fach:`-Header anderer Fächer werden ausgeschlossen
+    (L3 — zuvor sah eine Englisch-Klasse alle Deutsch-Rubriken). Rubriken ohne
+    Fach-Header bleiben "generic" und in beiden Fächern auswählbar; die aktuell
+    zugewiesene Rubrik erscheint immer, auch wenn sie nicht passt.
+    Schulstufen-spezifische Rubriken werden getrennt.
     """
     rubric_dir = resolve_path(config, "rubrics")
+    fach_kanon = kanonisches_fach(fach)
+    stufe_kanon = kanonische_schulstufe(schulstufe)
     _preferred: dict[tuple[str, str], list[str]] = {
         ("Deutsch", "Oberstufe"): ["srdp_deutsch_oberstufe.md"],
         ("Deutsch", "Unterstufe"): ["deutsch_unterstufe.md"],
         ("Englisch", "Unterstufe"): ["englisch_a2.md"],
         ("Englisch", "Oberstufe"): ["srdp_englisch_b2.md", "srdp_englisch_b1.md"],
     }
-    preferred = _preferred.get((fach, schulstufe), [])
+    preferred = _preferred.get((fach_kanon, stufe_kanon), [])
     all_rubrics = sorted(
         f.name
         for f in rubric_dir.glob("*.md")
@@ -2353,13 +2801,38 @@ def rubric_options_for(
             return "oberstufe"
         return "generic"
 
-    stufe_lower = schulstufe.lower()
+    def _rubrik_fach_key(value: str) -> str:
+        """Vergleicht Fachnamen tolerant zwischen UI-Akzenten und Enum-Alias."""
+        return (
+            (value or "")
+            .strip()
+            .casefold()
+            .replace("ä", "ae")
+            .replace("ö", "oe")
+            .replace("ü", "ue")
+            .replace("ß", "ss")
+        )
+
+    def _fach_match(filename: str) -> bool:
+        if not fach_kanon:
+            return True
+        try:
+            text = (rubric_dir / filename).read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return True  # Unlesbar nicht hart rausfiltern (Muster R3, 4B-fix)
+        header_fach = parse_rubrik_header(text).get("fach", "").strip()
+        if not header_fach:
+            return True
+        return _rubrik_fach_key(header_fach) == _rubrik_fach_key(fach_kanon)
+
+    stufe_lower = (schulstufe or "").strip().lower()
     if stufe_lower == "unterstufe":
         filtered = [f for f in all_rubrics if _stage(f) in ("unterstufe", "generic")]
     elif stufe_lower == "oberstufe":
         filtered = [f for f in all_rubrics if _stage(f) in ("oberstufe", "generic")]
     else:
         filtered = all_rubrics
+    filtered = [f for f in filtered if _fach_match(f)]
 
     result = [f for f in preferred if f in filtered]
     result += [f for f in filtered if f not in result]
@@ -2372,7 +2845,18 @@ def rubric_options_for(
     return result
 
 
+def kanonische_schulstufe(schulstufe: str) -> str:
+    """Kanonisiert die Schulstufe für das rubric_mapping ('unterstufe' → 'Unterstufe')."""
+    s = (schulstufe or "").strip()
+    if not s:
+        return ""
+    stufe_map = {"oberstufe": "Oberstufe", "unterstufe": "Unterstufe"}
+    return stufe_map.get(s.lower(), s)
+
+
 def default_rubric_for(fach: str, schulstufe: str, config: dict[str, Any]) -> str:
+    fach = kanonisches_fach(fach)
+    schulstufe = kanonische_schulstufe(schulstufe)
     mapping = config.get("rubric_mapping", {})
     configured = mapping.get(f"{fach}+{schulstufe}")
     options = rubric_options_for(fach, schulstufe, config)
@@ -2515,12 +2999,17 @@ def _call_ollama_native(
             data = json.loads(resp.read())
         return data["message"]["content"]
     except urllib.error.HTTPError as e:
-        body = e.read().decode("utf-8", errors="replace")
-        return f"FEHLER: HTTP {e.code}: {body[:400]}"
-    except Exception as e:
+        if e.code == 429:
+            return "FEHLER: [rate_limited] Das lokale KI-Limit ist erreicht. Bitte manuell erneut versuchen."
+        return "FEHLER: [provider_unavailable] Das lokale KI-Modell ist derzeit nicht verfügbar."
+    except (urllib.error.URLError, TimeoutError, ConnectionError):
         if cancel_event is not None and cancel_event.is_set():
             return "FEHLER: Abgebrochen"
-        return f"FEHLER: Ollama-Aufruf fehlgeschlagen: {e}"
+        return "FEHLER: [network] Das lokale KI-Modell ist nicht erreichbar. Bitte Verbindung prüfen."
+    except Exception:
+        if cancel_event is not None and cancel_event.is_set():
+            return "FEHLER: Abgebrochen"
+        return "FEHLER: [provider_unavailable] Der lokale KI-Aufruf ist fehlgeschlagen."
 
 
 def _call_openai_compat(
@@ -2575,38 +3064,37 @@ def _call_openai_compat(
         "Authorization": f"Bearer {api_key}",
     }
     req = urllib.request.Request(url, data=payload, headers=headers, method="POST")
-    retry_status = {429, 503}
-    max_retries = 2  # 2x automatisch wiederholen (2s, 4s), dann Fehler.
-    for attempt in range(max_retries + 1):
-        try:
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
-                resp_data = json.loads(resp.read())
-            choice = (resp_data.get("choices") or [{}])[0]
-            message = choice.get("message", {}) or {}
-            finish_reason = choice.get("finish_reason", "")
-            content = message.get("content", "") or ""
-            if not str(content).strip() and finish_reason == "length":
-                return (
-                    "FEHLER: Antwort abgeschnitten (finish_reason=length) — "
-                    "max_tokens zu niedrig (Reasoning verbraucht das Budget)."
-                )
-            if not str(content).strip():
-                reasoning_content = message.get("reasoning_content", "") or ""
-                if str(reasoning_content).strip():
-                    return reasoning_content
-                return "FEHLER: Leere Antwort von OpenAI-kompatibler API"
-            return content
-        except urllib.error.HTTPError as e:
-            err_body = e.read().decode("utf-8", errors="replace")
-            should_retry = e.code in retry_status and attempt < max_retries
-            if should_retry:
-                time.sleep(2**(attempt + 1))
-                continue
-            return f"FEHLER: HTTP {e.code}: {err_body[:400]}"
-        except Exception as e:
-            if cancel_event is not None and cancel_event.is_set():
-                return "FEHLER: Abgebrochen"
-            return f"FEHLER: API-Aufruf fehlgeschlagen: {e}"
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            resp_data = json.loads(resp.read())
+        choice = (resp_data.get("choices") or [{}])[0]
+        message = choice.get("message", {}) or {}
+        finish_reason = choice.get("finish_reason", "")
+        content = message.get("content", "") or ""
+        if finish_reason == "length":
+            return "FEHLER: [output_truncated] Die KI-Antwort wurde abgeschnitten. Dieser Lauf wurde nicht gespeichert; bitte später manuell erneut versuchen."
+        if not str(content).strip():
+            reasoning_content = message.get("reasoning_content", "") or ""
+            if str(reasoning_content).strip():
+                return reasoning_content
+            return "FEHLER: [schema_invalid] Der Anbieter hat keine auswertbare Antwort geliefert."
+        return content
+    except urllib.error.HTTPError as e:
+        if e.code == 429:
+            return "FEHLER: [rate_limited] Das Anbieter-Limit ist erreicht. Bitte 1–2 Minuten warten und manuell erneut versuchen."
+        if e.code in (401, 403):
+            return "FEHLER: [provider_unavailable] Der Anbieter hat die Anfrage abgelehnt. Bitte API-Zugang und Anbieterauswahl prüfen."
+        if e.code == 400:
+            return "FEHLER: [schema_invalid] Der Anbieter konnte die strukturierte Anfrage nicht verarbeiten. Bitte Modell/Format prüfen."
+        return "FEHLER: [provider_unavailable] Der KI-Anbieter ist derzeit nicht verfügbar. Bitte später erneut versuchen."
+    except (urllib.error.URLError, TimeoutError, ConnectionError):
+        if cancel_event is not None and cancel_event.is_set():
+            return "FEHLER: Abgebrochen"
+        return "FEHLER: [network] Keine Verbindung zum ausgewählten KI-Anbieter. Bitte Verbindung prüfen und manuell erneut versuchen."
+    except Exception:
+        if cancel_event is not None and cancel_event.is_set():
+            return "FEHLER: Abgebrochen"
+        return "FEHLER: [provider_unavailable] Die Anfrage an den ausgewählten KI-Anbieter ist fehlgeschlagen."
 
 
 # ── Token-Schaetzung & Kontext-Budget ────────────────────────────────────
@@ -2619,9 +3107,9 @@ _MODEL_LIMITS: dict[str, dict[str, int]] = {
     "mistral-small-2603": {"context": 256_000, "max_output": 16_000},
     "mistral-small-latest": {"context": 256_000, "max_output": 16_000},
     # DeepSeek
-    "deepseek-chat": {"context": 128_000, "max_output": 8_000},
-    "deepseek-v4-pro": {"context": 128_000, "max_output": 16_000},
-    "deepseek-flash": {"context": 64_000, "max_output": 8_000},
+    "deepseek-chat": {"context": 128_000, "max_output": 16_000},
+    "deepseek-v4-pro": {"context": 128_000, "max_output": 32_000},
+    "deepseek-flash": {"context": 1_000_000, "max_output": 32_000},
     # Claude
     "claude-sonnet-4-6": {"context": 200_000, "max_output": 32_000},
     "claude-opus-4-8": {"context": 200_000, "max_output": 32_000},
@@ -2682,7 +3170,14 @@ def _dynamic_max_tokens(model: str, prompt: str) -> int:
     prompt_tokens = _estimate_tokens(prompt)
 
     # Dynamische Berechnung basierend auf Input-Groesse
-    if prompt_tokens < 3000:
+    if model.lower().startswith("deepseek"):
+        if prompt_tokens < 3000:
+            needed = 8192
+        elif prompt_tokens < 6000:
+            needed = 16384
+        else:
+            needed = 32768
+    elif prompt_tokens < 3000:
         needed = 4096   # kurze Texte: 4k Output
     elif prompt_tokens < 6000:
         needed = 8192   # mittlere Texte: 8k Output
@@ -2693,8 +3188,8 @@ def _dynamic_max_tokens(model: str, prompt: str) -> int:
     return min(model_max, max(4096, needed))
 
 
-def _should_retry_with_stable_model(response: str) -> bool:
-    """Erkennt typische Provider-Antworten fuer nicht verfuegbare Modellnamen."""
+def _is_model_unavailable_error(response: str) -> bool:
+    """Erkennt typische Fehlermeldungen zu nicht verfügbaren Modellen."""
     if not response.startswith("FEHLER:"):
         return False
     lowered = response.lower()
@@ -2710,26 +3205,6 @@ def _should_retry_with_stable_model(response: str) -> bool:
         "not available",
     )
     return any(marker in lowered for marker in markers)
-
-
-def _with_model_fallback(
-    provider: str,
-    model: str,
-    fallback_model: str,
-    call: Any,
-) -> str:
-    response = call(model)
-    if model != fallback_model and _should_retry_with_stable_model(response):
-        fallback_response = call(fallback_model)
-        if not fallback_response.startswith("FEHLER:"):
-            logging.warning(
-                "Modell '%s' (%s) nicht verfuegbar; automatisch mit '%s' wiederholt.",
-                model,
-                provider,
-                fallback_model,
-            )
-            return fallback_response
-    return response
 
 
 def api_key_available(config: dict[str, Any]) -> bool:
@@ -2770,10 +3245,12 @@ def run_llm_api(
     provider = api_cfg.get("provider", "anthropic").lower()
     timeout = config.get("agent", {}).get("timeout_seconds", 120)
     model = api_cfg.get("model", "")
+    if not model:
+        return "FEHLER: [provider_unavailable] Für den ausgewählten Anbieter ist kein Modell festgelegt. Bitte Modell ausdrücklich auswählen."
 
     if provider == "anthropic":
         return run_anthropic_api(
-            prompt, model or "claude-sonnet-4-6", timeout, cancel_event=cancel_event,
+            prompt, model, timeout, cancel_event=cancel_event,
             schema=schema, vision_content=vision_content,
         )
 
@@ -2781,23 +3258,22 @@ def run_llm_api(
         api_key = os.environ.get("DEEPSEEK_API_KEY", "")
         if not api_key:
             return "FEHLER: DEEPSEEK_API_KEY nicht gesetzt (.env prüfen)"
-        selected_model = model or "deepseek-chat"
-        return _with_model_fallback(
-            provider,
+        selected_model = model
+        budget_error = _check_context_budget(provider, selected_model, prompt)
+        if budget_error:
+            return budget_error
+        return _call_openai_compat(
+            "https://api.deepseek.com/v1",
+            api_key,
             selected_model,
-            "deepseek-chat",
-            lambda active_model: _call_openai_compat(
-                "https://api.deepseek.com/v1",
-                api_key,
-                active_model,
-                prompt,
-                timeout,
-                cancel_event=cancel_event,
-                extra_body=None if "reasoner" in active_model.lower() else {
-                    "response_format": {"type": "json_object"}
-                },
-                max_tokens=16384,
-            ),
+            prompt,
+            timeout,
+            cancel_event=cancel_event,
+            extra_body={
+                "response_format": {"type": "json_object"},
+                "thinking": {"type": "disabled"},
+            },
+            max_tokens=_dynamic_max_tokens(selected_model, prompt),
         )
 
     if provider == "qwen":
@@ -2808,21 +3284,16 @@ def run_llm_api(
             "QWEN_BASE_URL",
             os.environ.get("DASHSCOPE_BASE_URL", "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"),
         )
-        selected_model = model or "qwen-plus"
-        return _with_model_fallback(
-            provider,
+        selected_model = model
+        return _call_openai_compat(
+            base_url,
+            api_key,
             selected_model,
-            "qwen-plus",
-            lambda active_model: _call_openai_compat(
-                base_url,
-                api_key,
-                active_model,
-                prompt,
-                timeout,
-                extra_body={"enable_thinking": False},
-                cancel_event=cancel_event,
-                vision_content=vision_content,
-            ),
+            prompt,
+            timeout,
+            extra_body={"enable_thinking": False},
+            cancel_event=cancel_event,
+            vision_content=vision_content,
         )
 
     if provider == "mistral":
@@ -2830,7 +3301,7 @@ def run_llm_api(
         if not api_key:
             return "FEHLER: MISTRAL_API_KEY nicht gesetzt (.env prüfen)"
         base_url = os.environ.get("MISTRAL_BASE_URL", "https://api.mistral.ai/v1")
-        selected_model = model or "mistral-small-latest"
+        selected_model = model
         # Kontext-Budget pruefen vor dem API-Aufruf
         budget_error = _check_context_budget(provider, selected_model, prompt)
         if budget_error:
@@ -2846,8 +3317,8 @@ def run_llm_api(
             cancel_event=cancel_event,
             max_tokens=max_out,
         )
-        # Kein Fallback bei Mistral — klarer Fehler statt stiler Wechsel
-        if response.startswith("FEHLER:") and _should_retry_with_stable_model(response):
+        # Keine automatische Ersatzmodellwahl — klarer Fehler statt Anbieterwechsel.
+        if response.startswith("FEHLER:") and _is_model_unavailable_error(response):
             return (
                 f"FEHLER: Modell '{selected_model}' ist nicht verfügbar. "
                 "Bitte in den Einstellungen ein anderes Modell wählen."
@@ -2860,7 +3331,7 @@ def run_llm_api(
             return "FEHLER: KIMI_API_KEY nicht gesetzt (.env prüfen)"
         base_url = os.environ.get("KIMI_BASE_URL", "https://api.moonshot.ai/v1")
         return _call_openai_compat(
-            base_url, api_key, model or "moonshot-v1-128k", prompt, timeout,
+            base_url, api_key, model, prompt, timeout,
             cancel_event=cancel_event,
         )
 
@@ -2868,21 +3339,16 @@ def run_llm_api(
         api_key = os.environ.get("OPENAI_API_KEY", "")
         if not api_key:
             return "FEHLER: OPENAI_API_KEY nicht gesetzt (.env prüfen)"
-        selected_model = model or "gpt-4o"
-        return _with_model_fallback(
-            provider,
-            selected_model,
-            "gpt-4o",
-            lambda active_model: _call_openai_compat(
-                "https://api.openai.com/v1", api_key, active_model, prompt, timeout,
-                cancel_event=cancel_event, vision_content=vision_content,
-            ),
+        selected_model = model
+        return _call_openai_compat(
+            "https://api.openai.com/v1", api_key, selected_model, prompt, timeout,
+            cancel_event=cancel_event, vision_content=vision_content,
         )
 
     if provider == "ollama":
         base_url = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
         return _call_ollama_native(
-            base_url, model or "qwen3.5:27b", prompt, timeout, cancel_event=cancel_event,
+            base_url, model, prompt, timeout, cancel_event=cancel_event,
         )
 
     return (
@@ -2962,7 +3428,12 @@ def run_anthropic_api(
     except Exception as e:
         if cancel_event is not None and cancel_event.is_set():
             return "FEHLER: Abgebrochen"
-        return f"FEHLER: API-Aufruf fehlgeschlagen: {e}"
+        status = getattr(e, "status_code", None)
+        if status == 429:
+            return "FEHLER: [rate_limited] Das Anbieter-Limit ist erreicht. Bitte 1–2 Minuten warten und manuell erneut versuchen."
+        if isinstance(e, (TimeoutError, ConnectionError)) or "timeout" in type(e).__name__.lower():
+            return "FEHLER: [network] Keine Verbindung zum ausgewählten KI-Anbieter. Bitte später manuell erneut versuchen."
+        return "FEHLER: [provider_unavailable] Die Anfrage an den ausgewählten KI-Anbieter ist fehlgeschlagen."
 
 
 def check_agent_availability(config: dict[str, Any]) -> dict[str, bool]:

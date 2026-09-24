@@ -1,13 +1,13 @@
 # Durchführungsanleitung: Korrektur-UX Test
 
-**Version:** v1.3.5
+**Version:** v1.5.1 (Build-Kandidat)
 **Ziel:** Zwei realistische Korrektur-Fälle (Deutsch + Englisch) mit dem 4-Schritte-Dialog durchführen und strukturiertes Feedback einholen.
 
 ---
 
 ## Voraussetzungen
 
-- [ ] Installer `LUKA_1.3.5_x64-setup.exe` installiert
+- [ ] Installer des v1.5.1-Build-Kandidaten installiert
 - [ ] API-Schlüssel für mindestens einen Anbieter eingegeben
 - [ ] `seed_testdaten.py` ausgeführt (Klasse TEST-7a vorhanden)
 - [ ] Die Testperson kennt die App grundlegend (Erstellen von Unterlagen)
@@ -22,7 +22,7 @@
 |-------------|------|
 | **Klasse** | TEST-7a |
 | **Aufgabe** | SA1 (Schularbeit 1) |
-| **Dateien** | `apps/natascha/input/TEST-7a/Testschueler_Mona.docx`, `Testschueler_Max.docx`, `Testschueler_Mia.docx` |
+| **Dateien** | `apps/natascha/input/TEST-7a/Benchmark_DE-001.docx`, `Benchmark_DE-002.docx`, `Benchmark_DE-003.docx` |
 | **Fach** | Deutsch |
 | **Schulstufe** | Unterstufe (7. Klasse) |
 | **Erwartung** | 3 Abgaben, KI-Vorschläge mit Noten und Fehlern |
@@ -33,7 +33,7 @@
 |-------------|------|
 | **Klasse** | TEST-7a |
 | **Aufgabe** | Essay1 (English Essay) |
-| **Datei** | `apps/natascha/input/TEST-7a/Emma_Schmidt_English.docx` |
+| **Datei** | `apps/natascha/input/TEST-7a/benchmark_en_a2_essay.docx` |
 | **Fach** | Englisch |
 | **Schulstufe** | Unterstufe (7. Klasse) |
 | **Erwartung** | 1 Abgabe, KI-Vorschlag mit Note und Fehlern |
@@ -61,7 +61,7 @@ Die Testperson arbeitet den folgenden Ablauf selbstständig durch. **Nicht einwi
    - Aufgabe: "SA1" eingeben
    - "Weiter" klicken
 4. **Schritt 2 (Abgaben):**
-   - Dateien auswählen: `Testschueler_Mona.docx`, `Testschueler_Max.docx`, `Testschueler_Mia.docx`
+   - Dateien auswählen: `Benchmark_DE-001.docx`, `Benchmark_DE-002.docx`, `Benchmark_DE-003.docx`
    - Schülerzuordnung prüfen
    - Datenschutz-Pseudonymisierung: aktiv lassen
    - "Weiter" klicken
@@ -88,7 +88,7 @@ Gleicher Ablauf, nur mit einer Datei:
 
 1. **"Neue Analyse" klicken**
 2. **Schritt 1:** Klasse TEST-7a, Aufgabe "Essay1"
-3. **Schritt 2:** Nur `Emma_Schmidt_English.docx` wählen
+3. **Schritt 2:** Nur `benchmark_en_a2_essay.docx` wählen
 4. **Schritt 3:** Weiter
 5. **Schritt 4:** "KI-Vorschlag erstellen"
 6. **Ergebnis prüfen**

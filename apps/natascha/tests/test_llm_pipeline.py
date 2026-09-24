@@ -8,6 +8,8 @@ import threading
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import natascha_core as nc
@@ -23,9 +25,9 @@ def _load_config() -> dict:
     return nc.load_config()
 
 
-def _load_tamara_fixture() -> dict:
+def _load_beispiel_fixture() -> dict:
     return json.loads(
-        (FIXTURES / "mia_feedback.json").read_text(encoding="utf-8")
+        (FIXTURES / "beispiel_deutsch_mit_fehlern.json").read_text(encoding="utf-8")
     )
 
 
@@ -75,11 +77,11 @@ def test_run_llm_api_dispatches_mistral_openai_compatible(monkeypatch) -> None:
     assert kwargs["extra_body"] == {"response_format": {"type": "json_object"}}
 
 
-def test_run_llm_api_dispatches_deepseek_reasoner_with_more_tokens(monkeypatch) -> None:
+def test_run_llm_api_dispatches_deepseek_with_thinking_disabled_and_dynamic_budget(monkeypatch) -> None:
     monkeypatch.setenv("DEEPSEEK_API_KEY", "test-deepseek-key")
     config = _load_config()
     config["api"]["provider"] = "deepseek"
-    config["api"]["model"] = "deepseek-reasoner"
+    config["api"]["model"] = "deepseek-flash"
 
     calls = []
 
@@ -93,10 +95,13 @@ def test_run_llm_api_dispatches_deepseek_reasoner_with_more_tokens(monkeypatch) 
     base_url, api_key, model, prompt, kwargs = calls[0]
     assert base_url == "https://api.deepseek.com/v1"
     assert api_key == "test-deepseek-key"
-    assert model == "deepseek-reasoner"
+    assert model == "deepseek-flash"
     assert prompt == "Ping"
-    assert kwargs["extra_body"] is None
-    assert kwargs["max_tokens"] == 16384
+    assert kwargs["extra_body"] == {
+        "response_format": {"type": "json_object"},
+        "thinking": {"type": "disabled"},
+    }
+    assert kwargs["max_tokens"] == 8192
 
 
 class _FakeOpenAICompatResponse:
@@ -165,7 +170,30 @@ def test_length_error_when_answer_missing(monkeypatch) -> None:
         timeout=5,
     )
 
-    assert result.startswith("FEHLER: Antwort abgeschnitten")
+    assert result.startswith("FEHLER: [output_truncated]")
+
+
+def test_truncated_partial_answer_is_not_returned_as_valid_result(monkeypatch) -> None:
+    payload = {"choices": [{"finish_reason": "length", "message": {"content": '{"note":'}}]}
+    monkeypatch.setattr(nc.urllib.request, "urlopen", lambda req, timeout=None: _FakeOpenAICompatResponse(payload))
+    result = nc._call_openai_compat("https://api.deepseek.com/v1", "key", "deepseek-flash", "Ping", timeout=5)
+    assert result.startswith("FEHLER: [output_truncated]")
+    assert "note" not in result
+
+
+def test_rate_limit_is_not_retried_and_raw_body_is_hidden(monkeypatch) -> None:
+    from urllib.error import HTTPError
+
+    calls = []
+
+    def fail_with_429(req, timeout=None):
+        calls.append(1)
+        raise HTTPError(req.full_url, 429, "limited", {}, None)
+
+    monkeypatch.setattr(nc.urllib.request, "urlopen", fail_with_429)
+    result = nc._call_openai_compat("https://api.deepseek.com/v1", "key", "deepseek-flash", "Ping", timeout=5)
+    assert result.startswith("FEHLER: [rate_limited]")
+    assert calls == [1]
 
 
 # =====================================================================
@@ -224,8 +252,8 @@ class TestValidateAgainstSchema:
     """Tests für die Schema-Validierung."""
 
     def test_valid_fixture_passes(self) -> None:
-        """Tamara-Fixture sollte ohne Fehler validieren."""
-        data = _load_tamara_fixture()
+        """Synthetisches Fixture sollte ohne Fehler validieren."""
+        data = _load_beispiel_fixture()
         schema = nc.load_schema(_load_config())
         errors = nc.validate_against_schema(data, schema)
         assert errors == [], f"Unerwartete Fehler: {errors}"
@@ -239,7 +267,7 @@ class TestValidateAgainstSchema:
 
     def test_invalid_note_range(self) -> None:
         """Note außerhalb von 1-5 sollte Fehler liefern."""
-        data = _load_tamara_fixture()
+        data = _load_beispiel_fixture()
         data["notenempfehlung"]["note"] = 7
         schema = nc.load_schema(_load_config())
         errors = nc.validate_against_schema(data, schema)
@@ -291,7 +319,7 @@ class TestRunLlmAnalysis:
 
     def _mock_api_success(self, *args, **kwargs) -> str:
         """Simuliert eine gültige JSON-Antwort."""
-        fixture = _load_tamara_fixture()
+        fixture = _load_beispiel_fixture()
         return json.dumps(fixture, ensure_ascii=False)
 
     def _mock_api_invalid_json(self, *args, **kwargs) -> str:
@@ -324,7 +352,25 @@ class TestRunLlmAnalysis:
             )
         assert errors == []
         assert data is not None
-        assert data["schueler"] == "Mia Muster"
+        assert data["schueler"] == "TokenA SuffixA"
+
+    def test_note_begruendung_warnung_ist_strukturiert_und_getrennt(self) -> None:
+        config = self._make_config()
+        fixture = _load_beispiel_fixture()
+        fixture["notenempfehlung"] = {"note": 1, "begruendung": "schwache Argumentation"}
+        with patch.object(nc, "run_llm_api", return_value=json.dumps(fixture, ensure_ascii=False)):
+            data, errors = nc.run_llm_analysis(
+                docx_text="Testtext",
+                rubric_content="Rubrik",
+                fach="Deutsch",
+                schulstufe="Oberstufe",
+                textsorte="Eroerterung",
+                config=config,
+                bewertungsmodus="unbenotet",
+            )
+        assert data is not None
+        assert data["qualitaetswarnungen"][0]["code"] == "note_begruendung_widerspruch"
+        assert any("Qualitätswarnung:" in error for error in errors)
 
     def test_direct_ausgangstext_is_kept_in_analysis_prompt(self) -> None:
         """Der aus LUA kommende Textinhalt darf nicht als Dateipfad behandelt werden."""
@@ -391,7 +437,7 @@ class TestRunLlmAnalysis:
             )
         assert data is None
         assert len(errors) > 0
-        assert "fehlgeschlagen" in errors[-1].lower()
+        assert "schema_invalid" in errors[-1]
 
     def test_api_error_no_retry(self, tmp_path: Path) -> None:
         """API-Fehler sollte sofort abbrechen (kein Retry)."""
@@ -413,6 +459,30 @@ class TestRunLlmAnalysis:
                 max_retries=3,
             )
         assert call_count[0] == 1  # Nur ein Aufruf, kein Retry
+        assert data is None
+        assert "FEHLER" in errors[0]
+
+    def test_zero_retries_still_runs_the_initial_analysis(self, tmp_path: Path) -> None:
+        """0 unterdrückt Wiederholungen, aber niemals den Erstversuch."""
+        config = self._make_config()
+        call_count = [0]
+
+        def mock_api_error(*args, **kwargs) -> str:
+            call_count[0] += 1
+            return self._mock_api_error()
+
+        with patch.object(nc, "run_llm_api", side_effect=mock_api_error):
+            data, errors = nc.run_llm_analysis(
+                docx_text="Testtext",
+                rubric_content="Rubrik",
+                fach="Englisch",
+                schulstufe="Oberstufe",
+                textsorte="Essay",
+                config=config,
+                max_retries=0,
+            )
+
+        assert call_count[0] == 1
         assert data is None
         assert "FEHLER" in errors[0]
 
@@ -475,7 +545,57 @@ def test_extract_json_handles_nested_braces():
             )
         assert call_count[0] == 3  # 2 Analyse-Versuche + 1 SRDP-Detail-Call
         assert data is not None
-        assert data["schueler"] == "Mia Muster"
+        assert data["schueler"] == "TokenA SuffixA"
+
+    def test_srdp_detail_wird_fuer_englisch_uebersprungen(self) -> None:
+        """L3: Der deutschlehrkraft-spezifische SRDP-Zweitcall läuft nicht für EN."""
+        config = self._make_config()
+        api_calls = [0]
+
+        def mock_api(*args, **kwargs) -> str:
+            api_calls[0] += 1
+            fixture = _load_beispiel_fixture()
+            fixture["fach"] = "Englisch"
+            fixture["schulstufe"] = "Oberstufe"
+            return json.dumps(fixture, ensure_ascii=False)
+
+        with patch.object(nc, "run_llm_api", side_effect=mock_api):
+            with patch.object(nc, "generate_srdp_detail") as srdp_mock:
+                data, errors = nc.run_llm_analysis(
+                    docx_text="Testtext",
+                    rubric_content="Rubrik",
+                    fach="Englisch",
+                    schulstufe="Oberstufe",
+                    textsorte="Essay",
+                    config=config,
+                    max_retries=3,
+                )
+
+        srdp_mock.assert_not_called()
+        assert api_calls[0] == 1  # nur die Hauptanalyse, kein Zweitcall
+        assert data is not None
+        assert data.get("srdp_detail") is None
+        # Note kommt aus den Kriterien (KRITERIUM_KEY_VARIANTS-Fallback)
+        assert data.get("notenempfehlung", {}).get("note") is not None
+        assert data.get("fach") == "Englisch"
+        assert errors is not None
+
+    def test_srdp_detail_laeuft_fuer_deutsch_weiterhin(self) -> None:
+        """AT-Deutsch behält den SRDP-Zweitcall (Benchmark-Baseline)."""
+        config = self._make_config()
+        with patch.object(nc, "run_llm_api", side_effect=self._mock_api_success):
+            with patch.object(nc, "generate_srdp_detail", return_value=None) as srdp_mock:
+                data, errors = nc.run_llm_analysis(
+                    docx_text="Testtext",
+                    rubric_content="Rubrik",
+                    fach="Deutsch",
+                    schulstufe="Oberstufe",
+                    textsorte="Eroerterung",
+                    config=config,
+                    max_retries=3,
+                )
+        srdp_mock.assert_called_once()
+        assert data is not None
 
 
 # =====================================================================
@@ -491,12 +611,27 @@ class TestFehlerAnweisungen:
         assert "Jänner" in text
         assert "bin gesessen" in text
         assert "das/dass-Unterscheidung" in text
-        # Längenkopplung statt Pauschalspanne
+        # Wortzahl-Info ohne numerischen Fehler-Anker
         assert "etwa 300 Wörter" in text
-        assert "je 25–40 Wörter" in text
-        assert "15–30 Sprachfehler" not in text
+        assert "KEIN Maß dafür" in text
+        assert "je 25–40 Wörter" not in text
         # kanonisches A-Label (N3)
         assert "A=Ausdruck/Stil" in text
+
+    def test_fehlerdichte_ab_variante_ist_explizit_und_produktionsdefault_neutral(self) -> None:
+        neutral = nc._fehler_anweisungen("Deutsch", wortanzahl=300)
+        legacy = nc._fehler_anweisungen(
+            "Deutsch", wortanzahl=300, dichte_prompt_variante="legacy"
+        )
+
+        assert "je 25–40 Wörter" not in neutral
+        assert "Beginne ohne erwartete Fehlerzahl" in neutral
+        assert "je 25–40 Wörter" in legacy
+        assert "je 25–40 Wörter" not in nc._fehler_anweisungen("Deutsch")
+
+    def test_unbekannte_fehlerdichte_ab_variante_wird_abgelehnt(self) -> None:
+        with pytest.raises(ValueError, match="Promptvariante"):
+            nc._fehler_anweisungen("Deutsch", dichte_prompt_variante="unbekannt")
 
     def test_englisch_ohne_deutsche_checkliste(self) -> None:
         text = nc._fehler_anweisungen("Englisch", wortanzahl=250)
@@ -505,9 +640,45 @@ class TestFehlerAnweisungen:
         assert "das/dass" not in text
         assert "ÖSTERREICHISCHES STANDARDDEUTSCH" not in text
 
-    def test_vision_ohne_wortanzahl_ohne_zahlenanker(self) -> None:
+    def test_weitere_sprachfaecher_bekommen_eigene_checklisten(self) -> None:
+        franz = nc._fehler_anweisungen("Französisch")
+        span = nc._fehler_anweisungen("Spanisch")
+        ital = nc._fehler_anweisungen("Italienisch")
+        latein = nc._fehler_anweisungen("Latein")
+
+        assert "Akzente" in franz and "Genus und Numerus" in franz
+        assert "ser/estar" in span and "por/para" in span
+        assert "Doppelkonsonanten" in ital
+        assert "Kasusfunktionen" in latein and "Ablativkonstruktionen" in latein
+        assert "das/dass" not in franz
+        assert "ÖSTERREICHISCHES STANDARDDEUTSCH" not in latein
+
+    def test_weitere_sprachfaecher_erhalten_textsorten_hinweis(self) -> None:
+        prompt = nc._sprachfach_prompt_hinweis("Französisch", "Article")
+        assert "Französisch" in prompt
+        assert "Article" in prompt
+        assert "nicht nach einem deutschen Textsortenmuster" in prompt
+
+        latin_prompt = nc._sprachfach_prompt_hinweis("Latein", "Übersetzung")
+        assert "kein CEFR-Fach" in latin_prompt
+        assert "Übersetzungsgenauigkeit" in latin_prompt
+
+    def test_weitere_sprachfach_hinweis_ist_im_analyseprompt_enthalten(self) -> None:
+        prompt = nc.build_analysis_prompt(
+            "Je suis ici.",
+            "## JSON-Kriterien\n- `aufgabenerfuellung`",
+            "Französisch",
+            "Oberstufe",
+            "Article",
+            {"paths": {"schema": "feedback_schema.json"}},
+        )
+        assert "SPRACHFACH-HINWEIS: Dies ist Französisch" in prompt
+        assert "Akzente, Genus/Numerus" in prompt
+
+    def test_prompt_ohne_wortanzahl_erlaubt_fehlerfreien_text(self) -> None:
         text = nc._fehler_anweisungen("Deutsch")
-        assert "auffällig wenige Fehler" in text
+        assert "Ein fehlerfreier Text ist möglich" in text
+        assert "auffällig wenige Fehler" not in text
         assert "Wörter. Faustregel" not in text
 
 
@@ -672,15 +843,30 @@ class TestVerifyFehlerExtent:
         fehler = [{"zitat": "Bucher die sie", "korrektur": "Bücher, die sie", "typ": "Z"}]
         assert len(nc.verify_fehler_extent(fehler, self.TEXT)) == 1
 
-    def test_korrektur_bereits_im_text_entfernt(self) -> None:
-        # Korrektur "positive Entwicklung" kommt im Text vor → Pseudo-Korrektur
+    def test_korrektur_an_anderer_stelle_laesst_belegten_fehler_stehen(self) -> None:
+        text = "Das ist eine gute Entwicklung. Insgesamt ist das eine positive Entwicklung."
         fehler = [{"zitat": "gute Entwicklung", "korrektur": "positive Entwicklung", "typ": "A"}]
-        assert nc.verify_fehler_extent(fehler, self.TEXT) == []
+        result = nc.verify_fehler_extent(fehler, text)
+        assert len(result) == 1
+        assert "korrektur_lokal_ambig" not in result[0]
+
+    def test_korrektur_im_selben_satz_wird_nur_markiert(self) -> None:
+        text = "Die gute Entwicklung, also eine positive Entwicklung, hilft allen."
+        fehler = [{"zitat": "gute Entwicklung", "korrektur": "positive Entwicklung", "typ": "A"}]
+        result = nc.verify_fehler_extent(fehler, text)
+        assert len(result) == 1
+        assert result[0]["korrektur_lokal_ambig"] is True
 
     def test_tatsaechliche_korrektur_behalten(self) -> None:
         # Korrektur kommt NICHT im Text vor → echte Korrektur
         fehler = [{"zitat": "Bucher die", "korrektur": "Bücher, die", "typ": "Z"}]
         assert len(nc.verify_fehler_extent(fehler, self.TEXT)) == 1
+
+    def test_lokale_ambiguitaet_senkt_vertrauen(self) -> None:
+        text = "Die gute Entwicklung, also eine positive Entwicklung, hilft allen."
+        fehler = [{"zitat": "gute Entwicklung", "korrektur": "positive Entwicklung", "typ": "A"}]
+        filtered = nc.verify_fehler_extent(fehler, text)
+        assert nc.compute_vertrauensstufe(filtered, text)[0]["vertrauensstufe"] == "mittel"
 
 
 class TestComputeVertrauensstufe:
@@ -789,7 +975,7 @@ class TestDynamicMaxTokens:
     def test_nie_mehr_als_modell_limit(self) -> None:
         # mistral-small: max_output 16k → 12288 passt; bei Modell mit 8k max → 8k
         prompt = "x" * (7000 * 4)
-        assert nc._dynamic_max_tokens("deepseek-chat", prompt) == 8000
+        assert nc._dynamic_max_tokens("deepseek-chat", prompt) == 16000
 
 
 class TestMistralKeinFallback:
@@ -835,3 +1021,160 @@ class TestMistralKeinFallback:
         assert "Text zu lang" in result
         # API wurde nie aufgerufen
         assert calls == []
+
+
+class TestLandKorrektur:
+    """L2: land-Durchreiche — AT-Pfad unverändert (Benchmark-Baseline), DE-Variante."""
+
+    @staticmethod
+    def _config() -> dict:
+        # Minimales Config-Shape für load_schema (resolve_path).
+        return {"paths": {"schema": "feedback_schema.json"}}
+
+    def test_at_prompt_unchanged_default(self) -> None:
+        """Ohne land-Parameter startet der Prompt wie bisher (österreichisch)."""
+        prompt = nc.build_analysis_prompt(
+            "Schülertext", "RASTER", "Deutsch", "Oberstufe", "Kommentar", self._config()
+        )
+        assert prompt.startswith(
+            "Du bist ein Korrekturassistent für österreichische Gymnasium-Schularbeiten."
+        )
+        assert "Klassenarbeit" not in prompt
+        assert "ÖSTERREICHISCHES STANDARDDEUTSCH" in prompt
+
+    def test_de_prompt_klassenarbeit(self) -> None:
+        prompt = nc.build_analysis_prompt(
+            "Schülertext", "RASTER", "Deutsch", "Unterstufe", "Klassenarbeit",
+            self._config(), land="de",
+        )
+        assert prompt.startswith(
+            "Du bist ein Korrekturassistent für deutsche Klassenarbeiten (Gymnasium)."
+        )
+        assert "österreichische Gymnasium-Schularbeiten" not in prompt
+        assert "Standardvariante des Deutschen" in prompt
+
+    def test_fehler_anweisungen_land(self) -> None:
+        at = nc._fehler_anweisungen("Deutsch", 100)
+        de = nc._fehler_anweisungen("Deutsch", 100, land="de")
+        assert "ÖSTERREICHISCHES STANDARDDEUTSCH" in at
+        assert "ÖSTERREICHISCHES STANDARDDEUTSCH" not in de
+        assert "Begriff Klassenarbeiten sind KEIN Maß" in de
+        assert "Begriff Schularbeiten sind KEIN Maß" in at
+
+    def test_vision_prompt_land(self) -> None:
+        prompt = nc.build_vision_prompt(
+            "RASTER", "Deutsch", "Unterstufe", "KA", self._config(), land="de"
+        )
+        assert prompt.startswith(
+            "Du bist ein Korrekturassistent für deutsche Klassenarbeiten (Gymnasium)."
+        )
+
+
+def test_erwartungshorizont_version_is_stable_and_whitespace_tolerant() -> None:
+    assert nc.erwartungshorizont_version("# EH\nInhalt") == nc.erwartungshorizont_version(
+        "  # EH\r\nInhalt  "
+    )
+    assert nc.erwartungshorizont_version("") == ""
+    assert nc.erwartungshorizont_version("# EH\nInhalt").startswith("sha256:")
+
+    def test_sachfach_prompt_trennt_fachliche_bewertung(self) -> None:
+        prompt = nc.build_analysis_prompt(
+            "Schülertext", "RASTER", "geschichte", "Unterstufe", "Quellenanalyse",
+            self._config(),
+        )
+        assert "sachfach_bewertung" in prompt
+        assert "operator_erfuellung" in prompt
+        assert "Sprachfehler" in prompt
+
+    def test_sprachfach_prompt_bekommt_keinen_sachfach_block(self) -> None:
+        prompt = nc.build_analysis_prompt(
+            "Schülertext", "RASTER", "Deutsch", "Unterstufe", "Kommentar",
+            self._config(),
+        )
+        assert "sachfach_bewertung" not in prompt
+
+
+def test_berechne_note_sachfach_ignoriert_sprachkriterien() -> None:
+    note = nc.berechne_note_sachfach(
+        {
+            "operator_erfuellung": {"punkte": 5},
+            "inhaltliche_genauigkeit": {"punkte": 4},
+            "fachbegriffe": {"punkte": 3},
+            "erwartungshorizont_bezug": {"punkte": 4},
+        },
+        land="de",
+    )
+    assert note["note"] == 2
+    assert note["bewertungsschema"] == "de-1-6"
+    assert note["quelle"] == "app_sachfach"
+
+
+class TestBerechneNoteDe:
+    """L2: deutsche 1-6-Klassenarbeit-Skala."""
+
+    def test_solide_arbeit_note_2(self) -> None:
+        bewertung = {k: {"punkte": 4} for k in ("inhalt", "textstruktur", "ausdruck", "sprachrichtigkeit")}
+        note = nc.berechne_note_de(bewertung)
+        assert note["note"] == 2
+        assert note["bezeichnung"] == "gut"
+        assert note["bewertungsschema"] == "de-1-6"
+        assert note["land"] == "de"
+
+    def test_sehr_gut_note_1(self) -> None:
+        bewertung = {"inhalt": {"punkte": 5}, "textstruktur": {"punkte": 5},
+                     "ausdruck": {"punkte": 5}, "sprachrichtigkeit": {"punkte": 4}}
+        note = nc.berechne_note_de(bewertung)
+        assert note["note"] == 1
+        assert note["bezeichnung"] == "sehr gut"
+
+    def test_sonderregel_ungenuegend(self) -> None:
+        bewertung = {"inhalt": {"punkte": 1}, "textstruktur": {"punkte": 1},
+                     "ausdruck": {"punkte": 2}, "sprachrichtigkeit": {"punkte": 1}}
+        note = nc.berechne_note_de(bewertung)
+        assert note["note"] == 6
+        assert note["bezeichnung"] == "ungenügend"
+        assert "nicht erfüllt" in note["begruendung"]
+
+    def test_anderthalb_stunden_note_5(self) -> None:
+        # Schnitt 2.0 → Note 4 (ausreichend); knapp über der Sonderregel.
+        bewertung = {k: {"punkte": 2} for k in ("inhalt", "textstruktur", "ausdruck", "sprachrichtigkeit")}
+        note = nc.berechne_note_de(bewertung)
+        assert note["note"] == 4
+        assert note["bezeichnung"] == "ausreichend"
+
+    def test_gewichtung_wird_verwendet(self) -> None:
+        bewertung = {"inhalt": {"punkte": 5}, "textstruktur": {"punkte": 1},
+                     "ausdruck": {"punkte": 5}, "sprachrichtigkeit": {"punkte": 5}}
+        note = nc.berechne_note_de(bewertung, {"inhalt": 0.7, "textstruktur": 0.1,
+                                               "ausdruck": 0.1, "sprachrichtigkeit": 0.1})
+        # 0.7*5 + 0.3*1 = 4.6 → Note = round(6 − 4.6) = 1
+        assert note["note"] == 1
+        assert note["bezeichnung"] == "sehr gut"
+
+
+class TestKonsistenzwarnungFehlerVsNote:
+    """L2: advisory-Check Fehlerliste ↔ Sprachrichtigkeits-Stufe."""
+
+    def _bewertung(self, stufe: int) -> dict:
+        return {"sprachrichtigkeit": {"punkte": stufe}}
+
+    def test_viele_fehler_gute_note_warnt(self) -> None:
+        fehler = [{"zitat": "x"}] * 20
+        warnungen = nc.konsistenzwarnung_fehler_vs_note(fehler, self._bewertung(4), 200)
+        assert len(warnungen) == 1
+        assert "20 Fehler" in warnungen[0]
+
+    def test_wenige_fehler_gute_note_ok(self) -> None:
+        fehler = [{"zitat": "x"}] * 10  # 5/100 Wörter → unter Schwelle
+        assert nc.konsistenzwarnung_fehler_vs_note(fehler, self._bewertung(4), 200) == []
+
+    def test_fast_ohne_fehler_schlechte_note_warnt(self) -> None:
+        warnungen = nc.konsistenzwarnung_fehler_vs_note([{"zitat": "x"}], self._bewertung(2), 300)
+        assert len(warnungen) == 1
+        assert "1 Fehler" in warnungen[0]
+
+    def test_ohne_sprachkriterium_kein_check(self) -> None:
+        assert nc.konsistenzwarnung_fehler_vs_note([{"zitat": "x"}], {"inhalt": {"punkte": 3}}, 100) == []
+
+    def test_ohne_wortanzahl_kein_check(self) -> None:
+        assert nc.konsistenzwarnung_fehler_vs_note([{"zitat": "x"}], self._bewertung(4), 0) == []

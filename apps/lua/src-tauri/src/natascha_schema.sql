@@ -49,6 +49,8 @@ CREATE TABLE IF NOT EXISTS fehler_historie (
     korrektur TEXT,
     typ TEXT NOT NULL,
     erklaerung TEXT,
+    cluster_id TEXT,
+    regel_muster TEXT,
     vertrauensstufe TEXT,
     lehrkraft_aktion TEXT,
     lehrkraft_korrektur TEXT
@@ -68,6 +70,36 @@ CREATE TABLE IF NOT EXISTS lehrer_feedback (
     geaendert_am TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(abgabe_id)
 );
+
+CREATE TABLE IF NOT EXISTS korrektur_revision (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    abgabe_id INTEGER NOT NULL REFERENCES abgabe(id) ON DELETE CASCADE,
+    revision_no INTEGER NOT NULL,
+    provider TEXT NOT NULL DEFAULT 'unbekannt',
+    model TEXT NOT NULL DEFAULT 'unbekannt',
+    privacy_mode TEXT NOT NULL DEFAULT 'unbekannt',
+    status TEXT NOT NULL DEFAULT 'completed',
+    is_active INTEGER NOT NULL DEFAULT 0,
+    basis_json TEXT NOT NULL DEFAULT '{}',
+    note REAL,
+    gesamtstufe REAL,
+    analysis_json TEXT NOT NULL DEFAULT '{}',
+    kriterien_json TEXT NOT NULL DEFAULT '[]',
+    fehler_json TEXT NOT NULL DEFAULT '[]',
+    lehrer_note_final REAL,
+    lehrer_note_app_snapshot REAL,
+    lehrer_kommentar TEXT,
+    lehrer_feedback_erstellt_am TEXT,
+    lehrer_feedback_geaendert_am TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP,
+    UNIQUE(abgabe_id, revision_no)
+);
+
+CREATE INDEX IF NOT EXISTS idx_korrektur_revision_abgabe
+    ON korrektur_revision(abgabe_id, revision_no DESC);
+CREATE INDEX IF NOT EXISTS idx_korrektur_revision_active
+    ON korrektur_revision(abgabe_id, is_active);
 
 CREATE TABLE IF NOT EXISTS schueler_profil (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -4,6 +4,7 @@ import {
   migrateDocument,
   CURRENT_SCHEMA_VERSION,
   MetaSchema,
+  pruefeInformatikMultipleChoiceSchluessel,
   QuellTextSchema,
   LueckentextBlockSchema,
   MatchingBlockSchema,
@@ -18,6 +19,9 @@ import {
   SonganalyseBlockSchema,
   UmformungBlockSchema,
   FehlerkorrekturBlockSchema,
+  QuellenanalyseBlockSchema,
+  TimelineBlockSchema,
+  DiagrammAnalyseBlockSchema,
   RoleplayBlockSchema,
   RollenkartenSetBlockSchema,
   BlockSchema,
@@ -39,6 +43,7 @@ import {
   KOMPETENZBEREICHE,
   istSprachfach,
   fachLabel,
+  SPRACHFACH_TEXTSORTEN,
   type DocumentV1,
   type Meta,
   type QuellText,
@@ -128,6 +133,62 @@ describe('MetaSchema', () => {
       lernziele: ['Hauptgedanke erfassen', 'Stilmittel erkennen'],
     };
     expect(MetaSchema.safeParse(meta).success).toBe(true);
+  });
+
+  it('accepts meta with loopQuelle (Closed-Loop-Herkunft, L1)', () => {
+    const meta: Meta = {
+      stufe: 'oberstufe',
+      fach: 'deutsch',
+      thema: 'Übung zu Fehlerschwerpunkten',
+      datum: '2026-09-23',
+      klasse: '6i',
+      notizen: '',
+      loopQuelle: { klasse: '6i', aufgabe: 'SA2', exportDatum: '2026-05-26' },
+    };
+    expect(MetaSchema.safeParse(meta).success).toBe(true);
+    expect(MetaSchema.safeParse({ ...meta, loopQuelle: { klasse: '6i' } }).success).toBe(true);
+  });
+
+  it('rejects loopQuelle ohne klasse', () => {
+    const result = MetaSchema.safeParse({
+      stufe: 'oberstufe',
+      fach: 'deutsch',
+      thema: 'x',
+      datum: '2026-01-01',
+      klasse: '6i',
+      notizen: '',
+      loopQuelle: { aufgabe: 'SA2' },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('accepts bridgeFehler und lehnt >12 Einträge ab', () => {
+    const base = {
+      stufe: 'oberstufe' as const,
+      fach: 'deutsch' as const,
+      thema: 'x',
+      datum: '2026-01-01',
+      klasse: '6i',
+      notizen: '',
+    };
+    const fehler = { typ: 'Z' as const, zitat: 'Regale die sich', korrektur: 'Regale, die sich', haeufigkeit: 7 };
+    expect(MetaSchema.safeParse({ ...base, bridgeFehler: [fehler] }).success).toBe(true);
+    expect(MetaSchema.parse({ ...base, bridgeFehler: [fehler] }).bridgeFehler?.[0]?.haeufigkeit).toBe(7);
+    expect(MetaSchema.safeParse({ ...base, bridgeFehler: [{ ...fehler, haeufigkeit: 0 }] }).success).toBe(false);
+    expect(MetaSchema.safeParse({ ...base, bridgeFehler: Array.from({ length: 13 }, () => fehler) }).success).toBe(false);
+  });
+
+  it('rejects bridgeFehler mit unbekanntem Typ', () => {
+    const result = MetaSchema.safeParse({
+      stufe: 'oberstufe',
+      fach: 'deutsch',
+      thema: 'x',
+      datum: '2026-01-01',
+      klasse: '6i',
+      notizen: '',
+      bridgeFehler: [{ typ: 'X', zitat: 'a', korrektur: 'b' }],
+    });
+    expect(result.success).toBe(false);
   });
 
   it('rejects empty lernziel strings', () => {
@@ -579,6 +640,69 @@ describe('MultipleChoiceBlockSchema', () => {
       loesung: { antworten: {} },
     });
     expect(result.success).toBe(false);
+  });
+});
+
+describe('pruefeInformatikMultipleChoiceSchluessel', () => {
+  const block: MultipleChoiceBlock = {
+    id: 'mc-info',
+    typ: 'multipleChoice',
+    punkte: 2,
+    arbeitsanweisung: 'Kreuze die richtige Antwort an.',
+    config: {
+      fragen: [{
+        nr: 1,
+        frage: 'Welche Datenstruktur arbeitet nach dem FIFO-Prinzip?',
+        optionen: [
+          { key: 'A', text: 'Stack' },
+          { key: 'B', text: 'Queue' },
+          { key: 'C', text: 'Baum' },
+          { key: 'D', text: 'Graph' },
+        ],
+        mehrfach: false,
+      }],
+    },
+    loesung: { antworten: { '1': ['B'] } },
+  };
+
+  it('akzeptiert einen vollständigen eindeutigen Schlüssel für Informatik', () => {
+    expect(pruefeInformatikMultipleChoiceSchluessel({
+      meta: { fach: 'informatikki' } as Meta,
+      bloecke: [block],
+    })).toEqual([]);
+  });
+
+  it('meldet fehlende oder fremde Antwortschlüssel vor dem Export', () => {
+    const probleme = pruefeInformatikMultipleChoiceSchluessel({
+      meta: { fach: 'informatikki' } as Meta,
+      bloecke: [{ ...block, loesung: { antworten: { '1': ['Z'] } } }],
+    });
+    expect(probleme).toHaveLength(1);
+    expect(probleme[0]).toContain('gehört zu keiner Option');
+  });
+
+  it('meldet überzählige Antworten ohne passende Frage', () => {
+    const probleme = pruefeInformatikMultipleChoiceSchluessel({
+      meta: { fach: 'informatikki' } as Meta,
+      bloecke: [{ ...block, loesung: { antworten: { '1': ['B'], '2': ['A'] } } }],
+    });
+    expect(probleme).toEqual(['Block „mc-info“: Antwortschlüssel für unbekannte Frage „2“.']);
+  });
+
+  it('verlangt eindeutige Fragennummern als Schlüssel', () => {
+    const duplizierteFrage = { ...block.config.fragen[0]!, frage: 'Andere Frage?' };
+    const probleme = pruefeInformatikMultipleChoiceSchluessel({
+      meta: { fach: 'informatikki' } as Meta,
+      bloecke: [{ ...block, config: { fragen: [block.config.fragen[0]!, duplizierteFrage] } }],
+    });
+    expect(probleme).toContain('Block „mc-info“: Fragennummern sind nicht eindeutig.');
+  });
+
+  it('greift für andere Fächer nicht in Entwürfe ein', () => {
+    expect(pruefeInformatikMultipleChoiceSchluessel({
+      meta: { fach: 'deutsch' } as Meta,
+      bloecke: [{ ...block, loesung: { antworten: {} } }],
+    })).toEqual([]);
   });
 });
 
@@ -1788,6 +1912,85 @@ describe('migrateDocument', () => {
   });
 });
 
+describe('Quellenanalyse-Block', () => {
+  it('validiert fachliche Aufträge mit Erwartung und Quellenbelegen', () => {
+    const result = QuellenanalyseBlockSchema.safeParse({
+      id: 'q-a', typ: 'quellenanalyse', punkte: 12,
+      arbeitsanweisung: 'Analysiere die Quelle.', quelleId: 'q1',
+      config: {
+        quelleId: 'q1', quellentyp: 'rede',
+        auftraege: [{ nr: 1, operator: 'analysieren', frage: 'Welche Absicht wird sichtbar?', zeilen: 6 }],
+      },
+      loesung: { antworten: [{ nr: 1, erwartung: 'Die Rede will ...', belege: ['Zeile 4'] }] },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('verlangt mindestens einen Quellenbeleg pro Lösung', () => {
+    const result = QuellenanalyseBlockSchema.safeParse({
+      id: 'q-a', typ: 'quellenanalyse', punkte: 12,
+      arbeitsanweisung: 'Analysiere die Quelle.', quelleId: 'q1',
+      config: { quelleId: 'q1', quellentyp: 'text', auftraege: [{ nr: 1, operator: 'beschreiben', frage: 'Was?', zeilen: 4 }] },
+      loesung: { antworten: [{ nr: 1, erwartung: 'Antwort', belege: [] }] },
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe('Timeline-Block', () => {
+  it('validiert Ereignisse und chronologische Lösung', () => {
+    const result = TimelineBlockSchema.safeParse({
+      id: 'timeline-1', typ: 'timeline', punkte: 8,
+      arbeitsanweisung: 'Ordne die Ereignisse.',
+      config: {
+        zeitraum: 'Industrialisierung',
+        ereignisse: [
+          { nr: 1, titel: 'Ereignis A', beschreibung: 'Beschreibung A' },
+          { nr: 2, titel: 'Ereignis B', beschreibung: 'Beschreibung B' },
+        ],
+      },
+      loesung: { reihenfolge: [2, 1], datierungen: [{ nr: 2, datum: '1848' }] },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('verlangt mindestens zwei Ereignisse', () => {
+    const result = TimelineBlockSchema.safeParse({
+      id: 'timeline-1', typ: 'timeline', punkte: 8,
+      arbeitsanweisung: 'Ordne.',
+      config: { ereignisse: [{ nr: 1, titel: 'A', beschreibung: 'A' }] },
+      loesung: { reihenfolge: [1], datierungen: [] },
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe('Diagramm-/Datenanalyse-Block', () => {
+  it('validiert Datenpunkte, Operatorauftrag und Datenbeleg', () => {
+    const result = DiagrammAnalyseBlockSchema.safeParse({
+      id: 'diagramm-1', typ: 'diagrammanalyse', punkte: 10,
+      arbeitsanweisung: 'Werte das Diagramm aus.',
+      config: {
+        diagrammtyp: 'balken', titel: 'Nutzung', einheit: '%',
+        daten: [{ label: 'A', wert: '40' }, { label: 'B', wert: '60' }],
+        auftraege: [{ nr: 1, operator: 'auswerten', frage: 'Vergleiche A und B.', zeilen: 4 }],
+      },
+      loesung: { antworten: [{ nr: 1, erwartung: 'B liegt höher.', belege: ['B: 60 %'] }] },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('verlangt einen konkreten Datenbeleg pro Lösung', () => {
+    const result = DiagrammAnalyseBlockSchema.safeParse({
+      id: 'diagramm-1', typ: 'diagrammanalyse', punkte: 10,
+      arbeitsanweisung: 'Werte aus.',
+      config: { diagrammtyp: 'tabelle', titel: 'Daten', daten: [{ label: 'A', wert: '1' }, { label: 'B', wert: '2' }], auftraege: [{ nr: 1, operator: 'beschreiben', frage: 'Was?', zeilen: 3 }] },
+      loesung: { antworten: [{ nr: 1, erwartung: 'B ist größer.', belege: [] }] },
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
 describe('Fächer-Modell (FachSchema / FACH_META)', () => {
   it('akzeptiert alle textbasierten Fächer', () => {
     for (const f of ['deutsch', 'englisch', 'franzoesisch', 'spanisch', 'italienisch', 'latein',
@@ -1821,6 +2024,14 @@ describe('Fächer-Modell (FachSchema / FACH_META)', () => {
     expect(fachLabel('geschichte')).toBe('Geschichte');
   });
 
+  it('führt für weitere Sprachfächer getrennte Unter- und Oberstufenfamilien', () => {
+    for (const fach of ['franzoesisch', 'spanisch', 'italienisch', 'latein'] as const) {
+      expect(SPRACHFACH_TEXTSORTEN[fach].unterstufe.length).toBeGreaterThan(2);
+      expect(SPRACHFACH_TEXTSORTEN[fach].oberstufe.length).toBeGreaterThan(2);
+    }
+    expect(SPRACHFACH_TEXTSORTEN.latein.oberstufe).toContain('Übersetzung');
+  });
+
   it('KOMPETENZBEREICHE deckt jedes Fach mit ≥1 Bereich ab', () => {
     for (const f of FachSchema.options) {
       expect(KOMPETENZBEREICHE[f]).toBeDefined();
@@ -1833,6 +2044,14 @@ describe('Fächer-Modell (FachSchema / FACH_META)', () => {
 describe('Land (Deutschland-Unterstützung)', () => {
   it('MetaSchema akzeptiert land=DE und Klasse 13', () => {
     const result = MetaSchema.safeParse({ stufe: 'oberstufe', fach: 'deutsch', thema: 'x', datum: '2026-01-01', klasse: '13a', notizen: '', land: 'DE', schulstufe: 13 });
+    expect(result.success).toBe(true);
+  });
+
+  it('MetaSchema akzeptiert die Herkunft einer Niveaugruppen-Übung', () => {
+    const result = MetaSchema.safeParse({
+      stufe: 'oberstufe', fach: 'deutsch', thema: 'Förderübung', datum: '2026-01-01', klasse: '7A', notizen: '',
+      niveaugruppe: { id: 'foerder', label: 'Förderung', schwierigkeit: 'leicht', schuelerIds: [1, 2], notenbereich: { min: 4, max: 6 } },
+    });
     expect(result.success).toBe(true);
   });
 

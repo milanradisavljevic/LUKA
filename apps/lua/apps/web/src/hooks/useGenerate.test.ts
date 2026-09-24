@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { blockToRequest } from './useGenerate';
+import { blockToRequest, buildJudgeConfig } from './useGenerate';
 import type { Block } from '@lehrunterlagen/schema';
 
 const base = { id: 'b1', punkte: 4, quelleId: 'q1', hinweis: undefined } as const;
@@ -61,5 +61,45 @@ describe('blockToRequest — fehlerkorrektur anzahlSaetze', () => {
       config: { eingabemodus: 'ki', anzahlSaetze: 0, saetze: [] },
     } as unknown as Block;
     expect(blockToRequest(block)).toMatchObject({ anzahlSaetze: 1 });
+  });
+});
+
+describe('blockToRequest — unvollstaendige configs crashen nicht', () => {
+  it('matching ohne config.items liefert Default anzahlItems', () => {
+    const block = {
+      ...base,
+      typ: 'matching',
+      config: {},
+    } as unknown as Block;
+    const req = blockToRequest(block);
+    expect(req).toMatchObject({ typ: 'matching', anzahlItems: 4 });
+  });
+
+  it('kategorisierung ohne items/kategorien crasht nicht', () => {
+    const block = {
+      ...base,
+      typ: 'kategorisierung',
+      config: {},
+    } as unknown as Block;
+    const req = blockToRequest(block);
+    expect(req).toMatchObject({ typ: 'kategorisierung', anzahlItems: 6, kategorien: [] });
+  });
+});
+
+describe('buildJudgeConfig', () => {
+  it('verwendet bei Mistral nie einen versteckten DeepSeek-Judge', () => {
+    expect(buildJudgeConfig('mistral', 'mistral-medium-3-5', true)).toEqual({
+      provider: 'mistral',
+      model: 'mistral-medium-3-5',
+      enabled: true,
+    });
+  });
+
+  it('behaelt Anbieter und Modell auch bei deaktivierter Gegenpruefung bei', () => {
+    expect(buildJudgeConfig('openai', 'gpt-4.1-mini', false)).toEqual({
+      provider: 'openai',
+      model: 'gpt-4.1-mini',
+      enabled: false,
+    });
   });
 });

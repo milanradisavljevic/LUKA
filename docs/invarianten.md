@@ -27,7 +27,7 @@
 
 ## Vorschau
 
-- [ ] Nach „Lösungen prüfen" erscheint pro Risiko-Block (`multipleChoice`, `matching`, `lueckentext`, `offeneVerstaendnisfrage`) entweder ✓ oder ⚠.
+- [ ] Nach „Selbstkontrolle starten" erscheint pro Risiko-Block (`multipleChoice`, `matching`, `lueckentext`, `offeneVerstaendnisfrage`) entweder ✓ oder ⚠.
 - [ ] Nicht-Risiko-Blöcke zeigen keinen Judge-Badge.
 - [ ] Bearbeitete Blöcke lösen bei „Neu generieren" einen Bestätigungsdialog aus.
 
@@ -48,3 +48,25 @@
 - [ ] Die Vertrauensstufe wird nach Schema-Validierung angehängt (`"hoch"|"mittel"|"niedrig"`), nie vorher — `feedback_schema.json` bleibt kompatibel.
 - [ ] `fehler_historie`-Migration ist additiv (ALTER TABLE), bestehende Zeilen bleiben unverändert.
 - [ ] Bei Rate-Limit (HTTP 429) wird automatisch mit Backoff wiederholt, nicht abgebrochen.
+
+## Sachfach-Korrektur
+
+- [ ] Sachfach-Korrekturen führen fachliche Kriterien in `sachfach_bewertung`;
+  Sprachfehler bleiben im Top-Level-Feld `fehler` ergänzend.
+- [ ] Wenn `sachfach_bewertung` vorhanden ist, basiert die App-Note ausschließlich
+  auf diesen fachlichen Kriterien und nicht auf Sprachfehlern.
+- [ ] Jede Korrektur-Revision bewahrt den verwendeten Erwartungshorizont als
+  lokalen Inhalts-Schnappschuss mit stabiler Fassung-ID.
+
+## Korrektur-Land/Skala (L2)
+
+- [ ] Ohne `--land` (bzw. `land`-Parameter) ist der Analyse-Prompt **byte-identisch** zum Stand vor L2 — der AT-Pfad ist die Benchmark-Baseline und darf sich nie still ändern (Regressionstest `test_at_prompt_unchanged_default`).
+- [ ] `land='de'` ändert ausschließlich Kopf/Terminologie im Prompt, die Notenberechnung (`berechne_note_de`, 1–6) und überspringt den SRDP-Detail-Zweitcall.
+- [ ] Profil-Land **Schweiz** blockiert den Analysestart mit klarer Meldung — es wird nie eine fremde Skala still angewendet.
+- [ ] `qualitaetswarnungen` (Konsistenz-Check, Note-Begründung) sind **advisory**: Sie ändern nie eine Note und sind von den pädagogischen `hinweise` des LLM getrennt.
+
+## Closed Loop — Klassenkontext
+
+- [ ] Folgeübungen übernehmen ein ausdrücklich gesetztes Klassen-Land vor dem Lehrkraft-Profilstandard.
+- [ ] Bestehende Klassen ohne Land bleiben gültig und verwenden den Profilstandard.
+- [ ] Änderungen am Land einer Klasse ändern keine bereits gespeicherten Korrektur- oder Übungsdaten.

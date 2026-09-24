@@ -7,6 +7,30 @@ interface Props {
   onUpdate?: (id: string, field: string, value: unknown) => void;
 }
 
+/** Cloze-Text in Segmente zerlegen: Fließtext + Lücken-Marker "(1)" (ggf. mit
+ *  bereits enthaltenen Unterstrichen, die der Marker-Match schluckt). Spiegelbildlich
+ *  zum DOCX-Renderer (buildLueckentext): Mit Text wird NUR der Cloze-Text gezeigt,
+ *  ohne Text fallen die nummerierten Lückenzeilen als Fallback zurück. */
+interface ClozeSeg {
+  text?: string;
+  nr?: number;
+}
+
+const LUECKE_RE = /\((\d+)\)(?:\s*_{2,})?/g;
+
+export function parseCloze(text: string): ClozeSeg[] {
+  const segs: ClozeSeg[] = [];
+  let last = 0;
+  for (const m of text.matchAll(LUECKE_RE)) {
+    const idx = m.index ?? 0;
+    if (idx > last) segs.push({ text: text.slice(last, idx) });
+    segs.push({ nr: Number(m[1]) });
+    last = idx + m[0].length;
+  }
+  if (last < text.length) segs.push({ text: text.slice(last) });
+  return segs;
+}
+
 export function BlockPreviewLueckentext({ block, showSolution, solutionStep, onUpdate }: Props) {
   if (block.typ !== 'lueckentext') return null;
   const config = block.config;
@@ -18,6 +42,12 @@ export function BlockPreviewLueckentext({ block, showSolution, solutionStep, onU
 
   const isRevealed = (index: number) =>
     solutionStep !== undefined ? index < solutionStep : showSolution;
+
+  const wortFuer = (nr: number) => luecken.find((l: { nr: number; wort: string }) => l.nr === nr)?.wort;
+
+  // Cloze-Text vorhanden → Inline-Darstellung (wie im Export), nicht die nackten
+  // Lückenzeilen. Reveal funktioniert pro Lücke (Tafel-Modus „Lösung 2/5").
+  const clozeSegs = block.text ? parseCloze(block.text) : null;
 
   return (
     <div style={{ fontFamily: 'var(--font)', fontSize: '11pt', lineHeight: 1.6 }}>
@@ -35,22 +65,42 @@ export function BlockPreviewLueckentext({ block, showSolution, solutionStep, onU
         </p>
       )}
 
-      <div style={{ margin: '1rem 0' }}>
-        {Array.from({ length: anzahl }, (_, i) => (
-          <span key={i} style={{ display: 'inline-block', marginRight: '1.5rem', marginBottom: '0.5rem' }}>
-            ({i + 1}){' '}
-            {isRevealed(i) ? (
-              <span style={{ fontStyle: 'italic', paddingLeft: '0.25rem' }}>
-                {luecken.find((l: { nr: number; wort: string }) => l.nr === i + 1)?.wort ?? '______'}
-              </span>
+      {clozeSegs ? (
+        <div style={{ whiteSpace: 'pre-wrap', margin: '1rem 0' }}>
+          {clozeSegs.map((seg, i) =>
+            seg.nr !== undefined ? (
+              isRevealed(seg.nr - 1) ? (
+                <span key={i} style={{ fontStyle: 'italic', fontWeight: 600 }}>
+                  {' '}{wortFuer(seg.nr) ?? '______'}{' '}
+                </span>
+              ) : (
+                <span key={i} style={{ textDecoration: 'underline', paddingLeft: '0.25rem', paddingRight: '0.25rem', minWidth: 80, display: 'inline-block' }}>
+                  &nbsp;______&nbsp;
+                </span>
+              )
             ) : (
-              <span style={{ textDecoration: 'underline', paddingLeft: '0.25rem', minWidth: 80, display: 'inline-block' }}>
-                &nbsp;{'______'}&nbsp;
-              </span>
-            )}
-          </span>
-        ))}
-      </div>
+              <span key={i}>{seg.text}</span>
+            ),
+          )}
+        </div>
+      ) : (
+        <div style={{ margin: '1rem 0' }}>
+          {Array.from({ length: anzahl }, (_, i) => (
+            <span key={i} style={{ display: 'inline-block', marginRight: '1.5rem', marginBottom: '0.5rem' }}>
+              ({i + 1}){' '}
+              {isRevealed(i) ? (
+                <span style={{ fontStyle: 'italic', paddingLeft: '0.25rem' }}>
+                  {wortFuer(i + 1) ?? '______'}
+                </span>
+              ) : (
+                <span style={{ textDecoration: 'underline', paddingLeft: '0.25rem', minWidth: 80, display: 'inline-block' }}>
+                  &nbsp;{'______'}&nbsp;
+                </span>
+              )}
+            </span>
+          ))}
+        </div>
+      )}
 
       {wortbank && (
         <div style={{ marginTop: '0.75rem', padding: '0.5rem', border: '1px solid var(--color-border)', borderRadius: 4 }}>

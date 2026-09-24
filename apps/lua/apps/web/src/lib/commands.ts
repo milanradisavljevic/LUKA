@@ -168,8 +168,15 @@ function getDefaultConfig(typ: string): Record<string, unknown> {
     case 'offeneSchreibaufgabe': return { situation: '', textsorte: '', umfangWorte: { min: 200, max: 300 }, aspekte: [''] };
     case 'markieraufgabe': return { quelleId: '', anweisung: '' };
     case 'vokabeluebung': return { richtung: 'de_fremd', vokabeln: [{ deutsch: '', fremdsprache: '' }] };
-    case 'rollenkartenSet': return createDefaultBlock('rollenkartenSet').config;
-    default: return {};
+    default:
+      // Alle übrigen Typen (inkl. kategorisierung, fehlerkorrektur, …) sauber
+      // aus den Block-Defaults — nie leeres Config-Objekt, sonst crashen
+      // blockToRequest/Renderer auf fehlende Arrays (items, saetze, …).
+      try {
+        return createDefaultBlock(typ as Block['typ']).config as Record<string, unknown>;
+      } catch {
+        return {};
+      }
   }
 }
 
@@ -182,6 +189,9 @@ function getEmptyLoesung(typ: string): Record<string, unknown> {
     case 'offeneSchreibaufgabe': return { musterloesung: '', erwartungshorizont: { inhalt: '', struktur: '', ausdruck: '', sprachrichtigkeit: '' } };
     case 'markieraufgabe': return { stellen: [] };
     case 'vokabeluebung': return { antworten: {} };
+    case 'quellenanalyse': return { antworten: [] };
+    case 'timeline': return { reihenfolge: [], datierungen: [] };
+    case 'diagrammanalyse': return { antworten: [] };
     case 'rollenkartenSet': return { hinweise: '' };
     default: return {};
   }

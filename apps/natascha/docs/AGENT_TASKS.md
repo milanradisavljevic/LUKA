@@ -202,7 +202,7 @@ ANFORDERUNGEN:
 
 6. TESTS:
    - Erstelle tests/test_feedback.py mit pytest
-   - Erstelle tests/fixtures/ mit 2-3 Beispiel-JSONs (basierend auf den Tamara- und Matthias-Daten aus dem alten Code)
+   - Erstelle tests/fixtures/ mit 2-3 vollständig synthetischen Beispiel-JSONs
    - Teste: JSON laden, DOCX erzeugen, DOCX oeffnen und pruefen ob Sektionen vorhanden sind
 
 NICHT aendern:

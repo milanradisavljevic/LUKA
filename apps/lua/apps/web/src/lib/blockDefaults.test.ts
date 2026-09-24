@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { BLOCK_ARBEITSANWEISUNG_PLACEHOLDER, getBlockLabel, createDefaultBlock } from './blockDefaults';
+import { BLOCK_ARBEITSANWEISUNG_PLACEHOLDER, getBlockLabel, createDefaultBlock, hydrateBlockConfig } from './blockDefaults';
 
 const BLOCK_TYPES = [
   'lueckentext', 'matching', 'multipleChoice', 'offeneVerstaendnisfrage',
@@ -58,5 +58,35 @@ describe('createDefaultBlock', () => {
       const block = createDefaultBlock(typ);
       expect(block.punkte).toBe(expected[typ]);
     }
+  });
+});
+
+describe('hydrateBlockConfig', () => {
+  it('ergaenzt fehlende items bei matching aus Defaults', () => {
+    const cfg = hydrateBlockConfig('matching', {});
+    expect(Array.isArray(cfg.items)).toBe(true);
+    expect((cfg.items as unknown[]).length).toBeGreaterThan(0);
+    expect(Array.isArray(cfg.optionen)).toBe(true);
+  });
+
+  it('ergaenzt fehlende saetze bei fehlerkorrektur aus Defaults', () => {
+    const cfg = hydrateBlockConfig('fehlerkorrektur', { anzahlSaetze: 3 });
+    expect(cfg.anzahlSaetze).toBe(3);
+    expect(Array.isArray(cfg.saetze)).toBe(true);
+  });
+
+  it('bevorzugt gespeicherte Werte gegenueber Defaults', () => {
+    const cfg = hydrateBlockConfig('matching', {
+      items: [{ nr: 1, prompt: 'X' }],
+      optionen: [{ key: 'A', text: 'a' }, { key: 'B', text: 'b' }, { key: 'C', text: 'c' }],
+    });
+    expect((cfg.items as unknown[]).length).toBe(1);
+    expect((cfg.optionen as unknown[]).length).toBe(3);
+  });
+
+  it('trotzt undefinierter/fehlender config', () => {
+    expect(() => hydrateBlockConfig('kategorisierung', undefined)).not.toThrow();
+    const cfg = hydrateBlockConfig('kategorisierung', null);
+    expect(Array.isArray(cfg.items)).toBe(true);
   });
 });

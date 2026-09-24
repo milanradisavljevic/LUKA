@@ -149,7 +149,7 @@ Lies zuerst:
 - rubrics/ (alle vorhandenen Rubrik-Dateien)
 
 PROBLEM:
-Der aktuelle Code hat fuer jeden Schueler eine eigene Funktion (build_feedback_tamara, build_feedback_matthias).
+Der aktuelle Code hat fuer jeden Schueler eine eigene Funktion (build_feedback_beispiel_a, build_feedback_beispiel_b).
 Das skaliert nicht. Der MASTER_PROMPT.md beschreibt bereits den richtigen generischen Workflow,
 aber der Python-Code setzt ihn nicht um.
 

@@ -1,6 +1,8 @@
 // Datei-Brücke NATASCHA → LUA (Phase 1): Typen + Mapping der Korrekturdaten
 // auf die Felder, die Step0 zum Vorbefüllen braucht. Vertrag: ../../../../../bridge/schema.json.
-import type { BlockTyp, Fach, Stufe } from '@lehrunterlagen/schema';
+import { stufeFromSchulstufe } from '@lehrunterlagen/schema';
+import type { BlockTyp, Fach, Land, Stufe } from '@lehrunterlagen/schema';
+import type { Niveaugruppe } from './niveauGruppen';
 
 export interface BridgeHeatmapEintrag {
   typ: 'R' | 'G' | 'Z' | 'A';
@@ -15,6 +17,10 @@ export interface BridgeBeispiel {
   korrektur: string;
   erklaerung?: string;
   haeufigkeit?: number;
+  /** Stabiler didaktischer Fehler-Cluster; optional für Exporte vor L2. */
+  clusterId?: string;
+  /** Menschenlesbares Regelmuster, falls die Korrektur es geliefert hat. */
+  regelMuster?: string;
 }
 
 export interface BridgeExport {
@@ -23,6 +29,10 @@ export interface BridgeExport {
   aufgabe: string;
   fach: Fach;
   schulstufe?: Stufe;
+  /** Konkrete Schulstufe/Klasse, sofern Abgabe oder Klassenprofil sie enthalten. */
+  schulstufeNummer?: number;
+  /** Explizites Klassenland; fehlt bei älteren oder nicht profilierten Klassen. */
+  land?: Land;
   textsorte?: string;
   /** v2, optional: Ausgangstext der Originalarbeit → Quelltext-Vorbefüllung. */
   ausgangstext?: string;
@@ -61,12 +71,18 @@ export const SUPPORTED_BRIDGE_VERSION = 2;
 /** Lesbare Versionen (abwärtskompatibel). */
 export const SUPPORTED_BRIDGE_VERSIONS = [1, 2] as const;
 
-/** Fehlerkategorie → passende LUA-Aufgabentypen (Heuristik, siehe bridge/README.md). */
+/** Fehlerkategorie → passende LUA-Aufgabentypen (Heuristik, siehe bridge/README.md).
+ *
+ * Didaktische Fassung L1: Fehlerkorrektur ist für R/G/Z die stärkste Übung, weil
+ * sie echte Fehlermuster gezielt trainiert (Lückentext/MC raten hingegen nur
+ * nebenbei). Ausdrucks-Probleme (A) trainiert man durch Umformulieren, nicht
+ * durch Satzteile-Ordnen (wordScramble = Syntax) oder Aufsätze ohne gezielte
+ * Rückmeldung (offeneSchreibaufgabe). */
 export const KATEGORIE_TO_BLOCKTYPEN: Record<BridgeHeatmapEintrag['typ'], BlockTyp[]> = {
-  R: ['lueckentext', 'vokabeluebung'],
-  G: ['lueckentext', 'offeneVerstaendnisfrage', 'offeneSchreibaufgabe'],
-  Z: ['lueckentext', 'markieraufgabe'],
-  A: ['stiluebung', 'wordScramble'],
+  R: ['lueckentext', 'fehlerkorrektur'],
+  G: ['fehlerkorrektur', 'lueckentext'],
+  Z: ['fehlerkorrektur', 'markieraufgabe'],
+  A: ['stiluebung'],
 };
 
 /** Kurze Kategoriecodes aus NATASCHA → lesbare Schwerpunkte. */
@@ -77,10 +93,22 @@ export const KATEGORIE_LABEL: Record<string, string> = {
   A: 'Ausdruck',
 };
 
+/** Stellt fehlerkorrektur nach vorn, wenn echte Klassenfehler vorliegen —
+ *  „Findet die Fehler, die EURE Klasse gemacht hat" schlägt erfundene Beispiele. */
+export function fehlerkorrekturZuerst(arten: BlockTyp[]): BlockTyp[] {
+  if (!arten.includes('fehlerkorrektur')) return arten;
+  return ['fehlerkorrektur', ...arten.filter((t) => t !== 'fehlerkorrektur')];
+}
+
 export interface NataschaPrefill {
   thema: string;
-  fach: Fach;
-  stufe: Stufe;
+  /** Kontext der Quellkorrektur. Bei alten Exporten darf er fehlen. */
+  fach?: Fach;
+  stufe?: Stufe;
+  land?: Land;
+  schulstufe?: number;
+  textsorte?: string;
+  niveaugruppe?: Niveaugruppe;
   fokusThemen: string[];
   gewuenschteAufgabenarten: BlockTyp[];
   notizen: string;
@@ -88,6 +116,8 @@ export interface NataschaPrefill {
   ausgangstext?: string;
   /** v2: Strukturierte Schülerfehler → editierbare Kurations-Liste in Step0. */
   fehler?: BridgeBeispiel[];
+  /** L1: Herkunft der Folgeübung → Loop-Wirkung-Panel (Buchhaltung, nicht gerendert). */
+  loopQuelle?: { klasse: string; aufgabe?: string; exportDatum?: string };
 }
 
 interface HeatmapPrefillEntry {
@@ -126,13 +156,11 @@ export function buildPrefillFromHeatmap({
 
   return {
     thema: `Übung zu Fehlerschwerpunkten – ${klasse}${aufgabe ? ' · ' + aufgabe : ''}`,
-    // V1-Limitierung: NATASCHA-Heatmaps kommen aktuell aus Deutsch-Korrekturen; Stufe wird in Step 0 anpassbar.
-    fach: 'deutsch',
-    stufe: 'oberstufe',
     fokusThemen,
     gewuenschteAufgabenarten,
     notizen: `Automatisch aus der Korrektur-Heatmap der Klasse ${klasse} erzeugt. Schwerpunkte: ${fokusThemen.join(', ')}.`,
     ausgangstext: ausgangstext?.trim() || undefined,
+    loopQuelle: aufgabe ? { klasse, aufgabe } : { klasse },
   };
 }
 
@@ -191,12 +219,22 @@ export function mapBridgeToPrefill(ex: BridgeExport): NataschaPrefill {
 
   return {
     thema: `Fehlerschwerpunkte – ${ex.aufgabe} (${ex.klasse})`,
-    fach: ex.fach ?? 'deutsch',
-    stufe: ex.schulstufe ?? 'oberstufe',
+    fach: ex.fach,
+    // Alte Exporte hatten weder konkrete Schulstufe noch Klassenland. Der
+    // Oberstufen-Fallback bleibt nur für diese Legacy-Dateien erhalten.
+    stufe: (ex.schulstufeNummer !== undefined
+      ? stufeFromSchulstufe(ex.schulstufeNummer, ex.land)
+      : undefined)
+      ?? ex.schulstufe
+      ?? 'oberstufe',
+    schulstufe: ex.schulstufeNummer,
+    land: ex.land,
+    textsorte: ex.textsorte,
     fokusThemen,
-    gewuenschteAufgabenarten,
+    gewuenschteAufgabenarten: fehlerkorrekturZuerst(gewuenschteAufgabenarten),
     notizen: notizenTeile.join(' '),
     ausgangstext: ex.ausgangstext?.trim() || undefined,
     fehler: fehler.length > 0 ? fehler : undefined,
+    loopQuelle: { klasse: ex.klasse, aufgabe: ex.aufgabe, exportDatum: ex.datum || undefined },
   };
 }

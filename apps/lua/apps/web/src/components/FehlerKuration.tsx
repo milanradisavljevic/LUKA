@@ -1,4 +1,4 @@
-import { Check } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import type { BridgeBeispiel } from '../lib/nataschaBridge';
 import { TYP_FARBE } from '../lib/nataschaBridge';
 import { SectionLabel } from './ui/SectionLabel';
@@ -62,9 +62,39 @@ export function FehlerKuration({ fehler, onChange }: Props) {
             </button>
 
             <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-              <span className="badge" style={{ alignSelf: 'flex-start', background: `${TYP_FARBE[f.typ]}22`, color: TYP_FARBE[f.typ] }}>
-                {TYP_LABEL[f.typ]}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexWrap: 'wrap' }}>
+                <span className="badge" style={{ background: `${TYP_FARBE[f.typ]}22`, color: TYP_FARBE[f.typ] }}>
+                  {f.regelMuster || TYP_LABEL[f.typ]}
+                </span>
+                {f.haeufigkeit != null && f.haeufigkeit > 1 && (
+                  <span
+                    title="So oft wurde dieses konkrete Fehlermuster in den ausgewerteten Arbeiten beobachtet."
+                    style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)' }}
+                  >
+                    {f.haeufigkeit}× beobachtet
+                  </span>
+                )}
+              </div>
+              {(f.clusterId || f.regelMuster) && (
+                <div style={{ display: 'flex', gap: '0.375rem', alignItems: 'center' }}>
+                  <input
+                    value={f.regelMuster ?? ''}
+                    onChange={(e) => patch(i, { regelMuster: e.target.value || undefined })}
+                    placeholder="Regelmuster / Clusterbezeichnung"
+                    aria-label="Regelmuster bearbeiten"
+                    style={{ flex: 1, fontSize: '0.75rem' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => patch(i, { clusterId: undefined, regelMuster: undefined })}
+                    title="Strukturierten Cluster entfernen"
+                    aria-label="Strukturierten Cluster entfernen"
+                    style={{ border: '1px solid var(--color-border)', background: 'transparent', padding: '0.25rem', cursor: 'pointer' }}
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+              )}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.375rem' }}>
                 <input
                   value={f.zitat}

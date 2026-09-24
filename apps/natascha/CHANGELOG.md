@@ -1,6 +1,88 @@
 # CHANGELOG
 
-## [0.7.10] – 2026-09-23 (aktuell)
+## Unveröffentlicht – Closed-Loop-Revision (2026-09-24)
+- Der lokale Korrektur-Benchmark kann die neutrale Fehlerdichte-Regel gegen
+  den expliziten Legacy-Prompt paarweise vergleichen. Lehrkraft-Prüfauszüge
+  werden optional nur in lokalen, gitignorierten Protokollen gespeichert;
+  A/B-Läufe zählen nicht als zwei Replikate des Freigabe-Gates. Die Lehrkraft
+  stuft nötige Eingriffe für jeden A/B-Fall ausdrücklich ein.
+- Weitere Sprachfächer haben eigene kuratierte Textsortenfamilien und
+  Grundraster: Französisch, Spanisch, Italienisch sowie Latein. Latein bleibt
+  text- und übersetzungsbezogen und wird nicht in ein CEFR-Schema gepresst.
+- Die Prompt-Fehlersuche für diese Fächer berücksichtigt ihre jeweiligen
+  sprachlichen Schwerpunkte. Erklärungen bleiben deutsch; Zitate und
+  Korrekturen bleiben in der Zielsprache.
+- Cluster-Metadaten in `fehler_historie` bleiben wirklich optional: Eine alte
+  Erklärung wird nicht automatisch zu einem neuen Clusterlabel.
+- Sachfach-Korrekturen können fachliche Kriterien getrennt von Sprachrichtigkeit
+  im Feedback und in der Kriterienhistorie speichern; die App-Note verwendet
+  bei diesem Objekt nur die fachlichen Kriterien.
+- Korrektur-Revisionen speichern zusätzlich eine stabile Fassung-ID des
+  verwendeten Erwartungshorizonts im Bewertungs-Snapshot.
+- `fehler_historie` führt optionale `cluster_id`- und `regel_muster`-Spalten;
+  vorhandene Datenbanken werden automatisch erweitert.
+- Bridge- und Längsschnittdaten reichen diese Cluster rückwärtskompatibel weiter;
+  die historischen Fehlercodes R/G/Z/A bleiben erhalten.
+
+## [0.7.12] – 2026-09-24 (aktuell)
+
+### Englisch-Korrektur (L3)
+- **Fach-Kanonisierung:** `kanonisches_fach`/`kanonische_schulstufe` normalisieren
+  die von LUA gesendeten Kleinschreibungen (`englisch`, `unterstufe`) vor
+  Schema-Validierung, Prompt und `rubric_mapping`-Lookup — verhindert
+  Schema-Enum-Fehler und leere Rubrik-Präferenzen.
+- **Rubrik-Filter nach Fach:** `rubric_options_for` liest pro Rubrik den
+  `fach:`-Header und schließt fremdfachliche Raster aus (EN-Klasse sieht nur
+  EN/generic, DE-Klasse nur DE/generic); `current_rubric` bleibt immer sichtbar
+  (auch über CLI `list-rubrics --current-rubric`).
+- **SRDP-Skip für Englisch:** Der deutschlehrkraft-spezifische SRDP-Detail-Zweitcall
+  läuft bei `fach=Englisch` nicht; die Note rechnet aus den EN-Rubrik-Kriterien
+  via `KRITERIUM_KEY_VARIANTS`.
+- **EN-Benchmark-Infrastruktur:** Per-Case-Config-Override im Runner
+  (`case.config` → Merge über Global-Config), Mischtabelle
+  (`klasse`/`fach`/`textsorte`/`rubric` je Fall), `benchmarks/cases_en/`.
+
+### Nächste Schritte im Feedback-DOCX (L3)
+- Neue Sektion „NÄCHSTE SCHRITTE — WORAN DU ARBEITEN KANNST" nach dem
+  Fehlerprotokoll: Top-2–3 Fehlerschwerpunkte mit deterministischen
+  Übungstipps (R/Z/G/A), ohne LLM; nur bei nicht-leerer Fehlerliste.
+- Ein Feedback-DOCX kann eine Folgeübung jetzt nur dann als verfügbar
+  ausweisen, wenn sie als Anlage angegeben oder als Closed-Loop-Material in
+  LUKA gespeichert ist; lokale Dateipfade werden nicht ausgegeben.
+
+## [0.7.11] – 2026-09-23
+
+### Deutsch-Korrektur im deutschen Schulsystem (land='de') — AT-Default unverändert
+- `build_analysis_prompt`/`build_vision_prompt`/`_fehler_anweisungen` nehmen
+  `land` an. Nur der Rollen-Kopf und der Varianten-Block sind land-spezifisch
+  (de: „Klassenarbeiten", österreichische Besonderheiten sind keine R/G/Z-Fehler,
+  höchstens `hinweise`). Der AT-Pfad bleibt byte-identisch (Benchmark-Baseline,
+  Regressionstest).
+- `berechne_note_de(bewertung, gewichtung)`: deutsche 1–6-Skala
+  (Note = 6 − gewichtete Stufe; Sonderregel Schnitt ≤ 1,5 → 6 „ungenügend").
+  `run_llm_analysis(..., land)`: bei `de` entfällt der SRDP-Detail-Zweitcall;
+  Provenienz in `data["land"]`, `notendetail` und `correction_basis`.
+- CLI `analyze --land {at,de}` (Default `at`).
+- Qualitäts-Check `konsistenzwarnung_fehler_vs_note()`: advisory-Warnung bei
+  Widerspruch Fehlerliste ↔ Sprachrichtigkeits-Stufe (Dichte > 8/100 Wörter bei
+  Stufe ≥ 4, oder < 1/100 bei Stufe ≤ 2) → `qualitaetswarnungen` mit
+  `code=fehler_note_inkonsistenz`. Ändert nie Noten.
+- `personen-vorschau` liefert zusätzlich `woerter` (Grundlage der
+  Batch-Mengenschätzung im Korrektur-Dialog).
+- **Fix (Migration):** Die `fehler_historie`-Migration
+  (`vertrauensstufe`, `lehrkraft_aktion`, `lehrkraft_korrektur`) und
+  `korrekturauftrag.rubrik_titel` lag nach einem `return` in
+  `get_korrektur_revision_for_abgabe()` und war unerreicht — Bestands-DBs
+  bekamen die Phase-3-Spalten nie. Jetzt `_migrate_fehler_historie_columns()`
+  in `init_db`.
+
+## [0.7.10] – 2026-09-23
+
+### Korrekturversionen & Anbietertransparenz
+- Jeder gespeicherte Korrekturlauf hält Anbieter, Modell, Datenschutzmodus, Bewertungsgrundlage und Laufzeit fest; Bestandsabgaben werden als erste Version übernommen.
+- Korrekturen können auf derselben Abgabe neu erstellt, aktiviert oder einzeln gelöscht werden. Die Originaldatei und das Schülerprofil bleiben bestehen; Auswertungen folgen der aktiven Version.
+- DeepSeek strukturierte Korrekturen schalten Thinking explizit aus und verwenden ein zum Modell und Umfang passendes Antwortbudget. Ratenlimits und abgeschnittene Antworten werden nicht identisch wiederholt.
+- Fehler zeigen nur eine verständliche Kategorie, keine Anbieter-Rohantworten; im Korrekturassistenten erscheinen sie nur in der letzten Übersicht.
 
 ### Features — Vertrauensstufen & Lehrkraft-Steuerung (Phase 3)
 
@@ -21,9 +103,14 @@
 
 - **`drop_duplicate_fehler()`:** Entfernt doppelte Einträge (zitat+korrektur+typ).
 - **`validate_note_begrundung()`:** Warnt bei Widerspruch zwischen Note und
-  Begründung (nur Warnung, keine Datenänderung).
-- **`verify_fehler_extent()`:** Entfernt Zitate >12 Wörter und Pseudo-Korrekturen,
-  die unverändert im Text vorkommen.
+  Begründung. Diese Systemwarnung wird separat von pädagogischen Hinweisen an
+  TUI und CLI ausgegeben.
+- **`verify_fehler_extent()`:** Entfernt Zitate >12 Wörter. Eine korrekte
+  Formulierung an anderer Textstelle entfernt keinen belegten Fehler mehr;
+  lokal mehrdeutige Fälle werden markiert und vorsichtiger eingestuft.
+- **Datensicherer Benchmark:** Der versionierte Runner akzeptiert nur lokale
+  synthetische oder nachweislich pseudonymisierte Fälle mit neutralen IDs.
+  Auswertungen speichern ausschließlich Kennzahlen und Fehlerkategorien.
 
 ### Bugfixes
 

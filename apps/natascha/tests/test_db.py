@@ -47,33 +47,33 @@ def db_path(tmp_path: Path) -> Path:
 
 
 def test_insert_and_get_schueler(db_path: Path) -> None:
-    sid = db.insert_schueler(db_path, "6A", "Sophie", "Huber")
+    sid = db.insert_schueler(db_path, "6A", "TestA", "X")
     assert sid > 0
     rows = db.get_schueler_by_klasse(db_path, "6A")
     assert len(rows) == 1
-    assert rows[0]["vorname"] == "Sophie"
-    assert rows[0]["nachname"] == "Huber"
+    assert rows[0]["vorname"] == "TestA"
+    assert rows[0]["nachname"] == "X"
 
 
 def test_get_schueler_by_klasse_sorted_and_isolated(db_path: Path) -> None:
-    db.insert_schueler(db_path, "6A", "Tom")
-    db.insert_schueler(db_path, "6A", "Anna")
-    db.insert_schueler(db_path, "6B", "Zoe")
+    db.insert_schueler(db_path, "6A", "TestB")
+    db.insert_schueler(db_path, "6A", "TestA")
+    db.insert_schueler(db_path, "6B", "TestC")
     rows = db.get_schueler_by_klasse(db_path, "6A")
-    assert [r["vorname"] for r in rows] == ["Anna", "Tom"]  # nach Vorname sortiert
+    assert [r["vorname"] for r in rows] == ["TestA", "TestB"]  # nach Vorname sortiert
     assert len(db.get_schueler_by_klasse(db_path, "6B")) == 1
 
 
 def test_get_schueler_by_name_case_insensitive(db_path: Path) -> None:
-    db.insert_schueler(db_path, "6A", "Sophie", "Huber")
-    found = db.get_schueler_by_name(db_path, "6A", "sophie", "HUBER")
+    db.insert_schueler(db_path, "6A", "TestA", "X")
+    found = db.get_schueler_by_name(db_path, "6A", "testa", "X")
     assert found is not None
-    assert found["vorname"] == "Sophie"
+    assert found["vorname"] == "TestA"
     assert db.get_schueler_by_name(db_path, "6A", "Niemand") is None
 
 
 def test_delete_schueler(db_path: Path) -> None:
-    sid = db.insert_schueler(db_path, "6A", "Max")
+    sid = db.insert_schueler(db_path, "6A", "TestA")
     db.delete_schueler(db_path, sid)
     assert db.get_schueler_by_klasse(db_path, "6A") == []
 
@@ -81,7 +81,7 @@ def test_delete_schueler(db_path: Path) -> None:
 def test_import_schueler_csv(tmp_path: Path, db_path: Path) -> None:
     csv_file = tmp_path / "klasse.csv"
     csv_file.write_text(
-        "vorname,nachname\nSophie,Huber\nMax,Mustermann\n,LeerVorname\n",
+        "vorname,nachname\nTestA,X\nTestB,Y\n,LeerVorname\n",
         encoding="utf-8",
     )
     count = db.import_schueler_csv(db_path, csv_file, "6A")
@@ -95,20 +95,20 @@ def test_import_schueler_csv(tmp_path: Path, db_path: Path) -> None:
 
 
 def test_insert_abgabe_and_hash_lookup(db_path: Path) -> None:
-    sid = db.insert_schueler(db_path, "6A", "Sophie")
+    sid = db.insert_schueler(db_path, "6A", "TestA")
     aid = db.insert_abgabe(
-        db_path, sid, "6A", "SA1", "sophie.docx", "hash123", note=2.0, gesamtstufe=4.0
+        db_path, sid, "6A", "SA1", "testa.docx", "hash123", note=2.0, gesamtstufe=4.0
     )
     assert aid > 0
     found = db.get_abgabe_by_hash(db_path, "hash123")
     assert found is not None
-    assert found["dateiname"] == "sophie.docx"
+    assert found["dateiname"] == "testa.docx"
     assert found["note"] == 2.0
     assert db.get_abgabe_by_hash(db_path, "fehlt") is None
 
 
 def test_get_abgaben_by_schueler_and_klasse_aufgabe(db_path: Path) -> None:
-    sid = db.insert_schueler(db_path, "6A", "Sophie")
+    sid = db.insert_schueler(db_path, "6A", "TestA")
     db.insert_abgabe(db_path, sid, "6A", "SA1", "a.docx", "h1")
     db.insert_abgabe(db_path, sid, "6A", "SA2", "b.docx", "h2")
     assert len(db.get_abgaben_by_schueler(db_path, sid)) == 2
@@ -134,13 +134,29 @@ def test_fehler_heatmap_aggregation(db_path: Path) -> None:
 def test_fehler_heatmap_detail_with_aufgabe(db_path: Path) -> None:
     """Regressionstest: aufgabe-Zweig referenzierte frueher das nicht existierende
     abgabe.vorname und warf OperationalError."""
-    sid = db.insert_schueler(db_path, "6A", "Sophie")
+    sid = db.insert_schueler(db_path, "6A", "TestA")
     aid = db.insert_abgabe(db_path, sid, "6A", "SA1", "x.docx", "hh")
     db.insert_fehler(db_path, aid, "das Haus", "das Haus,", "Z", "Komma fehlt")
     detail = db.get_fehler_heatmap_detail(db_path, "6A", "Z", aufgabe="SA1")
     assert len(detail) == 1
-    assert detail[0]["vorname"] == "Sophie"
+    assert detail[0]["vorname"] == "TestA"
     assert detail[0]["zitat"] == "das Haus"
+
+
+def test_klassenfeedback_haeufigkeit_trennt_unterschiedliche_korrekturen(db_path: Path) -> None:
+    """Gleiches Zitat mit verschiedenen Korrekturen darf nicht zusammenfallen."""
+    aid = db.insert_abgabe(db_path, None, "6A", "SA1", "x.docx", "haeufigkeit-hash")
+    db.insert_fehler(db_path, aid, "das Haus", "das Haus,", "Z", "Komma fehlt")
+    db.insert_fehler(db_path, aid, "das Haus", "das Haus,", "Z", "Komma fehlt")
+    db.insert_fehler(db_path, aid, "das Haus", "das Haus!", "Z", "Zeichen falsch")
+
+    feedback = db.get_klassen_feedback(db_path, "6A", "SA1")
+    varianten = {
+        eintrag["korrektur"]: eintrag["haeufigkeit"]
+        for eintrag in feedback["beispiele"]
+        if eintrag["zitat"] == "das Haus"
+    }
+    assert varianten == {"das Haus,": 2, "das Haus!": 1}
 
 
 def test_insert_kriterium(db_path: Path) -> None:
@@ -158,7 +174,7 @@ def test_insert_kriterium(db_path: Path) -> None:
 
 
 def test_export_noten_csv(db_path: Path) -> None:
-    sid = db.insert_schueler(db_path, "6A", "Sophie", "Huber")
+    sid = db.insert_schueler(db_path, "6A", "TestA", "X")
     db.insert_abgabe(
         db_path, sid, "6A", "SA1", "s.docx", "h1", note=2.0, gesamtstufe=4.0,
         fach="Deutsch", textsorte="Kommentar",
@@ -166,18 +182,18 @@ def test_export_noten_csv(db_path: Path) -> None:
     csv_str = db.export_noten_csv(db_path, "6A")
     lines = csv_str.strip().split("\n")
     assert lines[0].startswith("Nachname;Vorname;Aufgabe")
-    assert "Huber;Sophie;SA1" in lines[1]
+    assert "X;TestA;SA1" in lines[1]
 
 
 # ── End-to-end: save_analysis_to_db ────────────────────────────────────────
 
 
 def test_save_analysis_to_db(tmp_path: Path, db_path: Path) -> None:
-    docx = tmp_path / "sophie.docx"
+    docx = tmp_path / "testa.docx"
     docx.write_bytes(b"dummy-inhalt")  # echter Hash wird ueber Dateiinhalt gebildet
     data = {
-        "datei": "sophie.docx",
-        "schueler": "Sophie Huber",
+        "datei": "testa.docx",
+        "schueler": "TestA X",
         "fach": "Deutsch",
         "schulstufe": "Oberstufe",
         "textsorte": "Kommentar",
@@ -189,7 +205,7 @@ def test_save_analysis_to_db(tmp_path: Path, db_path: Path) -> None:
     aid = db.save_analysis_to_db(db_path, data, docx, "6A", "SA1", rohtext="Text", wortanzahl=120)
     assert aid > 0
     # Schueler wurde angelegt
-    assert db.get_schueler_by_name(db_path, "6A", "Sophie", "Huber") is not None
+    assert db.get_schueler_by_name(db_path, "6A", "TestA", "X") is not None
     # Abgabe + Fehler + Kriterium persistiert
     abg = db.get_abgaben_by_klasse_aufgabe(db_path, "6A", "SA1")
     assert len(abg) == 1 and abg[0]["note"] == 2.0
@@ -270,7 +286,7 @@ def test_get_lehrer_feedback_by_hash(db_path: Path) -> None:
 
 
 def test_save_schueler_profil_and_load(db_path: Path) -> None:
-    sid = db.insert_schueler(db_path, "6A", "Lena", "Mueller")
+    sid = db.insert_schueler(db_path, "6A", "TestA", "X")
     profil = {"kurzbild": "Lernt gut", "staerken": ["Lesen"], "foerderbereiche": []}
     pid = db.save_schueler_profil(db_path, sid, profil, basis_anzahl_abgaben=3, modell="test-model")
     assert pid > 0
@@ -284,7 +300,7 @@ def test_save_schueler_profil_and_load(db_path: Path) -> None:
 
 
 def test_schueler_profil_historie_neueste_zuerst(db_path: Path) -> None:
-    sid = db.insert_schueler(db_path, "6A", "Tom", "Test")
+    sid = db.insert_schueler(db_path, "6A", "TestA", "Z")
     db.save_schueler_profil(db_path, sid, {"v": 1}, basis_anzahl_abgaben=1)
     db.save_schueler_profil(db_path, sid, {"v": 2}, basis_anzahl_abgaben=2)
     db.save_schueler_profil(db_path, sid, {"v": 3}, basis_anzahl_abgaben=3)
@@ -606,6 +622,27 @@ def test_insert_fehler_with_vertrauensstufe(db_path: Path) -> None:
             "SELECT zitat, vertrauensstufe, lehrkraft_aktion FROM fehler_historie"
         ).fetchone()
     assert row == ("Zitat alt", "hoch", None)
+
+
+def test_insert_fehler_cluster_bleibt_optional(db_path: Path) -> None:
+    abgabe_id = db.insert_abgabe(db_path, None, "6A", "SA1", "a.docx", "h1")
+    db.insert_fehler(db_path, abgabe_id, "Komma", "Komma,", "Z", "Komma fehlt")
+    db.insert_fehler(
+        db_path,
+        abgabe_id,
+        "weil Satz",
+        "weil-Satz",
+        "Z",
+        "Komma fehlt",
+        regel_muster="Komma im Nebensatz",
+    )
+    with sqlite3.connect(db_path) as conn:
+        rows = conn.execute(
+            "SELECT regel_muster, cluster_id FROM fehler_historie ORDER BY id"
+        ).fetchall()
+    assert rows[0] == (None, None)
+    assert rows[1][0] == "Komma im Nebensatz"
+    assert rows[1][1].startswith("Z:")
 
 
 def _last_fehler_id(db_path: Path) -> int:

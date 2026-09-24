@@ -64,6 +64,71 @@ def test_cli_feedback_docx_aus_temp_db(tmp_path: Path) -> None:
     assert out.is_file()
 
 
+def test_follow_up_docx_nur_mit_verknuepftem_existierendem_schuelerexport(
+    tmp_path: Path,
+) -> None:
+    db_path = tmp_path / "shared.db"
+    with sqlite3.connect(db_path) as conn:
+        conn.executescript(
+            """
+            CREATE TABLE generated_materials (
+                id TEXT PRIMARY KEY, title TEXT, is_deleted INTEGER,
+                loop_klasse TEXT, loop_aufgabe TEXT, updated_at TEXT
+            );
+            CREATE TABLE lua_history (
+                id TEXT PRIMARY KEY, timestamp TEXT,
+                exported_files_json TEXT, saved_document_id TEXT
+            );
+            """
+        )
+        conn.execute(
+            "INSERT INTO generated_materials VALUES (?, ?, 0, ?, ?, ?)",
+            ("material-1", "Kommas sicher setzen", "CLI-TEST", "SA1", "2026-09-24"),
+        )
+
+    abgabe = {"klasse": "CLI-TEST", "aufgabe": "SA1"}
+    unexported = cli._follow_up_from_loop_material(db_path, abgabe)
+    assert unexported.status == "in_luka"
+    assert unexported.material_id == "material-1"
+
+    # Eine gespeicherte Lösungsdatei allein ist keine Beilage für Schüler/innen.
+    solution = tmp_path / "uebung_Loesung.docx"
+    solution.write_bytes(b"synthetic")
+    with sqlite3.connect(db_path) as conn:
+        conn.execute(
+            "INSERT INTO lua_history VALUES (?, ?, ?, ?)",
+            (
+                "history-solution",
+                "2026-09-24T10:00:00Z",
+                json.dumps([str(solution)]),
+                "material-1",
+            ),
+        )
+    solution_only = cli._follow_up_from_loop_material(db_path, abgabe)
+    assert solution_only.status == "in_luka"
+
+    student_file = tmp_path / "uebung_Schuelerfassung.docx"
+    student_file.write_bytes(b"synthetic")
+    with sqlite3.connect(db_path) as conn:
+        conn.execute(
+            "INSERT INTO lua_history VALUES (?, ?, ?, ?)",
+            (
+                "history-student",
+                "2026-09-24T10:01:00Z",
+                json.dumps([str(student_file)]),
+                "material-1",
+            ),
+        )
+    attached = cli._follow_up_from_loop_material(db_path, abgabe)
+    assert attached.status == "beigelegt"
+    assert attached.material_id == "material-1"
+    assert attached.dateiname == student_file.name
+    assert str(tmp_path) not in attached.dateiname
+
+    student_file.unlink()
+    assert cli._follow_up_from_loop_material(db_path, abgabe).status == "in_luka"
+
+
 def test_srdp_detail_laesst_abgabe_per_id(monkeypatch, tmp_path: Path) -> None:
     db_path = tmp_path / "natascha.db"
     db.init_db(db_path)

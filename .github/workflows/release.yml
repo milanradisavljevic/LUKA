@@ -67,6 +67,11 @@ jobs:
       # wie in ci.yml: frische CI-Umgebung braucht die Cross-Paket-Typen.
       - run: pnpm --filter "./packages/*" build
 
+      - name: NATASCHA-Paket vor Sidecar isoliert bauen
+        working-directory: apps/natascha
+        shell: pwsh
+        run: python -m pip wheel . --no-deps --wheel-dir "$env:RUNNER_TEMP\natascha-wheel"
+
       - name: NATASCHA-Sidecar für Windows bauen
         if: runner.os == 'Windows'
         working-directory: apps/natascha

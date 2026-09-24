@@ -13,6 +13,7 @@ interface AbgabeInfo {
   klasse: string;
   aufgabe: string;
   dateiname: string;
+  datum: string | null;
   vorname: string | null;
   nachname: string | null;
   note: number | null;
@@ -24,6 +25,9 @@ interface AbgabeInfo {
   hatLehrerFeedback: boolean;
   noteFinal: number | null;
   rohtext: string | null;
+  revisionId: number | null;
+  provider: string | null;
+  model: string | null;
 }
 
 interface KriteriumRow {
@@ -61,6 +65,7 @@ interface AbgabeDetail {
   kriterien: KriteriumRow[];
   fehler: FehlerRow[];
   lehrerFeedback: LehrerFeedbackRow | null;
+  revisions: { id: number; revisionNo: number; provider: string; model: string; status: string; isActive: boolean; createdAt: string | null }[];
 }
 
 interface HeatmapEntry {
@@ -90,6 +95,8 @@ export interface PersonenVorschau {
   visionModus: boolean;
   visionFaehig: boolean;
   klassenlisteLeer: boolean;
+  /** L2: Wortzahl (nur Textdateien) — Grundlage der Batch-Mengenschätzung. */
+  woerter?: number | null;
 }
 
 export interface RubrikListe {
@@ -127,7 +134,7 @@ export function useNatascha() {
     filePath: string,
     klasse: string,
     aufgabe: string,
-    opts?: { runtime?: {provider:string;model:string}; fach?: string; schulstufe?: string; textsorte?: string; schueler?: string; bewertungsmodus?: string; ausgangstext?: string; ausgangstextDatei?: string; rubric?: string; pseudonymisierung?: boolean; schuelerId?: number; einsatzId?: string; materialId?: string },
+    opts?: { runtime?: {provider:string;model:string}; fach?: string; schulstufe?: string; textsorte?: string; land?: string; schueler?: string; bewertungsmodus?: string; ausgangstext?: string; ausgangstextDatei?: string; rubric?: string; pseudonymisierung?: boolean; schuelerId?: number; einsatzId?: string; materialId?: string; revisionOfAbgabeId?: number },
   ) => {
     if(analyzeBusy.current) throw new Error('Eine Analyse läuft bereits.');
     analyzeBusy.current=true;
@@ -153,6 +160,7 @@ export function useNatascha() {
         fach: opts?.fach,
         schulstufe: opts?.schulstufe,
         textsorte: opts?.textsorte,
+        land: opts?.land,
         schueler: opts?.schueler,
         bewertungsmodus: opts?.bewertungsmodus,
         ausgangstextText: opts?.ausgangstext,
@@ -162,6 +170,7 @@ export function useNatascha() {
         schuelerId: opts?.schuelerId,
         einsatzId: opts?.einsatzId,
         materialId: opts?.materialId,
+        revisionOfAbgabeId: opts?.revisionOfAbgabeId,
       });
       return JSON.parse(result);
     } catch (e) {
@@ -285,6 +294,14 @@ export function useNatascha() {
     }
   }, []);
 
+  const activateKorrekturRevision = useCallback(async (abgabeId: number, revisionId: number): Promise<void> => {
+    await invoke('db_activate_korrektur_revision', { abgabeId, revisionId });
+  }, []);
+
+  const deleteKorrekturRevision = useCallback(async (abgabeId: number, revisionId: number): Promise<boolean> => {
+    return invoke<boolean>('db_delete_korrektur_revision', { abgabeId, revisionId });
+  }, []);
+
   const upsertLehrerFeedback = useCallback(async (
     abgabeId: number,
     klasse: string,
@@ -354,11 +371,11 @@ export function useNatascha() {
     return JSON.parse(result);
   }, []);
 
-  const listRubrics = useCallback(async (fach?: string, schulstufe?: string): Promise<RubrikListe> => {
+  const listRubrics = useCallback(async (fach?: string, schulstufe?: string, currentRubric?: string): Promise<RubrikListe> => {
     const s = loadSettings();
     try {
       const result = await invoke<string>('natascha_list_rubrics', {
-        dir: s.nataschaDir ?? '', python: s.pythonCommand ?? '', fach, schulstufe,
+        dir: s.nataschaDir ?? '', python: s.pythonCommand ?? '', fach, schulstufe, currentRubric: currentRubric || '',
       });
       return JSON.parse(result) as RubrikListe;
     } catch (e) {
@@ -452,6 +469,14 @@ export function useNatascha() {
     }
   }, []);
 
+  const getLoopUebungen = useCallback(async (klasse: string): Promise<LoopUebungRow[]> => {
+    try {
+      return await invoke<LoopUebungRow[]>('db_list_loop_uebungen', { klasse });
+    } catch {
+      return [];
+    }
+  }, []);
+
   const getKlassenKalibrierung = useCallback(async (klasse: string, aufgabe?: string): Promise<KalibrierungResult | null> => {
     try {
       return await invoke<KalibrierungResult>('db_get_klassen_kalibrierung', { klasse, aufgabe: aufgabe ?? null });
@@ -529,6 +554,8 @@ export function useNatascha() {
     generateErwartungshorizont,
     saveErwartungshorizont,
     getAbgabeDetail,
+    activateKorrekturRevision,
+    deleteKorrekturRevision,
     getKorrekturKontext,
     upsertLehrerFeedback,
     updateFehlerStatus,
@@ -541,6 +568,7 @@ export function useNatascha() {
     getSchuelerLaengsschnitt,
     getKlassenTrend,
     getFehlerTrend,
+    getLoopUebungen,
     getKlassenKalibrierung,
     getFehlerDetail,
     exportNotenCsv,
@@ -581,6 +609,9 @@ interface LaengsschnittEintrag {
   datum: string | null;
   noteApp: number | null;
   noteLehrer: number | null;
+  fach: string | null;
+  schulstufe: string | null;
+  textsorte: string | null;
   kriterien: Record<string, number | null>;
   k1: number | null;
   k3: number | null;
@@ -596,6 +627,8 @@ interface Fehlerschwerpunkt {
   typ: string;
   label: string;
   anzahl: number;
+  clusterId?: string | null;
+  regelMuster?: string | null;
   beispiele: { zitat: string | null; korrektur: string | null }[];
 }
 
@@ -631,6 +664,21 @@ export interface FehlerTrendPunkt {
   fehler: Record<string, number>;
   /** typ → Fehler pro Abgabe (normalisiert, 2 Dezimalen) */
   fehlerProAbgabe: Record<string, number>;
+  /** clusterId → Anzahl strukturierter Fehler, nur bei hinterlegtem Regelmuster. */
+  clusterFehler: Record<string, number>;
+  /** clusterId → strukturierte Fehler pro Abgabe. */
+  clusterFehlerProAbgabe: Record<string, number>;
+  /** clusterId → lesbares Regelmuster. */
+  clusterLabels: Record<string, string>;
+}
+
+/** Folgeübung mit Closed-Loop-Herkunft (L1) — Grundlage des Loop-Wirkung-Panels. */
+export interface LoopUebungRow {
+  id: string;
+  titel: string;
+  loop_aufgabe: string | null;
+  loop_datum: string | null;
+  created_at: string;
 }
 
 interface KalibrierungResult {
@@ -640,12 +688,24 @@ interface KalibrierungResult {
   nMitFeedback: number;
   nGesamt: number;
   tendenz: string;
+  /** L2: KI vs. Lehrer je Textsorte (nur Textsorten mit ≥ 2 Paaren). */
+  nachTextsorte?: KalibrierungTextsorte[];
+}
+
+export interface KalibrierungTextsorte {
+  textsorte: string;
+  paare: number;
+  mittlereAbweichung: number | null;
+  tendenz: string;
 }
 
 interface FehlerDetailRow {
   zitat: string | null;
   korrektur: string | null;
   erklaerung: string | null;
+  clusterId?: string | null;
+  regelMuster?: string | null;
+  haeufigkeit: number;
   vorname: string | null;
   dateiname: string;
 }

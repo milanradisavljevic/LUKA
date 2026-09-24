@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import type { AppState } from '../lib/types';
-import type { DocumentV1 } from '@lehrunterlagen/schema';
+import { pruefeInformatikMultipleChoiceSchluessel, type DocumentV1 } from '@lehrunterlagen/schema';
 
 import { getBlockLabel } from '../lib/blockDefaults';
 import { appendHistoryEntry, loadSettings } from '../lib/storage';
@@ -24,6 +24,12 @@ export function useExport() {
       const { renderDocumentToBlobs } = await import('@lehrunterlagen/renderer');
       const template = RENDER_TEMPLATES[state.renderTemplate];
       const layout = RENDER_LAYOUTS[state.renderLayout];
+      const schluesselProbleme = pruefeInformatikMultipleChoiceSchluessel(doc);
+      if (schluesselProbleme.length > 0) {
+        throw new Error(
+          `Export nicht möglich: Informatik-MC braucht einen eindeutigen Antwortschlüssel.\n${schluesselProbleme.join('\n')}`,
+        );
+      }
       const unpassendeRaetsel: { index: number; pruefung: ReturnType<typeof pruefeRaetselA4> }[] = [];
       for (const [index, block] of doc.bloecke.entries()) {
         if (block.typ !== 'kreuzwortraetsel' && block.typ !== 'wortgitter') continue;
@@ -49,25 +55,31 @@ export function useExport() {
       // beide Downloads akzeptiert (manche blockieren gleichzeitige Downloads)
       const schuelerPfad = await saveBlob(schueler, schuelerName);
       await delay(600);
-      const loesungPfad = includeSolution ? await saveBlob(loesung, loesungName) : null;
+      // Ohne gespeichertes Schülerblatt gibt es keinen vollständigen Export.
+      const loesungPfad = includeSolution && schuelerPfad
+        ? await saveBlob(loesung, loesungName)
+        : null;
 
       const gespeichert = [schuelerPfad, loesungPfad].filter((path): path is string => Boolean(path));
       setLastSavedPaths(gespeichert.length ? gespeichert : null);
 
-      // Verlaufseintrag protokollieren (read-only Log in der Sidebar)
-      appendHistoryEntry({
-        id: crypto.randomUUID(),
-        timestamp: new Date().toISOString(),
-        thema: doc.meta.thema,
-        fach: doc.meta.fach,
-        stufe: doc.meta.stufe,
-        llmProvider: state.llmProvider,
-        modelName: state.modelName,
-        blockCount: doc.bloecke.length,
-        totalPunkte: doc.bloecke.reduce((sum, b) => sum + (b.punkte ?? 0), 0),
-        exportedFiles: includeSolution ? [schuelerName, loesungName] : [schuelerName],
-        savedDocumentId: state.aktuelleDokumentId,
-      });
+      // Nur tatsächlich gespeicherte Dateien protokollieren; das Backend kann
+      // danach einen vorhandenen Schüler-DOCX-Export verlässlich nachweisen.
+      if (gespeichert.length > 0) {
+        appendHistoryEntry({
+          id: crypto.randomUUID(),
+          timestamp: new Date().toISOString(),
+          thema: doc.meta.thema,
+          fach: doc.meta.fach,
+          stufe: doc.meta.stufe,
+          llmProvider: state.llmProvider,
+          modelName: state.modelName,
+          blockCount: doc.bloecke.length,
+          totalPunkte: doc.bloecke.reduce((sum, b) => sum + (b.punkte ?? 0), 0),
+          exportedFiles: gespeichert,
+          savedDocumentId: state.aktuelleDokumentId,
+        });
+      }
 
       return true;
     } catch (err) {

@@ -124,6 +124,9 @@ jobs:
           cache: pip
       # cli + tui Requirements: test_tui.py importiert das TUI-Modul (textual).
       - run: pip install -r requirements_cli.txt -r requirements_tui.txt pytest
+      # PEP-517 mit Build-Isolation: Das Paket muss auch ausserhalb des
+      # Entwickler-Setups installierbar bleiben (Sidecar-Release-Gate).
+      - run: python -m pip wheel . --no-deps --wheel-dir "$RUNNER_TEMP/natascha-wheel"
       - run: pytest -q
 
   schema-sync:

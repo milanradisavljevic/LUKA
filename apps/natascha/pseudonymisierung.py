@@ -43,7 +43,7 @@ def _wort_regex(variante: str) -> re.Pattern[str]:
 
 
 def _kompakt(s: str) -> str:
-    """Kleinbuchstaben ohne Trennzeichen — für Dateinamen wie 'SophieMuster_SA.docx'."""
+    """Kleinbuchstaben ohne Trennzeichen — für Dateinamen wie 'BeispielpersonA_SA.docx'."""
     return re.sub(r"[^0-9a-zäöüß]", "", (s or "").lower())
 
 
@@ -95,11 +95,11 @@ def erkenne_personenangaben(
             varianten.append(v)
         if n and nachnamen.get(n.lower(), 0) == 1:
             varianten.append(n)
-        # Längste zuerst, damit "Mia Muster" vor "Mia" ersetzt wird.
+        # Längste zuerst, damit ein Vollname vor dem Vornamen ersetzt wird.
         varianten.sort(key=len, reverse=True)
 
         # Sequenziell zählen (längste Variante zuerst wegersetzen), sonst würde
-        # "Mia" innerhalb von "Mia Muster" doppelt gezählt.
+        # Einzelname innerhalb eines Vollnamens nicht doppelt zählen.
         vorkommen_text = 0
         if text:
             rest = text

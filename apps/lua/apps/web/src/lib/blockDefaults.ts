@@ -7,6 +7,31 @@ function nextId(): string {
   return `b${_counter}`;
 }
 
+/**
+ * Füllt fehlende Config-Keys aus den Block-Defaults auf (shallow merge).
+ * Beim Laden alter Vorlagen/Drafts/Snapshots können z. B. `items` oder `saetze`
+ * fehlen — ohne Merge crashen blockToRequest/Renderer/Export.
+ * Reine Config-Erzeugung ohne createDefaultBlock (vermeidet id-counter side effect).
+ */
+export function hydrateBlockConfig(typ: Block['typ'], config: unknown): Record<string, unknown> {
+  const provided = (config && typeof config === 'object' && !Array.isArray(config))
+    ? config as Record<string, unknown>
+    : {};
+  let defaults: Record<string, unknown> = {};
+  try {
+    // createDefaultBlock mit fester id — nur config zählt hier
+    const d = createDefaultBlock(typ, undefined);
+    defaults = d.config as Record<string, unknown>;
+  } catch {
+    /* unbekannter Typ → nur provided */
+  }
+  const merged: Record<string, unknown> = { ...defaults, ...provided };
+  for (const key of Object.keys(defaults)) {
+    if (merged[key] === undefined) merged[key] = defaults[key];
+  }
+  return merged;
+}
+
 export function createDefaultBlock(typ: Block['typ'], meta?: Meta): Block {
   const id = nextId();
   const punkte = meta?.punkteAusblenden === true ? 0 : 6;
@@ -190,6 +215,52 @@ export function createDefaultBlock(typ: Block['typ'], meta?: Meta): Block {
         },
         loesung: { korrekturen: [] },
       } as Block;
+    case 'quellenanalyse':
+      return {
+        ...base,
+        typ: 'quellenanalyse',
+        punkte: 12,
+        quelleId: 'q1',
+        config: {
+          quelleId: 'q1',
+          quellentyp: 'text',
+          auftraege: [{ nr: 1, operator: 'analysieren', frage: '', zeilen: 6 }],
+        },
+        loesung: { antworten: [] },
+      } as Block;
+    case 'timeline':
+      return {
+        ...base,
+        typ: 'timeline',
+        punkte: 8,
+        quelleId: 'q1',
+        config: {
+          quelleId: 'q1',
+          zeitraum: '',
+          ereignisse: [
+            { nr: 1, titel: '', beschreibung: '' },
+            { nr: 2, titel: '', beschreibung: '' },
+            { nr: 3, titel: '', beschreibung: '' },
+          ],
+        },
+        loesung: { reihenfolge: [], datierungen: [] },
+      } as Block;
+    case 'diagrammanalyse':
+      return {
+        ...base,
+        typ: 'diagrammanalyse',
+        punkte: 10,
+        quelleId: 'q1',
+        config: {
+          quelleId: 'q1',
+          diagrammtyp: 'balken',
+          titel: '',
+          einheit: '',
+          daten: [{ label: '', wert: '' }, { label: '', wert: '' }],
+          auftraege: [{ nr: 1, operator: 'auswerten', frage: '', zeilen: 5 }],
+        },
+        loesung: { antworten: [] },
+      } as Block;
     case 'roleplay':
       return {
         ...base,
@@ -254,6 +325,9 @@ export const BLOCK_ARBEITSANWEISUNG_PLACEHOLDER: Record<Block['typ'], string> = 
   vokabeluebung: 'Übersetze die Vokabeln.',
   umformung: 'Forme die Sätze nach der Anweisung um.',
   fehlerkorrektur: 'Finde und korrigiere die Fehler in den Sätzen.',
+  quellenanalyse: 'Analysiere die Quelle und belege deine Aussagen am Text.',
+  timeline: 'Ordne die Ereignisse chronologisch und begründe die zeitliche Einordnung.',
+  diagrammanalyse: 'Werte die Daten aus und belege deine Aussagen mit konkreten Werten.',
   roleplay: 'Spielt die Situation in eurer Gruppe oder zu zweit durch.',
   rollenkartenSet: 'Jedes Paar bekommt eine Karte und spielt sein Szenario durch.',
 };
@@ -275,6 +349,9 @@ const BLOCK_LABELS: Record<Block['typ'], string> = {
   vokabeluebung: 'Vokabelübung',
   umformung: 'Umformung',
   fehlerkorrektur: 'Fehlerkorrektur',
+  quellenanalyse: 'Quellenanalyse',
+  timeline: 'Timeline / Datierung',
+  diagrammanalyse: 'Diagramm-/Datenanalyse',
   roleplay: 'Rollenspiel',
   rollenkartenSet: 'Rollenkarten-Set',
 };

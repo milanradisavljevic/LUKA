@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sqlite3
 import tempfile
 from datetime import date
@@ -52,23 +53,65 @@ def _resolve_inbox_dir(config: dict[str, Any], inbox_dir: str | os.PathLike | No
 def _normalize_fach(fach: str | None) -> str | None:
     if not fach:
         return None
-    f = fach.strip().lower()
-    return f if f in ("deutsch", "englisch") else None
+    f = fach.strip().casefold().replace("ä", "ae").replace("ö", "oe").replace("ü", "ue")
+    f = re.sub(r"\s+", " ", f.replace("ß", "ss"))
+    alias = {
+        "franzoesisch": "franzoesisch",
+        "spanisch": "spanisch",
+        "italienisch": "italienisch",
+        "latein": "latein",
+        "geschichte": "geschichte",
+        "geographie": "geographie",
+        "geo": "geographie",
+        "religion": "religion",
+        "ethik": "ethik",
+        "psychologie": "psychologie",
+        "philosophie": "philosophie",
+        "medien und demokratie": "mediendemokratie",
+        "mediendemokratie": "mediendemokratie",
+        "informatik und kuenstliche intelligenz": "informatikki",
+        "informatikki": "informatikki",
+    }
+    erlaubte_faecher = {
+        "deutsch", "englisch", "franzoesisch", "spanisch", "italienisch", "latein",
+        "geschichte", "geographie", "religion", "ethik", "psychologie", "philosophie",
+        "mediendemokratie", "informatikki",
+    }
+    kanonisch = alias.get(f, f)
+    return kanonisch if kanonisch in erlaubte_faecher else None
 
 
-def _normalize_stufe(schulstufe: str | None) -> str | None:
+def _normalize_land(land: str | None) -> str | None:
+    if not land:
+        return None
+    kanonisch = land.strip().upper()
+    return kanonisch if kanonisch in {"AT", "DE", "CH"} else None
+
+
+def _normalize_schulstufe_nummer(schulstufe: Any) -> int | None:
+    if schulstufe is None:
+        return None
+    match = re.search(r"(?<!\d)(1[0-3]|[5-9])(?!\d)", str(schulstufe).strip())
+    return int(match.group(1)) if match else None
+
+
+def _normalize_stufe(schulstufe: str | None, land: str | None = None) -> str | None:
     if not schulstufe:
         return None
     s = schulstufe.strip().lower()
-    if "ober" in s:
+    if "ober" in s or "sek ii" in s:
         return "oberstufe"
-    if "unter" in s:
+    if "unter" in s or "sek i" in s:
         return "unterstufe"
+    nummer = _normalize_schulstufe_nummer(s)
+    if nummer is not None:
+        grenze = 10 if _normalize_land(land) == "DE" else 8
+        return "unterstufe" if nummer <= grenze else "oberstufe"
     return None
 
 
 def _read_abgabe_meta(db_path: Path | str, klasse: str, aufgabe: str) -> dict[str, Any]:
-    """Liest fach/schulstufe/textsorte aus der jüngsten Abgabe der Klasse/Aufgabe."""
+    """Liest Aufgabenkontext und ergänzt fehlende Werte aus LUA-Klassenmetadaten."""
     with sqlite3.connect(str(db_path)) as conn:
         conn.row_factory = sqlite3.Row
         row = conn.execute(
@@ -76,7 +119,35 @@ def _read_abgabe_meta(db_path: Path | str, klasse: str, aufgabe: str) -> dict[st
             " WHERE klasse = ? AND aufgabe = ? ORDER BY datum DESC LIMIT 1",
             (klasse, aufgabe),
         ).fetchone()
-    return dict(row) if row else {}
+        result = dict(row) if row else {}
+        table_exists = conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='lua_klassen'"
+        ).fetchone()
+        if table_exists:
+            columns = {
+                column[1] for column in conn.execute("PRAGMA table_info(lua_klassen)").fetchall()
+            }
+            wanted = [
+                name for name in ("fach", "land", "stufe", "schulstufe") if name in columns
+            ]
+            if wanted:
+                query = "SELECT " + ", ".join(wanted) + " FROM lua_klassen WHERE name=?"
+                class_row = conn.execute(query, (klasse,)).fetchone()
+                if class_row:
+                    class_meta = dict(class_row)
+                    if not result.get("fach"):
+                        result["fach"] = class_meta.get("fach")
+                    if not result.get("stufe"):
+                        result["stufe"] = class_meta.get("stufe")
+                    # Die konkrete Klassenschulstufe ist präziser als ein bloßes
+                    # "Oberstufe" in einer älteren Abgabe.
+                    if _normalize_schulstufe_nummer(result.get("schulstufe")) is None:
+                        if class_meta.get("schulstufe") is not None:
+                            result["schulstufe_nummer"] = class_meta["schulstufe"]
+                        if class_meta.get("stufe"):
+                            result["schulstufe"] = class_meta["stufe"]
+                    result["land"] = class_meta.get("land")
+    return result
 
 
 def build_bridge_payload(
@@ -119,6 +190,10 @@ def build_bridge_payload(
             eintrag["erklaerung"] = b["erklaerung"]
         if b.get("haeufigkeit"):
             eintrag["haeufigkeit"] = int(b["haeufigkeit"])
+        if b.get("cluster_id") or b.get("clusterId"):
+            eintrag["clusterId"] = b.get("cluster_id") or b.get("clusterId")
+        if b.get("regel_muster") or b.get("regelMuster"):
+            eintrag["regelMuster"] = b.get("regel_muster") or b.get("regelMuster")
         beispiele.append(eintrag)
 
     empfehlungen = [
@@ -138,9 +213,20 @@ def build_bridge_payload(
         "beispiele": beispiele,
         "empfehlungen": empfehlungen,
     }
-    stufe = _normalize_stufe(abgabe_meta.get("schulstufe"))
+    land = _normalize_land(abgabe_meta.get("land"))
+    if land:
+        payload["land"] = land
+    schulstufe_nummer = (
+        _normalize_schulstufe_nummer(abgabe_meta.get("schulstufe_nummer"))
+        or _normalize_schulstufe_nummer(abgabe_meta.get("schulstufe"))
+    )
+    stufe = _normalize_stufe(abgabe_meta.get("schulstufe"), land)
+    if not stufe:
+        stufe = _normalize_stufe(abgabe_meta.get("stufe"), land)
     if stufe:
         payload["schulstufe"] = stufe
+    if schulstufe_nummer:
+        payload["schulstufeNummer"] = schulstufe_nummer
     if abgabe_meta.get("textsorte"):
         payload["textsorte"] = abgabe_meta["textsorte"]
     quelle = (

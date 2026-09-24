@@ -13,7 +13,7 @@
 **Problem:** In `step_assignment()` wird der Dateiname mit `[bold]...[/bold]` gewrappt und an `inquirer.select(message=...)` uebergeben. InquirerPy interpretiert kein Rich-Markup – das Tag erscheint als Literal:
 
 ```
-? [bold]Kommentar -Krass, Digga!...- Max Muster.docx[/bold] (464 Wörter) – Fach
+? [bold]Kommentar -Krass, Digga!...- Beispielperson B.docx[/bold] (464 Wörter) – Fach
 ```
 
 **Loesung:** Markup vor dem Datei-Block via `console.print()` ausgeben, dann InquirerPy ohne Markup verwenden.

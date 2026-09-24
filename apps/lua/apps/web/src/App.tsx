@@ -206,6 +206,8 @@ export default function App() {
   const [toast, setToast] = useState<ToastMessage | null>(null);
   // Cross-Nav: aus der Korrektur zu einem bestimmten Schüler springen.
   const [pendingSchueler, setPendingSchueler] = useState<{ klasse: string; id: number } | null>(null);
+  // Cross-Nav (L1): aus der Klassenansicht direkt in eine konkrete Korrektur springen.
+  const [pendingKorrektur, setPendingKorrektur] = useState<{ abgabeId: number; klasse: string; aufgabe: string } | null>(null);
   // First-Run-Onboarding: mindestens ein API-Key nötig, bevor die App bedienbar ist.
   const [keyGateState, setKeyGateState] = useState<'checking' | 'required' | 'ready' | 'error'>(() => isTauri() ? 'checking' : 'ready');
   const [keyGateRetry, setKeyGateRetry] = useState(0);
@@ -439,6 +441,12 @@ export default function App() {
     setActiveView('wizard');
   }, [state.bloecke.length, state.generiertesDokument, dispatch]);
 
+  // Cross-Nav (L1): Folgeübung im Loop-Wirkung-Panel → Unterlage im Unterricht öffnen.
+  const handleOpenUnterlageById = useCallback((documentId: string) => {
+    const doc = loadDocuments().find((d) => d.id === documentId);
+    if (doc) handleOpenDocument(doc);
+  }, [handleOpenDocument, state.bloecke.length, state.generiertesDokument]);
+
   const handleNewDocument = useCallback(() => {
     const hasWork = state.bloecke.length > 0 || state.generiertesDokument !== null;
     if (hasWork && !window.confirm('Aktuellen Stand verwerfen und ein neues Dokument beginnen?')) {
@@ -500,6 +508,12 @@ export default function App() {
   const handleOpenSchueler = useCallback((klasse: string, id: number) => {
     setPendingSchueler({ klasse, id });
     setActiveView('schueler');
+  }, []);
+
+  // Cross-Nav (L1): Klick auf eine Abgabe in der Klassenansicht → Korrektur dieser Arbeit.
+  const handleOpenKorrektur = useCallback((ziel: { abgabeId: number; klasse: string; aufgabe: string }) => {
+    setPendingKorrektur(ziel);
+    setActiveView('korrektur');
   }, []);
 
   // Führt ein Such-Ergebnis aus der Palette aus (Unterlagen/Vorlagen/Pool/
@@ -628,7 +642,7 @@ if (hydrating) {
       case 'schueler':
         return <SchuelerView preselect={pendingSchueler} onConsumePreselect={() => setPendingSchueler(null)} onGenerateUebung={handleGenerateUebung} />;
       case 'klassen':
-        return <KlassenView onGenerateUebung={handleGenerateUebung} />;
+        return <KlassenView onGenerateUebung={handleGenerateUebung} onOpenKorrektur={handleOpenKorrektur} onOpenSchueler={handleOpenSchueler} onOpenUnterlage={handleOpenUnterlageById} />;
       case 'kompetenz':
         return (
           <KompetenzView
@@ -794,7 +808,7 @@ if (hydrating) {
               {state.generatedOutdated && isWizard && <p role="status" className="session-warning">Die Vorgaben wurden geändert. Die vorhandene Vorschau bleibt erhalten; erst „Neu generieren“ übernimmt diese Änderungen.</p>}
               {renderView()}
               <div hidden={!isWizard || state.step !== 'generate'}><Step4_Generate state={state} dispatch={dispatch} onOpenTafel={handleOpenTafel} /></div>
-              <div hidden={activeView !== 'korrektur'}><KorrekturView onOpenSchueler={handleOpenSchueler} /></div>
+              <div hidden={activeView !== 'korrektur'}><KorrekturView onOpenSchueler={handleOpenSchueler} preselect={pendingKorrektur} onConsumePreselect={() => setPendingKorrektur(null)} /></div>
             </Suspense>
           </div>
         </main>

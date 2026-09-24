@@ -7,7 +7,22 @@ import {
   SRDP_DEUTSCH_EINZELAUFGABE_UMFANG,
   SRDP_DEUTSCH_TEXTSORTEN,
 } from '@lehrunterlagen/schema';
-import type { DocumentV1 } from '@lehrunterlagen/schema';
+import type { DocumentV1, Meta } from '@lehrunterlagen/schema';
+
+/** Interne Schüler-IDs dienen nur der lokalen Herkunftszuordnung, nie dem Prompt. */
+function metaFuerModell(meta: Meta) {
+  const { niveaugruppe, ...ohneNiveaugruppe } = meta;
+  if (!niveaugruppe) return meta;
+  return {
+    ...ohneNiveaugruppe,
+    niveaugruppe: {
+      id: niveaugruppe.id,
+      label: niveaugruppe.label,
+      schwierigkeit: niveaugruppe.schwierigkeit,
+      notenbereich: niveaugruppe.notenbereich,
+    },
+  };
+}
 
 const SRDP_DEUTSCH_15_SUBKRITERIEN = {
   inhalt: ['Schreibhandlung(en)', 'Arbeitsaufträge', 'Textbeilage(n)', 'Sachliche Richtigkeit', 'Qualität der Auseinandersetzung'],
@@ -15,6 +30,44 @@ const SRDP_DEUTSCH_15_SUBKRITERIEN = {
   ausdruck: ['Situationsadäquatheit', 'Wortwahl / Ausdruck', 'Satzstrukturen', 'Eigenständigkeit'],
   sprachrichtigkeit: ['Orthografie', 'Zeichensetzung', 'Grammatik'],
 } as const;
+
+type Schwierigkeit = NonNullable<Meta['schwierigkeit']>;
+type KompetenzNiveau = NonNullable<Meta['kompetenzNiveau']>;
+
+const AFB_STUFE: Record<Schwierigkeit | KompetenzNiveau, 1 | 2 | 3> = {
+  leicht: 1,
+  basis: 1,
+  mittel: 2,
+  standard: 2,
+  schwer: 3,
+  erweitert: 3,
+};
+
+const AFB_OPERATOR_HINT: Record<1 | 2 | 3, string> = {
+  1: 'AFB I (z. B. nennen, beschreiben, zuordnen, markieren)',
+  2: 'AFB II (z. B. erklaeren, anwenden, vergleichen, analysieren)',
+  3: 'AFB III (z. B. beurteilen, bewerten, erörtern, gestalten)',
+};
+
+/** Verhindert widersprüchliche Operatorenvorgaben, wenn Schwierigkeit und
+ * Kompetenzniveau gleichzeitig gesetzt sind. Kompetenz steuert zusätzlich
+ * die Unterstützung, nicht eine zweite, konkurrierende Operatorenliste. */
+function niveauKopplungHinweis(
+  schwierigkeit: Schwierigkeit,
+  kompetenzNiveau?: KompetenzNiveau,
+): string {
+  if (!kompetenzNiveau) return '';
+  const maxAfb = Math.min(AFB_STUFE[schwierigkeit], AFB_STUFE[kompetenzNiveau]) as 1 | 2 | 3;
+  const scaffold = kompetenzNiveau === 'basis'
+    ? 'mit kleinschrittigen Hilfen und klaren Kriterien'
+    : kompetenzNiveau === 'standard'
+      ? 'mit ueblichem Mass an Hilfen und selbststaendiger Bearbeitung'
+      : 'mit wenig Hilfen, komplexeren Materialien und eigenstaendiger Bearbeitung';
+  return `VERBINDLICHE NIVEAU-KOMBINATION: Schwierigkeit "${schwierigkeit}" und Kompetenzniveau "${kompetenzNiveau}" gelten gemeinsam. ` +
+    `Verwende hoechstens ${AFB_OPERATOR_HINT[maxAfb]}; die niedrigere der beiden Niveaustufen begrenzt die Operatoren. ` +
+    `Setze diese Aufgaben mit dem Kompetenzniveau ${scaffold} um. ` +
+    `Erfinde keinen Operator oberhalb dieser Grenze und ersetze keinen angeforderten Blocktyp. `;
+}
 
 // Der System-Prompt traegt die inhaltlichen Regeln. Layout-Regeln (Hausstil)
 // gehoeren NICHT hierher, die macht der Renderer. Das LLM liefert nur Inhalt.
@@ -82,7 +135,7 @@ Inhaltliche Regeln:
 // Gemeinsame Block-Regeln + Beispiele — identisch für Text- UND Kompetenz-Modus.
 const BLOCK_REGELN = `WICHTIG — wohin die Loesungen gehoeren (HAENGT VOM BLOCKTYP AB):
 - multipleChoice, matching, offeneVerstaendnisfrage: Loesung steht DIREKT beim Item (Feld "korrekt" bzw. "musterantwort"), NICHT in einem separaten "loesung"-Objekt.
-- lueckentext, offeneSchreibaufgabe, markieraufgabe, wordScramble, kategorisierung, tabelle, stiluebung, songanalyse, vokabeluebung, roleplay: Loesung steht in einem "loesung"-Objekt am Block (siehe Beispiele). OHNE dieses "loesung"-Objekt ist die Antwort UNGUELTIG.
+- lueckentext, offeneSchreibaufgabe, markieraufgabe, wordScramble, kategorisierung, tabelle, stiluebung, songanalyse, vokabeluebung, fehlerkorrektur, quellenanalyse, timeline, diagrammanalyse, roleplay: Loesung steht in einem "loesung"-Objekt am Block (siehe Beispiele). OHNE dieses "loesung"-Objekt ist die Antwort UNGUELTIG.
 
 Blocktyp-spezifische Regeln:
 
@@ -232,6 +285,28 @@ fehlerkorrektur (Fehler finden + korrigieren; Loesung im "loesung"-Objekt!):
 - loesung.korrekturen = Array aus { nr, korrigierterSatz, fehler: [ { stelle, art, erklaerung(optional) } ] } — eine je Satz, gleiche nr.
 - art = "R" (Rechtschreibung), "G" (Grammatik), "Z" (Zeichensetzung) oder "A" (Ausdruck).
 - stelle = das fehlerhafte Wort/Zeichen wortwoertlich aus dem Ausgangssatz. Die Anzahl der fehler-Eintraege MUSS exakt anzahlFehler entsprechen.
+
+quellenanalyse (fachliche Quellenarbeit in Geschichte und anderen Sachfaechern; Loesung im "loesung"-Objekt!):
+- config.quelleId MUSS auf eine vorhandene Quelle zeigen. config.quellentyp ist text, rede, bild, karikatur oder statistik.
+- config.auftraege enthaelt genau anzahlAuftraege Eintraege { nr, operator, frage, zeilen }. Verwende die Operatoren beschreiben, analysieren, einordnen oder beurteilen.
+- Jeder Auftrag muss text- bzw. materialgebunden sein und einen sichtbaren Bezug auf die vorliegende Quelle herstellen. Keine reine Allgemeinwissensfrage.
+- loesung.antworten enthaelt fuer jeden Auftrag genau einen Eintrag { nr, erwartung, belege }. erwartung trennt fachliche Aussage und Urteil; belege enthaelt mindestens einen konkreten Quellenbezug (Zitat, Zeile, Aussage oder beobachtetes Materialmerkmal).
+- Erfinde keine historischen Fakten ausserhalb der Quelle. Sprachliche Fehler sind bei der Bewertung nachrangig; die fachliche Erwartung und der Quellenbeleg stehen im Vordergrund.
+
+timeline (chronologische Einordnung / Datierung in Sachfaechern; Loesung im "loesung"-Objekt!):
+- config.ereignisse enthaelt genau anzahlEreignisse nummerierte Karten { nr, titel, beschreibung }.
+- Leite jedes Ereignis aus dem Quelltext oder den vorgegebenen Inhalten ab; erfinde keine historischen Daten.
+- Die Karten duerfen in der Ausgabe nicht bereits chronologisch sortiert sein. Die Schueler ordnen sie selbst.
+- loesung.reihenfolge enthaelt jede Ereignis-nr genau einmal in chronologischer Reihenfolge.
+- loesung.datierungen darf nur belegte Jahreszahlen oder Zeitangaben enthalten ({ nr, datum }); keine erfundenen Praezisierungen.
+- Die Aufgabe trainiert zeitliche Einordnung, nicht das blosse Auswendiglernen: Arbeitsanweisung und Beschreibungen sollen einen nachvollziehbaren Ordnungsgrund erkennen lassen.
+
+diagrammanalyse (Diagramm-/Datenanalyse in Sachfaechern; Loesung im "loesung"-Objekt!):
+- config.titel, config.diagrammtyp und config.daten sind die sichtbare Datengrundlage. config.daten enthaelt genau anzahlDatenpunkte { label, wert }.
+- config.auftraege enthaelt genau anzahlAuftraege materialgebundene Fragen mit den Operatoren beschreiben, auswerten, erklaeren oder beurteilen.
+- Beschreibe Trends, Vergleiche und Auffaelligkeiten nur anhand der gelieferten Daten. Erfinde keine Zahlen, Einheiten oder Ursachen.
+- loesung.antworten enthaelt je Auftrag { nr, erwartung, belege }; belege muss mindestens einen konkreten Datenpunkt oder Vergleich aus config.daten nennen.
+- Das Diagramm ist keine Dekoration: Die Arbeitsaufträge und Lösungen müssen sichtbar auf konkrete Werte Bezug nehmen.
 
 roleplay (Rollenspiel / kommunikative Sprechsituation; Loesung im "loesung"-Objekt!):
 - config.situation = kurzer, alltaglicher Titel (z. B. "Im Restaurant", "Beim Arzt").
@@ -711,6 +786,9 @@ NIVEAU-STEUERUNG (Feld "kompetenzNiveau" im Meta-Objekt, falls gesetzt):
 - "basis": einfache, kurze Saetze; mehr Scaffolding (z. B. Wortbank/Beispielsatz vorgeben); weniger Items; klare, eindeutige Faelle.
 - "standard": durchschnittliche Komplexitaet und Item-Zahl.
 - "erweitert": komplexere Saetze und Strukturen; keine Hilfen; auch Sonderfaelle/Ausnahmen.
+Wenn Schwierigkeit UND Kompetenzniveau gesetzt sind, gilt die VERBINDLICHE NIVEAU-KOMBINATION
+aus dem User-Auftrag: Die niedrigere Stufe begrenzt den kognitiven Operator; das Kompetenzniveau
+steuert zusaetzlich Scaffolding und Komplexitaet. Erzeuge keine widerspruechlichen Mischvorgaben.
 
 VERBOT DES STILLEN TYP-TAUSCHS: Du darfst den in "angeforderteBloecke" vorgegebenen Blocktyp NICHT eigenmaechtig ersetzen. Steuere die kognitive Tiefe INNERHALB des angeforderten Typs.
 
@@ -735,7 +813,7 @@ IB-RAHMENWERK (International Baccalaureate Diploma): Formuliere Arbeitsanweisung
 // garantiert unveraendert bleibt.
 const DE_HINWEIS = `
 
-DEUTSCHLAND-MODUS (meta.land = "DE") — ersetzt den Abschnitt OESTERREICHISCHES DEUTSCH:
+DEUTSCHES-SCHULSYSTEM-MODUS (meta.land = "DE") — ersetzt den Abschnitt OESTERREICHISCHES DEUTSCH:
 - Deutschsprachige Inhalte folgen der bundesdeutschen Standardvarietaet und Rechtschreibung.
 - Schul- und Alltagsterminologie: Abitur (nicht Matura), Klassenarbeit bzw. Klausur (nicht Schularbeit),
   Januar (nicht Jaenner), dieses Jahr (nicht heuer), Klassenzaehlung "Klasse 5" bis "Klasse 13",
@@ -832,6 +910,7 @@ export function buildAbiturDeutschTrainingHint(): string {
 }
 
 export function buildRefinementMessages(document: DocumentV1): ChatMessage[] {
+  const promptMeta = metaFuerModell(document.meta);
   const landDoc = document.meta.land ?? 'AT';
   const isDeutschMaturaTraining = document.meta.typ === 'matura'
     && document.meta.fach === 'deutsch'
@@ -876,7 +955,7 @@ export function buildRefinementMessages(document: DocumentV1): ChatMessage[] {
         'Wenn etwas bereits gut ist, erfinde dafuer keine Aenderung.\n\n' +
         'AUSGABEFORMAT:\n' +
         '{ "bloecke": [ ...vollstaendige ueberarbeitete Bloecke... ], "aenderungen": ["...", "..."] }\n\n' +
-        'AUSGANGSDOKUMENT (JSON):\n' + JSON.stringify(document, null, 2),
+        'AUSGANGSDOKUMENT (JSON):\n' + JSON.stringify({ ...document, meta: promptMeta }, null, 2),
     },
   ];
 }
@@ -886,6 +965,7 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
   const land = input.meta.land ?? 'AT';
   const landHinweis = land === 'DE' ? DE_HINWEIS : '';
   const schwierigkeit = input.meta.schwierigkeit ?? 'mittel';
+  const niveauHinweisGemeinsam = niveauKopplungHinweis(schwierigkeit, input.meta.kompetenzNiveau);
   const lernziele = input.meta.lernziele ?? [];
   const lernzielHinweis =
     lernziele.length > 0
@@ -954,6 +1034,22 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
           .map((t) => `"${t}"`)
           .join(', ')}. Waehle Aufgabentypen und Inhalte, die genau diese Schwaechen adressieren. `
       : '';
+  // Echte Klassenfehler aus der Korrektur (L1): Der fehlerkorrektur-Block baut
+  // daraus Saetze, statt Fehler zu erfinden.
+  const bridgeFehler = input.meta.bridgeFehler ?? [];
+  const promptMeta = metaFuerModell(input.meta);
+  const bridgeFehlerHinweis =
+    bridgeFehler.length > 0
+      ? `BRIDGE-FEHLER (echte Klassenfehler): "meta.bridgeFehler" enthaelt echte Fehler aus der letzten Korrektur dieser Klasse ` +
+        `(typ: R=Rechtschreibung, G=Grammatik, Z=Zeichensetzung, A=Ausdruck; "zitat" = fehlerhafte Stelle, "korrektur" = richtige Form). ` +
+        `Wenn "clusterId" oder "regelMuster" vorhanden sind, behandle sie als dasselbe Regelmuster und verteile es nicht auf neue Fehlerarten. ` +
+        `"haeufigkeit" bezeichnet die beobachtete Anzahl dieses Fehlermusters in den ausgewerteten Arbeiten; nutze sie nur zur Priorisierung, ` +
+        `nicht als Zahl der betroffenen Schüler oder als Aufforderung, den Fehler mehrfach zu erfinden. ` +
+        `Für fehlerkorrektur-Bloecke: Baue die Saetze so, dass sie GENAU diese Fehlermuster enthalten — der Fehler steht wortwoertlich im Satz ` +
+        `(bzw. die fehlenden Satzzeichen gehoeren in die fehlerhafte Stelle), die Loesung korrigiert ihn. Kombiniere pro Satz hoechstens zwei Fehlermuster, ` +
+        `wiederhole kein Muster mehrfach und erfinde KEINE zusaetzlichen Fehler im Rest des Satzes. Andere Blocktypen duerfen die Muster als ` +
+        `inhaltliche Orientierung nutzen (z. B. Luecken genau an diesen Konstruktionen). `
+      : '';
   // --- KOMPETENZ-MODUS: erfindet Beispiele zur Kompetenz, kein Quelltext ---
   if (modus === 'kompetenz') {
     const niveau = input.meta.kompetenzNiveau;
@@ -965,7 +1061,7 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
       ? `Inhaltlicher Rahmen: "${input.inhaltsModul.titel}" — ${input.inhaltsModul.beschreibung}. Alle Beispiele/Szenarien muessen inhaltlich zu diesem Thema passen. `
       : '';
     const kompetenzUser = {
-      meta: input.meta,
+      meta: promptMeta,
       stoffItems: input.stoffItems ?? [],
       angeforderteBloecke: input.bloecke,
     };
@@ -979,6 +1075,7 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
           `Sind MEHRERE Kompetenzen unter "stoffItems" angegeben, verzahne sie organisch in EINEM zusammenhaengenden Arbeitsblatt rund um das gemeinsame Thema — KEINE getrennten Teilblaetter. Verschiedene Aufgaben duerfen verschiedene Kompetenzen treffen; gemeinsam decken alle Aufgaben alle angegebenen Kompetenzen ab. ` +
           `Erfinde EIN durchgehendes Szenario mit benannter Person (Roter Faden durch alle Bloecke) und fuelle den didaktischen Rahmen (arbeitsblattTitel, einleitung, merkkasten, transferaufgabe — siehe System-Prompt). ` +
           `Schwierigkeitsniveau: "${schwierigkeit}" — passe das kognitive Niveau entsprechend an. ` +
+          niveauHinweisGemeinsam +
           niveauHinweis +
           spracheHinweis +
           maturaHinweis +
@@ -987,6 +1084,7 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
           inhaltsModulHinweis +
           notizenHinweis +
           fokusThemenHinweis +
+          bridgeFehlerHinweis +
           'Jeder Block muss ein vollstaendiges Objekt mit id, typ, punkte, arbeitsanweisung und config sein (quelleId entfaellt im Kompetenz-Modus). ' +
           'Loesungen gehoeren je nach Blocktyp direkt ans Item oder in ein "loesung"-Objekt (siehe Beispiele).\n\n' +
           JSON.stringify(kompetenzUser, null, 2),
@@ -1001,7 +1099,7 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
     : 'Es liegt KEIN Quelltext vor. Generiere die Inhalte passend zum Thema und den manuellen Vorgaben in den Bloecken. ' +
       'Erfinde dabei stufengerechte, sachlich korrekte Beispiele und ein durchgaengiges Szenario. ';
   const user = {
-    meta: input.meta,
+    meta: promptMeta,
     quelltexte: input.quelltexte.map((q) => ({
       ...q,
       inhalt: nummeriereAbsaetze(sanitizeQuelltext(q.inhalt), input.meta.fach),
@@ -1020,6 +1118,7 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
       content:
         `Erzeuge das bloecke-JSON-Array fuer die folgende Anforderung. ` +
         `Schwierigkeitsniveau: "${schwierigkeit}" — passe das kognitive Niveau der Aufgaben entsprechend an (siehe Bloom-Steuerung im System-Prompt). ` +
+        niveauHinweisGemeinsam +
         spracheHinweis +
         maturaHinweis +
         srdpDeutschTrainingHinweis +
@@ -1028,6 +1127,7 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
         zielgruppeHinweis +
         notizenHinweis +
         fokusThemenHinweis +
+        bridgeFehlerHinweis +
         quelltextHinweis +
         'Jeder Block muss ein vollstaendiges Objekt mit id, typ, punkte, quelleId, arbeitsanweisung und config sein. ' +
         'Bei multipleChoice/matching/offeneVerstaendnisfrage steht die Loesung DIREKT beim Item (Feld "korrekt" bzw. "musterantwort"); ' +

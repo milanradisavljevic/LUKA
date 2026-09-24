@@ -5,6 +5,7 @@ export interface KlasseMeta {
   id?: string | null;
   name: string;
   fach?: string | null;
+  land?: 'AT' | 'DE' | 'CH' | null;
   stufe?: string | null;
   schulstufe?: number | null;
   schuljahr?: string | null;
@@ -29,7 +30,7 @@ async function invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T
 }
 
 /**
- * LUA-eigene Klassen-Metadaten (Fach/Stufe/Schuljahr) zusätzlich zu den reinen
+ * LUA-eigene Klassen-Metadaten (Fach/Land/Stufe/Schuljahr) zusätzlich zu den reinen
  * Klasse-Strings, die NATASCHA in abgabe/schueler verwendet. Rein additiv —
  * eine Klasse ohne Metadaten bleibt überall nutzbar (siehe klassen.rs-Kommentar).
  */

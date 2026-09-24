@@ -1267,6 +1267,9 @@ const BLOCK_LABELS_DE: Record<Block['typ'], string> = {
   vokabeluebung: 'Vokabelübung',
   umformung: 'Umformung',
   fehlerkorrektur: 'Fehlerkorrektur',
+  quellenanalyse: 'Quellenanalyse',
+  timeline: 'Timeline / Datierung',
+  diagrammanalyse: 'Diagramm-/Datenanalyse',
   roleplay: 'Rollenspiel',
   rollenkartenSet: 'Rollenkarten-Set',
 };
@@ -1288,6 +1291,9 @@ const BLOCK_LABELS_EN: Record<Block['typ'], string> = {
   vokabeluebung: 'Vocabulary',
   umformung: 'Transformation',
   fehlerkorrektur: 'Error correction',
+  quellenanalyse: 'Source analysis',
+  timeline: 'Timeline / Dating',
+  diagrammanalyse: 'Chart / data analysis',
   roleplay: 'Roleplay',
   rollenkartenSet: 'Role-card set',
 };
@@ -1331,6 +1337,9 @@ export function renderBlockChildren(block: Block, ctx: RenderBlockCtx): (Paragra
     case 'vokabeluebung': return buildVokabeluebung(block, mode, template);
     case 'umformung': return buildUmformung(block, mode, template);
     case 'fehlerkorrektur': return buildFehlerkorrektur(block, mode, template, fach);
+    case 'quellenanalyse': return buildQuellenanalyse(block, mode, quelltextMap, template, fach);
+    case 'timeline': return buildTimeline(block, mode, template, fach);
+    case 'diagrammanalyse': return buildDiagrammAnalyse(block, mode, template, fach);
     case 'roleplay': return buildRoleplay(block, mode, template, fach);
     case 'rollenkartenSet': return buildRollenkartenSet(block, mode, template, fach);
     default: return [];
@@ -1955,7 +1964,7 @@ function buildMatching(
     ),
   });
 
-  const answerRows = block.config.items.map((item) => {
+  const answerRows = (block.config.items ?? []).map((item) => {
     const solutionKey = block.loesung.zuordnung[String(item.nr)];
     return new TableRow({
       children: [
@@ -2311,6 +2320,181 @@ function buildMarkieraufgabe(
 }
 
 // ---------------------------------------------------------------------------
+// Block: quellenanalyse (fachliche Quellenarbeit)
+// ---------------------------------------------------------------------------
+
+function buildQuellenanalyse(
+  block: Extract<Block, { typ: 'quellenanalyse' }>,
+  mode: Mode,
+  quelltextMap: Map<string, QuellText>,
+  template: RenderTemplate,
+  fach: DocumentV1['meta']['fach'] = 'deutsch',
+): (Paragraph | Table)[] {
+  const result: (Paragraph | Table)[] = [];
+  const isEnglish = fach === 'englisch';
+  const quelle = quelltextMap.get(block.config.quelleId);
+
+  if (quelle) {
+    result.push(new Paragraph({
+      children: [run(`${isEnglish ? 'Source' : 'Quelle'}: ${quelle.titel}`, { font: template.font, size: template.fontSize.body, bold: true })],
+      spacing: { after: 60 },
+    }));
+    result.push(...quelltextAbsaetze(bereinigeQuelltext(quelle.inhalt), template));
+  }
+
+  for (const auftrag of block.config.auftraege) {
+    result.push(new Paragraph({
+      keepNext: true,
+      indent: { left: 360 },
+      children: [
+        run(`${auftrag.nr}. ${auftrag.operator}: `, { font: template.font, size: template.fontSize.body, bold: true }),
+        run(auftrag.frage, { font: template.font, size: template.fontSize.body }),
+      ],
+      spacing: { before: 100, after: 60 },
+    }));
+    const antwort = block.loesung.antworten.find((a) => a.nr === auftrag.nr);
+    if (mode === 'loesung' && antwort) {
+      result.push(new Paragraph({
+        indent: { left: 720 },
+        children: [run(`${isEnglish ? 'Expected answer' : 'Erwartung'}: ${antwort.erwartung}`, { font: template.font, size: template.fontSize.body, italics: true })],
+        spacing: { after: 40 },
+      }));
+      result.push(new Paragraph({
+        indent: { left: 720 },
+        children: [run(`${isEnglish ? 'Evidence' : 'Belege'}: ${antwort.belege.join(' · ')}`, { font: template.font, size: template.fontSize.body, italics: true })],
+        spacing: { after: 100 },
+      }));
+    } else {
+      for (let i = 0; i < auftrag.zeilen; i++) {
+        result.push(new Paragraph({
+          indent: { left: 720 },
+          children: [blankLine(70, template)],
+          spacing: { after: 35 },
+        }));
+      }
+    }
+  }
+  return result;
+}
+
+// ---------------------------------------------------------------------------
+// Block: timeline / Datierung
+// ---------------------------------------------------------------------------
+
+function buildTimeline(
+  block: Extract<Block, { typ: 'timeline' }>,
+  mode: Mode,
+  template: RenderTemplate,
+  fach: DocumentV1['meta']['fach'] = 'deutsch',
+): (Paragraph | Table)[] {
+  const result: (Paragraph | Table)[] = [];
+  const isEnglish = fach === 'englisch';
+  const ereignisse = new Map(block.config.ereignisse.map((e) => [e.nr, e]));
+  const reihenfolge = mode === 'loesung' && block.loesung.reihenfolge.length > 0
+    ? block.loesung.reihenfolge
+    : block.config.ereignisse.map((e) => e.nr);
+  const datierungen = new Map(block.loesung.datierungen.map((d) => [d.nr, d.datum]));
+
+  if (block.config.zeitraum) {
+    result.push(new Paragraph({
+      children: [run(block.config.zeitraum, { font: template.font, size: template.fontSize.body, italics: true })],
+      spacing: { after: 80 },
+    }));
+  }
+  result.push(new Paragraph({
+    children: [run(isEnglish ? 'Arrange the events chronologically:' : 'Ordne die Ereignisse chronologisch:', { font: template.font, size: template.fontSize.body, bold: true })],
+    spacing: { after: 80 },
+  }));
+
+  reihenfolge.forEach((nr, index) => {
+    const ereignis = ereignisse.get(nr);
+    if (!ereignis) return;
+    const datum = mode === 'loesung' ? datierungen.get(nr) : undefined;
+    result.push(new Paragraph({
+      keepNext: true,
+      indent: { left: 360 },
+      children: [
+        run(`${index + 1}. `, { font: template.font, size: template.fontSize.body, bold: true }),
+        run(ereignis.titel, { font: template.font, size: template.fontSize.body, bold: true }),
+        ...(datum ? [run(` — ${datum}`, { font: template.font, size: template.fontSize.body, italics: true })] : []),
+      ],
+      spacing: { before: 60, after: 25 },
+      border: { left: { style: BorderStyle.SINGLE, size: 8, color: template.color.accent } },
+    }));
+    result.push(new Paragraph({
+      indent: { left: 720 },
+      children: [run(ereignis.beschreibung, { font: template.font, size: template.fontSize.body })],
+      spacing: { after: 45 },
+    }));
+  });
+  if (mode === 'schueler') {
+    result.push(new Paragraph({
+      indent: { left: 720 },
+      children: [run(isEnglish ? 'Add the date or period if it can be established from the source.' : 'Notiere zusätzlich das Jahr oder den Zeitraum, sofern er sich aus der Quelle ergibt.', { font: template.font, size: template.fontSize.body, italics: true, color: template.color.gray })],
+      spacing: { before: 80, after: 80 },
+    }));
+  }
+  return result;
+}
+
+// ---------------------------------------------------------------------------
+// Block: diagrammanalyse / Datenanalyse
+// ---------------------------------------------------------------------------
+
+function buildDiagrammAnalyse(
+  block: Extract<Block, { typ: 'diagrammanalyse' }>,
+  mode: Mode,
+  template: RenderTemplate,
+  fach: DocumentV1['meta']['fach'] = 'deutsch',
+): (Paragraph | Table)[] {
+  const isEnglish = fach === 'englisch';
+  const result: (Paragraph | Table)[] = [];
+  result.push(new Paragraph({
+    children: [run(block.config.titel, { font: template.font, size: template.fontSize.body, bold: true })],
+    spacing: { after: 80 },
+  }));
+  const header = [
+    new TableCell({ children: [new Paragraph({ children: [run(isEnglish ? 'Category' : 'Kategorie', { font: template.font, size: template.fontSize.body, bold: true })] })] }),
+    new TableCell({ children: [new Paragraph({ children: [run(`${isEnglish ? 'Value' : 'Wert'}${block.config.einheit ? ` (${block.config.einheit})` : ''}`, { font: template.font, size: template.fontSize.body, bold: true })] })] }),
+  ];
+  const rows = [new TableRow({ children: header }), ...block.config.daten.map((d) => new TableRow({ children: [
+    new TableCell({ children: [new Paragraph({ children: [run(d.label, { font: template.font, size: template.fontSize.body })] })] }),
+    new TableCell({ children: [new Paragraph({ children: [run(d.wert, { font: template.font, size: template.fontSize.body })] })] }),
+  ] }))];
+  result.push(new Table({ rows, width: { size: 100, type: WidthType.PERCENTAGE } }));
+  const antworten = new Map(block.loesung.antworten.map((a) => [a.nr, a]));
+  for (const auftrag of block.config.auftraege) {
+    result.push(new Paragraph({
+      keepNext: true,
+      indent: { left: 360 },
+      children: [
+        run(`${auftrag.nr}. ${auftrag.operator}: `, { font: template.font, size: template.fontSize.body, bold: true }),
+        run(auftrag.frage, { font: template.font, size: template.fontSize.body }),
+      ],
+      spacing: { before: 100, after: 60 },
+    }));
+    const antwort = antworten.get(auftrag.nr);
+    if (mode === 'loesung' && antwort) {
+      result.push(new Paragraph({
+        indent: { left: 720 },
+        children: [run(`${isEnglish ? 'Expected answer' : 'Erwartung'}: ${antwort.erwartung}`, { font: template.font, size: template.fontSize.body, italics: true })],
+        spacing: { after: 35 },
+      }));
+      result.push(new Paragraph({
+        indent: { left: 720 },
+        children: [run(`${isEnglish ? 'Data evidence' : 'Datenbeleg'}: ${antwort.belege.join(' · ')}`, { font: template.font, size: template.fontSize.body, italics: true })],
+        spacing: { after: 80 },
+      }));
+    } else {
+      for (let i = 0; i < auftrag.zeilen; i++) {
+        result.push(new Paragraph({ indent: { left: 720 }, children: [blankLine(70, template)], spacing: { after: 35 } }));
+      }
+    }
+  }
+  return result;
+}
+
+// ---------------------------------------------------------------------------
 // Block: wordScramble
 // ---------------------------------------------------------------------------
 
@@ -2411,7 +2595,7 @@ function buildKategorisierung(
   });
 
   const rows: TableRow[] = [headerRow];
-  for (const item of block.config.items) {
+  for (const item of block.config.items ?? []) {
     const kategorieName = mode === 'loesung' ? (block.loesung.zuordnung[String(item.nr)] ?? []).join(', ') : '';
     rows.push(
       new TableRow({

@@ -9,6 +9,7 @@ import { loadTeacherProfile } from '../lib/profile';
 import { FEATURES } from '../lib/features';
 import { consumePendingUebung } from '../lib/korrekturBridge';
 import { bewertePrefillQuelle } from '../lib/prefillQuelle';
+import { kompetenzNiveauFuerGruppe } from '../lib/niveauGruppen';
 import { getDefaultTemplate } from '@lehrunterlagen/renderer';
 import { useKlassenMeta } from '../hooks/useKlassenMeta';
 import { Tile } from './ui/Tile';
@@ -20,6 +21,8 @@ import {
   mapBridgeToPrefill,
   TYP_FARBE,
   type BridgeExportMeta,
+  type BridgeBeispiel,
+  type NataschaPrefill,
 } from '../lib/nataschaBridge';
 
 interface Props {
@@ -70,8 +73,9 @@ export function Step0_Absicht({
   const lastMeta = lastDoc?.snapshot.meta;
 
   const [typ, setTyp] = useState<NonNullable<Auftrag['typ']>>(lastMeta?.typ ?? 'schularbeit');
-  // Land kommt IMMER aus dem Profil (Umgebung der Lehrkraft, keine Dokument-Präferenz).
+  // Klassen-Folgeübungen dürfen das Land explizit überschreiben; sonst gilt das Profil.
   const [land, setLand] = useState<Auftrag['land']>(lastMeta?.land);
+  const landPrefillAngewendet = useRef(false);
   const [fach, setFach] = useState<NonNullable<Auftrag['fach']>>(lastMeta?.fach ?? 'deutsch');
   const [stufe, setStufe] = useState<NonNullable<Auftrag['stufe']>>(lastMeta?.stufe ?? 'oberstufe');
   const [schulstufe, setSchulstufe] = useState<number | undefined>(lastMeta?.schulstufe);
@@ -104,12 +108,13 @@ export function Step0_Absicht({
   // Sinnvoller Default je Unterlagentyp; manuell überschreibbar.
   useEffect(() => { setPunkteVergeben(typ !== 'schuluebung'); }, [typ]);
 
-  // Land aus dem Profil übernehmen — unabhängig vom Fach/Stufe-Prefill, weil das
-  // Land auch bei manuell begonnener Eingabe gelten muss (steuert Terminologie im Prompt).
+  // Profil-Land übernehmen, sofern keine Folgeübung bereits ein Klassen-Land setzt.
   useEffect(() => {
     let active = true;
     loadTeacherProfile()
-      .then((profile) => { if (active && profile?.land) setLand(profile.land); })
+      .then((profile) => {
+        if (active && profile?.land && !landPrefillAngewendet.current) setLand(profile.land);
+      })
       .catch(() => { /* Profil ist optional. */ });
     return () => { active = false; };
   }, []);
@@ -192,6 +197,9 @@ export function Step0_Absicht({
 
   // Aus der Korrektur übernommene, kuratierbare Schülerfehler (Brücke v2).
   const [nataschaFehler, setNataschaFehler] = useState<KurierterFehler[]>([]);
+  // Herkunft der Folgeübung (Brücke v2/L1) → meta.loopQuelle für das Loop-Wirkung-Panel.
+  const [nataschaLoopQuelle, setNataschaLoopQuelle] = useState<NataschaPrefill['loopQuelle']>(undefined);
+  const [nataschaNiveaugruppe, setNataschaNiveaugruppe] = useState<NataschaPrefill['niveaugruppe']>(undefined);
 
   const isDeutschSrdpTraining = fach === 'deutsch' && stufe === 'oberstufe';
   // Bei Land = DE heißt dasselbe Format Abitur-Training (KMK-Aufgabenarten,
@@ -225,7 +233,7 @@ export function Step0_Absicht({
 
   /** Übernimmt Ausgangstext (→ Quelltext) + Fehler (→ Kuration) aus einer Brücken-Vorbefüllung. */
   const uebernehmeAusgangstextUndFehler = useCallback(
-    (ausgangstext?: string, fehlerListe?: { typ: 'R' | 'G' | 'Z' | 'A'; zitat: string; korrektur: string; erklaerung?: string }[]) => {
+    (ausgangstext?: string, fehlerListe?: BridgeBeispiel[], loopQuelle?: NataschaPrefill['loopQuelle']) => {
       if (ausgangstext?.trim()) {
         dispatch({
           type: 'ADD_QUELLTEXT',
@@ -238,6 +246,7 @@ export function Step0_Absicht({
         });
       }
       setNataschaFehler((fehlerListe ?? []).map((f) => ({ ...f, aktiv: true })));
+      setNataschaLoopQuelle(loopQuelle);
     },
     [dispatch],
   );
@@ -281,14 +290,27 @@ export function Step0_Absicht({
     setTyp('schuluebung');
     setModus(undefined);
     setFreieKompetenz('');
-    setFach(p.fach);
-    setStufe(p.stufe);
-    dispatch({ type: 'SET_RENDER_TEMPLATE', template: getDefaultTemplate(p.stufe).id });
+    if (p.fach) setFach(p.fach);
+    if (p.land) {
+      landPrefillAngewendet.current = true;
+      setLand(p.land);
+    }
+    if (p.schulstufe !== undefined) {
+      setSchulstufe(p.schulstufe);
+      const neueStufe = stufeFromSchulstufe(p.schulstufe, p.land ?? land);
+      setStufe(neueStufe);
+      dispatch({ type: 'SET_RENDER_TEMPLATE', template: getDefaultTemplate(neueStufe).id });
+    } else if (p.stufe) {
+      setStufe(p.stufe);
+      dispatch({ type: 'SET_RENDER_TEMPLATE', template: getDefaultTemplate(p.stufe).id });
+    }
     setThema(p.thema);
     setNotizen(p.notizen);
+    if (p.niveaugruppe) setSchwierigkeit(p.niveaugruppe.schwierigkeit);
     setFokusThemen(p.fokusThemen);
     setGewuenschteAufgabenarten(p.gewuenschteAufgabenarten);
-    uebernehmeAusgangstextUndFehler(p.ausgangstext, p.fehler);
+    setNataschaNiveaugruppe(p.niveaugruppe);
+    uebernehmeAusgangstextUndFehler(p.ausgangstext, p.fehler, p.loopQuelle);
     const quelleStatus = bewertePrefillQuelle(p.ausgangstext);
     setPrefillQuelleStatus(quelleStatus === 'ok' ? null : quelleStatus);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -344,15 +366,31 @@ export function Step0_Absicht({
         const ex = parseBridgeExport(raw);
         const p = mapBridgeToPrefill(ex);
         setTyp('schuluebung');
-        setFach(p.fach);
-        setStufe(p.stufe);
-        dispatch({ type: 'SET_RENDER_TEMPLATE', template: getDefaultTemplate(p.stufe).id });
+        if (p.fach) setFach(p.fach);
+        if (p.land) {
+          landPrefillAngewendet.current = true;
+          setLand(p.land);
+        }
+        if (p.schulstufe !== undefined) {
+          setSchulstufe(p.schulstufe);
+          const neueStufe = stufeFromSchulstufe(p.schulstufe, p.land ?? land);
+          setStufe(neueStufe);
+          dispatch({ type: 'SET_RENDER_TEMPLATE', template: getDefaultTemplate(neueStufe).id });
+        } else {
+          // Beim Wechsel zwischen Exporten darf eine konkrete Stufe aus einem
+          // vorherigen Import nicht unbemerkt weiterverwendet werden.
+          setSchulstufe(undefined);
+          if (p.stufe) {
+            setStufe(p.stufe);
+            dispatch({ type: 'SET_RENDER_TEMPLATE', template: getDefaultTemplate(p.stufe).id });
+          }
+        }
         setThema(p.thema);
         setKlasse(ex.klasse);
         setNotizen(p.notizen);
         setFokusThemen(p.fokusThemen);
         setGewuenschteAufgabenarten(p.gewuenschteAufgabenarten);
-        uebernehmeAusgangstextUndFehler(p.ausgangstext, p.fehler);
+        uebernehmeAusgangstextUndFehler(p.ausgangstext, p.fehler, p.loopQuelle);
         setNataschaExports(null);
         setNataschaInfo(
           p.ausgangstext
@@ -367,7 +405,7 @@ export function Step0_Absicht({
         setNataschaBusy(false);
       }
     },
-    [dispatch, uebernehmeAusgangstextUndFehler],
+    [dispatch, land, uebernehmeAusgangstextUndFehler],
   );
 
   const handleErstellen = useCallback(() => {
@@ -386,6 +424,11 @@ export function Step0_Absicht({
 
     // Kuratierte Korrektur-Fehler in die Notizen einweben (steuert den Prompt).
     const notizenFinal = [notizen.trim(), fehlerNotiz(nataschaFehler)].filter(Boolean).join(' ');
+    // Aktive, kuratierte Fehler strukturiert für den fehlerkorrektur-Block (L1).
+    const aktiveFehler = nataschaFehler
+      .filter((f) => f.aktiv && f.zitat.trim() && f.korrektur.trim())
+      .slice(0, 12)
+      .map((f) => ({ typ: f.typ, zitat: f.zitat.trim(), korrektur: f.korrektur.trim(), erklaerung: f.erklaerung?.trim() || undefined, haeufigkeit: f.haeufigkeit, clusterId: f.clusterId, regelMuster: f.regelMuster }));
 
     const auftrag: Auftrag = {
       typ,
@@ -441,6 +484,14 @@ export function Step0_Absicht({
           fokusThemen: fokusThemen.length > 0 ? fokusThemen : undefined,
           modus,
           freieKompetenz: modus === 'kompetenz' ? freieKompetenz.trim() || undefined : undefined,
+          // Nur setzen, wenn vorhanden: SET_META merged — ein undefined würde den
+          // Marker eines geladenen Folgeübung-Entwurfs beim Neu-Speichern löschen.
+          ...(nataschaLoopQuelle ? { loopQuelle: nataschaLoopQuelle } : {}),
+          ...(nataschaNiveaugruppe ? {
+            niveaugruppe: nataschaNiveaugruppe,
+            kompetenzNiveau: kompetenzNiveauFuerGruppe(nataschaNiveaugruppe),
+          } : {}),
+          ...(aktiveFehler.length > 0 ? { bridgeFehler: aktiveFehler } : {}),
         },
       });
       onDismissFirstRunHint?.();
@@ -448,7 +499,7 @@ export function Step0_Absicht({
     } catch (err) {
       setFehler(err instanceof Error ? err.message : 'Fehler beim Erstellen des Skeletts.');
     }
-  }, [typ, fach, stufe, land, isDeutschSrdpTraining, thema, datum, klasse, dauerMinuten, schwierigkeit, gewuenschteAufgabenarten, gesamtpunkteZiel, punkteVergeben, notizen, lernzieleRaw, fokusThemen, nataschaFehler, modus, freieKompetenz, state.quelltexte, state.bloecke, dispatch, onDismissFirstRunHint]);
+  }, [typ, fach, stufe, land, isDeutschSrdpTraining, thema, datum, klasse, dauerMinuten, schwierigkeit, gewuenschteAufgabenarten, gesamtpunkteZiel, punkteVergeben, notizen, lernzieleRaw, fokusThemen, nataschaFehler, nataschaLoopQuelle, nataschaNiveaugruppe, modus, freieKompetenz, state.quelltexte, state.bloecke, dispatch, onDismissFirstRunHint]);
 
   const fachLabelCurrent = fachLabel(fach);
   const stufeLabel = stufeLabelFuerLand(stufe, land);

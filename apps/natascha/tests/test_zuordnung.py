@@ -26,7 +26,7 @@ def _setup_db(tmp_path: Path) -> Path:
 
 def test_bestaetigte_id_hat_vorrang_vor_llm_namen(tmp_path):
     db = _setup_db(tmp_path)
-    sid = ndb.insert_schueler(db, "7A", "Mia", "Muster")
+    sid = ndb.insert_schueler(db, "7A", "TokenA", "SuffixA")
 
     abgabe_id = ndb.save_analysis_to_db(
         db_path=db,
@@ -47,11 +47,11 @@ def test_bestaetigte_id_hat_vorrang_vor_llm_namen(tmp_path):
 
 def test_id_aus_falscher_klasse_faellt_auf_heuristik_zurueck(tmp_path):
     db = _setup_db(tmp_path)
-    fremd_sid = ndb.insert_schueler(db, "8B", "Noah", "Nachbar")
+    fremd_sid = ndb.insert_schueler(db, "8B", "TokenB", "SuffixB")
 
     abgabe_id = ndb.save_analysis_to_db(
         db_path=db,
-        data={"schueler": "Mia Muster"},
+        data={"schueler": "TokenA SuffixA"},
         file_path=_abgabe_datei(tmp_path),
         klasse="7A",
         aufgabe="SA1",
@@ -60,22 +60,22 @@ def test_id_aus_falscher_klasse_faellt_auf_heuristik_zurueck(tmp_path):
     assert abgabe_id > 0
 
     abgabe = ndb.get_abgabe_by_id(db, abgabe_id)
-    # Nicht der klassenfremde Schüler; Heuristik hat "Mia Muster" in 7A angelegt.
+    # Nicht der klassenfremde Schüler; Heuristik hat "TokenA SuffixA" in 7A angelegt.
     assert abgabe["schueler_id"] != fremd_sid
-    mia = ndb.get_schueler_by_name(db, "7A", "Mia", "Muster")
-    assert mia is not None
-    assert abgabe["schueler_id"] == mia["id"]
+    schueler = ndb.get_schueler_by_name(db, "7A", "TokenA", "SuffixA")
+    assert schueler is not None
+    assert abgabe["schueler_id"] == schueler["id"]
 
 
 def test_ohne_bestaetigung_bleibt_altes_verhalten(tmp_path):
     db = _setup_db(tmp_path)
     abgabe_id = ndb.save_analysis_to_db(
         db_path=db,
-        data={"schueler": "Mia Muster"},
+        data={"schueler": "TokenA SuffixA"},
         file_path=_abgabe_datei(tmp_path),
         klasse="7A",
         aufgabe="SA1",
     )
     assert abgabe_id > 0
-    mia = ndb.get_schueler_by_name(db, "7A", "Mia", "Muster")
-    assert mia is not None
+    schueler = ndb.get_schueler_by_name(db, "7A", "TokenA", "SuffixA")
+    assert schueler is not None

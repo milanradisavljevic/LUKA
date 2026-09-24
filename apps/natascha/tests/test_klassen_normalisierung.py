@@ -22,12 +22,12 @@ def test_normalisierung_erhaelt_gross_kleinschreibung():
 def test_roster_lookup_ist_case_insensitiv(tmp_path):
     db = tmp_path / "test.db"
     ndb.init_db(db)
-    ndb.insert_schueler(db, "7A", "Mia", "Muster")
+    ndb.insert_schueler(db, "7A", "TestA", "X")
 
     # Bestandsdaten "7A" bleiben über jede Schreibweise erreichbar:
     assert len(ndb.get_schueler_by_klasse(db, "7a")) == 1
     assert len(ndb.get_schueler_by_klasse(db, "7A")) == 1
-    assert ndb.get_schueler_by_name(db, "7a", "Mia", "Muster") is not None
+    assert ndb.get_schueler_by_name(db, "7a", "TestA", "X") is not None
 
     # Gespeichert wird die Original-Schreibweise (kein stilles Kleinschreiben):
     assert ndb.get_schueler_by_klasse(db, "7A")[0]["klasse"] == "7A"

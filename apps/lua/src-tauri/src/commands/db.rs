@@ -188,13 +188,63 @@ pub async fn db_upsert_document(state: tauri::State<'_, DbState>, doc_json: Stri
     let is_deleted = doc["isDeleted"].as_bool().unwrap_or(false) as i64;
     let deleted_at: Option<String> = doc.get("deletedAt").and_then(|v| v.as_str()).map(|s| s.to_string());
 
+    // Closed-Loop-Herkunft (L1) aus snapshot.meta.loopQuelle — Buchhaltung für
+    // das Loop-Wirkung-Panel. Leere Strings → NULL (manuell erzeugt).
+    let loop_meta = &doc["snapshot"]["meta"]["loopQuelle"];
+    let loop_klasse = loop_meta["klasse"].as_str().map(|s| s.trim().to_string()).filter(|s| !s.is_empty());
+    let loop_aufgabe = loop_meta["aufgabe"].as_str().map(|s| s.trim().to_string()).filter(|s| !s.is_empty());
+    let loop_datum = loop_meta["exportDatum"].as_str().map(|s| s.trim().to_string()).filter(|s| !s.is_empty());
+
     conn.execute(
-        "INSERT INTO generated_materials (id, title, klasse, aufgabe, snapshot_json, created_at, updated_at, is_favorite, is_deleted, deleted_at)
-         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)
-         ON CONFLICT(id) DO UPDATE SET title=?2, klasse=?3, aufgabe=?4, snapshot_json=?5, updated_at=?7, is_favorite=?8, is_deleted=?9, deleted_at=?10",
-        rusqlite::params![id, title, klasse, aufgabe, snapshot_json, saved_at, updated_at, is_favorite, is_deleted, deleted_at],
+        "INSERT INTO generated_materials (id, title, klasse, aufgabe, snapshot_json, created_at, updated_at, is_favorite, is_deleted, deleted_at, loop_klasse, loop_aufgabe, loop_datum)
+         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13)
+         ON CONFLICT(id) DO UPDATE SET title=?2, klasse=?3, aufgabe=?4, snapshot_json=?5, updated_at=?7, is_favorite=?8, is_deleted=?9, deleted_at=?10, loop_klasse=?11, loop_aufgabe=?12, loop_datum=?13",
+        rusqlite::params![id, title, klasse, aufgabe, snapshot_json, saved_at, updated_at, is_favorite, is_deleted, deleted_at, loop_klasse, loop_aufgabe, loop_datum],
     ).map_err(|e| format!("upsert document: {}", e))?;
     Ok(())
+}
+
+/// Folgeübungen einer Klasse (Closed-Loop-Herkunft, L1): Grundlage für das
+/// Loop-Wirkung-Panel in der Klassenansicht. Neueste zuerst.
+#[derive(serde::Serialize)]
+pub struct LoopUebungRow {
+    pub id: String,
+    pub titel: String,
+    pub loop_aufgabe: Option<String>,
+    pub loop_datum: Option<String>,
+    pub created_at: String,
+}
+
+#[tauri::command]
+pub async fn db_list_loop_uebungen(state: tauri::State<'_, DbState>, klasse: String) -> Result<Vec<LoopUebungRow>, String> {
+    let guard = state.conn()?;
+    let conn = &*guard;
+    let klasse_trimmed = klasse.trim();
+    if klasse_trimmed.is_empty() {
+        return Ok(Vec::new());
+    }
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, title, loop_aufgabe, loop_datum, created_at FROM generated_materials \
+             WHERE loop_klasse = ?1 AND is_deleted = 0 ORDER BY created_at DESC",
+        )
+        .map_err(|e| format!("prepare loop-uebungen: {}", e))?;
+    let rows = stmt
+        .query_map(rusqlite::params![klasse_trimmed], |row| {
+            Ok(LoopUebungRow {
+                id: row.get(0)?,
+                titel: row.get(1)?,
+                loop_aufgabe: row.get(2)?,
+                loop_datum: row.get(3)?,
+                created_at: row.get(4)?,
+            })
+        })
+        .map_err(|e| format!("query loop-uebungen: {}", e))?;
+    let mut out = Vec::new();
+    for row in rows {
+        out.push(row.map_err(|e| format!("row loop-uebungen: {}", e))?);
+    }
+    Ok(out)
 }
 
 #[tauri::command]

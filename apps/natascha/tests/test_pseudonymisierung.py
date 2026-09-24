@@ -10,11 +10,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import pseudonymisierung as pseu
 
 ROSTER = [
-    {"id": 14, "klasse": "7A", "vorname": "Mia", "nachname": "Muster"},
-    {"id": 15, "klasse": "7A", "vorname": "Max", "nachname": "Beispiel"},
-    # Zwei Schüler mit gleichem Vornamen → Einzelname "Alex" ist mehrdeutig.
-    {"id": 16, "klasse": "7A", "vorname": "Alex", "nachname": "Kurz"},
-    {"id": 17, "klasse": "7A", "vorname": "Alex", "nachname": "Lang"},
+    {"id": 14, "klasse": "7A", "vorname": "TokenA", "nachname": "SuffixA"},
+    {"id": 15, "klasse": "7A", "vorname": "TokenB", "nachname": "SuffixB"},
+    # Zwei synthetische Datensätze mit gleichem Vornamen → Einzelname ist mehrdeutig.
+    {"id": 16, "klasse": "7A", "vorname": "Mehrdeutig", "nachname": "MarkeX"},
+    {"id": 17, "klasse": "7A", "vorname": "Mehrdeutig", "nachname": "MarkeY"},
 ]
 
 
@@ -25,51 +25,51 @@ def test_alias_format():
 
 
 def test_erkennt_vollen_namen_und_einzelnamen_im_text():
-    text = "Mia Muster schreibt. Später schreibt Mia noch einen Absatz über Muster."
+    text = "TokenA SuffixA schreibt. Später schreibt TokenA noch einen Absatz über SuffixA."
     funde = pseu.erkenne_personenangaben(text, "", "", ROSTER)
     assert len(funde) == 1
     f = funde[0]
     assert f["alias"] == "S-7A-014"
-    # "Mia Muster" + "Mia" + "Muster" (Vor- und Nachname in der Liste eindeutig)
+    # Vollname + Vorname + Nachname (in der Liste eindeutig)
     assert f["vorkommen_text"] == 3
 
 
 def test_mehrdeutiger_vorname_wird_nicht_als_einzelname_ersetzt():
-    text = "Alex hat gestern mit Alex Kurz gesprochen."
+    text = "Mehrdeutig hat gestern mit Mehrdeutig MarkeX gesprochen."
     funde = pseu.erkenne_personenangaben(text, "", "", ROSTER)
     ersetzt = pseu.ersetze_personenangaben(text, funde)
     # Voller Name ersetzt, nackter mehrdeutiger Vorname bleibt stehen.
-    assert "Alex Kurz" not in ersetzt
+    assert "Mehrdeutig MarkeX" not in ersetzt
     assert "S-7A-016" in ersetzt
-    assert ersetzt.startswith("Alex hat")
+    assert ersetzt.startswith("Mehrdeutig hat")
 
 
 def test_ersetzung_ist_wortgrenzen_sicher_und_case_insensitiv():
-    text = "MIA MUSTER und die Miamaus. mia muster nochmal."
+    text = "TOKENA SUFFIXA und die TokenAmaus. tokena suffixa nochmal."
     funde = pseu.erkenne_personenangaben(text, "", "", ROSTER)
     ersetzt = pseu.ersetze_personenangaben(text, funde)
-    assert "MIA" not in ersetzt and "mia muster" not in ersetzt
-    assert "Miamaus" in ersetzt  # Teilwort bleibt unangetastet
+    assert "TOKENA" not in ersetzt and "tokena suffixa" not in ersetzt
+    assert "TokenAmaus" in ersetzt  # Teilwort bleibt unangetastet
     assert ersetzt.count("S-7A-014") == 2
 
 
 def test_dateiname_und_schuelerangabe_werden_erkannt():
     funde = pseu.erkenne_personenangaben(
-        "Text ohne Namen.", "MiaMuster_Schularbeit_Deutsch.docx", "Mia Muster", ROSTER
+        "Text ohne Namen.", "TokenASuffixA_Schularbeit_Deutsch.docx", "TokenA SuffixA", ROSTER
     )
     assert len(funde) == 1
     assert funde[0]["im_dateinamen"] is True
     assert funde[0]["in_schuelerangabe"] is True
-    assert pseu.alias_fuer_schuelerangabe("Mia Muster", funde) == "S-7A-014"
+    assert pseu.alias_fuer_schuelerangabe("TokenA SuffixA", funde) == "S-7A-014"
 
 
 def test_leere_klassenliste_ist_noop():
-    assert pseu.erkenne_personenangaben("Mia Muster", "x.docx", "", []) == []
-    assert pseu.ersetze_personenangaben("Mia Muster", []) == "Mia Muster"
+    assert pseu.erkenne_personenangaben("TokenA SuffixA", "x.docx", "", []) == []
+    assert pseu.ersetze_personenangaben("TokenA SuffixA", []) == "TokenA SuffixA"
 
 
 def test_ruecksetzen_ist_rekursiv_und_stellt_zitate_wieder_her():
-    text = "Mia Muster schreibt über den Sommer."
+    text = "TokenA SuffixA schreibt über den Sommer."
     funde = pseu.erkenne_personenangaben(text, "", "", ROSTER)
     ersetzt = pseu.ersetze_personenangaben(text, funde)
     daten = {
@@ -78,16 +78,16 @@ def test_ruecksetzen_ist_rekursiv_und_stellt_zitate_wieder_her():
         "note": 2,
     }
     zurueck = pseu.ruecksetze_personenangaben(daten, funde)
-    assert zurueck["fehler"][0]["zitat"] == "Mia Muster schreibt"
+    assert zurueck["fehler"][0]["zitat"] == "TokenA SuffixA schreibt"
     assert "S-7A-014" not in zurueck["zusammenfassung"]
     assert zurueck["note"] == 2
 
 
 def test_roundtrip_text_bleibt_identisch():
-    text = "Am Montag gab Mia Muster ihre Arbeit ab. Max Beispiel fehlte."
+    text = "Am Montag gab TokenA SuffixA die Arbeit ab. TokenB SuffixB fehlte."
     funde = pseu.erkenne_personenangaben(text, "", "", ROSTER)
     hin = pseu.ersetze_personenangaben(text, funde)
-    assert "Mia" not in hin and "Beispiel" not in hin
+    assert "TokenA" not in hin and "SuffixA" not in hin
     zurueck = pseu.ruecksetze_personenangaben(hin, funde)
     assert zurueck == text
 
@@ -100,14 +100,14 @@ def test_dsgvo_regression_kein_klarname_im_prompt(tmp_path):
 
     db_path = tmp_path / "test.db"
     ndb.init_db(db_path)
-    sid = ndb.insert_schueler(db_path, "7A", "Mia", "Muster")
+    sid = ndb.insert_schueler(db_path, "7A", "TokenA", "SuffixA")
     alias = pseu.baue_alias("7A", sid)
 
     config = nc.load_config()
     config["api"]["provider"] = "openai"
 
     fixture = json.loads(
-        (Path(__file__).parent / "fixtures" / "mia_feedback.json").read_text(encoding="utf-8")
+        (Path(__file__).parent / "fixtures" / "beispiel_deutsch_mit_fehlern.json").read_text(encoding="utf-8")
     )
     fixture["zusammenfassung"] = f"{alias} argumentiert schlüssig."
 
@@ -119,13 +119,13 @@ def test_dsgvo_regression_kein_klarname_im_prompt(tmp_path):
 
     with patch.object(nc, "run_llm_api", side_effect=fake_api):
         data, errors = nc.run_llm_analysis(
-            docx_text="Mia Muster schreibt über den Klimawandel. Mia findet das Thema wichtig.",
+            docx_text="TokenA SuffixA schreibt über den Klimawandel. TokenA findet das Thema wichtig.",
             rubric_content="Rubrik",
             fach="Deutsch",
             schulstufe="Oberstufe",
             textsorte="Eroerterung",
             config=config,
-            schueler="Mia Muster",
+            schueler="TokenA SuffixA",
             klasse="7A",
             db_path_override=db_path,
         )
@@ -133,10 +133,10 @@ def test_dsgvo_regression_kein_klarname_im_prompt(tmp_path):
     assert data is not None
     assert prompts, "kein LLM-Call erfolgt"
     for p in prompts:
-        assert "Mia" not in p and "Muster" not in p, "Klarname im Prompt gefunden"
+        assert "TokenA" not in p and "SuffixA" not in p, "Klarname im Prompt gefunden"
         assert alias in p
     # Antwort wurde zurückgesetzt: Lehrkraft sieht den echten Namen.
-    assert data["zusammenfassung"] == "Mia Muster argumentiert schlüssig."
+    assert data["zusammenfassung"] == "TokenA SuffixA argumentiert schlüssig."
     # Übertragung war pseudonymisiert und wurde als Hinweis ausgewiesen.
     assert any("Personenangabe" in e for e in errors)
 

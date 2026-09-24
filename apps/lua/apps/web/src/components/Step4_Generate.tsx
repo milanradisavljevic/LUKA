@@ -16,8 +16,9 @@ import { computeCoverage } from '../lib/coverage';
 import { checkLernzielCoverage, checkSchreibaufgabe } from '@lehrunterlagen/llm';
 import { fachLabel } from '@lehrunterlagen/schema';
 import { RENDER_TEMPLATES, RENDER_LAYOUTS } from '@lehrunterlagen/renderer';
-import { transformiereLeicht, findeOffeneBlockIds } from '../lib/niveauTransform';
+import { transformiereLeicht, transformiereSchwer, findeOffeneBlockIds, metaFuerSchwereVariante, erstelleSichereSchwereVariante } from '../lib/niveauTransform';
 import { DEFAULT_LEHRER_PROFIL, loadTeacherProfile } from '../lib/profile';
+import { DigitaleSelbstkontrolle } from './DigitaleSelbstkontrolle';
 
 
 function isTauri(): boolean {
@@ -47,6 +48,7 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
   // Aktions-Spalte: zwei Akkordeons + Niveau-Auswahl (Mittel = Haupt-Export, hier nur leichter/schwerer).
   const [showDiff, setShowDiff] = useState(false);
   const [showWeitere, setShowWeitere] = useState(true);
+  const [showDigitaleSelbstkontrolle, setShowDigitaleSelbstkontrolle] = useState(false);
   const [niveauLeicht, setNiveauLeicht] = useState(false);
   const [niveauSchwer, setNiveauSchwer] = useState(false);
   const [diffCancelled, setDiffCancelled] = useState(false);
@@ -166,8 +168,17 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
 
       // Keine offenen Blöcke → Warnung, kein Export
       if (offeneIds.length === 0) {
+        const sichereSchwereVariante = erstelleSichereSchwereVariante(basis);
+        if (sichereSchwereVariante.geaendert) {
+          const sichereVariante = {
+            ...sichereSchwereVariante.dokument,
+            meta: metaFuerSchwereVariante(sichereSchwereVariante.dokument.meta),
+          };
+          await exportDocxOverride(state, sichereVariante, 'schwer');
+        } else {
+          setDiffErrors(['Für diese Aufgabentypen gibt es derzeit keine sichere Schwer-Transformation.']);
+        }
         setNiveauExportLabel(null);
-        setDiffErrors([]);
         return;
       }
 
@@ -185,7 +196,12 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
         }
 
         const id = offeneIds[i]!;
-        const neu = await regenerateBlock(state, id, 'Anspruchsvoller, höheres Bloom-Niveau — präzisere Analyse, komplexere Verknüpfungen, weniger Hilfestellung.');
+        const neu = await regenerateBlock(
+          state,
+          id,
+          'Anspruchsvoller, höheres Bloom-Niveau — präzisere Analyse, komplexere Verknüpfungen, weniger Hilfestellung.',
+          metaFuerSchwereVariante(basis.meta),
+        );
         if (neu) {
           regeneriert.set(id, neu);
         } else {
@@ -210,7 +226,16 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
 
       // Export nur wenn: nicht abgebrochen UND mindestens ein Block erfolgreich regeneriert
       if (!diffCancelledRef.current && regeneriert.size > 0) {
-        const schwer = { ...basis, bloecke: basis.bloecke.map((b) => regeneriert.get(b.id) ?? b) };
+        const sicherTransformiert = new Map(
+          transformiereSchwer(basis).bloecke.map((block) => [block.id, block]),
+        );
+        const schwer = {
+          ...basis,
+          meta: metaFuerSchwereVariante(basis.meta),
+          bloecke: basis.bloecke.map(
+            (block) => regeneriert.get(block.id) ?? sicherTransformiert.get(block.id) ?? block,
+          ),
+        };
         await exportDocxOverride(state, schwer, 'schwer');
       }
 
@@ -561,10 +586,14 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
                     <p style={{ fontSize: '0.75rem', color: 'var(--color-error)', margin: '0.25rem 0 0', display: 'flex', alignItems: 'flex-start', gap: '0.375rem' }}>
                       <AlertTriangle size={13} style={{ flexShrink: 0, marginTop: '0.1rem' }} />
                       <span>
-                        {diffErrors.length} von {findeOffeneBlockIds(state.generiertesDokument!).length} Aufgaben konnte(n) nicht neu generiert werden.
-                        {diffPartial
-                          ? ' Die exportierte schwere Variante enthält die fehlgeschlagenen Aufgaben unverändert.'
-                          : ' Keine Datei exportiert.'}
+                        {findeOffeneBlockIds(state.generiertesDokument!).length === 0
+                          ? diffErrors.join(' ')
+                          : <>
+                              {diffErrors.length} von {findeOffeneBlockIds(state.generiertesDokument!).length} Aufgaben konnte(n) nicht neu generiert werden.
+                              {diffPartial
+                                ? ' Die exportierte schwere Variante enthält die fehlgeschlagenen Aufgaben unverändert.'
+                                : ' Keine Datei exportiert.'}
+                            </>}
                       </span>
                     </p>
                   )}
@@ -591,20 +620,36 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
                 <div style={{ padding: '0 0.85rem 0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                   <button
                     className="btn-secondary"
+                    onClick={() => setShowDigitaleSelbstkontrolle((visible) => !visible)}
+                    disabled={exporting || generating}
+                    aria-expanded={showDigitaleSelbstkontrolle}
+                    style={{ padding: '0.5rem 1rem', fontSize: '0.8125rem', borderStyle: 'dashed',
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+                  >
+                    <ClipboardCheck size={15} /> Digitale Selbstkontrolle
+                  </button>
+                  {showDigitaleSelbstkontrolle && (
+                    <DigitaleSelbstkontrolle bloecke={previewBloecke} />
+                  )}
+                  <button
+                    className="btn-secondary"
                     onClick={async () => { const r = await pruefeLoesungen(state); setJudge(r); }}
                     disabled={exporting || generating || pruefend}
                     style={{ padding: '0.5rem 1rem', fontSize: '0.8125rem', borderStyle: 'dashed',
                       display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
                   >
                     {pruefend
-                      ? <><Loader2 size={15} className="spin" /> Prüfe Lösungen …</>
-                      : <><ShieldCheck size={15} /> Lösungen prüfen</>}
+                      ? <><Loader2 size={15} className="spin" /> Selbstkontrolle läuft …</>
+                      : <><ShieldCheck size={15} /> Selbstkontrolle starten</>}
                   </button>
                   {judge && (
                     <p style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)', textAlign: 'center', margin: 0 }}>
-                      {judge.gepruefteIds.length} geprüft · {Object.keys(judge.issuesByBlock).length} auffällig
+                      {judge.gepruefteIds.length} Aufgaben selbstkontrolliert · {Object.keys(judge.issuesByBlock).length} mit Hinweis
                     </p>
                   )}
+                  <p style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', margin: 0 }}>
+                    Keine unabhängige Zweitprüfung: Es prüft dasselbe gewählte Modell. Die Hinweise sind beratend und blockieren die Erstellung nicht.
+                  </p>
                   <button
                     className="btn-secondary"
                     onClick={() => exportKorrekturraster(state)}

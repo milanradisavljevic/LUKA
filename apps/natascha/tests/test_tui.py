@@ -12,10 +12,35 @@ from natascha_core import (
     default_rubric_for,
     humanize_agent_error,
     is_vision_capable,
+    kanonische_schulstufe,
+    kanonisches_fach,
     load_config,
     rubric_options_for,
     run_agent_sync,
 )
+
+
+def test_kanonisches_fach_kanonisiert_deutsch_englisch() -> None:
+    assert kanonisches_fach("englisch") == "Englisch"
+    assert kanonisches_fach("Englisch") == "Englisch"
+    assert kanonisches_fach("ENGLISCH") == "Englisch"
+    assert kanonisches_fach("deutsch") == "Deutsch"
+    assert kanonisches_fach("  Französisch ") == "Französisch"
+    assert kanonisches_fach("") == ""
+    assert kanonisches_fach(None) == ""  # type: ignore[arg-type]
+
+
+def test_kanonische_schulstufe_kanonisiert_mapping_keys() -> None:
+    assert kanonische_schulstufe("unterstufe") == "Unterstufe"
+    assert kanonische_schulstufe("OBERSTUFE") == "Oberstufe"
+    assert kanonische_schulstufe("  Oberstufe ") == "Oberstufe"
+    assert kanonische_schulstufe("") == ""
+
+
+def test_default_rubric_for_akzeptiert_kleinschreibung() -> None:
+    config = load_config()
+    assert default_rubric_for("englisch", "unterstufe", config) == "englisch_a2.md"
+    assert default_rubric_for("Englisch", "Oberstufe", config) == "srdp_englisch_b2.md"
 
 
 def test_default_rubric_for_uses_configured_mapping() -> None:
@@ -60,6 +85,64 @@ def test_rubric_options_exclude_erwartungshorizont_files() -> None:
     options = rubric_options_for("Deutsch", "Oberstufe", config)
 
     assert all(not option.startswith("erwartungshorizont_") for option in options)
+
+
+def test_rubric_options_filter_fremdfach_englisch_ohne_deutschrubriken() -> None:
+    """L3: Eine Englisch-Klasse darf keine Deutsch-Rubriken sehen."""
+    config = load_config()
+
+    options = rubric_options_for("Englisch", "Oberstufe", config)
+    assert "srdp_englisch_b2.md" in options
+    assert "srdp_englisch_b1.md" in options
+    assert "srdp_deutsch_oberstufe.md" not in options
+    assert "kommentar.md" not in options
+    assert all("deutsch" not in name.lower() for name in options)
+
+    options_lower = rubric_options_for("englisch", "unterstufe", config)
+    assert "englisch_a2.md" in options_lower
+    assert "deutsch_unterstufe.md" not in options_lower
+
+
+def test_weitere_sprachfaecher_bekommen_eigenes_grundraster() -> None:
+    config = load_config()
+
+    for fach, filename in (
+        ("Französisch", "sprachfach_franzoesisch.md"),
+        ("Spanisch", "sprachfach_spanisch.md"),
+        ("Italienisch", "sprachfach_italienisch.md"),
+        ("Latein", "sprachfach_latein.md"),
+    ):
+        options = rubric_options_for(fach, "Oberstufe", config)
+        assert filename in options
+        assert default_rubric_for(fach, "Oberstufe", config) == filename
+        assert "srdp_deutsch_oberstufe.md" not in options
+
+
+def test_rubric_options_keep_generic_and_current_rubric() -> None:
+    """Fachlose Rubriken bleiben in beiden Fächern; current bleibt immer sichtbar."""
+    config = load_config()
+    rubrics_dir = Path(config["paths"]["rubrics"])
+    # Eigenen generic-Fall anlegen (ohne fach:-Header), falls keiner existiert.
+    generic = rubrics_dir / "l3_generic_probe.md"
+    created = False
+    if not generic.exists():
+        generic.write_text("# Generic\n\nKein Fach-Header.\n", encoding="utf-8")
+        created = True
+    try:
+        en = rubric_options_for("Englisch", "Unterstufe", config)
+        de = rubric_options_for("Deutsch", "Unterstufe", config)
+        assert "l3_generic_probe.md" in en
+        assert "l3_generic_probe.md" in de
+
+        # Aktuell zugewiesene (fremdfachliche) Rubrik bleibt immer sichtbar.
+        with_current = rubric_options_for(
+            "Englisch", "Unterstufe", config, current_rubric="kommentar.md"
+        )
+        assert "kommentar.md" in with_current
+        assert with_current[0] == "kommentar.md"
+    finally:
+        if created and generic.exists():
+            generic.unlink()
 
 
 def test_run_agent_sync_transports_prompt_via_stdin() -> None:

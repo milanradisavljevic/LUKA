@@ -43,11 +43,11 @@ function buildJudgePrompt(block: Block, quelltexte: QuellText[]): string {
       const cfg = block.config as { items: Array<{ nr: number; prompt: string; korrekt: string }>; optionen: Array<{ key: string; text: string }> };
       let prompt = base + `AUFGABE: ${block.arbeitsanweisung}\n\n`;
       prompt += 'Items:\n';
-      for (const item of cfg.items) {
+      for (const item of cfg.items ?? []) {
         prompt += `${item.nr}: ${item.prompt}\n`;
       }
       prompt += '\nOptionen:\n';
-      for (const opt of cfg.optionen) {
+      for (const opt of cfg.optionen ?? []) {
         prompt += `${opt.key}: ${opt.text}\n`;
       }
       prompt += `\nAntworte NUR im JSON-Format: { "zuordnung": { "1": "A", "2": "B", ... } }.\nGib fuer jedes Item den Key der passenden Option an.`;
@@ -63,7 +63,7 @@ function buildJudgePrompt(block: Block, quelltexte: QuellText[]): string {
     case 'offeneVerstaendnisfrage': {
       const cfg = block.config as { fragen: Array<{ nr: number; frage: string; zeilen: number; musterantwort: string }> };
       let prompt = base + `AUFGABE: ${block.arbeitsanweisung}\n\n`;
-      for (const frage of cfg.fragen) {
+      for (const frage of cfg.fragen ?? []) {
         prompt += `Frage ${frage.nr}: ${frage.frage}\n`;
       }
       prompt += `\nAntworte NUR im JSON-Format: { "antworten": { "1": "Deine Antwort", "2": "Deine Antwort", ... } }.\nBeantworte jede Frage kurz und praegnant (2-5 Saetze).`;
@@ -87,7 +87,7 @@ function extractJson(text: string): unknown {
 function vergleicheMC(block: Block, parsed: any): string | null {
   const antworten: Record<string, string> = parsed?.antworten ?? {};
   const cfg = block.config as { fragen: Array<{ nr: number; korrekt: string[] }> };
-  for (const frage of cfg.fragen) {
+  for (const frage of cfg.fragen ?? []) {
     const judgeKey = antworten[String(frage.nr)];
     const korrekt = (frage.korrekt ?? [])[0];
     if (!judgeKey || judgeKey.toUpperCase() !== korrekt?.toUpperCase()) {
@@ -100,7 +100,7 @@ function vergleicheMC(block: Block, parsed: any): string | null {
 function vergleicheMatching(block: Block, parsed: any): string | null {
   const zuordnung: Record<string, string> = parsed?.zuordnung ?? {};
   const cfg = block.config as { items: Array<{ nr: number; korrekt: string }> };
-  for (const item of cfg.items) {
+  for (const item of cfg.items ?? []) {
     const judgeKey = zuordnung[String(item.nr)];
     if (!judgeKey || judgeKey.toUpperCase() !== item.korrekt?.toUpperCase()) {
       return `Item ${item.nr}: Judge-Antwort "${judgeKey ?? '?'}" weicht vom Schlüssel "${item.korrekt}" ab. Mögliche Mehrdeutigkeit.`;
@@ -259,7 +259,7 @@ export async function runKompetenzJudge(
       issues.push({
         blockId: block.id,
         severity: 'warning',
-        message: 'Kompetenz-Judge konnte nicht durchgefuehrt werden (API-Fehler).',
+        message: 'Selbstkontrolle des gewählten Modells konnte nicht durchgeführt werden (Anbieterfehler). Die Aufgabe wurde ohne Selbstkontrolle erstellt.',
       });
     }
   }
@@ -295,7 +295,7 @@ export async function runJudge(
       issues.push({
         blockId: block.id,
         severity: 'warning',
-        message: 'Judge-Pruefung konnte nicht durchgefuehrt werden (API-Fehler).',
+        message: 'Selbstkontrolle des gewählten Modells konnte nicht durchgeführt werden (Anbieterfehler). Die Aufgabe wurde ohne Selbstkontrolle erstellt.',
       });
     }
   }

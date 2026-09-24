@@ -436,7 +436,7 @@ export function SettingsView() {
         </div>
 
         <div style={{ marginTop: '1.25rem' }}>
-          <label style={labelStyle}>KI-Gegenprüfung der Aufgaben</label>
+          <label style={labelStyle}>Selbstkontrolle des gewählten Modells</label>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <button
               onClick={() => update({ judgeEnabled: !settings.judgeEnabled })}
@@ -466,7 +466,8 @@ export function SettingsView() {
             <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>
               {settings.judgeEnabled ? 'Aktiviert' : 'Deaktiviert'}
               {' — '}
-              Prüft generierte Aufgaben per KI auf Mehrdeutigkeiten. Erhöht Generierungszeit leicht.
+              Beratende Selbstkontrolle mit demselben Anbieter und Modell, keine unabhängige Zweitprüfung.
+              Hinweise blockieren die Erstellung nicht; bei einem Ausfall wird die Aufgabe trotzdem erstellt.
             </span>
           </div>
         </div>

@@ -67,6 +67,9 @@ function estimateBlockHeight(block: Block, template: RenderTemplate = getDefault
     case 'wortgitter': return pruefeRaetselA4(block, template, layout).benoetigteHoehe / (1440 / 25.4);
     case 'vokabeluebung': return base * 6 + 15;
     case 'fehlerkorrektur': return base * 6 + (block.config.saetze?.length ?? 5) * base * 1.5;
+    case 'quellenanalyse': return base * 8 + (block.config.auftraege?.length ?? 2) * base * 5 + 25;
+    case 'timeline': return base * 7 + (block.config.ereignisse?.length ?? 4) * base * 2 + 20;
+    case 'diagrammanalyse': return base * 10 + (block.config.daten?.length ?? 4) * base * 1.5 + (block.config.auftraege?.length ?? 2) * base * 4 + 25;
     case 'roleplay': return base * 8 + 25;
     case 'rollenkartenSet': return base * 10 + 30;
     default: return base * 8 + 15;
@@ -110,20 +113,20 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
     const issues = judge.issuesByBlock[blockId];
     if (issues && issues.length > 0) {
       return (
-        <span title={issues.join(' · ')} style={{
+        <span title={`Hinweise aus beratender Selbstkontrolle desselben Modells (keine unabhängige Zweitprüfung): ${issues.join(' · ')}`} style={{
           display: 'inline-flex', alignItems: 'center', gap: '0.25rem',
           fontSize: '0.75rem', color: 'var(--color-warning)', fontWeight: 600,
         }}>
-          <AlertTriangle size={12} /> bitte prüfen
+          <AlertTriangle size={12} /> Hinweis selbst prüfen
         </span>
       );
     }
     return (
-      <span style={{
+      <span title="Beratender Check durch dasselbe Modell, keine unabhängige Zweitprüfung." style={{
         display: 'inline-flex', alignItems: 'center', gap: '0.25rem',
         fontSize: '0.75rem', color: 'var(--color-success)', fontWeight: 600,
       }}>
-        <CheckCircle2 size={12} /> Lösung geprüft
+        <CheckCircle2 size={12} /> Modell-Selbstkontrolle · kein Fehler gefunden
       </span>
     );
   };

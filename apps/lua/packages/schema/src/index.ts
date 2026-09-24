@@ -93,6 +93,60 @@ export const SRDP_DEUTSCH_TEXTSORTEN = [
   'Empfehlung', // zusaetzlich, nicht im BMB-Leitfaden
 ] as const;
 
+/**
+ * Kuratierte Textsorten-Auswahl für die Englisch-Korrektur (L3), orientiert an
+ * den SRDP-Schreibkompetenzen Englisch. Kuratiert, kein amtlicher Anspruch —
+ * die englischen Rubriken (srdp_englisch_b1/b2) sind textsortenoffen ("alle").
+ */
+export const SRDP_ENGLISCH_TEXTSORTEN = [
+  'Article',
+  'Blog',
+  'Email',
+  'Essay',
+  'Letter',
+  'Proposal',
+  'Report',
+  'Review',
+] as const;
+
+/** Altersgerechte Textsorten für die Englisch-Unterstufe (kuratiert). */
+export const ENGLISCH_UNTERSTUFE_TEXTSORTEN = [
+  'Email',
+  'Blog',
+  'Story',
+  'Description',
+  'Report',
+  'Review',
+] as const;
+
+/**
+ * Kuratierte Textsorten-/Aufgabenfamilie für weitere Sprachfächer.
+ *
+ * Diese Liste ist bewusst keine Behauptung amtlicher Prüfungsformate. Sie
+ * dient als fachbezogene Auswahl im Korrektur-Dialog; das Bewertungsraster
+ * bleibt sprachfachspezifisch und kann später um schulformbezogene Varianten
+ * ergänzt werden. Latein enthält deshalb text- und übersetzungsbezogene
+ * Aufgaben statt einer CEFR-Übertragung.
+ */
+export const SPRACHFACH_TEXTSORTEN = {
+  franzoesisch: {
+    unterstufe: ['E-Mail', 'Message', 'Description', 'Récit', 'Article', 'Dialogue'],
+    oberstufe: ['Article', 'Blog', 'E-Mail', 'Lettre', 'Essai', 'Compte rendu', 'Critique'],
+  },
+  spanisch: {
+    unterstufe: ['Correo electrónico', 'Mensaje', 'Descripción', 'Narración', 'Artículo', 'Diálogo'],
+    oberstufe: ['Artículo', 'Blog', 'Correo electrónico', 'Carta', 'Ensayo', 'Informe', 'Reseña'],
+  },
+  italienisch: {
+    unterstufe: ['E-mail', 'Messaggio', 'Descrizione', 'Racconto', 'Articolo', 'Dialogo'],
+    oberstufe: ['Articolo', 'Blog', 'E-mail', 'Lettera', 'Saggio', 'Relazione', 'Recensione'],
+  },
+  latein: {
+    unterstufe: ['Übersetzung', 'Textverständnis', 'Beschreibung', 'Nacherzählung'],
+    oberstufe: ['Übersetzung', 'Textanalyse', 'Interpretation', 'Stilmittelanalyse', 'Kulturvergleich'],
+  },
+} as const;
+
 /** Wortumfang der kuratierten Einzelaufgabe im Deutsch-SRDP-Übungsspike. */
 export const SRDP_DEUTSCH_EINZELAUFGABE_UMFANG = { min: 405, max: 495 } as const;
 
@@ -211,11 +265,40 @@ export const MetaSchema = z.object({
   // Fehlerschwerpunkte aus einer NATASCHA-Korrektur (z. B. ["Zeichensetzung", "Grammatik"]).
   // Speist einen gezielten Hinweis in den Generierungs-Prompt (siehe packages/llm buildMessages).
   fokusThemen: z.array(z.string().min(1)).optional(),
+  // Herkunft aus dem Closed Loop (NATASCHA-Bridge): die Korrektur, aus der diese
+  // Unterlage abgeleitet wurde. Reine Buchhaltung für das Loop-Wirkung-Panel —
+  // der Generierungs-Prompt nutzt dieses Feld bewusst nicht.
+  loopQuelle: z.object({
+    klasse: z.string().min(1),
+    aufgabe: z.string().optional(),
+    exportDatum: z.string().optional(),
+  }).optional(),
+  // Strukturierte, kuratierte Schülerfehler aus der Korrektur (Bridge v2:
+  // zitat = fehlerhafte Stelle, korrektur = richtige Form). Der fehlerkorrektur-
+  // Block baut daraus Sätze mit echten Fehlermustern der Klasse.
+  bridgeFehler: z.array(z.object({
+    typ: z.enum(['R', 'G', 'Z', 'A']),
+    zitat: z.string().min(1),
+    korrektur: z.string().min(1),
+    erklaerung: z.string().optional(),
+    haeufigkeit: z.number().int().positive().optional(),
+    clusterId: z.string().min(1).optional(),
+    regelMuster: z.string().min(1).optional(),
+  })).max(12).optional(),
   // Kompetenz-Modus (opt-in; Default 'text' wird im Code angenommen).
   modus: ModusSchema.optional(),
   rahmenwerk: RahmenwerkSchema.optional(),
   stoffItemIds: z.array(z.string().min(1)).optional(),
   schulstufe: z.number().int().min(5).max(13).optional(),
+  // Deterministische Closed-Loop-Gruppierung; nur Herkunft/Steuerung, keine
+  // Schülernamen. Unter sechs bestätigten Schülern wird sie nicht gesetzt.
+  niveaugruppe: z.object({
+    id: z.enum(['foerder', 'basis', 'vertiefung']),
+    label: z.string().min(1),
+    schwierigkeit: z.enum(['leicht', 'mittel', 'schwer']),
+    schuelerIds: z.array(z.number().int().positive()).min(1),
+    notenbereich: z.object({ min: z.number(), max: z.number() }),
+  }).optional(),
   inhaltsModulId: z.string().optional(),
   kompetenzNiveau: z.enum(['basis', 'standard', 'erweitert']).optional(),
   bewertungsschema: BewertungsschemaSchema.optional(),
@@ -679,6 +762,100 @@ export const FehlerkorrekturBlockSchema = BlockBaseSchema.extend({
 export type FehlerkorrekturBlock = z.infer<typeof FehlerkorrekturBlockSchema>;
 
 // ---------------------------------------------------------------------------
+// Block: quellenanalyse (Sachfach: Geschichte / Quellenarbeit)
+// ---------------------------------------------------------------------------
+
+export const QuellenanalyseAufgabeSchema = z.object({
+  nr: z.number().int().positive(),
+  operator: z.enum(['beschreiben', 'analysieren', 'einordnen', 'beurteilen']),
+  frage: z.string().min(1),
+  zeilen: z.number().int().positive().default(5),
+});
+
+export const QuellenanalyseBlockSchema = BlockBaseSchema.extend({
+  typ: z.literal('quellenanalyse'),
+  config: z.object({
+    quelleId: z.string().min(1),
+    quellentyp: z.enum(['text', 'rede', 'bild', 'karikatur', 'statistik']).default('text'),
+    auftraege: z.array(QuellenanalyseAufgabeSchema).min(1),
+  }),
+  loesung: z.object({
+    antworten: z.array(z.object({
+      nr: z.number().int().positive(),
+      erwartung: z.string().min(1),
+      belege: z.array(z.string().min(1)).min(1),
+    })).min(1),
+  }),
+});
+
+export type QuellenanalyseBlock = z.infer<typeof QuellenanalyseBlockSchema>;
+
+// ---------------------------------------------------------------------------
+// Block: timeline (Sachfach: chronologische Einordnung / Datierung)
+// ---------------------------------------------------------------------------
+
+export const TimelineEreignisSchema = z.object({
+  nr: z.number().int().positive(),
+  titel: z.string().min(1),
+  beschreibung: z.string().min(1),
+});
+
+export const TimelineBlockSchema = BlockBaseSchema.extend({
+  typ: z.literal('timeline'),
+  config: z.object({
+    quelleId: z.string().optional(),
+    zeitraum: z.string().optional(),
+    ereignisse: z.array(TimelineEreignisSchema).min(2),
+  }),
+  loesung: z.object({
+    reihenfolge: z.array(z.number().int().positive()).min(2),
+    datierungen: z.array(z.object({
+      nr: z.number().int().positive(),
+      datum: z.string().min(1),
+    })).default([]),
+  }),
+});
+
+export type TimelineBlock = z.infer<typeof TimelineBlockSchema>;
+
+// ---------------------------------------------------------------------------
+// Block: diagrammanalyse (Sachfach: Diagramm-/Datenanalyse)
+// ---------------------------------------------------------------------------
+
+export const DiagrammDatenpunktSchema = z.object({
+  label: z.string().min(1),
+  wert: z.string().min(1),
+});
+
+export const DiagrammAnalyseAufgabeSchema = z.object({
+  nr: z.number().int().positive(),
+  operator: z.enum(['beschreiben', 'auswerten', 'erklaeren', 'beurteilen']),
+  frage: z.string().min(1),
+  zeilen: z.number().int().positive().default(4),
+});
+
+export const DiagrammAnalyseBlockSchema = BlockBaseSchema.extend({
+  typ: z.literal('diagrammanalyse'),
+  config: z.object({
+    quelleId: z.string().optional(),
+    diagrammtyp: z.enum(['balken', 'linie', 'kreis', 'tabelle']).default('balken'),
+    titel: z.string().min(1),
+    einheit: z.string().optional(),
+    daten: z.array(DiagrammDatenpunktSchema).min(2),
+    auftraege: z.array(DiagrammAnalyseAufgabeSchema).min(1),
+  }),
+  loesung: z.object({
+    antworten: z.array(z.object({
+      nr: z.number().int().positive(),
+      erwartung: z.string().min(1),
+      belege: z.array(z.string().min(1)).min(1),
+    })).min(1),
+  }),
+});
+
+export type DiagrammAnalyseBlock = z.infer<typeof DiagrammAnalyseBlockSchema>;
+
+// ---------------------------------------------------------------------------
 // Block: roleplay (Rollenspiel / kommunikative Sprechsituation)
 // ---------------------------------------------------------------------------
 
@@ -775,6 +952,9 @@ export const BlockSchema = z.discriminatedUnion('typ', [
   VokabeluebungBlockSchema,
   UmformungBlockSchema,
   FehlerkorrekturBlockSchema,
+  QuellenanalyseBlockSchema,
+  TimelineBlockSchema,
+  DiagrammAnalyseBlockSchema,
   RoleplayBlockSchema,
   RollenkartenSetBlockSchema,
 ]);
@@ -831,6 +1011,66 @@ export const DocumentSchema = z.object({
 });
 
 export type DocumentV1 = z.infer<typeof DocumentSchema>;
+
+/**
+ * Prüft den deterministischen Antwortschlüssel für Informatik-MC.
+ *
+ * Die allgemeine Dokumentvalidierung lässt unvollständige Schlüssel in
+ * Entwürfen zu. Vor dem Export muss Informatik aber jeden geschlossenen Teil
+ * ohne LLM-Judge auswerten können.
+ */
+export function pruefeInformatikMultipleChoiceSchluessel(
+  dokument: Pick<DocumentV1, 'meta' | 'bloecke'>,
+): string[] {
+  // Technischer Fachschlüssel bleibt informatikki; die sichtbare Fachbezeichnung
+  // kommt aus FACH_META und lautet „Informatik und Künstliche Intelligenz“.
+  if (dokument.meta.fach !== 'informatikki') return [];
+
+  const probleme: string[] = [];
+  for (const block of dokument.bloecke) {
+    if (block.typ !== 'multipleChoice') continue;
+    const blockLabel = `Block „${block.id}“`;
+    const antworten = block.loesung.antworten;
+    const frageKeys = block.config.fragen.map((frage) => String(frage.nr));
+    if (new Set(frageKeys).size !== frageKeys.length) {
+      probleme.push(`${blockLabel}: Fragennummern sind nicht eindeutig.`);
+      continue;
+    }
+    const bekannteFragen = new Set(frageKeys);
+    for (const key of Object.keys(antworten)) {
+      if (!bekannteFragen.has(key)) {
+        probleme.push(`${blockLabel}: Antwortschlüssel für unbekannte Frage „${key}“.`);
+      }
+    }
+
+    for (const frage of block.config.fragen) {
+      const frageLabel = `${blockLabel}, Frage ${frage.nr}`;
+      const optionKeys = frage.optionen.map((option) => option.key);
+      const eindeutigeOptionKeys = new Set(optionKeys);
+      if (eindeutigeOptionKeys.size !== optionKeys.length) {
+        probleme.push(`${frageLabel}: Optionsschlüssel sind nicht eindeutig.`);
+      }
+
+      const schluessel = antworten[String(frage.nr)] ?? [];
+      if (schluessel.length === 0) {
+        probleme.push(`${frageLabel}: Antwortschlüssel fehlt.`);
+        continue;
+      }
+      if (!frage.mehrfach && schluessel.length !== 1) {
+        probleme.push(`${frageLabel}: genau eine richtige Antwort erwartet.`);
+      }
+      if (new Set(schluessel).size !== schluessel.length) {
+        probleme.push(`${frageLabel}: Antwortschlüssel enthält einen Schlüssel doppelt.`);
+      }
+      for (const key of schluessel) {
+        if (!eindeutigeOptionKeys.has(key)) {
+          probleme.push(`${frageLabel}: Antwortschlüssel „${key}“ gehört zu keiner Option.`);
+        }
+      }
+    }
+  }
+  return probleme;
+}
 
 // ---------------------------------------------------------------------------
 // Schema-Versionierung + Migration
@@ -892,6 +1132,9 @@ export const BlockTypSchema = z.enum([
   'vokabeluebung',
   'umformung',
   'fehlerkorrektur',
+  'quellenanalyse',
+  'timeline',
+  'diagrammanalyse',
   'roleplay',
   'rollenkartenSet',
 ]);
@@ -1237,6 +1480,53 @@ export function buildSkelett(auftrag: Auftrag): Block[] {
             saetze: Array.from({ length: 5 }, (_, i) => ({ nr: i + 1, satz: '[Satz mit Fehlern]', anzahlFehler: 1 })),
           },
           loesung: { korrekturen: [] },
+        };
+      case 'quellenanalyse':
+        return {
+          ...base,
+          typ: 'quellenanalyse',
+          quelleId: (auftrag.quelltexte ?? [])[0]?.id ?? 'q1',
+          config: {
+            quelleId: (auftrag.quelltexte ?? [])[0]?.id ?? 'q1',
+            quellentyp: 'text',
+            auftraege: [
+              { nr: 1, operator: 'analysieren', frage: '[Textgebundener Analyseauftrag]', zeilen: 6 },
+            ],
+          },
+          loesung: { antworten: [{ nr: 1, erwartung: '[Erwartung]', belege: ['[Textbeleg]'] }] },
+        };
+      case 'timeline':
+        return {
+          ...base,
+          typ: 'timeline',
+          punkte,
+          config: {
+            quelleId: (auftrag.quelltexte ?? [])[0]?.id ?? 'q1',
+            zeitraum: '[Zeitraum]',
+            ereignisse: [
+              { nr: 1, titel: '[Ereignis 1]', beschreibung: '[Beschreibung 1]' },
+              { nr: 2, titel: '[Ereignis 2]', beschreibung: '[Beschreibung 2]' },
+              { nr: 3, titel: '[Ereignis 3]', beschreibung: '[Beschreibung 3]' },
+            ],
+          },
+          loesung: { reihenfolge: [1, 2, 3], datierungen: [] },
+        };
+      case 'diagrammanalyse':
+        return {
+          ...base,
+          typ: 'diagrammanalyse',
+          punkte,
+          config: {
+            diagrammtyp: 'balken',
+            titel: '[Diagrammtitel]',
+            einheit: '[Einheit]',
+            daten: [
+              { label: '[Kategorie 1]', wert: '[Wert 1]' },
+              { label: '[Kategorie 2]', wert: '[Wert 2]' },
+            ],
+            auftraege: [{ nr: 1, operator: 'auswerten', frage: '[Datengebundener Analyseauftrag]', zeilen: 5 }],
+          },
+          loesung: { antworten: [{ nr: 1, erwartung: '[Erwartung]', belege: ['[Datenbeleg]'] }] },
         };
       case 'roleplay':
         return {

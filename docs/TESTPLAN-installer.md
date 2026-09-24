@@ -1,15 +1,33 @@
 # Testplan — Installations-/Update-Abnahme
 
-**Version:** v1.3.5
-**Stand:** 2026-09-16
-**Voraussetzung:** Installer-Build von GitHub Actions (v1.3.5-Tag)
+**Version:** v1.5.1 (Build-Kandidat)
+**Stand:** 2026-09-24
+**Voraussetzung:** Installer-Build des aktuellen v1.5.1-Kandidaten
 **Geschätzte Dauer:** 45–60 Minuten
 
 ---
 
 ## A. Vor dem Test
 
-- [ ] Installer-Datei herunterladen (`LUKA_1.3.5_x64-setup.exe` / `.dmg`)
+- [x] **Korrektur-Release bauen:** Zuerst in `apps/natascha` den Sidecar aus dem
+  aktuellen Quellstand erzeugen (`.\build_sidecar.ps1`), danach in `apps/lua`
+  mit `pnpm tauri build --bundles nsis --config src-tauri/tauri.natascha-sidecar.conf.json`
+  paketieren. Der einfache Befehl ohne `--config` ist nur ein Generator-Build
+  und kein abnahmefaehiger Korrektur-Installer.
+  *Erledigt 2026-09-24 19:16: Vite-Build grün (5,2 s), Rust-Release 39 s,
+  NSIS-Setup erzeugt. Hinweis: der Prozess endet lokal mit Exit-1, weil
+  `TAURI_SIGNING_PRIVATE_KEY` fehlt (Updater-Signaturen erzeugt nur CI) —
+  das Setup ist trotzdem vollständig gebündelt.*
+- [x] Zeitstempel des erzeugten `natascha-cli-x86_64-pc-windows-msvc.exe` ist
+  neuer als die geaenderten NATASCHA-Quelltexte; kein vorhandenes, aelteres
+  Sidecar wiederverwenden.
+  *Sidecar 18:50, kein `apps/natascha/*.py` ist neuer.*
+- [x] **Isoliert geprüft (ohne Installation):** Setup per 7-Zip nach
+  `%TEMP%\luka-installer-smoke` entpackt. `natascha-cli.exe` im Paket:
+  SHA-256 `8ce1aa50…69e1cebd` — identisch mit der frischen Dist-Datei;
+  `analyze --help` startet (Exit 0) und zeigt `--einsatz-id` + `--material-id`.
+  *Vollinstallation und Start der App bleiben davon getrennt offen (B–F).*
+- [ ] Installer-Datei des aktuellen Kandidaten herunterladen (`.exe` / `.dmg`)
 - [ ] Vorherige Installation deinstallieren (falls vorhanden)
 - [ ] API-Schlüssel für mindestens einen Anbieter bereithalten
 - [ ] `seed_testdaten.py` ausführen (erzeugt Klasse TEST-7a mit 3 Schülern + 4 Arbeiten)
@@ -23,12 +41,12 @@
 - [ ] Standard-Installationsordner akzeptieren
 - [ ] App startet nach Installation automatisch oder per Desktop-Verknüpfung
 - [ ] Kein Konsolenfenster erscheint
-- [ ] Version in der App zeigt `1.3.5`
+- [ ] Version in der App zeigt `1.5.1`
 
 ### B2 — macOS (DMG)
 - [ ] DMG mounten — App in Applications ziehen
 - [ ] App startet ohne Gatekeeper-Warnung (oder Warning bestätigen)
-- [ ] Version in der App zeigt `1.3.5`
+- [ ] Version in der App zeigt `1.5.1`
 
 ---
 
@@ -74,7 +92,7 @@
 
 ---
 
-## F. Korrektur — 4-Schritte-Dialog (NEU in v1.3.5)
+## F. Korrektur — 4-Schritte-Dialog
 
 ### F1 — Sidecar-Verfügbarkeit
 - [ ] In Einstellungen: NATASCHA-Sektion sichtbar
@@ -139,7 +157,7 @@
 - [ ] Speicher-Dialog erscheint
 - [ ] Datei wird gespeichert
 
-### G2 — Restore (gepatcht in v1.3.5)
+### G2 — Restore
 - [ ] "Datensicherung wiederherstellen" klicken
 - [ ] Datei-Dialog erscheint
 - [ ] Bestätigungsdialog wird angezeigt
@@ -178,7 +196,7 @@
 
 ---
 
-## I. Pool-Direkt-Export (NEU in v1.3.5)
+## I. Pool-Direkt-Export
 
 - [ ] Aufgaben-Pool öffnen
 - [ ] Mindestens ein Eintrag vorhanden

@@ -1,14 +1,15 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { GraduationCap, Users, BarChart3, AlertTriangle, TrendingUp, TrendingDown, Download, Wand2, Sparkles, Loader2, School, Plus, Archive, ArchiveRestore, Pencil, Trash2, X } from 'lucide-react';
+import { GraduationCap, Users, BarChart3, AlertTriangle, TrendingUp, TrendingDown, Download, Wand2, Sparkles, Loader2, School, Plus, Archive, ArchiveRestore, Pencil, Trash2, X, User, ExternalLink } from 'lucide-react';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { EmptyState } from './_EmptyState';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from 'recharts';
 import { loadDocuments, type KlasseInfo } from '../lib/storage';
 import { useNatascha } from '../hooks/useNatascha';
-import type { KlassenBriefingRow, FehlerTrendPunkt } from '../hooks/useNatascha';
+import type { KlassenBriefingRow, FehlerTrendPunkt, LoopUebungRow } from '../hooks/useNatascha';
+import { folgeuebungWirkung } from '../lib/loopWirkung';
 import { useKlassenMeta, type KlasseMeta, type KlassenLoeschvorschau } from '../hooks/useKlassenMeta';
-import { KATEGORIE_TO_BLOCKTYPEN, type NataschaPrefill } from '../lib/nataschaBridge';
-import { FACH_META, schulstufenFuerLand, stufeFromSchulstufe, type Land } from '@lehrunterlagen/schema';
+import { KATEGORIE_TO_BLOCKTYPEN, fehlerkorrekturZuerst, type NataschaPrefill } from '../lib/nataschaBridge';
+import { FACH_META, schulstufenFuerLand, stufeFromSchulstufe, type Fach, type Land, type Stufe } from '@lehrunterlagen/schema';
 import type { BlockTyp } from '@lehrunterlagen/schema';
 import { loadTeacherProfile } from '../lib/profile';
 import { ViewShell } from './_ViewShell';
@@ -17,10 +18,18 @@ import { anzeigeName } from '../lib/anzeigeName';
 import { InfoDot } from '../components/ui/InfoDot';
 import { useEinsatz, type EinsatzRecord } from '../hooks/useEinsatz';
 import { einsatzAnzeigeDatum, formatEinsatzDatum, labelEinsatzArt, labelRueckblickStatus, sortEinsaetze } from '../lib/einsatz';
+import { ermittleNiveaugruppen, neuesteBestaetigteNoten, type Niveaugruppe } from '../lib/niveauGruppen';
+import { aggregiereFehlerCluster, baueFehlerClusterTrend, type FehlerClusterSummary } from '../lib/fehlerCluster';
 
 interface Props {
   /** Closed Loop: aus der Heatmap ein Übungsblatt im LUA-Generator starten. */
   onGenerateUebung?: (prefill: NataschaPrefill) => void;
+  /** Cross-Nav (L1): Klick auf eine Abgabe → Korrektur dieser Arbeit öffnen. */
+  onOpenKorrektur?: (ziel: { abgabeId: number; klasse: string; aufgabe: string }) => void;
+  /** Cross-Nav: Klick auf das Profil-Icon → Schüler-Ansicht (Längsschnitt). */
+  onOpenSchueler?: (klasse: string, schuelerId: number) => void;
+  /** Cross-Nav (L1): Folgeübung im Loop-Wirkung-Panel → Unterlage öffnen. */
+  onOpenUnterlage?: (documentId: string) => void;
 }
 
 interface AbgabeInfo {
@@ -31,6 +40,7 @@ interface AbgabeInfo {
   klasse: string;
   aufgabe: string;
   dateiname: string;
+  datum: string | null;
   vorname: string | null;
   nachname: string | null;
   note: number | null;
@@ -76,12 +86,17 @@ interface KalibrierungResult {
   nMitFeedback: number;
   nGesamt: number;
   tendenz: string;
+  /** L2: KI vs. Lehrer je Textsorte (nur Textsorten mit ≥ 2 Paaren). */
+  nachTextsorte?: { textsorte: string; paare: number; mittlereAbweichung: number | null; tendenz: string }[];
 }
 
 interface FehlerDetailRow {
   zitat: string | null;
   korrektur: string | null;
   erklaerung: string | null;
+  clusterId?: string | null;
+  regelMuster?: string | null;
+  haeufigkeit: number;
   vorname: string | null;
   dateiname: string;
 }
@@ -94,6 +109,7 @@ const FEHLER_COLORS: Record<string, string> = { R: '#e74c3c', G: '#27ae60', Z: '
 type Tab = 'uebersicht' | 'statistik';
 
 const WIRKSAMKEIT_TYPEN = ['R', 'G', 'Z', 'A'] as const;
+const CLUSTER_TREND_FARBEN = ['#6c5ce7', '#00a8a8', '#d35400', '#8e44ad', '#2c3e50', '#16a085'];
 
 interface WirksamkeitDelta {
   typ: string;
@@ -133,8 +149,8 @@ function buildWirksamkeit(punkte: FehlerTrendPunkt[]) {
   return { relevant, chartData, deltas };
 }
 
-export function KlassenView({ onGenerateUebung }: Props) {
-  const { listKlassen, listAufgaben, getAbgaben, getHeatmap, getKlassenStatistik, getKlassenTrend, getFehlerTrend, getKlassenKalibrierung, getFehlerDetail, exportNotenCsv, generateKlassenBriefing, getKlassenBriefing, quelltextGet } = useNatascha();
+export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler, onOpenUnterlage }: Props) {
+  const { listKlassen, listAufgaben, getAbgaben, getHeatmap, getKlassenStatistik, getKlassenTrend, getFehlerTrend, getLoopUebungen, getKlassenKalibrierung, getFehlerDetail, exportNotenCsv, generateKlassenBriefing, getKlassenBriefing, quelltextGet } = useNatascha();
   const {
     klassen: klassenMeta,
     upsert: upsertKlasseMeta,
@@ -151,10 +167,14 @@ export function KlassenView({ onGenerateUebung }: Props) {
   const [aufgaben, setAufgaben] = useState<string[]>([]);
   const [selectedAufgabe, setSelectedAufgabe] = useState<string | null>(null);
   const [abgaben, setAbgaben] = useState<AbgabeInfo[]>([]);
+  const [niveauVorschauGruppeId, setNiveauVorschauGruppeId] = useState<Niveaugruppe['id'] | null>(null);
+  const [niveauZuweisung, setNiveauZuweisung] = useState<Record<number, Niveaugruppe['id'] | ''>>({});
   const [heatmap, setHeatmap] = useState<HeatmapEntry[]>([]);
+  const [clusterSummary, setClusterSummary] = useState<FehlerClusterSummary[]>([]);
   const [statistik, setStatistik] = useState<KlassenStatistik | null>(null);
   const [trend, setTrend] = useState<TrendPoint[]>([]);
   const [fehlerTrend, setFehlerTrend] = useState<FehlerTrendPunkt[]>([]);
+  const [loopUebungen, setLoopUebungen] = useState<LoopUebungRow[]>([]);
   const [kalibrierung, setKalibrierung] = useState<KalibrierungResult | null>(null);
   const [fehlerDetail, setFehlerDetail] = useState<{ typ: string; rows: FehlerDetailRow[] } | null>(null);
   const [loading, setLoading] = useState(false);
@@ -164,11 +184,12 @@ export function KlassenView({ onGenerateUebung }: Props) {
   const [briefingError, setBriefingError] = useState<string | null>(null);
   const [chronik, setChronik] = useState<EinsatzRecord[]>([]);
 
-  // Klasse anlegen/bearbeiten — LUA-eigene Metadaten (Fach/Schulstufe/Schuljahr)
+  // Klasse anlegen/bearbeiten — LUA-eigene Metadaten (Fach/Land/Schulstufe/Schuljahr)
   // zusätzlich zum reinen Klasse-String, den NATASCHA verwendet.
   const [zeigeKlasseForm, setZeigeKlasseForm] = useState(false);
   const [formName, setFormName] = useState('');
-  const [formFach, setFormFach] = useState('deutsch');
+  const [formFach, setFormFach] = useState('');
+  const [formLand, setFormLand] = useState<Land | ''>('');
   const [formSchulstufe, setFormSchulstufe] = useState<number | undefined>(undefined);
   const [formSchuljahr, setFormSchuljahr] = useState('');
   const [formBusy, setFormBusy] = useState(false);
@@ -177,8 +198,40 @@ export function KlassenView({ onGenerateUebung }: Props) {
   const [zeigeArchivierte, setZeigeArchivierte] = useState(false);
   const [klasseLoeschvorschau, setKlasseLoeschvorschau] = useState<KlassenLoeschvorschau | null>(null);
   const [klasseLoeschBusy, setKlasseLoeschBusy] = useState(false);
-  // Land aus dem Profil: steuert die angebotenen Schulstufen (DE: Klassen 5–13).
   const [land, setLand] = useState<Land | undefined>();
+  const selectedKlasseMeta = useMemo(
+    () => klassenMeta.find((meta) => meta.name === selectedKlasse),
+    [klassenMeta, selectedKlasse],
+  );
+  const niveaugruppenLand = selectedKlasseMeta?.land ?? land;
+  const niveauNoten = useMemo(
+    () => neuesteBestaetigteNoten(abgaben
+      .filter((abgabe) => abgabe.schuelerId != null && abgabe.noteFinal != null)
+      .map((abgabe) => ({
+        ...abgabe,
+        schuelerId: abgabe.schuelerId!,
+        datum: abgabe.datum,
+        abgabeId: abgabe.id,
+      }))),
+    [abgaben],
+  );
+  const niveaugruppen = useMemo(
+    () => ermittleNiveaugruppen(niveauNoten, niveaugruppenLand),
+    [niveauNoten, niveaugruppenLand],
+  );
+  const niveaugruppenVorschau = useMemo(() => niveaugruppen.map((gruppe) => {
+    const mitglieder = niveauNoten.filter((abgabe) => niveauZuweisung[abgabe.schuelerId] === gruppe.id);
+    const noten = mitglieder.map((abgabe) => abgabe.noteFinal!).filter(Number.isFinite);
+    return {
+      ...gruppe,
+      schuelerIds: mitglieder.map((abgabe) => abgabe.schuelerId),
+      notenbereich: noten.length > 0
+        ? { min: Math.min(...noten), max: Math.max(...noten) }
+        : { min: 0, max: 0 },
+    };
+  }), [niveaugruppen, niveauNoten, niveauZuweisung]);
+  const aktiveNiveaugruppe = niveaugruppenVorschau.find((gruppe) => gruppe.id === niveauVorschauGruppeId);
+  // Land aus dem Profil: steuert die angebotenen Schulstufen (DE: Klassen 5–13).
   useEffect(() => {
     let active = true;
     loadTeacherProfile()
@@ -192,11 +245,6 @@ export function KlassenView({ onGenerateUebung }: Props) {
       setError('Datenbank nicht erreichbar.');
     });
   }, [listKlassen]);
-
-  const selectedKlasseMeta = useMemo(
-    () => klassenMeta.find((meta) => meta.name === selectedKlasse),
-    [klassenMeta, selectedKlasse],
-  );
 
   useEffect(() => {
     if (!selectedKlasse) {
@@ -238,7 +286,8 @@ export function KlassenView({ onGenerateUebung }: Props) {
   const oeffneKlasseForm = useCallback((vorhandene?: KlasseMeta, nameFest?: boolean) => {
     setFormError(null);
     setFormName(vorhandene?.name ?? '');
-    setFormFach(vorhandene?.fach ?? 'deutsch');
+    setFormFach(vorhandene?.fach ?? '');
+    setFormLand(vorhandene?.land ?? '');
     setFormSchulstufe(vorhandene?.schulstufe ?? undefined);
     setFormSchuljahr(vorhandene?.schuljahr ?? '');
     setFormNameLocked(!!nameFest);
@@ -253,9 +302,12 @@ export function KlassenView({ onGenerateUebung }: Props) {
     const bestehende = klassenMeta.find((m) => m.name === name);
     const ok = await upsertKlasseMeta({
       name,
-      fach: formFach,
-      stufe: formSchulstufe ? stufeFromSchulstufe(formSchulstufe, land) : (bestehende?.stufe ?? 'oberstufe'),
+      fach: formFach || null,
+      stufe: formSchulstufe
+        ? stufeFromSchulstufe(formSchulstufe, formLand || land)
+        : (bestehende?.stufe ?? null),
       schulstufe: formSchulstufe ?? null,
+      land: formLand || null,
       schuljahr: formSchuljahr.trim() || null,
       notizen: bestehende?.notizen ?? null,
       archiviert: bestehende?.archiviert ?? false,
@@ -263,7 +315,7 @@ export function KlassenView({ onGenerateUebung }: Props) {
     });
     setFormBusy(false);
     if (ok) { setZeigeKlasseForm(false); } else { setFormError('Speichern fehlgeschlagen.'); }
-  }, [formName, formFach, formSchulstufe, formSchuljahr, klassenMeta, upsertKlasseMeta, land]);
+  }, [formName, formFach, formLand, formSchulstufe, formSchuljahr, klassenMeta, upsertKlasseMeta, land]);
 
   const handleToggleArchiv = useCallback(async (name: string, meta?: KlasseMeta) => {
     const ok = meta
@@ -302,6 +354,7 @@ export function KlassenView({ onGenerateUebung }: Props) {
         setAufgaben([]);
         setAbgaben([]);
         setHeatmap([]);
+        setClusterSummary([]);
         setStatistik(null);
         setTrend([]);
         setFehlerTrend([]);
@@ -318,6 +371,8 @@ export function KlassenView({ onGenerateUebung }: Props) {
   const loadKlasse = useCallback(async (klasse: string) => {
     setSelectedKlasse(klasse);
     setSelectedAufgabe(null);
+    setNiveauVorschauGruppeId(null);
+    setNiveauZuweisung({});
     setFehlerDetail(null);
     setFehlerTrend([]);
     setBriefing(null);
@@ -333,30 +388,34 @@ export function KlassenView({ onGenerateUebung }: Props) {
         setSelectedAufgabe(first);
         if (first) await loadData(klasse, first);
       } else {
-        setAbgaben([]); setHeatmap([]); setStatistik(null);
+      setAbgaben([]); setHeatmap([]); setClusterSummary([]); setStatistik(null);
       }
-      const [t, ft, k] = await Promise.all([getKlassenTrend(klasse), getFehlerTrend(klasse), getKlassenKalibrierung(klasse)]);
+      const [t, ft, k, lu] = await Promise.all([getKlassenTrend(klasse), getFehlerTrend(klasse), getKlassenKalibrierung(klasse), getLoopUebungen(klasse)]);
       setTrend(t as TrendPoint[]);
       setFehlerTrend(ft);
       setKalibrierung(k as KalibrierungResult | null);
+      setLoopUebungen(lu);
     } catch (e) { setError(String(e)); }
     finally { setLoading(false); }
-  }, [listAufgaben, getKlassenTrend, getFehlerTrend, getKlassenKalibrierung]);
+  }, [listAufgaben, getKlassenTrend, getFehlerTrend, getKlassenKalibrierung, getLoopUebungen]);
 
   const loadData = useCallback(async (klasse: string, aufgabe: string) => {
     setLoading(true);
     try {
-      const [abs, hm, stat] = await Promise.all([
+      const [abs, hm, stat, clusterRows] = await Promise.all([
         getAbgaben(klasse, aufgabe) as Promise<AbgabeInfo[]>,
         getHeatmap(klasse, aufgabe),
         getKlassenStatistik(klasse, aufgabe),
+        Promise.all(['R', 'G', 'Z', 'A'].map((typ) => getFehlerDetail(klasse, typ, aufgabe, 500)
+          .then((rows) => rows.map((row) => ({ ...row, typ }))))).then((groups) => groups.flat()),
       ]);
       setAbgaben(abs);
       setHeatmap(hm as HeatmapEntry[]);
       setStatistik(stat as KlassenStatistik);
+      setClusterSummary(aggregiereFehlerCluster(clusterRows));
     } catch (e) { setError(String(e)); }
     finally { setLoading(false); }
-  }, [getAbgaben, getHeatmap, getKlassenStatistik]);
+  }, [getAbgaben, getHeatmap, getKlassenStatistik, getFehlerDetail]);
 
   useEffect(() => {
     if (selectedKlasse && selectedAufgabe) {
@@ -370,7 +429,7 @@ export function KlassenView({ onGenerateUebung }: Props) {
     setFehlerDetail({ typ, rows: rows as FehlerDetailRow[] });
   }, [selectedKlasse, selectedAufgabe, getFehlerDetail]);
 
-  const handleGenerateUebung = useCallback(async () => {
+  const handleGenerateUebung = useCallback(async (niveaugruppe?: Niveaugruppe) => {
     if (!selectedKlasse || heatmap.length === 0) return;
     const top = [...heatmap].filter((h) => h.anzahl > 0).sort((a, b) => b.anzahl - a.anzahl).slice(0, 3);
     const fokusThemen = top.map((h) => HEATMAP_LABELS[h.typ] ?? h.typ);
@@ -389,17 +448,69 @@ export function KlassenView({ onGenerateUebung }: Props) {
     if (!ausgangstext && selectedKlasse && selectedAufgabe) {
       ausgangstext = await quelltextGet(selectedKlasse, selectedAufgabe);
     }
+    // Echte Klassenfehler der Schwerpunkte nachladen → fehlerkorrektur-Block daraus.
+    const fehler: NataschaPrefill['fehler'] = [];
+    const gesehene = new Set<string>();
+    for (const h of top) {
+      const rows = await getFehlerDetail(selectedKlasse, h.typ, selectedAufgabe ?? undefined, 8);
+      for (const r of rows) {
+        const zitat = (r.zitat ?? '').trim();
+        const korrektur = (r.korrektur ?? '').trim();
+        if (!zitat || !korrektur || zitat === korrektur) continue;
+        const schluessel = `${zitat}→${korrektur}`;
+        if (gesehene.has(schluessel)) continue;
+        gesehene.add(schluessel);
+        fehler.push({ typ: h.typ as 'R' | 'G' | 'Z' | 'A', zitat, korrektur, erklaerung: r.erklaerung ?? undefined, haeufigkeit: r.haeufigkeit, clusterId: r.clusterId ?? undefined, regelMuster: r.regelMuster ?? undefined });
+        if (fehler.length >= 12) break;
+      }
+      if (fehler.length >= 12) break;
+    }
     const prefill: NataschaPrefill = {
       thema: `Übung zu Fehlerschwerpunkten – ${selectedKlasse}${selectedAufgabe ? ' · ' + selectedAufgabe : ''}`,
-      fach: 'deutsch',
-      stufe: 'oberstufe',
+      // Der Closed Loop übernimmt den Kontext der Klasse bzw. der jüngsten
+      // Abgabe. Fehlen alte Metadaten, lässt Step 0 seine normalen Profilwerte.
+      land: selectedKlasseMeta?.land ?? land,
+      fach: (klassenMeta.find((m) => m.name === selectedKlasse)?.fach
+        ?? abgaben.find((a) => a.fach)?.fach) as Fach | undefined,
+      stufe: (klassenMeta.find((m) => m.name === selectedKlasse)?.stufe
+        ?? (() => {
+          const raw = abgaben.find((a) => a.schulstufe)?.schulstufe;
+          const n = raw ? Number(raw) : NaN;
+          return Number.isFinite(n) ? stufeFromSchulstufe(n, land) : undefined;
+        })()) as Stufe | undefined,
+      schulstufe: (() => {
+        const configured = klassenMeta.find((m) => m.name === selectedKlasse)?.schulstufe;
+        if (configured != null) return configured;
+        const raw = abgaben.find((a) => a.schulstufe)?.schulstufe;
+        const n = raw ? Number(raw) : NaN;
+        return Number.isFinite(n) ? n : undefined;
+      })(),
+      textsorte: abgaben.find((a) => a.textsorte)?.textsorte ?? undefined,
       fokusThemen,
-      gewuenschteAufgabenarten: arten,
+      gewuenschteAufgabenarten: fehlerkorrekturZuerst(arten),
       notizen: `Automatisch aus der Korrektur-Heatmap der Klasse ${selectedKlasse} erzeugt. Schwerpunkte: ${fokusThemen.join(', ')}.`,
       ausgangstext: ausgangstext || undefined,
+      fehler: fehler.length > 0 ? fehler : undefined,
+      niveaugruppe,
+      loopQuelle: { klasse: selectedKlasse, aufgabe: selectedAufgabe ?? undefined },
     };
     onGenerateUebung?.(prefill);
-  }, [selectedKlasse, selectedAufgabe, heatmap, abgaben, onGenerateUebung, quelltextGet]);
+  }, [selectedKlasse, selectedAufgabe, heatmap, abgaben, klassenMeta, land, onGenerateUebung, quelltextGet, getFehlerDetail]);
+
+  const oeffneNiveauVorschau = (gruppe: Niveaugruppe) => {
+    const zuordnung: Record<number, Niveaugruppe['id'] | ''> = {};
+    for (const automatischeGruppe of niveaugruppen) {
+      for (const schuelerId of automatischeGruppe.schuelerIds) zuordnung[schuelerId] = automatischeGruppe.id;
+    }
+    setNiveauZuweisung(zuordnung);
+    setNiveauVorschauGruppeId(gruppe.id);
+  };
+
+  const handleGenerateNiveauVorschau = () => {
+    if (!aktiveNiveaugruppe || aktiveNiveaugruppe.schuelerIds.length === 0) return;
+    void handleGenerateUebung(aktiveNiveaugruppe);
+    setNiveauVorschauGruppeId(null);
+  };
 
   const handleGenerateBriefing = useCallback(async () => {
     if (!selectedKlasse) return;
@@ -480,10 +591,20 @@ export function KlassenView({ onGenerateUebung }: Props) {
                 style={{ width: '100%', boxSizing: 'border-box', marginBottom: '0.4rem', fontSize: '0.8125rem' }}
               />
               <select value={formFach} onChange={(e) => setFormFach(e.target.value)} style={{ width: '100%', marginBottom: '0.4rem', fontSize: '0.8125rem' }}>
+                <option value="">Aus Aufgabe/Profil ableiten</option>
                 {Object.entries(FACH_META).map(([f, m]) => <option key={f} value={f}>{m.label}</option>)}
               </select>
+              <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.72rem' }}>
+                Land/Schulsystem
+                <select value={formLand} onChange={(e) => setFormLand(e.target.value as Land | '')} style={{ display: 'block', width: '100%', marginTop: '0.2rem', fontSize: '0.8125rem' }}>
+                  <option value="">Profilstandard{land ? ` (${land})` : ''}</option>
+                  <option value="AT">Österreich</option>
+                  <option value="DE">Deutschland</option>
+                  <option value="CH">Schweiz</option>
+                </select>
+              </label>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginBottom: '0.4rem' }}>
-                {schulstufenFuerLand(land).map((s) => (
+                {schulstufenFuerLand(formLand || land).map((s) => (
                   <button
                     key={s}
                     type="button"
@@ -740,15 +861,89 @@ export function KlassenView({ onGenerateUebung }: Props) {
                       </div>
                     ))
                   )}
+                  {clusterSummary.length > 0 && (
+                    <div style={{ marginTop: '0.85rem', paddingTop: '0.65rem', borderTop: '1px solid var(--color-border)' }}>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem' }}>
+                        Strukturierte Fehler-Cluster
+                        <InfoDot text="Zusätzliche Ansicht aus tatsächlich gespeicherten Regelmustern. Alte R/G/Z/A-Fehler ohne Cluster bleiben in der Heatmap sichtbar." />
+                      </div>
+                      {clusterSummary.slice(0, 8).map((cluster) => (
+                        <div key={`${cluster.typ}-${cluster.clusterId}`} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: '0.3rem', fontSize: '0.75rem' }}>
+                          <span style={{ color: HEATMAP_COLORS[cluster.typ] ?? 'var(--color-accent)', fontWeight: 700, minWidth: 18 }}>{cluster.typ}</span>
+                          <span style={{ flex: 1 }}>{cluster.label}</span>
+                          <span style={{ color: 'var(--color-text-secondary)' }}>{cluster.anzahl}×</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   {heatmap.length > 0 && onGenerateUebung && (
                     <button
                       className="btn-primary"
-                      onClick={handleGenerateUebung}
+                      onClick={() => handleGenerateUebung()}
                       style={{ marginTop: '0.75rem', width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', fontSize: '0.8125rem' }}
                       title="Erzeugt ein Übungsblatt zu den häufigsten Fehlern dieser Klasse"
                     >
                       <Wand2 size={15} /> Übungsblatt zu Top-Fehlern generieren
                     </button>
+                  )}
+                  {niveaugruppen.length > 0 && onGenerateUebung && (
+                    <div style={{ marginTop: '0.75rem', borderTop: '1px solid var(--color-border)', paddingTop: '0.6rem' }}>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem' }}>Niveaugruppen aus bestätigten Lehrernoten</div>
+                      {niveaugruppenLand === 'CH' && (
+                        <div style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', marginBottom: '0.35rem' }}>
+                          Schweizer Notenrichtung: 6 ist stärker, 1 ist schwächer.
+                        </div>
+                      )}
+                      <div style={{ display: 'grid', gap: '0.3rem' }}>
+                        {niveaugruppen.map((gruppe) => (
+                          <button key={gruppe.id} type="button" className="btn-secondary" onClick={() => oeffneNiveauVorschau(gruppe)} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', padding: '0.35rem 0.5rem' }}>
+                            <span>{gruppe.label} · {gruppe.schwierigkeit}</span>
+                            <span>{gruppe.schuelerIds.length} Schüler · Noten {gruppe.notenbereich.min}–{gruppe.notenbereich.max}</span>
+                          </button>
+                        ))}
+                      </div>
+                      {aktiveNiveaugruppe && (
+                        <div role="region" aria-label="Niveaugruppen-Vorschau" style={{ marginTop: '0.65rem', padding: '0.6rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                            <strong style={{ fontSize: '0.78rem' }}>Einteilung prüfen und ändern</strong>
+                            <button type="button" className="btn-secondary" aria-label="Niveaugruppen-Vorschau schließen" onClick={() => setNiveauVorschauGruppeId(null)} style={{ padding: '0.2rem' }}><X size={14} /></button>
+                          </div>
+                          <label style={{ display: 'block', fontSize: '0.75rem', marginTop: '0.5rem' }}>
+                            Übungsniveau
+                            <select value={aktiveNiveaugruppe.id} onChange={(event) => setNiveauVorschauGruppeId(event.target.value as Niveaugruppe['id'])} style={{ display: 'block', width: '100%', marginTop: '0.2rem', padding: '0.35rem' }}>
+                              {niveaugruppenVorschau.map((gruppe) => <option key={gruppe.id} value={gruppe.id}>{gruppe.label} · {gruppe.schwierigkeit} ({gruppe.schuelerIds.length})</option>)}
+                            </select>
+                          </label>
+                          <p style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)', margin: '0.45rem 0' }}>
+                            Die Einteilung beruht auf der jeweils neuesten bestätigten Lehrkraftnote dieser Aufgabe. Du kannst Schüler/innen neu zuordnen oder aus der Übung herausnehmen.
+                          </p>
+                          <div style={{ maxHeight: 250, overflowY: 'auto' }}>
+                            {niveauNoten.map((abgabe) => {
+                              const id = abgabe.schuelerId;
+                              const name = [abgabe.vorname, abgabe.nachname].filter(Boolean).join(' ') || anzeigeName(abgabe);
+                              return (
+                                <label key={id} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto auto', alignItems: 'center', gap: 8, padding: '0.3rem 0', borderTop: '1px solid var(--color-border)', fontSize: '0.73rem' }}>
+                                  <span>{name}</span>
+                                  <span>Note {abgabe.noteFinal}</span>
+                                  <select aria-label={`Niveaugruppe für ${name}`} value={niveauZuweisung[id] ?? ''} onChange={(event) => setNiveauZuweisung((current) => ({ ...current, [id]: event.target.value as Niveaugruppe['id'] | '' }))} style={{ padding: '0.25rem' }}>
+                                    <option value="">Keine</option>
+                                    {niveaugruppen.map((gruppe) => <option key={gruppe.id} value={gruppe.id}>{gruppe.label}</option>)}
+                                  </select>
+                                </label>
+                              );
+                            })}
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginTop: '0.55rem' }}>
+                            <span style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)' }}>
+                              {aktiveNiveaugruppe.schuelerIds.length} Schüler/innen · Noten {aktiveNiveaugruppe.notenbereich.min}–{aktiveNiveaugruppe.notenbereich.max}
+                            </span>
+                            <button type="button" className="btn-primary" disabled={aktiveNiveaugruppe.schuelerIds.length === 0} onClick={handleGenerateNiveauVorschau} style={{ fontSize: '0.75rem', padding: '0.35rem 0.5rem' }}>
+                              Übung vorbereiten
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
@@ -792,7 +987,27 @@ export function KlassenView({ onGenerateUebung }: Props) {
                       <tbody>
                         {abgaben.map((a) => (
                           <tr key={a.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                            <td style={{ padding: '0.375rem 0.5rem' }} title={a.dateiname}>{anzeigeName(a)}</td>
+                            <td style={{ padding: '0.375rem 0.5rem' }} title={a.dateiname}>
+                              <button
+                                type="button"
+                                onClick={() => onOpenKorrektur?.({ abgabeId: a.id, klasse: a.klasse, aufgabe: a.aufgabe })}
+                                style={{ background: 'none', border: 'none', padding: 0, cursor: onOpenKorrektur ? 'pointer' : 'default', color: 'var(--color-accent)', font: 'inherit', textDecoration: 'underline', textUnderlineOffset: 2 }}
+                                title="Korrektur dieser Arbeit öffnen"
+                              >
+                                {anzeigeName(a)}
+                              </button>
+                              {a.schuelerId != null && onOpenSchueler && (
+                                <button
+                                  type="button"
+                                  aria-label={`Schüler-Ansicht von ${anzeigeName(a)} öffnen`}
+                                  onClick={() => onOpenSchueler(a.klasse, a.schuelerId!)}
+                                  style={{ background: 'none', border: 'none', padding: '0 0 0 0.375rem', cursor: 'pointer', color: 'var(--color-text-secondary)', verticalAlign: '-2px' }}
+                                  title="Schüler-Ansicht (Längsschnitt) öffnen"
+                                >
+                                  <User size={14} />
+                                </button>
+                              )}
+                            </td>
                             <td style={{ padding: '0.375rem 0.5rem' }}>{noteLabel(a.note)}</td>
                             <td style={{ padding: '0.375rem 0.5rem' }}>{a.hatLehrerFeedback ? <strong>{noteLabel(a.noteFinal)}</strong> : '—'}</td>
                             <td style={{ padding: '0.375rem 0.5rem' }}>{a.textsorte ?? '—'}</td>
@@ -809,6 +1024,8 @@ export function KlassenView({ onGenerateUebung }: Props) {
 
           {tab === 'statistik' && selectedKlasse && (() => {
             const wirksamkeit = buildWirksamkeit(fehlerTrend);
+            const clusterTrend = baueFehlerClusterTrend(fehlerTrend);
+            const loopWirkung = folgeuebungWirkung(fehlerTrend, loopUebungen);
             return (
             <>
               {trend.length > 1 && (
@@ -848,6 +1065,34 @@ export function KlassenView({ onGenerateUebung }: Props) {
                       ))}
                     </LineChart>
                   </ResponsiveContainer>
+                  {clusterTrend.serien.length > 0 && (
+                    <div style={{ marginTop: '0.9rem', paddingTop: '0.75rem', borderTop: '1px solid var(--color-border)' }}>
+                      <div style={{ fontSize: '0.78rem', fontWeight: 600, marginBottom: '0.35rem' }}>
+                        Wiederkehrende strukturierte Fehler-Cluster
+                        <InfoDot text="Zusatzansicht nur für Regelmuster, die in mindestens zwei Aufgabenläufen vorkommen. Nicht strukturierte Alteinträge werden als Datenlücke gezeigt und nicht als null Fehler gewertet." />
+                      </div>
+                      <ResponsiveContainer width="100%" height={210}>
+                        <LineChart data={clusterTrend.punkte} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                          <XAxis dataKey="aufgabe" tick={{ fontSize: 11 }} />
+                          <YAxis tick={{ fontSize: 11 }} label={{ value: 'Clusterfehler pro Abgabe', angle: -90, position: 'insideLeft', style: { fontSize: 10 } }} />
+                          <Tooltip />
+                          <Legend />
+                          {clusterTrend.serien.map((serie, index) => (
+                            <Line
+                              key={serie.id}
+                              type="monotone"
+                              dataKey={serie.id}
+                              name={serie.label}
+                              stroke={CLUSTER_TREND_FARBEN[index % CLUSTER_TREND_FARBEN.length]}
+                              strokeWidth={2}
+                              dot={{ r: 3 }}
+                            />
+                          ))}
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
                   {wirksamkeit.deltas.length > 0 && (
                     <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
                       {wirksamkeit.deltas.map((d) => {
@@ -873,6 +1118,68 @@ export function KlassenView({ onGenerateUebung }: Props) {
                   <p style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)', margin: '0.75rem 0 0' }}>
                     Zeigt die Entwicklung, keinen Beweis: ob deine Übungen die Ursache sind, lässt sich daraus nicht sicher ablesen.
                   </p>
+                </div>
+              )}
+
+              {loopWirkung.length > 0 && !loading && (
+                <div style={{ ...cardStyle, marginBottom: '1rem' }}>
+                  <h4 style={{ fontSize: '0.875rem', margin: '0 0 0.75rem' }}>
+                    <ExternalLink size={16} style={{ verticalAlign: -2, marginRight: 6 }} /> Folgeübungen (aus Korrekturen erzeugt)
+                    <InfoDot text="Vergleicht den Korrekturlauf vor der Übung mit dem ersten danach (Fehler pro Abgabe). Strukturierte Regelmuster erscheinen zusätzlich, wenn beide Läufe Cluster-Daten enthalten. Läufe am selben Tag bleiben bewusst unberücksichtigt." />
+                  </h4>
+                  {loopWirkung.map((l) => (
+                    <div key={l.id} style={{ padding: '0.5rem 0', borderBottom: '1px solid var(--color-border)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                        <span style={{ fontSize: '0.8125rem', fontWeight: 600 }}>{l.titel}</span>
+                        {onOpenUnterlage && (
+                          <button
+                            type="button"
+                            aria-label={`Übung „${l.titel}" im Unterricht öffnen`}
+                            onClick={() => onOpenUnterlage(l.id)}
+                            style={{ background: 'none', border: 'none', padding: '0.125rem', cursor: 'pointer', color: 'var(--color-accent)', display: 'inline-flex' }}
+                            title="Übung im Unterricht öffnen"
+                          >
+                            <ExternalLink size={14} />
+                          </button>
+                        )}
+                      </div>
+                      <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)', marginBottom: '0.25rem' }}>
+                        Übung erstellt {l.erstelltAm || '—'}
+                        {l.vor ? ` · davor: ${l.vor.aufgabe}` : ' · keine Schularbeit davor'}
+                        {l.nach ? ` · danach: ${l.nach.aufgabe}` : ' · noch keine Schularbeit danach'}
+                      </div>
+                      {l.deltas.length > 0 && (
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          {l.deltas.map((d) => {
+                            const besser = d.delta < 0;
+                            const gleich = d.delta === 0;
+                            const farbe = gleich ? 'var(--color-text-secondary)' : besser ? 'var(--color-success, #27ae60)' : 'var(--color-danger, #c0392b)';
+                            return (
+                              <span key={d.typ} style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', padding: '0.15rem 0.5rem', fontSize: '0.75rem', color: farbe }}>
+                                {HEATMAP_LABELS[d.typ] ?? d.typ}: {d.vor.toFixed(1)} → {d.nach.toFixed(1)}
+                                {!gleich && (d.delta < 0 ? ' ↓' : ' ↑')}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {l.deltas.length === 0 && l.clusterDeltas.length === 0 && (
+                        <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+                          {l.vor && l.nach ? 'Keine vergleichbaren Fehlerkategorien.' : 'Vergleich möglich, sobald danach eine Schularbeit korrigiert wurde.'}
+                        </div>
+                      )}
+                      {l.clusterDeltas.length > 0 && (
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.35rem' }}>
+                          {l.clusterDeltas.map((delta) => (
+                            <span key={delta.clusterId} style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', padding: '0.15rem 0.5rem', fontSize: '0.72rem', color: delta.delta < 0 ? 'var(--color-success, #27ae60)' : delta.delta > 0 ? 'var(--color-danger, #c0392b)' : 'var(--color-text-secondary)' }}>
+                              {delta.label}: {delta.vor.toFixed(1)} → {delta.nach.toFixed(1)}
+                              {delta.delta < 0 ? ' ↓' : delta.delta > 0 ? ' ↑' : ''}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
 
@@ -916,6 +1223,19 @@ export function KlassenView({ onGenerateUebung }: Props) {
                       <div style={{ fontSize: '1.125rem' }}>{kalibrierung.nMitFeedback} / {kalibrierung.nGesamt}</div>
                     </div>
                   </div>
+                  {kalibrierung.nachTextsorte && kalibrierung.nachTextsorte.length > 0 && (
+                    <div style={{ marginTop: '0.75rem', borderTop: '1px solid var(--color-border)', paddingTop: '0.5rem' }}>
+                      {kalibrierung.nachTextsorte.map((t) => (
+                        <div key={t.textsorte} style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem', fontSize: '0.75rem', padding: '0.15rem 0' }}>
+                          <span>{t.textsorte} <span style={{ color: 'var(--color-text-secondary)' }}>({t.paare})</span></span>
+                          <span style={{ color: 'var(--color-text-secondary)' }} title="Mittlere Abweichung KI-Note vs. Lehrernote">
+                            {t.mittlereAbweichung !== null ? `± ${t.mittlereAbweichung.toFixed(2)} Noten` : '—'}
+                            {t.tendenz === 'app strenger' ? ' · KI strenger' : t.tendenz === 'app milder' ? ' · KI milder' : ''}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 

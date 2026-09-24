@@ -80,15 +80,15 @@ export function BugReportModal({ open, onClose }: Props) {
               <h2 id="bug-report-title" style={{ fontSize: '1rem', color: 'var(--color-text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <CheckCircle size={18} style={{ color: 'var(--color-success, #16a34a)' }} /> Fehlermeldung gesendet
               </h2>
-              <button className="btn-secondary" onClick={handleClose} aria-label="Schliessen" style={{ padding: '0.25rem 0.4rem', display: 'inline-flex' }}>
+              <button className="btn-secondary" onClick={handleClose} aria-label="Schließen" style={{ padding: '0.25rem 0.4rem', display: 'inline-flex' }}>
                 <X size={16} />
               </button>
             </div>
             <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>
-              Vielen Dank! Die Fehlermeldung wurde an uns weitergeleitet. Bei Rueckfragen melden wir uns per E-Mail.
+              Vielen Dank! Die Fehlermeldung wurde an uns weitergeleitet. Bei Rückfragen melden wir uns per E-Mail.
             </p>
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button className="btn-primary" onClick={handleClose}>Schliessen</button>
+              <button className="btn-primary" onClick={handleClose}>Schließen</button>
             </div>
           </>
         ) : (
@@ -97,7 +97,7 @@ export function BugReportModal({ open, onClose }: Props) {
               <h2 id="bug-report-title" style={{ fontSize: '1rem', color: 'var(--color-text-primary)' }}>
                 Fehler melden
               </h2>
-              <button className="btn-secondary" onClick={handleClose} aria-label="Schliessen" style={{ padding: '0.25rem 0.4rem', display: 'inline-flex' }}>
+              <button className="btn-secondary" onClick={handleClose} aria-label="Schließen" style={{ padding: '0.25rem 0.4rem', display: 'inline-flex' }}>
                 <X size={16} />
               </button>
             </div>
@@ -139,7 +139,7 @@ export function BugReportModal({ open, onClose }: Props) {
 
             <label style={{ display: 'block', marginBottom: '1rem' }}>
               <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', display: 'block', marginBottom: '0.25rem' }}>
-                E-Mail fuer Rueckfragen (optional)
+                E-Mail für Rückfragen (optional)
               </span>
               <input
                 type="email"

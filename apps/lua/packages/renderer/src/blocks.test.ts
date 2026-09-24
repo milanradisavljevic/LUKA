@@ -474,6 +474,68 @@ describe('blocks — Sonderzeichen & Umlaute', () => {
   });
 });
 
+describe('blocks — Quellenanalyse', () => {
+  it('rendert Quelle, Aufträge und fachliche Belege getrennt', () => {
+    const block: Block = {
+      id: 'qa', typ: 'quellenanalyse', punkte: 12, quelleId: 'q1',
+      arbeitsanweisung: 'Analysiere die Quelle.',
+      config: { quelleId: 'q1', quellentyp: 'rede', auftraege: [{ nr: 1, operator: 'analysieren', frage: 'Welche Absicht wird sichtbar?', zeilen: 3 }] },
+      loesung: { antworten: [{ nr: 1, erwartung: 'Die Rede fordert Zustimmung.', belege: ['Zeile 2'] }] },
+    };
+    const studentText = flattenText(renderBlockChildren(block, ctx()));
+    const solutionText = flattenText(renderBlockChildren(block, ctx({ modus: 'loesung' })));
+    expect(studentText).toContain('Welche Absicht wird sichtbar?');
+    expect(solutionText).toContain('Die Rede fordert Zustimmung.');
+    expect(solutionText).toContain('Zeile 2');
+  });
+});
+
+describe('blocks — Timeline', () => {
+  it('rendert Ereignisse und zeigt die Reihenfolge nur in der Lösung', () => {
+    const block: Block = {
+      id: 'tl', typ: 'timeline', punkte: 8,
+      arbeitsanweisung: 'Ordne die Ereignisse.',
+      config: {
+        zeitraum: 'Industrialisierung',
+        ereignisse: [
+          { nr: 1, titel: 'Ereignis A', beschreibung: 'Beschreibung A' },
+          { nr: 2, titel: 'Ereignis B', beschreibung: 'Beschreibung B' },
+        ],
+      },
+      loesung: { reihenfolge: [2, 1], datierungen: [{ nr: 2, datum: '1848' }] },
+    };
+    const studentText = flattenText(renderBlockChildren(block, ctx()));
+    const solutionText = flattenText(renderBlockChildren(block, ctx({ modus: 'loesung' })));
+    expect(studentText).toContain('Ereignis A');
+    expect(studentText).toContain('Ereignis B');
+    expect(studentText).not.toContain('1848');
+    expect(solutionText).toContain('1848');
+    expect(solutionText.indexOf('Ereignis B')).toBeLessThan(solutionText.indexOf('Ereignis A'));
+  });
+});
+
+describe('blocks — Diagramm-/Datenanalyse', () => {
+  it('rendert Datenpunkte, Fragen und Belege getrennt', () => {
+    const block: Block = {
+      id: 'da', typ: 'diagrammanalyse', punkte: 10,
+      arbeitsanweisung: 'Werte aus.',
+      config: {
+        diagrammtyp: 'balken', titel: 'Nutzung', einheit: '%',
+        daten: [{ label: 'A', wert: '40' }, { label: 'B', wert: '60' }],
+        auftraege: [{ nr: 1, operator: 'auswerten', frage: 'Vergleiche A und B.', zeilen: 3 }],
+      },
+      loesung: { antworten: [{ nr: 1, erwartung: 'B liegt höher.', belege: ['B: 60 %'] }] },
+    };
+    const studentText = flattenText(renderBlockChildren(block, ctx()));
+    const solutionText = flattenText(renderBlockChildren(block, ctx({ modus: 'loesung' })));
+    expect(studentText).toContain('Nutzung');
+    expect(studentText).toContain('60');
+    expect(studentText).not.toContain('B liegt höher.');
+    expect(solutionText).toContain('B liegt höher.');
+    expect(solutionText).toContain('B: 60 %');
+  });
+});
+
 // ---------------------------------------------------------------------------
 // End-to-End-Smoke: ganzes DocumentV1 → Packer-Buffer > 0
 // ---------------------------------------------------------------------------

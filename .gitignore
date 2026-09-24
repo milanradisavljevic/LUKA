@@ -14,6 +14,7 @@ apps/lua/src-tauri/target/
 venv/
 __pycache__/
 *.py[cod]
+*.egg-info/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
@@ -28,7 +29,12 @@ __pycache__/
 *.db
 apps/natascha/output/
 apps/natascha/input/
-apps/natascha/benchmarks/
+apps/lua/src-tauri/noten_*.csv
+# Benchmark-Code ist versioniert; Fälle und Auswertungen bleiben immer lokal.
+apps/natascha/benchmarks/*
+!apps/natascha/benchmarks/README.md
+!apps/natascha/benchmarks/run_benchmark.py
+!apps/natascha/benchmarks/evaluiere.py
 apps/natascha/abgegebene Arbeiten/
 apps/natascha/Screenshots/
 
@@ -53,7 +59,10 @@ docs/*
 !docs/STATUS-offene-themen-2026-09.md
 !docs/TESTFEEDBACK-korrektur-ux.md
 !docs/TESTDURCHFUEHRUNG-korrektur-ux.md
-PLAN-korrekturmodul.md
+PLAN-*.md
+# Lokale Chat- und Sitzungsprotokolle koennen personenbezogene Inhalte enthalten.
+apps/natascha/Chat mit Claude*
+/session-ses_*.md
 
 # --- Versehentlich angelegte Leerdateien ---
 docs/Textdokument (neu).txt
@@ -69,3 +78,9 @@ infrastructure/feedback-worker/.wrangler/
 # Lokale PyInstaller-Zwischenergebnisse
 apps/natascha/build/
 apps/natascha/*.spec
+
+# Lokale Agenten-Konfiguration und Review-Ausgaben sind nicht Teil des Produkts.
+/.claude/
+/apps/lua/.claude/
+/.zcodeignore
+/z.ai feedback

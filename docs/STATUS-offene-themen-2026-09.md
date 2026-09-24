@@ -1,7 +1,7 @@
 # Offene Themen — Status & Priorisierung
 
-**Stand:** 2026-09-16
-**Letzter Release:** v1.3.5 (Tag gepusht, GitHub-Actions-Workflow wurde getriggert; Installer-Build status unbekannt)
+**Stand:** 2026-09-24
+**Voriger Release:** v1.3.5. **Aktueller lokaler Build-Kandidat:** v1.5.1; Installer-Abnahme steht noch aus.
 
 ---
 
@@ -38,9 +38,9 @@
 
 | Item | Status | Commit |
 |------|--------|--------|
-| Testplan v1.3.5 | ✅ Aktualisiert (Restore-Szenarien + Korrektur-Stepper) | `6449acc` |
+| Testplan v1.5.1 | ✅ Aktualisiert (Restore-Szenarien + Korrektur-Stepper) | lokaler Build-Kandidat |
 | Deutsch-Testdaten | ✅ 3 DOCX (synthetisch, TEST-7a) | `seed_testdaten.py` |
-| Englisch-Testdaten | ✅ 1 eigenständiger DOCX (Emma_Schmidt, Climate Change Essay) | manuell erstellt |
+| Englisch-Testdaten | ✅ 1 eigenständiger DOCX (synthetischer Climate-Change-Essay) | `seed_englisch_test.py` |
 | Feedback-Template | ✅ Strukturiert (2 Fälle + Zusammenfassung) | `6232ff1` |
 | Durchführungsanleitung | ✅ Schritt-für-Schritt + Beobachtungsliste | `6232ff1` |
 
@@ -52,8 +52,8 @@
 
 | # | Thema | Aufwand | Status |
 |---|-------|---------|--------|
-| 1 | **Installer-Smoke-Test** (synthetische Daten) | 30-45 Min | ⏳ Ausstehend — Installer-Build muss heruntergeladen und geprüft werden |
-| 2 | **Korrektur-UX Test mit Lehrkraft** (Deutsch + Englisch) | 30-45 Min | ⏳ Ausstehend — Testdaten und Feedback-Template bereit |
+| 1 | **Installer-Smoke-Test** (synthetische Daten) | 30-45 Min | ⚠️ Teilweise — Korrektur-Installer am 2026-09-24 gebaut und isoliert geprüft (Sidecar-Prüfsumme + Flags, ohne Installation); reguläre Installation/Start + übrige Testplan-Kapitel stehen aus |
+| 2 | **Korrektur-UX Test mit Lehrkraft** (Deutsch + Englisch) | 30-45 Min | ⏳ Ausstehend — Testdaten und Feedback-Template bereit; Live-Benchmark erst nach Ende des Rate-Limits |
 | 3 | **Murals-Sichtprüfung** | 15 Min | ⏳ Ausstehend — im Installer-Test mit erledigen |
 
 ### 🟡 Mittel (nach Abnahme)

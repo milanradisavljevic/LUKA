@@ -119,7 +119,7 @@ Einbauen in:
 
 Statt:
 ```
---- Kommentar -Krass, Digga!...- Max Muster.docx (464 Wörter) ---
+--- Kommentar -Krass, Digga!...- Beispielperson B.docx (464 Wörter) ---
 ? Fach Deutsch
 ? Schulstufe Unterstufe
 ```

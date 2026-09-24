@@ -8,7 +8,12 @@ CREATE TABLE IF NOT EXISTS generated_materials (
     updated_at TEXT NOT NULL,
     is_favorite INTEGER NOT NULL DEFAULT 0,
     is_deleted INTEGER NOT NULL DEFAULT 0,
-    deleted_at TEXT
+    deleted_at TEXT,
+    -- Closed-Loop-Herkunft (L1): aus welcher NATASCHA-Korrektur diese Unterlage
+    -- abgeleitet wurde. NULL = manuell erzeugt. Gefüllt aus snapshot.meta.loopQuelle.
+    loop_klasse TEXT,
+    loop_aufgabe TEXT,
+    loop_datum TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_materials_klasse ON generated_materials(klasse);
@@ -73,6 +78,7 @@ CREATE TABLE IF NOT EXISTS lua_klassen (
     id TEXT,
     name TEXT PRIMARY KEY,
     fach TEXT,
+    land TEXT,
     stufe TEXT,
     schulstufe INTEGER,
     schuljahr TEXT,

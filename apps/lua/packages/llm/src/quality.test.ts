@@ -325,6 +325,23 @@ describe('runQualityChecks', () => {
     expect(calls).toBe(0);
     expect(issues.filter((i) => i.message.includes('Kompetenz-Judge:'))).toHaveLength(0);
   });
+
+  it('laesst die Generierung bei Ausfall der Gegenpruefung mit Warnung weiterlaufen', async () => {
+    const doc: DocumentV1 = {
+      schemaVersion: '0.1.0', meta: mockMeta, quelltexte: mockQuelltexte,
+      bloecke: [{
+        id: 'b1', typ: 'fehlerkorrektur', punkte: 4,
+        arbeitsanweisung: 'Finde und korrigiere die Fehler.',
+        config: { saetze: [{ nr: 1, satz: 'Das ist ein test.', anzahlFehler: 1 }] },
+        loesung: { korrekturen: [{ nr: 1, korrigierterSatz: 'Das ist ein Test.', fehler: [] }] },
+      }],
+    };
+    const complete = async () => { throw new Error('Anbieter nicht erreichbar'); };
+    const { issues } = await runQualityChecks(
+      doc, mockQuelltexte, { modus: 'text' }, { provider: 'mistral', enabled: true }, complete,
+    );
+    expect(issues.some((issue) => issue.severity === 'warning' && issue.message.includes('ohne Selbstkontrolle'))).toBe(true);
+  });
 });
 
 describe('checkFehlerkorrekturAnzahl', () => {

@@ -338,4 +338,67 @@ describe('normalizeDocument', () => {
       expect(result.bloecke[0].config.bewertung).toEqual(['Ziel erreichen']);
     });
   });
+
+  describe('quellenanalyse', () => {
+    it('normalisiert Operatoren und alternative Fragen-Felder', () => {
+      const result = normalizeDocument({
+        schemaVersion: '0.1.0',
+        meta: { stufe: 'oberstufe', fach: 'geschichte', thema: 'Test', datum: '2026-01-01', klasse: '7A', notizen: '' },
+        quelltexte: [],
+        bloecke: [{
+          typ: 'quellenanalyse', id: 'b1', punkte: 8,
+          arbeitsanweisung: 'Analysiere.', quelleId: 'q1',
+          config: { quelleId: 'q1', fragen: [{ nr: 1, operator: 'beurteile', aufgabe: 'Wie ist die Position zu bewerten?', zeilen: '6' }] },
+          loesung: { antworten: [{ nr: 1, antwort: 'Die Position ist ...', belege: ['Zeile 2', 'Zeile 5'] }] },
+        }],
+      }) as any;
+      expect(result.bloecke[0].config.auftraege[0].operator).toBe('beurteilen');
+      expect(result.bloecke[0].config.auftraege[0].frage).toContain('Position');
+      expect(result.bloecke[0].loesung.antworten[0].erwartung).toContain('Position');
+    });
+  });
+
+  describe('timeline', () => {
+    it('normalisiert alternative Ereignis- und Reihenfolge-Felder', () => {
+      const result = normalizeDocument({
+        schemaVersion: '0.1.0',
+        meta: { stufe: 'oberstufe', fach: 'geschichte', thema: 'Test', datum: '2026-01-01', klasse: '7A', notizen: '' },
+        quelltexte: [],
+        bloecke: [{
+          typ: 'timeline', id: 'b1', punkte: 8,
+          arbeitsanweisung: 'Ordne.',
+          config: { events: [
+            { nr: 1, title: 'A', description: 'Erstes Ereignis' },
+            { nr: 2, title: 'B', description: 'Zweites Ereignis' },
+          ] },
+          loesung: { order: ['2', '1'], datierungen: [{ nr: 2, date: '1848' }] },
+        }],
+      }) as any;
+      expect(result.bloecke[0].config.ereignisse[1].titel).toBe('B');
+      expect(result.bloecke[0].loesung.reihenfolge).toEqual([2, 1]);
+      expect(result.bloecke[0].loesung.datierungen[0].datum).toBe('1848');
+    });
+  });
+
+  describe('diagrammanalyse', () => {
+    it('normalisiert alternative Daten- und Aufgabenfelder', () => {
+      const result = normalizeDocument({
+        schemaVersion: '0.1.0',
+        meta: { stufe: 'oberstufe', fach: 'geographie', thema: 'Test', datum: '2026-01-01', klasse: '7A', notizen: '' },
+        quelltexte: [],
+        bloecke: [{
+          typ: 'diagrammanalyse', id: 'b1', punkte: 10, arbeitsanweisung: 'Werte aus.',
+          config: {
+            diagrammtyp: 'kreis', titel: 'Anteile',
+            data: [{ kategorie: 'A', value: 40 }, { kategorie: 'B', value: 60 }],
+            fragen: [{ nr: 1, operator: 'erkläre', aufgabe: 'Was fällt auf?', zeilen: '4' }],
+          },
+          loesung: { antworten: [{ nr: 1, antwort: 'B ist größer.', belege: ['B: 60'] }] },
+        }],
+      }) as any;
+      expect(result.bloecke[0].config.daten[0]).toMatchObject({ label: 'A', wert: '40' });
+      expect(result.bloecke[0].config.auftraege[0].operator).toBe('erklaeren');
+      expect(result.bloecke[0].loesung.antworten[0].erwartung).toContain('B ist');
+    });
+  });
 });

@@ -7,6 +7,408 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## Unveröffentlicht
 
+### Windows-Abnahme des Korrektur-Installers (2026-09-24)
+- Der Installer-Testplan verlangt jetzt einen Sidecar-Build aus dem aktuellen
+  NATASCHA-Quellstand und die Tauri-Konfiguration mit `externalBin`; ein
+  Generator-only-Installer oder ein veralteter Sidecar gilt nicht als
+  Korrektur-Abnahme.
+- Der Windows-Sidecar wurde aus dem aktuellen Quellstand neu gebaut. Der
+  CLI-Aufruf bestätigt die benötigten Flags `--einsatz-id` und `--material-id`.
+- Der Korrektur-Installer für v1.5.1 ist gebaut und isoliert geprüft: Der
+  Paketlauf (Vite, Rust, NSIS) läuft nach dem früheren Zugriffsfehler wieder
+  durch; das gebündelte Sidecar stimmt per Prüfsumme mit dem frischen Build
+  überein und startet mit beiden Flags. Eine reguläre Installation wurde
+  nicht durchgeführt; die vollständige Abnahme (Installation, Start,
+  Korrektur-Dialog) sowie die Anmeldung im Installer-Testplan stehen weiter
+  aus. Lokal endet der Build nach dem Bundeln mit Exit-1, weil nur die
+  CI-Umgebung den privaten Updateschlüssel führt.
+
+### Datenschutz: lokale Schülerdaten aus dem Veröffentlichungsumfang entfernen
+- Der lokale Mistral-Arbeitsplan wird nicht mehr von Git verfolgt und bleibt
+  ausschließlich als lokale Arbeitsdatei erhalten.
+- Historische Entwicklerbeispiele und Test-Fixtures verwenden nur noch
+  eindeutige technische Platzhalter statt personenähnlicher Namen.
+- Die Ignore-Regeln schützen künftig alle `PLAN-*.md`-Arbeitspläne sowie
+  lokale Chat- und Sitzungsprotokolle vor einem versehentlichen Commit.
+- Lokale Agenten-Konfigurationen und Review-Ausgaben sind ebenfalls dauerhaft
+  vom Veröffentlichungsumfang ausgeschlossen.
+- Synthetische Seed-Dokumente und Abnahmeanleitungen verwenden nur noch
+  neutrale Benchmark-IDs statt personenähnlicher Testnamen.
+- Bereits versionierte lokale Chat-Transkripte und ein Sitzungsexport werden
+  aus dem Veröffentlichungsumfang entfernt und bleiben nur lokal erhalten.
+
+### Korrekturaufruf: erster Analyseversuch bei deaktivierten Wiederholungen
+- Ein Wert von `0` bei den Wiederholungen unterdrückt künftig nur weitere
+  Versuche; die Korrektur führt trotzdem genau einen ersten Analyseaufruf aus.
+  Das ermöglicht strikt begrenzte, nachvollziehbare Qualitäts-Benchmarks.
+- Der Benchmark erkennt die sichere Provider-Meldung `rate_limited` nun
+  eindeutig als Rate-Limit statt sie irreführend als allgemeinen API-Fehler
+  auszugeben.
+
+### Terminologie: Fach Deutsch und deutsches Schulsystem eindeutig benennen
+- Die sichtbare Korrektur-Terminologie trennt das Fach Deutsch vom Land
+  Deutschland. Der interne Prompt bezeichnet die Notenskala 1–6 nun als
+  „deutsches Schulsystem“ statt als vermeintliches Fach.
+
+### Korrektur-Grenzen: Mathematik und performative Fächer nicht überversprechen
+- Hilfe und Anleitung stellen klar: Für Mathematik sowie performative Fächer
+  erstellt LUKA Unterlagen, bietet aber keine vollwertige automatische
+  Fachkorrektur an.
+- Die Fächerhilfe verspricht nur die tatsächlich auswählbaren textbasierten
+  Fächer statt pauschal „alle“ AHS-Fächer.
+
+### Korrekturqualität: deutschen Benchmark um synthetische Referenzfälle ergänzen
+- Das lokale DE-Manifest gibt sechs neutrale, synthetische Fälle aus Unter- und Oberstufe frei; vorhandene, nicht referenzierte Dateien bleiben unberührt.
+- Erwartete Sprachbefunde liegen getrennt vom Analyse-Manifest und werden nicht an den Modellaufruf übergeben.
+- Die lokale Auswertung kann erwartete Befunde mit Modellvorschlägen abgleichen. Nicht zugeordnete Vorschläge bleiben bewusst eine Lehrkraftentscheidung und lösen kein automatisches Freigabe-Gate aus.
+
+### Closed Loop: Häufigkeit echter Fehlermuster bis zur Übung erhalten
+- Die Häufigkeit aus NATASCHA-Exports bleibt in der editierbaren Fehlerliste und den Metadaten der Folgeübung erhalten.
+- Das Modell nutzt sie nur zur Priorisierung, nicht als Zahl betroffener Schüler oder als Aufforderung, Fehler zu vervielfachen.
+- Die SQLite-Auswertung zählt gleiche Zitate mit abweichender Korrektur oder Cluster-Zuordnung getrennt.
+
+### Differenzierung: sehr kleine Wortumfänge bei schweren Schreibvarianten erhöhen
+- Auch minimale Wortbereiche steigen bei einer schweren Schreibvariante tatsächlich; Rundung darf die Differenzierung nicht wirkungslos machen.
+
+### Feedback-DOCX: Seitenumbrüche bei Fehlerprotokoll und Notenhinweis verbessern (2026-09-24)
+- Fehlerprotokoll-Kopfzeilen werden bei Seitenumbrüchen wiederholt und bleiben
+  mit den ersten Fehlerzeilen zusammen.
+- Der allgemeine Notenhinweis behauptet nicht mehr pauschal eine Berechnung nach
+  SRDP-Standard. Zusammen mit engerem Absatzabstand verhindert das eine fast
+  leere Schlussseite.
+
+### Differenzierung: Niveaugruppen nach Notenrichtung des Schulsystems ordnen (2026-09-24)
+- Schweizer Klassen ordnen bestätigte Noten mit 6 als stärkster und 1 als
+  schwächster Note ein; Österreich und Deutschland behalten ihre bisherige Richtung.
+- Das explizite Land der Klasse hat Vorrang vor dem Lehrkraftprofil. Ohne
+  bekannte Landeseinstellung bleibt das bisherige Verhalten erhalten.
+- Die Klassenansicht und Anleitung erklären die Schweizer Notenrichtung.
+
+### Fehlerbehebung: Tabellen in der Leicht-Variante mit korrektem Lösungsschlüssel behandeln (2026-09-24)
+- Das leichtere Tabellenblatt liest Antworten jetzt im Schemaformat „Zeile,Spalte“.
+  Ein Tabellen-Lückentext mit vorhandenen Lösungen verursacht dadurch keinen Laufzeitfehler mehr.
+- Der Regressionstest nutzt die reale Record-Struktur des Blockschemas statt eines Array-Fixtures.
+
+### Informatik: MC-Antwortschlüssel vollständig und eindeutig validieren (2026-09-24)
+- Vor dem Export prüft LUKA pro Informatik-MC-Frage genau einen eindeutigen
+  Schlüssel und weist fehlende, unbekannte oder doppelte Zuordnungen zurück.
+- Die lokale Selbstkontrolle und der Tafelmodus bleiben unabhängig von einem KI-Judge.
+
+### Closed Loop: Fach, Land und konkrete Schulstufe durch die Korrektur-Brücke erhalten (2026-09-24)
+- NATASCHA-Exporte übertragen Fach, Land/Schulsystem und – sofern vorhanden –
+  die konkrete Klassenstufe bis in die Übungsvorbereitung.
+- Beim direkten Import werden Klassensystem und Stufe übernommen; ein später
+  geladener Lehrkraftprofil-Standard überschreibt das importierte Land nicht.
+- Ältere Exporte ohne konkrete Klassenstufe bleiben weiterhin importierbar und
+  übernehmen keine konkrete Stufe aus einem zuvor importierten Export.
+
+### Closed Loop: Schulsystem aus Klassenmetadaten übernehmen (2026-09-24)
+- Klassen können ein eigenes Land/Schulsystem speichern; bestehende Klassen
+  übernehmen weiterhin den Profilstandard, bis ein Land ausdrücklich gesetzt wird.
+- Fehlendes Fach oder Niveau bleibt unverändert offen und wird aus Aufgabe bzw.
+  Lehrkraftprofil übernommen; neue Klassen werden nicht still auf Deutsch/Oberstufe gesetzt.
+- Folgeübungen aus Klassen- und Schüleransicht verwenden nun das Klassensystem
+  statt pauschal das Lehrkraftprofil; ein später eintreffender Profilabruf überschreibt
+  dieses Klassen-Land nicht.
+- Alte Datenbanken erhalten die neue optionale Spalte automatisch; vorhandene
+  Klassen- und Korrekturdaten bleiben unverändert.
+
+### Korrekturqualität: lokaler A/B-Vergleich der Fehlerdichte-Regel (2026-09-24)
+- Der Benchmark kann die frühere Fehler-pro-Wörter-Regel ausdrücklich gegen
+  den neutralen Prompt auf demselben Fallmanifest ausführen. Im normalen
+  Korrekturpfad bleibt ausschließlich die neutrale Variante aktiv.
+- Lehrkraft-Prüfauszüge werden nur auf ausdrückliche Option lokal im
+  gitignorierten Benchmark-Ordner gespeichert; sie enthalten Fehlerzitate,
+  Korrekturen und Notenbegründung, aber keinen vollständigen Schülertext.
+- Der gepaarte Vergleich verlangt dasselbe Modell, dieselben Fälle und
+  identische Fallkonfigurationen. Promptvarianten zählen nicht als zwei
+  Wiederholungsläufe des Freigabe-Gates; der A/B-Bericht gibt keine automatische
+  Modellfreigabe.
+- Die Lehrkraft stuft ihren tatsächlichen Eingriff je A/B-Fall zusätzlich als
+  „keiner“, „einzelne Änderungen“ oder „wesentliche Überarbeitung“ ein; diese
+  Messung ist unabhängig von der allgemeinen Feedback-Nutzbarkeit.
+
+### Feedback-DOCX: Folgeübung nur nach belegtem Schülerexport als Beilage nennen (2026-09-24)
+- Ein Beilagenhinweis wird nur noch aus einer gespeicherten Material-ID und
+  einem vorhandenen, verknüpften Schüler-DOCX-Export erstellt.
+- Analyse-JSON kann weder Dateiname noch Beilagenstatus vortäuschen. Ohne
+  nachweisbare Datei verweist das Feedback stattdessen auf das Material in LUKA.
+- Tauri-Exportverläufe enthalten die gespeicherten Pfade; im Browser wird nur
+  der Downloadname protokolliert und deshalb nie als verifizierte Beilage gewertet.
+- In der Verlaufansicht werden unabhängig von der Plattform nur Dateinamen angezeigt.
+
+### Qualitätsprüfung: Rolle des Modell-Judges klarstellen (2026-09-24)
+- Die UI kennzeichnet die Prüfung ausdrücklich als Selbstkontrolle desselben
+  gewählten Modells, nicht als unabhängige Zweitprüfung.
+- Prüfergebnisse sind beratende Hinweise und blockieren die Erstellung nicht;
+  die Ergebnisanzeige spricht von selbstkontrollierten Aufgaben statt von
+  vermeintlich verifizierten Lösungen.
+
+### Differenzierung: schwere Variante auch in gemischten Arbeitsblättern anwenden (2026-09-24)
+- Geschlossene Aufgaben werden in einer schweren Variante nun auch dann
+  berücksichtigt, wenn offene Aufgaben zusätzlich neu erzeugt werden.
+- Lückentexte verlieren die Wortbank als Hilfestellung. Die Zahl der Lücken
+  wird nur anhand vorhandener, vollständig gelöster Marker angepasst.
+- Tabellenzellen werden nur dann zusätzlich ausgeblendet, wenn ihr Lösungstext
+  bereits im gespeicherten Antwortschlüssel vorhanden ist.
+- Schwer-Rerolls setzen Schwierigkeit und Kompetenzniveau gemeinsam auf
+  „schwer/erweitert“, damit Operatorengrenzen im Prompt nicht der Variante widersprechen.
+- Wenn ein Arbeitsblatt ausschließlich nicht sicher transformierbare geschlossene
+  Aufgabentypen enthält, wird keine unveränderte Datei als „schwer“ exportiert.
+
+### Differenzierung: Operatoren mit Kompetenzniveau abstimmen (2026-09-24)
+- Schwierigkeit und Kompetenzniveau erzeugen keine konkurrierenden
+  Operatorenvorgaben mehr. Die niedrigere Stufe begrenzt den Operator,
+  während das Kompetenzniveau zusätzlich Hilfen und Komplexität steuert.
+- Für diese Kombination gibt es Prompt-Regressionstests, unter anderem für
+  „schwer + Basis“ und „schwer + Erweitert“.
+
+### Closed Loop: Wirksamkeit nach strukturierten Fehler-Clustern aufschlüsseln (2026-09-24)
+- Der bisherige R/G/Z/A-Trend bleibt bestehen und erhält eine ergänzende
+  Cluster-Zeitreihe für Regelmuster, die in mindestens zwei Aufgabenläufen
+  vorkommen.
+- Die Folgeübungsansicht zeigt Cluster-Deltas zusätzlich zum groben
+  Kategorienvergleich. Läufe ohne Cluster-Metadaten werden als Datenlücke,
+  nicht als fehlerfreier Lauf behandelt.
+
+### Fehlerbehebung: Cluster-Migration vor Schema-Indizes (2026-09-24)
+- Bestehende Korrektur-Datenbanken ergänzen `cluster_id` und `regel_muster`,
+  bevor der Cluster-Index angelegt wird. Der Index liegt außerhalb des großen
+  Schema-Batches und wird erst nach erfolgreicher Migration erzeugt. Das
+  verhindert einen Öffnungsfehler, wenn eine ältere Datenbank diese Spalten
+  noch nicht enthält.
+
+### Niveaugruppen: Vorschau und manuelle Zuordnung (2026-09-24)
+- Die Klassenansicht teilt bestätigte Lehrkraftnoten pro ausgewählter Aufgabe
+  in zwei oder drei Gruppen ein und zeigt vor der Übung die konkrete Zuordnung.
+- Schüler/innen können vor der Generierung manuell einer anderen Gruppe oder
+  keiner Gruppe zugeordnet werden.
+- Namen und interne Schüler-IDs bleiben aus den Modellprompts heraus; das Modell
+  erhält nur Gruppenlabel und Schwierigkeitsstufe.
+
+### Korrektur-Benchmark: Freigabe an vollständige Qualitätsprüfung binden (2026-09-24)
+- Eine Freigabe für Mistral Medium 3.5 berücksichtigt jetzt alle vier
+  Lehrkraft-Kriterien: Fehlererkennung, Belegbarkeit der Zitate,
+  Notenplausibilität und Nutzbarkeit des Feedbacks.
+- Zwei Läufe zählen nur, wenn sie eigenständige Protokolle desselben Modells
+  mit derselben vollständigen Fallmenge sind. Fehlende Lehrkraftbewertungen
+  oder unvollständige Schlüssel verhindern die Freigabe.
+
+### Lokale digitale Selbstkontrolle für geschlossene Aufgaben (2026-09-24)
+- Geschlossene Aufgaben mit vollständigem Antwortschlüssel können in Schritt 4
+  direkt in LUKA digital beantwortet und lokal geprüft werden.
+- Unterstützt werden unter anderem Multiple Choice, Lückentext, Zuordnung,
+  Kategorisierung, Tabellenlücken, Wortsortierung, Vokabeln und
+  Fehlerkorrektur.
+- Es gibt keinen KI-Aufruf und keinen Upload. Offene, materialgebundene oder
+  unvollständige Aufgaben werden ausdrücklich nicht automatisch bewertet.
+- Automatische Prüfung setzt jetzt für jede Teilaufgabe einen vollständigen,
+  zur Aufgabenstruktur passenden Lösungsschlüssel voraus; fehlende oder
+  widersprüchliche Einträge deaktivieren die Bewertung des ganzen Blocks.
+- Bei einem Aufgabenwechsel oder neu erzeugten Aufgabenblock werden alte
+  Eingaben und Prüfergebnisse zurückgesetzt.
+
+### Weitere Sprachfächer: Textsortenfamilien und Grundraster (2026-09-24)
+- Französisch, Spanisch und Italienisch verwenden im Korrektur-Dialog jetzt
+  eigene kuratierte Textsortenfamilien statt der deutschen Auswahl.
+- Für Französisch, Spanisch, Italienisch und Latein gibt es fachbezogene
+  Grundraster. Sie sind ausdrücklich als Arbeitsraster, nicht als amtliche
+  Vollständigkeits- oder Prüfungsskala gekennzeichnet.
+- Die Korrektur-Prompts verwenden für diese Fächer eigene Checklisten; Latein
+  wird als text- und übersetzungsbezogenes Sprachfach ohne CEFR-Übertragung
+  behandelt. Das Feedback bleibt auf Deutsch, Zitate und Korrekturen bleiben
+  in der jeweiligen Zielsprache.
+
+### Sachfach-Block „Timeline / Datierung“ (2026-09-24)
+- Geschichte und andere Sachfächer können historische Ereignisse jetzt als
+  eigene Timeline-Aufgabe erzeugen und chronologisch einordnen lassen.
+- Ereigniskarten, Datierungen und die korrekte Reihenfolge werden getrennt
+  modelliert; Vorschau, Lösungs-DOCX, Export-Fallback und Korrekturraster sind
+  angebunden.
+- Die Prompt-Regeln verlangen eine belegte, nicht vorweggenommene Chronologie
+  und verbieten erfundene historische Datierungen.
+
+### Sachfach-Block „Diagramm-/Datenanalyse“ (2026-09-24)
+- Datenpunkte, Darstellungstyp und materialgebundene Analyseaufträge werden
+  getrennt erfasst; Vorschau und DOCX-Export zeigen die Daten als prüfbare
+  Tabelle.
+- Lösungen müssen konkrete Datenbelege nennen. Die Prompt-Regeln verbieten
+  erfundene Zahlen, Einheiten und nicht belegte Ursachen.
+
+### Closed Loop: Kontext der Schüler-Folgeübung vollständig übernehmen (2026-09-24)
+- Folgeübungen aus der Schüleransicht übernehmen jetzt auch Land und
+  Textsorte der letzten Abgabe. Bei älteren Klassen ohne LUA-Metadaten werden
+  Fach, Stufe und Schulstufe aus der letzten Abgabe abgeleitet.
+- Die Klassenansicht reicht das Profil-Land ebenfalls an den Generator weiter;
+  die bisherigen Fallbacks für alte Daten bleiben erhalten.
+
+### Fehlerbehebung: bestehende Korrektur-Datenbanken öffnen (2026-09-24)
+- Bestehende Datenbanken ohne die neuen Fehler-Cluster-Spalten lassen sich
+  wieder öffnen. Die Spaltenmigration läuft jetzt vor dem zugehörigen Index;
+  vorhandene Korrekturen und die technischen Felder `land`/`fach` bleiben
+  unverändert.
+
+### Sachfach-Block „Quellenanalyse“ (2026-09-24)
+- Für Geschichte und andere Sachfächer steht jetzt ein eigener Blocktyp
+  „Quellenanalyse“ zur Verfügung: Operator, textgebundener Auftrag,
+  Schreibraum sowie fachliche Erwartung und Quellenbeleg werden getrennt
+  geführt.
+- Der Block ist durchgängig angebunden: Baukasten, LLM-Prompt und robuste
+  Normalisierung, React-Vorschau, Schüler-/Lösungs-DOCX, GIFT-Fallback und
+  Korrekturraster.
+- Die Lösung verlangt mindestens einen konkreten Quellenbeleg pro Auftrag;
+  dadurch wird Quellenarbeit nicht mehr als allgemeine Schreibaufgabe behandelt.
+
+### Revision: Closed-Loop-Kontext und Fehler-Cluster (2026-09-24)
+- Sachfach-Korrekturen können zusätzlich ein getrenntes fachliches
+  Bewertungsobjekt für Operator-Erfüllung, Inhaltsgenauigkeit, Fachbegriffe
+  und Erwartungshorizont-Bezug führen. Sprachfehler bleiben davon getrennt
+  und ergänzend; die App-Notenberechnung verwendet bei vorhandenem
+  Sachfach-Objekt ausschließlich diese fachlichen Kriterien.
+- Der Erwartungshorizont wird je Korrektur-Revision als unveränderlicher
+  Inhalts-Schnappschuss mit stabiler Fassung-ID dokumentiert.
+- Folgeübungen aus Klassen- und Schüleransichten übernehmen jetzt vorhandene
+  Fach-, Stufen- und Schulstufen-Metadaten; bei Alt-Daten ohne Kontext greift
+  weiterhin der Profilwert im Generator.
+- Fehlerbeispiele können neben R/G/Z/A optional ein stabiles Regelmuster und
+  einen Fehler-Cluster tragen. Bridge-Exporte, SQLite-Migrationen und
+  Schüler-/Klassenansichten bleiben mit älteren Daten kompatibel.
+- Die Prüf-Hilfe ist sichtbarer als „Selbstkontrolle des gewählten Modells"
+  bezeichnet. Sie verwendet weiterhin genau das für die Generierung gewählte
+  Modell und bleibt beratend.
+- Klassen mit mindestens sechs bestätigten Lehrernoten können eine Vorschau
+  für deterministische Förder-/Vertiefungsgruppen öffnen; ab zwölf Lernenden
+  werden drei, darunter zwei Gruppen angeboten. Die Auswahl bleibt vor der
+  Generierung sichtbar und bearbeitbar. Die Gruppe setzt zusätzlich das
+  Kompetenzniveau (Basis/Standard/Erweitert), damit Operatoren und Scaffolding
+  im Prompt konsistent mitgesteuert werden.
+- Eine schwerere Fassung wird für sicher transformierbare geschlossene und
+  offene Aufgaben ohne neue Antwortschlüssel lokal erzeugt; offene Blöcke mit
+  echtem Inhaltsbedarf bleiben beim bestehenden Modell-Reroll.
+
+### Englisch als Korrektur-Fach
+- Im Korrektur-Dialog erscheinen für Englischklassen passende Textsorten
+  (Unterstufe z. B. Email, Blog, Story; Oberstufe SRDP-orientiert: Article,
+  Blog, Email, Essay, Letter, Proposal, Report, Review) — kuratiert, kein
+  amtlicher Anspruch.
+- Die Raster-Liste zeigt nur das passende Fach: Eine Englisch-Klasse sieht
+  keine Deutsch-Raster (und umgekehrt); fachlose Raster bleiben in beiden
+  Fächern verfügbar, eine bereits zugewiesene Rubrik bleibt immer sichtbar.
+- Englische Analysen speichern das Fach in der korrekten Schreibweise
+  („Englisch") und rechnen die Note aus den Rubrik-Kriterien — der zweite
+  LLM-Aufruf für das deutsche SRDP-Raster läuft bei Englisch nicht.
+
+### Nächste Schritte im Feedback-DOCX
+- Das Feedback endet nicht mehr bei der Fehlerliste: Enthält die Arbeit
+  Fehler, folgt nach dem Fehlerprotokoll die Sektion „Nächste Schritte —
+  woran du arbeiten kannst" mit den zwei bis drei häufigsten Fehlertypen
+  und je einem konkreten Übungstipp (Rechtschreib-Kartei, Kommas beim
+  lauten Lesen, Satzkerne/Zeitformen, Synonyme statt Füllwörter).
+- Die Tipps sind fest im Programm hinterlegt (keine KI), fach- und
+  textsortenneutral; verworfene Fehler fließen nicht ein.
+- Ein Feedback-Datensatz kann jetzt ausdrücklich angeben, ob eine Folgeübung
+  tatsächlich beiliegt oder in LUKA geöffnet werden kann. Ohne diesen Status
+  behauptet das DOCX keine Anlage; lokale Dateipfade werden nicht ausgegeben.
+- Beim Erzeugen aus der Korrektur prüft NATASCHA zusätzlich die gespeicherten
+  Closed-Loop-Materialien für Klasse und Aufgabe und setzt nur bei einem Treffer
+  den Hinweis „in LUKA verfügbar“.
+- Informatik-Multiple-Choice-Aufgaben werden vor dem DOCX-Export lokal gegen
+  einen eindeutigen Antwortschlüssel geprüft; die geschlossene Auswertung hängt
+  dadurch nicht vom optionalen Modell-Judge ab.
+
+### Korrektur-Qualität: neue Prüf-Hilfen — für Österreich und das deutsche Schulsystem
+Diese Verbesserungen gelten unabhängig vom Profil-Land; Österreich bleibt wie
+gewohnt Standard (Schularbeit, SRDP, Skala 1–5):
+- Neue Warnung, wenn Fehlerliste und Sprachrichtigkeits-Note stark
+  widersprechen (z. B. viele Fehler, aber „gut" bewertet) — die KI schlägt
+  vor, du entscheidest; eine Note ändert sich dadurch nie.
+- Die Fehlerprüfung verwendet keinen festen Fehler-pro-Wörter-Anker mehr;
+  auch ein fehlerfreier Text ist ausdrücklich zulässig. Jeder Befund muss
+  weiterhin im Text belegt sein.
+- Die Kalibrierung (KI-Note vs. deine Note) zeigt jetzt auch, wie genau die KI
+  je Textsorte liegt — z. B. „Erörterung: ± 1,00 Noten".
+- Über der Fehlerliste gibt es den Umschalter „Nur unsichere", der gezielt die
+  gelben und roten Vorschläge (mittlere/niedrige Vertrauensstufe) zeigt.
+- Vor einem Korrektur-Stapel erscheint eine Mengenschätzung (Tokens je Stapel),
+  damit Ratenlimits besser eingeplant werden können.
+
+### Deutsch-Korrektur im deutschen Schulsystem: Skala 1–6 und Klassenarbeit-Terminologie (neu)
+Nur wenn im Profil **Deutschland** eingestellt ist — Österreich nutzt weiter
+die gewohnte SRDP-Skala 1–5:
+- Eine Arbeit im Fach **Deutsch** wird als Klassenarbeit korrigiert; die
+  Notenempfehlung nutzt die deutsche Notenskala 1–6 („sehr gut" bis
+  „ungenügend"); die eigene
+  Lehrernote kann entsprechend 1–6 sein.
+- Für die Schweiz zeigt der Korrektur-Dialog eine klare Meldung, dass die
+  Schweizer Skala noch folgt — es wird nicht still eine falsche Skala verwendet.
+- österreichische Sprachbesonderheiten (z. B. „Jänner", „heuer") werden bei
+  Korrekturen im deutschen Schulsystem nicht mehr als Fehler gezählt, höchstens
+  als Hinweis.
+
+### Fehlerbehebung — Korrektur-Migration für Bestandsdatenbanken
+- Bei Datenbanken, die vor der Phase „Vertrauensstufen" angelegt wurden, fehlten
+  die zugehörigen Spalten dauerhaft (die Migration war durch einen Programmfehler
+  unerreicht). Das Speichern von Lehrkraft-Entscheidungen kann auf solchen
+  Datenbanken jetzt nicht mehr fehlgeschlagen.
+
+### Fehlerbehebung — Lesbarkeit im Schüler-Profil & Fehler melden
+- Die Entwicklungs-Chips im Schüler-Profil zeigen jetzt lesbare Bezeichnungen
+  statt Roh-Schlüsseln („K1 · Inhalt & Struktur", „K3 · Stil &
+  Sprachrichtigkeit", „Textstruktur" …). K1/K3 sind mit einem Hinweissymbol
+  erklärt — sowohl bei der Entwicklung als auch in der Tabelle „Abgaben im
+  Detail" und im Notenverlauf.
+- Im Dialog „Fehler melden" fehlten Umlaute („E-Mail für Rückfragen",
+  „Schließen").
+
+### Fehlerbehebung — Lückentext-Vorschau zeigt den Text wieder
+- Wenn die KI einen zusammenhängenden Lückentext mit eingebetteten Lücken liefert,
+  zeigt die Vorschau jetzt denselben vollständigen Text wie der Export — vorher
+  erschienen dort nur die nackten Lückenzeilen „(1) ___ (2) ___", obwohl die
+  Aufgabe selbst korrekt war.
+- Das gilt auch für den Tafel-Modus: Lösungen lassen sich weiterhin Schritt für
+  Schritt einzeln aufdecken, jetzt direkt im fließenden Text.
+
+### Closed Loop: Folgeübungen messbar machen
+- Übungsblätter, die aus einer Korrektur erzeugt werden, merken sich jetzt ihre
+  Herkunft (Klasse und Schularbeit). Manuell erstellte Unterlagen bleiben davon
+  unberührt.
+- In der Klassenansicht (Statistik-Tab) zeigt ein neuer Abschnitt, wie sich die
+  Fehlerkategorien seit einer Folgeübung entwickelt haben — z. B.
+  „Zeichensetzung: 2,9 → 1,0 pro Abgabe". Der Vergleich ist bewusst vorsichtig
+  formuliert: Er zeigt die Entwicklung, keinen Beweis. Jede Folgeübung lässt
+  sich von dort direkt im Unterricht öffnen.
+- In der Abgaben-Tabelle der Klassenansicht öffnet ein Klick auf den
+  Schülernamen direkt die Korrektur dieser Arbeit; ein Profil-Icon daneben
+  springt zur Schüler-Ansicht mit Längsschnitt.
+- Die gezielte Übung „Fehlerkorrektur" baut jetzt die Fehler ein, die die Klasse
+  tatsächlich gemacht hat (aus der Korrektur übernommen und in der Vorbefüllung
+  frei kuratierbar) — statt erfundener Beispielfehler.
+- Grammatik- und Zeichensetzungs-Schwerpunkte wählen jetzt automatisch zuerst
+  die Fehlerkorrektur-Aufgabe; für Ausdruck bleibt die Stilübung. Aufsätze und
+  Vokabelübungen werden bei diesen Schwerpunkten nicht mehr vorgeschlagen,
+  da sie die Fehler nicht gezielt trainieren.
+
+### Fehlerbehebung — Korrekturläufe nachvollziehbar und wiederholbar
+- Anbieter und Modell der Korrektur werden während des gesamten Auftrags unverändert verwendet und zusammen mit Bewertungsgrundlage und Ergebnis gespeichert.
+- DeepSeek erhält bei strukturierten Korrekturen ein passendes Antwortbudget; Thinking wird dafür deaktiviert. Bei Ratenlimit oder abgeschnittener Antwort startet kein automatischer identischer Wiederholungsversuch.
+- Fehlermeldungen zeigen keine technischen Rohantworten oder Schülertexte und erscheinen im Korrekturassistenten erst in der abschließenden Übersicht.
+- Korrekturen lassen sich als neue Version erneut erstellen, zwischen gespeicherten Versionen wechseln und einzeln löschen. Originalabgabe und Schülerprofil bleiben dabei erhalten.
+
+### Qualität & Datenschutz — Selbstkontrolle und Korrektur-Benchmark
+- Die optionale Selbstkontrolle des gewählten Modells verwendet immer denselben Anbieter und dasselbe Modell wie die gewählte Unterlagen-Erstellung. Sie ist in den Einstellungen klar erklärt; fällt sie aus, wird die Unterlage trotzdem erstellt und ein Hinweis angezeigt.
+- Korrekturvorschläge bleiben erhalten, wenn eine korrekte Formulierung an anderer Stelle im Text vorkommt. Nur lokal mehrdeutige Fälle werden vorsichtiger bewertet.
+- Der Qualitäts-Benchmark akzeptiert nur lokale synthetische oder nachweislich pseudonymisierte Fälle mit neutralen Fall-IDs. Protokolle enthalten keine Texte, Namen, Dateipfade oder technischen Rohfehler.
+- Vor dem Sidecar-Build wird das NATASCHA-Paket jetzt isoliert gebaut. So fallen Installationsprobleme vor einem Release auf.
+
+### Fehlerbehebung — Kein stiller KI-Anbieter-Wechsel beim Erstellen von Unterlagen
+- Beim Erstellen von Lehrunterlagen wurde bei einem Verbindungsfehler heimlich ein anderer KI-Anbieter verwendet (z. B. statt Mistral DeepSeek), ohne dass die Lehrkraft das sah. Jetzt läuft immer der bewusst gewählte Anbieter und Modell; bei Problemen erscheint eine klare Fehlermeldung statt eines stillen Wechsels.
+- Die Fortschrittsanzeige zeigt während der Generierung zuverlässig den tatsächlich verwendeten Anbieter.
+
+### Fehlerbehebung — Crash „undefined is not an object (block.config.items.length)"
+- Beim Generieren oder bei der Leicht-Variante konnte die App abstürzen, wenn ein Matching- oder Kategorisierung-Block ohne Inhaltsliste („items") vorlag (z. B. aus einer alten Vorlage oder einem unvollständigen Entwurf). Fehlende Listen werden jetzt sicher mit sinnvollen Standardwerten aufgefüllt — die Generierung startet wieder.
+- Beim Laden von Vorlagen werden fehlende Block-Einstellungen automatisch aus den Standardwerten ergänzt; alte Vorlagen und Entwürfe laden damit zuverlässig.
+- Neu angelegte Blöcke über die Kommandopalette erhalten für alle Aufgabenarten vollständige Standardeinstellungen (vorher leeres Konfigurationsobjekt bei manchen Typen).
+
 ### Fehlerbehebung — Bewertungsraster-Liste
 - Beim Laden der Bewertungsraster im Korrektur-Dialog erschien manchmal „Bewertungsraster konnten nicht geladen werden", auch wenn die App einsatzbereit war. Die echte Fehlerursache (z. B. eine beschädigte Raster-Datei oder ein Python-Fehler) wurde bisher durch eine generische Meldung verdeckt. Der Klarertext und die Startprüfung zeigen jetzt die tatsächliche Ursache.
 - Eine einzelne unlesbare Raster-Datei blockiert nicht mehr das gesamte Raster-Listing; die übrigen Raster bleiben nutzbar.
@@ -337,7 +739,7 @@ ein verlässlicherer Analyse-Dialog und ein Feedback-DOCX, das man findet.
   automatisch durch stabile Aliasse ersetzt (z. B. `S-7A-014`) und in der
   Rückmeldung wieder eingesetzt — auch im zweiten Bewertungs-Call (SRDP).
   Der Analyse-Dialog zeigt vorab eine Redaktionsvorschau („Wird ersetzt:
-  Mia Muster → S-7A-014") mit Abschalt-Möglichkeit. Bei PDF/Bild-Abgaben
+  TokenA SuffixA → S-7A-014") mit Abschalt-Möglichkeit. Bei PDF/Bild-Abgaben
   weist die App ausdrücklich darauf hin, dass dort nichts ersetzt werden
   kann. Erkannt wird nur, was in der Klassenliste steht; die Zuordnung
   bleibt vollständig lokal (Datenminimierung, kein Anonymisierungs-
@@ -1032,7 +1434,7 @@ ein verlässlicherer Analyse-Dialog und ein Feedback-DOCX, das man findet.
 - **Anzeigename statt Rohdateiname:** neuer Helper `lib/anzeigeName.ts` —
   zeigt `vorname nachname`, wenn die Abgabe mit einem Schüler verknüpft ist,
   sonst einen bereinigten Dateinamen (Endung weg, `_`/`-` → Leerzeichen)
-  statt z. B. „Neuer_Booktok_trend-MiaMuster.docx". Eingesetzt in
+  statt z. B. „Neuer_Booktok_trend-BeispielpersonA.docx". Eingesetzt in
   `KorrekturView.tsx` und `KlassenView.tsx`; Original-Dateiname bleibt als
   `title`-Tooltip abrufbar. 8 neue Tests (`anzeigeName.test.ts`).
 - Web: Typecheck grün, 126 Tests grün (14 neu). Rust: 40 Tests grün (1 neu).

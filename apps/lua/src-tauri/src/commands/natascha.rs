@@ -602,7 +602,21 @@ pub fn natascha_cancel(app: AppHandle, job_id: Option<u64>) -> Result<(), String
 /// Uebersetzt typische CLI/LLM-Fehler in verstaendliche Meldungen (statt Traceback).
 fn categorize_cli_error(stderr: &str) -> String {
     let s = stderr.to_lowercase();
-    let hint = if s.contains("api")
+    if s.contains("[rate_limited]") || s.contains("429") || s.contains("rate limit") {
+        return "Anbieter-Ratenlimit erreicht. Bitte 1–2 Minuten warten und dann manuell erneut versuchen.".into();
+    }
+    if s.contains("[output_truncated]") || s.contains("finish_reason=length") {
+        return "Die KI-Antwort wurde abgeschnitten. Der Lauf wurde nicht gespeichert; bitte Anbieter/Modell prüfen und manuell erneut versuchen.".into();
+    }
+    if s.contains("[network]") || s.contains("timeout") || s.contains("connection") || s.contains("getaddrinfo") {
+        return "Netzwerkfehler — keine Verbindung zum ausgewählten KI-Anbieter. Bitte Verbindung prüfen und manuell erneut versuchen.".into();
+    }
+    if s.contains("[schema_invalid]") || s.contains("schema") || s.contains("json") {
+        return "Ungültiges KI-Ergebnis — die Antwort entsprach nicht dem erwarteten Format. Bitte manuell erneut versuchen.".into();
+    }
+    let hint = if s.contains("[provider_unavailable]") {
+        "Der ausgewählte KI-Anbieter ist derzeit nicht verfügbar. Bitte Anbieterauswahl und Zugang prüfen."
+    } else if s.contains("api")
         && (s.contains("key")
             || s.contains("401")
             || s.contains("authentication")
@@ -617,15 +631,6 @@ fn categorize_cli_error(stderr: &str) -> String {
         "KI-Antwort entspricht nicht dem erwarteten Format — bitte erneut versuchen."
     } else if s.contains("datei nicht gefunden") || s.contains("no such file") {
         "Datei nicht gefunden."
-    } else if s.contains("timeout")
-        || s.contains("timed out")
-        || s.contains("connection")
-        || s.contains("getaddrinfo")
-        || s.contains("temporary failure in name resolution")
-    {
-        "Netzwerkfehler — keine Verbindung zum LLM-Anbieter. Internet/Proxy prüfen."
-    } else if s.contains("rate limit") || s.contains("429") {
-        "Anbieter-Ratenlimit erreicht — bitte 1–2 Minuten warten und erneut versuchen."
     } else if s.contains("modulenotfounderror") || s.contains("no module named") {
         "Python-Abhängigkeit fehlt — bitte requirements installieren (apps/natascha)."
     } else if s.contains("json") && (s.contains("decode") || s.contains("parse") || s.contains("valid")) {
@@ -637,11 +642,10 @@ fn categorize_cli_error(stderr: &str) -> String {
     } else {
         ""
     };
-    let detail = stderr.trim();
     if hint.is_empty() {
-        format!("Analyse fehlgeschlagen: {detail}")
+        "Analyse fehlgeschlagen. Bitte ausgewählten Anbieter und Modell prüfen und manuell erneut versuchen.".into()
     } else {
-        format!("{hint}\n\nDetails: {detail}")
+        hint.to_string()
     }
 }
 
@@ -670,6 +674,8 @@ pub async fn natascha_analyze(
     schueler_id: Option<i64>,
     einsatz_id: Option<String>,
     material_id: Option<String>,
+    revision_of_abgabe_id: Option<i64>,
+    land: Option<String>,
 ) -> Result<String, String> {
     let mut cmd = build_cli_command(&dir, &python)?;
     if let Some(v) = provider { cmd.arg("--provider").arg(v); }
@@ -688,6 +694,11 @@ pub async fn natascha_analyze(
     }
     if let Some(ref v) = textsorte {
         cmd.arg("--textsorte").arg(v);
+    }
+    // L2: Land/Skala (at=SRDP 1-5 Default, de=Klassenarbeit 1-6). CH blockiert
+    // bereits im UI; der CLI-Default bleibt at (Benchmark-Baseline unberührt).
+    if let Some(ref v) = land {
+        cmd.arg("--land").arg(v);
     }
     if let Some(ref v) = schueler {
         cmd.arg("--schueler").arg(v);
@@ -725,6 +736,9 @@ pub async fn natascha_analyze(
     }
     if let Some(ref id) = material_id {
         cmd.arg("--material-id").arg(id);
+    }
+    if let Some(id) = revision_of_abgabe_id {
+        cmd.arg("--revision-of-abgabe-id").arg(id.to_string());
     }
     run_cli_and_capture(cmd, Some(&app), "Korrektur-Analyse").await
 }
@@ -917,6 +931,7 @@ pub async fn natascha_list_rubrics(
     python: String,
     fach: Option<String>,
     schulstufe: Option<String>,
+    current_rubric: Option<String>,
 ) -> Result<String, String> {
     let mut cmd = build_cli_command(&dir, &python)?;
     cmd.arg("list-rubrics");
@@ -925,6 +940,11 @@ pub async fn natascha_list_rubrics(
     }
     if let Some(ref v) = schulstufe {
         cmd.arg("--schulstufe").arg(v);
+    }
+    if let Some(ref v) = current_rubric {
+        if !v.is_empty() {
+            cmd.arg("--current-rubric").arg(v);
+        }
     }
     run_cli_and_capture(cmd, None, "Korrektur-Rubriken").await
 }
@@ -1250,7 +1270,7 @@ mod tests {
     fn categorize_cli_error_fallback_to_detail() {
         let msg = categorize_cli_error("some unknown error occurred");
         assert!(msg.contains("Analyse fehlgeschlagen"));
-        assert!(msg.contains("some unknown error"));
+        assert!(!msg.contains("some unknown error"));
     }
 
     #[test]

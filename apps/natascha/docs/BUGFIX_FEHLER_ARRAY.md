@@ -2,7 +2,7 @@
 
 ## Diagnose
 
-Die Sophia-Dankl-Analyse hat kein `fehler`-Array, obwohl Schema und Prompt es fordern.
+Eine historische Analyse hat kein `fehler`-Array, obwohl Schema und Prompt es fordern.
 Stattdessen nutzt das LLM die alten Felder `fehler_detail` und `fehlerschwerpunkte`
 innerhalb der Kriterien. Drei Ursachen:
 
@@ -10,7 +10,7 @@ innerhalb der Kriterien. Drei Ursachen:
    `fehlerschwerpunkte` als Strings-Array. Das LLM bevorzugt diese Kurzform ("Mehrere
    Kommafehler") statt 25 einzelner strukturierter Einträge im Top-Level `fehler`.
 
-2. **Falsches Beispiel:** `emma_b2_feedback.json` ist ein englischer Essay mit 4 Fehlern.
+2. **Falsches Beispiel:** `beispiel_englisch_b2_feedback.json` ist ein englischer Essay mit 4 Fehlern.
    Bei einer deutschen Arbeit mit 25 Fehlern produziert das LLM trotzdem nur ca. 4.
 
 3. **Altdaten:** Bestehende Analysen (vor dem Patch) haben kein `fehler`-Feld.
@@ -44,7 +44,7 @@ heimlich einschmuggeln können.
 
 ## Fix 2: Deutsches Beispiel-Fixture mit realistischer Fehleranzahl
 
-Die Datei `tests/fixtures/emma_b2_feedback.json` durch ein zweites Fixture
+Die Datei `tests/fixtures/beispiel_englisch_b2_feedback.json` durch ein zweites Fixture
 `tests/fixtures/beispiel_deutsch_kommentar.json` ergänzen ODER ersetzen.
 
 Das neue Fixture soll:

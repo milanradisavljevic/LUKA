@@ -4,7 +4,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   Pencil, ArrowLeftRight, CircleDot, HelpCircle, PenLine, Highlighter,
   Shuffle, FolderTree, Table, Feather, Music, Puzzle, Grid3x3,
-  FileSearch, Users, Layers,
+  FileSearch, Users, Layers, CalendarDays,
 } from 'lucide-react';
 
 export const BLOCK_TYPE_DEFS: {
@@ -26,6 +26,9 @@ export const BLOCK_TYPE_DEFS: {
   { id: 'wortgitter', label: 'Wortgitter', description: 'Versteckte Wörter im Buchstabengitter finden', Icon: Grid3x3, color: '#90a4ae', minuten: [6, 10] },
   { id: 'vokabeluebung', label: 'Vokabelübung', description: 'Vokabeln übersetzen oder zuordnen', Icon: Pencil, color: '#4caf50', minuten: [5, 8] },
   { id: 'fehlerkorrektur', label: 'Fehlerkorrektur', description: 'Fehler in Sätzen finden und korrigieren', Icon: FileSearch, color: '#ba68c8', minuten: [6, 10] },
+  { id: 'quellenanalyse', label: 'Quellenanalyse', description: 'Historische Quelle untersuchen und belegen', Icon: FileSearch, color: '#8d6e63', minuten: [12, 18] },
+  { id: 'timeline', label: 'Timeline / Datierung', description: 'Historische Ereignisse zeitlich ordnen', Icon: CalendarDays, color: '#6d4c41', minuten: [8, 12] },
+  { id: 'diagrammanalyse', label: 'Diagramm-/Datenanalyse', description: 'Daten beschreiben, auswerten und belegen', Icon: Table, color: '#546e7a', minuten: [10, 15] },
   { id: 'roleplay', label: 'Rollenspiel', description: 'Kommunikative Sprechsituation mit Rollenkarten', Icon: Users, color: '#ff8a65', minuten: [8, 12] },
   { id: 'rollenkartenSet', label: 'Rollenkarten-Set', description: 'Differenzierte Sprech-Szenarien als Karten-Set (jedes Paar ein Szenario)', Icon: Layers, color: '#ff7043', minuten: [8, 15] },
 ];
@@ -37,7 +40,7 @@ export const STUFE_RULES = {
       'offeneVerstaendnisfrage', 'offeneSchreibaufgabe', 'markieraufgabe',
       'wordScramble', 'kategorisierung', 'tabelle', 'stiluebung', 'songanalyse',
       'kreuzwortraetsel', 'wortgitter', 'vokabeluebung',
-      'fehlerkorrektur', 'roleplay', 'rollenkartenSet',
+      'fehlerkorrektur', 'quellenanalyse', 'timeline', 'diagrammanalyse', 'roleplay', 'rollenkartenSet',
     ] as const,
     wortbankAllowed: true,
   },
@@ -47,7 +50,7 @@ export const STUFE_RULES = {
       'offeneVerstaendnisfrage', 'markieraufgabe',
       'wordScramble', 'kategorisierung', 'tabelle',
       'kreuzwortraetsel', 'wortgitter', 'vokabeluebung',
-      'fehlerkorrektur', 'roleplay', 'rollenkartenSet',
+      'fehlerkorrektur', 'quellenanalyse', 'timeline', 'diagrammanalyse', 'roleplay', 'rollenkartenSet',
     ] as const,
     wortbankAllowed: true,
   },

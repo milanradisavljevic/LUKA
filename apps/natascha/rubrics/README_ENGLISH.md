@@ -8,6 +8,27 @@
 | `srdp_englisch_b1.md` | Oberstufe Englisch auf B1-Niveau | 9.-10. Schulstufe bzw. 5./6. Klasse AHS |
 | `srdp_englisch_b2.md` | Oberstufe Englisch auf B2-Niveau | 11.-12. Schulstufe bzw. 7./8. Klasse AHS |
 
+Jede Datei trägt im Header `fach: englisch` — die Rubrik-Liste im Korrektur-Dialog
+filtert fremdfachliche Raster automatisch heraus (L3): Eine Englisch-Klasse sieht
+nur EN- und fachlose („generic") Raster, eine Deutsch-Klasse nur Deutsch/generic.
+
+## Textsorten (L3, kuratiert)
+
+Im Korrektur-Dialog wählt die Liste je Fach und Stufe:
+
+- **Englisch Oberstufe (SRDP-orientiert):** Article, Blog, Email, Essay, Letter,
+  Proposal, Report, Review
+- **Englisch Unterstufe:** Email, Blog, Story, Description, Report, Review
+
+Die Listen sind kuratiert (am SRDP-Leitfaden Englisch orientiert) — kein amtlicher
+Anspruch. Die englischen Raster sind textsortenoffen (`textsorte: alle`).
+
+## SRDP-Detail-Zweitcall
+
+Für Englisch entfällt der zweite LLM-Call „SRDP-Detail" (der Prompt ist
+deutschlehrkraft-spezifisch). Die Note rechnet direkt aus den Kriterien der
+Englisch-Rubrik über `KRITERIUM_KEY_VARIANTS` (task_achievement → inhalt usw.).
+
 ## Wie funktioniert die Notenberechnung?
 
 - A2:

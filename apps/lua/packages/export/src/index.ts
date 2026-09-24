@@ -41,7 +41,7 @@ function convertMultipleChoice(block: Block & { typ: 'multipleChoice' }): string
 function convertMatching(block: Block & { typ: 'matching' }): string {
   const pairs: string[] = [];
 
-  for (const item of block.config.items) {
+  for (const item of block.config.items ?? []) {
     const correctOption = block.loesung.zuordnung[String(item.nr)];
     if (correctOption) {
       const left = escapeGiftText(item.prompt);
@@ -75,7 +75,7 @@ function convertLueckentext(block: Block & { typ: 'lueckentext' }): string {
 function convertKategorisierung(block: Block & { typ: 'kategorisierung' }): string {
   const pairs: string[] = [];
 
-  for (const item of block.config.items) {
+  for (const item of block.config.items ?? []) {
     const kategorien = block.loesung.zuordnung[String(item.nr)];
     if (kategorien && kategorien.length > 0) {
       const left = escapeGiftText(item.text);
@@ -156,6 +156,9 @@ function convertBlockToGift(block: Block): string {
     case 'kreuzwortraetsel':
     case 'wortgitter':
     case 'vokabeluebung':
+    case 'quellenanalyse':
+    case 'timeline':
+    case 'diagrammanalyse':
     case 'roleplay':
     case 'rollenkartenSet':
       return convertToEssay(block);
@@ -223,7 +226,7 @@ function convertMultipleChoiceToXml(block: Block & { typ: 'multipleChoice' }, in
 function convertMatchingToXml(block: Block & { typ: 'matching' }, index: number): string {
   const pairs: string[] = [];
 
-  for (const item of block.config.items) {
+  for (const item of block.config.items ?? []) {
     const correctOption = block.loesung.zuordnung[String(item.nr)];
     if (correctOption) {
       pairs.push(`  <subquestion><text>${escapeXml(item.prompt)}</text></subquestion>
@@ -263,8 +266,8 @@ function convertKategorisierungToXml(block: Block & { typ: 'kategorisierung' }, 
       ...block,
       typ: 'matching',
       config: {
-        items: block.config.items.map((item) => ({ nr: item.nr, prompt: item.text })),
-        optionen: block.config.kategorien.map((k) => ({ key: k.name, text: k.name })),
+        items: (block.config.items ?? []).map((item) => ({ nr: item.nr, prompt: item.text })),
+        optionen: (block.config.kategorien ?? []).map((k) => ({ key: k.name, text: k.name })),
       },
       loesung: {
         zuordnung: Object.fromEntries(

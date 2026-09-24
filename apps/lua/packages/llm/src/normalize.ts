@@ -635,6 +635,134 @@ function normalizeRoleplay(block: AnyObj): AnyObj {
   return { ...block, config, loesung };
 }
 
+// quellenanalyse
+// ---------------------------------------------------------------------------
+
+function normalizeQuellenanalyse(block: AnyObj): AnyObj {
+  const config = isObject(block.config) ? { ...block.config } : {};
+  const loesung = isObject(block.loesung) ? { ...block.loesung } : {};
+
+  if (typeof config.quelleId !== 'string' && typeof block.quelleId === 'string') {
+    config.quelleId = block.quelleId;
+  }
+  const rawAuftraege = Array.isArray(config.auftraege) ? config.auftraege : config.fragen;
+  if (Array.isArray(rawAuftraege)) {
+    config.auftraege = rawAuftraege.filter(isObject).map((a: AnyObj, idx: number) => {
+      const operator = String(a.operator ?? 'analysieren').toLowerCase();
+      const operatorMap: Record<string, string> = {
+        beschreibe: 'beschreiben', beschreiben: 'beschreiben',
+        analysiere: 'analysieren', analysieren: 'analysieren',
+        ordne: 'einordnen', einordnen: 'einordnen',
+        beurteile: 'beurteilen', beurteilen: 'beurteilen',
+      };
+      const n = typeof a.nr === 'number' ? a.nr : idx + 1;
+      const zeilen = typeof a.zeilen === 'number' ? a.zeilen : Number.parseInt(String(a.zeilen ?? 5), 10);
+      return {
+        ...a,
+        nr: n,
+        operator: operatorMap[operator] ?? 'analysieren',
+        frage: typeof a.frage === 'string' ? a.frage : String(a.aufgabe ?? ''),
+        zeilen: Number.isFinite(zeilen) && zeilen > 0 ? zeilen : 5,
+      };
+    });
+  }
+  delete config.fragen;
+
+  if (Array.isArray(loesung.antworten)) {
+    loesung.antworten = loesung.antworten.filter(isObject).map((a: AnyObj, idx: number) => ({
+      ...a,
+      nr: typeof a.nr === 'number' ? a.nr : idx + 1,
+      erwartung: typeof a.erwartung === 'string' ? a.erwartung : String(a.antwort ?? ''),
+      belege: Array.isArray(a.belege) ? cleanStringArray(a.belege) : [],
+    }));
+  }
+
+  if (typeof config.quellentyp !== 'string') config.quellentyp = 'text';
+  return { ...block, config, loesung };
+}
+
+// timeline / Datierung
+// ---------------------------------------------------------------------------
+
+function normalizeTimeline(block: AnyObj): AnyObj {
+  const config = isObject(block.config) ? { ...block.config } : {};
+  const loesung = isObject(block.loesung) ? { ...block.loesung } : {};
+  const rawEreignisse = Array.isArray(config.ereignisse) ? config.ereignisse : config.events;
+  if (Array.isArray(rawEreignisse)) {
+    config.ereignisse = rawEreignisse.filter(isObject).map((e: AnyObj, idx: number) => ({
+      ...e,
+      nr: typeof e.nr === 'number' ? e.nr : idx + 1,
+      titel: typeof e.titel === 'string' ? e.titel : String(e.title ?? e.ereignis ?? ''),
+      beschreibung: typeof e.beschreibung === 'string' ? e.beschreibung : String(e.description ?? ''),
+    }));
+  } else {
+    config.ereignisse = [];
+  }
+  delete config.events;
+  if (typeof config.zeitraum !== 'string') config.zeitraum = '';
+
+  if (Array.isArray(loesung.reihenfolge)) {
+    loesung.reihenfolge = loesung.reihenfolge
+      .map((nr: unknown) => typeof nr === 'number' ? nr : Number.parseInt(String(nr), 10))
+      .filter((nr: number) => Number.isFinite(nr) && nr > 0);
+  } else if (Array.isArray(loesung.order)) {
+    loesung.reihenfolge = loesung.order
+      .map((nr: unknown) => typeof nr === 'number' ? nr : Number.parseInt(String(nr), 10))
+      .filter((nr: number) => Number.isFinite(nr) && nr > 0);
+  } else {
+    loesung.reihenfolge = [];
+  }
+  delete loesung.order;
+  const rawDatierungen = Array.isArray(loesung.datierungen) ? loesung.datierungen : [];
+  loesung.datierungen = rawDatierungen.filter(isObject).map((d: AnyObj, idx: number) => ({
+    ...d,
+    nr: typeof d.nr === 'number' ? d.nr : idx + 1,
+    datum: typeof d.datum === 'string' ? d.datum : String(d.date ?? ''),
+  }));
+  return { ...block, config, loesung };
+}
+
+// diagrammanalyse / Datenanalyse
+// ---------------------------------------------------------------------------
+
+function normalizeDiagrammAnalyse(block: AnyObj): AnyObj {
+  const config = isObject(block.config) ? { ...block.config } : {};
+  const loesung = isObject(block.loesung) ? { ...block.loesung } : {};
+  if (typeof config.titel !== 'string') config.titel = '';
+  if (typeof config.einheit !== 'string') config.einheit = '';
+  const typ = String(config.diagrammtyp ?? 'balken').toLowerCase();
+  config.diagrammtyp = ['balken', 'linie', 'kreis', 'tabelle'].includes(typ) ? typ : 'balken';
+  const rawDaten = Array.isArray(config.daten) ? config.daten : config.data;
+  config.daten = (Array.isArray(rawDaten) ? rawDaten : []).filter(isObject).map((d: AnyObj) => ({
+    ...d,
+    label: typeof d.label === 'string' ? d.label : String(d.kategorie ?? d.name ?? ''),
+    wert: typeof d.wert === 'string' ? d.wert : String(d.value ?? d.wert ?? ''),
+  }));
+  delete config.data;
+  const rawAuftraege = Array.isArray(config.auftraege) ? config.auftraege : config.fragen;
+  config.auftraege = (Array.isArray(rawAuftraege) ? rawAuftraege : []).filter(isObject).map((a: AnyObj, idx: number) => {
+    const rawOperator = String(a.operator ?? 'auswerten').toLowerCase();
+    const operator = rawOperator === 'erkläre' || rawOperator === 'erklaere' || rawOperator === 'erklären' ? 'erklaeren' : rawOperator;
+    const zeilen = typeof a.zeilen === 'number' ? a.zeilen : Number.parseInt(String(a.zeilen ?? 4), 10);
+    return {
+      ...a,
+      nr: typeof a.nr === 'number' ? a.nr : idx + 1,
+      operator: ['beschreiben', 'auswerten', 'erklaeren', 'beurteilen'].includes(operator) ? operator : 'auswerten',
+      frage: typeof a.frage === 'string' ? a.frage : String(a.aufgabe ?? ''),
+      zeilen: Number.isFinite(zeilen) && zeilen > 0 ? zeilen : 4,
+    };
+  });
+  delete config.fragen;
+  const rawAntworten = Array.isArray(loesung.antworten) ? loesung.antworten : [];
+  loesung.antworten = rawAntworten.filter(isObject).map((a: AnyObj, idx: number) => ({
+    ...a,
+    nr: typeof a.nr === 'number' ? a.nr : idx + 1,
+    erwartung: typeof a.erwartung === 'string' ? a.erwartung : String(a.antwort ?? ''),
+    belege: Array.isArray(a.belege) ? cleanStringArray(a.belege) : [],
+  }));
+  return { ...block, config, loesung };
+}
+
 // rollenkartenSet
 // ---------------------------------------------------------------------------
 
@@ -782,6 +910,12 @@ export function normalizeDocument(data: unknown): unknown {
         normalized = normalizeVokabeluebung(block); break;
       case 'roleplay':
         normalized = normalizeRoleplay(block); break;
+      case 'quellenanalyse':
+        normalized = normalizeQuellenanalyse(block); break;
+      case 'timeline':
+        normalized = normalizeTimeline(block); break;
+      case 'diagrammanalyse':
+        normalized = normalizeDiagrammAnalyse(block); break;
       case 'rollenkartenSet':
         normalized = normalizeRollenkartenSet(block); break;
       default:

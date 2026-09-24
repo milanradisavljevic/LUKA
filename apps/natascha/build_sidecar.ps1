@@ -13,7 +13,9 @@ $OutDir = Join-Path $Root "dist\natascha-cli"
 Set-Location $Root
 
 & $Python -m pip install --upgrade pyinstaller
+if ($LASTEXITCODE -ne 0) { throw "PyInstaller konnte nicht installiert werden." }
 & $Python -m pip install -r requirements_cli.txt -r requirements_tui.txt
+if ($LASTEXITCODE -ne 0) { throw "NATASCHA-Build-Abhängigkeiten konnten nicht installiert werden." }
 
 $mode = if ($OneDir) { "--onedir" } else { "--onefile" }
 
@@ -28,6 +30,7 @@ $mode = if ($OneDir) { "--onedir" } else { "--onefile" }
   --add-data "prompts;prompts" `
   --collect-data textual `
   natascha_cli.py
+if ($LASTEXITCODE -ne 0) { throw "PyInstaller-Build ist fehlgeschlagen." }
 
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 

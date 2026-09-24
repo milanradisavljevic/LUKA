@@ -27,8 +27,8 @@ KLASSE = "TEST-7a"
 
 SCHUELER = [
     {
-        "vorname": "Testschueler",
-        "nachname": "Mona",
+        "vorname": "Benchmark",
+        "nachname": "DE-001",
         # Aufsteigende Tendenz: Kriterien steigen, Noten sinken (Verbesserung)
         "arbeiten": [
             {
@@ -77,8 +77,8 @@ SCHUELER = [
         ],
     },
     {
-        "vorname": "Testschueler",
-        "nachname": "Max",
+        "vorname": "Benchmark",
+        "nachname": "DE-002",
         # Stabil mittel, andere Fehlerschwerpunkte
         "arbeiten": [
             {
@@ -123,8 +123,8 @@ SCHUELER = [
         ],
     },
     {
-        "vorname": "Testschueler",
-        "nachname": "Mia",
+        "vorname": "Benchmark",
+        "nachname": "DE-003",
         # Absteigende Tendenz (Verschlechterung)
         "arbeiten": [
             {
@@ -175,13 +175,7 @@ SCHUELER = [
 
 
 def _hash(vorname: str, nachname: str, aufgabe: str) -> str:
-    """Deterministischer Hash pro Schüler+Aufgabe für idempotentes Insert.
-
-    Für den ursprünglichen Testschüler (Mona) wird der alte Hash beibehalten,
-    damit bestehende Testdaten nicht dupliziert werden.
-    """
-    if vorname == "Testschueler" and nachname == "Mona":
-        return hashlib.sha256(f"{KLASSE}-{aufgabe}".encode()).hexdigest()
+    """Deterministischer Hash pro neutralem Benchmarkfall und Aufgabe."""
     return hashlib.sha256(f"{KLASSE}-{vorname}-{nachname}-{aufgabe}".encode()).hexdigest()
 
 
@@ -265,7 +259,7 @@ def main(argv: list[str] | None = None) -> int:
                 doc.add_paragraph(f"{vorname} {nachname}")
                 doc.add_paragraph(
                     "Dies ist ein automatisch erzeugter Dummy-Text für Testzwecke. "
-                    "Die Schülerin zeigt eine stabile Leistung mit Potenzial zur Verbesserung."
+                    "Der synthetische Fall zeigt eine stabile Leistung mit Potenzial zur Verbesserung."
                 )
                 doc.save(str(docx_path))
                 print(f"  Dummy-DOCX erstellt: {docx_path}")

@@ -82,6 +82,8 @@ CREATE TABLE IF NOT EXISTS fehler_historie (
     korrektur TEXT,
     typ TEXT NOT NULL,
     erklaerung TEXT,
+    cluster_id TEXT,
+    regel_muster TEXT,
     vertrauensstufe TEXT,
     lehrkraft_aktion TEXT,
     lehrkraft_korrektur TEXT
@@ -108,6 +110,36 @@ CREATE TABLE IF NOT EXISTS lehrer_feedback (
     geaendert_am TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(abgabe_id)
 );
+
+CREATE TABLE IF NOT EXISTS korrektur_revision (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    abgabe_id INTEGER NOT NULL REFERENCES abgabe(id) ON DELETE CASCADE,
+    revision_no INTEGER NOT NULL,
+    provider TEXT NOT NULL DEFAULT 'unbekannt',
+    model TEXT NOT NULL DEFAULT 'unbekannt',
+    privacy_mode TEXT NOT NULL DEFAULT 'unbekannt',
+    status TEXT NOT NULL DEFAULT 'completed',
+    is_active INTEGER NOT NULL DEFAULT 0,
+    basis_json TEXT NOT NULL DEFAULT '{}',
+    note REAL,
+    gesamtstufe REAL,
+    analysis_json TEXT NOT NULL DEFAULT '{}',
+    kriterien_json TEXT NOT NULL DEFAULT '[]',
+    fehler_json TEXT NOT NULL DEFAULT '[]',
+    lehrer_note_final REAL,
+    lehrer_note_app_snapshot REAL,
+    lehrer_kommentar TEXT,
+    lehrer_feedback_erstellt_am TEXT,
+    lehrer_feedback_geaendert_am TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP,
+    UNIQUE(abgabe_id, revision_no)
+);
+
+CREATE INDEX IF NOT EXISTS idx_korrektur_revision_abgabe
+    ON korrektur_revision(abgabe_id, revision_no DESC);
+CREATE INDEX IF NOT EXISTS idx_korrektur_revision_active
+    ON korrektur_revision(abgabe_id, is_active);
 
 CREATE INDEX IF NOT EXISTS idx_lf_abgabe ON lehrer_feedback(abgabe_id);
 CREATE INDEX IF NOT EXISTS idx_lf_klasse ON lehrer_feedback(klasse);
@@ -196,6 +228,7 @@ def init_db(db_path: Path | str) -> None:
     """Erstellt alle Tabellen und Indizes, falls sie nicht existieren.
     Aktiviert WAL-Modus und Foreign Keys fuer gleichzeitigen Zugriff mit LUA."""
     with sqlite3.connect(str(db_path)) as conn:
+        conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA journal_mode=WAL")
         conn.execute("PRAGMA foreign_keys=ON")
         conn.executescript(SCHEMA_SQL)
@@ -203,14 +236,137 @@ def init_db(db_path: Path | str) -> None:
         for column in ("korrekturauftrag_id", "unterrichtseinsatz_id", "material_id"):
             if column not in columns:
                 conn.execute(f"ALTER TABLE abgabe ADD COLUMN {column} TEXT")
-        context_columns = {row[1] for row in conn.execute("PRAGMA table_info(korrekturauftrag)")}
-        if context_columns and "rubrik_titel" not in context_columns:
-            conn.execute("ALTER TABLE korrekturauftrag ADD COLUMN rubrik_titel TEXT NOT NULL DEFAULT ''")
-        fehler_columns = {row[1] for row in conn.execute("PRAGMA table_info(fehler_historie)")}
-        for column in ("vertrauensstufe", "lehrkraft_aktion", "lehrkraft_korrektur"):
-            if column not in fehler_columns:
-                conn.execute(f"ALTER TABLE fehler_historie ADD COLUMN {column} TEXT")
-        conn.commit()
+        revision_columns = {row[1] for row in conn.execute("PRAGMA table_info(korrektur_revision)")}
+        if "basis_json" not in revision_columns:
+            conn.execute("ALTER TABLE korrektur_revision ADD COLUMN basis_json TEXT NOT NULL DEFAULT '{}' ")
+        _migrate_korrektur_revisionen(conn)
+        _migrate_fehler_historie_columns(conn)
+
+
+def _migrate_korrektur_revisionen(conn: sqlite3.Connection) -> None:
+    """Backfillt bestehende Abgaben als erste, weiterhin aktive Revision."""
+    conn.execute("PRAGMA foreign_keys=ON")
+    rows = conn.execute(
+        "SELECT id, note, gesamtstufe, datum, feedback_json_path FROM abgabe "
+        "WHERE NOT EXISTS (SELECT 1 FROM korrektur_revision r WHERE r.abgabe_id=abgabe.id)"
+    ).fetchall()
+    for abgabe_id, note, gesamtstufe, datum, feedback_json_path in rows:
+        analysis_json = "{}"
+        if feedback_json_path:
+            try:
+                payload = json.loads(Path(feedback_json_path).read_text(encoding="utf-8"))
+                if isinstance(payload, dict):
+                    analysis_json = json.dumps(payload, ensure_ascii=False)
+            except (OSError, ValueError, TypeError):
+                pass
+        cur = conn.execute(
+            "INSERT INTO korrektur_revision "
+            "(abgabe_id, revision_no, provider, model, privacy_mode, status, is_active, "
+            "note, gesamtstufe, analysis_json, created_at, completed_at) "
+            "VALUES (?, 1, 'unbekannt', 'unbekannt', 'unbekannt', 'completed', 1, ?, ?, ?, ?, ?)",
+            (abgabe_id, note, gesamtstufe, analysis_json, datum, datum),
+        )
+        revision_id = cur.lastrowid
+        kriterien = [
+            dict(row)
+            for row in conn.execute(
+                "SELECT kriterium_name, stufe, gewichtung FROM kriterium_historie "
+                "WHERE abgabe_id=? ORDER BY id",
+                (abgabe_id,),
+            ).fetchall()
+        ]
+        fehler = [
+            dict(row)
+            for row in conn.execute(
+                "SELECT zitat, korrektur, typ, erklaerung, cluster_id, regel_muster, vertrauensstufe, "
+                "lehrkraft_aktion, lehrkraft_korrektur FROM fehler_historie "
+                "WHERE abgabe_id=? ORDER BY id",
+                (abgabe_id,),
+            ).fetchall()
+        ]
+        feedback = conn.execute(
+            "SELECT note_final, note_app_snapshot, lehrer_kommentar, erstellt_am, geaendert_am "
+            "FROM lehrer_feedback WHERE abgabe_id=?",
+            (abgabe_id,),
+        ).fetchone()
+        conn.execute(
+            "UPDATE korrektur_revision SET kriterien_json=?, fehler_json=?, "
+            "lehrer_note_final=?, lehrer_note_app_snapshot=?, lehrer_kommentar=?, "
+            "lehrer_feedback_erstellt_am=?, lehrer_feedback_geaendert_am=? WHERE id=?",
+            (
+                json.dumps(kriterien, ensure_ascii=False),
+                json.dumps(fehler, ensure_ascii=False),
+                *(tuple(feedback) if feedback else (None, None, None, None, None)),
+                revision_id,
+            ),
+        )
+    conn.commit()
+
+
+def _snapshot_active_revision(conn: sqlite3.Connection, abgabe_id: int) -> None:
+    """Spiegelt die aktive Legacy-Projektion in ihre Revisionszeile."""
+    revision = conn.execute(
+        "SELECT id FROM korrektur_revision WHERE abgabe_id=? AND is_active=1",
+        (abgabe_id,),
+    ).fetchone()
+    if not revision:
+        return
+    revision_id = revision["id"]
+    kriterien = [dict(row) for row in conn.execute(
+        "SELECT kriterium_name, stufe, gewichtung FROM kriterium_historie "
+        "WHERE abgabe_id=? ORDER BY id", (abgabe_id,),
+    )]
+    fehler = [dict(row) for row in conn.execute(
+        "SELECT zitat, korrektur, typ, erklaerung, cluster_id, regel_muster, vertrauensstufe, "
+        "lehrkraft_aktion, lehrkraft_korrektur FROM fehler_historie "
+        "WHERE abgabe_id=? ORDER BY id", (abgabe_id,),
+    )]
+    feedback = conn.execute(
+        "SELECT note_final, note_app_snapshot, lehrer_kommentar, erstellt_am, geaendert_am "
+        "FROM lehrer_feedback WHERE abgabe_id=?", (abgabe_id,),
+    ).fetchone()
+    conn.execute(
+        "UPDATE korrektur_revision SET kriterien_json=?, fehler_json=?, "
+        "lehrer_note_final=?, lehrer_note_app_snapshot=?, lehrer_kommentar=?, "
+        "lehrer_feedback_erstellt_am=?, lehrer_feedback_geaendert_am=? WHERE id=?",
+        (
+            json.dumps(kriterien, ensure_ascii=False),
+            json.dumps(fehler, ensure_ascii=False),
+            *(tuple(feedback) if feedback else (None, None, None, None, None)),
+            revision_id,
+        ),
+    )
+
+
+def get_korrektur_revision(db_path: Path | str, revision_id: int) -> dict[str, Any] | None:
+    with sqlite3.connect(str(db_path)) as conn:
+        conn.row_factory = sqlite3.Row
+        row = conn.execute(
+            "SELECT * FROM korrektur_revision WHERE id=?", (revision_id,)
+        ).fetchone()
+        return dict(row) if row else None
+
+
+def get_korrektur_revision_for_abgabe(db_path: Path | str, abgabe_id: int) -> dict[str, Any] | None:
+    with sqlite3.connect(str(db_path)) as conn:
+        conn.row_factory = sqlite3.Row
+        row = conn.execute(
+            "SELECT * FROM korrektur_revision WHERE abgabe_id=? AND is_active=1",
+            (abgabe_id,),
+        ).fetchone()
+        return dict(row) if row else None
+
+
+def _migrate_fehler_historie_columns(conn: sqlite3.Connection) -> None:
+    """Ergänzt die Phase-3-Spalten (Vertrauensstufe, Lehrkraft-Aktionen) auch in
+    bereits vorhandenen Datenbanken — SCHEMA_SQL legt sie nur bei Neuanlage an."""
+    fehler_columns = {row[1] for row in conn.execute("PRAGMA table_info(fehler_historie)")}
+    for column in ("cluster_id", "regel_muster", "vertrauensstufe", "lehrkraft_aktion", "lehrkraft_korrektur"):
+        if column not in fehler_columns:
+            conn.execute(f"ALTER TABLE fehler_historie ADD COLUMN {column} TEXT")
+    context_columns = {row[1] for row in conn.execute("PRAGMA table_info(korrekturauftrag)")}
+    if context_columns and "rubrik_titel" not in context_columns:
+        conn.execute("ALTER TABLE korrekturauftrag ADD COLUMN rubrik_titel TEXT NOT NULL DEFAULT ''")
 
 
 def _file_hash(path: Path) -> str:
@@ -445,13 +601,24 @@ def insert_fehler(
     typ: str,
     erklaerung: str = "",
     vertrauensstufe: str | None = None,
+    cluster_id: str | None = None,
+    regel_muster: str | None = None,
 ) -> None:
+    # Das allgemeine Erklärungsfeld ist kein strukturiertes Clusterlabel.
+    # Ohne ausdrücklich gelieferte Metadaten müssen alte R/G/Z/A-Aggregate
+    # exakt wie bisher weiterlaufen.
+    regel_muster = (regel_muster or "").strip() or None
+    if cluster_id is None and regel_muster:
+        # Deterministischer, datensparsamer Schlüssel: kein Schülertext, nur
+        # Fehlerart plus Regelmuster. Alte Aufrufe bleiben voll kompatibel.
+        normalized = " ".join(regel_muster.casefold().split())
+        cluster_id = f"{typ}:{hashlib.sha1(normalized.encode('utf-8')).hexdigest()[:12]}"
     with sqlite3.connect(str(db_path)) as conn:
         conn.execute(
             "INSERT INTO fehler_historie"
-            " (abgabe_id, zitat, korrektur, typ, erklaerung, vertrauensstufe)"
-            " VALUES (?, ?, ?, ?, ?, ?)",
-            (abgabe_id, zitat, korrektur, typ, erklaerung, vertrauensstufe),
+            " (abgabe_id, zitat, korrektur, typ, erklaerung, cluster_id, regel_muster, vertrauensstufe)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (abgabe_id, zitat, korrektur, typ, erklaerung, cluster_id, regel_muster, vertrauensstufe),
         )
         conn.commit()
 
@@ -766,6 +933,16 @@ def import_json_to_db(
 
     # Kriterien
     bewertung = data.get("bewertung", {})
+    sachfach_bewertung = data.get("sachfach_bewertung", {})
+    if isinstance(sachfach_bewertung, dict):
+        bewertung = {
+            **bewertung,
+            **{
+                f"sachfach_{key}": value
+                for key, value in sachfach_bewertung.items()
+                if isinstance(value, dict)
+            },
+        }
     for kriterium_name, k_data in bewertung.items():
         if isinstance(k_data, dict):
             stufe_raw = k_data.get("stufe") or k_data.get("punkte")
@@ -787,6 +964,9 @@ def import_json_to_db(
             fehler.get("korrektur", ""),
             fehler.get("typ", ""),
             fehler.get("erklaerung", ""),
+            fehler.get("vertrauensstufe"),
+            fehler.get("cluster_id") or fehler.get("clusterId"),
+            fehler.get("regel_muster") or fehler.get("regelMuster"),
         )
 
     if data.get("ausgangstext"):
@@ -910,6 +1090,12 @@ def save_analysis_to_db(
     rubrik_inhalt: str = "",
     rubrik_titel: str = "",
     erwartungshorizont: str = "",
+    provider: str = "unbekannt",
+    model: str = "unbekannt",
+    privacy_mode: str = "unbekannt",
+    revision_of_abgabe_id: int | None = None,
+    correction_basis: dict[str, Any] | None = None,
+    started_at: str | None = None,
 ) -> int:
     """
     Bequemlichkeits-Funktion: Nimmt das validierte JSON-Dict nach der Analyse
@@ -947,64 +1133,93 @@ def save_analysis_to_db(
             material_id=material_id,
         )
 
-    existing = get_abgabe_by_hash(db_path, datei_hash)
-    if existing:
-        return -1  # Duplikat
-
-    schueler_id: int | None = None
-    if bestaetigte_schueler_id is not None:
-        bestaetigt = get_schueler_by_id(db_path, bestaetigte_schueler_id)
-        if bestaetigt is not None and bestaetigt.get("klasse") == klasse:
-            schueler_id = int(bestaetigt["id"])
-
-    # Heuristik nur ohne bestätigte Zuordnung. Achtung: data["schueler"] kann
-    # aus der LLM-Antwort stammen — die Heuristik kann falsche oder erfundene
-    # Namen als Schüler anlegen. Die bestätigte ID ist der bevorzugte Weg.
-    schueler_name = data.get("schueler", "")
-    if schueler_id is None and schueler_name:
-        parts = schueler_name.split(maxsplit=1)
-        vn = parts[0] if parts else schueler_name
-        nn = parts[1] if len(parts) > 1 else ""
-        schueler = get_schueler_by_name(db_path, klasse, vn, nn)
-        if schueler is None:
-            schueler_id = insert_schueler(db_path, klasse, vn, nn)
-        else:
-            schueler_id = schueler["id"]
-
     note_data = data.get("notenempfehlung", {})
     note = note_data.get("note")
     gesamtstufe = note_data.get("durchschnitt")
 
-    # Atomare Transaktion: alles in einer Connection
-    db_path_str = str(db_path)
-    with sqlite3.connect(db_path_str) as conn:
+    # Abgabe und Revision werden in einer Transaktion gespeichert. Bei einer
+    # erneuten Korrektur bleibt die Quelldatei/Abgabe erhalten.
+    init_db(db_path)
+    with sqlite3.connect(str(db_path), timeout=30) as conn:
+        conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys=ON")
-        cur = conn.execute(
-            "INSERT INTO abgabe (schueler_id, korrekturauftrag_id, unterrichtseinsatz_id, material_id, klasse, aufgabe, dateiname, datei_hash, rohtext, note, gesamtstufe, feedback_json_path, wortanzahl, fach, schulstufe, textsorte, rubrik) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (
-                schueler_id,
-                korrekturauftrag_id,
-                unterrichtseinsatz_id,
-                material_id,
-                klasse,
-                aufgabe,
-                dateiname,
-                datei_hash,
-                rohtext,
-                float(note) if note is not None else None,
-                float(gesamtstufe) if gesamtstufe is not None else None,
-                feedback_json_path,
-                wortanzahl,
-                data.get("fach", ""),
-                data.get("schulstufe", ""),
-                data.get("textsorte", ""),
-                data.get("rubrik", ""),
-            ),
-        )
-        abgabe_id = cur.lastrowid
+        conn.execute("BEGIN IMMEDIATE")
+        existing = conn.execute(
+            "SELECT * FROM abgabe WHERE datei_hash=?", (datei_hash,)
+        ).fetchone()
+        if revision_of_abgabe_id is not None:
+            if not existing or int(existing["id"]) != revision_of_abgabe_id:
+                raise ValueError("Die ausgewählte Originaldatei stimmt nicht mit der Abgabe überein.")
+            abgabe_id = revision_of_abgabe_id
+            _snapshot_active_revision(conn, abgabe_id)
+            schueler_id = existing["schueler_id"]
+            revision_no = int(conn.execute(
+                "SELECT COALESCE(MAX(revision_no),0)+1 FROM korrektur_revision WHERE abgabe_id=?",
+                (abgabe_id,),
+            ).fetchone()[0])
+            conn.execute("UPDATE korrektur_revision SET is_active=0 WHERE abgabe_id=?", (abgabe_id,))
+            conn.execute("DELETE FROM kriterium_historie WHERE abgabe_id=?", (abgabe_id,))
+            conn.execute("DELETE FROM fehler_historie WHERE abgabe_id=?", (abgabe_id,))
+            conn.execute("DELETE FROM lehrer_feedback WHERE abgabe_id=?", (abgabe_id,))
+            conn.execute(
+                "UPDATE abgabe SET korrekturauftrag_id=?, unterrichtseinsatz_id=?, material_id=?, "
+                "klasse=?, aufgabe=?, dateiname=?, rohtext=?, note=?, gesamtstufe=?, "
+                "feedback_json_path=?, wortanzahl=?, fach=?, schulstufe=?, textsorte=?, rubrik=? WHERE id=?",
+                (korrekturauftrag_id, unterrichtseinsatz_id, material_id, klasse, aufgabe,
+                 dateiname, rohtext, note, gesamtstufe, feedback_json_path, wortanzahl,
+                 data.get("fach", ""), data.get("schulstufe", ""), data.get("textsorte", ""),
+                 data.get("rubrik", ""), abgabe_id),
+            )
+        else:
+            if existing:
+                return -1
+            schueler_id: int | None = None
+            if bestaetigte_schueler_id is not None:
+                confirmed = conn.execute(
+                    "SELECT id FROM schueler WHERE id=? AND klasse=?",
+                    (bestaetigte_schueler_id, klasse),
+                ).fetchone()
+                if confirmed:
+                    schueler_id = int(confirmed["id"])
+            # Namensheuristik bleibt nur für neue Abgaben bestehen.
+            student_name = data.get("schueler", "")
+            if schueler_id is None and student_name:
+                parts = student_name.split(maxsplit=1)
+                first_name = parts[0] if parts else student_name
+                last_name = parts[1] if len(parts) > 1 else ""
+                student = conn.execute(
+                    "SELECT id FROM schueler WHERE klasse=? AND vorname=? AND COALESCE(nachname,'')=? LIMIT 1",
+                    (klasse, first_name, last_name),
+                ).fetchone()
+                if student:
+                    schueler_id = int(student["id"])
+                else:
+                    schueler_id = int(conn.execute(
+                        "INSERT INTO schueler (klasse, vorname, nachname) VALUES (?, ?, ?)",
+                        (klasse, first_name, last_name or None),
+                    ).lastrowid)
+            cur = conn.execute(
+                "INSERT INTO abgabe (schueler_id, korrekturauftrag_id, unterrichtseinsatz_id, material_id, klasse, aufgabe, dateiname, datei_hash, rohtext, note, gesamtstufe, feedback_json_path, wortanzahl, fach, schulstufe, textsorte, rubrik) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (schueler_id, korrekturauftrag_id, unterrichtseinsatz_id, material_id,
+                 klasse, aufgabe, dateiname, datei_hash, rohtext, note, gesamtstufe,
+                 feedback_json_path, wortanzahl, data.get("fach", ""),
+                 data.get("schulstufe", ""), data.get("textsorte", ""), data.get("rubrik", "")),
+            )
+            abgabe_id = int(cur.lastrowid)
+            revision_no = 1
 
         # Kriterien
         bewertung = data.get("bewertung", {})
+        sachfach_bewertung = data.get("sachfach_bewertung", {})
+        if isinstance(sachfach_bewertung, dict):
+            bewertung = {
+                **bewertung,
+                **{
+                    f"sachfach_{key}": value
+                    for key, value in sachfach_bewertung.items()
+                    if isinstance(value, dict)
+                },
+            }
         for kriterium_name, k_data in bewertung.items():
             if isinstance(k_data, dict):
                 stufe_raw = k_data.get("stufe") or k_data.get("punkte")
@@ -1023,17 +1238,30 @@ def save_analysis_to_db(
         for fehler in data.get("fehler", []):
             conn.execute(
                 "INSERT INTO fehler_historie"
-                " (abgabe_id, zitat, korrektur, typ, erklaerung, vertrauensstufe)"
-                " VALUES (?, ?, ?, ?, ?, ?)",
+                " (abgabe_id, zitat, korrektur, typ, erklaerung, cluster_id, regel_muster, vertrauensstufe)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     abgabe_id,
                     fehler.get("zitat", ""),
                     fehler.get("korrektur", ""),
                     fehler.get("typ", ""),
                     fehler.get("erklaerung", ""),
+                    fehler.get("cluster_id") or fehler.get("clusterId"),
+                    fehler.get("regel_muster") or fehler.get("regelMuster"),
                     fehler.get("vertrauensstufe"),
                 ),
             )
+        revision_cur = conn.execute(
+            "INSERT INTO korrektur_revision "
+            "(abgabe_id, revision_no, provider, model, privacy_mode, status, is_active, basis_json, "
+            "note, gesamtstufe, analysis_json, created_at, completed_at) "
+            "VALUES (?, ?, ?, ?, ?, 'completed', 1, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP), CURRENT_TIMESTAMP)",
+            (abgabe_id, revision_no, provider, model, privacy_mode,
+             json.dumps(correction_basis or {}, ensure_ascii=False, default=str),
+             note, gesamtstufe, json.dumps(data, ensure_ascii=False, default=str), started_at),
+        )
+        data["_revision_id"] = int(revision_cur.lastrowid)
+        _snapshot_active_revision(conn, abgabe_id)
         conn.commit()
 
     if data.get("ausgangstext"):
@@ -1252,11 +1480,12 @@ def get_klassen_feedback(
             if aufgabe:
                 rows = conn.execute(
                     """
-                    SELECT fh.zitat, fh.korrektur, fh.erklaerung, COUNT(*) as haeufigkeit
+                    SELECT fh.zitat, fh.korrektur, fh.erklaerung, fh.cluster_id,
+                           fh.regel_muster, COUNT(*) as haeufigkeit
                     FROM fehler_historie fh
                     JOIN abgabe a ON fh.abgabe_id = a.id
                     WHERE a.klasse = ? AND a.aufgabe = ? AND fh.typ = ?
-                    GROUP BY fh.zitat
+                    GROUP BY fh.zitat, fh.korrektur, fh.erklaerung, fh.cluster_id, fh.regel_muster
                     ORDER BY haeufigkeit DESC, fh.zitat
                     LIMIT 5
                     """,
@@ -1265,11 +1494,12 @@ def get_klassen_feedback(
             else:
                 rows = conn.execute(
                     """
-                    SELECT fh.zitat, fh.korrektur, fh.erklaerung, COUNT(*) as haeufigkeit
+                    SELECT fh.zitat, fh.korrektur, fh.erklaerung, fh.cluster_id,
+                           fh.regel_muster, COUNT(*) as haeufigkeit
                     FROM fehler_historie fh
                     JOIN abgabe a ON fh.abgabe_id = a.id
                     WHERE a.klasse = ? AND fh.typ = ?
-                    GROUP BY fh.zitat
+                    GROUP BY fh.zitat, fh.korrektur, fh.erklaerung, fh.cluster_id, fh.regel_muster
                     ORDER BY haeufigkeit DESC, fh.zitat
                     LIMIT 5
                     """,
@@ -1282,6 +1512,8 @@ def get_klassen_feedback(
                     "typ": top_typ,
                     "haeufigkeit": r["haeufigkeit"],
                     "erklaerung": r["erklaerung"],
+                    "cluster_id": r["cluster_id"],
+                    "regel_muster": r["regel_muster"],
                 })
 
     return {
@@ -1728,31 +1960,36 @@ def _aggregiere_fehlerschwerpunkte(
         return []
     placeholders = ",".join("?" * len(abgabe_ids))
     rows = conn.execute(
-        f"SELECT typ, zitat, korrektur FROM fehler_historie WHERE abgabe_id IN ({placeholders})",
+        f"SELECT typ, zitat, korrektur, cluster_id, regel_muster FROM fehler_historie WHERE abgabe_id IN ({placeholders})",
         abgabe_ids,
     ).fetchall()
     anzahl: dict[str, int] = {}
+    meta: dict[str, dict[str, str | None]] = {}
     beispiele: dict[str, list[dict[str, str]]] = {}
     gesehen: dict[str, set[str]] = {}
     for r in rows:
         typ = r["typ"] or "?"
-        anzahl[typ] = anzahl.get(typ, 0) + 1
+        cluster_id = r["cluster_id"] or typ
+        anzahl[cluster_id] = anzahl.get(cluster_id, 0) + 1
+        meta.setdefault(cluster_id, {"typ": typ, "regel_muster": r["regel_muster"]})
         zitat = (r["zitat"] or "").strip()
-        if zitat and zitat not in gesehen.setdefault(typ, set()) \
-                and len(beispiele.get(typ, [])) < max_beispiele:
-            gesehen[typ].add(zitat)
-            beispiele.setdefault(typ, []).append(
+        if zitat and zitat not in gesehen.setdefault(cluster_id, set()) \
+                and len(beispiele.get(cluster_id, [])) < max_beispiele:
+            gesehen[cluster_id].add(zitat)
+            beispiele.setdefault(cluster_id, []).append(
                 {"zitat": zitat, "korrektur": (r["korrektur"] or "").strip()}
             )
     top = sorted(anzahl, key=lambda t: anzahl[t], reverse=True)[:top_n]
     return [
         {
-            "typ": typ,
-            "label": FEHLER_TYP_LABELS.get(typ, typ),
-            "anzahl": anzahl[typ],
-            "beispiele": beispiele.get(typ, []),
+            "typ": meta[cluster_id]["typ"] or "?",
+            "cluster_id": cluster_id if cluster_id != (meta[cluster_id]["typ"] or "?") else None,
+            "regel_muster": meta[cluster_id]["regel_muster"],
+            "label": meta[cluster_id]["regel_muster"] or FEHLER_TYP_LABELS.get(meta[cluster_id]["typ"] or "?", meta[cluster_id]["typ"] or "?"),
+            "anzahl": anzahl[cluster_id],
+            "beispiele": beispiele.get(cluster_id, []),
         }
-        for typ in top
+        for cluster_id in top
     ]
 
 
@@ -1851,6 +2088,9 @@ def get_schueler_laengsschnitt(
                     "abgabe_id": abgabe_id,
                     "aufgabe": ab["aufgabe"],
                     "datum": ab["datum"],
+                    "fach": ab["fach"],
+                    "schulstufe": ab["schulstufe"],
+                    "textsorte": ab["textsorte"],
                     "note_app": ab["note"],
                     "note_lehrer": note_lehrer,
                     "kriterien": kriterien,

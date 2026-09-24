@@ -31,9 +31,9 @@ def _kommentar_autoren(doc) -> set[str]:
 def test_kommentar_autor_kommt_aus_uebergebenem_namen():
     doc = Document()
     p = doc.add_paragraph("Ein Satz mit Inhalt.")
-    gf._attach_word_comments(doc, [(p, "Gut formuliert.")], author="Milan Muster")
+    gf._attach_word_comments(doc, [(p, "Gut formuliert.")], author="Lehrkraft Beispiel")
     autoren = _kommentar_autoren(doc)
-    assert autoren == {"Milan Muster"}, autoren
+    assert autoren == {"Lehrkraft Beispiel"}, autoren
 
 
 def test_kommentar_autor_default_ist_neutral():

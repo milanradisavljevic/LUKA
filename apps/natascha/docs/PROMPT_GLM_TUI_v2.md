@@ -83,7 +83,7 @@ Verwende `rich.panel.Panel` fuer den Banner und `InquirerPy.inquirer.select` fue
 ```
 ? Welche Arbeiten sollen korrigiert werden? (Leertaste = auswaehlen, Enter = weiter)
 › ◉ deutsch digga.docx                              342 Woerter
-  ◉ Kommentar -Krass, Digga!...- Max Muster   464 Woerter
+  ◉ Kommentar -Krass, Digga!...- Beispielperson B   464 Woerter
 ```
 
 Verwende `InquirerPy.inquirer.checkbox`.
@@ -210,8 +210,8 @@ Verwende `rich.table.Table` fuer die Uebersicht.
   ✓ deutsch digga_feedback.docx
     → output/deutsch_digga_feedback.docx
 
-  ✓ Kommentar -Krass, Digga!...- Max Muster_feedback.docx
-    → output/Kommentar -Krass, Digga!...- Max Muster_feedback.docx
+  ✓ Kommentar -Krass, Digga!...- Beispielperson B_feedback.docx
+    → output/Kommentar -Krass, Digga!...- Beispielperson B_feedback.docx
 
 ? Was moechtest du tun?
 › Ordner oeffnen

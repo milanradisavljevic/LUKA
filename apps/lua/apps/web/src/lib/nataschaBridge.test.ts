@@ -57,12 +57,12 @@ describe('mapBridgeToPrefill', () => {
 
   it('mappt Kategorien auf Aufgabentypen und dedupliziert', () => {
     const p = mapBridgeToPrefill(validExport);
-    // Z → lueckentext, markieraufgabe; G → lueckentext (dup), offeneVerstaendnisfrage, offeneSchreibaufgabe
+    // Z → fehlerkorrektur, markieraufgabe; G → fehlerkorrektur (dup), lueckentext.
+    // Da echte Fehler vorhanden sind, steht fehlerkorrektur vorn.
     expect(p.gewuenschteAufgabenarten).toEqual([
-      'lueckentext',
+      'fehlerkorrektur',
       'markieraufgabe',
-      'offeneVerstaendnisfrage',
-      'offeneSchreibaufgabe',
+      'lueckentext',
     ]);
   });
 
@@ -75,15 +75,34 @@ describe('mapBridgeToPrefill', () => {
     expect(p.notizen).toContain('Gezielte Übung zu den Fehlerschwerpunkten');
   });
 
+  it('übernimmt Klassenland und konkrete Schulstufe aus v2-Bridge-Metadaten', () => {
+    const p = mapBridgeToPrefill({
+      ...validExport,
+      fach: 'geschichte',
+      land: 'DE',
+      schulstufeNummer: 7,
+    });
+    expect(p.fach).toBe('geschichte');
+    expect(p.land).toBe('DE');
+    expect(p.schulstufe).toBe(7);
+    expect(p.stufe).toBe('unterstufe');
+  });
+
   it('reicht echte Fehler strukturiert durch (für die Kuration in Step0)', () => {
     const p = mapBridgeToPrefill(validExport);
     expect(p.fehler).toBeDefined();
     expect(p.fehler?.some((f) => f.zitat.includes('Schüler die keine'))).toBe(true);
+    expect(p.fehler?.[0]?.haeufigkeit).toBe(7);
   });
 
   it('reicht den Ausgangstext durch (v2)', () => {
     const p = mapBridgeToPrefill({ ...validExport, ausgangstext: '  Der Originaltext.  ' });
     expect(p.ausgangstext).toBe('Der Originaltext.');
+  });
+
+  it('setzt die Loop-Quelle für das Wirkungs-Panel (L1)', () => {
+    const p = mapBridgeToPrefill(validExport);
+    expect(p.loopQuelle).toEqual({ klasse: '6i', aufgabe: 'SA2', exportDatum: '2026-05-26' });
   });
 
   it('nutzt Defaults, wenn Fach/Stufe fehlen', () => {
@@ -111,15 +130,14 @@ describe('buildPrefillFromHeatmap', () => {
     expect(p).not.toBeNull();
     expect(p?.fokusThemen).toEqual(['Grammatik', 'Zeichensetzung', 'Ausdruck']);
     expect(p?.gewuenschteAufgabenarten).toEqual([
+      'fehlerkorrektur',
       'lueckentext',
-      'offeneVerstaendnisfrage',
-      'offeneSchreibaufgabe',
       'markieraufgabe',
       'stiluebung',
-      'wordScramble',
     ]);
     expect(p?.thema).toBe('Übung zu Fehlerschwerpunkten – 7a · SA2');
     expect(p?.ausgangstext).toBe('Ausgangstext');
+    expect(p?.loopQuelle).toEqual({ klasse: '7a', aufgabe: 'SA2' });
   });
 
   it('gibt null zurück, wenn keine Fehler vorhanden sind', () => {

@@ -24,6 +24,12 @@ Austauschformat. Beide Seiten müssen sich daran halten.
 - **`ausgangstext`** *(v2, optional)* — Ausgangstext/Arbeitsauftrag der Originalarbeit.
   LUA befüllt damit den Quelltext der Übung vor (kein erneutes Einfügen nötig). Export
   per `python natascha_bridge.py <klasse> <aufgabe> --ausgangstext-file angabe.txt`.
+- **`fach`** — übernimmt das Fach der konkreten Abgabe; wenn es dort fehlt, greift
+  das Klassenprofil. Unterstützte kanonische Fach-IDs entsprechen LUA.
+- **`land`** *(v2, optional)* — wird nur ausgegeben, wenn für die Klasse ein Land
+  ausdrücklich gespeichert ist; sonst gilt in LUA der Profilstandard.
+- **`schulstufeNummer`** *(v2, optional)* — konkrete Schulstufe/Klasse, falls vorhanden;
+  `schulstufe` enthält weiterhin die daraus abgeleitete Unter-/Oberstufe.
 - **`empfehlungen`** — optionale LLM-Klassenempfehlungen aus `klassen_briefing`.
 
 ## Datenschutz
