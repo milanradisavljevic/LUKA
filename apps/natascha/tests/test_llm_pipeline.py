@@ -278,6 +278,37 @@ class TestValidateAgainstSchema:
         errors = nc.validate_against_schema({"any": "data"}, {})
         assert errors == []
 
+    def test_posthoc_felder_validieren(self) -> None:
+        """Nachtraeglich ergaenzte Fehlerfelder duerfen das Schema nicht brechen.
+
+        compute_vertrauensstufe() und verify_fehler_against_text() haengen
+        diese Felder NACH der LLM-Validierung an; der Benchmark-Runner
+        validiert das fertige Ergebnis erneut (run_benchmark.py).
+        """
+        data = _load_beispiel_fixture()
+        for fehler in data["fehler"]:
+            fehler["vertrauensstufe"] = "mittel"
+            fehler["korrektur_lokal_ambig"] = True
+        schema = nc.load_schema(_load_config())
+        errors = nc.validate_against_schema(data, schema)
+        assert errors == [], f"Unerwartete Fehler: {errors}"
+
+    def test_unbekanntes_fehlerfeld_fails(self) -> None:
+        """Weiterhin restriktiv: unbekannte Felder in fehler schlagen fehl."""
+        data = _load_beispiel_fixture()
+        data["fehler"][0]["halluziniertes_feld"] = "x"
+        schema = nc.load_schema(_load_config())
+        errors = nc.validate_against_schema(data, schema)
+        assert errors, "Unbekanntes Feld im fehler-Objekt wurde toleriert"
+
+    def test_ungueltige_vertrauensstufe_fails(self) -> None:
+        """Vertrauensstufe ausserhalb des Enums ist weiterhin eine Verletzung."""
+        data = _load_beispiel_fixture()
+        data["fehler"][0]["vertrauensstufe"] = "unsichtbar"
+        schema = nc.load_schema(_load_config())
+        errors = nc.validate_against_schema(data, schema)
+        assert errors, "Ungueltiger enum-Wert wurde toleriert"
+
 
 # =====================================================================
 # _build_retry_prompt

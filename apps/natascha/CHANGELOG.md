@@ -1,6 +1,11 @@
 # CHANGELOG
 
 ## Unveröffentlicht – Closed-Loop-Revision (2026-09-24)
+- `feedback_schema.json` erlaubt die post-hoc ergänzten `fehler`-Felder
+  `vertrauensstufe` (enum hoch/mittel/niedrig) und `korrektur_lokal_ambig`
+  (boolean). Der Benchmark-Runner validiert das fertige Ergebnis erneut und
+  markierte bislang jede Analyse mit Funden als `schema_fehler`, obwohl nur
+  diese beiden Felder fehlten; unbekannte Felder bleiben weiterhin Verletzung.
 - Der lokale Korrektur-Benchmark kann die neutrale Fehlerdichte-Regel gegen
   den expliziten Legacy-Prompt paarweise vergleichen. Lehrkraft-Prüfauszüge
   werden optional nur in lokalen, gitignorierten Protokollen gespeichert;

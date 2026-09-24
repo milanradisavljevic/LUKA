@@ -106,9 +106,16 @@ Alle Keys nur über `os.environ.get()` — nie hardcoded. `.env` ist gitignored.
   "schulstufe": "Unterstufe|Oberstufe",
   "rubrik": "string",
   "bewertung": { "<kriterium>": { "stufe": 1-5, "punkte": 1-5, ... } },
-  "fehler": [ { "zitat": "", "korrektur": "", "typ": "R|G|Z|A", "erklaerung": "" } ]
+  "fehler": [ { "zitat": "", "korrektur": "", "typ": "R|G|Z|A", "erklaerung": "",
+                "vertrauensstufe": "hoch|mittel|niedrig", "korrektur_lokal_ambig": true } ]
 }
 ```
+
+`vertrauensstufe` und `korrektur_lokal_ambig` sind optional und werden **nach**
+der LLM-Validierung ergänzt (`compute_vertrauensstufe()`,
+`verify_fehler_against_text()`). Das Schema muss sie zulassen, weil der
+Benchmark-Runner das fertige Ergebnis erneut validiert — sonst gilt jede
+Analyse mit Funden als `schema_fehler`.
 
 Wichtig: `fehler` ist Top-Level-Array. `fehler_detail` innerhalb von `bewertung`-Kriterien ist **deprecated** (`additionalProperties: false`).
 

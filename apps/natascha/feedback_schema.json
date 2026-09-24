@@ -116,6 +116,15 @@
           "erklaerung": {
             "type": "string",
             "description": "Knappe Erklärung der verletzten Regel (1 Satz, optional)."
+          },
+          "vertrauensstufe": {
+            "type": "string",
+            "enum": ["hoch", "mittel", "niedrig"],
+            "description": "Post-hoc berechnete Einschätzung des Zitats (compute_vertrauensstufe, wird nach der LLM-Antwort ergänzt)."
+          },
+          "korrektur_lokal_ambig": {
+            "type": "boolean",
+            "description": "true, wenn die korrigierte Form bereits wörtlich im lokalen Satzkontext steht (unsicher, aber kein Entfernungsgrund)."
           }
         },
         "additionalProperties": false

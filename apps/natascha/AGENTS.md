@@ -255,7 +255,7 @@ DASHSCOPE_API_KEY=...   # alternativer Name für QWEN_API_KEY
 
 **Pflichtfelder:** `datei`, `textsorte`, `fach`, `schulstufe`, `rubrik`, `bewertung`, `fehler`
 
-**Wichtig:** `fehler` ist ein Top-Level-Array mit Objekten `{zitat, korrektur, typ, erklaerung}`. `fehler_detail` innerhalb von `bewertung`-Kriterien ist **deprecated**.
+**Wichtig:** `fehler` ist ein Top-Level-Array mit Objekten `{zitat, korrektur, typ, erklaerung}` plus den optionalen post-hoc-Feldern `vertrauensstufe` (`hoch|mittel|niedrig`) und `korrektur_lokal_ambig` (boolean) — beide werden nach der LLM-Validierung ergänzt und sind im Schema zugelassen. `fehler_detail` innerhalb von `bewertung`-Kriterien ist **deprecated**.
 
 ---
 

@@ -7,6 +7,14 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ## Unveröffentlicht
 
+### Korrektur-Analyse: Fundmeldungen gelten nicht mehr als Formatfehler (2026-09-24)
+- Analysen mit mindestens einem erkannten Sprachfehler wurden fälschlich als
+  fehlerhafte Antwort der KI gewertet und erneut angefragt, obwohl das
+  Ergebnis korrekt war. Die Kennzeichnungen, mit denen die App die Sicherheit
+  einer Fundmeldung anzeigt (Vertrauensstufe, mehrdeutige Korrektur), sind in
+  der Auswertung jetzt vorgesehen; Fundmeldungen werden fortlaufend korrekt
+  übernommen.
+
 ### Windows-Abnahme des Korrektur-Installers (2026-09-24)
 - Der Installer-Testplan verlangt jetzt einen Sidecar-Build aus dem aktuellen
   NATASCHA-Quellstand und die Tauri-Konfiguration mit `externalBin`; ein
