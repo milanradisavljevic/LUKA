@@ -5,7 +5,79 @@ Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 (auch andere Coding-Agents) — siehe `AGENTS.md`.
 
-## Unveröffentlicht
+## Version 1.5.1 — 2026-09-24
+
+### Das ist neu
+
+**Korrektur-Dialog überarbeitet**
+- Neuer 5-Schritte-Führungsassistent: Klasse & Aufgabe → Textsorte & Raster → Material → Abgaben → Übersicht & Start.
+- KI-Anbieter und Modell lassen sich direkt im Korrektur-Dialog wählen — ohne Umweg über die Einstellungen.
+- Textsorten-Auswahl: Oberstufe bietet die 7 offiziellen SRDP-Textsorten plus Empfehlung, Unterstufe die altersgerechten Textsorten; das passende Bewertungsraster wird automatisch vorgeschlagen.
+- Während der KI-Analyse ist der aktuelle Arbeitsschritt sichtbar, Stapelanalysen zeigen einen Fortschrittsbalken.
+
+**Vertrauensstufen für Korrekturvorschläge**
+- Jeder Vorschlag zeigt eine Ampel (grün/gelb/rot) — sofort erkennbar, wie sicher ein Vorschlag ist.
+- Einzelne Vorschläge können übernommen, geändert oder verworfen werden; die Entscheidung wird gespeichert und ins Feedback-DOCX übernommen.
+- Über der Fehlerliste gibt es den Umschalter „Nur unsichere"; verworfene Fehler erscheinen im Text gestrichen, geänderte farbig hervorgehoben.
+
+**Digitale Selbstkontrolle ohne KI**
+- Geschlossene Aufgaben (Multiple Choice, Lückentext, Zuordnung, Tabellen …) können in Schritt 4 direkt in LUKA beantwortet und lokal geprüft werden — ohne KI-Aufruf und ohne Upload.
+
+**Englisch und weitere Sprachfächer**
+- Englisch ist als eigenes Korrekturfach mit passenden Textsorten und nur den dazugehörigen Bewertungsrastern vertreten.
+- Französisch, Spanisch, Italienisch und Latein haben eigene Grundraster; das Feedback bleibt deutsch, Zitate und Korrekturen stehen in der Zielsprache.
+
+**Neue Aufgabenblöcke für Sachfächer**
+- Timeline/Datierung, Diagramm-/Datenanalyse und Quellenanalyse — durchgängig mit Vorschau, Lösungs-DOCX und Korrekturraster.
+
+**Förder- und Vertiefungsgruppen**
+- Die Klassenansicht ordnet bestätigte Lehrkraftnoten zwei oder drei Gruppen zu und zeigt die Zuordnung vor der Übung; sie lässt sich vor der Generierung manuell ändern.
+
+**Feedback-DOCX geht weiter**
+- Nach dem Fehlerprotokoll folgt „Nächste Schritte — woran du arbeiten kannst" mit den zwei bis drei häufigsten Fehlertypen und je einem konkreten Übungstipp.
+
+**Deutsch im deutschen Schulsystem**
+- Nur wenn im Profil Deutschland eingestellt ist: Notenskala 1–6 und die Bezeichnung „Klassenarbeit"; Österreich nutzt weiter die gewohnte SRDP-Skala 1–5.
+
+**Prüf-Hilfen für die Lehrkraft**
+- Eine Warnung erscheint, wenn Fehlerliste und Sprachrichtigkeits-Note stark widersprechen — die KI schlägt vor, die Entscheidung bleibt bei der Lehrkraft.
+- Die Kalibrierung zeigt, wie genau die KI je Textsorte liegt (z. B. „Erörterung: ± 1,00 Noten"); vor einem Korrektur-Stapel steht eine Mengenschätzung für die Ratenlimits.
+
+**Closed Loop messbar**
+- Die Statistik in der Klassenansicht zeigt, wie sich die Fehlerkategorien seit einer Folgeübung entwickelt haben.
+- Die Übung „Fehlerkorrektur" baut auf den Fehlern auf, die die Klasse tatsächlich gemacht hat.
+
+**Fehlermeldungen verständlicher**
+- Fehler erscheinen in klaren Kategorien (API-Key, Netzwerk, Ratenlimit, Dateiformat) statt als technische Rohdaten; bei Ratenlimit mit Wartezeit-Hinweis.
+
+### Verbessert
+
+- Umlaute (ä, ö, ü, ß) werden bei Korrekturen zuverlässig verarbeitet; auf Windows gab es teilweise Ersatzzeichen.
+- Anbieter und Modell eines Korrekturauftrags bleiben über den gesamten Auftrag konstant und werden mit dem Ergebnis gespeichert — kein stiller Wechsel mehr.
+- Qualitätsfilter entfernen doppelte Korrekturen, prüfen Notenbegründungen auf Widersprüche und filtern zu lange oder bereits korrekte Zitate.
+- Niveaugruppen berücksichtigen die Notenrichtung des Schulsystems (Schweiz: 6 = stärkste Note).
+- Die schwere Variante wird auch in gemischten Arbeitsblättern angewendet; Operatoren und Kompetenzniveau widersprechen sich nicht mehr.
+- Folgeübungen übernehmen Land, Fach und Stufe aus der letzten Abgabe; die Häufigkeit echter Fehlermuster bleibt bis in die Übung erhalten.
+- Sachfach-Korrekturen führen fachliche Kriterien getrennt von Sprachfehlern.
+- Fehlermuster lassen sich als Cluster über mehrere Aufgabenläufe hinweg verfolgen.
+- Die Qualitätsprüfung ist klar als „Selbstkontrolle des gewählten Modells" gekennzeichnet — beratend, nicht blockierend.
+- Die Hilfe stellt klar: Für Mathematik und performative Fächer erstellt LUKA Unterlagen, bietet aber keine vollwertige automatische Fachkorrektur.
+
+### Fehlerbehebungen
+
+- Analysen mit erkannten Fehlern werden nicht mehr fälschlich als fehlerhafte KI-Antwort gewertet und erneut angefragt.
+- Beim Erstellen von Unterlagen wird kein unbemerkt anderer KI-Anbieter mehr verwendet; bei Problemen erscheint eine klare Meldung.
+- Absturz beim Generieren oder bei der Leicht-Variante behoben (Block ohne Inhaltsliste).
+- Die Bewertungsraster-Liste nennt die echte Fehlerursache; eine unlesbare Rasterdatei blockiert nicht mehr alle Raster.
+- Feedback-DOCX: Entscheidungen der Lehrkraft fließen auch in den Export aus der Datenbank ein, Fehlerprotokoll-Seiten brechen sauberer um, der Beilagenhinweis zur Folgeübung erscheint nur bei belegtem Schülerexport.
+- Bestehende Korrektur-Datenbanken öffnen sich wieder (Spaltenmigration vor dem Index).
+- Die Lückentext-Vorschau zeigt wieder den vollständigen Text, auch im Tafel-Modus.
+- Die Einstellung „Anzahl Sätze" wird zuverlässig an die KI-Generierung übergeben.
+- Tabellen in der Leicht-Variante lesen Antworten im korrekten Schema und lösen keinen Laufzeitfehler mehr aus.
+- Informatik-Multiple-Choice: Vor dem Export wird ein eindeutiger Antwortschlüssel geprüft.
+- Bei Ratenlimit wird mit Pause wiederholt; die Duplikat-Erkennung nutzt den richtigen Datenbankpfad.
+
+## Version 1.5.1 — Änderungen im Detail (2026-09-24)
 
 ### Korrektur-Analyse: Fundmeldungen gelten nicht mehr als Formatfehler (2026-09-24)
 - Analysen mit mindestens einem erkannten Sprachfehler wurden fälschlich als
@@ -455,28 +527,6 @@ die gewohnte SRDP-Skala 1–5:
 - 24 neue Python-Tests: Lehrkraft-Aktionen in der DB, Migration der neuen Spalten, DOCX-Filterung (beide Exportpfade), Token-Budget-Grenzen und Mistral-Fallback-Verhalten.
 - 2 neue Rust-Tests für die Lehrkraft-Aktionsspeicherung (Rust-DB-Seite).
 - 6 neue Web-Tests für die Durchschnitts-Berechnung der Vertrauensstufe.
-
-## Version 1.5.1 — 2026-09-22
-
-### Das ist neu
-
-**Korrektur-Dialog überarbeitet**
-- Neuer 5-Schritte-Führungsassistent: Klasse & Aufgabe → Textsorte & Raster → Material → Abgaben → Übersicht & Start.
-- KI-Anbieter und Modell können direkt im Korrektur-Dialog gewählt werden — ohne vorher in die Einstellungen zu wechseln.
-- Textsorten-Auswahl: Oberstufe bietet die 7 offiziellen SRDP-Textsorten plus Empfehlung; Unterstufe die altersgerechten Textsorten.
-- Das passende Bewertungsraster wird automatisch vorgeschlagen.
-
-**Fortschritt sichtbar**
-- Während der KI-Analyse wird der aktuelle Arbeitsschritt angezeigt: Abgabe lesen → Bewertungsgrundlage laden → KI analysiert → Ergebnis speichern.
-- Bei Stapelanalysen zeigt ein Fortschrittsbalken den aktuellen Stand.
-
-**Fehlermeldungen verständlicher**
-- Fehler werden in klaren Kategorien angezeigt (API-Key, Netzwerk, Ratenlimit, Dateiformat) — statt technischer Rohdaten.
-- Bei Ratenlimit: Klare Meldung mit Wartezeit-Hinweis.
-
-**Umlaute zuverlässig**
-- Korrekturen mit Umlauten (ä, ö, ü, ß) werden jetzt zuverlässig verarbeitet.
-- Auf Windows gab es bisher teilweise Ersatzzeichen.
 
 ## Version 1.5.0 — 2026-09-22
 
