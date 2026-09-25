@@ -10,6 +10,7 @@ import {
   type RenderBlockCtx,
 } from './index.js';
 import type { Block, DocumentV1, QuellText } from '@lehrunterlagen/schema';
+import { baueWortbank } from '@lehrunterlagen/schema';
 
 // ---------------------------------------------------------------------------
 // Walker-Helfer: Struktur-Asserts auf dem docx-Objektbaum (kein Zip, keine
@@ -356,6 +357,32 @@ describe('blocks — lueckentext', () => {
     const text = children.map((c) => flattenText(c)).join(' ');
     expect(text).toContain('Wortbank');
   });
+  // Bug-Report v1.5.0: „die Wörter sollten nicht in der richtigen Reihenfolge,
+  // sondern durcheinander angeführt werden" — ohne Distraktoren-Liste stand die
+  // Bank vorher exakt in Lückenreihenfolge da.
+  it('Wortbank schueler: gemischt statt in Lückenreihenfolge (auch ohne Distraktoren-Liste)', () => {
+    const block: Block = {
+      id: 'bWortbank', typ: 'lueckentext', punkte: 5, arbeitsanweisung: 'Setze ein.',
+      config: { anzahlLuecken: 4, wortbank: true, distraktoren: 0 },
+      loesung: { luecken: [
+        { nr: 1, wort: 'Alpha' }, { nr: 2, wort: 'Beta' }, { nr: 3, wort: 'Gamma' }, { nr: 4, wort: 'Delta' },
+      ] },
+    };
+    const bankZellen = () => {
+      const children = renderBlockChildren(block, ctx({ modus: 'schueler' }));
+      const tabellen = collect(children, Table);
+      const bank = tabellen[tabellen.length - 1]!;
+      return collect(bank, TableCell).map((z) => flattenText(z).trim()).filter((t) => t.length > 0);
+    };
+    const zellen = bankZellen();
+    const loesungsworte = ['Alpha', 'Beta', 'Gamma', 'Delta'];
+    // Alle Wörter drin, aber NICHT in der richtigen Reihenfolge …
+    expect([...zellen].sort()).toEqual([...loesungsworte].sort());
+    expect(zellen).not.toEqual(loesungsworte);
+    // … sondern seed-stabil gemischt (seed = block.id) und bei jedem Render gleich.
+    expect(zellen).toEqual(baueWortbank(loesungsworte, [], 'bWortbank'));
+    expect(bankZellen()).toEqual(zellen);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -537,7 +564,39 @@ describe('blocks — Diagramm-/Datenanalyse', () => {
 });
 
 // ---------------------------------------------------------------------------
-// End-to-End-Smoke: ganzes DocumentV1 → Packer-Buffer > 0
+// Kreuzwort: Richtungs-Labels in der Ausgabesprache
+// ---------------------------------------------------------------------------
+
+describe('blocks - kreuzwortraetsel Richtungs-Labels', () => {
+  // Einträge mit gemeinsamen Buchstaben, damit das Gitter einen waagrechten
+  // UND einen senkrechten Eintrag bekommt (sonst fehlt eine der beiden Listen).
+  const riddle: Block = {
+    id: 'bKreuz', typ: 'kreuzwortraetsel', punkte: 8, arbeitsanweisung: 'Löse das Rätsel.',
+    config: { eintraege: [{ wort: 'HUND', hinweis: 'Haustier' }, { wort: 'UND', hinweis: 'Bindewort' }] },
+  };
+  const textMitFach = (fach: DocumentV1['meta']['fach']) =>
+    renderBlockChildren(riddle, ctx({ modus: 'schueler', fach })).map((c) => flattenText(c)).join(' ');
+
+  it('Deutsch: Waagrecht/Senkrecht', () => {
+    const text = textMitFach('deutsch');
+    expect(text).toContain('Waagrecht:');
+    expect(text).toContain('Senkrecht:');
+    expect(text).not.toContain('Across:');
+    expect(text).not.toContain('Down:');
+  });
+
+  // Bug-Report v1.5.0: „Waagrecht/senkrecht sollte auch auf Englisch sein".
+  it('Englisch: Across/Down statt Waagrecht/Senkrecht', () => {
+    const text = textMitFach('englisch');
+    expect(text).toContain('Across:');
+    expect(text).toContain('Down:');
+    expect(text).not.toContain('Waagrecht');
+    expect(text).not.toContain('Senkrecht');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// End-to-End-Smoke: ganzes DocumentV1  Packer-Buffer > 0
 // ---------------------------------------------------------------------------
 
 describe('blocks — End-to-End-Smoke', () => {

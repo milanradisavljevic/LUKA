@@ -428,7 +428,7 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
               <strong>Beispiel:</strong> {block.beispiel.trim()}
             </p>
           )}
-          <BlockPreview block={block} showSolution={false} template={renderTemplate} layout={renderLayout}
+          <BlockPreview block={block} showSolution={false} template={renderTemplate} layout={renderLayout} fach={meta.fach}
             onUpdate={editingId === block.id ? handleUpdate : undefined} />
           {/* Block-Regenerieren — nur bei generiertem Dokument */}
           {doc && (
@@ -606,7 +606,7 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
               <strong>Beispiel:</strong> {block.beispiel.trim()}
             </p>
           )}
-          <BlockPreview block={block} showSolution={true} template={renderTemplate} layout={renderLayout} />
+          <BlockPreview block={block} showSolution={true} template={renderTemplate} layout={renderLayout} fach={meta.fach} />
         </div>
       ))}
       {renderTransferaufgabe()}

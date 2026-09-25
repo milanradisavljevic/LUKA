@@ -1332,7 +1332,7 @@ export function renderBlockChildren(block: Block, ctx: RenderBlockCtx): (Paragra
     case 'tabelle': return buildTabelle(block, mode, template);
     case 'stiluebung': return buildStiluebung(block, mode, template);
     case 'songanalyse': return buildSonganalyse(block, mode, template);
-    case 'kreuzwortraetsel': return buildKreuzwortraetsel(block, mode, template, ctx.layout);
+    case 'kreuzwortraetsel': return buildKreuzwortraetsel(block, mode, template, ctx.layout, fach);
     case 'wortgitter': return buildWortgitter(block, mode, template, ctx.layout);
     case 'vokabeluebung': return buildVokabeluebung(block, mode, template);
     case 'umformung': return buildUmformung(block, mode, template);
@@ -1879,9 +1879,11 @@ function buildLueckentext(
   if (mode === 'schueler' && block.config.wortbank) {
     const loesungsWoerter = block.loesung.luecken.map((l) => l.wort);
     const distraktoren = block.config.distraktorWoerter ?? [];
-    const bank = distraktoren.length > 0
-      ? baueWortbank(loesungsWoerter, distraktoren, block.id)
-      : loesungsWoerter;
+    // IMMER mischen (seed = block.id, seed-stabil): vorher stand die Bank ohne
+    // Distraktoren-Liste in der richtigen Lueckenreihenfolge da (Bug-Report v1.5.0,
+    // „Wortbank duercheinander anfuehren"). Gleicher Seed => Schueler- und
+    // Loesungsblatt bzw. Vorschau zeigen dieselbe Reihenfolge.
+    const bank = baueWortbank(loesungsWoerter, distraktoren, block.id);
     result.push(...buildWortbankBoxen(bank, template, isEnglish ? 'Word bank' : 'Wortbank'));
   }
 
@@ -2874,8 +2876,10 @@ function buildKreuzwortraetsel(
   mode: Mode,
   template: RenderTemplate,
   layout: RenderLayout,
+  fach: DocumentV1['meta']['fach'] = 'deutsch',
 ): (Paragraph | Table)[] {
   const result: (Paragraph | Table)[] = [];
+  const isEnglish = fach === 'englisch';
   const gitter = baueKreuzwortgitter(block.config.eintraege ?? []);
   if (gitter.zeilen === 0) return result;
 
@@ -2944,8 +2948,10 @@ function buildKreuzwortraetsel(
       }));
     }
   };
-  hinweisListe('Waagrecht:', waag);
-  hinweisListe('Senkrecht:', senk);
+  // Richtungs-Label in der Ausgabesprache (Bug-Report v1.5.0: „Waagrecht/Senkrecht
+  // sollte auch auf Englisch sein") — Standard-Kreuzwort-Begriffe, nicht "horizontal".
+  hinweisListe(isEnglish ? 'Across:' : 'Waagrecht:', waag);
+  hinweisListe(isEnglish ? 'Down:' : 'Senkrecht:', senk);
 
   return result;
 }

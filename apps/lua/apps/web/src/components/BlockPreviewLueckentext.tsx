@@ -1,4 +1,5 @@
 import type { Block } from '@lehrunterlagen/schema';
+import { shuffle } from '@lehrunterlagen/schema';
 
 interface Props {
   block: Block;
@@ -37,13 +38,24 @@ export function BlockPreviewLueckentext({ block, showSolution, solutionStep, onU
   const loesung = block.loesung;
   const anzahl = config.anzahlLuecken ?? 0;
   const wortbank = config.wortbank ?? false;
-  const distraktoren = config.distraktoren ?? 0;
   const luecken = loesung.luecken ?? [];
 
   const isRevealed = (index: number) =>
     solutionStep !== undefined ? index < solutionStep : showSolution;
 
   const wortFuer = (nr: number) => luecken.find((l: { nr: number; wort: string }) => l.nr === nr)?.wort;
+
+  // Wortbank wie im DOCX-Export: Lösungswörter (+ Distraktoren-Liste), seed-stabil
+  // gemischt mit seed = block.id — vorher stand sie hier wie gedruckt in der
+  // Lückenreihenfolge (Bug-Report v1.5.0 „durcheinander anführen"). Die Bank ist
+  // Lösungshilfe und gehört sichtbar aufs Blatt (deckungsgleich mit dem Druck);
+  // die Reveal-Logik gilt weiterhin nur für die Lücken im Text.
+  const bankWoerter = wortbank
+    ? shuffle(
+        [...luecken.map((l: { nr: number; wort: string }) => l.wort), ...(config.distraktorWoerter ?? [])],
+        block.id,
+      )
+    : [];
 
   // Cloze-Text vorhanden → Inline-Darstellung (wie im Export), nicht die nackten
   // Lückenzeilen. Reveal funktioniert pro Lücke (Tafel-Modus „Lösung 2/5").
@@ -106,20 +118,12 @@ export function BlockPreviewLueckentext({ block, showSolution, solutionStep, onU
         <div style={{ marginTop: '0.75rem', padding: '0.5rem', border: '1px solid var(--color-border)', borderRadius: 4 }}>
           <strong style={{ fontSize: '10pt' }}>Wortbank:</strong>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.25rem', fontSize: '10pt' }}>
-            {luecken.map((l: { nr: number; wort: string }) => (
-              <span key={l.nr} style={{
+            {bankWoerter.map((w, i) => (
+              <span key={`${i}-${w}`} style={{
                 padding: '0.125rem 0.5rem', border: '1px solid var(--color-border)',
-                borderRadius: 3, color: isRevealed(l.nr - 1) ? undefined : 'var(--color-text-secondary)',
+                borderRadius: 3,
               }}>
-                {isRevealed(l.nr - 1) ? l.wort : '________'}
-              </span>
-            ))}
-            {Array.from({ length: distraktoren }, (_, i) => (
-              <span key={`d${i}`} style={{
-                padding: '0.125rem 0.5rem', border: '1px solid var(--color-border)',
-                borderRadius: 3, color: 'var(--color-border)',
-              }}>
-                ________
+                {w}
               </span>
             ))}
           </div>

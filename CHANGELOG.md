@@ -15,6 +15,11 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 - Latein: Arbeitsanweisungen sind deutsch wie in üblichen Arbeitsblättern; Quelltexte und lateinische Fachbegriffe bleiben lateinisch.
 - Fremdsprachen: Arbeitsaufträge sind eine Stufe einfacher als die Aufgaben — kurze, alltagssprachliche Anweisungen statt langen Erklärtexten.
 
+**Behobene Fehler**
+
+- Wortbank beim Lückentext: Die Wörter stehen jetzt durcheinander und nicht mehr in der richtigen Reihenfolge — Vorschau und Ausdruck zeigen dieselbe Mischung.
+- Kreuzworträtsel in Englisch-Unterlagen: Die Überschriften heißen jetzt „Across" und „Down" statt „Waagrecht" und „Senkrecht".
+
 ## Version 1.5.1 — 2026-09-24
 
 ### Das ist neu

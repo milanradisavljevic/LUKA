@@ -1,4 +1,4 @@
-import type { Block } from '@lehrunterlagen/schema';
+import type { Block, Fach } from '@lehrunterlagen/schema';
 import { baueKreuzwortgitter } from '@lehrunterlagen/schema';
 import { getDefaultLayout, getDefaultTemplate, pruefeRaetselA4 } from '@lehrunterlagen/renderer';
 import type { RenderLayout, RenderTemplate } from '@lehrunterlagen/renderer';
@@ -10,12 +10,15 @@ interface Props {
   onUpdate?: (id: string, field: string, value: unknown) => void;
   template?: RenderTemplate;
   layout?: RenderLayout;
+  /** Fach des Dokuments — Englisch schaltet die Richtungs-Labels auf Across/Down. */
+  fach?: Fach;
 }
 
 const DELTA = { waagrecht: [0, 1] as const, senkrecht: [1, 0] as const };
 
-export function BlockPreviewKreuzwortraetsel({ block, showSolution, solutionStep, template = getDefaultTemplate(), layout = getDefaultLayout() }: Props) {
+export function BlockPreviewKreuzwortraetsel({ block, showSolution, solutionStep, template = getDefaultTemplate(), layout = getDefaultLayout(), fach }: Props) {
   if (block.typ !== 'kreuzwortraetsel') return null;
+  const isEnglish = fach === 'englisch';
   const gitter = baueKreuzwortgitter(block.config.eintraege ?? []);
 
   const isRevealed = (platzIndex: number) =>
@@ -89,7 +92,7 @@ export function BlockPreviewKreuzwortraetsel({ block, showSolution, solutionStep
       <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', fontSize: '10pt' }}>
         {waag.length > 0 && (
           <div>
-            <strong>Waagrecht:</strong>
+            <strong>{isEnglish ? 'Across:' : 'Waagrecht:'}</strong>
             <ul style={{ margin: '0.25rem 0 0', paddingLeft: '1.1rem' }}>
               {waag.map((p) => {
                 const idx = gitter.platzierungen.indexOf(p);
@@ -100,7 +103,7 @@ export function BlockPreviewKreuzwortraetsel({ block, showSolution, solutionStep
         )}
         {senk.length > 0 && (
           <div>
-            <strong>Senkrecht:</strong>
+            <strong>{isEnglish ? 'Down:' : 'Senkrecht:'}</strong>
             <ul style={{ margin: '0.25rem 0 0', paddingLeft: '1.1rem' }}>
               {senk.map((p) => {
                 const idx = gitter.platzierungen.indexOf(p);

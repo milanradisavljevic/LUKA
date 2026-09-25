@@ -1,4 +1,4 @@
-import type { Block } from '@lehrunterlagen/schema';
+import type { Block, Fach } from '@lehrunterlagen/schema';
 import { BlockPreviewLueckentext } from './BlockPreviewLueckentext';
 import { BlockPreviewMatching } from './BlockPreviewMatching';
 import { BlockPreviewMultipleChoice } from './BlockPreviewMultipleChoice';
@@ -27,9 +27,11 @@ interface Props {
   onUpdate?: (id: string, field: string, value: unknown) => void;
   template?: RenderTemplate;
   layout?: RenderLayout;
+  /** Fach des Dokuments — steuert englische Renderer-Labels (z. B. Kreuzwort). */
+  fach?: Fach;
 }
 
-export function BlockPreview({ block, showSolution, solutionStep, onUpdate, template, layout }: Props) {
+export function BlockPreview({ block, showSolution, solutionStep, onUpdate, template, layout, fach }: Props) {
   const extraProps = {
     ...(onUpdate ? { onUpdate } : {}),
     ...(solutionStep !== undefined ? { solutionStep } : {}),
@@ -66,7 +68,7 @@ export function BlockPreview({ block, showSolution, solutionStep, onUpdate, temp
     case 'songanalyse':
       return pass(BlockPreviewSonganalyse);
     case 'kreuzwortraetsel':
-      return <BlockPreviewKreuzwortraetsel block={block} showSolution={showSolution} {...extraProps} template={template} layout={layout} />;
+      return <BlockPreviewKreuzwortraetsel block={block} showSolution={showSolution} {...extraProps} template={template} layout={layout} fach={fach} />;
     case 'wortgitter':
       return <BlockPreviewWortgitter block={block} showSolution={showSolution} {...extraProps} template={template} layout={layout} />;
     case 'vokabeluebung':
