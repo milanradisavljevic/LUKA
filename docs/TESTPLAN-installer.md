@@ -37,11 +37,11 @@
 ## B. Installation
 
 ### B1 — Windows (NSIS)
-- [ ] Installer ausführen — kein Fehler
-- [ ] Standard-Installationsordner akzeptieren
-- [ ] App startet nach Installation automatisch oder per Desktop-Verknüpfung
-- [ ] Kein Konsolenfenster erscheint
-- [ ] Version in der App zeigt `1.5.1`
+- [x] Installer ausführen — kein Fehler (2026-09-24: Update-Installation über vorhandene 1.5.1 erfolgreich)
+- [x] Standard-Installationsordner akzeptieren
+- [x] App startet nach Installation automatisch oder per Desktop-Verknüpfung
+- [x] Kein Konsolenfenster erscheint
+- [x] Version in der App zeigt `1.5.1`
 
 ### B2 — macOS (DMG)
 - [ ] DMG mounten — App in Applications ziehen
