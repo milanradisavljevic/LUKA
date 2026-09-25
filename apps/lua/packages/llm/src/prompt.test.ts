@@ -598,3 +598,71 @@ describe('buildMessages — Abitur-Training (matura + land=DE)', () => {
     expect(system.content).not.toContain('ZUSAETZLICHER SRDP-MASSSTAB');
   });
 });
+
+describe('buildMessages — Latein: Anweisungen deutsch (v1.5.2)', () => {
+  const latein = input({ fach: 'latein', thema: 'Caesar, de bello Gallico' });
+  const user = (i = latein) => buildMessages(i).find((m) => m.role === 'user')!;
+
+  it('verlangt schülerseitige Anweisungstexte auf Deutsch (inkl. arbeitsblattTitel)', () => {
+    const content = user().content;
+    expect(content).toContain('ist auf Deutsch');
+    expect(content).toContain('arbeitsanweisung');
+    expect(content).toContain('arbeitsblattTitel');
+    expect(content).toContain('VORRANG vor allen anderen Sprachregeln');
+  });
+
+  it('enthält nicht mehr die alte Zielsprachen-Formulierung "MUSS auf Latein"', () => {
+    for (const m of buildMessages(latein)) expect(m.content).not.toContain('MUSS auf Latein');
+  });
+
+  it('lässt Quelltexte und lateinische Arbeitstexte lateinisch', () => {
+    expect(user().content).toContain('bleiben lateinisch');
+    expect(user().content).toContain('Saetze zum Uebersetzen');
+  });
+
+  it('greift auch im Kompetenz-Modus (dort fordert der System-Prompt Zielsprache-Titel)', () => {
+    const content = user(input({ fach: 'latein', modus: 'kompetenz' })).content;
+    expect(content).toContain('ist auf Deutsch');
+    expect(content).not.toContain('MUSS auf Latein');
+  });
+
+  it('Englisch behält unverändert die Zielsprachen-Regel', () => {
+    const content = user(input({ fach: 'englisch' })).content;
+    expect(content).toContain('MUSS auf Englisch');
+  });
+});
+
+describe('buildMessages — Anweisungs-Niveau moderne Fremdsprachen (v1.5.2)', () => {
+  const userContent = (meta: Partial<Meta>) => buildMessages(input(meta)).find((m) => m.role === 'user')!.content;
+
+  it('Englisch "mittel": Anweisungen eine CEFR-Stufe leichter (B1 → A2)', () => {
+    const content = userContent({ fach: 'englisch', schwierigkeit: 'mittel' });
+    expect(content).toContain('NIVEAUSTUFE EINFACHER');
+    expect(content).toContain('mittel ~ B1 → A2');
+    expect(content).toContain('bleiben auf der gewaehlten Stufe');
+  });
+
+  it('Englisch "schwer": Anweisungen auf B1 (B2 → B1)', () => {
+    const content = userContent({ fach: 'englisch', schwierigkeit: 'schwer' });
+    expect(content).toContain('NIVEAUSTUFE EINFACHER');
+    expect(content).toContain('schwer ~ B2 → B1');
+  });
+
+  it('gilt für alle modernen Fremdsprachen', () => {
+    for (const fach of ['franzoesisch', 'spanisch', 'italienisch'] as const) {
+      expect(userContent({ fach })).toContain('NIVEAUSTUFE EINFACHER');
+    }
+  });
+
+  it('gilt auch im Kompetenz-Modus', () => {
+    expect(userContent({ fach: 'englisch', modus: 'kompetenz' })).toContain('NIVEAUSTUFE EINFACHER');
+  });
+
+  it('Deutsch (kein Sprachfach) hat keine Niveau-Regel', () => {
+    expect(userContent({})).not.toContain('NIVEAUSTUFE EINFACHER');
+  });
+
+  it('Latein hat keine Niveau-Regel (dort gilt: Anweisungen deutsch)', () => {
+    expect(userContent({ fach: 'latein' })).not.toContain('NIVEAUSTUFE EINFACHER');
+  });
+});

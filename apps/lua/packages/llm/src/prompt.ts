@@ -990,18 +990,37 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
       : '';
   const zielsprache = FACH_META[input.meta.fach]?.zielsprache ?? 'Deutsch';
   const spracheHinweis =
-    istSprachfach(input.meta.fach)
-      ? `SPRACHE: Dies ist eine ${FACH_META[input.meta.fach].label}-Unterlage. JEDER schuelerseitige Inhalt MUSS auf ${zielsprache} sein — `
-        + `arbeitsanweisung, Fragen, Antwortoptionen, Lueckensaetze, Schreibaufgaben-Situationen, Aspekte, Titel `
-        + `und Verweise auf den Text (z. B. "Absatz N" in der Zielsprache, nicht auf Deutsch). Die deutschen Beispiele unten `
-        + `zeigen NUR die Struktur, nicht die Sprache. Loesungen/Musterantworten ebenfalls auf ${zielsprache}. `
-      // Nicht-Sprachfach: kein automatischer Deutsch-Anker. Ohne diese Instruktion rutschen
-      // Rollenspiel-/Debatte-Bloecke bei fachfremden, englisch-kodierten Themen (z. B. KI, Cybersecurity)
-      // bzw. bei neuen, dem Modell unbekannten Faechern ins Englische — das rollenkartenSet-Beispiel in
-      // BLOCK_REGELN ist selbst englischsprachig und wirkt ohne Gegenanweisung als Sprach-Anker.
-      // Befund: docs/REVIEW-aufgabenpool-neue-faecher-2026-07.md, Fund A2.
-      : `SPRACHE: JEDER schuelerseitige Inhalt MUSS auf Deutsch sein — arbeitsanweisung, Fragen, Antwortoptionen, `
-        + `Rollenbeschreibungen, Redemittel, Musterdialoge, Titel. Das ist kein Fremdsprachenfach. `;
+    input.meta.fach === 'latein'
+      // Latein: Quelltext bleibt lateinisch, ALLE schülerseitigen Anweisungen sind deutsch —
+      // wie in üblichen Latein-Arbeitsblättern (Befund: Anweisungen auf Latein zu anspruchsvoll).
+      // Vorrang explizit, weil BLOCK_REGELN/SYSTEM-KÖPFE sonst Inhalte "in der Zielsprache des
+      // Fachs" verlangen (prompt.ts:346,348,726,745) und einzelne Regeln (Rollen-Gerüst,
+      // Szenario-Titel) sonst weiterhin lateinisch ausfielen.
+      ? `SPRACHE: Latein-Unterlage. Diese Regel hat VORRANG vor allen anderen Sprachregeln dieses Prompts — auch vor "Inhalte in der Zielsprache des Fachs". `
+        + `Quelltexte, lateinische Fachbegriffe, Originalzitate und lateinische Arbeitstexte (Saetze zum Uebersetzen, Lueckensaetze aus dem Quelltext) bleiben lateinisch. `
+        + `JEDER schulerseitige Anweisungstext ist auf Deutsch — arbeitsanweisung, Fragen, Titel (auch der arbeitsblattTitel), Aufgabenbeschreibungen, Hinweise und `
+        + `Verweise auf den Text (wie in ueblichen Latein-Arbeitsblaettern). Loesungen und Uebersetzungen sind deutsch. Die deutschen Beispiele zeigen NUR die Struktur. `
+      : istSprachfach(input.meta.fach)
+          ? `SPRACHE: Dies ist eine ${FACH_META[input.meta.fach].label}-Unterlage. JEDER schuelerseitige Inhalt MUSS auf ${zielsprache} sein — `
+            + `arbeitsanweisung, Fragen, Antwortoptionen, Lueckensaetze, Schreibaufgaben-Situationen, Aspekte, Titel `
+            + `und Verweise auf den Text (z. B. "Absatz N" in der Zielsprache, nicht auf Deutsch). Die deutschen Beispiele unten `
+            + `zeigen NUR die Struktur, nicht die Sprache. Loesungen/Musterantworten ebenfalls auf ${zielsprache}. `
+          // Nicht-Sprachfach: kein automatischer Deutsch-Anker. Ohne diese Instruktion rutschen
+          // Rollenspiel-/Debatte-Bloecke bei fachfremden, englisch-kodierten Themen (z. B. KI, Cybersecurity)
+          // bzw. bei neuen, dem Modell unbekannten Faechern ins Englische — das rollenkartenSet-Beispiel in
+          // BLOCK_REGELN ist selbst englischsprachig und wirkt ohne Gegenanweisung als Sprach-Anker.
+          // Befund: docs/REVIEW-aufgabenpool-neue-faecher-2026-07.md, Fund A2.
+          : `SPRACHE: JEDER schuelerseitige Inhalt MUSS auf Deutsch sein — arbeitsanweisung, Fragen, Antwortoptionen, `
+            + `Rollenbeschreibungen, Redemittel, Musterdialoge, Titel. Das ist kein Fremdsprachenfach. `;
+  // Moderne Fremdsprachen: Arbeitsaufträge eine CEFR-Stufe leichter als die Aufgaben
+  // (Befund Englisch „bin ich zu dumm?"). Gilt NICHT für Latein (dort gilt rein Deutsch für Anweisungen).
+  const anweisungsNiveauHinweis =
+    istSprachfach(input.meta.fach) && input.meta.fach !== 'latein'
+      ? `ARBEITSANWEISUNGEN EINE NIVEAUSTUFE EINFACHER: Formuliere die arbeitsanweisungen bewusst eine CEFR-Stufe leichter als die Aufgabenschwierigkeit `
+        + `(leicht ~ A2 → Anweisungen in A1/A2-Grundsprache, mittel ~ B1 → A2, schwer ~ B2 → B1): kurze Imperativsaetze, Alltagswortschatz, `
+        + `keine komplexen Nebensaetze und keine langen Erklaerungsabsaetze in der Vorgabe. Die Aufgaben, Texte und Loesungen selbst bleiben auf der gewaehlten Stufe. `
+        + `Beispiel bei "mittel": "Lies den Text. Beantworte dann die Fragen in ganzen Saetzen." `
+      : '';
   const maturaHinweis =
     input.meta.typ === 'matura'
       ? (land === 'DE'
@@ -1078,6 +1097,7 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
           niveauHinweisGemeinsam +
           niveauHinweis +
           spracheHinweis +
+          anweisungsNiveauHinweis +
           maturaHinweis +
           lernzielHinweis +
           zielgruppeHinweis +
@@ -1120,6 +1140,7 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
         `Schwierigkeitsniveau: "${schwierigkeit}" — passe das kognitive Niveau der Aufgaben entsprechend an (siehe Bloom-Steuerung im System-Prompt). ` +
         niveauHinweisGemeinsam +
         spracheHinweis +
+        anweisungsNiveauHinweis +
         maturaHinweis +
         srdpDeutschTrainingHinweis +
         abiturDeutschTrainingHinweis +

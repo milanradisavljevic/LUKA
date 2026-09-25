@@ -5,6 +5,16 @@ Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 (auch andere Coding-Agents) — siehe `AGENTS.md`.
 
+## Version 1.5.2 — 2026-09-24
+
+### Das ist neu
+
+**Update & Sprachen**
+
+- Update lässt sich jetzt jederzeit manuell prüfen — neuer Knopf unten in der Seitenleiste, direkt neben der Versionsnummer.
+- Latein: Arbeitsanweisungen sind deutsch wie in üblichen Arbeitsblättern; Quelltexte und lateinische Fachbegriffe bleiben lateinisch.
+- Fremdsprachen: Arbeitsaufträge sind eine Stufe einfacher als die Aufgaben — kurze, alltagssprachliche Anweisungen statt langen Erklärtexten.
+
 ## Version 1.5.1 — 2026-09-24
 
 ### Das ist neu

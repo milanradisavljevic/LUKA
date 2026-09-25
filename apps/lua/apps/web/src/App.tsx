@@ -681,6 +681,7 @@ if (hydrating) {
           onViewChange={setActiveView}
           onNewDocument={handleNewDocument}
           onBugReport={() => setBugReportOpen(true)}
+          updater={updater}
         />
       )}
 

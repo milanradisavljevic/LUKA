@@ -95,6 +95,33 @@ export function UpdateDialog({ updater }: Props) {
           padding: '1.5rem',
         }}
       >
+        {state.phase === 'checking' && (
+          <h2 id="update-dialog-title" style={{ fontSize: '1rem', color: 'var(--color-text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+            <Loader2 size={16} className="spin" /> Prüfe auf Updates …
+          </h2>
+        )}
+
+        {state.phase === 'uptodate' && (
+          <>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.5rem' }}>
+              <h2 id="update-dialog-title" style={{ fontSize: '1rem', color: 'var(--color-text-primary)' }}>
+                LUKA ist auf dem neuesten Stand.
+              </h2>
+              <button className="btn-secondary" onClick={dismiss} aria-label="Schließen" style={{ padding: '0.25rem 0.4rem', display: 'inline-flex' }}>
+                <X size={16} />
+              </button>
+            </div>
+            {state.currentVersion && (
+              <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+                Installiert: Version {state.currentVersion} — kein Update verfügbar.
+              </p>
+            )}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+              <button className="btn-secondary" onClick={dismiss}>Schließen</button>
+            </div>
+          </>
+        )}
+
         {state.phase === 'available' && (
           <>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.75rem' }}>
