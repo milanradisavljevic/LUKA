@@ -1,3 +1,5 @@
+import { FACH_META, type Fach } from '@lehrunterlagen/schema';
+
 export interface RubrikOption {
   filename: string;
   titel?: string;
@@ -22,9 +24,11 @@ export function rubrikLabel(rubrik: RubrikOption): string {
 
 export function fachLabel(fach: string | undefined): string {
   const normalized = fach?.trim().toLowerCase() ?? '';
-  if (normalized === 'deutsch') return 'Deutsch';
-  if (normalized === 'englisch') return 'Englisch';
-  return normalized ? normalized.replace(/\b\p{L}/gu, (letter) => letter.toUpperCase()) : 'Weitere Raster';
+  if (!normalized) return 'Weitere Raster';
+  // Bekannte Fächer aus FACH_META (14) — dieselbe Quelle wie elsewhere.
+  const bekannt = FACH_META[normalized as Fach]?.label;
+  if (bekannt) return bekannt;
+  return normalized.replace(/\b\p{L}/gu, (letter) => letter.toUpperCase());
 }
 
 export function gruppiereRubriken(rubriken: RubrikOption[]): RubrikGruppe[] {

@@ -1,11 +1,13 @@
 import { useLocalDraft, beginActivity } from '../lib/workSession';
-import { uniqueTextAnchor } from '../lib/textAnchors';
+import { baueFehlerSegmente, primaerStart, type FehlerAktion, type SegmentErgebnis } from '../lib/fehlerSegmente';
+import { sortiereFehler, SORTIER_MODI, type SortierModus } from '../lib/korrekturSortierung';
+import { zentriereInPaneWennNoetig } from '../lib/paneScroll';
 import { MODEL_MAP } from '../lib/runtimeModel';
 import { LLM_PROVIDERS, PROVIDER_KEY_IDS } from '../lib/constants';
 import { textsortenFuer, textsortenHint } from '../lib/textsortenAuswahl';
 import { useDialogFocus } from '../hooks/useDialogFocus';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { GraduationCap, Save, AlertTriangle, Loader2, Upload, FolderOpen, FileDown, ChevronRight, Eye, EyeOff, Files, XCircle, CheckCircle2, ShieldCheck, RefreshCw, Check, X, Pencil, Undo2, Trash2 } from 'lucide-react';
+import { GraduationCap, Save, AlertTriangle, Loader2, Upload, FolderOpen, FileDown, ChevronRight, Eye, EyeOff, Files, XCircle, CheckCircle2, ShieldCheck, RefreshCw, Check, X, Pencil, Undo2, Trash2, Unlink } from 'lucide-react';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { loadDocuments, loadSettings, subscribeSettings } from '../lib/storage';
 import { useNatascha, type PersonenVorschau, type RubrikListe, type SchuelerInfo, type KorrekturKontext } from '../hooks/useNatascha';
@@ -90,57 +92,83 @@ function analyseHinweise(result: unknown): string[] {
 const FEHLER_COLORS: Record<string, string> = { R: '#e74c3c', G: '#27ae60', Z: '#3498db', A: '#f39c12' };
 const FEHLER_LABELS: Record<string, string> = { R: 'Rechtschreibung', G: 'Grammatik', Z: 'Zeichensetzung', A: 'Ausdruck' };
 
-/** Annotiert rohtext: findet jedes fehler.zitat und wraps es in ein farbiges <mark>.
- *  Verworfene Fehler werden grau/durchgestrichen, geaenderte hervorgehoben. */
-function annotateText(
-  text: string,
-  fehler: FehlerRow[],
-  aktionen?: Record<number, { aktion: string | null; korrektur?: string }>,
-): React.ReactNode[] {
-  type Seg = { start: number; end: number; typ: string; aktion: string | null };
-  const segs: Seg[] = [];
-  for (const f of fehler) {
-    if (!f.zitat) continue;
-    const aktion = aktionen?.[f.id]?.aktion ?? f.lehrkraftAktion ?? null;
-    const idx = uniqueTextAnchor(text, f.zitat);
-    if (idx === null) continue;
-    segs.push({ start: idx, end: idx + f.zitat.length, typ: f.typ, aktion });
-  }
-  segs.sort((a, b) => a.start - b.start);
+const AKTION_LABELS: Record<string, string> = { uebernommen: 'übernommen', geaendert: 'geändert', verworfen: 'verworfen' };
 
+/** Wie die Fundstelle im Text zustande kam – für Tooltips und Kartentitel. */
+const ANKER_LABELS: Record<string, string> = {
+  eindeutig: 'genau eine Fundstelle',
+  mehrdeutig: 'mehrere Fundstellen – bitte alle prüfen',
+  normalisiert: 'Schreibweise angeglichen',
+};
+
+/** Spricht die KI für sich, wenn ein Zitat nicht (eindeutig) im Text steht. */
+const HINWEIS_OHNE_STELLE = 'Dieses Zitat ließ sich nicht eindeutig im Schülertext finden. Bitte den Text an der Fundstelle mit dem Zitat auf der Karte vergleichen.';
+
+/** Wer die Bewegung im System abgeschaltet hat, bekommt kein Springen. */
+function respektiereBewegungsreduktion(): boolean {
+  return typeof window !== 'undefined'
+    && typeof window.matchMedia === 'function'
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+/** Rendert den Rohtext mit den Markierungen der Fehlerliste.
+ *
+ *  Drei Kanäle, die sich nicht ins Gehege kommen: Farbe = Fehlertyp,
+ *  Form (Deckkraft/Strich/Lila) = Lehrkraftentscheidung, Ring = aktiver Vorschlag.
+ *  Die Nummer ist bewusst farbfrei – bei 40 gleichartigen Markierungen ist sie
+ *  das einzige, was Karte und Text zuverlässig zuordnet. */
+function renderMarkierungen(
+  text: string,
+  ergebnis: SegmentErgebnis,
+  nummern: Map<number, number>,
+  opt: {
+    aktiveId: number | null;
+    hoverId: number | null;
+    zeigeNummern: boolean;
+    registriere: (fehlerId: number, el: HTMLElement | null) => void;
+    onKlick: (fehlerId: number) => void;
+  },
+): React.ReactNode[] {
   const nodes: React.ReactNode[] = [];
   let pos = 0;
-  for (const seg of segs) {
-    if (seg.start < pos) continue;
+  for (const seg of ergebnis.segmente) {
     if (seg.start > pos) nodes.push(text.slice(pos, seg.start));
-    const label = FEHLER_LABELS[seg.typ] ?? seg.typ;
-    if (seg.aktion === 'verworfen') {
-      nodes.push(
-        <mark key={seg.start} title={`${label} — verworfen`} style={{ background: '#99999922', borderBottom: '2px solid #999', borderRadius: 2, padding: '0 1px', textDecoration: 'line-through', color: '#999' }}>
-          {text.slice(seg.start, seg.end)}
-        </mark>,
-      );
-    } else if (seg.aktion === 'geaendert') {
-      nodes.push(
-        <mark key={seg.start} title={`${label} — geändert`} style={{ background: '#9b59b628', borderBottom: '2px solid #9b59b6', borderRadius: 2, padding: '0 1px' }}>
-          {text.slice(seg.start, seg.end)}
-        </mark>,
-      );
-    } else if (seg.aktion === 'uebernommen') {
-      nodes.push(
-        <mark key={seg.start} title={`${label} — übernommen`} style={{ background: FEHLER_COLORS[seg.typ] + '38', borderBottom: `2px solid ${FEHLER_COLORS[seg.typ] ?? '#999'}`, borderRadius: 2, padding: '0 1px' }}>
-          {text.slice(seg.start, seg.end)}
-        </mark>,
-      );
-    } else {
-      const col = FEHLER_COLORS[seg.typ] ?? '#999';
-      nodes.push(
-        <mark key={seg.start} title={label} style={{ background: col + '28', borderBottom: `2px solid ${col}`, borderRadius: 2, padding: '0 1px' }}>
-          {text.slice(seg.start, seg.end)}
-        </mark>,
-      );
-    }
-    pos = seg.end;
+    const nr = nummern.get(seg.fehlerId);
+    const istAktiv = opt.aktiveId === seg.fehlerId;
+    const istVorschau = opt.hoverId === seg.fehlerId && !istAktiv;
+    const fundstellen = ergebnis.anker.get(seg.fehlerId)?.treffer.length ?? 0;
+    const hinweis = [
+      nr !== undefined ? `Nr. ${nr}` : null,
+      FEHLER_LABELS[seg.typ] ?? seg.typ,
+      seg.mehrdeutig ? `${fundstellen} Fundstellen – bitte alle prüfen` : null,
+      seg.ankerStatus === 'normalisiert' ? 'Schreibweise angeglichen' : null,
+      seg.aktion ? AKTION_LABELS[seg.aktion] : null,
+    ].filter(Boolean).join(' · ');
+
+    const stil = seg.aktion === 'verworfen'
+      ? { background: '#99999922', borderBottom: '2px solid #999', textDecoration: 'line-through' as const, color: '#999' }
+      : seg.aktion === 'geaendert'
+        ? { background: '#9b59b628', borderBottom: '2px solid #9b59b6' }
+        : { background: (FEHLER_COLORS[seg.typ] ?? '#999') + (seg.aktion === 'uebernommen' ? '38' : '28'), borderBottom: `2px solid ${FEHLER_COLORS[seg.typ] ?? '#999'}` };
+
+    const klasse = ['mark', istAktiv && 'is-aktiv', istVorschau && 'is-vorschau'].filter(Boolean).join(' ');
+    nodes.push(
+      <mark
+        key={seg.start}
+        className={klasse}
+        title={hinweis}
+        data-mehrdeutig={seg.mehrdeutig ? 'true' : undefined}
+        style={stil}
+        ref={seg.primaer ? (el: HTMLElement | null) => opt.registriere(seg.fehlerId, el) : undefined}
+        onClick={() => opt.onKlick(seg.fehlerId)}
+      >
+        {text.slice(seg.start, seg.ende)}
+        {opt.zeigeNummern && nr !== undefined && (
+          <sup style={{ color: seg.aktion === 'verworfen' ? '#999' : FEHLER_COLORS[seg.typ] ?? '#666' }}>{nr}</sup>
+        )}
+      </mark>,
+    );
+    pos = seg.ende;
   }
   if (pos < text.length) nodes.push(text.slice(pos));
   return nodes;
@@ -231,6 +259,17 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }:
   const [fehlerAktionen, setFehlerAktionen] = useState<Record<number, { aktion: string | null; korrektur?: string }>>({});
   const [editFehlerId, setEditFehlerId] = useState<number | null>(null);
   const [editKorrektur, setEditKorrektur] = useState('');
+  // Verzahnung Fehlerkarte ↔ markierter Schülertext: welcher Vorschlag ist aktiv,
+  // in welcher Reihenfolge wird die Liste gelesen, und tragen die Markierungen Nummern.
+  const [sortierung, setSortierung] = useLocalDraft<SortierModus>('korrektur-sortierung', 'text');
+  const [zeigeNummern, setZeigeNummern] = useLocalDraft('korrektur-nummern', true);
+  const [aktiveFehlerId, setAktiveFehlerId] = useState<number | null>(null);
+  const [hoverFehlerId, setHoverFehlerId] = useState<number | null>(null);
+  const [ankerHinweis, setAnkerHinweis] = useState<string | null>(null);
+  const textPaneRef = useRef<HTMLDivElement | null>(null);
+  const fehlerListeRef = useRef<HTMLDivElement | null>(null);
+  const markRefs = useRef(new Map<number, HTMLElement>());
+  const kartenRefs = useRef(new Map<number, HTMLElement>());
   const detailRequest=useRef(0);
   const saveLock=useRef(false);
   const listRequest=useRef(0);
@@ -639,6 +678,13 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }:
     setFehlerAktionen({});
     setEditFehlerId(null);
     setNurUnsichere(false);
+    // Auch die Text-Markierung nicht stehen lassen: sie zeigt sonst in die
+    // nächste Abgabe hinein, wo es den Vorschlag gar nicht gibt.
+    setAktiveFehlerId(null);
+    setHoverFehlerId(null);
+    setAnkerHinweis(null);
+    markRefs.current.clear();
+    kartenRefs.current.clear();
   }, [selectedAbgabe?.abgabe.id]);
 
   const handleOpenAnalyze = useCallback(() => {
@@ -830,11 +876,97 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }:
     }
   }, [effectiveRuntime.provider, effectiveRuntime.model, revisionOfAbgabeId, contextKey, rubrikListe.defaultRubric, assignments, analyze, analyzeFile, analyzeKlasse, analyzeAufgabe, analyseKlasseMeta, analyzeAusgangstext, analyzeAusgangstextDatei, listKlassen, loadAufgaben, pseudoVorschau, pseudoVorschauBusy, pseudoAktiv, selectedRubrik, zuordnungId, einsatzOptions, selectedEinsatzId]);
 
-  const annotatedNodes = useMemo(() => {
+  /** Aktuelle Lehrkraftentscheidung: lokaler Overlay schlägt die gespeicherte Aktion. */
+  const aktionVon = useCallback((id: number): FehlerAktion => {
+    const f = selectedAbgabe?.fehler.find(x => x.id === id);
+    return ((fehlerAktionen[id]?.aktion ?? f?.lehrkraftAktion ?? null) as FehlerAktion);
+  }, [selectedAbgabe, fehlerAktionen]);
+
+  // Wer steht wo im Text – und welcher Vorschlag verliert seinen Platz an einen anderen.
+  const segmentErgebnis = useMemo<SegmentErgebnis | null>(() => {
     const rohtext = selectedAbgabe?.abgabe.rohtext;
     if (!rohtext || !selectedAbgabe) return null;
-    return annotateText(rohtext, selectedAbgabe.fehler, fehlerAktionen);
-  }, [selectedAbgabe, fehlerAktionen]);
+    return baueFehlerSegmente(rohtext, selectedAbgabe.fehler.map(f => ({
+      id: f.id,
+      zitat: f.zitat,
+      typ: f.typ,
+      aktion: aktionVon(f.id),
+    })));
+  }, [selectedAbgabe, aktionVon]);
+
+  // Gefilterte und sortierte Liste + Laufnummern. Die Nummern hängen an der
+  // sichtbaren Reihenfolge, damit Karte und Text dieselbe Ziffer zeigen.
+  // Wichtig: auch ohne gespeicherten Rohtext bleibt die Liste bedienbar –
+  // Alt-Datensätze haben keinen Text, aber sehr wohl Vorschläge.
+  const sortiert = useMemo(() => {
+    if (!selectedAbgabe) return null;
+    const gefiltert = nurUnsichere
+      ? selectedAbgabe.fehler.filter(f => f.vertrauensstufe === 'mittel' || f.vertrauensstufe === 'niedrig')
+      : selectedAbgabe.fehler;
+    return sortiereFehler(gefiltert, sortierung, {
+      startVon: id => segmentErgebnis ? primaerStart(segmentErgebnis, id) : null,
+      aktionVon,
+    });
+  }, [selectedAbgabe, segmentErgebnis, nurUnsichere, sortierung, aktionVon]);
+
+  const registriereMarkierung = useCallback((id: number, el: HTMLElement | null) => {
+    if (el) markRefs.current.set(id, el);
+    else markRefs.current.delete(id);
+  }, []);
+
+  /** Karte → Text: aktiv setzen und die Markierung in den sichtbaren Bereich holen. */
+  const waehleFehler = useCallback((id: number) => {
+    setAktiveFehlerId(id);
+    const mark = markRefs.current.get(id);
+    const pane = textPaneRef.current;
+    if (!mark || !pane) {
+      setAnkerHinweis(segmentErgebnis
+        ? HINWEIS_OHNE_STELLE
+        : 'Zu dieser Abgabe ist kein Schülertext gespeichert. Neu analysieren, damit die Stellen im Text markiert werden.');
+      return;
+    }
+    setAnkerHinweis(null);
+    zentriereInPaneWennNoetig(pane, mark, respektiereBewegungsreduktion() ? 'auto' : 'smooth');
+  }, [segmentErgebnis]);
+
+  /** Text → Karte: dieselbe Auswahl in die Gegenrichtung. */
+  const waehleAusText = useCallback((id: number) => {
+    setAktiveFehlerId(id);
+    const karte = kartenRefs.current.get(id);
+    const liste = fehlerListeRef.current;
+    if (!karte || !liste) {
+      setAnkerHinweis('Dieser Vorschlag ist im Schülertext markiert, aber auf der Fehlerliste gerade ausgeblendet.');
+      return;
+    }
+    setAnkerHinweis(null);
+    zentriereInPaneWennNoetig(liste, karte, respektiereBewegungsreduktion() ? 'auto' : 'smooth');
+  }, []);
+
+  const auswahlAufheben = useCallback(() => {
+    setAktiveFehlerId(null);
+    setHoverFehlerId(null);
+    setAnkerHinweis(null);
+  }, []);
+
+  // Escape löst die Auswahl – auch aus einem offenen Bearbeitungsfeld heraus.
+  useEffect(() => {
+    if (aktiveFehlerId === null && hoverFehlerId === null && ankerHinweis === null) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') auswahlAufheben(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [aktiveFehlerId, hoverFehlerId, ankerHinweis, auswahlAufheben]);
+
+  const markierungen = useMemo(() => {
+    const rohtext = selectedAbgabe?.abgabe.rohtext;
+    if (!rohtext || !segmentErgebnis || !sortiert) return null;
+    return renderMarkierungen(rohtext, segmentErgebnis, sortiert.nummern, {
+      aktiveId: aktiveFehlerId,
+      hoverId: hoverFehlerId,
+      zeigeNummern,
+      registriere: registriereMarkierung,
+      onKlick: waehleAusText,
+    });
+  }, [selectedAbgabe, segmentErgebnis, sortiert, aktiveFehlerId, hoverFehlerId, zeigeNummern, registriereMarkierung, waehleAusText]);
 
   const pickFile=useCallback(async()=>{
     try{const {open}=await import('@tauri-apps/plugin-dialog');const paths=await open({multiple:revisionOfAbgabeId === null,filters:[{name:'Abgaben',extensions:['docx','pdf','txt','odt','jpg','jpeg','png']}]});if(paths)selectFiles(Array.isArray(paths)?paths:[paths]);}
@@ -1283,11 +1415,9 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }:
                         </ul>
                       </div>
                     )}
-                    {selectedAbgabe.fehler.length > 0 && (() => {
+                    {selectedAbgabe.fehler.length > 0 && sortiert && (() => {
                       const total = selectedAbgabe.fehler.length;
-                      const aktionCount = (a: string) => selectedAbgabe.fehler.filter(f =>
-                        (fehlerAktionen[f.id]?.aktion ?? f.lehrkraftAktion) === a
-                      ).length;
+                      const aktionCount = (a: FehlerAktion) => selectedAbgabe.fehler.filter(f => aktionVon(f.id) === a).length;
                       const verworfen = aktionCount('verworfen');
                       const uebernommen = aktionCount('uebernommen');
                       const geaendert = aktionCount('geaendert');
@@ -1299,21 +1429,166 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }:
                       // gelb/rot, damit die Lehrkraft gezielt die kritischen
                       // Vorschläge durchgeht.
                       const unsicherCount = selectedAbgabe.fehler.filter(f => f.vertrauensstufe === 'mittel' || f.vertrauensstufe === 'niedrig').length;
-                      const sichtbareFehler = nurUnsichere
-                        ? selectedAbgabe.fehler.filter(f => f.vertrauensstufe === 'mittel' || f.vertrauensstufe === 'niedrig')
-                        : selectedAbgabe.fehler;
-                      return (
-                      <div style={{ marginBottom: '1.25rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '0.375rem' }}>
-                          <h5 style={{ fontSize: '0.8125rem', margin: 0 }}>Fehler ({total})</h5>
-                          <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)', display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                      const zugeordnet = sortiert.zugeordnet;
+                      const verwaist = sortiert.nichtZuordenbar;
+                      const pill = (an: boolean) => ({
+                        background: an ? 'var(--color-accent)' : 'transparent',
+                        color: an ? '#fff' : 'var(--color-text-secondary)',
+                        border: '1px solid var(--color-border)',
+                        borderRadius: '999px',
+                        padding: '0.1rem 0.5rem',
+                        fontSize: '0.6875rem',
+                        cursor: 'pointer',
+                      });
+                      const sortierModus = SORTIER_MODI.find(m => m.wert === sortierung);
+
+                      /** Eine Fehlerkarte. Die Kopfzeile ist ein echter Button, dessen
+                       *  ::after über die ganze Karte spannt: so ist die Karte per
+                       *  Tastatur und mit einem Klick überall erreichbar, ohne die
+                       *  Aktionsknöpfe darin zu verschachteln. */
+                      const karte = (f: FehlerRow) => {
+                        const aktion = aktionVon(f.id);
+                        const stufe = f.vertrauensstufe;
+                        const effektiveKorrektur = fehlerAktionen[f.id]?.korrektur ?? f.lehrkraftKorrektur ?? f.korrektur;
+                        const isEditing = editFehlerId === f.id;
+                        const isVerworfen = aktion === 'verworfen';
+                        const isAktiv = aktiveFehlerId === f.id;
+                        const nr = sortiert.nummern.get(f.id);
+                        const ankerStatus = segmentErgebnis?.anker.get(f.id)?.status;
+                        const ohneStelle = ankerStatus === 'keiner';
+                        const verdraengt = segmentErgebnis?.ohnePlatz.includes(f.id) ?? false;
+                        const farbe = isVerworfen ? '#999' : FEHLER_COLORS[f.typ] ?? '#999';
+                        const sprungTitel = ohneStelle
+                          ? 'Zitat nicht im Schülertext auffindbar'
+                          : verdraengt
+                            ? 'Diese Textstelle ist schon von einem anderen Vorschlag markiert'
+                            : `Im Schülertext anzeigen — ${ANKER_LABELS[ankerStatus!] ?? ''}`;
+                        return (
+                          <div
+                            key={f.id}
+                            ref={(el) => { if (el) kartenRefs.current.set(f.id, el); else kartenRefs.current.delete(f.id); }}
+                            className={`fehler-card${isAktiv ? ' is-aktiv' : ''}${isVerworfen ? ' is-verworfen' : ''}`}
+                            onMouseEnter={() => setHoverFehlerId(f.id)}
+                            onMouseLeave={() => setHoverFehlerId(h => h === f.id ? null : h)}
+                            style={{ padding: '0.5rem 0.75rem', marginBottom: '0.375rem', background: isVerworfen ? 'var(--color-bg-surface, #f5f5f5)' : 'var(--color-bg-base)', borderRadius: 'var(--radius)', borderLeft: `3px solid ${farbe}` }}
+                          >
                             <button
                               type="button"
-                              aria-pressed={nurUnsichere}
-                              onClick={() => setNurUnsichere(v => !v)}
-                              style={{ background: nurUnsichere ? 'var(--color-accent)' : 'transparent', color: nurUnsichere ? '#fff' : 'var(--color-text-secondary)', border: '1px solid var(--color-border)', borderRadius: '999px', padding: '0.1rem 0.5rem', fontSize: '0.6875rem', cursor: 'pointer' }}
-                              title="Zeigt nur Vorschläge mittlerer und niedriger Vertrauensstufe"
+                              className="fehler-sprung"
+                              onClick={() => waehleFehler(f.id)}
+                              aria-current={isAktiv ? 'true' : undefined}
+                              title={sprungTitel}
                             >
+                              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.375rem' }}>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', minWidth: 0 }}>
+                                  {nr !== undefined && (
+                                    <span className="fehler-nummer" style={{ color: farbe }} aria-hidden="true">{nr}</span>
+                                  )}
+                                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: farbe, textDecoration: isVerworfen ? 'line-through' : 'none' }}>
+                                    {FEHLER_LABELS[f.typ] ?? f.typ}
+                                  </span>
+                                </span>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                                  {(ohneStelle || verdraengt) && (
+                                    <span role="img" aria-label={ohneStelle ? 'nicht im Schülertext auffindbar' : 'Textstelle bereits belegt'} title={sprungTitel} style={{ display: 'inline-flex' }}>
+                                      <Unlink size={12} style={{ color: 'var(--color-text-muted)' }} />
+                                    </span>
+                                  )}
+                                  {stufe && (stufe in VERTRAUENS_LABELS) && (
+                                    <span role="img" aria-label={`Vertrauensstufe: ${VERTRAUENS_LABELS[stufe as keyof typeof VERTRAUENS_LABELS]}`} title={VERTRAUENS_LABELS[stufe as keyof typeof VERTRAUENS_LABELS]} style={{ width: 8, height: 8, borderRadius: '50%', background: VERTRAUENS_COLORS[stufe as keyof typeof VERTRAUENS_COLORS] ?? '#999', flexShrink: 0 }} />
+                                  )}
+                                  {aktion === 'uebernommen' && <Check size={13} aria-label="übernommen" style={{ color: '#27ae60' }} />}
+                                  {aktion === 'geaendert' && <Pencil size={13} aria-label="geändert" style={{ color: '#9b59b6' }} />}
+                                  {aktion === 'verworfen' && <X size={13} aria-label="verworfen" style={{ color: '#e74c3c' }} />}
+                                </span>
+                              </span>
+                              {f.zitat && <span style={{ display: 'block', fontSize: '0.75rem', fontStyle: 'italic', color: 'var(--color-text-secondary)', marginTop: '0.125rem', textDecoration: isVerworfen ? 'line-through' : 'none' }}>"{f.zitat}"</span>}
+                              {/* Korrektur und Erklärung liegen mit in der Sprungfläche: die ganze
+                                  Karte ist eine Fläche – bleibt aber markierbar, und es gibt
+                                  genau einen Tabstopp statt drei verschachtelter Bedienelemente. */}
+                              {!isEditing && effektiveKorrektur && <span style={{ display: 'block', fontSize: '0.75rem', marginTop: '0.125rem', color: aktion === 'geaendert' ? '#9b59b6' : undefined }}>→ {effektiveKorrektur}</span>}
+                              {!isEditing && f.erklaerung && <span style={{ display: 'block', fontSize: '0.6875rem', color: 'var(--color-text-secondary)', marginTop: '0.25rem' }}>{f.erklaerung}</span>}
+                            </button>
+                            {isEditing && (
+                              <div style={{ marginTop: '0.375rem', display: 'flex', gap: '0.375rem' }}>
+                                <input
+                                  value={editKorrektur}
+                                  onChange={(e) => setEditKorrektur(e.target.value)}
+                                  autoFocus
+                                  aria-label="Korrekturtext bearbeiten"
+                                  style={{ flex: 1, fontSize: '0.75rem', padding: '0.2rem 0.375rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', minHeight: 24 }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      setFehlerAktionen(prev => ({ ...prev, [f.id]: { aktion: 'geaendert', korrektur: editKorrektur } }));
+                                      setEditFehlerId(null);
+                                    }
+                                    if (e.key === 'Escape') setEditFehlerId(null);
+                                  }}
+                                />
+                                <button
+                                  onClick={() => {
+                                    setFehlerAktionen(prev => ({ ...prev, [f.id]: { aktion: 'geaendert', korrektur: editKorrektur } }));
+                                    setEditFehlerId(null);
+                                  }}
+                                  title="Speichern"
+                                  aria-label="Korrektur speichern"
+                                  style={{ border: 'none', background: '#9b59b6', color: '#fff', borderRadius: 'var(--radius)', padding: '0.15rem 0.4rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 24, minHeight: 24 }}
+                                >
+                                  <Check size={13} />
+                                </button>
+                                <button
+                                  onClick={() => setEditFehlerId(null)}
+                                  title="Abbrechen"
+                                  aria-label="Bearbeitung abbrechen"
+                                  style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg-base)', color: 'var(--color-text-secondary)', borderRadius: 'var(--radius)', padding: '0.15rem 0.4rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 24, minHeight: 24 }}
+                                >
+                                  <X size={13} />
+                                </button>
+                              </div>
+                            )}
+                            {!isEditing && (
+                              <div className="fehler-aktionen">
+                                <button
+                                  onClick={() => setFehlerAktionen(prev => ({ ...prev, [f.id]: { aktion: aktion === 'uebernommen' ? null : 'uebernommen' } }))}
+                                  title={aktion === 'uebernommen' ? 'Zurücksetzen' : 'Übernehmen'}
+                                  aria-label={aktion === 'uebernommen' ? 'Übernahme zurücksetzen' : 'Vorschlag übernehmen'}
+                                  aria-pressed={aktion === 'uebernommen'}
+                                  style={{ border: '1px solid var(--color-border)', background: aktion === 'uebernommen' ? '#27ae6022' : 'var(--color-bg-base)', color: aktion === 'uebernommen' ? '#27ae60' : 'var(--color-text-secondary)', borderRadius: 'var(--radius)', padding: '0.25rem 0.5rem', cursor: 'pointer', fontSize: '0.6875rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 2, minHeight: 24, minWidth: 24 }}
+                                >
+                                  <Check size={12} /> Übernehmen
+                                </button>
+                                <button
+                                  onClick={() => { setEditFehlerId(f.id); setEditKorrektur(effektiveKorrektur ?? ''); }}
+                                  title="Ändern"
+                                  aria-label="Korrektur ändern"
+                                  aria-pressed={aktion === 'geaendert'}
+                                  style={{ border: '1px solid var(--color-border)', background: aktion === 'geaendert' ? '#9b59b622' : 'var(--color-bg-base)', color: aktion === 'geaendert' ? '#9b59b6' : 'var(--color-text-secondary)', borderRadius: 'var(--radius)', padding: '0.25rem 0.5rem', cursor: 'pointer', fontSize: '0.6875rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 2, minHeight: 24, minWidth: 24 }}
+                                >
+                                  <Pencil size={12} /> Ändern
+                                </button>
+                                <button
+                                  onClick={() => setFehlerAktionen(prev => ({ ...prev, [f.id]: { aktion: aktion === 'verworfen' ? null : 'verworfen' } }))}
+                                  title={aktion === 'verworfen' ? 'Wiederherstellen' : 'Verwerfen'}
+                                  aria-label={aktion === 'verworfen' ? 'Verwerfung zurücksetzen' : 'Vorschlag verwerfen'}
+                                  aria-pressed={aktion === 'verworfen'}
+                                  style={{ border: '1px solid var(--color-border)', background: aktion === 'verworfen' ? '#e74c3c22' : 'var(--color-bg-base)', color: aktion === 'verworfen' ? '#e74c3c' : 'var(--color-text-secondary)', borderRadius: 'var(--radius)', padding: '0.25rem 0.5rem', cursor: 'pointer', fontSize: '0.6875rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 2, minHeight: 24, minWidth: 24 }}
+                                >
+                                  <X size={12} /> Verwerfen
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      };
+
+                      return (
+                      <div style={{ marginBottom: '1.25rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '0.375rem', flexWrap: 'wrap' }}>
+                          <h5 style={{ fontSize: '0.8125rem', margin: 0 }}>
+                            Fehler ({zugeordnet.length + verwaist.length === total ? total : `${zugeordnet.length + verwaist.length} von ${total}`})
+                          </h5>
+                          <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)', display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                            <button type="button" aria-pressed={nurUnsichere} onClick={() => setNurUnsichere(v => !v)} style={pill(nurUnsichere)} title="Zeigt nur Vorschläge mittlerer und niedriger Vertrauensstufe">
                               Nur unsichere ({unsicherCount})
                             </button>
                             {uebernommen > 0 && <span style={{ color: '#27ae60' }} title={`${uebernommen} übernommen`} aria-label={`${uebernommen} übernommen`}>✓ {uebernommen}</span>}
@@ -1325,109 +1600,44 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }:
                             )}
                           </span>
                         </div>
-                        <p style={{fontSize:'0.8rem', margin:'0 0 0.5rem'}}>Nur eindeutig zuordenbare Zitate werden im Text markiert. Wiederholte oder abweichende Formulierungen bitte anhand des Zitats prüfen.</p>
-                        <div style={{ maxHeight: '48vh', overflowY: 'auto', paddingRight: '0.25rem' }}>
-                          {sichtbareFehler.map((f) => {
-                            const aktion = fehlerAktionen[f.id]?.aktion ?? f.lehrkraftAktion ?? null;
-                            const stufe = f.vertrauensstufe;
-                            const effektiveKorrektur = fehlerAktionen[f.id]?.korrektur ?? f.lehrkraftKorrektur ?? f.korrektur;
-                            const isEditing = editFehlerId === f.id;
-                            const isVerworfen = aktion === 'verworfen';
-                            const cardBg = isVerworfen ? 'var(--color-bg-surface, #f5f5f5)' : 'var(--color-bg-base)';
-                            const cardOpacity = isVerworfen ? 0.55 : 1;
-                            return (
-                            <div key={f.id} style={{ padding: '0.5rem 0.75rem', marginBottom: '0.375rem', background: cardBg, borderRadius: 'var(--radius)', borderLeft: `3px solid ${isVerworfen ? '#999' : FEHLER_COLORS[f.typ] ?? '#999'}`, opacity: cardOpacity, transition: 'opacity 0.15s' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.375rem' }}>
-                                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: isVerworfen ? '#999' : FEHLER_COLORS[f.typ] ?? '#999', textDecoration: isVerworfen ? 'line-through' : 'none' }}>
-                                  {FEHLER_LABELS[f.typ] ?? f.typ}
-                                </span>
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                                  {stufe && (stufe in VERTRAUENS_LABELS) && (
-                                    <span role="img" aria-label={`Vertrauensstufe: ${VERTRAUENS_LABELS[stufe as keyof typeof VERTRAUENS_LABELS]}`} title={VERTRAUENS_LABELS[stufe as keyof typeof VERTRAUENS_LABELS]} style={{ width: 8, height: 8, borderRadius: '50%', background: VERTRAUENS_COLORS[stufe as keyof typeof VERTRAUENS_COLORS] ?? '#999', flexShrink: 0 }} />
-                                  )}
-                                  {aktion === 'uebernommen' && <Check size={13} aria-label="übernommen" style={{ color: '#27ae60' }} />}
-                                  {aktion === 'geaendert' && <Pencil size={13} aria-label="geändert" style={{ color: '#9b59b6' }} />}
-                                  {aktion === 'verworfen' && <X size={13} aria-label="verworfen" style={{ color: '#e74c3c' }} />}
-                                </span>
-                              </div>
-                              {f.zitat && <div style={{ fontSize: '0.75rem', fontStyle: 'italic', color: 'var(--color-text-secondary)', marginTop: '0.125rem', textDecoration: isVerworfen ? 'line-through' : 'none' }}>"{f.zitat}"</div>}
-                              {isEditing ? (
-                                <div style={{ marginTop: '0.375rem', display: 'flex', gap: '0.375rem' }}>
-                                  <input
-                                    value={editKorrektur}
-                                    onChange={(e) => setEditKorrektur(e.target.value)}
-                                    autoFocus
-                                    aria-label="Korrekturtext bearbeiten"
-                                    style={{ flex: 1, fontSize: '0.75rem', padding: '0.2rem 0.375rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', minHeight: 24 }}
-                                    onKeyDown={(e) => {
-                                      if (e.key === 'Enter') {
-                                        setFehlerAktionen(prev => ({ ...prev, [f.id]: { aktion: 'geaendert', korrektur: editKorrektur } }));
-                                        setEditFehlerId(null);
-                                      }
-                                      if (e.key === 'Escape') setEditFehlerId(null);
-                                    }}
-                                  />
-                                  <button
-                                    onClick={() => {
-                                      setFehlerAktionen(prev => ({ ...prev, [f.id]: { aktion: 'geaendert', korrektur: editKorrektur } }));
-                                      setEditFehlerId(null);
-                                    }}
-                                    title="Speichern"
-                                    aria-label="Korrektur speichern"
-                                    style={{ border: 'none', background: '#9b59b6', color: '#fff', borderRadius: 'var(--radius)', padding: '0.15rem 0.4rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 24, minHeight: 24 }}
-                                  >
-                                    <Check size={13} />
-                                  </button>
-                                  <button
-                                    onClick={() => setEditFehlerId(null)}
-                                    title="Abbrechen"
-                                    aria-label="Bearbeitung abbrechen"
-                                    style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg-base)', color: 'var(--color-text-secondary)', borderRadius: 'var(--radius)', padding: '0.15rem 0.4rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 24, minHeight: 24 }}
-                                  >
-                                    <X size={13} />
-                                  </button>
-                                </div>
-                              ) : (
-                                <>
-                                  {effektiveKorrektur && <div style={{ fontSize: '0.75rem', marginTop: '0.125rem', color: aktion === 'geaendert' ? '#9b59b6' : undefined }}>→ {effektiveKorrektur}</div>}
-                                  {f.erklaerung && <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)', marginTop: '0.25rem' }}>{f.erklaerung}</div>}
-                                </>
-                              )}
-                              {!isEditing && (
-                                <div style={{ display: 'flex', gap: '0.25rem', marginTop: '0.375rem' }}>
-                                  <button
-                                    onClick={() => setFehlerAktionen(prev => ({ ...prev, [f.id]: { aktion: aktion === 'uebernommen' ? null : 'uebernommen' } }))}
-                                    title={aktion === 'uebernommen' ? 'Zurücksetzen' : 'Übernehmen'}
-                                    aria-label={aktion === 'uebernommen' ? 'Übernahme zurücksetzen' : 'Vorschlag übernehmen'}
-                                    aria-pressed={aktion === 'uebernommen'}
-                                    style={{ border: '1px solid var(--color-border)', background: aktion === 'uebernommen' ? '#27ae6022' : 'var(--color-bg-base)', color: aktion === 'uebernommen' ? '#27ae60' : 'var(--color-text-secondary)', borderRadius: 'var(--radius)', padding: '0.25rem 0.5rem', cursor: 'pointer', fontSize: '0.6875rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 2, minHeight: 24, minWidth: 24 }}
-                                  >
-                                    <Check size={12} /> Übernehmen
-                                  </button>
-                                  <button
-                                    onClick={() => { setEditFehlerId(f.id); setEditKorrektur(effektiveKorrektur ?? ''); }}
-                                    title="Ändern"
-                                    aria-label="Korrektur ändern"
-                                    aria-pressed={aktion === 'geaendert'}
-                                    style={{ border: '1px solid var(--color-border)', background: aktion === 'geaendert' ? '#9b59b622' : 'var(--color-bg-base)', color: aktion === 'geaendert' ? '#9b59b6' : 'var(--color-text-secondary)', borderRadius: 'var(--radius)', padding: '0.25rem 0.5rem', cursor: 'pointer', fontSize: '0.6875rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 2, minHeight: 24, minWidth: 24 }}
-                                  >
-                                    <Pencil size={12} /> Ändern
-                                  </button>
-                                  <button
-                                    onClick={() => setFehlerAktionen(prev => ({ ...prev, [f.id]: { aktion: aktion === 'verworfen' ? null : 'verworfen' } }))}
-                                    title={aktion === 'verworfen' ? 'Wiederherstellen' : 'Verwerfen'}
-                                    aria-label={aktion === 'verworfen' ? 'Verwerfung zurücksetzen' : 'Vorschlag verwerfen'}
-                                    aria-pressed={aktion === 'verworfen'}
-                                    style={{ border: '1px solid var(--color-border)', background: aktion === 'verworfen' ? '#e74c3c22' : 'var(--color-bg-base)', color: aktion === 'verworfen' ? '#e74c3c' : 'var(--color-text-secondary)', borderRadius: 'var(--radius)', padding: '0.25rem 0.5rem', cursor: 'pointer', fontSize: '0.6875rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 2, minHeight: 24, minWidth: 24 }}
-                                  >
-                                    <X size={12} /> Verwerfen
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                            );
-                          })}
+                        <div className="fehler-kopf-toolbar">
+                          <label htmlFor="korrektur-sortierung">Reihenfolge</label>
+                          <select
+                            id="korrektur-sortierung"
+                            className="korrektur-sort"
+                            value={sortierung}
+                            onChange={(e) => setSortierung(e.target.value as SortierModus)}
+                            title={sortierModus?.hinweis}
+                          >
+                            {SORTIER_MODI.map(m => <option key={m.wert} value={m.wert}>{m.label}</option>)}
+                          </select>
+                          <button
+                            type="button"
+                            aria-pressed={zeigeNummern}
+                            onClick={() => setZeigeNummern(v => !v)}
+                            style={pill(zeigeNummern)}
+                            title="Nummern im Schülertext ein- oder ausblenden"
+                          >
+                            Nr. im Text
+                          </button>
                         </div>
+                        <p style={{ fontSize: '0.8rem', margin: '0 0 0.5rem' }}>
+                          Ein Klick auf einen Vorschlag holt die Stelle im Schülertext in den Blick. Die Nummer auf der Karte steht auch am Text.
+                        </p>
+                        <div ref={fehlerListeRef} style={{ maxHeight: '48vh', overflowY: 'auto', paddingRight: '0.25rem' }}>
+                          {zugeordnet.map(karte)}
+                          {verwaist.length > 0 && (
+                            <>
+                              <div className="fehler-gruppe">
+                                {segmentErgebnis
+                                  ? `nicht im Schülertext auffindbar (${verwaist.length})`
+                                  : `kein Schülertext gespeichert – neu analysieren (${verwaist.length})`}
+                              </div>
+                              {verwaist.map(karte)}
+                            </>
+                          )}
+                        </div>
+                        {ankerHinweis && <p className="fehler-liste-hinweis">{ankerHinweis}</p>}
                       </div>
                       );
                     })()}
@@ -1469,7 +1679,7 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }:
                   <div style={{ position: 'sticky', top: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
                       <h5 style={{ fontSize: '0.8125rem', margin: 0 }}>Schülertext mit Markierungen</h5>
-                      {annotatedNodes && (
+                      {markierungen && (
                         <button
                           onClick={() => setShowPreview((v) => !v)}
                           style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', padding: '0.2rem 0.5rem',
@@ -1479,21 +1689,27 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }:
                         </button>
                       )}
                     </div>
-                    {!annotatedNodes ? (
+                    {!markierungen ? (
                       <div style={{ padding: '1.5rem', fontSize: '0.8125rem', color: 'var(--color-text-secondary)', textAlign: 'center', border: '1px dashed var(--color-border)', borderRadius: 'var(--radius)' }}>
                         Für diese Abgabe ist kein Schülertext gespeichert (Alt-Datensatz).
                         Neu analysieren, um die markierte Vorschau zu sehen.
                       </div>
                     ) : showPreview && (
-                      <div style={{
-                        maxHeight: 'calc(100vh - 160px)', overflowY: 'auto', padding: '2rem', lineHeight: 1.8,
-                        fontSize: '0.9rem', fontFamily: 'Georgia, serif',
-                        background: '#fff', color: '#222',
-                        border: '1px solid var(--color-border)', borderRadius: 'var(--radius)',
-                        boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
-                        whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-                      }}>
-                        {annotatedNodes}
+                      <div
+                        ref={textPaneRef}
+                        className="textpane"
+                        data-fokus={aktiveFehlerId !== null ? 'true' : undefined}
+                        onClick={(e) => { if (e.target === e.currentTarget) auswahlAufheben(); }}
+                        style={{
+                          maxHeight: 'calc(100vh - 160px)', overflowY: 'auto', padding: '2rem', lineHeight: 1.8,
+                          fontSize: '0.9rem', fontFamily: 'Georgia, serif',
+                          background: '#fff', color: '#222',
+                          border: '1px solid var(--color-border)', borderRadius: 'var(--radius)',
+                          boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+                          whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                        }}
+                      >
+                        {markierungen}
                         <div style={{ marginTop: '1.5rem', borderTop: '1px solid #ddd', paddingTop: '0.75rem', display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
                           {Object.entries(FEHLER_LABELS).map(([typ, label]) => (
                             <span key={typ} style={{ fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
@@ -1501,6 +1717,14 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }:
                               {label}
                             </span>
                           ))}
+                          <span style={{ fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            <span style={{ width: 10, height: 10, borderRadius: 2, background: '#99999933', border: '2px dashed #777', display: 'inline-block' }} />
+                            mehrdeutig (an allen Fundstellen)
+                          </span>
+                          <span style={{ fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            <span style={{ width: 10, height: 10, borderRadius: 2, background: '#ffffff', border: '2px solid #1F3A5A', boxShadow: '0 0 0 1px #1F3A5A', display: 'inline-block' }} />
+                            ausgewählt
+                          </span>
                         </div>
                       </div>
                     )}

@@ -2,6 +2,7 @@ import { fachLabel } from '@lehrunterlagen/schema';
 import type { Fach } from '@lehrunterlagen/schema';
 import type { PoolImportPreview, PoolImportReport } from './pool';
 import { formatPoolValidationIssues, validatePoolEntries } from './poolValidation';
+import { heuteIso } from './lokalDatum';
 
 async function invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
   const { invoke: tauriInvoke } = await import('@tauri-apps/api/core');
@@ -97,7 +98,7 @@ export async function importStartpaket(land?: string): Promise<PoolImportReport>
 export async function exportPoolPaket(): Promise<ExportErgebnis | null> {
   const { save } = await import('@tauri-apps/plugin-dialog');
 
-  const datum = new Date().toISOString().slice(0, 10);
+  const datum = heuteIso();
   const pfad = await save({
     title: 'Aufgaben-Pool exportieren (JSON)',
     defaultPath: `luka-fachpaket-${datum}.json`,
@@ -108,3 +109,4 @@ export async function exportPoolPaket(): Promise<ExportErgebnis | null> {
   const anzahl = await invoke<number>('pool_export', { path: pfad });
   return { anzahl, pfad };
 }
+
