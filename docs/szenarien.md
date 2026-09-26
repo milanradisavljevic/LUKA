@@ -353,3 +353,234 @@
 **Erwartet:**
 - Coverage-Panel zeigt abgedeckte und fehlende Deskriptoren.
 - „Kompetenznachweis exportieren" erzeugt lesbares DOCX.
+
+---
+
+## Szenario 22 — Fehlerliste und Schülertext verzahnen
+
+**Schritte:**
+1. Eine Abgabe mit vielen Fehlern analysieren (deutlich mehr als 20).
+2. Einen Vorschlag in der Fehlerliste anklicken.
+3. Eine Markierung im Schülertext anklicken.
+4. Über „Reihenfolge" auf *Fehlerart*, dann *Unsicherheit zuerst*, dann wieder
+   auf *Reihenfolge im Text* umschalten.
+5. Über „Nur unsichere" filtern; danach einen Vorschlag ohne Textstelle suchen.
+6. „Nr. im Text" aus- und wieder einschalten.
+
+**Erwartet:**
+- Klick auf eine Karte scrollt die zugehörige Markierung in den sichtbaren
+  Bereich; sie bekommt einen dunklen Ring, alle übrigen Markierungen treten
+  zurück. Klick auf eine Markierung hebt die Karte in der Liste hervor.
+  Escape löst die Auswahl.
+- Die Nummer auf der Karte steht als kleine Ziffer auch am Text. Beim
+  Umsortieren wird neu durchnummeriert; „Reihenfolge im Text" vergibt die Nummern
+  streng in Leserichtung.
+- Fehlerarten-Reihenfolge ist Rechtschreibung → Grammatik → Zeichensetzung →
+  Ausdruck (nicht alphabetisch), innerhalb einer Art folgt die Textreihenfolge.
+- Nach „Nur unsichere" sind die Nummern lückenlos ab 1; der Zähler „(n von m)"
+  zeigt die gefilterte Menge.
+- Vorschläge, deren Zitat nicht im Text steht, stehen in der eigenen Gruppe
+  „nicht im Schülertext auffindbar (n)" mit Symbol; ein Klick darauf zeigt den
+  Hinweistext statt eines Sprungs. Sie verschwinden nie.
+- Kommt eine Wendung mehrfach vor, ist sie an **allen** Fundstellen gestrichelt
+  markiert — nie nur an der ersten.
+- „Nr. im Text" blendet die Ziffern aus, ohne die Markierungen zu verlieren.
+- Die Farbe im Text bleibt immer der Fehlertyp, auch wenn ein Vorschlag
+  übernommen, geändert oder verworfen wurde.
+
+## Szenario 23 - Unterrichtsplanung (Closed Loop Unterricht)
+
+**Ausgangslage:** Eine Lehrkraft in Österreich hat für das Schuljahr 2026/27 ein
+festes Wochenraster (4 Klassen, 18 Wochenstunden) und trägt es einmalig ein.
+Für 2026/27 sind in ihrem Bundesland noch keine Ferien hinterlegt – die
+amtlichen Termine liegen aber bereits in LUA.
+
+1. Wochenraster eintragen: Montag 1b 08:00-08:45 Deutsch, Montag 3a
+   08:00-08:45 Mathe usw. – alles mit Schuljahr 2026/27.
+2. Klassenfarben setzen: 1b bekommt Ton 1, 3a Ton 2.
+3. Ferien übernehmen: LUA schlägt die Ferienordnung des Bundeslandes vor,
+   nennt Quelle und Abrufdatum, die Lehrkraft bestätigt und gleicht mit der
+   Verordnung ab. Die Osterferien stehen dabei amtlich am 20.–29.03.2027, nicht
+   zwei Wochen später.
+4. Ein schulinterner Tag wird als Pause für die ganze Schule eingetragen.
+5. „Woche einplanen" → 18 Stunden entstehen, alle mit Datum und Uhrzeit.
+6. Einzelne Stunden: Thema eintragen, eine als „Entfällt" markieren, eine auf
+   den Folgetag verschieben, eine Datei ablegen.
+7. „Monat einplanen" → der ganze Monat ist gefüllt; Samstag und Sonntag sind
+   als Wochenende gekennzeichnet.
+8. „Schuljahr einplanen" → alle restlichen Wochen des Schuljahres, Ferien
+   bleiben leer.
+9. Auf der Startseite zeigt der Streifen die nächsten sieben Tage; ein Klick auf
+   einen Tag öffnet die Planung bei genau diesem Tag.
+
+**Erwartet:**
+- Doppeltes Einplanen derselben Woche erzeugt **keine** Dublette; bereits
+  geplante Stunden werden gemeldet statt erneut angelegt.
+- Vor „Schuljahr einplanen" erscheint eine Rückfrage mit der Stundenzahl.
+- Eine Stunde, die auf einen Feiertag fällt, wird mit „Ferien auslassen"
+  **nicht** angelegt; ohne die Option wird sie angelegt.
+- Entfallene Stunden bleiben sichtbar und tragen die Kennzeichnung
+  „entfällt"; sie zählen nicht als Unterricht.
+- Keine Stunde liegt in den amtlichen Ferien – auch nicht in den Osterferien,
+  weil LUA sie nachschlägt statt zu rechnen.
+
+## Szenario 24 - Ferienhinweis: Lücke, Warnung oder ehrliches Nichtwissen
+
+**Ausgangslage:** Dieselbe Lehrkraft ist im Schuljahr 2030/31. Für dieses Jahr
+gibt es noch keine veröffentlichte Verordnung.
+
+1. Sie öffnet die Planung und sieht einen **neutralen Hinweis**, keinen gelben
+   Alarm: Für ihr Bundesland liegen noch keine amtlichen Termine vor.
+2. Der Vorschlagsknopf fehlt – es gibt nichts zu übernehmen.
+3. Sie wechselt in einer zweiten Lehrkraft-Testumgebung das Profil-Bundesland
+   auf eines, für das 2026/27 Termine vorliegen: Jetzt erscheint eine
+   **deutliche Warnung** mit Knopf „N Blöcke übernehmen" und Quellenangabe.
+4. Eine dritte Umgebung hat als Land die Schweiz: LUA sagt, dass es keine
+   kantonalen Termine führt, und lässt die Ferien leer.
+5. Deutschland ohne gewähltes Bundesland im Profil: Der Hinweis nennt
+   ausdrücklich Deutschland und verweist auf die Profilauswahl.
+
+**Erwartet:**
+- Kein Fall erzeugt einen erfundenen Ferientag.
+- Warnung und neutraler Hinweis sind unterscheidbar, beide nennen das
+  Bundesland oder Land beim Namen.
+- Für die Schweiz erscheint kein Vorschlag, der so tut, als gäbe es ihn.
+- Verschobene Stunden behalten Zeit, Klasse und Unterlagen, nur das Datum
+  ändert sich.
+- Klassenfarben bleiben über Planung, Monatsraster und Startseite hinweg
+  gleich, und keine zwei Klassen teilen sich einen Ton.
+- Beim Wechsel auf das Folge-Schuljahr zeigt das Raster nur dessen Stunden;
+  „Raster aus dem Vorjahr übernehmen" befüllt das neue Jahr additiv.
+- Eine Rasterzeile **ohne Klasse** (Freistunde) bleibt im Raster stehen und wird
+  nicht eingeplant; der Bericht nennt die Anzahl.
+
+## Szenario 24 - Aus einem Termin eine Unterlage vorbereiten
+
+**Ausgangslage:** Eine Stunde am 28.09. für 6b, Thema „Der Sturm auf den Barrikaden",
+Status geplant, noch keine Unterlage. 6b hat in der Klassenverwaltung Fach „Deutsch".
+
+1. Die Lehrkraft wählt die Stunde und klickt **„Unterlage vorbereiten"**.
+2. LUA übernimmt Klasse, Fach, Schulstufe und Datum in den Assistenten und zeigt
+   einen Hinweis: **zu welchem Termin** die Unterlage gehören wird.
+3. Die Lehrkraft ergänzt Quelltext und Aufgaben, erzeugt und speichert.
+4. Beim Speichern hängt LUA die Unterlage automatisch an den Termin.
+
+**Erwartet:**
+- Die Unterlage liegt in der Anlagenliste der Stunde mit dem Klammer-Symbol und
+  zählt in der Statistik der Stunde mit.
+- Sie steht in der Bibliothek und lässt sich normal öffnen und bearbeiten.
+- Der Termin bleibt, wo er war; es wird **kein** zweiter Termin und **keine**
+  zweite Stunde angelegt.
+- **LUA erfindet keinen Quelltext.** Der Kalendereintrag hat keine Datei, also
+  öffnet sich der Assistent zur leeren Quelltextseite – nicht zu erfundenem
+  Material in der Sprache der Lehrkraft.
+- Fehlt der Stunde ein Thema oder der Klasse ein Fach, geht dieselbe Stunde auf;
+  der Assistent vermerkt im Notizfeld, was noch fehlt.
+- Klickt die Lehrkraft vorher auf **„Verknüpfung abbrechen"**, wird die Unterlage
+  beim Speichern **nicht** angehängt – sie landet nur in der Bibliothek.
+
+**Der Fehlerfall, abgesichert:**
+- `lua_klassen.fach` steht auf „Deutsch 6b" (freier Text). LUA nimmt das **nicht**
+  als Fach an und trägt es als Lücke nach, statt eine Unterlage im falschen Fach
+  vorzubereiten.
+
+## Szenario 25 - Vertretung: eine einzelne Stunde anlegen
+
+**Ausgangslage:** Die Lehrkraft übernimmt am 15.10. für 5b eine Stunde. 5b hat
+keine Zeile im Wochenraster, weil 5b sonst nur alle zwei Wochen Unterricht hat.
+
+1. Sie klickt **„Stunde hinzufügen"** und trägt 15.10., 5b, 08:00–08:45 und ein
+   Thema ein.
+2. LUA legt genau eine Stunde an und springt in die Woche vom 15.10.
+3. Sie trägt noch eine Unterlage an – über den Weg aus Szenario 24.
+4. Am 22.10. klickt sie auf „Woche einplanen".
+
+**Erwartet:**
+- Die Stunde steht am 15.10. im Wochen- und im Monatsbild und ist wie jede
+  andere bearbeitbar.
+- Sie kommt **nicht** aus dem Wochenraster und wird deshalb beim Einplanen am
+  22.10. **nicht** ein zweites Mal erzeugt.
+- Fehlt die Klasse, sagt LUA das und legt nichts an – eine Stunde ohne Klasse
+  wäre in der Anlage nicht zuzuordnen.
+- Das Datum außerhalb des gerade betrachteten Monats ist kein Problem: LUA
+  wechselt selbst in die richtige Woche.
+
+---
+
+## Szenario 26 - Suche: Inhalt, Befehl und Navigation in einem Feld
+
+**Ausgangslage:** Die Lehrkraft hat 30 Unterlagen gespeichert, ein volles
+Startpaket im Pool und zwei Klassen. Sie tippt `goethe` in die Palette.
+
+1. Sie drückt <kbd>Strg</kbd>+<kbd>K</kbd> und tippt `goethe`.
+2. Sie sieht Treffer unter **Unterlagen**, aber auch unter **Gehe zu …**.
+3. Sie setzt statt eines Treffers `thema: Goethe` und drückt <kbd>Enter</kbd>.
+4. Sie probiert `planung` und wählt **Unterrichtsplanung** per <kbd>↓</kbd> und
+   <kbd>Enter</kbd>.
+5. Sie wiederholt Schritt 4, obwohl im Assistenten noch ungespeicherte Blöcke
+   liegen.
+6. Sie tippt `vorlage speichern als Klassenarbeit 7b` und <kbd>Enter</kbd>.
+
+**Erwartet:**
+- Zu 1.: Die 30 Unterlagen-Treffer füllen die Liste **nicht** allein. Pool,
+  Klassen und Navigation bleiben sichtbar, weil es dort auch Treffer gibt.
+- Zu 2.: Unterlagen stehen **gruppiert**; ein Anführungszeichen-Treffer steht vor
+  einem Nur-Teilwort-Treffer, ein Titeltreffer vor einem Metadaten-Treffer.
+- Zu 3.: Das Thema steht in den Metadaten. Eine Befehlszeile **„Thema: &lt;Text&gt;"**
+  erscheint dabei **nicht**, solange die Eingabe kein Thema enthält — sie wäre sonst
+  sichtbar, aber nicht ausführbar. Nach `thema: ` erscheint sie und setzt beim
+  Drücken von <kbd>Enter</kbd> das Thema.
+- Zu 4.: Die Planung öffnet sich. Der Sprung aus der Palette verliert **keine**
+  ungespeicherte Arbeit, ohne vorher nachzufragen.
+- Zu 5.: LUKA fragt nach, ob der aktuelle Stand verworfen werden soll. Antwortet
+  sie mit „Abbrechen", bleibt sie im Assistenten — die geschlossene Palette
+  ändert daran nichts.
+- Zu 6.: Die Vorlage liegt in der Datenbank und ist unter **Vorlagen** wiederzufinden.
+  Ein Neustart ändert daran nichts.
+
+---
+
+## Szenario 27 - Hilfe: der Einstiegspfad führt zum ersten Export
+
+**Ausgangslage:** Eine neue Lehrkraft startet LUKA zum ersten Mal.
+
+1. Sie klickt unten in der Seitenleiste auf **Hilfe**.
+2. Sie liest „So funktioniert LUKA" und folgt dem Fünf-Minuten-Weg.
+3. Sie springt über das Inhaltsverzeichnis nach **Unterricht vorbereiten** →
+   **Unterrichtsplanung**.
+4. Sie prüft dort, ob ihre Schulferien für ihr Bundesland dabei sind.
+5. Sie sucht im Abschnitt **Fächer** ihr Fach, und im Abschnitt **Aufgabentypen**
+   den Typ, den sie im Baukasten wählt.
+6. Sie schlägt im Abschnitt **Tastenkürzel** nach, wie sie rückgängig macht.
+
+**Erwartet:**
+- Zu 1.: Die Hilfe ist in **sechs Kapitel** gegliedert, nicht in einer flachen
+  Liste. Das Inhaltsverzeichnis zeigt die Kapitel mit ihren Abschnitten.
+- Zu 3.: Die Planung ist beschrieben — Wochenraster, Einplanen, Vertretungsstunde,
+  Ferien und Pausen, Unterlagen an die Stunde hängen, Klassenfarben.
+- Zu 4.: Steht ihr Bundesland nicht im Profil, sagt die Hilfe das ausdrücklich —
+  und dass LUKA dann keine Ferien zuordnen kann.
+- Zu 5.: **Jedes** Fach und **jeder** im Baukasten wählbare Aufgabentyp steht da.
+  Diese Listen werden aus den Listen der App erzeugt, nicht abgeschrieben.
+- Zu 6.: Der Abschnitt sagt, **wo** ein Kürzel gilt: Rückgängig gilt im Assistenten,
+  Zoom überall, und der Tafel-Modus hat eigene Tasten. Auf einem Apple-Gerät steht
+  ⌘, sonst Strg.
+
+---
+
+## Szenario 28 - Hilfe und App wachsen gemeinsam
+
+**Nicht als Nutzererlebnis, sondern als Prüfregel für jede neue Funktion.**
+
+1. Jemand legt in `packages/schema` ein neues Pflichtfach an.
+2. Jemand ergänzt in `lib/constants.ts` einen neuen Aufgabentyp.
+3. Jemand fügt in `lib/shortcuts.ts` ein Tastenkürzel hinzu.
+4. Jemand ergänzt in `lib/navigation.ts` ein neues Navigationsziel.
+
+**Erwartet:**
+- Ohne Änderung an der Hilfe schlagen die Tests in
+  `apps/web/src/views/helpSections.test.tsx` fehl und benennen, **was** fehlt:
+  ein Fach, ein Aufgabentyp, ein Kürzel oder ein unerklärtes Navigationsziel.
+- Ein neuer Aufgabentyp ohne `gruppe` fällt ebenfalls durch — die Liste wird
+  nicht unvollständig, sondern gar nicht erst gerendert.
+- Ein Kürzel ohne bekannten Geltungsbereich wird abgelehnt.

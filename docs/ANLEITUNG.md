@@ -188,6 +188,33 @@ lokale NATASCHA-Installation.
    farbigen Punkt: grün (hohe Sicherheit), gelb (mittlere Sicherheit) rot
    (niedrige Sicherheit). Prüfe besonders die gelben und roten Vorschläge.
 
+   **Fehlerliste und Schülertext sind verzahnt.** Ein Klick auf einen Vorschlag
+   holt die betreffende Stelle im markierten Text in den Blick — die Stelle
+   bekommt einen kräftigen Rahmen, die übrigen Markierungen treten zurück. Ein
+   Klick auf eine Markierung im Text hebt umgekehrt die zugehörige Karte hervor.
+   Escape hebt die Auswahl wieder auf.
+   - Jeder Vorschlag trägt eine **Nummer**, die auf der Karte und am Text steht
+     (kleine Ziffer über der Markierung). Über **„Nr. im Text"** blendest du sie
+     aus, wenn du den Text lieber ohne Zahlen liest.
+   - Steht dieselbe Wendung mehrfach im Text, ist die Markierung **gestrichelt**
+     und an **allen** Fundstellen zu sehen. Dann musst du selbst entscheiden,
+     welche Stelle gemeint ist — LUKA rät nicht.
+   - Findet LUKA ein Zitat gar nicht (frei formuliert, Zitat weicht ab), steht
+     der Vorschlag unten in der Gruppe **„nicht im Schülertext auffindbar"** mit
+     einem Symbol an der Karte. Diese Vorschläge gehen nicht verloren, sie sind
+     nur nicht anklickbar — bitte am Text mitprüfen.
+
+   **Reihenfolge der Fehlerliste** über **„Reihenfolge"**:
+   - *Reihenfolge im Text* (Voreinstellung) — die Vorschläge folgen dem
+     Schülertext, du kannst ihn damit von oben nach unten durchgehen.
+   - *Fehlerart* — gruppiert nach Rechtschreibung, Grammatik, Zeichensetzung,
+     Ausdruck.
+   - *Unsicherheit zuerst* — die wackeligsten Vorschläge oben.
+   - *Offene zuerst* — zuerst alles ohne Entscheidung.
+
+   Die Nummern passen sich der gewählten Reihenfolge an; nach dem Umsortieren
+   beginnt die Zählung neu.
+
    Pro Vorschlag kannst du drei Aktionen ausführen:
    - **Übernehmen** — der Vorschlag wird als korrekt markiert.
    - **Ändern** — du bearbeitest den Korrekturtext direkt (Enter speichert,
@@ -197,7 +224,9 @@ lokale NATASCHA-Installation.
 
    Die Aktionen werden erst beim Klick auf **Freigeben** in der Datenbank
    gespeichert. Verworfene Fehler erscheinen im markierten Text grau und
-   durchgestrichen, geänderte farbig hervorgehoben.
+   durchgestrichen, geänderte farbig hervorgehoben. Die Farbe im Text sagt
+   immer den **Fehlertyp**, nie den Bearbeitungsstand — übernommene Vorschläge
+   sind nur etwas kräftiger hinterlegt.
 
    Über der Fehlerliste gibt es zwei Hilfsmittel: Den Umschalter **„Nur
    unsichere"**, der gezielt die gelben und roten Vorschläge zeigt, und den
@@ -370,31 +399,144 @@ Erstellte Unterlagen und Konfigurationen verwaltest du über die Seitenleiste:
 
 ## Übersicht (Dashboard)
 
-Die **Übersicht** ist deine Startseite mit deinen zuletzt bearbeiteten Unterlagen und Schnellstarts.
+Die **Übersicht** ist deine Startseite. Ganz oben steht kompakt, wo du bist: die Begrüßung, ein Sprung zu den Korrekturen und einer in den Stundenplan.
+
+**Was steht an:** Direkt darunter zeigt LUA die nächsten **sieben Tage** als Streifen – heute plus die folgenden sechs Tage, jeder Tag zeigt seine Stunden in der Klassenfarbe. Eine kleine Markierung weist auf Tage hin, an denen eine Unterlage fehlt; Samstag und Sonntag sind zurückhaltend als Wochenende gekennzeichnet. **Ein Klick auf einen Tag bringt dich in der Planung genau zu diesem Tag.** Darunter listet **„Anstehend"** die nächsten Stunden mit Tag, Klasse, Uhrzeit und Hinweis.
 
 **Schnellstarts:** Über die Übersicht legst du direkt los — **„Wie zuletzt"** öffnet das letzte Dokument mit denselben Einstellungen (Fach, Stufe, Typ), und **„Schnell-Übung"** springt mit Thema + Aufgabentyp direkt in den Baukasten, ohne Quelltext-Umweg.
 
 ---
 
+## Unterrichtsplanung
+
+Im Bereich **Unterricht** findest du den Stundenplan. Er besteht aus zwei Teilen: deinem festen **Wochenraster** und den daraus erzeugten **einzelnen Stunden**.
+
+### 1. Wochenraster eintragen
+
+Unten im Abschnitt „Mein Wochenraster" trägst du Tag, Klasse, Uhrzeit und Fach ein. Das ist die feste Form deiner Woche – du pflegst sie **einmal pro Schuljahr**, nicht jede Woche.
+
+- **Schuljahr wählen** oben rechts: Jedes Raster gehört zu einem Schuljahr. So bleibt das Raster 2026/27 getrennt von 2027/28.
+- **Aus dem Vorjahr übernehmen** („Schuljahr planen") überträgt die Zeiten, wenn das neue Schuljahr startet. Die Klassen prüfst du danach selbst.
+- **Bearbeiten** blendet ein, wo du einzelne Zeilen deaktivierst (statt löschst) oder ganz entfernst. Deaktivierte Zeilen bleiben erhalten, zählen aber nicht mehr mit.
+
+### 2. Einplanen
+
+Aus dem Raster macht LUA einzelne Stunden – jede mit Datum, Uhrzeit und Klasse:
+
+- **Woche einplanen** / **Monat einplanen** / **Schuljahr einplanen**
+- Bereits geplante Stunden werden **nicht doppelt** angelegt. Beim ganzen Schuljahr fragt LUA vorher nach.
+- **Ferien auslassen** (Häkchen neben dem Knopf): standardmäßig an. Dann entstehen an schulfreien Tagen keine Stunden. Ohne Häkchen werden sie mit eingeplant – praktisch, wenn du eine Praxisphase im Betrieb planst.
+- **Rasterzeilen ohne Klasse** (Freistunde, Aufsicht) werden **nicht** eingeplant. Sie bleiben im Raster stehen, damit sie später noch da sind; im Bericht steht, wie viele es waren.
+
+**Woche oder Monat:** Der Umschalter oben wechselt zwischen Wochen- und Monatsansicht. Randtage des Monats bleiben grau. „Diese Woche"/„Dieser Monat" springt zurück zum Heute. **Ein Klick auf die Tageszahl im Monatsraster** springt in die Woche dieses Tages und wählt die erste Stunde dort aus.
+
+**Die Wochenkarte** oben zeigt nur dein festes Raster: eine Zeile je Klasse, in der Farbe der Klasse, und rechts die Zahl der schon eingeplanten Stunden. Uhrzeiten, Titel und Unterlagen stehen in der Liste darunter – die Karte ist die Übersicht, die Liste die Arbeitsliste.
+
+### 3. Ferien und Pausen
+
+Ganz unten im Planungsbereich liegen **Ferien und Pausen** – diese Daten pflegst du einmal im Jahr.
+
+- **Gesetzliche Feiertage** rechnet LUA selbst (Österreich, Deutschland, Schweiz).
+- **Schulferien**: LUA hat die amtlichen Termine eingetragen – für **Österreich** 2025/26 und 2026/27 (alle neun Bundesländer), für **Deutschland** 2026/27 (alle 16 Bundesländer, je Bundesland unterschiedlich). Gibt es für dein Bundesland und dein Schuljahr noch keine, bietet LUA dir den Vorschlag an („Vorschlag aus der Ferienordnung") und nennt dir **Quelle und Abrufdatum**. Du übernimmst ihn und **gleichst ihn mit der geltenden Verordnung ab** – Regelbetreuungstage und verschobene Feiertage stehen bewusst nicht im Vorschlag.
+- **Deutschland:** Damit LUA weiß, welche Ferien gelten, muss im **Lehrerprofil** ein Bundesland gewählt sein. Deutschland hat seine Schulferien je Bundesland, deshalb lohnt sich das besonders dort.
+- **Für die Schweiz** führt LUA bewusst keine Termine: dort sind die Ferien kantonal, das wäre eine Datenpflege je Kanton. Trage die Termine bei Bedarf selbst ein.
+- **Einzelne Blöcke** trägst du mit Bezeichnung, Von und Bis selbst ein.
+- **Schulinterne Pausen** (Fortbildung, MuT, Elternabend) legst du als einzelne Tage an – entweder für die ganze Schule oder nur für eine Klasse.
+
+Solange für dein Bundesland und Schuljahr keine Ferien hinterlegt sind, erinnert dich die Planung oben daran. LUA unterscheidet dabei: Sind die Termine **bekannt, aber nicht eingetragen**, ist es eine deutliche Warnung mit Übernehmen-Knopf. Gibt es für das Schuljahr **noch keine Verordnung** oder fehlt das Bundesland im Profil, ist es nur ein neutraler Hinweis – LUA erfindet keine Termine.
+
+### 4. Eine Stunde anpassen
+
+Wähle eine Stunde, dann kannst du:
+
+- **Thema, Uhrzeit, Notiz** eintragen und den **Status** setzen (Geplant / Vorbereitet / Gehalten).
+- **Auf einen anderen Tag legen** – für Vertretungsstunden.
+- **Entfällt** markieren: Die Stunde bleibt im Kalender stehen, gilt aber nicht mehr als Unterricht. Mit „Findet doch statt" machst du das rückgängig.
+- **Unterlagen** anlegen – zwei Wege:
+  - **„Unterlage vorbereiten"**: LUA übernimmt aus diesem Kalendereintrag **Klasse, Fach, Thema und Datum** und öffnet den Assistenten. Quelltext und Aufgaben arbeitest du selbst aus – LUA erfindet keinen Quelltext nur deshalb, weil im Kalender keine Datei danebenliegt. Ein Hinweis im Assistenten sagt dir, zu welchem Termin die Unterlage gehört; **beim Speichern hängt LUA sie automatisch an die Stunde**. Mit „Verknüpfung abbrechen" nimmst du den Termin wieder heraus. Fehlt der Stunde ein Thema oder der Klasse ein Fach, trägst du das im Assistenten nach.
+  - **„Datei ablegen"** kopiert eine Datei in den Ablage-Ordner von LUA – dein Original bleibt, wo es ist.
+  - **„Verweis"** merkt sich einen Pfad oder eine Adresse für Material, das woanders liegt.
+  - Fehlt eine abgelegte Datei, sagt LUA es dir.
+
+**Voraussetzung für „Unterlage vorbereiten":** Damit das Gerüst vollständig ist, braucht die Klasse in der Klassenverwaltung ein **Fach**. Steht dort etwas, das LUA nicht kennt (z. B. „Deutsch 6b"), trägst du es im Assistenten nach – LUA rät kein Fach.
+
+### 4a. Eine einzelne Stunde anlegen (Vertretung)
+
+Für einen Tag, für den es keine Zeile im Wochenraster gibt – eine Vertretung, eine Einzelsehre, eine Projektstunde:
+
+- Neben **„Woche einplanen"** findest du **„Stunde hinzufügen"**. Trage **Datum, Klasse, Uhrzeit** und bei Bedarf ein Thema ein.
+- Die Stunde steht danach ganz normal im Wochen- und im Monatsbild und lässt sich wie jede andere bearbeiten.
+- Sie kommt **nicht** aus dem Wochenraster. „Woche einplanen" oder „Schuljahr einplanen" erzeugt sie deshalb **nicht** ein zweites Mal.
+
+### 5. Klassenfarben
+
+Jede Klasse bekommt einen von acht gedämpften Farbtönen. Festlegen tust du das in der **Klassenverwaltung** beim Bearbeiten einer Klasse. Klassen ohne eigene Farbe bekommen automatisch eine – zwei Klassen teilen sich nie denselben Ton.
+
+Die Farbe erscheint im Wochenstreifen, im Monatsraster, in der Rasterliste, in der Anstehend-Liste und als Randfarbe der Klassenkarte. In der **Korrektur** wird sie bewusst nicht verwendet – dort stehen die Farben für Richtig/Falsch/Zeichen/Ausdruck.
+
+---
+
 ## Suche & Befehle
 
-Die **Such-/Befehlsleiste** oben im Kopf (oder `Ctrl`/`Cmd`+`K`) durchsucht die gesamte App und führt Befehle aus — eine Eingabe, beides zugleich.
+Die **Such-/Befehlsleiste** oben im Kopf (oder `Mod`+`K`) durchsucht die gesamte App und führt Befehle aus - eine Eingabe, beides zugleich.
 
-1. **Inhalte suchen:** Tippe ein Thema, Fach oder einen Vorlagennamen — Treffer aus Unterlagen, Vorlagen, Aufgaben-Pool und Navigation erscheinen **gruppiert**.
-2. **Befehle ausführen:** Slash-/Text-Befehle wie „Thema: …", „Exportieren", „Weiter/Zurück" funktionieren weiter; `Enter` *ohne* ausgewählte Zeile parst den getippten Text wie bisher.
-3. Navigation mit der Tastatur: `↑`/`↓` Zeile wählen, `Enter` öffnen/ausführen, `Esc` schließen.
+1. **Inhalte suchen:** Tippe ein Thema, Fach, eine Klasse oder einen Vorlagennamen. Treffer aus **Unterlagen**, **Vorlagen**, **Aufgaben-Pool**, **Klassen** und **Gehe zu …** erscheinen **gruppiert** - passend zum Zweck, nicht nur nach Textähnlichkeit. Eine Trefferliste führt die anderen nicht in den Schatten: Passen 30 Unterlagen, bleiben Aufgaben-Pool, Klassen und Navigation sichtbar.
+2. **Befehle ausführen:** Textbefehle wie `Thema: …`, `Klasse: 7A`, `Fach: Deutsch`, `Punkte: 8`, `Exportieren`, `Weiter`/`Zurück` setzen Dokument, Schritt oder Export. `Enter` *ohne* ausgewählte Zeile parst den getippten Text.
+3. **Befehle mit Platzhalter** wie „Thema: <Text>" oder „Punkte: <Zahl>" erscheinen **erst, wenn die Eingabe sie auch erfüllt**. Vorher wären sie sichtbar, aber nicht ausführbar - ein Klick meldete dann nur „Befehl nicht erkannt".
+4. Navigation mit der Tastatur: `↑`/`↓` Zeile wählen, `Enter` öffnen/ausführen, `Esc` schließen.
+5. **Spracheingabe:** Ist im System eine verfügbar, findest du links im Eingabefeld ein Mikrofon. LUKA hört Deutsch und trägt das Erkannte ein.
 
-> 💡 Die Suche läuft rein lokal über die schon geladenen Daten — kein Server, keine Verzögerung. Der Aufgaben-Pool wird beim Öffnen der Palette frisch geladen.
+**Was bei einem Treffer passiert:** Eine Unterlage wird im Assistenten geöffnet, eine Vorlage in den Baukasten geladen, eine Pool-Aufgabe als Block eingefügt, eine Klasse geöffnet. Steht im Assistenten noch ungespeicherte Arbeit, fragt LUKA vorher nach - ein Sprung aus der Palette verwirft nichts ohne Rückfrage.
+
+> Die Suche läuft rein lokal über die schon geladenen Daten - kein Server, keine Verzögerung. Der Aufgaben-Pool wird beim Öffnen der Palette frisch geladen.
 
 ---
 
 ## Tastenkürzel
 
+`Mod` steht für `Strg` unter Windows/Linux und `⌘` auf Mac. Die Liste in der App zeigt die Taste, die auf deinem Gerät tatsächlich gilt.
+
+### Überall
+
 | Tastenkürzel | Wirkung |
 | --- | --- |
-| Strg / Cmd + K | Befehlspalette öffnen oder schließen |
-| Esc | Befehlspalette / Dialog schließen |
-| Enter | In Eingabefeldern: Aktion bestätigen (z. B. Schüler hinzufügen) |
+| `Mod`+`K` | Suche und Befehle öffnen oder schließen |
+| `Esc` | Suche, Dialog oder Tafel-Modus schließen |
+| `Enter` | Aktion im Eingabefeld bestätigen |
+| `Mod`+`+` / `Mod`+`−` / `Mod`+`0` | App vergrößern / verkleinern / zurücksetzen |
+| `Mod` + Mausrad | Größe mit dem Mausrad ändern |
+
+### In der Suche
+
+| Tastenkürzel | Wirkung |
+| --- | --- |
+| `↑` / `↓` | Trefferzeile wählen |
+| `Enter` | Gewählten Treffer öffnen oder Befehl ausführen |
+| `Esc` | Suche schließen |
+
+### Im Assistenten
+
+| Tastenkürzel | Wirkung |
+| --- | --- |
+| `Mod`+`Z` | Letzte Änderung zurücknehmen (nicht im Textfeld) |
+| `Mod`+`Y` bzw. `Mod`+`Shift`+`Z` | Zurückgenommenes wiederherstellen |
+
+### Im Tafel-Modus
+
+| Tastenkürzel | Wirkung |
+| --- | --- |
+| `→` / `Leertaste` | Nächste Folie |
+| `←` | Vorherige Folie |
+| `L` | Lösung aufdecken bzw. wieder ausblenden |
+| `+` / `−` | Schriftgröße |
+| `Esc` | Tafel-Modus beenden |
+
+### Anzeige
+
+Die App lässt sich in der Gr��ße verstellen, was auf einem Beamer mit wenig
+Bildschirmfläche hilfreich ist. Dazu in **Einstellungen → Darstellung**: *Fachzeichen
+aktivieren*, *Bewegung reduzieren* (stoppt Parallax-Effekte) und *Hintergrundeffekte
+reduzieren*.
 
 ---
 
@@ -408,13 +550,16 @@ Alles andere bleibt **lokal**: Datenbank und Exporte liegen auf deinem Rechner u
 
 ## Bekannte Einschränkungen & Hilfe
 
-1. **„Generierung fehlgeschlagen"** → API-Schlüssel und Anbieter in den Einstellungen prüfen („Verbindung testen"); ggf. anderes Modell wählen.
-2. **Erzeugtes DOCX öffnet sich nicht automatisch** (in der Entwicklungs-/WSL-Umgebung bekannt) → Datei manuell im Ausgabeordner öffnen.
-3. **Selten unvollständige KI-Antwort** bei sehr günstigen Modellen (z. B. abgeschnittenes JSON) → Generierung erneut starten oder hochwertigeres Modell wählen.
-4. **Daten nach Neustart weg?** Sollte nicht passieren – falls doch, bitte als Fehler melden (siehe README / Testplan).
+1. **"Generierung fehlgeschlagen"** → API-Schlüssel und Anbieter in den Einstellungen prüfen; dort gibt es je Anbieter **"Verbindung testen"**. Falls der Test gerade scheitert, den Schlüssel mit **"Nur speichern"** sichern und später erneut testen. Bleibt die Meldung, ein anderes Modell wählen.
+2. **PDF-Export schlägt fehl** → PDF geht nur über LibreOffice. Ohne LibreOffice als DOCX exportieren und selbst umwandeln.
+3. **Der Korrekturauftrag startet nicht** → unter **Einstellungen → Korrektur-Modul** steht, ob die Installation bereit ist; dort liegt auch der technische Fallback.
+4. **Schulferien fehlen in der Planung** → im Lehrerprofil muss ein **Bundesland** gewählt sein, sonst kann LUKA sie nicht zuordnen. Siehe *Unterrichtsplanung*.
+5. **Selten unvollständige KI-Antwort** bei sehr günstigen Modellen (z. B. abgeschnittenes JSON) → Generierung erneut starten oder hochwertigeres Modell wählen.
+6. **Speicherfehler** erscheinen als Hinweis (Toast) unten rechts. Bitte mit Screenshot melden.
+7. **Daten nach Neustart weg?** Sollte nicht passieren – falls doch, bitte als Fehler melden.
 
-> 💡 Speicherfehler werden seit Kurzem als Hinweis (Toast) unten rechts angezeigt – wenn so einer auftaucht, bitte mit Screenshot melden.
+**Fehler melden:** Über den Knopf **Fehler melden** unten in der Seitenleiste. Je mehr Kontext du mitgibst, desto schneller lässt sich die Ursache finden – Version (steht in den Einstellungen unter *"Installation & Updates"*) und ein Screenshot helfen sehr.
 
 ---
 
-Mehr Details im Repo: `README.md` und `docs/DATENSCHUTZ.md`.
+Mehr Details: `docs/DATENSCHUTZ.md` · Anleitung mit mehr Tiefe je Fall: `docs/ANLEITUNG.md` (dieses Dokument).

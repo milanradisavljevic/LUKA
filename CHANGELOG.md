@@ -5,6 +5,115 @@ Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 (auch andere Coding-Agents) — siehe `AGENTS.md`.
 
+## Version 1.5.3 — 2026-09-26
+
+### Das ist neu
+
+**Hilfe & Handbuch — zum ersten Mal seit dem Umbau wirklich aktuell**
+
+- **Die Hilfe ist in sechs Kapitel gegliedert**: Erste Schritte, Unterricht vorbereiten, Bewerten & auswerten, Bibliothek & Austausch, App bedienen, Datenschutz & Hilfe. Vorher waren es 20 gleichwertige Abschnitte ohne erkennbaren Einstieg — wer nicht wusste wonach er suchte, fand nichts.
+- **Ganz oben steht ein Einstiegspfad**: fünf Minuten von der Schlüsseleintragung bis zum ersten Export, dazu eine Übersicht über die vier Bereiche der Seitenleiste.
+- **Die Unterrichtsplanung ist jetzt beschrieben** — Wochenraster, Einplanen, Vertretungsstunde, Ferien und Pausen, Unterlagen an die Stunde hängen, Klassenfarben. Das war die größte Lücke: Die Planung war seit der letzten Version ausgeliefert, stand aber in keiner Zeile der Hilfe.
+- **Die Hilfe sagt, wo du die fertige Unterlage wiederfindest** — im Detailbereich der Stunde unter „Unterlagen", mit Klammer-Symbol. Vorher stand dort nur, dass sie angehängt wird; die Frage danach stand nirgends.
+- **Die Hilfe sagt, was in der Ferientabelle nicht stehen kann.** „Amtlich" heißt nicht „für jeden Fall vollständig": Regelbetreuungstage, die beweglichen Ferientage in Hessen (je Staatlichem Schulamt verschieden), abweichende Termine auf Inseln und in beruflichen Schulen und für die Schweiz gar keine Tabelle. Solche Fälle trägst du als einzelne Blöcke nach – LUKA füllt sie nicht auf.
+- **Neu erklärt:** Installation und Updates (inklusive der SmartScreen- und Gatekeeper-Warnung, die viele beim ersten Start für einen Fehler halten), das Lehrerprofil, der Tafel-Modus für den Beamer, das Vermerken von Einsätzen samt Rückblick, und alle Abschnitte der Einstellungen.
+- **Fächer, Aufgabentypen und Tastenkürzel stehen automatisch richtig.** Sie werden aus den Listen der App erzeugt statt abgeschrieben. Vorher fehlten in der Hilfe zwei der 14 Fächer (Medien und Demokratie, Informatik und Künstliche Intelligenz), einer der 20 Aufgabentypen (Tabelle) und 16 von 19 Tastenkürzeln — und beim nächsten Ausbau wäre es stillschweigend weitergegangen. Ein automatischer Test schlägt jetzt an, sobald eine Liste wächst und die Hilfe nicht mitwächst. Für die **Unterrichtsplanung** gibt es denselben Wächter: dort ist die Hilfe handgeschriebener Text, also prüft eine Liste von Pflichtbegriffen, dass kein Knopf hinzukommt, ohne erklärt zu werden.
+- **Der Tastenkürzel-Abschnitt sagt, wo ein Kürzel gilt.** Rückgängig und Zoom galten bisher pauschal, gelten aber nur im Assistenten beziehungsweise überall — und der Tafel-Modus hat eigene Tasten, die vorher nirgends standen.
+- **Auf Apple-Geräten steht jetzt ⌘ statt Strg.** Die Kopfzeile zeigte bisher fest „⌘K" — unter Windows eine Anweisung ins Leere.
+
+**Suche & Befehle — die Palette kann jetzt, was sie verspricht**
+
+- **Befehle mit Platzhalter funktionieren, wenn man sie anklickt.** „Thema: Goethe", „Punkte: 8", „Vorlage speichern als …" erschienen in der Trefferliste, ließen sich aber nicht ausführen — LUKA meldete „Befehl nicht erkannt". Solche Zeilen erscheinen jetzt erst, wenn die Eingabe auch wirklich ein Thema, eine Zahl oder einen Namen enthält. Eine Zeile, die man anklickt, macht jetzt auch das, was sie verspricht.
+- **Vorlagen landen in der Datenbank statt in einem Nebenlager.** „Vorlage speichern als …" legte die Vorlage außerhalb der übrigen Daten ab — sie war in der App nicht zuverlässig wiederzufinden. Jetzt läuft der Befehl über denselben Weg wie der Export.
+- **Ein Sprung aus der Suche fragt nach, bevor er Arbeit verwirft.** Wer mitten in einer Unterlage einen anderen Bereich anspringt, wurde vorher ohne Nachfrage aus dem Assistenten geholt. Das war der einzige Weg in der App, der ungespeicherte Arbeit ohne Rückfrage verlor.
+- **Neu beschrieben:** Die sieben Sektionen der Trefferliste, die Stimmeingabe, was bei einem Treffer genau passiert, und dass parameterpflichtige Befehle erst erscheinen, wenn die Eingabe passt.
+
+**Unterrichtsplanung — der Stundenplan gehört jetzt ins Haus**
+
+- Es gibt jetzt einen echten **Unterrichtsplan**: unten trägst du einmal dein Wochenraster ein (welche Klasse, welcher Tag, welche Uhrzeit, welches Fach). Daraus macht LUA einzelne Stunden, die du einzeln verschieben, ausfallen lassen und mit Unterlagen versehen kannst.
+- **Einplanen auf Vorschau:** „Woche einplanen" plant eine Woche, „Monat einplanen" einen ganzen Monat, „Schuljahr einplanen" das ganze Schuljahr. Bereits geplante Stunden werden nicht doppelt angelegt, und vor dem Einplanen des Schuljahrs fragt LUA nach, weil dabei viele Stunden auf einmal entstehen.
+- **Ferien, Feiertage und Pausen:** Gesetzliche Feiertage rechnet LUA für Österreich, Deutschland und die Schweiz selbst. **Schulferien pflegst du selbst** – entweder einzeln, oder LUA schlägt dir die Ferien deines Bundeslandes vor und du vergleichst sie mit der Verordnung. Dazu kannst du schulinterne Pausen wie Fortbildung, MuT oder einen Elternabend eintragen, schulweit oder nur für eine Klasse.
+- **Woche oder Monat:** Der Plan lässt sich als Woche oder als ganzer Monat ansehen, mit Vor- und Zurückblättern. Im Monatsbild siehst du auf einen Blick, welche Tage voll sind, welche leer sind und wo Ferien sind.
+- **Vertretung direkt an der Stunde:** Wenn eine Stunde ausfällt, markierst du sie mit einem Klick als „Entfällt" – sie bleibt im Kalender stehen, zählt aber nicht mehr als Unterricht. Mit einem Klick verschiebst du sie auf einen anderen Tag.
+- **Unterlagen liegen bei der Stunde:** Dateien, die LUA für dich ablegt, werden nur kopiert – das Original kannst du also gefahrlos verschieben. Fehlt eine abgelegte Datei, weist LUA darauf hin.
+- **Klassen haben Farben:** Jede Klasse bekommt einen von acht gedämpften Farbtönen, den du in der Klassenverwaltung festlegen kannst. Stunden und Rasterzeilen zeigen ihre Klasse in dieser Farbe, damit du auf einen Blick siehst, wo welcher Unterricht stattfindet. Ohne eigene Farbe vergibt LUA automatisch eine, und zwar so, dass sie sich nicht überschneidet.
+- **Raster aus dem Vorjahr:** Beim Schuljahreswechsel übernimmst du die Zeiten aus dem Vorjahr mit einem Klick und prüfst danach nur noch die Klassen.
+- **Ferien für Österreich und Deutschland liegen jetzt amtlich drin.** LUA hat die Schulferien **nicht mehr selbst berechnet**, sondern die Verordnungen eingetragen: für Österreich 2025/26 und 2026/27 (alle neun Bundesländer), für Deutschland 2026/27 (alle 16 Bundesländer). Wenn du im Lehrerprofil dein Bundesland wählst, sagt LUA dir im Planungsbereich, welche Termine fehlen, und bietet sie zum Übernehmen an – **mit Quellenangabe und Abrufdatum**, damit du den Vorschlag mit der Verordnung abgleichen kannst. Deutschland hat seine Ferien je Bundesland, deshalb lohnt sich dort die Profilangabe besonders. Für die **Schweiz** führt LUA bewusst keine Termine: dort sind die Ferien kantonal, das wäre eine Datenpflege je Kanton – trag sie bei Bedarf selbst ein.
+- **Wochenende ist als Wochenende erkennbar:** Samstag und Sonntag sind im Plan (Woche und Monat) und auf der Startseite dezent gekennzeichnet, damit du auf einen Blick siehst, wo ohnehin kein Unterricht ist.
+
+**Übersicht zeigt jetzt, was ansteht**
+
+- Ganz oben steht kompakt, wo du bist und wie viele Stunden in den nächsten sieben Tagen anstehen – mit Sprung direkt in die Planung oder zu den Korrekturen.
+- Der **Wochenstreifen** zeigt genau sieben Tage: heute plus die folgenden sechs Tage, jeder Tag seine Stunden in der Klassenfarbe. Tage ohne Unterlage sind markiert. Ein Klick auf einen Tag bringt dich direkt in die Planung zu genau diesem Tag.
+- Darunter listet **„Anstehend"** die nächsten Stunden mit Tag, Klasse, Uhrzeit und dem Hinweis, ob die Unterlage fehlt oder die Stunde entfällt.
+- Die Navigation ist neu gruppiert: **Klassen** steht jetzt bei den Korrekturen (denn dort arbeitest du klassenbezogen), und die Bibliothek ist in zwei Gruppen geteilt.
+
+### Behobene Fehler
+
+**Hilfe & Suche**
+
+- **Eine Zeile in der Trefferliste war sichtbar, aber tot.** „Thema: &lt;Text&gt;", „Fach: …", „Klasse: …", „Punkte: &lt;Zahl&gt;", „Füge &lt;Typ&gt; hinzu", „Gehe zu Schritt 1–4" und die beiden Vorlagenbefehle standen in der Palette, ließen sich aber nicht ausführen — wer sie anklickte, bekam „Befehl nicht erkannt". LUKA weiß jetzt, ob die Eingabe zum Befehl passt, und blendet die Zeile sonst gar nicht erst ein. Getippt wurde der Befehl wie immer.
+- **Eine gespeicherte Vorlage war hinterher weg.** „Vorlage speichern als …" legte die Vorlage in ein Nebenlager statt in die Datenbank. Nach einem Neustart war sie nicht mehr zuverlässig auffindbar, während alle übrigen Vorlagen da waren.
+- **Der Befehl „Vorlage laden: …" hat nichts geladen**, sondern nur darauf hingewiesen, das Fenster doch von Hand zu öffnen. Er lädt die Vorlage jetzt — und findet sie nicht, sagt er das, statt den Befehl als Notizentext ins Dokument zu schreiben. Genau das passierte vorher: der Text „__TEMPLATE_LOAD:Name" stand danach als Notiz im Dokument.
+- **Der Tabulator führte aus dem Suchfenster in die Seite dahinter.** Die Palette ist ein Dialog, behandelte sich aber wie ein Inline-Element: kein Fokus eingefangen, kein Fokus zurückgegeben, keine Rolle für Screenreader. Jetzt gilt sie als Dialog — mit eigener Taste für Screenreader, eingefangenem Tabulator und Rückgabe des Fokus dorthin, wo er war.
+- **Eine große Trefferliste ließ die anderen Abschnitte verschwinden.** Bei 30 passenden Unterlagen waren Aufgaben-Pool, Klassen und Navigation unsichtbar, obwohl es Treffer gab. Jede Art von Treffer hat jetzt ihre eigenen Plätze.
+- **Fächer und Aufgabentypen zeigten in der Trefferliste ihren internen Namen.** Wer nach „Geschichte" suchte, fand eine Unterlage nur, weil LUKA zusätzlich den internen Bezeichner durchsuchte — in der Liste stand dann „geschichte" statt „Geschichte". Dasselbe bei „mediendemokratie" und „informatikki". Drei Aufgabentypen zeigten ebenfalls ihre Technikbezeichnung: Quellenanalyse, Timeline und Diagramm-/Datenanalyse. Die Namen standen an drei Stellen in der App festgeschrieben, und die Hilfe lief ihnen um zwei Typen hinterher.
+- **In der Kopfzeile stand „⌘K"** — unter Windows eine Anweisung ins Leere. Jetzt steht dort die Taste, die man drücken muss.
+- **Die Hilfe zeigte auf eine Datei, die es beim Anwender nicht gibt.** Sie verwies für weitere Informationen auf `docs/TESTPLAN.md` — ein internes Dokument, das nicht mit ausgeliefert wird. Der Zeiger zeigt jetzt auf die mitgelieferte Anleitung.
+- **In der Hilfe stand ein Entwickler-Problem als known limitation**: „Erzeugtes DOCX öffnet sich nicht automatisch (in der Entwicklungs-/WSL-Umgebung bekannt)". Das betrifft niemanden, der LUKA normal benutzt, und ist ersetzt durch die Frage, die tatsächlich auftritt (PDF-Export ohne LibreOffice).
+- **Die Hilfe empfahl für Fehler den falschen Kanal** und verwies auf „README / Testplan" statt auf die Schaltfläche **Fehler melden** in der Seitenleiste, über die man tatsächlich etwas melden kann.
+- **Die Hilfe sprach noch vom „Pilot"**, obwohl die App seit mehreren Versionen das Vollprodukt ist.
+
+**Ferien – hier war LUA falsch**
+
+- **LUA hat Schulferien selbst berechnet – und dabei falsch gerechnet.** Für Österreich 2026/27 stimmte kein einziger Block mit der Verordnung überein: Es fehlten **Herbst- und Pfingstferien** ganz, die **Osterferien** lagen zwei Wochen zu spät (29.03.–11.04. statt 20.03.–29.03.), die **Weihnachtsferien** endeten am 4. Jänner statt am 6. Jänner, und auch Semester- und Sommerferien wichen ab. Wer nach diesem Vorschlag geplant hätte, hätte **in die Ferien hinein Unterricht gelegt.** LUA rechnet Termine jetzt nicht mehr – sie sind eingetragen und mit Quelle hinterlegt.
+- **Die Ferien waren für alle neun österreichischen Bundesländer unerreichbar.** Das Lehrerprofil speichert den Bundeslandnamen („Salzburg"), die Termintabelle verlangte aber die alte Nummer („5"). Ergebnis: kein Vorschlag, nur ein neutraler Hinweis, **kein sichtbarer Fehler** – die amtlichen Termine waren vorhanden und wurden nie gefunden. Jetzt sprechen Profil und Tabelle dieselbe Sprache; alte Nummern in bestehenden Datenbankzeilen werden weiterhin verstanden.
+- **Derselbe Fehler machte Wien und Niederösterreich am Fronleichnam schulfrei.** Der Feiertagsrechner entschied über dieselben Nummern, bekam aber den Namen geliefert – zwei Bundesländer hatten thereby einen Feiertag, den es dort nicht gibt.
+- **Deutschland war pauschal abgewiesen** („LUA führt keine deutschen Schulferien"). Jetzt sind die Ferien für alle 16 Bundesländer für 2026/27 hinterlegt und lassen sich je Profil-Bundesland nachladen. Regelbetreuungstage und verschobene Feiertage stehen bewusst nicht darin.
+- **Der Hinweis unterschied nicht mehr zwischen „Lücke" und „weiß nicht".** Fehlen Termine, die LUA kennt, gibt es jetzt eine deutliche Warnung mit Übernehmen-Knopf. Gibt es für ein Schuljahr noch keine Verordnung, oder fehlt das Bundesland im Profil, gibt es nur einen neutralen Hinweis – LUA erfindet keine Termine und beschuldigt niemanden.
+- **Die Testwerte waren die Formelwerte.** Die Prüfungen verglichen die Termine mit dem, was der Code selbst erzeugt hatte – die falsche Formel war mit sich selbst glücklich. Die Prüfungen stehen jetzt gegen die Verordnung: alle neun österreichischen Bundesländer, alle 16 deutschen, plus die Sonderfälle, an denen sich der Unterschied zeigt (Bayern hat Frühjahrsferien, Hessen nicht). Neu ist auch eine Prüfung, die **Profil und Tabelle vergleicht** – damit fällt der Namensfehler sofort auf, wenn er wiederkommt.
+
+**Unterrichtsplanung**
+
+- **Stunden im Wochenraster lassen sich wieder speichern.** Wer das Raster schon benutzt hatte, konnte Einträge nicht mehr sicher ablegen – LUA verwarf den Speichervorgang. Bitte einmal prüfen, ob die Zeiten jetzt stehen bleiben.
+- **Eine geplante Stunde bekam die Endzeit der Startzeit.** Aus einer Stunde 10:00–10:45 wurde 10:00–10:00; im Detailbereich stand dann „10:00 bis 10:00".
+- **Rasterzeilen ohne Klasse werden nicht eingeplant.** Eine Rasterzeile ohne Klasse ist eine Freistunde – sie bleibt im Raster stehen, erzeugt aber keine Stunde. Vorher stand „ohne Klasse" im Kalender, wo niemand sie zuordnen konnte.
+- **Klick auf einen Tag in der Monatsansicht ging ins Leere.** Jetzt springt ein Klick auf die Zahl des Tages in die Woche dieses Tages und wählt die erste Stunde dort aus.
+- **Uhrzeiten stehen jetzt im 24-Stunden-Format** und Daten immer als TT.MM.JJJJ. Vorher zeigte LUA je nach System „12:30 PM" und „09/21/2026", also Monat und Tag vertauscht.
+- **Die Ferienwarnung erschien doppelt** und blieb auch stehen, obwohl die Ferien längst eingetragen waren. Jetzt gibt es genau einen Hinweis, und der nennt dein Bundesland beim Namen.
+- **Die Versionsnummer in der Seitenleiste war umgebrochen** („LU / KA / 1,5 / .2") und steht jetzt auf einer Zeile.
+- **Der Plan war an manchen Stellen zu voll.** Der Wochenstreifen zeigt jetzt nur noch dein festes Raster als Wochenkarte – Uhrzeiten, Titel und Materialbäder stehen nur noch in der Liste darunter. Die Stunde hat „Status" und „Verschieben/Entfällt" in einem Block statt in zwei, und die Option „Ferien auslassen" steht dort, wo der Einplan-Knopf steht.
+- **Der Start war doppelt belegt:** „Weiterarbeiten" erschien zweimal mit derselben Unterlage, und die Schnell-Vorlagen waren ein eigener Block. Beides ist zusammengezogen.
+- **Der Wochenstreifen auf der Startseite war zu breit:** 14 Tage nebeneinander waren auf einem normalen Fenster kaum lesbar. Er zeigt jetzt die nächsten sieben Tage, und ein Klick auf einen Tag bringt dich in der Planung genau zu diesem Tag.
+- **„Unterlage erzeugen" aus dem Kalender hat immer mit einer Fehlermeldung geendet.** LUA konnte den Auftrag gar nicht abschicken: Ein Kalendereintrag hat keine Datei und keinen Quelltext, und die Generierung verlangt im Text-Modus zwingend einen – also wurde der Versuch vorher abgewiesen, und die Meldung („bitte im Assistenten prüfen") sagte nichts darüber. Der Knopf bereitet die Unterlage jetzt vor, statt sie zu erzeugen (siehe oben).
+- **Eine aus dem Kalender vorbereitete Unterlage bekam das falsche Land.** Dadurch wäre für eine deutsche Lehrkraft aus einer Klasse 9 eine **Oberstufen**-Unterlage mit **österreichischem** Lehrplan geworden. Das Land kommt jetzt aus dem Lehrerprofil mit – und es ist Pflicht, damit das nicht wieder unbemerkt passiert.
+
+**Aus dem Termin eine Unterlage vorbereiten**
+
+- In der Planung kannst du zu einer Stunde **„Unterlage vorbereiten"** klicken. LUA übernimmt aus dem Kalendereintrag das **Gerüst** – Klasse, Fach, Thema, Datum – und öffnet den Assistenten. **Quelltext und Aufgaben arbeitest du selbst aus**; LUA erfindet keinen Quelltext nur deshalb, weil im Kalender keine Datei danebenliegt. Das ist dieselbe Grundhaltung wie bei den Ferien: lieber eine Lücke melden als etwas erfinden.
+- Ein gelber Hinweis im Assistenten sagt dir, **woher** die Unterlage kommt. Beim Speichern hängt LUA sie **automatisch an den Termin** – mit Klammer-Symbol in der Anlagenliste, mitzählend in der Statistik. Über „Verknüpfung abbrechen" nimmst du den Termin wieder heraus.
+- **Fach an der Klasse pflegen:** Damit das Gerüst vollständig ist, braucht die Klasse in der Klassenverwaltung ein Fach. Steht dort etwas, das LUA nicht kennt (z. B. „Deutsch 6b"), trägst du es im Assistenten nach.
+- Der Knopf **ersetzt** die frühere Auswahl „bestehende Unterlage auswählen + Anlegen". Damit ist der ausgegraute Knopf und die Verwechslung zwischen „Datei ablegen" und „Anlegen" weg.
+
+**Vertretung: eine einzelne Stunde anlegen**
+
+- Neben „Woche einplanen" gibt es jetzt **„Stunde hinzufügen"**: Datum, Klasse, Uhrzeit und optional ein Thema – damit bekommst du eine Stunde für **einen** Tag, auch wenn es dafür keine Zeile im Wochenraster gibt (Vertretung, Einzelsehre, Projektstunde).
+- Sie kommt im Wochen- und im Monatsbild ganz normal zu stehen. Beim nächsten Einplanen wird sie **nicht** erneut angelegt, weil sie nicht aus dem Raster kommt.
+
+### Das ist neu (Korrektur)
+
+**Fehlerliste und Schülertext sind jetzt verzahnt**
+- Ein Klick auf einen Vorschlag holt die Stelle im Schülertext in den Blick: Die Markierung bekommt einen kräftigen Rahmen, die übrigen treten zurück. Ein Klick auf eine Markierung hebt umgekehrt die zugehörige Karte in der Liste hervor.
+- Jeder Vorschlag trägt eine Nummer, die auf der Karte und am Text steht. Bei 40 Markierungen sieht man so auf einen Blick, welcher Vorschlag zu welcher Stelle gehört. Mit "Nr. im Text" blendest du die Ziffern aus.
+- Die Fehlerliste lässt sich nach "Reihenfolge im Text" sortieren. So gehst du den Aufsatz von oben nach unten durch, statt zwischen den Fehlerarten hin und her zu springen.
+- Weitere Reihenfolgen: nach Fehlerart, nach Unsicherheit zuerst und nach offenen Vorschlägen zuerst.
+- Steht eine Wendung mehrfach im Text, ist sie jetzt an allen Fundstellen gestrichelt markiert. Vorher war gar nichts markiert, und man wusste nicht, an welche Stelle der Vorschlag überhaupt gehört.
+- Vorschläge, deren Zitat nicht im Text gefunden wird, stehen unten in einer eigenen Gruppe mit Symbol. Sie sind nicht verloren - man sieht aber sofort, dass sie eine Nachprüfung brauchen.
+
+**Behobene Fehler**
+
+- Blocktyp-Auswahl: Der lange Titel „Diagramm-/Datenanalyse“ ragte über die Karte hinaus — Titel und Beschreibung brechen jetzt innerhalb der Karte um.
+
 ## Version 1.5.2 — 2026-09-25
 
 ### Das ist neu
