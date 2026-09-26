@@ -4,6 +4,7 @@ import { buildSkelett, FACH_META, fachLabel, type Fach, type Stufe, type Block, 
 import { BLOCK_TYPE_DEFS, STUFE_RULES } from '../lib/constants';
 import type { AppAction } from '../lib/types';
 import { ViewShell } from './_ViewShell';
+import { heuteIso } from '../lib/lokalDatum';
 
 interface Props {
   dispatch: React.Dispatch<AppAction>;
@@ -41,7 +42,7 @@ export function QuickExerciseView({ dispatch, onDone }: Props) {
       fach,
       stufe,
       thema: thema.trim(),
-      datum: new Date().toISOString().slice(0, 10),
+      datum: heuteIso(),
       quelltexte: [],
       schwierigkeit: 'mittel',
       gewuenschteAufgabenarten: [typ],
@@ -164,3 +165,4 @@ export function QuickExerciseView({ dispatch, onDone }: Props) {
     </ViewShell>
   );
 }
+

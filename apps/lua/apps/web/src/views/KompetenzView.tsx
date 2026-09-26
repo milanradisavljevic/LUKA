@@ -10,6 +10,7 @@ import { BLOCK_TYPE_DEFS, STUFE_RULES } from '../lib/constants';
 import { buildSkelett } from '@lehrunterlagen/schema';
 import { useGenerate } from '../hooks/useGenerate';
 import { ViewShell } from './_ViewShell';
+import { heuteIso } from '../lib/lokalDatum';
 
 interface Props {
   state: AppState;
@@ -147,7 +148,7 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
       return;
     }
 
-    const heute = new Date().toISOString().slice(0, 10);
+    const heute = heuteIso();
     const meta = {
       ...state.meta,
       modus: 'kompetenz' as const,
@@ -598,3 +599,4 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
     </ViewShell>
   );
 }
+

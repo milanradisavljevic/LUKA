@@ -10,6 +10,7 @@ import { REGION_AT, REGION_DE, SCHULFORMEN_AT, SCHULFORMEN_DE } from '../lib/pro
 import { FACH_META, schulstufeLabel, schulstufenFuerLand } from '@lehrunterlagen/schema';
 import { SettingsPanel } from '../components/SettingsPanel';
 import { ViewShell } from './_ViewShell';
+import { heuteIso } from '../lib/lokalDatum';
 
 function InstallationStatus() {
  const [info,setInfo]=useState<{version:string;executable:string;temporary:boolean}|null>(null);
@@ -290,7 +291,7 @@ export function SettingsView() {
     try {
       const { save } = await import('@tauri-apps/plugin-dialog');
       const { invoke } = await import('@tauri-apps/api/core');
-      const stamp = new Date().toISOString().slice(0, 10);
+      const stamp = heuteIso();
       const target = await save({
         title: 'Datensicherung speichern',
         defaultPath: `lehr-suite-backup-${stamp}.db`,
@@ -767,3 +768,4 @@ export function SettingsView() {
     </ViewShell>
   );
 }
+

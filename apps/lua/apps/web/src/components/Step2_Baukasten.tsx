@@ -169,8 +169,8 @@ export function Step2_Baukasten({ state, dispatch, onNavigateToPool }: Props) {
                 )}
 
                 <bt.Icon size={28} style={{ color: bt.color }} />
-                <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>{bt.label}</span>
-                <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>{bt.description}</span>
+                <span style={{ fontWeight: 600, fontSize: '0.875rem', lineHeight: 1.3, overflowWrap: 'anywhere', hyphens: 'auto' }}>{bt.label}</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', overflowWrap: 'anywhere', hyphens: 'auto' }}>{bt.description}</span>
                 {isDiscouraged && (
                   <span style={{
                     fontSize: '0.6875rem',

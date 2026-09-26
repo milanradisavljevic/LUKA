@@ -28,13 +28,5 @@ export function useCommandParser() {
     return { action: null, commandId: 'unknown', label: '' };
   }, []);
 
-  const getSuggestions = useCallback((prefix: string): { id: string; label: string; description: string }[] => {
-    if (!prefix.trim()) return COMMANDS.map((c) => ({ id: c.id, label: c.label, description: c.description }));
-    const lower = prefix.toLowerCase();
-    return COMMANDS
-      .filter((c) => c.label.toLowerCase().includes(lower) || c.description.toLowerCase().includes(lower))
-      .map((c) => ({ id: c.id, label: c.label, description: c.description }));
-  }, []);
-
-  return { parse, getSuggestions };
+  return { parse };
 }

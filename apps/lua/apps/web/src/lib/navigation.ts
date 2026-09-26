@@ -20,6 +20,7 @@ export const NAV_TARGETS: NavTarget[] = [
   { view: 'wizard', label: 'Assistent', description: 'Zum Aktuellen Dokument zurück' },
   { view: 'kompetenz', label: 'Kompetenz-Übung', description: 'Übung ohne Quelltext aus Lehrplan-Kompetenzen' },
   { view: 'quick', label: 'Schnell-Übung', description: 'Thema + Aufgabentyp → sofort Baukasten' },
+  { view: 'planung', label: 'Unterrichtsplanung', description: 'Wochenraster, nächste Stunden und ihre Unterlagen' },
   { view: 'documents', label: 'Meine Unterlagen', description: 'Gespeicherte Dokumente durchsuchen' },
   { view: 'pool', label: 'Aufgaben-Pool', description: 'Wiederverwendbare Aufgaben-Blöcke' },
   { view: 'templates', label: 'Vorlagen', description: 'Gespeicherte Aufgaben-Vorlagen laden' },
@@ -31,7 +32,7 @@ export const NAV_TARGETS: NavTarget[] = [
   { view: 'favorites', label: 'Favoriten', description: 'Markierte Dokumente' },
   { view: 'trash', label: 'Papierkorb', description: 'Gelöschte Dokumente wiederherstellen' },
   { view: 'settings', label: 'Einstellungen', description: 'API-Keys, Provider und App-Einstellungen' },
-  { view: 'help', label: 'Hilfe', description: 'Handbuch und Kurzanleitung' },
+  { view: 'help', label: 'Hilfe', description: 'Handbuch in sechs Kapiteln' },
 ];
 
 /** Navigationsziele, passend zum Feature-Stand (NATASCHA ggf. ausgeblendet). */

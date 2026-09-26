@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { BlockTypSchema } from '@lehrunterlagen/schema';
 import {
   BLOCK_TYPE_LABEL,
   SECTION_LABELS,
@@ -48,18 +49,32 @@ describe('search — isSubsequence', () => {
 });
 
 describe('search — Label-Helfer', () => {
-  it('fachLabel/stufeLabel kennen die Werte und fallen sonst auf den Rohwert', () => {
+  it('fachLabel kennt alle Fächer aus FACH_META und fällt sonst auf den Rohwert zurück', () => {
     expect(fachLabel('deutsch')).toBe('Deutsch');
     expect(fachLabel('englisch')).toBe('Englisch');
-    expect(fachLabel('franzoesisch')).toBe('franzoesisch');
+    expect(fachLabel('franzoesisch')).toBe('Französisch');
+    expect(fachLabel('mediendemokratie')).toBe('Medien und Demokratie');
+    expect(fachLabel('informatikki')).toBe('Informatik und Künstliche Intelligenz');
+    expect(fachLabel('gibtsnicht')).toBe('gibtsnicht');
+    expect(fachLabel()).toBe('');
+  });
+  it('stufeLabel kennt die zwei Stufen und fällt sonst auf den Rohwert zurück', () => {
     expect(stufeLabel('oberstufe')).toBe('Oberstufe');
     expect(stufeLabel('unterstufe')).toBe('Unterstufe');
+    expect(stufeLabel('klasse5')).toBe('klasse5');
   });
   it('blockTypeLabel mappt die bekannten Typen und fallbackt sonst', () => {
     expect(blockTypeLabel('lueckentext')).toBe('Lückentext');
     expect(blockTypeLabel('multipleChoice')).toBe('Multiple Choice');
     expect(blockTypeLabel('unbekannt')).toBe('unbekannt');
-    expect(Object.keys(BLOCK_TYPE_LABEL).length).toBeGreaterThanOrEqual(15);
+  });
+  it('deckt jeden Blocktyp aus dem Schema ab — kein Typ darf in der Suche roh erscheinen', () => {
+    for (const typ of BlockTypSchema.options) {
+      expect(BLOCK_TYPE_LABEL[typ]).toBeTruthy();
+      expect(blockTypeLabel(typ)).not.toBe(typ);
+    }
+    // Feste Zahl als Drift-Wächter: ein neuer Blocktyp ohne Label fällt auf.
+    expect(Object.keys(BLOCK_TYPE_LABEL).length).toBe(BlockTypSchema.options.length);
   });
   it('parseTags verarbeitet JSON-Array und Kommaliste', () => {
     expect(parseTags(JSON.stringify(['a', 'b']))).toEqual(['a', 'b']);
@@ -220,7 +235,6 @@ describe('search — Mischung aller kinds + Gruppierung', () => {
     const kinds = new Set(res.map((r) => r.kind));
     expect(kinds).toEqual(new Set(['command', 'document', 'template', 'pool', 'klasse', 'navigation']));
   });
-
   it('groupResults bildet Sektionen in fester Reihenfolge nur für vorhandene Arten', () => {
     const res = searchIndex(idx, 'goethe');
     const sections = groupResults(res);
@@ -239,6 +253,82 @@ describe('search — Mischung aller kinds + Gruppierung', () => {
     const sections = groupResults([idx[0]!]);
     expect(sections).toHaveLength(1);
     expect(sections[0]!.kind).toBe('document');
+  });
+});
+
+/**
+ * Die Deckelung pro Sektion.
+ *
+ * Vorher griff ein einziges Limit von 30 über alle Trefferarten. Passen 30
+ * Unterlagen auf ein Wort, waren Aufgaben-Pool, Klassen und „Gehe zu …"
+ * unsichtbar – obwohl es Treffer gab. Der Changelog nennt das als Hauptgewinn
+ * der Suche, also gehört es hierher.
+ */
+describe('search — Deckelung pro Sektion', () => {
+  /** 30 Unterlagen mit identischem Suchwort, plus je ein Treffer pro Art. */
+  const viele = buildSearchIndex(
+    sources({
+      documents: Array.from({ length: 30 }, (_, i) => ({
+        id: `d${i}`, title: 'Goethe Blatt', meta: { thema: 'Goethe' },
+        updatedAt: `2026-01-${String(i + 1).padStart(2, '0')}T00:00:00.000Z`,
+      })),
+      templates: [{ id: 't1', name: 'Goethe-Vorlage', meta: {} }],
+      pool: [{ id: 'p1', thema: 'Goethe Zitate', aufgabentyp: 'matching', tags: '["goethe"]' }],
+      klassen: [{ klasse: '7A Goethe', anzahlAbgaben: 1 }],
+      navigation: [{ view: 'help', label: 'Hilfe zu Goethe' }],
+    }),
+  );
+
+  it('lässt jede Art sichtbar, auch wenn 30 Unterlagen passen', () => {
+    const res = searchIndex(viele, 'goethe');
+    const kinds = new Set(res.map((r) => r.kind));
+    for (const art of ['pool', 'klasse', 'navigation', 'template'] as const) {
+      expect(kinds, `Art ${art} wurde von den Unterlagen verdrängt`).toContain(art);
+    }
+  });
+
+  it('gibt jeder Art zuerst ihre eigenen Plätze und füllt danach auf', () => {
+    const res = searchIndex(viele, 'goethe');
+    const proArt = (kind: string) => res.filter((r) => r.kind === kind).length;
+    // Jede Art kommt drin vor – das ist der eigentliche Fix.
+    expect(proArt('pool')).toBe(1);
+    expect(proArt('klasse')).toBe(1);
+    expect(proArt('navigation')).toBe(1);
+    expect(proArt('template')).toBe(1);
+    // Die Dokumenten bekommen die 10 Plätze der ersten Runde **plus** den Rest
+    // der zweiten: Nachschub gibt es nur, wenn eine Art unter ihrem Anteil
+    // liegt. Deshalb sind es hier mehr als 10.
+    expect(proArt('document')).toBeGreaterThan(10);
+    // Und insgesamt bleibt die Trefferzahl gedeckelt.
+    expect(res.length).toBe(30);
+  });
+
+  it('füllt nur auf, solange Plätze frei sind', () => {
+    // Nur wenige Treffer insgesamt: dann darf die zweite Runde nichts
+    // aufblasen, und keine Art verliert ihren Platz.
+    const wenige = buildSearchIndex(
+      sources({
+        documents: [{ id: 'd1', title: 'Goethe', meta: { thema: 'Goethe' } }],
+        pool: [{ id: 'p1', thema: 'Goethe Zitate', aufgabentyp: 'matching', tags: '["goethe"]' }],
+        klassen: [{ klasse: '7A Goethe', anzahlAbgaben: 1 }],
+        navigation: [{ view: 'help', label: 'Hilfe zu Goethe' }],
+      }),
+    );
+    const res = searchIndex(wenige, 'goethe');
+    expect(res).toHaveLength(4);
+    expect(new Set(res.map((r) => r.kind)).size).toBe(4);
+  });
+
+  it('hält das globale Limit, wenn nur eine einzige Art trifft', () => {
+    const nurDokumente = buildSearchIndex(
+      sources({
+        documents: Array.from({ length: 40 }, (_, i) => ({
+          id: `n${i}`, title: 'Goethe', meta: { thema: 'Goethe' },
+          updatedAt: '2026-01-01T00:00:00.000Z',
+        })),
+      }),
+    );
+    expect(searchIndex(nurDokumente, 'goethe')).toHaveLength(30);
   });
 });
 
@@ -327,5 +417,33 @@ describe('search — Sonderzeichen & Edge-Cases', () => {
     const docs = Array.from({ length: 60 }, (_, i) => ({ id: `d${i}`, title: `treffer ${i}`, meta: {} }));
     const idx = buildSearchIndex(sources({ documents: docs }));
     expect(searchIndex(idx, 'treffer').length).toBeLessThanOrEqual(30);
+  });
+  it('lässt bei nur einer treffenden Sektion das volle Cap zu', () => {
+    const docs = Array.from({ length: 40 }, (_, i) => ({ id: `d${i}`, title: `treffer ${i}`, meta: {} }));
+    const idx = buildSearchIndex(sources({ documents: docs }));
+    expect(searchIndex(idx, 'treffer').length).toBe(30);
+  });
+  it('hungert keine Sektion aus: viele Unterlagen dürfen Pool/Klassen/ Navigation nicht verdecken', () => {
+    const docs = Array.from({ length: 40 }, (_, i) => ({ id: `d${i}`, title: `treffer ${i}`, meta: {} }));
+    const idx = buildSearchIndex(
+      sources({
+        documents: docs,
+        pool: [
+          { id: 'p1', thema: 'treffer pool eins' },
+          { id: 'p2', thema: 'treffer pool zwei' },
+        ],
+        klassen: [{ klasse: 'treffer klasse' }],
+        navigation: [{ view: 'pool', label: 'Aufgaben-Pool' }],
+      }),
+    );
+    const treffer = searchIndex(idx, 'treffer');
+    const sektionen = groupResults(treffer);
+    expect(treffer.length).toBeLessThanOrEqual(30);
+    expect(sektionen.map((s) => s.kind)).toContain('pool');
+    expect(sektionen.map((s) => s.kind)).toContain('klasse');
+    // Eine Sektion mit 40 Treffern darf nicht alles belegen.
+    const dokumente = treffer.filter((r) => r.kind === 'document').length;
+    expect(dokumente).toBeLessThan(40);
+    expect(treffer).toEqual(searchIndex(idx, 'treffer'));
   });
 });

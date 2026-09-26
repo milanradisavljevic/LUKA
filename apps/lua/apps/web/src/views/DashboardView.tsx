@@ -1,10 +1,19 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   GraduationCap, AlertTriangle, ClipboardCheck,
-  ChevronRight, FileText, Timer, Files, Clock, Coins,
+  ChevronRight, Timer, Files, Clock, Coins,
   Grid3X3, Languages, Pencil, AlignLeft, Repeat, Wand2,
+  CalendarDays, ArrowRight, Paperclip, CircleSlash,
 } from 'lucide-react';
 import { useNatascha } from '../hooks/useNatascha';
+import { usePlanung } from '../hooks/usePlanung';
+import { useKlassenMeta } from '../hooks/useKlassenMeta';
+import { farbListeAusKlassen, klasseFarbStil } from '../lib/klassenFarben';
+import { alsStunden } from '../lib/planungAdapter';
+import { datumNumerisch, heuteIso, istWochenende, plusTage, wochentag, WOCHENTAGE_KURZ, WOCHENTAGE_LANG } from '../lib/lokalDatum';
+import {
+  naechsteStunden, relativTagesueberschrift, zeitSpanne,
+} from '../lib/stundenMappen';
 import { loadDocuments, loadTemplates } from '../lib/storage';
 import { loadTeacherProfile } from '../lib/profile';
 import { BLOCK_TYPE_DEFS } from '../lib/constants';
@@ -28,6 +37,8 @@ interface DashboardViewProps {
   onNavigate?: (view: ActiveView) => void;
   onStartQuickExercise?: (config: { fach: 'deutsch' | 'englisch'; stufe: 'unterstufe' | 'oberstufe'; typ: Block['typ']; thema: string }) => void;
   onGenerateUebung?: (prefill: NataschaPrefill) => void;
+  /** Klick auf einen Tag im Streifen: in der Planung genau diesen Tag zeigen. */
+  onPlanungTag?: (datum: string) => void;
 }
 
 interface KlasseStat {
@@ -99,12 +110,25 @@ const START_ACTIONS = [
   },
 ];
 
-export function DashboardView({ resumeTitle, onResume, onOpenDocument, onNavigate, onStartQuickExercise, onGenerateUebung }: DashboardViewProps = {}) {
+export function DashboardView({ resumeTitle, onResume, onOpenDocument, onNavigate, onStartQuickExercise, onGenerateUebung, onPlanungTag }: DashboardViewProps = {}) {
   const { listKlassen, getNotenverteilung, getKlassenTrend, getHeatmap, quelltextGet } = useNatascha();
   const [rows, setRows] = useState<KlasseStat[]>([]);
   const [empfehlung, setEmpfehlung] = useState<EmpfehlungDesTages | null>(null);
   const [loading, setLoading] = useState(true);
   const [displayName, setDisplayName] = useState('');
+
+  // „Was steht an" braucht Raster, Stunden und Ferien – derselbe Hook wie in der
+  // Planung, aber ohne Schreibaktionen.
+  const planung = usePlanung();
+  const { klassen: klassenMeta } = useKlassenMeta();
+  const farbListe = useMemo(() => farbListeAusKlassen(klassenMeta), [klassenMeta]);
+  // „in den nächsten 7 Tagen" – dieselbe Spanne wie der Streifen unten, sonst
+  // verspricht die Zahl mehr, als der Streifen zeigt.
+  const planungAnzahl = useMemo(
+    () => naechsteStunden(alsStunden(planung.stunden), heuteIso(), 40)
+      .filter(s => s.datum < plusTage(heuteIso(), TAGE_IM_UEBERBLICK)).length,
+    [planung.stunden],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -259,25 +283,65 @@ export function DashboardView({ resumeTitle, onResume, onOpenDocument, onNavigat
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto' }}>
 
+      {/* ═══ Begrüßung: kompakt, damit „Was steht an" sofort sichtbar ist ═══ */}
+      <header className="dashboard-begruessung">
+        <h1 className="font-script ink-underline dashboard-begruessung__titel">{greetTime()}</h1>
+        <p className="dashboard-begruessung__wo">
+          <ArrowRight size={13} aria-hidden />
+          <span>Startseite</span>
+          {FEATURES.natascha && (
+            <button className="dashboard-begruessung__link" onClick={() => onNavigate?.('korrektur')}>
+              Zu den Korrekturen
+            </button>
+          )}
+          {planungAnzahl > 0 && (
+            <button className="dashboard-begruessung__link" onClick={() => onNavigate?.('planung')}>
+              {planungAnzahl} {planungAnzahl === 1 ? 'Stunde' : 'Stunden'} in den nächsten zwei Wochen
+            </button>
+          )}
+          {planungAnzahl === 0 && (
+            <button className="dashboard-begruessung__link" onClick={() => onNavigate?.('planung')}>
+              Stundenplan öffnen
+            </button>
+          )}
+        </p>
+      </header>
+
       <section className="resume-work" aria-labelledby="resume-title">
         <div><h2 id="resume-title">Weiterarbeiten</h2><p>Dein Unterricht, deine offenen Aufgaben.</p></div>
         <div className="resume-actions">
           {resumeTitle && <button className="btn-primary" onClick={onResume}>Entwurf fortsetzen: {resumeTitle}</button>}
           {lastDocument && <button className="btn-secondary" onClick={()=>onOpenDocument?.(lastDocument)}>Letzte Unterlage: {lastDocument.title}</button>}
+          {/* „Wie zuletzt" stand previously als eigene Kachel weit unten, obwohl
+              es dieselbe Information wie „Letzte Unterlage" transportiert. Der
+              Knopf ist jetzt hier oben bei seinen Geschwistern. */}
+          {lastDocument && (
+            <button
+              className="btn-secondary"
+              onClick={() => onNavigate?.('wizard')}
+              title="Neue Unterlage mit denselben Einstellungen starten"
+            >
+              <Repeat size={13} /> Wie zuletzt: {fachLabel(lastDocument.snapshot.meta.fach)} &middot; {typLabel(lastDocument.snapshot.meta.typ)}
+            </button>
+          )}
           {FEATURES.natascha && <button className="btn-secondary" onClick={()=>onNavigate?.('korrektur')}>Korrekturen weiterprüfen</button>}
           {!resumeTitle && !lastDocument && <span>Beginne unten mit deiner ersten Unterlage.</span>}
         </div>
       </section>
-      {/* ═══ HERO: Begrüßung + drei Startwege ═══ */}
+
+      {/* ═══ Was steht an: die nächsten sieben Tage und die offenen Aufgaben ═══ */}
+      <WochenPlan
+        planung={planung}
+        onNavigate={onNavigate}
+        onTagKlick={onPlanungTag}
+        farbListe={farbListe}
+      />
+
+      {/* ═══ Startwege ═══ */}
       <section className="paper dashboard-start" aria-labelledby="dashboard-start-title">
-        <div className="dashboard-start__header">
-          <div>
-            <h1 id="dashboard-start-title" className="font-script ink-underline dashboard-start__greeting">
-              {greetTime()}
-            </h1>
-            <p className="font-script dashboard-start__subtitle">Was möchtest du vorbereiten?</p>
-          </div>
-        </div>
+        <h2 id="dashboard-start-title" className="font-script dashboard-start__subtitle">
+          Was möchtest du vorbereiten?
+        </h2>
 
         <div className="dashboard-actions">
           {START_ACTIONS.map((d) => (
@@ -302,123 +366,34 @@ export function DashboardView({ resumeTitle, onResume, onOpenDocument, onNavigat
             </button>
           ))}
         </div>
+
+        {/* Die Schnell-Vorlagen standen previously als eigener Abschnitt
+            zwischen den Startwegen und der Vorlagenliste - ein Block für vier
+            Kacheln, die inhaltlich zu den Startwegen gehören. */}
+        {onStartQuickExercise && (
+          <>
+            <p className="dashboard-start__zwischentitel">Oder direkt mit einem Aufgabentyp loslegen</p>
+            <div className="dashboard-schnellvorlagen">
+              {([
+                { label: 'Kreuzwort', icon: Grid3X3, fach: 'deutsch' as const, stufe: 'unterstufe' as const, typ: 'kreuzwortraetsel' as const, thema: 'Kreuzworträtsel — Thema anpassen' },
+                { label: 'Vokabeltest', icon: Languages, fach: 'englisch' as const, stufe: 'unterstufe' as const, typ: 'vokabeluebung' as const, thema: 'Vokabeltest — Thema anpassen' },
+                { label: 'Fehlerkorrektur', icon: Pencil, fach: 'deutsch' as const, stufe: 'oberstufe' as const, typ: 'fehlerkorrektur' as const, thema: 'Fehlerkorrektur — Thema anpassen' },
+                { label: 'Lückentext', icon: AlignLeft, fach: 'deutsch' as const, stufe: 'unterstufe' as const, typ: 'lueckentext' as const, thema: 'Lückentext — Thema anpassen' },
+              ] as const).map((s) => (
+                <button
+                  key={s.label}
+                  className="tile"
+                  onClick={() => onStartQuickExercise({ fach: s.fach, stufe: s.stufe, typ: s.typ, thema: s.thema })}
+                  style={{ fontSize: '0.8125rem', textAlign: 'left', flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}
+                >
+                  <s.icon size={18} style={{ color: 'var(--color-accent)', flexShrink: 0 }} />
+                  <span>{s.label}</span>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
       </section>
-
-      {/* ═══ Schnell-Übungen ═══ */}
-      {onStartQuickExercise && (
-        <div style={{ marginBottom: '2rem' }}>
-          <p style={{
-            fontSize: '0.75rem', fontWeight: 500, color: 'var(--color-text-muted)',
-            textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem',
-          }}>
-            Schnell-Vorlagen
-          </p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '0.5rem' }}>
-            {([
-              { label: 'Kreuzwort', icon: Grid3X3, fach: 'deutsch' as const, stufe: 'unterstufe' as const, typ: 'kreuzwortraetsel' as const, thema: 'Kreuzworträtsel — Thema anpassen' },
-              { label: 'Vokabeltest', icon: Languages, fach: 'englisch' as const, stufe: 'unterstufe' as const, typ: 'vokabeluebung' as const, thema: 'Vokabeltest — Thema anpassen' },
-              { label: 'Fehlerkorrektur', icon: Pencil, fach: 'deutsch' as const, stufe: 'oberstufe' as const, typ: 'fehlerkorrektur' as const, thema: 'Fehlerkorrektur — Thema anpassen' },
-              { label: 'Lückentext', icon: AlignLeft, fach: 'deutsch' as const, stufe: 'unterstufe' as const, typ: 'lueckentext' as const, thema: 'Lückentext — Thema anpassen' },
-            ] as const).map((s) => (
-              <button
-                key={s.label}
-                className="tile"
-                onClick={() => onStartQuickExercise({ fach: s.fach, stufe: s.stufe, typ: s.typ, thema: s.thema })}
-                style={{ fontSize: '0.8125rem', textAlign: 'left', flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}
-              >
-                <s.icon size={18} style={{ color: 'var(--color-accent)', flexShrink: 0 }} />
-                <span>{s.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ═══ Wie zuletzt ═══ */}
-      {lastDocument && (
-        <div style={{ marginBottom: '2rem' }}>
-          <p style={{
-            fontSize: '0.75rem', fontWeight: 500, color: 'var(--color-text-muted)',
-            textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem',
-          }}>
-            Wie zuletzt
-          </p>
-          <button
-            className="card card-clickable"
-            onClick={() => onNavigate?.('wizard')}
-            aria-label={`Neue Unterlage wie zuletzt: ${lastDocument.title}`}
-            style={{
-              padding: '1rem 1.5rem',
-              textAlign: 'left',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '1rem',
-              width: '100%',
-            }}
-          >
-            <Repeat size={18} style={{ color: 'var(--color-text-muted)', flexShrink: 0 }} />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{
-                fontSize: '0.9375rem', fontWeight: 500, color: 'var(--color-text-primary)',
-                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              }}>
-                Wie zuletzt: {fachLabel(lastDocument.snapshot.meta.fach)}
-                {' '}·{' '}
-                {lastDocument.snapshot.meta.stufe === 'oberstufe' ? 'Oberstufe' : 'Unterstufe'}
-                {' '}·{' '}
-                {typLabel(lastDocument.snapshot.meta.typ)}
-              </div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-                Neue Unterlage mit denselben Einstellungen starten
-              </div>
-            </div>
-            <ChevronRight size={16} style={{ color: 'var(--color-text-muted)', flexShrink: 0 }} />
-          </button>
-        </div>
-      )}
-
-      {/* ═══ Weiterarbeiten ═══ */}
-      {lastDocument && (
-        <div style={{ marginBottom: '2rem' }}>
-          <p style={{
-            fontSize: '0.75rem', fontWeight: 500, color: 'var(--color-text-muted)',
-            textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem',
-          }}>
-            Weiterarbeiten
-          </p>
-          <button
-            className="card card-clickable"
-            onClick={() => onNavigate?.('wizard')}
-            aria-label={`Weiterarbeiten an: ${lastDocument.title}`}
-            style={{
-              padding: '1rem 1.5rem',
-              textAlign: 'left',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '1rem',
-              width: '100%',
-            }}
-          >
-            <FileText size={18} style={{ color: 'var(--color-text-muted)', flexShrink: 0 }} />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{
-                fontSize: '0.9375rem', fontWeight: 500, color: 'var(--color-text-primary)',
-                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              }}>
-                {lastDocument.title}
-              </div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-                {fachLabel(lastDocument.snapshot.meta.fach)}
-                {' '}&middot;{' '}
-                {lastDocument.snapshot.meta.stufe === 'oberstufe' ? 'Oberstufe' : 'Unterstufe'}
-                {' '}&middot;{' '}
-                {fmtDatum(lastDocument.updatedAt)}
-              </div>
-            </div>
-            <ChevronRight size={16} style={{ color: 'var(--color-text-muted)', flexShrink: 0 }} />
-          </button>
-        </div>
-      )}
 
       {/* ═══ Vorlagen ═══ */}
       {vorlagen.length > 0 && (
@@ -627,5 +602,167 @@ export function DashboardView({ resumeTitle, onResume, onOpenDocument, onNavigat
         </div>
       ))}
     </div>
+  );
+}
+
+/**
+ * „Was steht an": die nächsten sieben Tage als Streifen plus die Liste der
+ * anstehenden Stunden. Rollierend – heute plus sechs Tage, nicht die
+ * Kalenderwoche, damit am Freitag nicht plötzlich eine leere Woche dasteht.
+ * Bewusst kompakt: die Startseite soll zeigen, was als Nächstes ansteht, nicht
+ * den Stundenplan im Vollbild.
+ */
+const TAGE_IM_UEBERBLICK = 7;
+
+function WochenPlan({
+  planung, onNavigate, onTagKlick, farbListe,
+}: {
+  planung: ReturnType<typeof usePlanung>;
+  onNavigate?: (view: ActiveView) => void;
+  onTagKlick?: (datum: string) => void;
+  farbListe: Map<string, number>;
+}) {
+  const stunden = useMemo(() => alsStunden(planung.stunden), [planung.stunden]);
+  const von = heuteIso();
+  const bis = plusTage(von, TAGE_IM_UEBERBLICK);
+  const imZeitraum = useMemo(
+    () => stunden.filter(s => s.datum >= von && s.datum < bis)
+      .sort((a, b) => a.datum.localeCompare(b.datum) || (a.startZeit ?? '99:99').localeCompare(b.startZeit ?? '99:99')),
+    [stunden],
+  );
+  const anstehend = useMemo(() => naechsteStunden(stunden, von, 8), [stunden]);
+
+  const stil = useCallback(
+    (klasseName: string) => klasseFarbStil(undefined, klasseName, farbListe),
+    [farbListe],
+  );
+
+  const tage = useMemo(() => {
+    const liste: Array<{ datum: string; anzahl: number; ohne: number; wochenende: boolean }> = [];
+    for (let i = 0; i < TAGE_IM_UEBERBLICK; i++) {
+      const datum = plusTage(von, i);
+      const amTag = imZeitraum.filter(s => s.datum === datum);
+      liste.push({
+        datum,
+        anzahl: amTag.length,
+        ohne: amTag.filter(s => s.anzahlMaterialien === 0).length,
+        wochenende: istWochenende(datum),
+      });
+    }
+    return liste;
+  }, [imZeitraum, von]);
+
+  if (stunden.length === 0) {
+    return (
+      <section className="start-woche" aria-labelledby="start-standan-leer">
+        <h2 id="start-standan-leer" className="start-woche__titel">
+          <CalendarDays size={15} /> Was steht an
+        </h2>
+        <p className="start-woche__leer">
+          Du hast noch kein Wochenraster angelegt. Trag deine festen Stunden ein –
+          LUA macht daraus einzelne Stunden, die du verschieben, ausfallen lassen
+          und mit Unterlagen versehen kannst.
+        </p>
+        <button className="btn-primary" onClick={() => onNavigate?.('planung')}>
+          Stundenplan öffnen <ChevronRight size={15} />
+        </button>
+      </section>
+    );
+  }
+
+  return (
+    <section className="start-woche" aria-labelledby="start-standan-title">
+      <h2 id="start-standan-title" className="start-woche__titel">
+        <CalendarDays size={15} /> Was steht an
+        <span className="start-woche__zahl">
+          {imZeitraum.length} {imZeitraum.length === 1 ? 'Stunde' : 'Stunden'} in den nächsten {TAGE_IM_UEBERBLICK} Tagen
+        </span>
+        <button className="start-woche__mehr" onClick={() => onNavigate?.('planung')}>
+          Stundenplan <ChevronRight size={13} />
+        </button>
+      </h2>
+
+      <div className="start-woche__streifen">
+        {tage.map(t => {
+          const wochenende = t.wochenende;
+          const beschriftung = wochenende
+            ? `${WOCHENTAGE_LANG[wochentag(t.datum) - 1]} ${datumNumerisch(t.datum)} – Wochenende`
+            : `${WOCHENTAGE_LANG[wochentag(t.datum) - 1]} ${datumNumerisch(t.datum)}`;
+          const inhalt = (
+            <>
+              <div className="start-tag-kopf">
+                <span className="start-tag-wochentag">{WOCHENTAGE_KURZ[wochentag(t.datum) - 1]}</span>
+                <span className="start-tag-zahl">{Number(t.datum.slice(8, 10))}</span>
+              </div>
+              {t.anzahl === 0 ? (
+                <span className="start-tag-frei">{wochenende ? '' : '–'}</span>
+              ) : (
+                <>
+                  <div className="start-tag-stunden">
+                    {imZeitraum.filter(s => s.datum === t.datum).map(s => (
+                      <span
+                        key={s.id}
+                        className="start-tag-klasse"
+                        style={stil(s.klasseName)}
+                        title={`${s.klasseName} · ${zeitSpanne(s.startZeit, s.endeZeit)} · ${s.titel || 'Unterricht'}`}
+                      >
+                        {s.klasseName || 'ohne Klasse'}
+                      </span>
+                    ))}
+                  </div>
+                  {t.ohne > 0 && (
+                    <span className="start-tag-warnung" title={`${t.ohne} ohne Unterlage`}>
+                      <Paperclip size={9} /> {t.ohne}
+                    </span>
+                  )}
+                </>
+              )}
+            </>
+          );
+          const klasse = [
+            'start-tag',
+            t.datum === von ? 'start-tag-ist-heute' : '',
+            wochenende ? 'start-tag-ist-wochenende' : '',
+            onTagKlick ? 'start-tag-ist-klickbar' : '',
+          ].filter(Boolean).join(' ');
+          const titel = `${beschriftung}${t.anzahl > 0 ? `, ${t.anzahl} ${t.anzahl === 1 ? 'Stunde' : 'Stunden'}` : ''}${onTagKlick ? ' – im Stundenplan zeigen' : ''}`;
+
+          // Ein Tag ohne Stunden und ohne Klickziel bleibt ein div: ein Button,
+          // der nichts tut, ist schlechter als kein Button.
+          return onTagKlick ? (
+            <button key={t.datum} type="button" className={klasse} title={titel}
+              onClick={() => onTagKlick(t.datum)}>
+              {inhalt}
+            </button>
+          ) : (
+            <div key={t.datum} className={klasse} title={titel}>{inhalt}</div>
+          );
+        })}
+      </div>
+
+      <div className="start-anstehend">
+        <h3>Anstehend</h3>
+        {anstehend.length === 0 ? (
+          <p className="start-woche__leer">Ab heute ist nichts mehr geplant.</p>
+        ) : (
+          <ul>
+            {anstehend.map(s => (
+              <li key={s.id} style={stil(s.klasseName)}>
+                <span className="start-anstehend__tag">{relativTagesueberschrift(s.datum)}</span>
+                <span className="start-anstehend__klasse">{s.klasseName || 'ohne Klasse'}</span>
+                <span className="start-anstehend__zeit">{zeitSpanne(s.startZeit, s.endeZeit)}</span>
+                {s.einsatzArt === 'ausgefallen' ? (
+                  <span className="start-anstehend__entfallen"><CircleSlash size={11} /> entfällt</span>
+                ) : s.anzahlMaterialien === 0 ? (
+                  <span className="start-anstehend__fehlt"><Paperclip size={11} /> keine Unterlage</span>
+                ) : (
+                  <span className="start-anstehend__ok"><Paperclip size={11} /> {s.anzahlMaterialien}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </section>
   );
 }

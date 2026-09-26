@@ -21,11 +21,12 @@ import {
 } from '../lib/einsatz';
 import { ViewShell } from './_ViewShell';
 import { EmptyState } from './_EmptyState';
+import { heuteIso } from '../lib/lokalDatum';
 
 const STUFE_LABEL: Record<string, string> = { oberstufe: 'Oberstufe', unterstufe: 'Unterstufe' };
 
 function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
+  return heuteIso();
 }
 
 function formatHistoryDate(iso: string): string {
@@ -283,3 +284,4 @@ export function HistoryView({ onCreateNew }: Props) {
     </ViewShell>
   );
 }
+

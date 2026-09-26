@@ -8,6 +8,12 @@
  * (lucide & Co.) → isoliert testbar.
  */
 import type { AppAction, ActiveView } from './types';
+import { FACH_META, type Fach } from '@lehrunterlagen/schema';
+import { BLOCK_TYP_LABEL, blockTypeLabel } from './blockLabels';
+
+// Re-Export, damit Aufrufer (und Tests) ihre Label-Helfer weiterhin aus
+// search.ts bekommen — die Quelle ist jetzt `blockLabels.ts`.
+export { BLOCK_TYP_LABEL as BLOCK_TYPE_LABEL, blockTypeLabel };
 
 // ---------------------------------------------------------------------------
 // Öffentliche Typen
@@ -156,12 +162,9 @@ export function normalize(input: string): string {
 // Kleine, selbstenthaltene Label-Helfer (keine UI-Abhängigkeit)
 // ---------------------------------------------------------------------------
 
-const FACH_LABEL: Record<string, string> = {
-  deutsch: 'Deutsch',
-  englisch: 'Englisch',
-};
+/** Anzeigename eines Fachs aus `FACH_META` (14 Fächer, eine Quelle). */
 export function fachLabel(fach?: string): string {
-  return (fach && FACH_LABEL[fach]) || fach || '';
+  return (fach && FACH_META[fach as Fach]?.label) || fach || '';
 }
 
 const STUFE_LABEL: Record<string, string> = {
@@ -170,29 +173,6 @@ const STUFE_LABEL: Record<string, string> = {
 };
 export function stufeLabel(stufe?: string): string {
   return (stufe && STUFE_LABEL[stufe]) || stufe || '';
-}
-
-export const BLOCK_TYPE_LABEL: Record<string, string> = {
-  lueckentext: 'Lückentext',
-  matching: 'Matching',
-  multipleChoice: 'Multiple Choice',
-  offeneVerstaendnisfrage: 'Verständnisfrage',
-  offeneSchreibaufgabe: 'Schreibaufgabe',
-  markieraufgabe: 'Markieraufgabe',
-  wordScramble: 'Wörter ordnen',
-  kategorisierung: 'Kategorisierung',
-  tabelle: 'Tabelle',
-  stiluebung: 'Stilübung',
-  songanalyse: 'Songanalyse',
-  kreuzwortraetsel: 'Kreuzworträtsel',
-  wortgitter: 'Wortgitter',
-  vokabeluebung: 'Vokabelübung',
-  fehlerkorrektur: 'Fehlerkorrektur',
-  roleplay: 'Rollenspiel',
-  rollenkartenSet: 'Rollenkarten-Set',
-};
-export function blockTypeLabel(typ?: string): string {
-  return (typ && BLOCK_TYPE_LABEL[typ]) || typ || '';
 }
 
 /** Pool-Tags: JSON-Array-String oder kommagetrennt → string[]. */
@@ -482,11 +462,20 @@ export function defaultResults(index: SearchIndex): SearchResult[] {
 }
 
 const QUERY_RESULT_CAP = 30;
+/** Pro Sektion, wenn mehrere Sektionen treffen. Schützt die hinteren
+ *  Sektionen (Aufgaben-Pool, Klassen, Gehe zu …) davor, von einer großen
+ *  Dokumentenmenge weggedrängt zu werden. */
+const PER_SECTION_CAP = 10;
 
 /**
  * Durchsucht den Index. Leerer Query → Defaults. Sonst: Score-basiertes
  * Fuzzy-Matching (exact > prefix > substring > subsequence), deterministisch
  * sortiert und gedeckelt. Alle Rückgaben sind NEUE Objekte (score gesetzt).
+ *
+ * Die Deckelung passiert **pro Sektion**, nicht nur global: bei 30 passenden
+ * Unterlagen blieben sonst Aufgaben-Pool, Klassen und Navigation vollständig
+ * leer, obwohl es Treffer gab. Trifft nur eine einzige Sektion, gilt das
+ * globale Cap von 30.
  */
 export function searchIndex(index: SearchIndex, query: string): SearchResult[] {
   const qNorm = normalize(query.trim());
@@ -498,7 +487,30 @@ export function searchIndex(index: SearchIndex, query: string): SearchResult[] {
     if (score > 0) scored.push({ ...entry, score });
   }
   scored.sort(compareResults);
-  return scored.slice(0, QUERY_RESULT_CAP);
+
+  const kinds = new Set(scored.map((r) => r.kind));
+  if (kinds.size <= 1) return scored.slice(0, QUERY_RESULT_CAP);
+
+  // Erste Runde: pro Sektion die besten PER_SECTION_CAP behalten.
+  const gezaehlt = new Map<SearchKind, number>();
+  const proSektion: SearchResult[] = [];
+  for (const result of scored) {
+    const n = (gezaehlt.get(result.kind) ?? 0) + 1;
+    gezaehlt.set(result.kind, n);
+    if (n <= PER_SECTION_CAP) proSektion.push(result);
+  }
+  // Zweite Runde: übrige Plätze nach Score auffüllen. Jede Sektion hat jetzt
+  // mindestens ihre 10 Plätze, es geht hier nur noch darum, den Palette-Bereich
+  // nicht leer zu lassen, wenn insgesamt wenig gefunden wurde.
+  if (proSektion.length < QUERY_RESULT_CAP) {
+    for (const result of scored) {
+      if (proSektion.length >= QUERY_RESULT_CAP) break;
+      if ((gezaehlt.get(result.kind) ?? 0) <= PER_SECTION_CAP) continue;
+      gezaehlt.set(result.kind, (gezaehlt.get(result.kind) ?? 0) + 1);
+      proSektion.push(result);
+    }
+  }
+  return proSektion;
 }
 
 /**

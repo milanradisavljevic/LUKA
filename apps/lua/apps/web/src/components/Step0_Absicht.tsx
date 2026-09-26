@@ -16,6 +16,7 @@ import { Tile } from './ui/Tile';
 import { SectionLabel } from './ui/SectionLabel';
 import { InfoDot } from './ui/InfoDot';
 import { FehlerKuration, fehlerNotiz, type KurierterFehler } from './FehlerKuration';
+import { heuteIso } from '../lib/lokalDatum';
 import {
   parseBridgeExport,
   mapBridgeToPrefill,
@@ -80,7 +81,7 @@ export function Step0_Absicht({
   const [stufe, setStufe] = useState<NonNullable<Auftrag['stufe']>>(lastMeta?.stufe ?? 'oberstufe');
   const [schulstufe, setSchulstufe] = useState<number | undefined>(lastMeta?.schulstufe);
   const [thema, setThema] = useState(lastMeta?.thema ?? '');
-  const [datum, setDatum] = useState(lastMeta?.datum ?? new Date().toISOString().slice(0, 10));
+  const [datum, setDatum] = useState(lastMeta?.datum ?? heuteIso());
   const [klasse, setKlasse] = useState(lastMeta?.klasse ?? '');
   const [dauerMinuten, setDauerMinuten] = useState<number | ''>('');
   const [schwierigkeit, setSchwierigkeit] = useState<NonNullable<Auftrag['schwierigkeit']>>(lastMeta?.schwierigkeit ?? 'mittel');
@@ -282,15 +283,21 @@ export function Step0_Absicht({
     setSchnellOhneQuelltext(true);
   }, [fokusThemen]);
 
-  // Closed Loop: Übungs-Vorbefüllung aus der Korrektur-Heatmap übernehmen (einmalig beim Mounten).
+  // Closed Loop: Übungs-Vorbefüllung aus der Korrektur-Heatmap **oder** aus der
+  // Unterrichtsplanung übernehmen (einmalig beim Mounten).
   useEffect(() => {
-    if (!FEATURES.natascha) return;
-    const p = consumePendingUebung();
-    if (!p) return;
+    const geholt = consumePendingUebung();
+    if (!geholt) return;
+    const { prefill: p, quelle: q } = geholt;
+    // Nur die Korrektur-Quelle braucht NATASCHA. Aus der Planung kommt die
+    // Vorbefüllung ohne den Umweg über die Korrektur - sie darf nicht am
+    // Feature-Flag hängen bleiben.
+    if (!FEATURES.natascha && q !== 'planung') return;
     setTyp('schuluebung');
     setModus(undefined);
     setFreieKompetenz('');
     if (p.fach) setFach(p.fach);
+    if (p.klasse) setKlasse(p.klasse);
     if (p.land) {
       landPrefillAngewendet.current = true;
       setLand(p.land);
@@ -310,9 +317,13 @@ export function Step0_Absicht({
     setFokusThemen(p.fokusThemen);
     setGewuenschteAufgabenarten(p.gewuenschteAufgabenarten);
     setNataschaNiveaugruppe(p.niveaugruppe);
-    uebernehmeAusgangstextUndFehler(p.ausgangstext, p.fehler, p.loopQuelle);
-    const quelleStatus = bewertePrefillQuelle(p.ausgangstext);
-    setPrefillQuelleStatus(quelleStatus === 'ok' ? null : quelleStatus);
+    // Ohne Ausgangstext gibt es keine Korrekturgrundlage - aus der Planung ist
+    // das der Normalfall und darf keinen Fehler erzeugen.
+    if (q === 'korrektur') {
+      uebernehmeAusgangstextUndFehler(p.ausgangstext, p.fehler, p.loopQuelle);
+      const quelleStatus = bewertePrefillQuelle(p.ausgangstext);
+      setPrefillQuelleStatus(quelleStatus === 'ok' ? null : quelleStatus);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1237,3 +1248,4 @@ export function Step0_Absicht({
     </div>
   );
 }
+

@@ -4,6 +4,8 @@ import type { LucideIcon } from 'lucide-react';
 import type { AppAction } from '../lib/types';
 import { useCommandParser } from '../hooks/useCommandParser';
 import { useVoiceCommand } from '../hooks/useVoiceCommand';
+import { useDialogFocus } from '../hooks/useDialogFocus';
+import { COMMANDS } from '../lib/commands';
 import type { SearchIndex, SearchResult, SearchSection } from '../lib/search';
 import { searchIndex, groupResults } from '../lib/search';
 
@@ -45,6 +47,34 @@ const NON_PARAMETRIC_TRIGGER: Record<string, string> = {
 
 const APP_HANDLED_COMMANDS = new Set(['new', 'tafel-modus']);
 
+/** Befehle, die ohne Eingabe-Text ausführbar sind — ihre Zeile erscheint immer. */
+const IMMER_AUSFUEHRBAR = new Set([...APP_HANDLED_COMMANDS, ...Object.keys(NON_PARAMETRIC_TRIGGER)]);
+
+const COMMAND_PATTERN = new Map(COMMANDS.map((c) => [c.id, c.pattern]));
+
+/**
+ * Erfüllt die aktuelle Eingabe das Muster des Befehls? Ohne diesen Filter
+ * erschienen Zeilen wie „Thema: <Text>" auch dann, wenn der getippte Text
+ * gar kein Thema ist — und der Klick darauf lief ins Leere („Befehl nicht
+ * erkannt"), weil nur der Rohtext geparst werden kann.
+ *
+ * Exportiert für den Test: das ist die Korrektur, und sie ist sonst nur über
+ * einen Bildschirmklick prüfbar.
+ */
+export function befehlIstAusfuehrbar(result: SearchResult, input: string): boolean {
+  if (result.kind !== 'command' || result.action.type !== 'paletteCommand') return true;
+  const id = result.action.commandId;
+  if (IMMER_AUSFUEHRBAR.has(id)) return true;
+  const pattern = COMMAND_PATTERN.get(id);
+  if (!pattern) return true;
+  return pattern.test(input.trim());
+}
+
+/** DOM-id einer Zeile — stabil, damit aria-activedescendant trägt. */
+function rowDomId(id: string | undefined): string | undefined {
+  return id === undefined ? undefined : `palette-row-${id.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
+}
+
 export function CommandPalette({ open, onClose, onActions, onNavigate, onExport, blockCount, index, onExecuteResult }: Props) {
   const [input, setInput] = useState('');
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -52,6 +82,9 @@ export function CommandPalette({ open, onClose, onActions, onNavigate, onExport,
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const { parse } = useCommandParser();
+  // Fokusfalle + Fokusrückgabe: die Palette ist ein Dialog. Ohne sie wanderte
+  // Tab hinter das Overlay in die Seite darunter.
+  const panelRef = useDialogFocus(open, onClose);
 
   const handleVoiceResult = useCallback((text: string) => {
     setInput(text.trim());
@@ -77,13 +110,19 @@ export function CommandPalette({ open, onClose, onActions, onNavigate, onExport,
   }, [feedback]);
 
   // Live-Ergebnisse + Gruppierung + flache Zeilenliste für Tastatur-Navigation.
-  const sections: SearchSection[] = useMemo(() => groupResults(searchIndex(index, input)), [index, input]);
+  // Befehlszeilen, deren Muster die Eingabe noch nicht erfüllt, fallen weg —
+  // sonst wäre die Zeile sichtbar, aber nicht ausführbar.
+  const sections: SearchSection[] = useMemo(() => {
+    const treffer = searchIndex(index, input).filter((r) => befehlIstAusfuehrbar(r, input));
+    return groupResults(treffer);
+  }, [index, input]);
   const flatRows: SearchResult[] = useMemo(() => sections.flatMap((s) => s.items), [sections]);
   const idToFlat = useMemo(() => {
     const m = new Map<string, number>();
     flatRows.forEach((r, i) => m.set(r.id, i));
     return m;
   }, [flatRows]);
+  const activeRowId = activeIndex >= 0 ? rowDomId(flatRows[activeIndex]?.id) : undefined;
 
   // Eingabeänderung → Auswahl zurücksetzen.
   useEffect(() => {
@@ -134,31 +173,10 @@ export function CommandPalette({ open, onClose, onActions, onNavigate, onExport,
       return;
     }
 
-    if (/^(vorlage|template)\s+speichern\s+als\s+(.+)$/i.test(trimmed)) {
-      const match = trimmed.match(/^(vorlage|template)\s+speichern\s+als\s+(.+)$/i);
-      const name = match?.[2]?.trim();
-      if (name) {
-        try {
-          const raw = localStorage.getItem('lehrunterlagen-templates');
-          const templates = raw ? JSON.parse(raw) : [];
-          const tpl = { name, meta: {}, bloecke: [], savedAt: new Date().toISOString() };
-          templates.push(tpl);
-          localStorage.setItem('lehrunterlagen-templates', JSON.stringify(templates));
-        } catch { /* ignore */ }
-      }
-      setFeedback({ type: 'success', text: `Vorlage "${name}" gespeichert (via localStorage)` });
-      onClose();
-      return;
-    }
-
-    if (/^(vorlage|template)\s+laden\s*:?\s*(.+)$/i.test(trimmed)) {
-      const match = trimmed.match(/^(vorlage|template)\s+laden\s*:?\s*(.+)$/i);
-      const name = match?.[2]?.trim();
-      setFeedback({ type: 'success', text: `"${name}" – bitte Vorlagen-Modal öffnen` });
-      onClose();
-      return;
-    }
-
+    // „Vorlage speichern als …" und „Vorlage laden …" laufen bewusst über den
+    // Parser am Ende: er erzeugt die __TEMPLATE_SAVE:/__TEMPLATE_LOAD:-Signale,
+    // die die App in die Datenbank schreibt. Ein eigener localStorage-Zweig
+    // hier würde die Vorlage außerhalb der DB ablegen.
     const result = parse(trimmed);
     if (result.commandId && APP_HANDLED_COMMANDS.has(result.commandId)) {
       onExecuteResult({
@@ -251,7 +269,12 @@ export function CommandPalette({ open, onClose, onActions, onNavigate, onExport,
       onClick={onClose}
     >
       <div
+        ref={panelRef}
         className="card palette-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Suche und Befehle"
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Eingabezeile */}
@@ -266,6 +289,9 @@ export function CommandPalette({ open, onClose, onActions, onNavigate, onExport,
             placeholder="Suchen oder Befehl eingeben (z. B. Thema: …)"
             className="palette-input"
             aria-label="Such- und Befehlseingabe"
+            aria-controls="palette-ergebnisse"
+            aria-expanded={flatRows.length > 0}
+            aria-activedescendant={activeRowId}
             autoComplete="off"
             spellCheck={false}
           />
@@ -288,26 +314,36 @@ export function CommandPalette({ open, onClose, onActions, onNavigate, onExport,
 
         {voice.listening && (
           <div className="palette-voice-banner">
-            <Mic size={14} /> Höre zu…{voice.interimTranscript && ` (${voice.interimTranscript})`}
+            <Mic size={14} aria-hidden="true" /> Höre zu…{voice.interimTranscript && ` (${voice.interimTranscript})`}
           </div>
         )}
 
         {feedback && (
-          <div className={feedback.type === 'success' ? 'palette-feedback palette-feedback-ok' : 'palette-feedback palette-feedback-err'}>
+          <div
+            role="status"
+            aria-live="polite"
+            className={feedback.type === 'success' ? 'palette-feedback palette-feedback-ok' : 'palette-feedback palette-feedback-err'}
+          >
             {feedback.text}
           </div>
         )}
 
         {/* Ergebnisse */}
-        <div className="palette-results" ref={listRef}>
+        <div
+          className="palette-results"
+          ref={listRef}
+          id="palette-ergebnisse"
+          role="listbox"
+          aria-label="Suchergebnisse"
+        >
           {sections.length === 0 ? (
             hasInput && (
               <div className="palette-empty">Keine Treffer — z. B. „Exportieren“ oder „Thema: …“ eingeben.</div>
             )
           ) : (
             sections.map((section) => (
-              <div key={section.kind} className="palette-section">
-                <div className="palette-section-header">{section.label}</div>
+              <div key={section.kind} className="palette-section" role="group" aria-label={section.label}>
+                <div className="palette-section-header" aria-hidden="true">{section.label}</div>
                 {section.items.map((item) => {
                   const flatIdx = idToFlat.get(item.id) ?? -1;
                   const isActive = flatIdx === activeIndex;
@@ -315,8 +351,11 @@ export function CommandPalette({ open, onClose, onActions, onNavigate, onExport,
                   return (
                     <button
                       key={item.id}
+                      id={rowDomId(item.id)}
                       className="palette-row"
+                      role="option"
                       aria-selected={isActive}
+                      tabIndex={-1}
                       onClick={() => activate(item)}
                       onMouseMove={(e) => {
                         // Maus über Zeile → als aktiv markieren (kein Hover-Style-Hack).
@@ -339,7 +378,7 @@ export function CommandPalette({ open, onClose, onActions, onNavigate, onExport,
         </div>
 
         {/* Fußzeile / Tastaturhinweis */}
-        <div className="palette-footer">
+        <div className="palette-footer" aria-hidden="true">
           <span><kbd>↑</kbd><kbd>↓</kbd> wählen</span>
           <span><kbd>Enter</kbd> öffnen / ausführen</span>
           <span><kbd>Esc</kbd> schließen</span>
