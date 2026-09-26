@@ -109,6 +109,9 @@ export interface NataschaPrefill {
   schulstufe?: number;
   textsorte?: string;
   niveaugruppe?: Niveaugruppe;
+  /** Die Klasse, um die es fachlich geht. Kommt bei der Planung aus dem Termin
+   *  und ist der eigentliche Kontext - ohne sie wäre die Vorbefüllung wertlos. */
+  klasse?: string;
   fokusThemen: string[];
   gewuenschteAufgabenarten: BlockTyp[];
   notizen: string;

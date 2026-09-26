@@ -1,7 +1,7 @@
 import { ContextNavigation } from './components/ContextNavigation';
 import { flushDrafts, hasActiveWork, useSessionStatus } from './lib/workSession';
 import { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
-import { Save, Search, ArrowLeft, ArrowRight, Loader2, BookOpen, RotateCcw, RotateCw } from 'lucide-react';
+import { Save, Search, ArrowLeft, ArrowRight, Loader2, BookOpen, RotateCcw, RotateCw, CalendarDays } from 'lucide-react';
 import type { AppAction, ActiveView, SavedDocument } from './lib/types';
 import { STEP_DESCRIPTIONS } from './lib/types';
 import { fachLabel } from '@lehrunterlagen/schema';
@@ -42,11 +42,17 @@ const SchuelerView = lazy(() => import('./views/SchuelerView').then((m) => ({ de
 const ErwartungshorizontView = lazy(() => import('./views/ErwartungshorizontView').then((m) => ({ default: m.ErwartungshorizontView })));
 const KompetenzView = lazy(() => import('./views/KompetenzView').then((m) => ({ default: m.KompetenzView })));
 const QuickExerciseView = lazy(() => import('./views/QuickExerciseView').then((m) => ({ default: m.QuickExerciseView })));
-import { setPendingUebung } from './lib/korrekturBridge';
+const PlanungView = lazy(() => import('./views/PlanungView').then((m) => ({ default: m.PlanungView })));
+import { setPendingPlanung, setPendingUebung } from './lib/korrekturBridge';
+import { fuegeAnlageHinzuDirekt } from './hooks/usePlanung';
+import {
+  TERMIN_BLOCKTYPEN, unterlageAusTermin, type TerminKontext,
+} from './lib/unterlageBauen';
 import { createDefaultBlock } from './lib/blockDefaults';
 import type { NataschaPrefill } from './lib/nataschaBridge';
 import { loadDocuments, saveDocumentConfirmed, flushPersistence, snapshotFromState, saveTemplate, deleteTemplate, loadTemplates, hydrateCache, isHydrated, setPersistErrorHandler, loadSettings, subscribeSettings, getCache } from './lib/storage';
 import { buildSearchIndex } from './lib/search';
+import { formatShortcut } from './lib/shortcuts';
 import type { SearchIndex, SearchResult, SearchCommandSource } from './lib/search';
 import { visibleNavTargets, NATASCHA_VIEWS } from './lib/navigation';
 import { COMMANDS } from './lib/commands';
@@ -65,6 +71,7 @@ import { ensurePrimaryProviderKey, getVerifiedProviders, shouldOpenProviderSetup
 import { loadTeacherProfile, shouldShowFirstRunProfile } from './lib/profile';
 import './App.css';
 import './styles/murals.css';
+import { heuteIso } from './lib/lokalDatum';
 
 function isTauri(): boolean {
   return typeof window !== 'undefined' && (window as any).__TAURI_INTERNALS__ !== undefined;
@@ -74,6 +81,7 @@ function isTauri(): boolean {
 const VIEW_TITLES: Record<ActiveView, string> = {
   dashboard: 'Start',
   wizard: 'Neue Unterlage',
+  planung: 'Unterrichtsplanung',
   kompetenz: 'Kompetenz-Übung',
   quick: 'Schnell-Übung',
   documents: 'Meine Unterlagen',
@@ -89,6 +97,25 @@ const VIEW_TITLES: Record<ActiveView, string> = {
   settings: 'Einstellungen',
   help: 'Hilfe',
 };
+
+/**
+ * Der Kalendereintrag, zu dem eine Unterlage im Assistenten entsteht.
+ *
+ *  Aus dem Stundenplan liefert LUA nur das **Gerüst** – Klasse, Thema, Datum,
+ *  Aufgabentyp. Die Unterlage selbst baut die Lehrkraft aus, Quelltext
+ *  inklusive; LUA erfindet keinen, nur weil ein Kalendereintrag keine Datei
+ *  daneben hat.
+ *
+ *  Was LUA übernimmt, ist die **Verbindung**: Wird die fertige Unterlage
+ *  gespeichert, hängt sie dieser Stunde automatisch als Anlage an.
+ */
+interface PlanungVerknuepfung {
+  /** `unterrichtseinsatz.id` – an die gehängt wird. */
+  einsatzId: string;
+  datum: string;
+  klasse: string;
+  thema: string;
+}
 
 export default function App() {
   const [hydrating, setHydrating] = useState(!isHydrated());
@@ -139,6 +166,14 @@ export default function App() {
   const { preference: themePreference, resolved: theme, toggle: toggleTheme } = useTheme();
   const { zoom, reset: resetZoom } = useZoom();
   const [activeView, setActiveView] = useState<ActiveView>('dashboard');
+  /** Tag, den die Startseite an die Planung übergibt (Klick auf einen Tag im
+   *  Streifen). Bleibt bis zum nächsten Klick stehen, damit ein wiederholtes
+   *  Rendern den Sprung nicht zurücksetzt. */
+  const [planungTag, setPlanungTag] = useState<string | null>(null);
+  /** Der Termin, zu dem gerade eine Unterlage im Assistenten entsteht.
+   *  Aus dem Stundenplan liefert LUA nur das Gerüst; die Verbindung ist das,
+   *  was LUA beiträgt – und die wird beim Speichern ausgeführt. */
+  const [verknuepfung, setVerknuepfung] = useState<PlanungVerknuepfung | null>(null);
   const [bugReportOpen, setBugReportOpen] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [einsatzOffer, setEinsatzOffer] = useState<{ materialId: string; titel: string; klasse: string; lernziele: string[] } | null>(null);
@@ -326,6 +361,22 @@ export default function App() {
     goToStep('absicht');
   }, [dispatch, goToStep]);
 
+  /** Gemeinsame Rückfrage, bevor eine laufende Unterlage verworfen wird. Alle
+   *  Sprünge, die den Assistenten verlassen oder neu starten, fragen damit
+   *  identisch nach — auch die aus der Suchpalette heraus. */
+  const bestaetigeVerwerfen = useCallback((frage: string): boolean => {
+    const hatArbeit = state.bloecke.length > 0 || state.generiertesDokument !== null;
+    return !hatArbeit || window.confirm(frage);
+  }, [state.bloecke.length, state.generiertesDokument]);
+
+  const handleLoadTemplate = useCallback((meta: Meta, bloecke: Block[]) => {
+    setDraftAtmosphereFach(null);
+    dispatch({ type: 'SET_META', meta });
+    dispatch({ type: 'REORDER_BLOCKS', bloecke });
+    setActiveView('wizard');
+    goToStep('baukasten');
+  }, [dispatch, goToStep]);
+
   const handlePaletteActions = useCallback((actions: AppAction | AppAction[]) => {
     const arr = Array.isArray(actions) ? actions : [actions];
     for (const action of arr) {
@@ -340,9 +391,12 @@ export default function App() {
           dispatch({ type: 'UPDATE_BLOCK', id: blocks[blocks.length - 1]!.id, block: action.block });
         }
       } else if (action.type === 'SET_META' && typeof action.meta.notizen === 'string' && action.meta.notizen.startsWith('__TEMPLATE_')) {
-        const parts = action.meta.notizen.split(':');
-        if (parts[0] === '__TEMPLATE_SAVE' && parts[1]) {
-          const name = parts.slice(1).join(':');
+        // Sentinel der Befehlszeile „Vorlage speichern als …" / „Vorlage laden: …".
+        // Ohne dieses Abfangen landete der Marker als Notizentext im Dokument.
+        const trenn = action.meta.notizen.indexOf(':');
+        const art = trenn >= 0 ? action.meta.notizen.slice(0, trenn) : action.meta.notizen;
+        const name = trenn >= 0 ? action.meta.notizen.slice(trenn + 1).trim() : '';
+        if (art === '__TEMPLATE_SAVE' && name) {
           try {
             const tpl = {
               id: `tpl_${name.replace(/ /g, '_')}`,
@@ -355,24 +409,28 @@ export default function App() {
             };
             saveTemplate(tpl);
           } catch { /* ignore */ }
+        } else if (art === '__TEMPLATE_LOAD' && name) {
+          const treffer = loadTemplates().find(
+            (t) => t.name.toLowerCase() === name.toLowerCase(),
+          );
+          if (treffer) {
+            handleLoadTemplate(treffer.meta as Meta, treffer.bloecke as Block[]);
+            setSaveMsg(`Vorlage „${treffer.name}" geladen`);
+            window.setTimeout(() => setSaveMsg(null), 2500);
+          } else {
+            setSaveMsg(`Vorlage „${name}" gibt es nicht — unter Vorlagen anlegen.`);
+            window.setTimeout(() => setSaveMsg(null), 4000);
+          }
         }
       } else {
         dispatch(action);
       }
     }
-  }, [dispatch, state.bloecke, state.meta]);
+  }, [dispatch, state.bloecke, state.meta, handleLoadTemplate]);
 
   const handlePaletteExport = useCallback(() => {
     dispatch({ type: 'SET_STEP', step: 'generate' });
   }, [dispatch]);
-
-  const handleLoadTemplate = (meta: Meta, bloecke: Block[]) => {
-    setDraftAtmosphereFach(null);
-    dispatch({ type: 'SET_META', meta });
-    dispatch({ type: 'REORDER_BLOCKS', bloecke });
-    setActiveView('wizard');
-    goToStep('baukasten');
-  };
 
   const handleSaveDocument = useCallback(async () => {
     const existing = state.aktuelleDokumentId
@@ -398,6 +456,28 @@ export default function App() {
     }
     setSaveMsg('Gespeichert');
     window.setTimeout(() => setSaveMsg(null), 2000);
+
+    // Aus dem Stundenplan vorbereitete Unterlagen: an den Termin hängen, aus dem
+    // sie kam. `stundenmaterial` ist der Weg der Planung – dort ist die
+    // Unterlage sichtbar und über die Anlagenliste erreichbar.
+    if (verknuepfung) {
+      const dran = await fuegeAnlageHinzuDirekt(verknuepfung.einsatzId, {
+        art: 'material',
+        materialId: id,
+        label: doc.title,
+      });
+      setSaveMsg(dran
+        ? `Gespeichert und der Stunde vom ${verknuepfung.datum || '—'} hinzugefügt`
+        : 'Gespeichert – der Termin ließ sich nicht verknüpfen');
+      window.setTimeout(() => setSaveMsg(null), 3500);
+      setVerknuepfung(null);
+      // Kein zweites Angebot: die Verbindung zum Kalendereintrag ist damit
+      // erfüllt, ein Einsatz-Dialog würde nur noch einmal nach derselben
+      // Verknüpfung fragen.
+      setEinsatzOffer(null);
+      return;
+    }
+
     if (state.generiertesDokument && state.meta.klasse?.trim()) {
       setEinsatzOffer({
         materialId: id,
@@ -408,7 +488,7 @@ export default function App() {
     } else {
       setEinsatzOffer(null);
     }
-  }, [state, dispatch]);
+  }, [state, dispatch, fuegeAnlageHinzuDirekt, verknuepfung]);
 
   const handleEinsatzOffer = useCallback(async () => {
     if (!einsatzOffer) return;
@@ -420,7 +500,7 @@ export default function App() {
       titelSnapshot: einsatzOffer.titel,
       status: 'geplant',
       einsatzArt: 'nur_geplant',
-      geplantAm: new Date().toISOString().slice(0, 10),
+      geplantAm: heuteIso(),
       lernzieleSnapshot: JSON.stringify(einsatzOffer.lernziele),
     });
     if (created) {
@@ -431,15 +511,14 @@ export default function App() {
   }, [einsatzOffer, klassenMeta, upsertEinsatz]);
 
   const handleOpenDocument = useCallback((doc: SavedDocument) => {
-    const hasWork = state.bloecke.length > 0 || state.generiertesDokument !== null;
-    if (hasWork && !window.confirm('Aktuellen Stand verwerfen und das gespeicherte Dokument laden?')) {
+    if (!bestaetigeVerwerfen('Aktuellen Stand verwerfen und das gespeicherte Dokument laden?')) {
       return;
     }
     setDraftAtmosphereFach(null);
     setFreshStart(false);
     dispatch({ type: 'LOAD_SNAPSHOT', snapshot: doc.snapshot, documentId: doc.id });
     setActiveView('wizard');
-  }, [state.bloecke.length, state.generiertesDokument, dispatch]);
+  }, [bestaetigeVerwerfen, dispatch]);
 
   // Cross-Nav (L1): Folgeübung im Loop-Wirkung-Panel → Unterlage im Unterricht öffnen.
   const handleOpenUnterlageById = useCallback((documentId: string) => {
@@ -448,15 +527,14 @@ export default function App() {
   }, [handleOpenDocument, state.bloecke.length, state.generiertesDokument]);
 
   const handleNewDocument = useCallback(() => {
-    const hasWork = state.bloecke.length > 0 || state.generiertesDokument !== null;
-    if (hasWork && !window.confirm('Aktuellen Stand verwerfen und ein neues Dokument beginnen?')) {
+    if (!bestaetigeVerwerfen('Aktuellen Stand verwerfen und ein neues Dokument beginnen?')) {
       return;
     }
     setDraftAtmosphereFach(null);
     setFreshStart(true);
     dispatch({ type: 'RESET_STATE' });
     setActiveView('wizard');
-  }, [state.bloecke.length, state.generiertesDokument, dispatch]);
+  }, [bestaetigeVerwerfen, dispatch]);
 
   const handleOpenTafel = useCallback(() => {
     if (tafelBloecke.length > 0) {
@@ -465,11 +543,10 @@ export default function App() {
   }, [tafelBloecke.length]);
 
   const handleStartQuickExercise = useCallback((config: { fach: 'deutsch' | 'englisch'; stufe: 'unterstufe' | 'oberstufe'; typ: Block['typ']; thema: string }) => {
-    const hasWork = state.bloecke.length > 0 || state.generiertesDokument !== null;
-    if (hasWork && !window.confirm('Aktuellen Stand verwerfen und eine schnelle Übung beginnen?')) {
+    if (!bestaetigeVerwerfen('Aktuellen Stand verwerfen und eine schnelle Übung beginnen?')) {
       return;
     }
-    const heute = new Date().toISOString().slice(0, 10);
+    const heute = heuteIso();
     const meta: Meta = {
       stufe: config.stufe,
       fach: config.fach,
@@ -489,12 +566,11 @@ export default function App() {
     dispatch({ type: 'ADD_BLOCK', block });
     dispatch({ type: 'SET_STEP', step: 'baukasten' });
     setActiveView('wizard');
-  }, [state.bloecke.length, state.generiertesDokument, dispatch]);
+  }, [bestaetigeVerwerfen, dispatch]);
 
   // Closed Loop: aus der Korrektur-Heatmap ein Übungsblatt im Generator starten.
   const handleGenerateUebung = useCallback((prefill: NataschaPrefill) => {
-    const hasWork = state.bloecke.length > 0 || state.generiertesDokument !== null;
-    if (hasWork && !window.confirm('Aktuellen Stand verwerfen und ein Übungsblatt zu den Fehlerschwerpunkten beginnen?')) {
+    if (!bestaetigeVerwerfen('Aktuellen Stand verwerfen und ein Übungsblatt zu den Fehlerschwerpunkten beginnen?')) {
       return;
     }
     setPendingUebung(prefill);
@@ -502,7 +578,68 @@ export default function App() {
     setFreshStart(false);
     dispatch({ type: 'RESET_STATE' });
     setActiveView('wizard');
-  }, [state.bloecke.length, state.generiertesDokument, dispatch]);
+  }, [bestaetigeVerwerfen, dispatch]);
+
+  // Closed Loop: aus der Unterrichtsplanung heraus eine Unterlage vorbereiten.
+  //
+  //  LUA liefert aus dem Kalendereintrag nur das **Gerüst** – Klasse, Thema,
+  //  Datum, Aufgabentyp – und öffnet den Assistenten. Die Unterlage selbst
+  //  baut die Lehrkraft aus, Quelltext inklusive.
+  //
+  //  Bewusst kein Ein-Klick-Erzeugen: eine Stunde im Kalender hat keine Datei
+  //  und keinen Text. Hätte LUA hier trotzdem erzeugt, hätte es den Quelltext
+  //  erfinden müssen – dasselbe wie bei den Ferien, nur unauffälliger. Fehlt
+  //  dem Termin Thema oder Fach, geht dieselbe Stunde auf, nur mit einer
+  //  Lücke mehr, die die Lehrkraft in Schritt 1 füllt.
+  //
+  //  Übernommen wird die **Verbindung**: `setPlanungVerknuepfung` merkt sich den
+  //  Termin, und `handleSaveDocument` hängt die gespeicherte Unterlage an.
+  const handleUnterlageAusTermin = useCallback(async (
+    kontext: TerminKontext,
+    einsatzId: string,
+    onFertig?: (meldung: string) => void,
+  ) => {
+    const bau = unterlageAusTermin(kontext, state);
+    const thema = bau.ok ? bau.auftrag.meta.thema : (kontext.thema ?? '');
+
+    if (!bestaetigeVerwerfen(
+      'Aktuellen Stand verwerfen und die Unterlage für diese Stunde vorbereiten?'
+    )) return;
+
+    setPendingPlanung({
+      thema,
+      klasse: kontext.klasse,
+      fach: kontext.fach,
+      land: kontext.land,
+      schulstufe: kontext.schulstufe,
+      fokusThemen: [],
+      gewuenschteAufgabenarten: [...TERMIN_BLOCKTYPEN],
+      notizen: [
+        `Aus dem Stundenplan am ${kontext.datum ?? '—'}.`,
+        bau.ok
+          ? 'Klasse, Fach und Thema sind aus dem Kalendereintrag übernommen. Ergänze '
+            + 'den Quelltext und die Aufgaben, dann hängt LUA die fertige Unterlage an den Termin.'
+          : bau.fehlt.includes('fach')
+            ? 'Im Profil fehlt noch das Fach der Klasse – bitte in Schritt 1 nachtragen.'
+            : 'Dem Termin fehlt noch ein Thema – bitte in Schritt 1 nachtragen.',
+      ].join(' '),
+    });
+    setVerknuepfung({
+      einsatzId,
+      datum: kontext.datum ?? '',
+      klasse: kontext.klasse ?? '',
+      thema,
+    });
+    setDraftAtmosphereFach(null);
+    setFreshStart(false);
+    dispatch({ type: 'RESET_STATE' });
+    setActiveView('wizard');
+    onFertig?.(
+      bau.ok
+        ? 'Assistent geöffnet. Ergänze den Quelltext – danach hängt LUA die Unterlage an den Termin.'
+        : 'Assistent geöffnet. Es fehlt noch eine Angabe zum Termin.',
+    );
+  }, [state, dispatch, bestaetigeVerwerfen]);
 
   // Cross-Nav: Klick auf einen Schülernamen in der Korrektur → Schüler-Ansicht.
   const handleOpenSchueler = useCallback((klasse: string, id: number) => {
@@ -521,9 +658,15 @@ export default function App() {
   const handleExecuteResult = useCallback((sr: SearchResult) => {
     const a = sr.action;
     switch (a.type) {
-      case 'view':
+      case 'view': {
+        // Dieselbe Rückfrage wie beim Laden einer Unterlage: ein Sprung aus der
+        // Palette darf nicht ungefragt eine laufende Unterlage verwerfen.
+        if (a.view === 'wizard' && !bestaetigeVerwerfen('Zum Assistenten wechseln und den aktuellen Stand verwerfen?')) {
+          return;
+        }
         setActiveView(a.view);
         return;
+      }
       case 'openDocument': {
         const doc = loadDocuments().find((d) => d.id === a.docId && !d.isDeleted);
         if (doc) handleOpenDocument(doc);
@@ -566,7 +709,7 @@ export default function App() {
         handlePaletteActions(a.actions);
         return;
     }
-  }, [dispatch, goToStep, handleOpenDocument, handleNewDocument, handleLoadTemplate, handlePaletteActions, tafelBloecke.length]);
+  }, [dispatch, goToStep, handleOpenDocument, handleNewDocument, handleLoadTemplate, handlePaletteActions, tafelBloecke.length, bestaetigeVerwerfen]);
 
   const renderStep = () => {
     switch (state.step) {
@@ -620,7 +763,8 @@ if (hydrating) {
           </div>
         );
       case 'dashboard':
-        return <DashboardView resumeTitle={state.meta.thema || (state.bloecke.length ? 'Begonnene Unterlage' : undefined)} onResume={()=>setActiveView('wizard')} onOpenDocument={handleOpenDocument} key={profileVersion} onNavigate={(v) => setActiveView(v)} onStartQuickExercise={handleStartQuickExercise} onGenerateUebung={handleGenerateUebung} />;
+        return <DashboardView resumeTitle={state.meta.thema || (state.bloecke.length ? 'Begonnene Unterlage' : undefined)} onResume={()=>setActiveView('wizard')} onOpenDocument={handleOpenDocument} key={profileVersion} onNavigate={(v) => { setActiveView(v); if (v !== 'planung') setPlanungTag(null); }} onStartQuickExercise={handleStartQuickExercise} onGenerateUebung={handleGenerateUebung}
+          onPlanungTag={(tag) => { setPlanungTag(tag); setActiveView('planung'); }} />;
       case 'documents':
         return <DocumentsView onOpenDocument={handleOpenDocument} onNavigate={(v) => setActiveView(v)} />;
       case 'favorites':
@@ -655,6 +799,8 @@ if (hydrating) {
         return <ErwartungshorizontView />;
       case 'quick':
         return <QuickExerciseView dispatch={dispatch} onDone={() => setActiveView('wizard')} />;
+      case 'planung':
+        return <PlanungView onGenerateUnterlage={handleUnterlageAusTermin} startTag={planungTag} />;
       case 'settings':
         return <SettingsView />;
       case 'help':
@@ -722,14 +868,20 @@ if (hydrating) {
             )}
             {einsatzOffer && (
               <div role="status" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.3rem 0.45rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', background: 'var(--color-bg-surface)', fontSize: '0.72rem' }}>
-                <span>Für Klasse {einsatzOffer.klasse} erstellt — Einsatz vermerken?</span>
-                <button className="btn-primary" onClick={handleEinsatzOffer} style={{ fontSize: '0.7rem', padding: '0.25rem 0.45rem' }}>Vermerken</button>
-                <button className="btn-secondary" onClick={() => setEinsatzOffer(null)} aria-label="Einsatz-Angebot schließen" title="Später" style={{ padding: '0.2rem' }}><span aria-hidden="true">×</span></button>
+                <span>Für Klasse {einsatzOffer.klasse} erstellt — für eine Stunde einplanen?</span>
+                <button
+                  className="btn-primary"
+                  onClick={() => { void handleEinsatzOffer(); setActiveView('planung'); }}
+                  style={{ fontSize: '0.7rem', padding: '0.25rem 0.45rem' }}
+                >
+                  Einplanen
+                </button>
+                <button className="btn-secondary" onClick={() => setEinsatzOffer(null)} aria-label="Einplanen-Angebot schließen" title="Später" style={{ padding: '0.2rem' }}><span aria-hidden="true">×</span></button>
               </div>
             )}
             <button
               onClick={() => setPaletteOpen(true)}
-              title="Suchen / Befehle eingeben (Ctrl+K)"
+              title={`Suchen / Befehle eingeben (${formatShortcut('Mod + K')})`}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -764,7 +916,7 @@ if (hydrating) {
                   color: 'var(--color-text-secondary)',
                 }}
               >
-                ⌘K
+                {formatShortcut('Mod + K')}
               </kbd>
             </button>
             {isWizard && (
@@ -807,6 +959,28 @@ if (hydrating) {
               {session.busy && <p role="status">Ein Auftrag läuft. Der Fortschritt bleibt beim Wechsel zwischen Arbeitsbereichen erhalten.</p>}
               <ContextNavigation view={activeView} navigate={setActiveView}/>
               {state.generatedOutdated && isWizard && <p role="status" className="session-warning">Die Vorgaben wurden geändert. Die vorhandene Vorschau bleibt erhalten; erst „Neu generieren“ übernimmt diese Änderungen.</p>}
+              {isWizard && verknuepfung && (
+                /* Die Verbindung zum Kalendereintrag ist das Einzige, was LUA
+                   hier beiträgt – und sie soll sichtbar sein, damit die
+                   Lehrkraft weiß, dass sich das Speichern nicht nur im Assistenten
+                   auswirkt. */
+                <p role="status" className="session-warning" style={{ display: 'flex', alignItems: 'center', gap: '.5rem', flexWrap: 'wrap' }}>
+                  <CalendarDays size={14} />
+                  <span>
+                    Aus dem Stundenplan: {verknuepfung.klasse || 'ohne Klasse'}
+                    {verknuepfung.thema ? ` · ${verknuepfung.thema}` : ''}
+                    {verknuepfung.datum ? ` · ${verknuepfung.datum}` : ''}.
+                    Ergänze Quelltext und Aufgaben, dann hängt LUA die fertige Unterlage an den Termin.
+                  </span>
+                  <button
+                    className="btn-secondary"
+                    style={{ marginLeft: 'auto', fontSize: '.75rem' }}
+                    onClick={() => setVerknuepfung(null)}
+                  >
+                    Verknüpfung abbrechen
+                  </button>
+                </p>
+              )}
               {renderView()}
               <div hidden={!isWizard || state.step !== 'generate'}><Step4_Generate state={state} dispatch={dispatch} onOpenTafel={handleOpenTafel} /></div>
               <div hidden={activeView !== 'korrektur'}><KorrekturView onOpenSchueler={handleOpenSchueler} preselect={pendingKorrektur} onConsumePreselect={() => setPendingKorrektur(null)} /></div>
@@ -957,3 +1131,4 @@ if (hydrating) {
     </div>
   );
 }
+

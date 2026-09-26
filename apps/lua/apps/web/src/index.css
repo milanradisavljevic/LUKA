@@ -118,8 +118,22 @@
 
   --color-shadow: rgba(0,0,0,0.10);
   --color-overlay: rgba(0,0,0,0.4);
-  --color-highlight: #6E2C4A;
+  --color-highlight: #6E2A48;
   --color-highlight-bg: rgba(110,44,74,0.08);
+
+  /* Klassenfarben für den Stundenplan. Acht Töne, bewusst ähnlich hell – keine
+     Klasse soll „lauter" wirken als eine andere. Getönte Flächen entstehen über
+     color-mix() in der Komponente, hier steht je Slot nur der Grundton.
+     Navy ist der Akzentton der App, damit die Heimatfarbe nicht fremd wirkt. */
+  --klasse-1: #2C4A6E; /* Navy        */
+  --klasse-2: #B0551F; /* Terrakotta  */
+  --klasse-3: #5F6B2A; /* Oliv        */
+  --klasse-4: #6A3A6E; /* Pflaume     */
+  --klasse-5: #1E6E68; /* Petrol      */
+  --klasse-6: #8A6410; /* Ocker       */
+  --klasse-7: #A03560; /* Rose        */
+  --klasse-8: #4A5560; /* Schiefer    */
+
 
   /* Sidebar */
   --sidebar-bg: #EFEDE6;
@@ -185,6 +199,17 @@
   --color-overlay: rgba(0,0,0,0.6);
   --color-highlight: #E8B7A0;       /* warme/„rote" Kreide */
   --color-highlight-bg: rgba(232,183,160,0.14);
+
+  /* Klassenfarben auf der Tafel: dieselben Töne, aufgehellt. Auf dem dunklen
+     Grün würden die Grundtöne verschwinden. */
+  --klasse-1: #7FA6D4;
+  --klasse-2: #E29264;
+  --klasse-3: #AFC076;
+  --klasse-4: #C08CC4;
+  --klasse-5: #6FC0B8;
+  --klasse-6: #D9B25C;
+  --klasse-7: #E88AA8;
+  --klasse-8: #A9B6C2;
 
   /* Tür-Füllfarben (Tafel): sichtbar gefüllt, nie bg-base */
   --door-quelltext: #2F5A51;        /* Tür auf der Tafel, dunkles Teal */
@@ -1308,19 +1333,279 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .sidebar-bottom small {display:block;padding:.5rem 1rem;overflow-wrap:anywhere;}
 /* Versionszeile + manueller Update-Check unten in der Sidebar. */
 .sidebar-version-row {display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:.35rem .6rem .1rem;flex-wrap:nowrap;}
-.sidebar-bottom .sidebar-version-row small {display:block;padding:0;font-size:.7rem;line-height:1.3;overflow-wrap:anywhere;min-width:0;flex:0 1 auto;}
-.sidebar-bottom .sidebar-version-row .sidebar-update-btn {width:auto;min-height:28px;padding:.25rem .45rem;gap:.35rem;font-size:.7rem;border:1px solid var(--sidebar-border);border-radius:var(--radius);opacity:.75;flex:0 0 auto;white-space:nowrap;}
+/* Die Version ist eine feste Zeichenkette und bleibt eine Zeile. `overflow-wrap`
+   hatte sie mitten im Wort umgebrochen, `text-overflow` allein hätte sie
+   abgeschnitten - deshalb passt der Update-Knopf jetzt ohne Klartext daneben. */
+.sidebar-bottom .sidebar-version-row small {display:block;padding:0;font-size:.7rem;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:0 0 auto;}
+.sidebar-bottom .sidebar-version-row .sidebar-update-btn {width:auto;min-width:28px;min-height:28px;padding:.25rem .4rem;gap:.35rem;font-size:.7rem;border:1px solid var(--sidebar-border);border-radius:var(--radius);opacity:.75;flex:0 0 auto;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;}
 .sidebar-bottom .sidebar-version-row .sidebar-update-btn:hover {opacity:1;background:var(--color-bg-hover);}
 .sidebar-bottom .sidebar-version-row .sidebar-update-btn:disabled {cursor:progress;opacity:1;}
 .sidebar-update-btn.has-update {opacity:1;border-color:var(--sidebar-accent);}
 .sidebar-update-btn.has-update::after {content:"";width:7px;height:7px;border-radius:50%;background:var(--sidebar-accent);flex:0 0 auto;}
 .luka-sidebar.is-collapsed .sidebar-version-row {flex-direction:column;gap:.3rem;padding:.35rem .25rem .1rem;}
 .luka-sidebar.is-collapsed .sidebar-version-row .sidebar-update-btn {width:100%;justify-content:center;padding:.25rem;}
-.context-navigation {display:flex;flex-wrap:wrap;gap:.5rem;margin:0 0 1.25rem;padding-bottom:.8rem;border-bottom:1px solid var(--color-border);}
+.context-navigation {display:flex;flex-wrap:wrap;gap:.5rem .75rem;align-items:center;margin:0 0 1.25rem;padding-bottom:.8rem;border-bottom:1px solid var(--color-border);}
+/* Reitergruppen der Navigation: "Unterricht" und "Korrekturen" stehen nicht in
+   einer Reihe, sonst wirkt es wie eine zufällige Buttonleiste. */
+.context-navigation__gruppe {display:inline-flex;flex-wrap:wrap;align-items:center;gap:.25rem;}
+.context-navigation__gruppe + .context-navigation__gruppe {border-left:1px solid var(--color-border);padding-left:.75rem;}
+@media(max-width:700px) { .context-navigation__gruppe + .context-navigation__gruppe {border-left:0;padding-left:0;} }
 .resume-work {padding:1.3rem;margin-bottom:1.5rem;border:1px solid var(--color-border);border-radius:var(--radius);background:var(--color-bg-surface);}
 .resume-work h2 {font-size:1.25rem;margin:0 0 .3rem;}
 .resume-actions {display:flex;gap:.75rem;flex-wrap:wrap;margin-top:1rem;}
 .dashboard-start__greeting {font-size:2rem !important;}
+/* Kompakte Begrüßung mit Ortpfeil: sagt, wo man ist, und verweist auf die
+   Arbeitsbereiche - die große Schrift ist der Hallo-Karte gewichen. */
+.dashboard-begruessung {margin:0 0 1rem;}
+/* Die Schnell-Vorlagen gehören inhaltlich zu den Startwegen und stehen
+   darunter statt als eigener Abschnitt. */
+.dashboard-start__zwischentitel {font-size:.75rem; font-weight:500; color:var(--color-text-muted); text-transform:uppercase; letter-spacing:.05em; margin:1.25rem 0 .5rem;}
+.dashboard-schnellvorlagen {display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:.5rem;}
+.dashboard-begruessung__titel {font-size:1.5rem; margin:0 0 .2rem;}
+.dashboard-begruessung__wo {display:flex; align-items:center; gap:.4rem; flex-wrap:wrap; margin:0; font-size:.75rem; color:var(--color-text-secondary);}
+.dashboard-begruessung__link {background:none; border:0; padding:0; font:inherit; color:var(--color-accent); cursor:pointer; text-decoration:underline; text-underline-offset:2px;}
+.dashboard-begruessung__link:hover {color:var(--color-text-primary);}
+/* „Was steht an": 14 Tage nebeneinander, darunter die Anstehend-Liste. */
+.start-woche {margin:0 0 1.75rem; padding:1.1rem 1.25rem; border:1px solid var(--color-border); border-radius:var(--radius); background:var(--color-bg-surface);}
+.start-woche__titel {display:flex; align-items:center; gap:.4rem; flex-wrap:wrap; font-size:1rem; margin:0 0 .75rem;}
+.start-woche__zahl {font-size:.75rem; font-weight:400; color:var(--color-text-secondary);}
+.start-woche__mehr {margin-left:auto; display:inline-flex; align-items:center; gap:.2rem; background:none; border:0; padding:0; font:inherit; font-size:.75rem; color:var(--color-accent); cursor:pointer;}
+.start-woche__mehr:hover {text-decoration:underline; text-underline-offset:2px;}
+.start-woche__leer {font-size:.8125rem; color:var(--color-text-secondary); line-height:1.6; margin:0 0 .75rem; max-width:52ch;}
+/* Rollierende sieben Tage, nicht die Kalenderwoche: heute plus sechs Tage. */
+.start-woche__streifen {display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:.2rem; margin-bottom:1rem;}
+/* Auf schmalen Fenstern lieber scrollen als die Tage zu quetschen – die
+   Bedeutung „eine Zeile = sieben Tage" soll nicht verlorengehen. */
+@media(max-width:640px) {
+  .start-woche__streifen {grid-template-columns:repeat(7,minmax(3.25rem,1fr)); overflow-x:auto; padding-bottom:.25rem;}
+}
+.start-tag {border:1px solid var(--color-border); border-radius:4px; background:var(--color-bg-base); padding:.1875rem; min-width:0; position:relative;
+  font:inherit; text-align:left; color:inherit; width:100%; display:block;}
+.start-tag-ist-wochenende {background:var(--color-bg-surface); border-style:dashed; color:var(--color-text-muted);}
+.start-tag-ist-wochenende .start-tag-wochentag,
+.start-tag-ist-wochenende .start-tag-zahl,
+.start-tag-ist-wochenende .start-tag-frei {color:var(--color-text-muted);}
+.start-tag-ist-klickbar {cursor:pointer;}
+.start-tag-ist-klickbar:hover {background:var(--color-bg-hover); border-color:var(--color-text-muted);}
+.start-tag-ist-wochenende.start-tag-ist-klickbar:hover {background:var(--color-bg-hover);}
+.start-tag-ist-heute {border-color:var(--color-accent); box-shadow:inset 0 0 0 1px var(--color-accent);}
+.start-tag-kopf {display:flex; align-items:baseline; justify-content:space-between; gap:.15rem; margin-bottom:.15rem;}
+.start-tag-wochentag {font-size:.5625rem; text-transform:uppercase; letter-spacing:.02em; color:var(--color-text-muted);}
+.start-tag-zahl {font-size:.6875rem; font-weight:700;}
+.start-tag-ist-heute .start-tag-zahl {color:var(--color-accent);}
+.start-tag-frei {font-size:.625rem; color:var(--color-text-muted);}
+.start-tag-stunden {display:flex; flex-direction:column; gap:.125rem;}
+.start-tag-klasse {font-size:.5625rem; padding:.0625rem .125rem; border-radius:2px; border:0; border-left:3px solid var(--klasse-farbe, var(--color-border)); background:var(--color-bg-surface); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.start-tag-warnung {position:absolute; right:.125rem; bottom:.125rem; display:inline-flex; align-items:center; gap:.1rem; font-size:.5rem; color:var(--color-warning);}
+.start-anstehend h3 {font-size:.8125rem; margin:0 0 .375rem; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:.04em;}
+.start-anstehend ul {list-style:none; margin:0; padding:0;}
+.start-anstehend li {display:flex; align-items:center; gap:.5rem; padding:.3125rem .5rem; border-bottom:1px solid var(--color-border); border-left:3px solid var(--klasse-farbe, var(--color-border)); font-size:.8125rem; flex-wrap:wrap;}
+.start-anstehend__tag {min-width:6.5rem; color:var(--color-text-secondary); font-size:.75rem;}
+.start-anstehend__klasse {font-weight:600; min-width:4rem;}
+.start-anstehend__zeit {font-family:ui-monospace,'Ubuntu',monospace; font-size:.75rem; color:var(--color-text-secondary);}
+.start-anstehend__ok {margin-left:auto; display:inline-flex; align-items:center; gap:.2rem; font-size:.6875rem; color:var(--color-text-muted);}
+.start-anstehend__fehlt {margin-left:auto; display:inline-flex; align-items:center; gap:.2rem; font-size:.6875rem; color:var(--color-warning);}
+.start-anstehend__entfallen {margin-left:auto; display:inline-flex; align-items:center; gap:.2rem; font-size:.6875rem; color:var(--color-text-muted); text-decoration:line-through;}
 .start-action-card--primary {min-height:220px !important;}
 button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {outline:3px solid var(--color-accent);outline-offset:3px;}
 @media(max-width:900px) {.luka-sidebar {width:180px;min-width:180px;} .resume-actions {flex-direction:column;}}
+
+/* ── Korrektur: Fehlerkarten links ↔ markierter Schülertext rechts ───────────
+   Drei Kanäle, bewusst ohne Überschneidung:
+   Farbe = Fehlertyp (unverändert) · Form = Status (unverändert) · Ring = aktiver Vorschlag.
+   Die Nummer ist der vierte, farbfreie Kanal: sie macht die Zuordnung
+   Karte ↔ Text beidseitig eindeutig, auch bei gleichen Fehlertypen. */
+
+/* Karte: relative Basis, damit die Sprungfläche ::after über die ganze Karte spannt. */
+.fehler-card {position:relative;}
+.fehler-card.is-aktiv {outline:2px solid var(--color-accent); outline-offset:-1px; background:var(--color-bg-selected) !important;}
+.fehler-card.is-verworfen {opacity:.55;}
+/* Die Sprungfläche: ein echter Button, über die ganze Karte gespannt –
+   damit bleibt die Karte per Tastatur bedienbar, ohne Buttons ineinander zu schachteln. */
+.fehler-sprung {position:static; display:block; width:100%; text-align:left; font:inherit; color:inherit; background:none; border:0; padding:0; margin:0; cursor:pointer; border-radius:var(--radius);}
+.fehler-sprung::after {content:""; position:absolute; inset:0; border-radius:var(--radius);}
+.fehler-sprung:focus-visible {outline:2px solid var(--color-accent); outline-offset:2px;}
+/* Aktionsknöpfe liegen über der Sprungfläche. */
+.fehler-aktionen {position:relative; z-index:1; display:flex; gap:.25rem; margin-top:.375rem;}
+/* Laufnummern-Badge: gleiche Zahl wie das <sup> im Text. */
+.fehler-nummer {display:inline-flex; align-items:center; justify-content:center; min-width:17px; height:17px; padding:0 3px; border-radius:9px; border:1px solid currentColor; font-family:ui-monospace,'Ubuntu',monospace; font-size:.625rem; font-weight:700; line-height:1; flex-shrink:0; user-select:none;}
+.fehler-gruppe {display:flex; align-items:center; gap:.5rem; margin:.625rem 0 .375rem; font-size:.6875rem; color:var(--color-text-secondary);}
+.fehler-gruppe::after {content:""; flex:1; height:1px; background:var(--color-border);}
+.fehler-liste-hinweis {font-size:.75rem; margin:.25rem 0 0; color:var(--color-warning);}
+
+/* Reihenfolge-Wahl über der Fehlerliste. */
+.fehler-kopf-toolbar {display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; margin:0 0 .5rem;}
+.fehler-kopf-toolbar label {font-size:.6875rem; color:var(--color-text-secondary);}
+.korrektur-sort {font-size:.6875rem; padding:.15rem .25rem; min-height:26px; max-width:11rem;}
+
+/* Schülertext mit Markierungen. Der Bereich ist bewusst immer weiß (A4-Blatt),
+   darum kommt der Fokusring NICHT aus --color-accent: das wäre im Dunkelmodus mint. */
+.textpane {position:relative;}
+.textpane mark {cursor:pointer; transition:opacity .18s ease, box-shadow .18s ease, background-color .18s ease; border-radius:2px;}
+.textpane mark:hover {filter:brightness(.96);}
+/* Aktiv: Form, nicht Farbe – der Fehlertyp bleibt am Unterstrich lesbar. */
+.textpane mark.is-aktiv {box-shadow:0 0 0 2px #1F3A5A, 0 2px 6px rgba(0,0,0,.18); opacity:1 !important; border-radius:3px; position:relative; z-index:1;}
+/* Vorschau beim Überfahren der Fehlerkarte: leichter Ring, noch kein Sprung. */
+.textpane mark.is-vorschau {box-shadow:0 0 0 1px rgba(31,58,90,.5);}
+/* Solange ein Vorschlag aktiv ist, treten die übrigen zurück. */
+.textpane[data-fokus="true"] mark:not(.is-aktiv):not(.is-vorschau) {opacity:.4;}
+/* Nummer: nicht markierbar, damit sie beim Kopieren des Schülertexts nicht mitschreibt. */
+.textpane mark sup {font-family:'Ubuntu',Arial,sans-serif; font-size:.6em; font-weight:700; vertical-align:super; margin-left:1px; opacity:.75; user-select:none; -webkit-user-select:none;}
+/* Mehrdeutig: gleiche Farbe wie der Typ, aber gestrichelter Unterstrich. */
+.textpane mark[data-mehrdeutig="true"] {border-bottom-style:dashed !important;}
+
+@media (prefers-reduced-motion:reduce) { .textpane mark {transition:none;} }
+
+/* ── Unterrichtsplanung ────────────────────────────────────────────────────
+   Zwei Spalten wie die Korrektur: links die nächsten Stunden (das tägliche
+   Werkzeug), rechts das Detail. Der Wochenstreifen oben zeigt die Form der
+   Woche, ohne dass ein Monatsraster nötig wäre. */
+
+.planung-grid {display:grid; grid-template-columns:minmax(300px,380px) 1fr; gap:1.25rem; align-items:start;}
+@media(max-width:1000px) { .planung-grid {grid-template-columns:1fr !important;} }
+
+/* Wochenstreifen: sieben Tage mit den Slots des Rasters. */
+.wochenstreifen {display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:.375rem; margin:0 0 1rem;}
+@media(max-width:760px) { .wochenstreifen {grid-template-columns:repeat(4,minmax(0,1fr));} }
+.wochentag {border:1px solid var(--color-border); border-radius:var(--radius); background:var(--color-bg-base); padding:.375rem .25rem; text-align:center; min-width:0;}
+.wochentag-head {font-size:.6875rem; color:var(--color-text-secondary); letter-spacing:.02em; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:flex; align-items:baseline; justify-content:space-between; gap:.2rem;}
+/* Wochenkarte: eine Zeile je Klasse, ohne Uhrzeit. Die Zahl rechts ist die
+   Anzahl eingeplanter Stunden - als Zahl, weil der ausgeschriebene Text auf
+   sieben Kacheln die eigentliche Information überdeckt. */
+.wochentag-geplantzahl {font-size:.625rem; color:var(--color-text-muted); background:var(--color-bg-surface); border:1px solid var(--color-border); border-radius:999px; padding:0 .25rem; min-width:1.1rem; text-align:center; letter-spacing:0;}
+.wochentag-ist-heute .wochentag-geplantzahl {border-color:var(--color-accent); color:var(--color-accent);}
+.wochentag-leer {font-size:.6875rem; color:var(--color-text-muted);}
+.wochentag-tag {font-size:.9375rem; font-weight:700; line-height:1.3;}
+.wochentag-ist-heute {border-color:var(--color-accent); background:var(--color-bg-selected);}
+.wochentag-ist-heute .wochentag-tag {color:var(--color-accent);}
+.wochentag-ist-frei {background:var(--color-warning-bg); border-color:var(--color-warning);}
+/* Samstag und Sonntag: zurückhaltend, aber sofort als „kein Unterrichtstag"
+   lesbar. Gestrichelter Rahmen statt Farbe – ein Wochenende ist kein Fehler,
+   deshalb darf es nicht wie eine Warnung aussehen. */
+.wochentag-ist-wochenende {background:var(--color-bg-surface); border-style:dashed;}
+.wochentag-ist-wochenende .wochentag-head,
+.wochentag-ist-wochenende .wochentag-tag {color:var(--color-text-muted);}
+.wochentag-slots {margin-top:.25rem; display:flex; flex-direction:column; gap:.125rem;}
+.wochentag-slot {font-size:.6875rem; padding:.125rem .1875rem; border-radius:3px; background:var(--color-bg-surface); border:0; border-left:3px solid var(--klasse-farbe, var(--color-border)); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--color-text-primary);}
+.wochentag-slot-ist-aktiv {border-color:var(--color-accent); color:var(--color-text-primary); font-weight:600;}
+.wochentag-frei-text {font-size:.625rem; color:var(--color-warning); margin-top:.25rem; line-height:1.3;}
+
+/* Tagesgruppe in der Liste links. */
+.planung-tag {display:flex; align-items:baseline; justify-content:space-between; gap:.5rem; margin:1rem 0 .375rem; padding-bottom:.25rem; border-bottom:1px solid var(--color-border);}
+.planung-tag-erste {margin-top:0;}
+.planung-tag-datum {font-size:.8125rem; font-weight:700;}
+.planung-tag-hinweis {font-size:.6875rem; color:var(--color-warning);}
+
+/* Eine geplante Stunde. */
+.stunde {position:relative; width:100%; text-align:left; font:inherit; color:inherit; background:var(--color-bg-base); border:1px solid var(--color-border); border-left:3px solid var(--color-border); border-radius:var(--radius); padding:.5rem .625rem; margin-bottom:.375rem; cursor:pointer; transition:background-color .15s, border-color .15s;}
+.stunde:hover {background:var(--color-bg-hover);}
+.stunde:focus-visible {outline:2px solid var(--color-accent); outline-offset:2px;}
+.stunde-ist-aktiv {border-color:var(--color-accent); border-left-color:var(--color-accent); background:var(--color-bg-selected);}
+.stunde-ist-frei {border-left-color:var(--color-warning); background:var(--color-warning-bg);}
+.stunde-ist-ausgefallen {opacity:.55;}
+.stunde-zeile {display:flex; align-items:center; gap:.375rem; flex-wrap:wrap;}
+.stunde-zeit {font-family:ui-monospace,'Ubuntu',monospace; font-size:.8125rem; font-weight:700;}
+.stunde-klasse {font-size:.6875rem; font-weight:700; padding:.05rem .3rem; border-radius:3px; background:var(--color-bg-selected); color:var(--color-accent);}
+.stunde-titel {font-size:.8125rem; margin-top:.125rem; line-height:1.35;}
+.stunde-hinweis {font-size:.6875rem; color:var(--color-text-muted); margin-top:.125rem; display:flex; align-items:center; gap:.25rem; flex-wrap:wrap;}
+.stunde-abzeichen {display:inline-flex; align-items:center; gap:.1875rem; font-size:.6875rem; padding:.05rem .3rem; border-radius:3px; background:var(--color-bg-surface); border:1px solid var(--color-border); color:var(--color-text-secondary);}
+.stunde-abzeichen-warnung {border-color:var(--color-warning); color:var(--color-warning); background:var(--color-warning-bg);}
+
+/* Anlagenliste rechts. */
+.anlage {display:flex; align-items:flex-start; gap:.5rem; padding:.5rem 0; border-bottom:1px solid var(--color-border);}
+.anlage:last-child {border-bottom:0;}
+.anlage-art {flex-shrink:0; width:26px; height:26px; border-radius:var(--radius); display:inline-flex; align-items:center; justify-content:center; background:var(--color-bg-base); border:1px solid var(--color-border); color:var(--color-text-secondary);}
+.anlage-ist-verweis .anlage-art {border-style:dashed;}
+.anlage-titel {font-size:.8125rem; font-weight:600; overflow-wrap:anywhere;}
+.anlage-ziel {font-size:.6875rem; color:var(--color-text-secondary); overflow-wrap:anywhere;}
+.anlage-fehlt {font-size:.6875rem; color:var(--color-error); margin-top:.125rem; display:flex; align-items:center; gap:.25rem;}
+.anlage-notiz {font-size:.6875rem; color:var(--color-text-muted); margin-top:.125rem;}
+
+/* Raster-Editor. */
+.raster-slot {display:grid; grid-template-columns:auto 1fr 1fr auto; gap:.375rem; align-items:center; padding:.375rem 0; border-bottom:1px solid var(--color-border);}
+@media(max-width:700px) { .raster-slot {grid-template-columns:auto 1fr 1fr; } .raster-slot-loeschen {grid-column:1 / -1;} }
+.raster-wochentag {font-size:.8125rem; font-weight:600; min-width:34px; color:var(--color-accent);}
+.raster-zeit {font-size:.75rem; font-family:ui-monospace,'Ubuntu',monospace; padding:.2rem .3rem; min-height:28px; width:100%; box-sizing:border-box;}
+.raster-inaktiv {opacity:.55;}
+
+.planung-abschnitt {margin-bottom:1.25rem;}
+.planung-abschnitt h5 {font-size:.8125rem; margin:0 0 .5rem; display:flex; align-items:center; gap:.375rem;}
+.planung-leer {padding:1rem; font-size:.8125rem; color:var(--color-text-secondary); text-align:center; border:1px dashed var(--color-border); border-radius:var(--radius); line-height:1.6;}
+.planung-feld {display:grid; grid-template-columns:96px 1fr; gap:.5rem; align-items:start; margin-bottom:.5rem;}
+.planung-feld > label {font-size:.75rem; font-weight:600; line-height:2.1;}
+.planung-werkzeugleiste {display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; margin-bottom:.75rem;}
+/* Anlagenzähler auf der Stunde: Symbol statt Wortlaut. "keine Unterlage" stand
+   auf elf von zwölf Karten und war damit kein Hinweis mehr. */
+.stunde-anlage {display:inline-flex; align-items:center; gap:.2rem; font-size:.6875rem; color:var(--color-text-muted);}
+.stunde-anlage-fehlt {color:var(--color-warning);}
+/* Die Auslass-Option steht am Einplan-Knopf, nicht unter der Liste. */
+.planung-auslassen {display:inline-flex; align-items:center; gap:.3rem; font-size:.6875rem; color:var(--color-text-secondary); white-space:nowrap;}
+/* Verschieben/Entfällen unter dem Zustand, als eine Zeile. */
+.planung-umstellen {display:flex; gap:.375rem; flex-wrap:wrap; align-items:center; margin-top:.5rem; padding-top:.5rem; border-top:1px solid var(--color-border);}
+/* Farbwähler in der Klassenverwaltung: acht Felder, das gewählte bekommt einen Ring. */
+.farbwahl {display:flex; flex-wrap:wrap; gap:.25rem; margin-top:.3rem;}
+.farbwahl-feld {width:1.5rem; height:1.5rem; border-radius:var(--radius); border:1px solid var(--color-border); cursor:pointer; padding:0;}
+.farbwahl-feld:hover {border-color:var(--color-accent);}
+.farbwahl-feld-ist-gewaehlt {outline:2px solid var(--color-accent); outline-offset:1px; border-color:var(--color-accent);}
+/* Zeit- und Datumsauswahl im eigenen Format. Das native `type="time"`/`type="date"`
+   richtet sich nach der WebView-Locale und zeigte "12:30 PM" bzw. "09/21/2026" -
+   deshalb diese Felder. Uhrzeit immer 24 Stunden, monospaced, damit die Spalten
+   der Rasterliste optisch zusammenpassen. */
+.planung-feld-label {font-size:.75rem; font-weight:600; line-height:2.1;}
+.zeitfeld, .datumfeld {display:inline-flex; flex-direction:column; gap:.2rem; font-size:.75rem; min-width:0;}
+.zeitfeld > label, .datumfeld > label {font-weight:600; color:var(--color-text-secondary);}
+.zeitfeld > select {font-family:ui-monospace,'Ubuntu',monospace; font-size:.8125rem; min-height:28px; min-width:6.2rem; padding:.15rem .3rem;}
+.datumfeld > input {font-size:.8125rem; min-height:28px; padding:.2rem .4rem; min-width:8.5rem; font-variant-numeric:tabular-nums;}
+.datumfeld > input[aria-invalid='true'] {border-color:var(--color-error);}
+.datumfeld-fehler {font-size:.6875rem; color:var(--color-error); line-height:1.4;}
+/* Woche/Monat-Umschalter und Schuljahreswahl in der Werkzeugleiste. */
+.planung-umschalter {display:inline-flex; border:1px solid var(--color-border); border-radius:var(--radius); overflow:hidden; background:var(--color-bg-base);}
+.planung-umschalter button {border:0; border-radius:0; background:transparent; color:var(--color-text-secondary); padding:.3rem .6rem; cursor:pointer; min-height:26px;}
+.planung-umschalter button + button {border-left:1px solid var(--color-border);}
+.planung-umschalter button:hover {background:var(--color-bg-surface); color:var(--color-text-primary);}
+.planung-umschalter-ist-an {background:var(--color-accent) !important; color:var(--color-text-inverse) !important; font-weight:600;}
+.planung-jahreswahl {display:inline-flex; align-items:center; gap:.375rem; font-size:.75rem; color:var(--color-text-secondary);}
+.planung-jahreswahl select {min-height:26px; font-size:.75rem; padding:.15rem .25rem;}
+/* Hinweiszeile: Ferien fehlen, Ferienwarnung,Checkbox fürs Einplanen. */
+.planung-hinweis {display:flex; align-items:center; gap:.375rem; flex-wrap:wrap; margin:0 0 1rem; padding:.5rem .625rem; font-size:.75rem; color:var(--color-warning); background:var(--color-warning-bg); border:1px solid var(--color-warning); border-radius:var(--radius); line-height:1.5;}
+.planung-hinweis label {color:inherit;}
+/* Stille Zeile für Fälle, in denen LUA nichts anbieten kann - kein Alarm. */
+.planung-notiz {display:flex; align-items:center; gap:.375rem; flex-wrap:wrap; margin:0 0 1rem; padding:.4rem .625rem; font-size:.75rem; color:var(--color-text-secondary); background:var(--color-bg-surface); border:1px solid var(--color-border); border-left:3px solid var(--color-border); border-radius:var(--radius); line-height:1.5;}
+/* Jahresplanung und Ferienbereich teilen sich diesen Kasten. */
+.planung-jahresplanung {display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:1.25rem; padding:.875rem; margin-bottom:.875rem; background:var(--color-bg-surface); border:1px solid var(--color-border); border-radius:var(--radius);}
+.ferienliste {display:grid; gap:.125rem;}
+.ferienzeile {display:grid; grid-template-columns:1fr auto auto; gap:.5rem; align-items:center; padding:.3125rem 0; border-bottom:1px solid var(--color-border); font-size:.8125rem;}
+.ferienzeile-name {font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.ferienzeile-zeit {font-size:.75rem; color:var(--color-text-secondary); font-family:ui-monospace,'Ubuntu',monospace; white-space:nowrap;}
+/* Monatsraster: 7 Spalten, Randtage grau und ohne Rahmen. */
+.monatsraster {margin-bottom:1rem; border:1px solid var(--color-border); border-radius:var(--radius); overflow:hidden; background:var(--color-bg-base);}
+.monatsraster-kopf {display:grid; grid-template-columns:repeat(7,1fr); background:var(--color-bg-surface); border-bottom:1px solid var(--color-border);}
+.monatsraster-wochentag {padding:.3125rem .25rem; font-size:.6875rem; text-transform:uppercase; letter-spacing:.02em; color:var(--color-text-secondary); text-align:center;}
+.monatsraster-gitter {display:grid; grid-template-columns:repeat(7,1fr);}
+.monatszelle {min-height:5.5rem; padding:.25rem; border-right:1px solid var(--color-border); border-bottom:1px solid var(--color-border); box-sizing:border-box; overflow:hidden;}
+.monatszelle:nth-child(7n) {border-right:0;}
+.monatszelle-ist-heute {background:var(--color-bg-selected); box-shadow:inset 0 0 0 2px var(--color-accent);}
+.monatszelle-ist-rand {background:var(--color-bg-surface); opacity:.45;}
+.monatszelle-ist-frei {background:var(--color-warning-bg);}
+/* Wochenende im Monatsraster – dieselbe zurückhaltende Kennzeichnung wie in der
+   Wochenkarte. Reihenfolge nach `.monatszelle-ist-rand`, damit ein Rand-Wochenende
+   nicht heller wirkt als ein Rastertag. */
+.monatszelle-ist-wochenende {background:var(--color-bg-surface); background-image:repeating-linear-gradient(135deg,transparent 0 4px,rgba(0,0,0,.035) 4px 8px);}
+.monatszelle-ist-wochenende .monatszelle-tag {color:var(--color-text-muted);}
+.monatszelle-kopf {display:flex; align-items:center; justify-content:space-between; gap:.25rem; width:100%; margin-bottom:.125rem; padding:.0625rem .125rem; background:none; border:0; border-radius:3px; cursor:pointer; text-align:left;}
+.monatszelle-kopf:hover:not(:disabled) {background:var(--color-bg-surface); box-shadow:inset 0 0 0 1px var(--color-accent);}
+.monatszelle-kopf:disabled {cursor:default;}
+.monatszelle-kopf:focus-visible {outline:2px solid var(--color-accent); outline-offset:1px;}
+.monatszelle-tag {font-size:.75rem; font-weight:700;}
+.monatszelle-ist-heute .monatszelle-tag {color:var(--color-accent);}
+.monatszelle-rasterzahl {font-size:.625rem; color:var(--color-text-muted); background:var(--color-bg-surface); border:1px solid var(--color-border); border-radius:999px; padding:0 .25rem; min-width:1.1rem; text-align:center;}
+.monatszelle-liste {display:flex; flex-direction:column; gap:.125rem;}
+.monatsstunde {display:flex; align-items:center; gap:.25rem; width:100%; text-align:left; font-size:.625rem; padding:.125rem .1875rem; border-radius:3px; background:var(--color-bg-surface); border:1px solid var(--color-border); cursor:pointer; overflow:hidden;}
+.monatsstunde:hover {border-color:var(--color-accent);}
+.monatsstunde-ist-aktiv {border-color:var(--color-accent); font-weight:600;}
+.monatsstunde-zeit {font-family:ui-monospace,'Ubuntu',monospace; color:var(--color-text-secondary); flex-shrink:0;}
+.monatsstunde-klasse {overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.monatszelle-nur-raster {font-size:.625rem; color:var(--color-text-muted); font-family:ui-monospace,'Ubuntu',monospace; padding-left:.125rem;}
+@media(max-width:700px) { .monatszelle {min-height:4rem;} .monatsstunde-zeit {display:none;} }
+
+

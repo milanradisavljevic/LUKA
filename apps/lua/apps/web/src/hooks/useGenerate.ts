@@ -326,7 +326,7 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
     return { providerId, apiModel: MODEL_MAP[state.modelName] ?? state.modelName };
   };
 
-  const generate = useCallback(async (state: AppState) => {
+  const generate = useCallback(async (state: AppState, onFertig?: (dokument: DocumentV1) => void) => {
     const guardMsg = guards(state);
     if (guardMsg) { setError(guardMsg); return false; }
 
@@ -357,6 +357,9 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
       try {
         const document = await runAttempts(providerId, apiModel, input, state, undefined, judgeCfg);
         dispatch({ type: 'SET_GENERIERTES_DOKUMENT', dokument: document });
+        // Das Dokument landet im Wizard-Zustand. Wer es kopieren will - etwa um
+        // es direkt zu speichern, ohne den Wizard zu öffnen - bekommt es hier.
+        onFertig?.(document);
         setStage('fertig');
         return true;
       } catch (err) {

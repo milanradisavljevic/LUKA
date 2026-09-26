@@ -1,6 +1,7 @@
 import type { Auftrag } from '@lehrunterlagen/schema';
 import type { LucideIcon } from 'lucide-react';
 import { GraduationCap, Languages, FileText, BookOpen, Clock } from 'lucide-react';
+import { heuteIso } from './lokalDatum';
 
 export interface ExampleAbsicht {
   id: string;
@@ -21,7 +22,7 @@ export const EXAMPLE_ABSICHTEN: ExampleAbsicht[] = [
       fach: 'deutsch',
       stufe: 'oberstufe',
       thema: 'Medienkonsum und seine Folgen für Jugendliche',
-      datum: new Date().toISOString().slice(0, 10),
+      datum: heuteIso(),
       dauerMinuten: 270,
       schwierigkeit: 'schwer',
       gewuenschteAufgabenarten: ['offeneSchreibaufgabe'],
@@ -40,7 +41,7 @@ export const EXAMPLE_ABSICHTEN: ExampleAbsicht[] = [
       fach: 'englisch',
       stufe: 'oberstufe',
       thema: 'The American Dream — Reality or Illusion?',
-      datum: new Date().toISOString().slice(0, 10),
+      datum: heuteIso(),
       dauerMinuten: 25,
       schwierigkeit: 'mittel',
       lernziele: ['Reading comprehension', 'Text analysis', 'Vocabulary in context'],
@@ -57,7 +58,7 @@ export const EXAMPLE_ABSICHTEN: ExampleAbsicht[] = [
       fach: 'deutsch',
       stufe: 'unterstufe',
       thema: 'Stilmittel in der Lyrik — Erkennen und Benennen',
-      datum: new Date().toISOString().slice(0, 10),
+      datum: heuteIso(),
       dauerMinuten: 15,
       schwierigkeit: 'leicht',
       lernziele: ['Stilmittel erkennen', 'Bedeutung erklären', 'Wirkung beschreiben'],
@@ -74,7 +75,7 @@ export const EXAMPLE_ABSICHTEN: ExampleAbsicht[] = [
       fach: 'deutsch',
       stufe: 'unterstufe',
       thema: 'Lesekompetenz — Sach- und Gebrauchstexte verstehen',
-      datum: new Date().toISOString().slice(0, 10),
+      datum: heuteIso(),
       dauerMinuten: 35,
       schwierigkeit: 'leicht',
       lernziele: ['Hauptgedanke erfassen', 'Detailinformationen finden', 'Textstruktur erkennen'],
@@ -91,7 +92,7 @@ export const EXAMPLE_ABSICHTEN: ExampleAbsicht[] = [
       fach: 'englisch',
       stufe: 'unterstufe',
       thema: 'Daily Routines and Healthy Habits',
-      datum: new Date().toISOString().slice(0, 10),
+      datum: heuteIso(),
       dauerMinuten: 20,
       schwierigkeit: 'leicht',
       lernziele: ['Present Simple', 'Time expressions', 'Reading comprehension'],
@@ -99,3 +100,4 @@ export const EXAMPLE_ABSICHTEN: ExampleAbsicht[] = [
     },
   },
 ];
+
