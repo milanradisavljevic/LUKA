@@ -27,6 +27,15 @@ __pycache__/
 
 # --- Schüler-Echtdaten: NIEMALS ins Repo ---
 *.db
+# SQLite-Nebenfiles. `*.db` allein reicht nicht: `-wal` enthält die eingecheckten
+# Seiten im Klartext (also Namen und Noten), `-shm` den Wal-Index. Beide standen
+# als untracked herum und wären mitcommittet worden – das README behauptet
+# ausdrücklich, echte Schülerdaten seien ausgeschlossen.
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
 apps/natascha/output/
 apps/natascha/input/
 apps/lua/src-tauri/noten_*.csv
@@ -84,3 +93,6 @@ apps/natascha/*.spec
 /apps/lua/.claude/
 /.zcodeignore
 /z.ai feedback
+
+# Lokales Notiz-Vault (Obsidian) – gehört zur Arbeitsnotiz, nicht zum Produkt.
+/.obsidian/
