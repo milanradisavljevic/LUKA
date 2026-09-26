@@ -6,13 +6,14 @@ use uuid::Uuid;
 
 use super::db::DbState;
 
-const EINSATZ_STATUS: &[&str] = &["geplant", "eingesetzt"];
+const EINSATZ_STATUS: &[&str] = &["geplant", "vorbereitet", "eingesetzt"];
 const EINSATZ_ARTEN: &[&str] = &[
     "",
     "verteilt",
     "gemeinsam_bearbeitet",
     "hausuebung",
     "schularbeit",
+    "ausgefallen",
     "nur_geplant",
 ];
 const RUECKBLICK_STATUS: &[&str] = &["offen", "hilfreich", "anpassen", "nicht_eingesetzt"];
@@ -53,6 +54,10 @@ pub struct EinsatzMeta {
     pub eingesetzt_am: Option<String>,
     pub lernziele_snapshot: Option<String>,
     pub notiz: Option<String>,
+    /// Planung: Uhrzeit "HH:MM" und Herkunft aus dem Wochenraster.
+    pub start_zeit: Option<String>,
+    pub ende_zeit: Option<String>,
+    pub raster_id: Option<String>,
 }
 
 #[derive(Deserialize, Clone, Default)]
@@ -60,6 +65,11 @@ pub struct EinsatzMeta {
 pub struct EinsatzFilter {
     pub klasse_id: Option<String>,
     pub material_id: Option<String>,
+    /// Planung: nur Einsaetze mit Plan-Datum in diesem Zeitraum (ISO, inklusiv).
+    pub datum_von: Option<String>,
+    pub datum_bis: Option<String>,
+    /// "aktualisiert" (Vorgabe, Verlauf) oder "datum" (Planung).
+    pub sortierung: Option<String>,
 }
 
 #[derive(Serialize, Clone)]
@@ -89,6 +99,13 @@ pub struct EinsatzRecord {
     pub created_at: String,
     pub updated_at: String,
     pub rueckblick: Option<EinsatzRueckblick>,
+    /// Planung
+    pub start_zeit: Option<String>,
+    pub ende_zeit: Option<String>,
+    pub raster_id: Option<String>,
+    /// Anzahl Anlagen aus `stundenmaterial` — beantwortet die Frage
+    /// „habe ich fuer diese Stunde etwas dabei?", ohne zweite Abfrage.
+    pub anzahl_materialien: i64,
 }
 
 fn rueckblick_from_row(
@@ -121,22 +138,28 @@ fn record_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<EinsatzRecord> {
         created_at: row.get(11)?,
         updated_at: row.get(12)?,
         rueckblick: rueckblick_from_row(row, 13)?,
+        start_zeit: row.get(18).unwrap_or_default(),
+        ende_zeit: row.get(19).unwrap_or_default(),
+        raster_id: row.get(20).unwrap_or_default(),
+        anzahl_materialien: row.get(21).unwrap_or_default(),
     })
 }
 
+/// Gemeinsame Spaltenliste. `r.*` (Rueckblick) und die Planungsspalten kommen
+/// hinten an, damit `record_from_row` feste Offsets hat.
+const EINSATZ_SELECT: &str = "SELECT e.id, e.material_id, e.klasse_id, e.klasse_name_snapshot, \
+     e.titel_snapshot, e.status, e.einsatz_art, e.geplant_am, e.eingesetzt_am, \
+     e.lernziele_snapshot, e.notiz, e.created_at, e.updated_at, \
+     r.id, r.einsatz_id, r.status, r.notiz, r.erstellt_am, \
+     e.start_zeit, e.ende_zeit, e.raster_id, \
+     (SELECT COUNT(*) FROM stundenmaterial m WHERE m.einsatz_id = e.id) \
+     FROM unterrichtseinsatz e \
+     LEFT JOIN einsatz_rueckblick r ON r.einsatz_id=e.id";
+
 fn einsatz_get_impl(conn: &rusqlite::Connection, id: &str) -> Result<EinsatzRecord, String> {
-    conn.query_row(
-        "SELECT e.id, e.material_id, e.klasse_id, e.klasse_name_snapshot,
-                e.titel_snapshot, e.status, e.einsatz_art, e.geplant_am,
-                e.eingesetzt_am, e.lernziele_snapshot, e.notiz, e.created_at,
-                e.updated_at, r.id, r.einsatz_id, r.status, r.notiz, r.erstellt_am
-         FROM unterrichtseinsatz e
-         LEFT JOIN einsatz_rueckblick r ON r.einsatz_id=e.id
-         WHERE e.id=?1",
-        params![id],
-        record_from_row,
-    )
-    .map_err(|e| format!("einsatz_get: {e}"))
+    let sql = format!("{EINSATZ_SELECT} WHERE e.id=?1");
+    conn.query_row(&sql, params![id], record_from_row)
+        .map_err(|e| format!("einsatz_get: {e}"))
 }
 
 pub(crate) fn einsatz_upsert_impl(
@@ -181,13 +204,20 @@ pub(crate) fn einsatz_upsert_impl(
     if !lernziele.is_array() {
         return Err("Lernziele müssen ein JSON-Array sein.".to_string());
     }
+    let start_zeit = validiere_zeit(meta.start_zeit, "Startzeit")?;
+    let ende_zeit = validiere_zeit(meta.ende_zeit, "Endzeit")?;
+    if let (Some(start), Some(ende)) = (start_zeit.as_deref(), ende_zeit.as_deref()) {
+        if ende <= start {
+            return Err("Die Endzeit muss nach der Startzeit liegen.".to_string());
+        }
+    }
     let now = now_string();
     conn.execute(
         "INSERT INTO unterrichtseinsatz
           (id, material_id, klasse_id, klasse_name_snapshot, titel_snapshot,
            status, einsatz_art, geplant_am, eingesetzt_am, lernziele_snapshot,
-           notiz, created_at, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?12)
+           notiz, created_at, updated_at, start_zeit, ende_zeit, raster_id)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?12, ?13, ?14, ?15)
          ON CONFLICT(id) DO UPDATE SET
            material_id=excluded.material_id,
            klasse_id=excluded.klasse_id,
@@ -199,7 +229,10 @@ pub(crate) fn einsatz_upsert_impl(
            eingesetzt_am=excluded.eingesetzt_am,
            lernziele_snapshot=excluded.lernziele_snapshot,
            notiz=excluded.notiz,
-           updated_at=excluded.updated_at",
+           updated_at=excluded.updated_at,
+           start_zeit=excluded.start_zeit,
+           ende_zeit=excluded.ende_zeit,
+           raster_id=excluded.raster_id",
         params![
             id,
             material_id,
@@ -213,41 +246,84 @@ pub(crate) fn einsatz_upsert_impl(
             lernziele_snapshot,
             meta.notiz.unwrap_or_default(),
             now,
+            start_zeit,
+            ende_zeit,
+            optional_string(meta.raster_id),
         ],
     )
     .map_err(|e| format!("einsatz_upsert: {e}"))?;
     einsatz_get_impl(conn, &id)
 }
 
+/// Validiert eine Uhrzeit und normalisiert sie auf `HH:MM`.
+/// Tolerant bei der Stellenzahl (`8:05` wird zu `08:05`), streng beim Bereich –
+/// so kommt ein Tippfehler sofort zurück, ein `type="time"` aber durch.
+fn validiere_zeit(wert: Option<String>, label: &str) -> Result<Option<String>, String> {
+    let Some(wert) = optional_string(wert) else {
+        return Ok(None);
+    };
+    let teile: Vec<&str> = wert.split(':').collect();
+    let ungueltig = || format!("Ungültige {label} (erwartet HH:MM): {wert}");
+    if teile.len() != 2 || teile[0].is_empty() || teile[1].is_empty() || teile[0].len() > 2 || teile[1].len() > 2 {
+        return Err(ungueltig());
+    }
+    let stunde: u32 = teile[0].parse().map_err(|_| ungueltig())?;
+    let minute: u32 = teile[1].parse().map_err(|_| ungueltig())?;
+    if stunde > 23 || minute > 59 {
+        return Err(ungueltig());
+    }
+    Ok(Some(format!("{stunde:02}:{minute:02}")))
+}
+
 pub(crate) fn einsatz_list_impl(
     conn: &rusqlite::Connection,
     filter: Option<EinsatzFilter>,
 ) -> Result<Vec<EinsatzRecord>, String> {
-    let mut sql = String::from(
-        "SELECT e.id, e.material_id, e.klasse_id, e.klasse_name_snapshot,
-                e.titel_snapshot, e.status, e.einsatz_art, e.geplant_am,
-                e.eingesetzt_am, e.lernziele_snapshot, e.notiz, e.created_at,
-                e.updated_at, r.id, r.einsatz_id, r.status, r.notiz, r.erstellt_am
-         FROM unterrichtseinsatz e
-         LEFT JOIN einsatz_rueckblick r ON r.einsatz_id=e.id WHERE 1=1",
-    );
-    let mut values = Vec::new();
-    if let Some(filter) = filter {
-        if let Some(klasse_id) = optional_string(filter.klasse_id) {
-            sql.push_str(" AND e.klasse_id=?");
-            values.push(klasse_id);
+    let mut bedingungen: Vec<String> = vec!["1=1".to_string()];
+    let mut werte: Vec<String> = Vec::new();
+    let mut nach_datum = false;
+
+    if let Some(f) = filter {
+        nach_datum = f.sortierung.as_deref() == Some("datum");
+        if let Some(wert) = optional_string(f.klasse_id) {
+            werte.push(wert);
+            bedingungen.push(format!("e.klasse_id=?{}", werte.len()));
         }
-        if let Some(material_id) = optional_string(filter.material_id) {
-            sql.push_str(" AND e.material_id=?");
-            values.push(material_id);
+        if let Some(wert) = optional_string(f.material_id) {
+            werte.push(wert);
+            bedingungen.push(format!("e.material_id=?{}", werte.len()));
+        }
+        if let Some(wert) = optional_string(f.datum_von) {
+            werte.push(wert);
+            bedingungen.push(format!(
+                "COALESCE(e.eingesetzt_am, e.geplant_am) >= ?{}",
+                werte.len()
+            ));
+        }
+        if let Some(wert) = optional_string(f.datum_bis) {
+            werte.push(wert);
+            bedingungen.push(format!(
+                "COALESCE(e.eingesetzt_am, e.geplant_am) <= ?{}",
+                werte.len()
+            ));
         }
     }
-    sql.push_str(" ORDER BY e.updated_at DESC, e.created_at DESC");
+
+    let sql = format!(
+        "{EINSATZ_SELECT} WHERE {} {}",
+        bedingungen.join(" AND "),
+        if nach_datum {
+            "ORDER BY (geplant_am IS NULL), geplant_am ASC, (start_zeit IS NULL), start_zeit ASC, e.id ASC"
+        } else {
+            "ORDER BY e.updated_at DESC, e.created_at DESC"
+        }
+    );
+
     let mut stmt = conn
         .prepare(&sql)
         .map_err(|e| format!("einsatz_list prepare: {e}"))?;
     let rows = stmt
-        .query_map(rusqlite::params_from_iter(values), record_from_row)
+        .query_map(rusqlite::params_from_iter(werte), record_from_row)
         .map_err(|e| format!("einsatz_list query: {e}"))?;
     rows.map(|row| row.map_err(|e| format!("einsatz_list row: {e}")))
         .collect()
@@ -355,7 +431,10 @@ mod tests {
     fn setup() -> Connection {
         let conn = Connection::open_in_memory().unwrap();
         conn.execute_batch("PRAGMA foreign_keys=ON;").unwrap();
-        conn.execute_batch(crate::db::LUA_SCHEMA_SQL).unwrap();
+        // `init_schema` statt des Roh-Schemas: nur so laufen auch die additiven
+        // Migrationen (Planungs-Spalten) – sonst testet man einen Zustand, den
+        // es in der echten Anwendung nie gibt.
+        crate::db::init_schema(&conn).unwrap();
         conn.execute(
             "INSERT INTO lua_klassen (id, name) VALUES ('klasse-uuid', '7A')",
             [],
@@ -414,6 +493,148 @@ mod tests {
                 .get(0))
                 .unwrap(),
             0
+        );
+    }
+
+    #[test]
+    fn einsatz_speichert_und_normalisiert_uhrzeiten() {
+        let conn = setup();
+        let einsatz = einsatz_upsert_impl(
+            &conn,
+            EinsatzMeta {
+                klasse_id: Some("klasse-uuid".into()),
+                geplant_am: Some("2026-09-07".into()),
+                start_zeit: Some("8:05".into()),
+                ende_zeit: Some("9:45".into()),
+                raster_id: Some("raster-1".into()),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        // Auf HH:MM normalisiert
+        assert_eq!(einsatz.start_zeit.as_deref(), Some("08:05"));
+        assert_eq!(einsatz.ende_zeit.as_deref(), Some("09:45"));
+        assert_eq!(einsatz.raster_id.as_deref(), Some("raster-1"));
+    }
+
+    #[test]
+    fn einsatz_weist_unsinnige_und_reihenfalsche_zeiten_zurueck() {
+        let conn = setup();
+        let basis = EinsatzMeta {
+            klasse_id: Some("klasse-uuid".into()),
+            ..Default::default()
+        };
+        for (start, ende) in [
+            ("25:00", "26:00"),  // Stunde zu gross
+            ("08:70", "09:00"),  // Minute zu gross
+            ("08:00", "07:00"),  // Ende vor Anfang
+            ("08:00", "08:00"),  // kein Zeitraum
+            ("8", "09:00"),      // kein Doppelpunkt
+            ("abc", "09:00"),    // kein Zahl
+        ] {
+            let mut meta = basis.clone();
+            meta.start_zeit = Some(start.into());
+            meta.ende_zeit = Some(ende.into());
+            assert!(
+                einsatz_upsert_impl(&conn, meta).is_err(),
+                "Start {start} / Ende {ende} hätte abgelehnt werden müssen"
+            );
+        }
+    }
+
+    #[test]
+    fn einsatz_list_kann_nach_datum_filtern_und_sortieren() {
+        let conn = setup();
+        for (id, datum) in [
+            ("spaet", "2026-09-11"),
+            ("frueh", "2026-09-07"),
+            ("mitte", "2026-09-09"),
+            ("ausserhalb", "2026-10-20"),
+        ] {
+            einsatz_upsert_impl(
+                &conn,
+                EinsatzMeta {
+                    id: Some(id.into()),
+                    klasse_id: Some("klasse-uuid".into()),
+                    geplant_am: Some(datum.into()),
+                    start_zeit: Some("08:00".into()),
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+        }
+        let alle = einsatz_list_impl(&conn, None).unwrap();
+        assert_eq!(alle.len(), 4);
+        // Ohne Angabe bleibt die Verlaufssortierung erhalten (Aktualisierung absteigend)
+        assert_ne!(alle[0].id, alle[1].id);
+
+        let sortiert = einsatz_list_impl(
+            &conn,
+            Some(EinsatzFilter {
+                sortierung: Some("datum".into()),
+                ..Default::default()
+            }),
+        )
+        .unwrap();
+        let ids: Vec<&str> = sortiert.iter().map(|e| e.id.as_str()).collect();
+        assert_eq!(ids, vec!["frueh", "mitte", "spaet", "ausserhalb"]);
+
+        let woche = einsatz_list_impl(
+            &conn,
+            Some(EinsatzFilter {
+                datum_von: Some("2026-09-07".into()),
+                datum_bis: Some("2026-09-13".into()),
+                sortierung: Some("datum".into()),
+                ..Default::default()
+            }),
+        )
+        .unwrap();
+        assert_eq!(woche.len(), 3);
+        assert!(woche.iter().all(|e| e.anzahl_materialien == 0));
+    }
+
+    #[test]
+    fn einsatz_list_sortiert_stunden_ohne_uhrzeit_hinten() {
+        let conn = setup();
+        for (id, start) in [("ohne", None), ("spaet", Some("13:30")), ("frueh", Some("08:00"))]
+        {
+            einsatz_upsert_impl(
+                &conn,
+                EinsatzMeta {
+                    id: Some(id.into()),
+                    klasse_id: Some("klasse-uuid".into()),
+                    geplant_am: Some("2026-09-07".into()),
+                    start_zeit: start.map(str::to_string),
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+        }
+        let sortiert = einsatz_list_impl(
+            &conn,
+            Some(EinsatzFilter {
+                sortierung: Some("datum".into()),
+                ..Default::default()
+            }),
+        )
+        .unwrap();
+        let ids: Vec<&str> = sortiert.iter().map(|e| e.id.as_str()).collect();
+        assert_eq!(ids, vec!["frueh", "spaet", "ohne"]);
+    }
+
+    #[test]
+    fn einsatz_status_erlaubt_vorbereitet_und_art_ausgefallen() {
+        let conn = setup();
+        let mut meta = meta();
+        meta.status = Some("vorbereitet".into());
+        assert_eq!(einsatz_upsert_impl(&conn, meta.clone()).unwrap().status, "vorbereitet");
+        meta.status = Some("erfunden".into());
+        assert!(einsatz_upsert_impl(&conn, meta.clone()).is_err());
+        meta.status = Some("geplant".into());
+        meta.einsatz_art = Some("ausgefallen".into());
+        assert_eq!(
+            einsatz_upsert_impl(&conn, meta).unwrap().einsatz_art,
+            "ausgefallen"
         );
     }
 }

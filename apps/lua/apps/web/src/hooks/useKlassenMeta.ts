@@ -10,6 +10,8 @@ export interface KlasseMeta {
   schulstufe?: number | null;
   schuljahr?: string | null;
   notizen?: string | null;
+  /** Farbslot 1..8 im Stundenplan; null = noch nicht zugewiesen. */
+  farbe?: string | null;
   archiviert: boolean;
   createdAt: string;
 }

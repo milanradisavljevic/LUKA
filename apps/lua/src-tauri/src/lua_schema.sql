@@ -83,6 +83,7 @@ CREATE TABLE IF NOT EXISTS lua_klassen (
     schulstufe INTEGER,
     schuljahr TEXT,
     notizen TEXT,
+    farbe TEXT,                        -- Farbslot 1..8 im Stundenplan (NULL = automatisch)
     archiviert INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -90,6 +91,22 @@ CREATE TABLE IF NOT EXISTS lua_klassen (
 -- Evidenzschicht zwischen erzeugtem Material, Klasse und späterer Auswertung.
 -- Die Identitätsfelder bleiben bewusst nullable und werden im Rust-Code validiert;
 -- NATASCHA kennt diese LUA-eigenen Tabellen nicht.
+--
+-- ZWEI WEGE, eine Unterlage an einen Einsatz zu hängen - nicht verwechseln:
+--
+--   material_id (hier, 1:1) - "die Unterlage, aus der dieser Einsatz entstanden
+--   ist". Gesetzt ausschließlich aus dem Baukasten heraus (`handleEinsatzOffer`
+--   in App.tsx) und aus der Historie. Es ist die Grundlage für die Korrektur:
+--   NATASCHA braucht den Quelltext dieser Unterlage. Einsatz aus der Planung
+--   (`woche_einplanen`) setzt dieses Feld bewusst NICHT.
+--
+--   stundenmaterial (1:n, siehe unten) - "was habe ich bei dieser Stunde
+--   dabei": erzeugte Unterlagen, abgelegte Dateien, Verweise. Das ist der Weg
+--   der Planungsansicht, weil er dort sichtbar und über `anzahl_materialien`
+--   zählbar ist.
+--
+-- Beide zeigen auf `generated_materials.id`. Wer sie zusammenführt, verliert
+-- entweder die Korrekturgrundlage oder die Anlagenliste.
 CREATE TABLE IF NOT EXISTS unterrichtseinsatz (
     id TEXT PRIMARY KEY,
     material_id TEXT,
@@ -117,6 +134,82 @@ CREATE TABLE IF NOT EXISTS einsatz_rueckblick (
     erstellt_am TEXT NOT NULL,
     UNIQUE(einsatz_id)
 );
+
+-- Unterrichtsplanung. Das Wochenraster beschreibt die Form der Woche, die
+-- konkreten Stunden sind normale unterrichtseinsatz-Zeilen mit Datum und Uhrzeit.
+-- Bewusst KEIN Fremdschlüssel auf lua_klassen: wie beim Einsatz ist der Name der
+-- Snapshot-Bezug, die id nur ein weicher Verweis.
+CREATE TABLE IF NOT EXISTS stundenraster (
+    id TEXT PRIMARY KEY,
+    klasse_id TEXT,
+    klasse_name_snapshot TEXT NOT NULL DEFAULT '',
+    wochentag INTEGER NOT NULL,             -- 1 = Montag … 7 = Sonntag (ISO)
+    start_zeit TEXT NOT NULL DEFAULT '08:00', -- "HH:MM"
+    ende_zeit TEXT NOT NULL DEFAULT '08:45',
+    bezeichnung TEXT NOT NULL DEFAULT '',
+    schuljahr INTEGER,                      -- Beginnjahr, 2026 = Schuljahr 2026/27
+    aktiv INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_stundenraster_klasse ON stundenraster(klasse_id);
+CREATE INDEX IF NOT EXISTS idx_stundenraster_tag ON stundenraster(wochentag, aktiv);
+
+-- Anlagen an einer geplanten Stunde. Drei Arten, weil die drei Situationen
+-- unterschiedlich zuverlaessig sind:
+--   ablage  – Datei liegt in LUA-eigenem Ordner, Öffnen ist garantiert
+--   material – Verweis auf eine LUA-Unterlage, die in der App geöffnet wird
+--   verweis  – fremder Pfad oder URL, kann von der Datei verschoben werden
+CREATE TABLE IF NOT EXISTS stundenmaterial (
+    id TEXT PRIMARY KEY,
+    einsatz_id TEXT NOT NULL REFERENCES unterrichtseinsatz(id) ON DELETE CASCADE,
+    art TEXT NOT NULL,
+    material_id TEXT,
+    dateiname TEXT NOT NULL DEFAULT '',
+    ablage_pfad TEXT,
+    ziel TEXT,
+    label TEXT NOT NULL DEFAULT '',
+    notiz TEXT NOT NULL DEFAULT '',
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_stundenmaterial_einsatz ON stundenmaterial(einsatz_id);
+
+-- Schulferien als Daten, nicht als Konstanten im Code. Sie werden von der
+-- Behörde veröffentlicht und ändern sich jedes Schuljahr – deshalb gehören sie
+-- in die Datenbank und werden je Jahr von der Lehrkraft bestätigt.
+-- `region` ist der AT-Bundesland-Code 1..9 (leer = für alle Regionen gültig).
+CREATE TABLE IF NOT EXISTS schulferien (
+    id TEXT PRIMARY KEY,
+    region TEXT NOT NULL DEFAULT '',
+    bezeichnung TEXT NOT NULL,
+    von TEXT NOT NULL,
+    bis TEXT NOT NULL,
+    schuljahr INTEGER,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_schulferien_von ON schulferien(von);
+
+-- Schulinterne Schließtage: MuT-Tage, Fortbildungen, Elternabende. Wichtig,
+-- weil daran genauso kein Unterricht ist wie in den amtlichen Ferien – und weil
+-- sie nirgends nachzuschlagen sind.
+CREATE TABLE IF NOT EXISTS schulpause (
+    id TEXT PRIMARY KEY,
+    bezeichnung TEXT NOT NULL,
+    datum TEXT NOT NULL,
+    klasse_name TEXT NOT NULL DEFAULT '',
+    notiz TEXT NOT NULL DEFAULT '',
+    schuljahr INTEGER,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_schulpause_datum ON schulpause(datum);
 
 -- Lokales Lehrerprofil. Singleton (id=1), bewusst ohne Netzwerk-/Account-Bezug.
 CREATE TABLE IF NOT EXISTS lua_lehrerprofil (

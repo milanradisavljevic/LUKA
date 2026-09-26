@@ -58,6 +58,140 @@ pub fn init_schema(conn: &Connection) -> Result<(), String> {
     migrate_lua_klassen_identity(conn)?;
     migrate_lua_klassen_land(conn)?;
     migrate_generated_materials_loop_columns(conn)?;
+    migrate_unterrichtseinsatz_zeit(conn)?;
+    migrate_lua_klassen_farbe(conn)?;
+    migrate_planung_jahresbezug(conn)?;
+    Ok(())
+}
+
+/// Ergänzt die Klassenfarbe (Slot 1..8) und verteilt sie einmalig auf alle
+/// bestehenden Klassen.
+///
+///  Ohne dieses Verteilen hätten Bestandsklassen keine Farbe und die Oberfläche
+///  müsste sie raten – dann könnten „6a" und „6b" zufällig dieselbe bekommen.
+///  Nach Namen sortiert, damit das Ergebnis unabhängig von der Zeilenreihenfolge
+///  reproduzierbar ist. Idempotent: es werden nur leere Slots gefüllt.
+fn migrate_lua_klassen_farbe(conn: &Connection) -> Result<(), String> {
+    let mut stmt = conn
+        .prepare("PRAGMA table_info(lua_klassen)")
+        .map_err(|e| format!("Farb-Migration vorbereiten fehlgeschlagen: {e}"))?;
+    let columns: std::collections::HashSet<String> = stmt
+        .query_map([], |row| row.get::<_, String>(1))
+        .map_err(|e| format!("Farb-Migration Spalten lesen fehlgeschlagen: {e}"))?
+        .collect::<Result<_, _>>()
+        .map_err(|e| format!("Farb-Migration Spalten sammeln fehlgeschlagen: {e}"))?;
+    if !columns.contains("farbe") {
+        conn.execute_batch("ALTER TABLE lua_klassen ADD COLUMN farbe TEXT;")
+            .map_err(|e| format!("Klassen-Farbspalte ergänzen fehlgeschlagen: {e}"))?;
+    }
+
+    const SLOTS: usize = 8;
+    let mut belegt = [false; SLOTS + 1];
+    let mut ohne: Vec<String> = Vec::new();
+    {
+        let mut stmt = conn
+            .prepare("SELECT id, name, farbe FROM lua_klassen ORDER BY name COLLATE NOCASE ASC")
+            .map_err(|e| format!("Farb-Migration Klassen lesen fehlgeschlagen: {e}"))?;
+        let zeilen = stmt
+            .query_map([], |row| {
+                Ok((
+                    row.get::<_, Option<String>>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, Option<String>>(2)?,
+                ))
+            })
+            .map_err(|e| format!("Farb-Migration Klassen abfragen fehlgeschlagen: {e}"))?;
+        for zeile in zeilen {
+            let (id, name, farbe) = zeile.map_err(|e| format!("Farb-Migration Zeile: {e}"))?;
+            match farbe.as_deref().and_then(|f| f.trim().parse::<usize>().ok()) {
+                Some(slot) if (1..=SLOTS).contains(&slot) => belegt[slot] = true,
+                _ => ohne.push(id.unwrap_or_else(|| name.clone())),
+            }
+        }
+    }
+    for id in ohne {
+        let frei = (1..=SLOTS).find(|slot| !belegt[*slot]);
+        let Some(slot) = frei else {
+            // Mehr als acht Klassen: die weiteren bekommen bewusst keine feste
+            // Farbe. Die Oberfläche weist ihnen einen stabilen Hash zu und weist
+            // darauf hin, dass sich Farben wiederholen – besser als zwei Klassen
+            // stillschweigend gleich einzufärben.
+            break;
+        };
+        belegt[slot] = true;
+        conn.execute(
+            "UPDATE lua_klassen SET farbe=?1 WHERE id=?2",
+            rusqlite::params![slot.to_string(), id],
+        )
+        .map_err(|e| format!("Farb-Migration Klasse {id} einfärben fehlgeschlagen: {e}"))?;
+    }
+    Ok(())
+}
+
+/// Ergänzt den Schuljahresbezug am Wochenraster und die Schuljahres-Spalte an
+/// den Ferienzeiten. Aditiv, weil `CREATE TABLE IF NOT EXISTS` bei bestehenden
+/// Tabellen keine Spalten ergänzt.
+///
+/// **Der Spaltentyp ist INTEGER und darf nicht auf TEXT gewechselt werden.**
+/// Das Schema legt `schuljahr` ebenfalls als INTEGER an. Eine hier als TEXT
+/// ergänzte Spalte hat TEXT-Affinität, SQLite wandelt jede geschriebene Zahl
+/// deshalb in Text um, und das Lesen als `Option<i64>` scheitert. Genau das hat
+/// das Speichern im Wochenraster auf Bestandsdatenbanken unbrauchbar gemacht.
+/// Datenbanken, die den Fehler schon haben, bleiben über den toleranten Leser
+/// `schuljahr_aus_sqlite` in `commands/planung.rs` lesbar.
+fn migrate_planung_jahresbezug(conn: &Connection) -> Result<(), String> {
+    for (tabelle, spalten) in [
+        ("stundenraster", vec!["schuljahr"]),
+        ("schulferien", vec!["schuljahr"]),
+        ("schulpause", vec!["schuljahr"]),
+    ] {
+        let hat_spalte = |name: &str| -> Result<bool, String> {
+            let mut stmt = conn
+                .prepare(&format!("PRAGMA table_info({tabelle})"))
+                .map_err(|e| format!("Jahres-Migration {tabelle} vorbereiten fehlgeschlagen: {e}"))?;
+            let gefunden = stmt
+                .query_map([], |row| row.get::<_, String>(1))
+                .map_err(|e| format!("Jahres-Migration {tabelle} lesen fehlgeschlagen: {e}"))?
+                .any(|r| matches!(r, Ok(ref s) if s == name));
+            Ok(gefunden)
+        };
+        for spalte in spalten {
+            if !hat_spalte(&spalte)? {
+                conn.execute_batch(&format!(
+                    "ALTER TABLE {tabelle} ADD COLUMN {spalte} INTEGER;"
+                ))
+                .map_err(|e| format!("Jahres-Migration {tabelle}.{spalte} fehlgeschlagen: {e}"))?;
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Ergänzt die Planungs-Spalten am Einsatz: Uhrzeit und Herkunft aus dem Raster.
+/// Alt-Datenbanken haben diese Spalten nicht — `CREATE TABLE IF NOT EXISTS` im
+/// Schema-Batch ergänzt bei bestehenden Tabellen nämlich nichts, deshalb die
+/// additive Migration danach (gleiches Muster wie `migrate_lua_klassen_land`).
+fn migrate_unterrichtseinsatz_zeit(conn: &Connection) -> Result<(), String> {
+    let mut stmt = conn
+        .prepare("PRAGMA table_info(unterrichtseinsatz)")
+        .map_err(|e| format!("Planungs-Migration vorbereiten fehlgeschlagen: {e}"))?;
+    let columns: std::collections::HashSet<String> = stmt
+        .query_map([], |row| row.get::<_, String>(1))
+        .map_err(|e| format!("Planungs-Migration Spalten lesen fehlgeschlagen: {e}"))?
+        .collect::<Result<_, _>>()
+        .map_err(|e| format!("Planungs-Migration Spalten sammeln fehlgeschlagen: {e}"))?;
+    for spalte in ["start_zeit", "ende_zeit", "raster_id"] {
+        if !columns.contains(spalte) {
+            conn.execute_batch(&format!(
+                "ALTER TABLE unterrichtseinsatz ADD COLUMN {spalte} TEXT;"
+            ))
+            .map_err(|e| format!("Planungs-Spalte {spalte} ergänzen fehlgeschlagen: {e}"))?;
+        }
+    }
+    conn.execute_batch(
+        "CREATE INDEX IF NOT EXISTS idx_unterrichtseinsatz_datum ON unterrichtseinsatz(geplant_am);",
+    )
+    .map_err(|e| format!("Planungs-Datumsindex anlegen fehlgeschlagen: {e}"))?;
     Ok(())
 }
 
@@ -440,6 +574,59 @@ pub fn migrate_from_localstorage(conn: &Connection, payload: &serde_json::Value)
 mod tests {
     use super::*;
 
+    /// `init_schema` legt fehlende Tabellen nur beim **Start** an. Läuft die App
+    /// mit einem älteren Binary weiter, fehlen die Planungstabellen und jeder
+    /// Planungsbefehl schlägt fehl – bei einer Lehrkraft ohne sichtbaren
+    /// Fehler, weil die Oberfläche schlicht eine leere Liste zeigt.
+    ///
+    /// Dieser Test verhindert, dass eine Tabelle im Schemafile vergessen oder
+    /// herausgestrichen wird: `init_schema` auf einer frischen Datenbank muss
+    /// jede Planungstabelle anlegen.
+    #[test]
+    fn init_schema_legt_alle_planungstabellen_an() {
+        let conn = Connection::open_in_memory().unwrap();
+        init_schema(&conn).expect("init_schema auf leerer Datenbank");
+        let vorhanden = |name: &str| -> bool {
+            conn.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?1")
+                .unwrap()
+                .query_row([name], |r| r.get::<_, String>(0))
+                .is_ok()
+        };
+        for tabelle in [
+            // Terminplanung: Raster, einzelne Stunden, Anlagen, Ferien, Pausen.
+            "stundenraster",
+            "unterrichtseinsatz",
+            "stundenmaterial",
+            "schulferien",
+            "schulpause",
+            // Klassen und Lehrerprofil sind die Grundlage für beides.
+            "lua_klassen",
+            "lua_lehrerprofil",
+        ] {
+            assert!(vorhanden(tabelle), "Tabelle {tabelle} fehlt nach init_schema");
+        }
+    }
+
+    /// `schulferien.region` speichert einen Bundeslandnamen. Nichts an der
+    /// Datenbank darf ihn auf eine Nummer festlegen – die Umstellung auf
+    /// Namen ist genau deshalb ohne Migration möglich geblieben.
+    #[test]
+    fn schulferien_region_bleibt_freier_text() {
+        let conn = Connection::open_in_memory().unwrap();
+        init_schema(&conn).unwrap();
+        let typ: String = conn
+            .query_row(
+                "SELECT type FROM pragma_table_info('schulferien') WHERE name='region'",
+                [],
+                |r| r.get(0),
+            )
+            .expect("schulferien.region");
+        assert!(
+            typ.eq_ignore_ascii_case("TEXT"),
+            "schulferien.region muss TEXT bleiben, ist {typ}"
+        );
+    }
+
     #[test]
     fn pool_metadata_migration_ergaenzt_alte_datenbank() {
         let conn = Connection::open_in_memory().unwrap();
@@ -720,6 +907,213 @@ mod tests {
                 )
                 .unwrap();
             assert_eq!(exists, 1, "Tabelle {table} fehlt nach init_schema");
+        }
+    }
+
+    #[test]
+    fn planungs_schema_wird_bei_alter_datenbank_angelegt() {
+        let conn = Connection::open_in_memory().unwrap();
+        init_schema(&conn).unwrap();
+        for table in ["stundenraster", "stundenmaterial"] {
+            let exists: i64 = conn
+                .query_row(
+                    "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?1",
+                    rusqlite::params![table],
+                    |row| row.get(0),
+                )
+                .unwrap();
+            assert_eq!(exists, 1, "Tabelle {table} fehlt nach init_schema");
+        }
+    }
+
+    /// Alt-Datenbank: `unterrichtseinsatz` existiert bereits, aber ohne die
+    /// Planungs-Spalten. `CREATE TABLE IF NOT EXISTS` ergänzt dort nichts – die
+    /// additive Migration muss ran.
+    #[test]
+    fn planungs_migration_ergaenzt_alte_einsatz_tabelle() {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(
+            "CREATE TABLE unterrichtseinsatz (
+                id TEXT PRIMARY KEY,
+                material_id TEXT,
+                klasse_id TEXT,
+                klasse_name_snapshot TEXT NOT NULL DEFAULT '',
+                titel_snapshot TEXT NOT NULL DEFAULT '',
+                status TEXT NOT NULL DEFAULT 'geplant',
+                einsatz_art TEXT NOT NULL DEFAULT '',
+                geplant_am TEXT,
+                eingesetzt_am TEXT,
+                lernziele_snapshot TEXT NOT NULL DEFAULT '[]',
+                notiz TEXT NOT NULL DEFAULT '',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+            CREATE TABLE einsatz_rueckblick (
+                id TEXT PRIMARY KEY,
+                einsatz_id TEXT NOT NULL REFERENCES unterrichtseinsatz(id) ON DELETE CASCADE,
+                status TEXT NOT NULL DEFAULT 'offen',
+                notiz TEXT NOT NULL DEFAULT '',
+                erstellt_am TEXT NOT NULL,
+                UNIQUE(einsatz_id)
+            );
+            INSERT INTO unterrichtseinsatz
+              (id, klasse_name_snapshot, titel_snapshot, geplant_am, created_at, updated_at)
+            VALUES ('alt-1', '6b', 'Bestandsstunde', '2026-03-02', '0', '0');",
+        )
+        .unwrap();
+
+        init_schema(&conn).unwrap();
+
+        let spalten: std::collections::HashSet<String> = conn
+            .prepare("PRAGMA table_info(unterrichtseinsatz)")
+            .unwrap()
+            .query_map([], |row| row.get::<_, String>(1))
+            .unwrap()
+            .collect::<Result<_, _>>()
+            .unwrap();
+        for spalte in ["start_zeit", "ende_zeit", "raster_id"] {
+            assert!(
+                spalten.contains(spalte),
+                "Planungs-Spalte {spalte} fehlt nach init_schema"
+            );
+        }
+        // Der Altbestand darf nicht verloren gehen
+        let id: String = conn
+            .query_row(
+                "SELECT id FROM unterrichtseinsatz WHERE titel_snapshot='Bestandsstunde'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(id, "alt-1");
+    }
+
+    #[test]
+    fn farb_migration_ergaenzt_spalte_und_verteilt_slots() {
+        let conn = Connection::open_in_memory().unwrap();
+        // Alt-Datenbank: Farbspalte existiert noch nicht
+        conn.execute_batch(
+            "CREATE TABLE lua_klassen (id TEXT, name TEXT PRIMARY KEY, created_at TEXT NOT NULL);\
+             INSERT INTO lua_klassen (id, name, created_at) VALUES\
+               ('a','8b','0'),('b','6a','0'),('c','6b','0'),('d','7a','0');",
+        )
+        .unwrap();
+
+        init_schema(&conn).unwrap();
+
+        let farben: Vec<(String, Option<String>)> = conn
+            .prepare("SELECT name, farbe FROM lua_klassen ORDER BY name")
+            .unwrap()
+            .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))
+            .unwrap()
+            .collect::<Result<_, _>>()
+            .unwrap();
+        assert_eq!(farben.len(), 4);
+        // Nach Namen sortiert verteilt: 6a=1, 6b=2, 7a=3, 8b=4
+        let erwartet: Vec<(&str, &str)> = vec![("6a", "1"), ("6b", "2"), ("7a", "3"), ("8b", "4")];
+        for ((name, farbe), (soll_name, soll_farbe)) in farben.iter().zip(erwartet.iter()) {
+            assert_eq!(name, soll_name);
+            assert_eq!(farbe.as_deref(), Some(*soll_farbe), "Farbe für {name}");
+        }
+    }
+
+    #[test]
+    fn farb_migration_ist_idempotent_und_behaelt_gesetzte_farben() {
+        let conn = Connection::open_in_memory().unwrap();
+        init_schema(&conn).unwrap();
+        for id in ["a", "b"] {
+            conn.execute(
+                "INSERT INTO lua_klassen (id, name, created_at) VALUES (?1, ?2, '0')",
+                rusqlite::params![id, id],
+            )
+            .unwrap();
+        }
+        init_schema(&conn).unwrap();
+        init_schema(&conn).unwrap();
+        // Die erste Verteilung bleibt stehen – kein Überschreiben beim nächsten Start.
+        let a: Option<String> = conn
+            .query_row("SELECT farbe FROM lua_klassen WHERE id='a'", [], |r| r.get(0))
+            .unwrap();
+        let b: Option<String> = conn
+            .query_row("SELECT farbe FROM lua_klassen WHERE id='b'", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(a.as_deref(), Some("1"));
+        assert_eq!(b.as_deref(), Some("2"));
+    }
+
+    #[test]
+    fn farb_migration_behaelt_von_hand_gesetzte_farben() {
+        let conn = Connection::open_in_memory().unwrap();
+        init_schema(&conn).unwrap();
+        conn.execute(
+            "INSERT INTO lua_klassen (id, name, farbe, created_at) VALUES ('a','6a','7','0')",
+            [],
+        )
+        .unwrap();
+        conn.execute("INSERT INTO lua_klassen (id, name, created_at) VALUES ('b','6b','0')", [])
+            .unwrap();
+        init_schema(&conn).unwrap();
+        let a: Option<String> = conn
+            .query_row("SELECT farbe FROM lua_klassen WHERE id='a'", [], |r| r.get(0))
+            .unwrap();
+        let b: Option<String> = conn
+            .query_row("SELECT farbe FROM lua_klassen WHERE id='b'", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(a.as_deref(), Some("7"), "Handgesetzte Farbe bleibt");
+        assert_eq!(b.as_deref(), Some("1"), "die niedrigste freie Stelle");
+    }
+
+    #[test]
+    fn farb_migration_gibt_bei_zehn_klassen_nicht_die_zehnte_farbe_aus() {
+        let conn = Connection::open_in_memory().unwrap();
+        init_schema(&conn).unwrap();
+        for i in 0..10 {
+            conn.execute(
+                "INSERT INTO lua_klassen (id, name, created_at) VALUES (?1, ?2, '0')",
+                rusqlite::params![format!("id{i}"), format!("klasse{i}")],
+            )
+            .unwrap();
+        }
+        init_schema(&conn).unwrap();
+        let vergeben: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM lua_klassen WHERE farbe IS NOT NULL",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(vergeben, 8, "höchstens acht Farben, keine neunte");
+    }
+
+    #[test]
+    fn planung_jahres_migration_ergaenzt_schuljahr_spalten() {
+        let conn = Connection::open_in_memory().unwrap();
+        // Alt-Datenbank: die Planungstabellen existieren, aber ohne `schuljahr`.
+        // Die Spaltenliste muss trotzdem vollständig sein, weil `init_schema`
+        // danach Indizes auf ihnen anlegt.
+        conn.execute_batch(
+            "CREATE TABLE stundenraster (
+                id TEXT PRIMARY KEY, klasse_id TEXT, klasse_name_snapshot TEXT NOT NULL DEFAULT '',
+                wochentag INTEGER NOT NULL, start_zeit TEXT NOT NULL DEFAULT '08:00',
+                ende_zeit TEXT NOT NULL DEFAULT '08:45', bezeichnung TEXT NOT NULL DEFAULT '',
+                aktiv INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+             );
+             CREATE TABLE schulferien (id TEXT PRIMARY KEY, von TEXT NOT NULL);
+             CREATE TABLE schulpause (id TEXT PRIMARY KEY, datum TEXT NOT NULL);",
+        )
+        .unwrap();
+        init_schema(&conn).unwrap();
+        for tabelle in ["stundenraster", "schulferien", "schulpause"] {
+            let hat: i64 = conn
+                .query_row(
+                    &format!(
+                        "SELECT COUNT(*) FROM pragma_table_info('{tabelle}') WHERE name='schuljahr'"
+                    ),
+                    [],
+                    |r| r.get(0),
+                )
+                .unwrap();
+            assert_eq!(hat, 1, "{tabelle}.schuljahr fehlt nach init_schema");
         }
     }
 }

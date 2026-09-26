@@ -8,6 +8,7 @@ import { useNatascha } from '../hooks/useNatascha';
 import type { KlassenBriefingRow, FehlerTrendPunkt, LoopUebungRow } from '../hooks/useNatascha';
 import { folgeuebungWirkung } from '../lib/loopWirkung';
 import { useKlassenMeta, type KlasseMeta, type KlassenLoeschvorschau } from '../hooks/useKlassenMeta';
+import { KLASSEN_TONE, farbFlaeche, farbListeAusKlassen, klasseFarbStil } from '../lib/klassenFarben';
 import { KATEGORIE_TO_BLOCKTYPEN, fehlerkorrekturZuerst, type NataschaPrefill } from '../lib/nataschaBridge';
 import { FACH_META, schulstufenFuerLand, stufeFromSchulstufe, type Fach, type Land, type Stufe } from '@lehrunterlagen/schema';
 import type { BlockTyp } from '@lehrunterlagen/schema';
@@ -192,6 +193,8 @@ export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler,
   const [formLand, setFormLand] = useState<Land | ''>('');
   const [formSchulstufe, setFormSchulstufe] = useState<number | undefined>(undefined);
   const [formSchuljahr, setFormSchuljahr] = useState('');
+  /** Farbslot 1..8, leer = automatisch aus dem Klassennamen. */
+  const [formFarbe, setFormFarbe] = useState('');
   const [formBusy, setFormBusy] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [formNameLocked, setFormNameLocked] = useState(false);
@@ -204,6 +207,8 @@ export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler,
     [klassenMeta, selectedKlasse],
   );
   const niveaugruppenLand = selectedKlasseMeta?.land ?? land;
+  /** Farbzuordnung der Klassenliste – identisch zur Planung. */
+  const farbListe = useMemo(() => farbListeAusKlassen(klassenMeta), [klassenMeta]);
   const niveauNoten = useMemo(
     () => neuesteBestaetigteNoten(abgaben
       .filter((abgabe) => abgabe.schuelerId != null && abgabe.noteFinal != null)
@@ -290,6 +295,7 @@ export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler,
     setFormLand(vorhandene?.land ?? '');
     setFormSchulstufe(vorhandene?.schulstufe ?? undefined);
     setFormSchuljahr(vorhandene?.schuljahr ?? '');
+    setFormFarbe(vorhandene?.farbe ?? '');
     setFormNameLocked(!!nameFest);
     setZeigeKlasseForm(true);
   }, []);
@@ -310,12 +316,20 @@ export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler,
       land: formLand || null,
       schuljahr: formSchuljahr.trim() || null,
       notizen: bestehende?.notizen ?? null,
+      farbe: formFarbe || null,
       archiviert: bestehende?.archiviert ?? false,
       createdAt: '',
     });
     setFormBusy(false);
     if (ok) { setZeigeKlasseForm(false); } else { setFormError('Speichern fehlgeschlagen.'); }
-  }, [formName, formFach, formLand, formSchulstufe, formSchuljahr, klassenMeta, upsertKlasseMeta, land]);
+  }, [formName, formFach, formLand, formSchulstufe, formSchuljahr, formFarbe, klassenMeta, upsertKlasseMeta, land]);
+
+  /** Farbe direkt auf der Karte ändern, ohne das Formular zu öffnen. */
+  const handleFarbeSetzen = useCallback(async (name: string, slot: number) => {
+    const bestehende = klassenMeta.find((m) => m.name === name);
+    if (!bestehende) return;
+    await upsertKlasseMeta({ ...bestehende, farbe: String(slot), createdAt: bestehende.createdAt ?? '' });
+  }, [klassenMeta, upsertKlasseMeta]);
 
   const handleToggleArchiv = useCallback(async (name: string, meta?: KlasseMeta) => {
     const ok = meta
@@ -626,6 +640,28 @@ export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler,
                 onChange={(e) => setFormSchuljahr(e.target.value)}
                 style={{ width: '100%', boxSizing: 'border-box', marginBottom: '0.5rem', fontSize: '0.8125rem' }}
               />
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.72rem' }}>
+                Farbe im Stundenplan
+                <div className="farbwahl" role="group" aria-label="Farbe im Stundenplan">
+                  {KLASSEN_TONE.map((tone) => (
+                    <button
+                      key={tone.slot}
+                      type="button"
+                      className={`farbwahl-feld${formFarbe === String(tone.slot) ? ' farbwahl-feld-ist-gewaehlt' : ''}`}
+                      style={{ background: farbFlaeche(tone.slot, 100) }}
+                      title={tone.name}
+                      aria-label={tone.name}
+                      aria-pressed={formFarbe === String(tone.slot)}
+                      onClick={() => setFormFarbe(formFarbe === String(tone.slot) ? '' : String(tone.slot))}
+                    />
+                  ))}
+                </div>
+                <span style={{ display: 'block', marginTop: '0.2rem', color: 'var(--color-text-muted)' }}>
+                  {formFarbe
+                    ? KLASSEN_TONE.find((t) => t.slot === Number(formFarbe))?.name
+                    : 'automatisch – LUA vergibt einen Ton, der von der Klassenfarbe im Stundenplan abweicht.'}
+                </span>
+              </label>
               {formError && <p style={{ color: 'var(--color-danger, #c0392b)', fontSize: '0.75rem', margin: '0 0 0.4rem' }}>{formError}</p>}
               <div style={{ display: 'flex', gap: '0.4rem' }}>
                 <button className="btn-primary" onClick={handleSaveKlasseMeta} disabled={formBusy} style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }}>
@@ -689,8 +725,10 @@ export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler,
                 display: 'block', width: '100%', textAlign: 'left', padding: '0.5rem 0.75rem',
                 background: selectedKlasse === k.name ? 'var(--color-highlight-bg)' : 'none',
                 border: selectedKlasse === k.name ? '2px solid var(--color-accent)' : '1px solid transparent',
+                borderLeft: '3px solid var(--klasse-farbe, var(--color-border))',
                 borderRadius: 'var(--radius)', cursor: 'pointer', fontSize: '0.8125rem',
                 opacity: k.meta?.archiviert ? 0.55 : 1,
+                ...klasseFarbStil(k.meta?.farbe, k.name, farbListe),
               }}>
                 {k.name} <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.75rem' }}>({k.anzahlAbgaben})</span>
                 {k.meta && (

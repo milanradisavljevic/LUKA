@@ -12,5 +12,6 @@ pub mod klassen;
 pub mod profil;
 pub mod einsatz;
 pub mod feedback;
+pub mod planung;
 
 pub mod diagnostics;
