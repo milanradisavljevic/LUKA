@@ -12,9 +12,8 @@ erstellen, Schülerabgaben korrigieren und daraus gezielte Folgeübungen ableite
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
 ![Rust](https://img.shields.io/badge/Rust-stable-000000?logo=rust&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-lokal-003B57?logo=sqlite&logoColor=white)
-![Status](https://img.shields.io/badge/Status-Pilot-orange)
 
-![LUKA — Übersicht im „Tinte & Papier"-Design: Startseite mit drei Wegen zur neuen Unterlage](screenshots/Übersicht.png)
+![LUKA — Übersicht im „Tinte & Papier"-Design (Stand 1.5.0, siehe Bildhinweis)](screenshots/Übersicht.png)
 
 </div>
 
@@ -22,17 +21,24 @@ erstellen, Schülerabgaben korrigieren und daraus gezielte Folgeübungen ableite
 
 ## Was ist LUKA?
 
-LUKA ist ein lokales **Unterlagen- und Korrektur-Tool** für den textbasierten
-Unterricht: Von der Absicht („Schularbeit Englisch, Oberstufe, zu diesem
-Zeitungsartikel") bis zum fertigen DOCX-Paket — **Schülerfassung, Lösung und
-Korrekturraster** — führt ein Assistent in fünf Schritten. Danach lassen sich
-Abgaben mit Rubrik analysieren, Fehler in der Klasse auswerten und passende
-Folgeübungen erzeugen. Drei Wege zur ersten Unterlage stehen offen:
+LUKA ist ein lokales **Unterrichts- und Korrektur-Tool** für den textbasierten
+Unterricht: Vom Stundenplan über die Unterlage bis zur ausgewerteten Abgabe und
+zur gezielten Folgeübung — alles in einer App. Der Kreislauf beginnt nicht beim
+Dokument, sondern beim **Termin**: Du trägst einmal dein Wochenraster ein, LUKA
+erzeugt daraus die einzelnen Stunden, und an jeder Stunde hängt die Unterlage,
+die du dafür brauchst.
+
+Für die erste Unterlage stehen drei Wege offen:
 
 - **Aus Quelltext** — Material hochladen oder einfügen (TXT/DOCX/PDF/HTML/URL);
   daraus entstehen passende Aufgaben.
 - **Ohne Quelltext** — Übung aus Lehrplan-Kompetenz oder freiem Thema.
 - **Schnell-Übung** — ein Thema, ein Aufgabentyp, sofort im Baukasten.
+
+Und aus dem **Stundenplan** heraus: eine Stunde wählen, „Unterlage vorbereiten",
+und LUKA übernimmt Klasse, Fach, Thema und Datum in den Assistenten. Quelltext und
+Aufgaben arbeitest du aus — beim Speichern hängt LUKA die fertige Unterlage
+automatisch an den Termin.
 
 Alles läuft **lokal**: keine Accounts, kein Server, keine Cloud-Datenbank. Die KI
 sprichst du mit deinem **eigenen API-Schlüssel** an (Mistral, Anthropic, OpenAI,
@@ -41,14 +47,15 @@ Verbindungstest.
 
 ```mermaid
 flowchart LR
-  A[Absicht] --> B[Quelltext optional]
-  B --> C[Aufgaben-Baukasten]
-  C --> D[KI generiert]
+  A[Stundenplan] --> B[Wochenraster eintragen]
+  B --> C[Stunden einplanen]
+  C --> D[Unterlage vorbereiten]
   D --> E[DOCX: Schülerfassung · Lösung · Raster]
   E --> F[Unterrichtseinsatz]
   F --> G[Korrektur]
   G --> H[Fehler-Heatmap]
   H --> I[Gezielte Folgeübung]
+  I -.-> C
 ```
 
 > **Closed Loop:** Die Korrektur ist in der Desktop-App integriert. Das
@@ -62,6 +69,7 @@ flowchart LR
 
 | Bereich | Was es kann |
 |---|---|
+| **Unterrichtsplanung** | Wochenraster einmal pro Schuljahr eintragen, daraus einzelne Stunden einplanen (Woche, Monat, Schuljahr) — **amtliche Schulferien** für Österreich und Deutschland liegen hinterlegt, mit Quelle und Abrufdatum zum Abgleich. Vertretungsstunden ohne Rasterzeile anlegen, einzelne Termine verschieben oder entfallen lassen |
 | **Fächer** | Deutsch, Englisch, Französisch, Spanisch, Italienisch, Latein sowie Geschichte, Geographie, Religion, Ethik, Psychologie, Philosophie — und die neuen Fächer **Medien & Demokratie** und **Informatik & KI** |
 | **Aufgabentypen** | Multiple Choice, Matching, Lückentext, Kategorisierung, Kreuzworträtsel, Wortgitter, Vokabelübung, Verständnisfrage, Schreibaufgabe, Fehlerkorrektur, Rollenspiel mit Rollenkarten u. v. m. |
 | **Differenzierung** | Leichtere/schwerere Varianten auf Knopfdruck; Schwierigkeit nach Bloom, bei Fremdsprachen CEFR A2–B2 |
@@ -69,9 +77,15 @@ flowchart LR
 | **Korrektur & Folgeübung** | Schülerabgaben mit Rubrik analysieren, Fehlerlisten und Feedback-DOCX erzeugen, Klassen-/Schülerauswertungen ansehen und aus Fehlerschwerpunkten eine Folgeübung starten |
 | **Export** | DOCX (Schülerfassung, Lösung, Korrekturraster, Kompetenznachweis, Selbsteinschätzungsbogen), PDF (via LibreOffice), **Moodle/GIFT** |
 | **Qualität** | Quality-Gate vor dem Export (Lernziel-Abdeckung, Wortzahl); einzelne Blöcke gezielt neu generieren |
-| **Komfort** | Befehlspalette (`Ctrl+K`), Vorlagen, Verlauf, Favoriten, Dark-Mode, automatische Updates |
+| **Komfort** | Befehlspalette (<kbd>Strg</kbd>/<kbd>⌘</kbd> + <kbd>K</kbd>), Tastenkürzel aus einer Liste, Vorlagen, Verlauf, Favoriten, Dark-Mode, automatische Updates |
 
 ### Einblicke
+
+> **Stand der Bilder:** aufgenommen mit **1.5.0** (10.07.2026). Seitdem hat sich
+> die Seitenleiste von fünf auf vier Bereiche geändert und die Startseite zeigt
+> jetzt einen Wochenstreifen. Die Bilder zeigen also den alten Stand — die
+> Bedienung ist weitgehend dieselbe. Neue Aufnahmen stehen aus; siehe
+> [`screenshots/README.md`](screenshots/README.md).
 
 | | |
 |:--:|:--:|
@@ -183,6 +197,11 @@ Veröffentlicht unter der **MIT-Lizenz** — siehe [`LICENSE`](LICENSE).
 
 ## Roadmap
 
-Pilotbetrieb des geschlossenen Unterrichtskreislaufs · freiwilliges lokales
-Lehrerprofil und Community-Feedback · kuratierte Fachpakete und weitere
-Lehrpläne nach belastbarer Abnahme des aktuellen Windows-/macOS-Releases.
+**Offen:** Abnahme des aktuellen Windows-/macOS-Releases mit synthetischen Daten
+· kuratierte Fachpakete und weitere Lehrpläne · Community-Feedback ·
+Schulferien für weitere Schuljahre nachrüsten (bisher Österreich 2025/26 und
+2026/27, Deutschland 2026/27) · Kantone für die Schweiz, falls das jemand
+auswertet, dem die Ferientabelle je Kanton zu aufwendig ist.
+
+**Bewusst nicht geplant:** Synchronisation mit Kalendern oder Aufgabenverwaltern
+(Moodle, iCal) — LUKA bleibt lokal und ohne Konto.
