@@ -4,13 +4,13 @@ import type {
   ProviderConfig,
   ProviderId,
 } from './types.js';
-import { buildMessages, buildRepairMessage } from './prompt.js';
+import { buildMessages, buildRepairMessage, buildAusgabeTextNachforderung } from './prompt.js';
 import { parseAndValidate } from './validate.js';
 import type { ChatMessage } from './types.js';
 import { getProvider } from './provider-registry.js';
 
 export * from './types.js';
-export { buildMessages, buildRefinementMessages, buildSrdpDeutschTrainingHint } from './prompt.js';
+export { buildMessages, buildRefinementMessages, buildSrdpDeutschTrainingHint, buildAusgabeTextNachforderung } from './prompt.js';
 export { parseAndValidate, extractJson } from './validate.js';
 export { refineDocument, type RefineComplete } from './refine.js';
 export { normalizeDocument } from './normalize.js';
@@ -48,7 +48,27 @@ export async function generateDocument(
     const validiert = await parseAndValidate(rohText, input.meta, input.quelltexte, judgeCfg, judgeComplete, input.stoffItems);
 
     if (validiert.ok && validiert.document) {
-      return { ok: true, document: validiert.document, rohText, versuche: versuch };
+      // Aufbereitung angefordert, aber nicht geliefert: Das Modell hat — trotz
+      // dreifacher Ansage im Prompt — ein blosses Block-Array geschickt. Belegt im
+      // Test mit deepseek: bei einem von drei Blaettern. Der Inhalt ist trotzdem
+      // gueltig (Rueckfall auf den Originaltext), die Formatierung fehlt aber. Eine
+      // gezielte Nachforderung holt sie nach, statt sie stillschweigend zu schlucken.
+      const formatierungFehlt =
+        input.meta.quelltextFormatieren === true
+        && input.quelltexte.length > 0
+        && validiert.document.quelltexte.some((q) => q.ausgabeText === undefined);
+      if (formatierungFehlt && versuch < 2) {
+        messages.push({ role: 'assistant', content: rohText });
+        messages.push(buildAusgabeTextNachforderung(input.quelltexte));
+        continue;
+      }
+      return {
+        ok: true,
+        document: validiert.document,
+        rohText,
+        versuche: versuch,
+        ...(validiert.verworfeneAusgabeTexte?.length ? { verworfeneAusgabeTexte: validiert.verworfeneAusgabeTexte } : {}),
+      };
     }
 
     if (versuch < 2) {

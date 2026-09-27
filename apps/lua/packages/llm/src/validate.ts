@@ -9,6 +9,7 @@ import {
 } from '@lehrunterlagen/schema';
 import { normalizeDocument } from './normalize.js';
 import { transformToSchema } from './transform.js';
+import { uebernehmenAusgabeTexte } from './ausgabeText.js';
 import { runQualityChecks, type QualityIssue, type LlmJudgeResult } from './quality.js';
 import type { ChatMessage } from './types.js';
 
@@ -18,6 +19,12 @@ export interface ValidationResult {
   fehler?: string;
   qualityIssues?: QualityIssue[];
   judge?: LlmJudgeResult;
+  /**
+   * Quelltext-IDs, deren vom Modell gelieferte Aufbereitung verworfen wurde,
+   * weil sie den Originalwortlaut verletzt (oder HTML/Fragmente enthielt).
+   * Das Dokument bleibt gueltig und druckt in diesem Fall den Originalinhalt.
+   */
+  verworfeneAusgabeTexte?: string[];
 }
 
 function isObject(val: unknown): val is Record<string, unknown> {
@@ -215,6 +222,17 @@ export async function parseAndValidate(
 
   const document = result.data;
 
+  // Quelltext-Aufbereitung (meta.quelltextFormatieren): Uebernommen wird AUSSCHLIESSLICH
+  // das Feld "ausgabeText" der Modellantwort, geprueft gegen den Originalinhalt
+  // (uebernehmenAusgabeTexte). id/titel/inhalt/herkunft bleiben die des Aufrufers —
+  // die Kommentar-Invariante oben (Z. 174-176) gilt unveraendert fort.
+  const verworfeneQuelltexte: string[] = [];
+  if (quelltexte && document.meta.quelltextFormatieren === true) {
+    const uebernahme = uebernehmenAusgabeTexte(quelltexte as QuellText[], (parsed as { quelltexte?: unknown })?.quelltexte);
+    document.quelltexte = uebernahme.quelltexte;
+    verworfeneQuelltexte.push(...uebernahme.verworfen);
+  }
+
   const srdpFehler = validateSrdpDeutschTraining(document);
   if (srdpFehler) return { ok: false, fehler: srdpFehler };
 
@@ -226,9 +244,18 @@ export async function parseAndValidate(
     return { ok: false, fehler: 'Blocktyp "umformung" ist im Kompetenz-Modus nicht mehr erlaubt.' };
   }
   if (!quelltexte) {
-    return { ok: true, document, qualityIssues: [], judge: { score: 1, issues: [] } };
+    return {
+      ok: true,
+      document,
+      qualityIssues: [],
+      judge: { score: 1, issues: [] },
+      ...(verworfeneQuelltexte.length > 0 ? { verworfeneAusgabeTexte: verworfeneQuelltexte } : {}),
+    };
   }
 
+  // Qualitaetspruefung weiterhin gegen die ORIGINALINHALTE (unveraenderte
+  // `quelltexte` des Aufrufers) — die Formatierung darf die
+  // Abdeckungs-/Laengenpruefung nicht verfaelschen.
   const { issues: qualityIssues, judge } = await runQualityChecks(
     document,
     quelltexte as QuellText[],
@@ -239,8 +266,20 @@ export async function parseAndValidate(
   const errors = qualityIssues.filter((i) => i.severity === 'error');
   if (errors.length > 0) {
     const fehler = errors.map((i) => `- ${i.blockId}: ${i.message}`).join('\n');
-    return { ok: false, fehler, qualityIssues, judge };
+    return {
+      ok: false,
+      fehler,
+      qualityIssues,
+      judge,
+      ...(verworfeneQuelltexte.length > 0 ? { verworfeneAusgabeTexte: verworfeneQuelltexte } : {}),
+    };
   }
 
-  return { ok: true, document, qualityIssues, judge };
+  return {
+    ok: true,
+    document,
+    qualityIssues,
+    judge,
+    ...(verworfeneQuelltexte.length > 0 ? { verworfeneAusgabeTexte: verworfeneQuelltexte } : {}),
+  };
 }

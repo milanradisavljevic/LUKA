@@ -310,6 +310,12 @@ export const MetaSchema = z.object({
   // Quelltext-Sektion nicht im Arbeitsblatt abdrucken (Text liegt separat auf /
   // steht an der Tafel). Aufgabenbezüge auf den Text bleiben unverändert.
   quelltextAusblenden: z.boolean().optional(),
+  // Quelltext vom Modell aufbereiten lassen (Absätze/Umbrüche sauber setzen,
+  // Website-Reste entfernen). Wirkt bei der ERSTELLUNG: das Modell liefert dann
+  // QuellText.ausgabeText. Der von der Lehrkraft eingegebene Inhalt in
+  // QuellText.inhalt bleibt unverändert und ist weiterhin die Grundlage für
+  // Korrektur, Folgeübung und Aufgabenbezüge.
+  quelltextFormatieren: z.boolean().optional(),
 });
 
 export type Meta = z.infer<typeof MetaSchema>;
@@ -320,13 +326,18 @@ export type Meta = z.infer<typeof MetaSchema>;
 
 export const QuellTextSchema = z.object({
   id: z.string().min(1),
-  // Bei Direkteingabe oft leer — Renderer/Preview fallen auf "Text N" zurück.
+  // Bei Direkteingabe oft leer - Renderer/Preview fallen auf "Text N" zurueck.
   titel: z.string(),
   inhalt: z.string(),
+  // Optional: aufbereitete Fassung fuer die Ausgabe (Vorschau/DOCX), erzeugt vom
+  // Modell, wenn meta.quelltextFormatieren gesetzt ist. Wortlaut muss dem
+  // bereinigten `inhalt` entsprechen - er wird gegen ihn geprueft, bevor er
+  // verwendet wird. Fehlt das Feld, wird `inhalt` gedruckt.
+  ausgabeText: z.string().optional(),
   herkunft: z.object({
     // 'eingabe' = direkt eingegebener/eingefuegter Text (kein Datei-/URL-Bezug).
     typ: z.enum(['upload', 'url', 'drive', 'eingabe']),
-    // Bei manueller Eingabe gibt es keine Quellreferenz → leer erlaubt.
+    // Bei manueller Eingabe gibt es keine Quellreferenz  leer erlaubt.
     ref: z.string(),
   }),
 });

@@ -7,6 +7,7 @@ import {
   renderBlockChildren,
   numbersForLines,
   quelltextAbsaetze,
+  anzeigeQuelltext,
   type RenderBlockCtx,
 } from './index.js';
 import type { Block, DocumentV1, QuellText } from '@lehrunterlagen/schema';
@@ -464,6 +465,59 @@ describe('blocks — Quelltext-Nummerierung', () => {
     expect(flattenText(paras[0] ?? {}).match(/^1/)).toBeTruthy();
     expect(flattenText(paras[1] ?? {}).trim()).toBe('');
     expect(flattenText(paras[2] ?? {}).match(/^2/)).toBeTruthy();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Quelltext-Aufbereitung: anzeigeQuelltext waehlt ausgabeText, Nummerierung bleibt
+// ---------------------------------------------------------------------------
+
+describe('blocks — Quelltext-Aufbereitung (ausgabeText)', () => {
+  const original: QuellText = {
+    id: 'q1',
+    titel: 'Quelltext',
+    inhalt: 'Zeile eins\nZeile zwei\n\nStrophe\nZeile drei',
+    herkunft: { typ: 'eingabe', ref: '' },
+  };
+  const aufbereitet: QuellText = {
+    ...original,
+    ausgabeText: 'Erster Absatz.\n\nZweiter Absatz.\n\nDritter Absatz.',
+  };
+
+  it('nutzt ausgabeText, wenn vorhanden', () => {
+    expect(anzeigeQuelltext(aufbereitet)).toBe('Erster Absatz.\n\nZweiter Absatz.\n\nDritter Absatz.');
+  });
+
+  it('faellt auf inhalt zurueck, wenn kein ausgabeText vorliegt', () => {
+    expect(anzeigeQuelltext(original)).toBe(original.inhalt);
+  });
+
+  it('bereinigt auch den Ausgabetext (Boilerplate-Schutznetz)', () => {
+    const mitRest: QuellText = { ...aufbereitet, ausgabeText: 'Related content\n\nErster Absatz.' };
+    expect(anzeigeQuelltext(mitRest)).toBe('Erster Absatz.');
+  });
+
+  it('bevorzugt ausgabeText auch dann, wenn es kuerzer ist als der Originalinhalt', () => {
+    const kurz: QuellText = { ...aufbereitet, ausgabeText: 'Nur dieser Satz.' };
+    expect(anzeigeQuelltext(kurz)).toBe('Nur dieser Satz.');
+  });
+
+  it('die Nummerierung des Ausgabetextes ist 1..N, Luecken nur durch Absatzgrenzen', () => {
+    const paras = quelltextAbsaetze(anzeigeQuelltext(aufbereitet), tpl);
+    const nummern = paras
+      .map((p) => flattenText(p).match(/^(\d+)\./)?.[1])
+      .filter((n): n is string => !!n)
+      .map(Number);
+    expect(nummern).toEqual([1, 2, 3]);
+  });
+
+  it('Original und aufbereitete Fassung ergeben dieselbe Nummernfolge bei gleichem Wortlaut', () => {
+    const text = 'Satz eins.\nSatz zwei.\nSatz drei.';
+    const nrn = (s: string) => quelltextAbsaetze(s, tpl)
+      .map((p) => flattenText(p).match(/^(\d+)\./)?.[1])
+      .filter((n): n is string => !!n);
+    // Gleicher Wortlaut, nur Absatzgrenzen anders gesetzt -> Nummerierung identisch.
+    expect(nrn(anzeigeQuelltext({ ...original, ausgabeText: text }))).toEqual(nrn(anzeigeQuelltext({ ...original, inhalt: text })));
   });
 });
 

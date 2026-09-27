@@ -5,6 +5,28 @@ Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 (auch andere Coding-Agents) — siehe `AGENTS.md`.
 
+## Unreleased (v1.5.4)
+
+### Das ist neu
+
+**Quelltext ordentlich aufbereiten lassen.** Ein Text, den du von einer Webseite
+übernommen hast, bringt oft Navigation, Werbung und kaputte Absätze mit. Der neue
+Schalter **„Quelltext aufbereiten lassen“** (Schritt 4, direkt neben „Quelltext im
+Arbeitsblatt abdrucken“) lässt das Modell die Absätze setzen und die Reste entfernen.
+Der Schalter wirkt bei der nächsten Erstellung - danach steht die aufbereitete
+Fassung in Vorschau und DOCX.
+
+Wichtig: **Dein Originaltext wird dabei nicht angetastet.** Er bleibt die Grundlage
+für Aufgaben, Korrektur und Folgeübung; aufbereitet wird nur, was gedruckt wird.
+Bricht eine aufbereitete Fassung den Originalwortlaut, verwirft LUKA sie, druckt den
+unveränderten Text und sagt dir Bescheid. Die Zeilennummern bleiben wie gehabt
+fortlaufend.
+
+**Aufgaben mit eigenem Hinweis ändern.** Neben den fertigen Vorschlägen („Kürzer“,
+„Schwieriger“, „Andere Formulierung“) hat jede Aufgabe jetzt ein eigenes
+Eingabefeld. Du schreibst hin, was du brauchst - „zwei Teilsätze, jeweils mit
+Beispiel“ oder „nur die Satzanalyse, keine Wortfrage“ - und LUKA erstellt diese eine
+Aufgabe neu. Die alte und die neue Fassung stehen danach zum Vergleich da.
 ## Version 1.5.3 — 2026-09-26
 
 ### Das ist neu

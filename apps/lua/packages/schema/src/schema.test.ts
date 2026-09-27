@@ -2075,3 +2075,38 @@ describe('Land (Deutschland-Unterstützung)', () => {
     expect(schulstufeLabel(7)).toBe('7. Schulstufe');
   });
 });
+
+// ---------------------------------------------------------------------------
+// Quelltext-Aufbereitung: beide Felder optional (Rueckwaertskompatibilitaet)
+// ---------------------------------------------------------------------------
+
+describe('Schema — Quelltext-Aufbereitung', () => {
+  const q = { id: 'q1', titel: 'T', inhalt: 'Inhalt.', herkunft: { typ: 'eingabe' as const, ref: '' } };
+  const metaBasis = { stufe: 'oberstufe', fach: 'deutsch', thema: 'T', datum: '2026-01-01', klasse: '7A', notizen: '' };
+
+  it('QuellText ohne ausgabeText ist gueltig (alte Dokumente bleiben lesbar)', () => {
+    expect(QuellTextSchema.safeParse(q).success).toBe(true);
+  });
+
+  it('QuellText mit ausgabeText ist gueltig', () => {
+    const r = QuellTextSchema.safeParse({ ...q, ausgabeText: 'Aufbereitet.' });
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.ausgabeText).toBe('Aufbereitet.');
+  });
+
+  it('ausgabeText muss ein String sein', () => {
+    expect(QuellTextSchema.safeParse({ ...q, ausgabeText: 42 }).success).toBe(false);
+  });
+
+  it('meta.quelltextFormatieren ist optional', () => {
+    const r = MetaSchema.safeParse(metaBasis);
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.quelltextFormatieren).toBeUndefined();
+  });
+
+  it('meta.quelltextFormatieren akzeptiert true/false', () => {
+    expect(MetaSchema.safeParse({ ...metaBasis, quelltextFormatieren: true }).success).toBe(true);
+    expect(MetaSchema.safeParse({ ...metaBasis, quelltextFormatieren: false }).success).toBe(true);
+    expect(MetaSchema.safeParse({ ...metaBasis, quelltextFormatieren: 'ja' }).success).toBe(false);
+  });
+});

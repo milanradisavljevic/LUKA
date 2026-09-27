@@ -64,6 +64,8 @@ export interface GenerateOk {
   document: DocumentV1;
   rohText: string;
   versuche: number;
+  /** Quelltext-IDs, deren Aufbereitung der Guard verworfen hat (Rueckfall auf `inhalt`). */
+  verworfeneAusgabeTexte?: string[];
 }
 
 export interface GenerateError {

@@ -1162,6 +1162,17 @@ export function numbersForLines(lines: string[]): QuelltextZeile[] {
   return out;
 }
 
+/**
+ * Text, der im Ausgabedokument gedruckt wird. `ausgabeText` (vom Modell
+ * aufbereitet, meta.quelltextFormatieren) hat Vorrang vor `inhalt`; danach greift
+ * immer die deterministische Boilerplate-Säuberung. Bewusst an EINER Stelle
+ * definiert: Quelltext-Sektion UND Aufgaben, die den Text im Rahmen zitieren
+ * (markieraufgabe/quellenanalyse), müssen dieselbe Fassung zeigen.
+ */
+export function anzeigeQuelltext(q: QuellText): string {
+  return bereinigeQuelltext(q.ausgabeText ?? q.inhalt);
+}
+
 export function quelltextAbsaetze(inhalt: string, template: RenderTemplate): Paragraph[] {
   const zeilen = inhalt.replace(/\r\n/g, '\n').split('\n');
 
@@ -1172,28 +1183,34 @@ export function quelltextAbsaetze(inhalt: string, template: RenderTemplate): Par
 
   const plan = numbersForLines(zeilen);
   const out: Paragraph[] = [];
-  for (const e of plan) {
+  for (const [i, e] of plan.entries()) {
+    // Absatzgrenze aus dem Nummerierungsplan: Leerzeilen trennen Absaetze. Nur fuer
+    // den Abstand zustaendig — die NUMMERIERUNG selbst bleibt unveraendert in
+    // numbersForLines(). Ohne diese Info klebt jeder Absatz an den naechsten.
+    const vorAbsatz = i > 0 && plan[i - 1]?.art === 'blank';
+    const nachAbsatz = i < plan.length - 1 && plan[i + 1]?.art === 'blank';
     if (e.art === 'blank') {
-      out.push(new Paragraph({ children: [run('', { font: template.font, size: template.fontSize.body })], spacing: { after: 60 } }));
+      out.push(new Paragraph({ children: [run('', { font: template.font, size: template.fontSize.body })], spacing: { after: 20 } }));
       continue;
     }
     if (e.art === 'heading') {
       out.push(new Paragraph({
         children: [new TextRun({ text: e.text, font: template.font, size: template.fontSize.body, bold: true })],
-        spacing: { before: 160, after: 40 },
+        spacing: { before: vorAbsatz ? 200 : 160, after: 40 },
         keepNext: true,
       }));
       continue;
     }
-    // Inhaltszeile mit fortlaufender Nummer.
+    // Inhaltszeile mit fortlaufender Nummer. Haengender Einzug: Folgezeilen des
+    // Absatzes buendig unter dem Text, nicht unter der Nummer.
     out.push(new Paragraph({
       children: [
         new TextRun({ text: `${e.nr}.`, font: template.font, size: template.fontSize.small, color: template.color.gray, bold: false }),
         new TextRun({ text: '  ', font: template.font, size: template.fontSize.body }),
         new TextRun({ text: e.text, font: template.font, size: template.fontSize.body }),
       ],
-      spacing: { after: 40 },
-      indent: { left: 360 },
+      spacing: { before: vorAbsatz ? 120 : 0, after: nachAbsatz ? 120 : 40 },
+      indent: { left: 360, hanging: 360 },
       border: {
         left: { style: BorderStyle.SINGLE, size: 8, color: template.color.lightGray },
       },
@@ -1239,8 +1256,9 @@ function buildQuelltexte(quelltexte: QuellText[], template: RenderTemplate): (Pa
       );
     }
     // Schutznetz: Website-Boilerplate aus dem angezeigten Quelltext entfernen
-    // (fängt auch eingefügten Text, der nicht durch den Import-Cleaner lief).
-    result.push(...quelltextAbsaetze(bereinigeQuelltext(qt.inhalt), template));
+    // (faengt auch eingefuegten Text, der nicht durch den Import-Cleaner lief).
+    // anzeigeQuelltext waehlt ausgabeText/inhalt und bereinigt in einem Schritt.
+    result.push(...quelltextAbsaetze(anzeigeQuelltext(qt), template));
   }
 
   return result;
@@ -2289,7 +2307,7 @@ function buildMarkieraufgabe(
     result.push(
       new Paragraph({
         keepNext: true,
-        children: mehrzeiligRuns(quelle.inhalt, { font: template.font, size: template.fontSize.body }),
+        children: mehrzeiligRuns(anzeigeQuelltext(quelle), { font: template.font, size: template.fontSize.body }),
         spacing: { after: 120 },
         border: {
           left: { style: BorderStyle.SINGLE, size: 8, color: template.color.lightGray },
@@ -2341,7 +2359,7 @@ function buildQuellenanalyse(
       children: [run(`${isEnglish ? 'Source' : 'Quelle'}: ${quelle.titel}`, { font: template.font, size: template.fontSize.body, bold: true })],
       spacing: { after: 60 },
     }));
-    result.push(...quelltextAbsaetze(bereinigeQuelltext(quelle.inhalt), template));
+    result.push(...quelltextAbsaetze(anzeigeQuelltext(quelle), template));
   }
 
   for (const auftrag of block.config.auftraege) {

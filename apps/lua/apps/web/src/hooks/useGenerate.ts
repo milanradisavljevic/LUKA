@@ -211,6 +211,10 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
   const [elapsedMs, setElapsedMs] = useState(0);
   const [aktiverProvider, setAktiverProvider] = useState<string | null>(null);
   const [pruefend, setPruefend] = useState(false);
+  // Quelltext-IDs, deren vom Modell gelieferte Aufbereitung der Guard in
+  // parseAndValidate verworfen hat. Nur Information fuer die UI — das Dokument
+  // selbst druckt in diesem Fall den Originalinhalt.
+  const [verworfeneAusgabeTexte, setVerworfeneAusgabeTexte] = useState<string[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const cancelRef = useRef(false);
 
@@ -277,7 +281,10 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
 
       setStage('validiere');
       const validiert = await parseAndValidate(rohText, state.meta, state.quelltexte, judgeCfg, judgeComplete, judgeStoffItems);
-      if (validiert.ok && validiert.document) return validiert.document;
+      if (validiert.ok && validiert.document) {
+        setVerworfeneAusgabeTexte(validiert.verworfeneAusgabeTexte ?? []);
+        return validiert.document;
+      }
       if (cancelRef.current) throw new Error('__CANCELLED__');
 
       if (versuch < 2) {
@@ -489,7 +496,8 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
     cancelRef.current = false;
     setGenerating(true);
     setError(null);
-    setStage('qualitaet');
+    setStage('sende');
+    setVerworfeneAusgabeTexte([]);
     startTimer();
 
     try {
@@ -537,5 +545,5 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
 
   const cancel = useCallback(() => { cancelRef.current = true; }, []);
 
-  return { generate, regenerateBlock, refineQuality, pruefeLoesungen, cancel, generating, pruefend, stage, elapsedMs, aktiverProvider, error };
+  return { generate, regenerateBlock, refineQuality, pruefeLoesungen, cancel, generating, pruefend, stage, elapsedMs, aktiverProvider, error, verworfeneAusgabeTexte };
 }

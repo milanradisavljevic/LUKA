@@ -666,3 +666,55 @@ describe('buildMessages — Anweisungs-Niveau moderne Fremdsprachen (v1.5.2)', (
     expect(userContent({ fach: 'latein' })).not.toContain('NIVEAUSTUFE EINFACHER');
   });
 });
+
+describe('Quelltext-Aufbereitung (meta.quelltextFormatieren)', () => {
+  const userContent = (meta: Partial<Meta> = {}) =>
+    buildMessages(input(meta)).find((m) => m.role === 'user')!.content;
+
+  it('ohne Schalter: kein Hinweis und kein ausgabeText im Prompt', () => {
+    const content = userContent({});
+    expect(content).not.toContain('ausgabeText');
+    expect(content).not.toContain('QUELLTEXT AUFBEREITEN');
+  });
+
+  it('mit Schalter: Hinweis fordert ausgabeText an', () => {
+    const content = userContent({ quelltextFormatieren: true });
+    expect(content).toContain('QUELLTEXT AUFBEREITEN');
+    expect(content).toContain('"ausgabeText"');
+  });
+
+  it('mit Schalter: Wortlaut-Treue wird ausdruecklich verlangt', () => {
+    const content = userContent({ quelltextFormatieren: true });
+    expect(content).toContain('WORTLAUT IDENTISCH');
+    expect(content).toContain('nichts kuerzen');
+    expect(content).toContain('nichts hinzuerfinden');
+  });
+
+  it('mit Schalter: kein HTML/Markdown und keine Absatzmarker', () => {
+    const content = userContent({ quelltextFormatieren: true });
+    expect(content).toContain('KEIN HTML');
+    expect(content).toContain('KEIN Markdown');
+    expect(content).toContain('KEINE Zeilennummern');
+  });
+
+  it('ohne Quelltexte wird kein Hinweis erzeugt (nichts zu formatieren)', () => {
+    const ohneQuelltext = { ...input({ quelltextFormatieren: true }), quelltexte: [] };
+    const content = buildMessages(ohneQuelltext).find((m) => m.role === 'user')!.content;
+    expect(content).not.toContain('QUELLTEXT AUFBEREITEN');
+  });
+
+  it('ein vorhandenes ausgabeText wird NICHT als Anweisung zurueckgespiegelt', () => {
+    // Sonst waere der Text doppelt im Prompt und koennte sich selbst "formatieren".
+    const mitAltemAusgabetext = {
+      ...input({ quelltextFormatieren: true }),
+      quelltexte: [{ ...input().quelltexte[0]!, ausgabeText: 'EIN BEREITS AUFBEREITETER TEXT' }],
+    };
+    const content = buildMessages(mitAltemAusgabetext).find((m) => m.role === 'user')!.content;
+    expect(content).not.toContain('EIN BEREITS AUFBEREITETER TEXT');
+  });
+
+  it('der Originalinhalt wird weiterhin vollstaendig uebermittelt', () => {
+    const content = userContent({ quelltextFormatieren: true });
+    expect(content).toContain('Ein langer Quelltext ueber Medienkonsum bei Jugendlichen.');
+  });
+});

@@ -7,7 +7,7 @@ import {
   SRDP_DEUTSCH_EINZELAUFGABE_UMFANG,
   SRDP_DEUTSCH_TEXTSORTEN,
 } from '@lehrunterlagen/schema';
-import type { DocumentV1, Meta } from '@lehrunterlagen/schema';
+import type { DocumentV1, Meta, QuellText } from '@lehrunterlagen/schema';
 
 /** Interne Schüler-IDs dienen nur der lokalen Herkunftszuordnung, nie dem Prompt. */
 function metaFuerModell(meta: Meta) {
@@ -1114,29 +1114,75 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
 
   // --- TEXT-MODUS (unveraendert) ---
   const hatQuelltexte = input.quelltexte.length > 0;
+  // Quelltext optisch aufbereiten lassen (meta.quelltextFormatieren). Das Modell
+  // liefert dafuer ein zusaetzliches Feld "ausgabeText" je Quelltext. Der Wortlaut
+  // muss unveraendert bleiben - validate.ts prueft das gegen QuellText.inhalt und
+  // verwirft das Feld, sobald ein Token fehlt oder sich der Text verkuerzt. Deshalb
+  // hier bewusst keine Umformulierungs-Erlaubnis.
+  //
+  // ACHTUNG: Der Standard-Auftrag verlangt ein blosses bloecke-Array. Ein solches
+  // Array hat keine Stelle fuer "ausgabeText" — ohne ausdrueckliche Umstellung der
+  // Antwortform liefert das Modell das Feld nie (im echten Smoke belegt: ausgabeText
+  // kam nicht an). Mit Schalter wird deshalb ein Objekt verlangt; parseAndValidate
+  // akzeptiert beides.
+  const quelltextFormatierenHinweis =
+    hatQuelltexte && input.meta.quelltextFormatieren === true
+      ? `QUELLTEXT AUFBEREITEN: WORTLAUT IDENTISCH zum "inhalt" oben — nichts umformulieren, nichts kuerzen, `
+        +`nichts zusammenfassen, nichts hinzuerfinden, keine Saetze weglassen. Entferne hoechstens `
+        +`offensichtliche Website-Reste (Navigation, Anmelden/Links, Werbung, Bildunterschriften). `
+        +`Reiner Fliesstext: KEIN HTML, KEIN Markdown, KEINE Zeilennummern, KEIN [Absatz N]-Marker, `
+        +`keine Anfuehrungszeichen. Laesst sich der Text nicht ohne Umbau setzen, lass das Feld fuer `
+        +`diesen Quelltext weg. Die Aufgaben und Verweise ("Absatz N") beziehen sich weiterhin auf `
+        + `"inhalt" — reihere dich nach dem Original, damit die Absatznummern nicht verrutschen. `
+      : '';
   const quelltextHinweis = hatQuelltexte
     ? ''
     : 'Es liegt KEIN Quelltext vor. Generiere die Inhalte passend zum Thema und den manuellen Vorgaben in den Bloecken. ' +
       'Erfinde dabei stufengerechte, sachlich korrekte Beispiele und ein durchgaengiges Szenario. ';
   const user = {
     meta: promptMeta,
+    // Kein Spread: sonst wuerde ein aus einer Vorgaengererstellung behaftetes
+    // "ausgabeText" erneut als Anweisung an das Modell geschickt (Text doppelt im
+    // Prompt, und der bereinigte Text koennte sich selbst "formatieren").
     quelltexte: input.quelltexte.map((q) => ({
-      ...q,
+      id: q.id,
+      titel: q.titel,
+      herkunft: q.herkunft,
       inhalt: nummeriereAbsaetze(sanitizeQuelltext(q.inhalt), input.meta.fach),
     })),
     angeforderteBloecke: input.bloecke,
   };
   const systemAddendum = hatQuelltexte
     ? ''
-    : '\n\nAUSNAHME — KEIN QUELLTEXT: Wenn die Anforderung KEINE Quelltexte enthaelt (leeres "quelltexte"-Array), ' +
-      'sollst du die Inhalte passend zum Thema und den manuellen Vorgaben in den Bloecken erfinden. ' +
-      'Der User-Prompt markiert diesen Fall explizit.';
+    : '\n\nAUSNAHME — KEIN QUELLTEXT: Wenn die Anforderung KEINE Quelltexte enthaelt (leeres "quelltexte"-Array), '
+      + 'sollst du die Inhalte passend zum Thema und den manuellen Vorgaben in den Bloecken erfinden. '
+      + 'Der User-Prompt markiert diesen Fall explizit.';
+  // Bei gesetzter Aufbereitung ist die Antwortform selbst Teil der Aufgabe: Ein blosses
+  // Block-Array kann kein "ausgabeText" tragen. Im echten Test (3 Blaetter, deepseek)
+  // lieferte das Modell nur bei einem das Feld — die Standard-Einleitung
+  // "Erzeuge das bloecke-JSON-Array" und die System-Regeln dominierten die Hinweise.
+  // Deshalb: Einleitung ersetzen UND die Form als System-Addendum durchsetzen.
+  const formatiertAktiv = quelltextFormatierenHinweis !== '';
+  const einleitung = formatiertAktiv
+    ? 'Erzeuge ein JSON-OBJEKT mit den Feldern "quelltexte" und "bloecke" fuer die folgende Anforderung. '
+    : 'Erzeuge das bloecke-JSON-Array fuer die folgende Anforderung. ';
   return [
-    { role: 'system', content: SYSTEM + systemAddendum + landHinweis },
+    {
+      role: 'system',
+      content: SYSTEM
+        + systemAddendum
+        + (formatiertAktiv
+          ? '\n\nAUSGABEFORMAT (hat Vorrang vor allen Beispielen fuer reine Block-Arrays): Antworte mit einem '
+            + 'JSON-OBJEKT, nicht mit einem blossen Array: {"quelltexte": [{"id": "...", "ausgabeText": "..."}], '
+            + '"bloecke": [...]}. Die "bloecke" entsprechen wie gewohnt dem angeforderten Block-Array; '
+            + 'die aufbereiteten Quelltexte gehoeren in "quelltexte", je Eintrag NUR "id" und "ausgabeText".'
+          : '')
+        + landHinweis,
+    },
     {
       role: 'user',
       content:
-        `Erzeuge das bloecke-JSON-Array fuer die folgende Anforderung. ` +
+        einleitung +
         `Schwierigkeitsniveau: "${schwierigkeit}" — passe das kognitive Niveau der Aufgaben entsprechend an (siehe Bloom-Steuerung im System-Prompt). ` +
         niveauHinweisGemeinsam +
         spracheHinweis +
@@ -1150,10 +1196,20 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
         fokusThemenHinweis +
         bridgeFehlerHinweis +
         quelltextHinweis +
+        quelltextFormatierenHinweis +
         'Jeder Block muss ein vollstaendiges Objekt mit id, typ, punkte, quelleId, arbeitsanweisung und config sein. ' +
         'Bei multipleChoice/matching/offeneVerstaendnisfrage steht die Loesung DIREKT beim Item (Feld "korrekt" bzw. "musterantwort"); ' +
         'bei lueckentext/offeneSchreibaufgabe/markieraufgabe in einem "loesung"-Objekt am Block (siehe Beispiele).\n\n' +
-        JSON.stringify(user, null, 2),
+        JSON.stringify(user, null, 2) +
+        // GANZ AM ENDE: die letzte Anweisung gewinnt gegen die langen Block-Beispiele
+        // im System-Prompt. Ohne diese Wiederholung blieb das Feld im echten Test
+        // in zwei von drei Faellen leer.
+        (formatiertAktiv
+          ? '\n\nWICHTIG FUER DIESE ANTWORT: Es muss ein JSON-OBJEKT sein — {"quelltexte": [{"id": "q1", '
+            + '"ausgabeText": "<fertiger Text>"}], "bloecke": [...]}. Kein blosses Array. '
+            + '"ausgabeText" ist PFLICHT fuer jeden Quelltext oben, mit woertlich unveraendertem Wortlaut, '
+            + 'nur Absaetze gesetzt. "bloecke" bleibt das gewohnte Block-Array.\n'
+          : ''),
     },
   ];
 }
@@ -1167,5 +1223,29 @@ export function buildRepairMessage(rohText: string, fehler: string): ChatMessage
       '\n\nKorrigiere das JSON-Array und antworte erneut ausschliesslich mit dem vollstaendigen, gueltigen JSON-Array. ' +
       'Deine letzte Antwort war:\n' +
       rohText,
+  };
+}
+
+/**
+ * Nachforderung, wenn die angeforderte Quelltext-Aufbereitung fehlt, obwohl das
+ * Ergebnis sonst gueltig ist. Bewusst KEINE neue Validierungsrunde: die Blöcke sind
+ * fertig und werden nicht neu gebaut, es fehlt nur das eine Feld — deshalb fragt die
+ * Runde ausschliesslich danach und nimmt die bereits erzeugten Bloecke unveraendert
+ * zurueck (parseAndValidate setzt sie aus dieser Antwort zusammen).
+ */
+export function buildAusgabeTextNachforderung(quelltexte: QuellText[]): ChatMessage {
+  const ids = quelltexte.map((q) => `"${q.id}"`).join(', ');
+  return {
+    role: 'user',
+    content:
+      'Deine Bloecke sind gueltig und bleiben unveraendert. Es fehlt nur die angeforderte ' +
+      'Aufbereitung der Quelltexte, weil du statt eines Objekts nur das Block-Array geschickt hast. ' +
+      'Antworte jetzt mit einem JSON-OBJEKT in genau dieser Form:\n' +
+      '{"quelltexte": [{"id": ' + ids.split(', ').join(', {"id": ') +
+      ', "ausgabeText": "<der Text, woertlich unveraendert, nur in Absaetze gesetzt>"}], ' +
+      '"bloecke": [<alle bisherigen Bloecke unveraendert>]}\n\n' +
+      'Regeln fuer "ausgabeText": WORTLAUT IDENTISCH zum Original — nichts umformulieren, nichts kuerzen, ' +
+      'nichts hinzuerfinden, keine Saetze weglassen. Nur Absaetze durch LEERZEILEN trennen, ' +
+      'Ueberschriften als eigene kurze Zeile. KEIN HTML, KEIN Markdown, KEINE Zeilennummern.',
   };
 }

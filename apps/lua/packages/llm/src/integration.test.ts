@@ -224,3 +224,128 @@ describe('Integration Tests: parseAndValidate Pipeline', () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+// Quelltext-Aufbereitung: ausschliesslich "ausgabeText" kommt vom Modell
+// ---------------------------------------------------------------------------
+
+describe('Integration: Quelltext-Aufbereitung (ausgabeText)', () => {
+  const QUELLTEXT = 'Jugendliche verbringen taeglich mehrere Stunden mit digitalen Medien. '
+    + 'Viele Eltern machen sich Sorgen um die Folgen fuer Konzentration und Schlaf. '
+    + 'Studien zeigen allerdings keinen einfachen Zusammenhang zwischen Nutzungsdauer und Leistung. '
+    + 'Fachleute empfehlen stattdessen klare Regeln fuer die Nutzung am Abend.';
+
+  const AUFGEBEREITET = 'Jugendliche verbringen taeglich mehrere Stunden mit digitalen Medien.\n\n'
+    + 'Viele Eltern machen sich Sorgen um die Folgen fuer Konzentration und Schlaf.\n\n'
+    + 'Studien zeigen allerdings keinen einfachen Zusammenhang zwischen Nutzungsdauer und Leistung.\n\n'
+    + 'Fachleute empfehlen stattdessen klare Regeln fuer die Nutzung am Abend.';
+
+  // Eigener Quelltext: die geteilte testQuelltexte-Fixture ist nur ein Platzhalter
+  // ("...") und wuerde den Guard grundsaetzlich verwerfen lassen.
+  const eigeneQuelltexte = [
+    {
+      id: 'q1',
+      titel: 'Medienkonsum',
+      inhalt: QUELLTEXT,
+      herkunft: { typ: 'upload' as const, ref: 'test.pdf' },
+    },
+  ];
+
+  const metaFormatieren = { ...testMeta, quelltextFormatieren: true };
+
+  const docMitQuelltexten = (quelltexte: unknown[]) => ({
+    schemaVersion: '0.1.0',
+    quelltexte,
+    bloecke: [
+      {
+        id: 'b1',
+        typ: 'offeneVerstaendnisfrage',
+        punkte: 4,
+        quelleId: 'q1',
+        arbeitsanweisung: 'Beantworte die Frage.',
+        config: { fragen: [{ nr: 1, frage: 'Was empfehlen Fachleute?' }] },
+        loesung: { antworten: [{ nr: 1, musterantwort: 'Klare Regeln fuer die Nutzung am Abend.' }] },
+      },
+    ],
+  });
+
+  it('übernimmt ausgabeText, wenn der Schalter gesetzt ist', async () => {
+    const raw = JSON.stringify(docMitQuelltexten([{ id: 'q1', titel: 'T', ausgabeText: AUFGEBEREITET }]));
+    const res = await parseAndValidate(raw, metaFormatieren, eigeneQuelltexte);
+    expect(res.ok).toBe(true);
+    expect(res.document?.quelltexte[0]?.ausgabeText).toBe(AUFGEBEREITET);
+    // Original der Lehrkraft unveraendert.
+    expect(res.document?.quelltexte[0]?.inhalt).toBe(QUELLTEXT);
+  });
+
+  it('übernimmt ausgabeText NICHT ohne gesetzten Schalter', async () => {
+    const raw = JSON.stringify(docMitQuelltexten([{ id: 'q1', titel: 'T', ausgabeText: AUFGEBEREITET }]));
+    const res = await parseAndValidate(raw, testMeta, testQuelltexte);
+    expect(res.ok).toBe(true);
+    expect(res.document?.quelltexte[0]?.ausgabeText).toBeUndefined();
+  });
+
+  it('übernimmt niemals ein vom Modell geändertes inhalt-Feld', async () => {
+    const raw = JSON.stringify(docMitQuelltexten([
+      { id: 'q1', titel: 'Vom Modell umbenannt', inhalt: 'Ein voellig anderer Text.', ausgabeText: AUFGEBEREITET },
+    ]));
+    const res = await parseAndValidate(raw, metaFormatieren, eigeneQuelltexte);
+    expect(res.ok).toBe(true);
+    expect(res.document?.quelltexte[0]?.inhalt).toBe(QUELLTEXT);
+    expect(res.document?.quelltexte[0]?.titel).toBe('Medienkonsum');
+  });
+
+  it('verwirft umformulierten ausgabeText und meldet die ID', async () => {
+    const falsch = 'Jugendliche verbringen jeden Tag viele Stunden mit digitalen Medien.\n\n'
+      + 'Viele Eltern machen sich Sorgen um die Folgen fuer Konzentration und Schlaf.\n\n'
+      + 'Studien zeigen allerdings keinen einfachen Zusammenhang zwischen Nutzungsdauer und Leistung.\n\n'
+      + 'Fachleute empfehlen stattdessen klare Regeln fuer die Nutzung am Abend.';
+    const raw = JSON.stringify(docMitQuelltexten([{ id: 'q1', titel: 'T', ausgabeText: falsch }]));
+    const res = await parseAndValidate(raw, metaFormatieren, eigeneQuelltexte);
+    expect(res.ok).toBe(true);
+    expect(res.document?.quelltexte[0]?.ausgabeText).toBeUndefined();
+    expect(res.verworfeneAusgabeTexte).toEqual(['q1']);
+  });
+
+  it('meldet keine Verwerfung, wenn alles in Ordnung ist', async () => {
+    const raw = JSON.stringify(docMitQuelltexten([{ id: 'q1', titel: 'T', ausgabeText: AUFGEBEREITET }]));
+    const res = await parseAndValidate(raw, metaFormatieren, eigeneQuelltexte);
+    expect(res.verworfeneAusgabeTexte).toBeUndefined();
+  });
+
+  it('bleibt gueltig, wenn der Text stark gekuerzt wurde (Rueckfall auf Original)', async () => {
+    const zuWenig = 'Jugendliche verbringen taeglich mehrere Stunden mit digitalen Medien.';
+    const raw = JSON.stringify(docMitQuelltexten([{ id: 'q1', titel: 'T', ausgabeText: zuWenig }]));
+    const res = await parseAndValidate(raw, metaFormatieren, eigeneQuelltexte);
+    expect(res.ok).toBe(true);
+    expect(res.document?.quelltexte[0]?.ausgabeText).toBeUndefined();
+  });
+
+  it('ueberlebt ein blosses bloecke-Array (Antwortform ohne quelltexte)', async () => {
+    // Realer Fall aus dem Smoke: das Modell folgt der Standard-Anweisung und
+    // antwortet nur mit dem Block-Array. Dann gibt es kein ausgabeText — das
+    // Dokument muss gueltig bleiben und den Originalinhalt drucken.
+    const raw = JSON.stringify([{
+      id: 'b1',
+      typ: 'offeneVerstaendnisfrage',
+      punkte: 4,
+      quelleId: 'q1',
+      arbeitsanweisung: 'Beantworte die Frage.',
+      config: { fragen: [{ nr: 1, zeilen: 3, frage: 'Was empfehlen Fachleute?' }] },
+      loesung: { antworten: { '1': 'Klare Regeln fuer die Nutzung am Abend.' } },
+    }]);
+    const res = await parseAndValidate(raw, metaFormatieren, eigeneQuelltexte);
+    expect(res.ok).toBe(true);
+    expect(res.document?.bloecke).toHaveLength(1);
+    expect(res.document?.quelltexte[0]?.ausgabeText).toBeUndefined();
+    expect(res.verworfeneAusgabeTexte).toBeUndefined();
+  });
+
+  it('ignoriert ein Quelltext-Array ganz ohne ausgabeText', async () => {
+    const raw = JSON.stringify(docMitQuelltexten([{ id: 'q1', titel: 'Vom Modell', inhalt: 'Anderer Text.' }]));
+    const res = await parseAndValidate(raw, metaFormatieren, eigeneQuelltexte);
+    expect(res.ok).toBe(true);
+    expect(res.document?.quelltexte[0]?.ausgabeText).toBeUndefined();
+    expect(res.document?.quelltexte[0]?.inhalt).toBe(QUELLTEXT);
+  });
+});

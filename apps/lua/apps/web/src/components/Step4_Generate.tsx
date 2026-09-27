@@ -18,6 +18,7 @@ import { fachLabel } from '@lehrunterlagen/schema';
 import { RENDER_TEMPLATES, RENDER_LAYOUTS } from '@lehrunterlagen/renderer';
 import { transformiereLeicht, transformiereSchwer, findeOffeneBlockIds, metaFuerSchwereVariante, erstelleSichereSchwereVariante } from '../lib/niveauTransform';
 import { DEFAULT_LEHRER_PROFIL, loadTeacherProfile } from '../lib/profile';
+import { effektiverQuelltextSchalter, metaSchalterUpdate } from '../lib/quelltextSchalter';
 import { DigitaleSelbstkontrolle } from './DigitaleSelbstkontrolle';
 
 
@@ -32,7 +33,7 @@ interface Props {
 }
 
 export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
-  const { generate, regenerateBlock, refineQuality, pruefeLoesungen, cancel, generating, pruefend, stage, elapsedMs, aktiverProvider, error: generateError } = useGenerate(dispatch);
+  const { generate, regenerateBlock, refineQuality, pruefeLoesungen, cancel, generating, pruefend, stage, elapsedMs, aktiverProvider, error: generateError, verworfeneAusgabeTexte } = useGenerate(dispatch);
   const { exportDocx, exportDocxOverride, exportKorrekturraster, exportKompetenzraster, exportSelbstlern, exportSelbsteinschaetzung, exportGift, exporting, error: exportError, warnung: exportWarnung, lastSavedPaths } = useExport();
   const pdfExport = usePdfExport();
   const isKompetenz = state.meta.modus === 'kompetenz';
@@ -111,22 +112,18 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
     : 'luka-dokument.pdf';
 
   // Quelltext-Abdruck (wie punkteAusblenden): Meta-Toggle, wirkt auf Vorschau + DOCX.
-  // Nach der Generierung muss auch das eingefrorene Dokument-Meta mitgezogen werden.
-  const quelltextAusblenden =
-    (state.generiertesDokument?.meta.quelltextAusblenden ?? state.meta.quelltextAusblenden) === true;
-  const toggleQuelltextAbdruck = () => {
-    const next = !quelltextAusblenden;
-    dispatch({ type: 'SET_META', meta: { quelltextAusblenden: next } });
-    if (state.generiertesDokument) {
-      dispatch({
-        type: 'SET_GENERIERTES_DOKUMENT',
-        dokument: {
-          ...state.generiertesDokument,
-          meta: { ...state.generiertesDokument.meta, quelltextAusblenden: next },
-        },
-      });
-    }
+  // Quelltext-Aufbereitung: ERSTELLUNGS-Schalter - wirkt erst bei der naechsten
+  // Generierung, weil erst dann das Modell den Ausgabetext liefert. Aufloesung und
+  // Meta-Update liegen in lib/quelltextSchalter (testbar, nicht dupliziert).
+  const quelltextAusblenden = effektiverQuelltextSchalter(state.generiertesDokument, state.meta, 'quelltextAusblenden');
+  const quelltextFormatieren = effektiverQuelltextSchalter(state.generiertesDokument, state.meta, 'quelltextFormatieren');
+  const setzeQuelltextSchalter = (schluessel: 'quelltextAusblenden' | 'quelltextFormatieren', aktuell: boolean) => {
+    const { meta, dokument } = metaSchalterUpdate(state.generiertesDokument, aktuell, schluessel);
+    dispatch({ type: 'SET_META', meta });
+    if (dokument) dispatch({ type: 'SET_GENERIERTES_DOKUMENT', dokument });
   };
+  const toggleQuelltextAbdruck = () => setzeQuelltextSchalter('quelltextAusblenden', quelltextAusblenden);
+  const toggleQuelltextFormatieren = () => setzeQuelltextSchalter('quelltextFormatieren', quelltextFormatieren);
 
   const runExportWithQualityGate = async () => {
     if (!state.generiertesDokument) return;
@@ -377,6 +374,56 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
             <strong style={{ color: 'var(--color-text-primary)' }}>Quelltext im Arbeitsblatt abdrucken</strong>
             {' — '}aus, wenn der Text separat aufliegt oder an der Tafel steht. Wirkt auf Vorschau und DOCX.
           </span>
+        </div>
+      )}
+
+      {/* Quelltext-Aufbereitung: erzeugungsseitig, nicht druckseitig */}
+      {state.quelltexte.length > 0 && (
+        <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={quelltextFormatieren}
+            onClick={toggleQuelltextFormatieren}
+            style={{
+              position: 'relative', width: 44, height: 24, borderRadius: 12, border: 'none',
+              background: quelltextFormatieren ? 'var(--color-accent)' : 'var(--color-border)',
+              cursor: 'pointer', transition: 'background 0.2s ease', flexShrink: 0,
+            }}
+          >
+            <span style={{
+              position: 'absolute', top: 2, left: quelltextFormatieren ? 22 : 2,
+              width: 20, height: 20, borderRadius: '50%', background: 'white',
+              transition: 'left 0.2s ease', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+            }} />
+          </button>
+          <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>
+            <strong style={{ color: 'var(--color-text-primary)' }}>Quelltext aufbereiten lassen</strong>
+            {' — '}das Modell ordnet Absätze und Zeilenumbrüche und entfernt Reste einer Webseite
+            (Navigation, Werbung). Nur für den Druck; Wortlaut und Zeilennummern des Originals bleiben
+            maßgeblich für Aufgaben, Korrektur und Folgeübung.
+            {state.generiertesDokument && (
+              <strong style={{ color: 'var(--color-text-primary)' }}>
+                {' '}(wirkt bei der nächsten Erstellung)
+              </strong>
+            )}
+          </span>
+        </div>
+      )}
+
+      {verworfeneAusgabeTexte.length > 0 && (
+        <div
+          role="status"
+          style={{
+            marginBottom: '1.5rem', padding: '0.625rem 0.75rem', fontSize: '0.8125rem',
+            borderLeft: '3px solid var(--color-warning, #b45309)',
+            background: 'var(--color-bg-subtle, transparent)', lineHeight: 1.6,
+          }}
+        >
+          <strong>Aufbereiteter Quelltext verworfen.</strong>{' '}
+          Die aufbereitete Fassung hat den Wortlaut des Originals verändert und wurde nicht übernommen.
+          Im Dokument steht der unveränderte Originaltext — Absätze, Zeilennummern und Aufgabenbezüge
+          passen wie gewohnt.
         </div>
       )}
 

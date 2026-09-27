@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AlertTriangle, CheckCircle2, Check, Circle, Pencil, RefreshCw, FileText, KeyRound, Database, Lightbulb } from 'lucide-react';
 import { istSprachfach, fachLabel } from '@lehrunterlagen/schema';
-import { RENDER_LAYOUTS, RENDER_TEMPLATES, getDefaultLayout, getDefaultTemplate, pruefeRaetselA4 } from '@lehrunterlagen/renderer';
+import { RENDER_LAYOUTS, RENDER_TEMPLATES, anzeigeQuelltext, getDefaultLayout, getDefaultTemplate, pruefeRaetselA4 } from '@lehrunterlagen/renderer';
 import type { RenderLayout, RenderTemplate } from '@lehrunterlagen/renderer';
 import type { Block } from '@lehrunterlagen/schema';
 import type { AppState, AppAction } from '../lib/types';
@@ -103,6 +103,8 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
   const [poolQuelle, setPoolQuelle] = useState('');
   const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null);
   const [diffData, setDiffData] = useState<{ oldBlock: Block; newBlock: Block } | null>(null);
+  // Freitext-Hinweis fuer die Neu-Generierung EINER Aufgabe (statt der Presets).
+  const [hinweisText, setHinweisText] = useState('');
   const windowWidth = useWindowWidth();
   const isNarrow = windowWidth < 768;
   const { regenerateBlock, generating, stage } = useGenerate(dispatch);
@@ -145,6 +147,34 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
       dispatch({ type: 'UPDATE_GENERIERTER_BLOCK', id, block: { [field]: value } as Partial<Block> });
     } else {
       dispatch({ type: 'UPDATE_BLOCK', id, block: { [field]: value } as Partial<Block> });
+    }
+  };
+
+  // Einen Block mit frei formuliertem Hinweis neu generieren. Ein Code-Pfad fuer
+  // Preset-Buttons ("Kuerzer"), Freitextfeld und "Standard" (ohne Hinweis) — inkl.
+  // Rueckfrage, wenn an diesem Block manuell etwas geaendert wurde.
+  const regeneriereBlockMitHinweis = async (block: Block, hinweis?: string) => {
+    setRegenId(null);
+    setHinweisText('');
+    const oldBlock = block;
+    const neu = await regenerateBlock(state, block.id, hinweis);
+    if (!neu) return;
+    setDiffData({ oldBlock, newBlock: neu });
+    setEditierteIds((prev) => {
+      const next = new Set(prev);
+      next.delete(block.id);
+      return next;
+    });
+  };
+
+  const starteRegenerierung = (block: Block, hinweis?: string) => {
+    if (editierteIds.has(block.id)) {
+      setConfirmDialog({
+        message: 'Diese Aufgabe wurde manuell bearbeitet. Beim Neu-Generieren gehen deine Änderungen verloren. Fortfahren?',
+        onConfirm: () => { void regeneriereBlockMitHinweis(block, hinweis); },
+      });
+    } else {
+      void regeneriereBlockMitHinweis(block, hinweis);
     }
   };
 
@@ -325,7 +355,7 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
               borderLeft: '3px solid #cccccc', paddingLeft: '0.6rem',
               color: PAPER_TEXT, fontFamily: 'var(--font)',
             }}>
-              {qt.inhalt.split('\n').map((zeile, zi) => (
+              {anzeigeQuelltext(qt).split('\n').map((zeile, zi) => (
                 <div key={zi} style={{ display: 'flex', gap: '0.5rem' }}>
                   <span style={{
                     minWidth: '1.5rem', textAlign: 'right', color: '#888888',
@@ -480,29 +510,7 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
                       {['Kürzer', 'Schwieriger', 'Andere Formulierung'].map((hint) => (
                         <button
                           key={hint}
-                          onClick={() => {
-                            const doRegenerate = async () => {
-                              setRegenId(null);
-                              const oldBlock = block;
-                              const neu = await regenerateBlock(state, block.id, hint);
-                              if (neu) {
-                                setDiffData({ oldBlock, newBlock: neu });
-                                setEditierteIds((prev) => {
-                                  const next = new Set(prev);
-                                  next.delete(block.id);
-                                  return next;
-                                });
-                              }
-                            };
-                            if (editierteIds.has(block.id)) {
-                              setConfirmDialog({
-                                message: 'Diese Aufgabe wurde manuell bearbeitet. Beim Neu-Generieren gehen deine Änderungen verloren. Fortfahren?',
-                                onConfirm: doRegenerate,
-                              });
-                            } else {
-                              void doRegenerate();
-                            }
-                          }}
+                          onClick={() => starteRegenerierung(block, hint)}
                           style={{
                             fontSize: '0.6875rem',
                             padding: '0.15rem 0.4rem',
@@ -517,29 +525,7 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
                         </button>
                       ))}
                       <button
-                        onClick={() => {
-                          const doRegenerate = async () => {
-                            setRegenId(null);
-                            const oldBlock = block;
-                            const neu = await regenerateBlock(state, block.id);
-                            if (neu) {
-                              setDiffData({ oldBlock, newBlock: neu });
-                              setEditierteIds((prev) => {
-                                const next = new Set(prev);
-                                next.delete(block.id);
-                                return next;
-                              });
-                            }
-                          };
-                          if (editierteIds.has(block.id)) {
-                            setConfirmDialog({
-                              message: 'Diese Aufgabe wurde manuell bearbeitet. Beim Neu-Generieren gehen deine Änderungen verloren. Fortfahren?',
-                              onConfirm: doRegenerate,
-                            });
-                          } else {
-                            void doRegenerate();
-                          }
-                        }}
+                        onClick={() => starteRegenerierung(block)}
                         style={{
                           fontSize: '0.6875rem',
                           padding: '0.15rem 0.4rem',
@@ -552,6 +538,35 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
                       >
                         Standard
                       </button>
+                      <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap', flexBasis: '100%', marginTop: '0.25rem' }}>
+                        <input
+                          type="text"
+                          value={regenId === block.id ? hinweisText : ''}
+                          onChange={(e) => setHinweisText(e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          placeholder="Eigene Änderung, z. B. kürzer und in zwei Teilsätze gliedern"
+                          aria-label="Eigener Hinweis für diese Aufgabe"
+                          style={{
+                            flex: '1 1 16rem', minWidth: 0, fontSize: '0.75rem', padding: '0.2rem 0.4rem',
+                            borderRadius: 'var(--radius)', border: '1px solid var(--color-border)',
+                            background: '#ffffff', color: 'var(--color-text-primary)',
+                          }}
+                        />
+                        <button
+                          onClick={(e) => { e.stopPropagation(); starteRegenerierung(block, hinweisText); }}
+                          disabled={!hinweisText.trim() || generating}
+                          style={{
+                            fontSize: '0.6875rem', padding: '0.15rem 0.4rem',
+                            borderRadius: 'var(--radius)',
+                            border: '1px solid var(--color-accent)',
+                            background: hinweisText.trim() ? 'var(--color-accent)' : 'var(--color-bg-selected)',
+                            color: hinweisText.trim() ? '#ffffff' : 'var(--color-accent)',
+                            cursor: hinweisText.trim() ? 'pointer' : 'not-allowed',
+                          }}
+                        >
+                          Mit Hinweis neu erstellen
+                        </button>
+                      </div>
                     </div>
                   )}
                 </>
