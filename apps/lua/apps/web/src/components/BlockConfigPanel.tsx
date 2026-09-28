@@ -1,19 +1,62 @@
-import { useMemo } from 'react';
+import { useMemo, createContext, useContext } from 'react';
 import { X } from 'lucide-react';
 import type { Block, Meta } from '@lehrunterlagen/schema';
+import { MAX_RAETSEL_EINTRRAEGE } from '@lehrunterlagen/schema';
 import { isWortbankEnabled } from '../lib/constants';
+
+/**
+ * 'anforderung' = Baukasten vor der Erstellung: Felder steuern, WAS das Modell bauen soll.
+ * 'ergebnis'     = Vorschau nach der Erstellung: nur Felder, die auf das fertige Dokument
+ *                  wirken. Anforderungs-Felder ("Anzahl Sätze", "Wortbank", …) wuerden hier
+ *                  nur tanzen: der Text steht fest, die Zahl aendert nichts.
+ */
+export type ConfigAnsicht = 'anforderung' | 'ergebnis';
 
 interface Props {
   block: Block;
   stufe: Meta['stufe'];
   onConfigChange: (config: Record<string, unknown>) => void;
+  /** Voreinstellung wie bisher: die Anforderungsansicht des Baukastens. */
+  ansicht?: ConfigAnsicht;
 }
 
-function ConfigField({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+const AnsichtContext = createContext<ConfigAnsicht>('anforderung');
+
+/**
+ * Konfigurationsschluessel ohne Wirkung auf ein fertiges Dokument: der Renderer
+ * (packages/renderer) druckt sie nie, sie steuerten nur das Modell. Schlüssel statt
+ * Beschriftungen, damit ein Umbenennen einer Beschriftung die Liste nicht still leert
+ * (der Test deckt das auf).
+ *
+ * Geprueft an den build*-Funktionen des Renderers. NICHT geprueft sind Felder, die der
+ * Renderer doch druckt — z. B. situation/setting/ziel (roleplay), rahmen/zeitMinuten
+ * (rollenkartenSet), aufgabe (songanalyse) und zielniveau/transformation (stiluebung).
+ * Die standen zunaechst auf dieser Liste und waeren stiller Datenverlust gewesen.
+ */
+const NUR_ANFORDERUNG = new Set([
+  // Zaehler und Wahlfelder der Erzeugung
+  'anzahlLuecken', 'wortbank', 'distraktoren', 'distraktorWoerter',
+  'anzahlSaetze', 'anzahlWoerter', 'anzahlVokabeln', 'anzahlItems',
+  'anzahlFragen', 'anzahlAuftraege', 'anzahlDatenpunkte', 'anzahlEreignisse',
+  // Vorgaben fuer den Umfang einer Schreibaufgabe
+  'umfangWorte', 'aspekte', 'textsorte',
+  // Auswahl des Aufgabentyps (der Renderer zeigt stattdessen den Quellentitel)
+  'quellentyp',
+]);
+
+/** Ganz ohne Ergebnis-Einstellungen: der Renderer liest bei diesen Typen kein config. */
+const OHNE_ERGEBNIS_EINSTELLUNGEN = new Set(['lueckentext', 'offeneSchreibaufgabe']);
+
+function ConfigField({ label, feld, error, hinweis, children }: {
+  label: string; feld?: string; error?: string; hinweis?: string; children: React.ReactNode;
+}) {
+  const ansicht = useContext(AnsichtContext);
+  if (feld && ansicht === 'ergebnis' && NUR_ANFORDERUNG.has(feld)) return null;
   return (
     <div style={{ marginBottom: '0.75rem' }}>
       <label>{label}</label>
       {children}
+      {hinweis && <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.75rem', marginTop: '0.125rem' }}>{hinweis}</p>}
       {error && <p style={{ color: 'var(--color-error)', fontSize: '0.6875rem', marginTop: '0.125rem' }}>{error}</p>}
     </div>
   );
@@ -22,6 +65,9 @@ function ConfigField({ label, error, children }: { label: string; error?: string
 /** Umschalter „KI-generiert ⇄ Selbst festlegen" für Inhalts-Blöcke. Teilweise befüllte
  *  manuelle Felder = Hybrid (die KI ergänzt beim Generieren die leeren). */
 function ManuellToggle({ modus, onChange }: { modus: 'ki' | 'manuell'; onChange: (m: 'ki' | 'manuell') => void }) {
+  const ansicht = useContext(AnsichtContext);
+  // Nach der Erstellung ist der Inhalt fertig — der Umschalter hat hier nichts zu steuern.
+  if (ansicht === 'ergebnis') return null;
   return (
     <ConfigField label="Inhalt">
       <div style={{ display: 'flex', gap: '0.4rem' }}>
@@ -47,7 +93,11 @@ function ManuellToggle({ modus, onChange }: { modus: 'ki' | 'manuell'; onChange:
   );
 }
 
-export function BlockConfigPanel({ block, stufe, onConfigChange }: Props) {
+function BlockConfigPanelAnsicht({ block, stufe, onConfigChange }: Props) {
+  const ansicht = useContext(AnsichtContext);
+  // Typen ohne Ergebnis-Einstellungen: der erzeugte Inhalt traegt alles, eine Formular
+  // mit leeren Zaehlern wuerde nur vortaeuschen, hier waere noch etwas zu stellen.
+  if (ansicht === 'ergebnis' && OHNE_ERGEBNIS_EINSTELLUNGEN.has(block.typ)) return null;
   const config = block.config as Record<string, unknown>;
   const set = (key: string, value: unknown) => {
     onConfigChange({ ...config, [key]: value });
@@ -66,11 +116,11 @@ export function BlockConfigPanel({ block, stufe, onConfigChange }: Props) {
     return (
       <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
         <h3 style={{ marginBottom: '0.75rem', fontSize: '0.8125rem' }}>Lückentext-Konfiguration</h3>
-        <ConfigField label="Anzahl Lücken">
+        <ConfigField feld="anzahlLuecken" label="Anzahl Lücken">
           <input type="number" min={1} value={config.anzahlLuecken as number ?? 6}
             onChange={(e) => set('anzahlLuecken', parseInt(e.target.value) || 1)} />
         </ConfigField>
-        <ConfigField label="Wortbank">
+        <ConfigField feld="wortbank" label="Wortbank">
           <select value={wortbank ? 'true' : 'false'}
             disabled={!wortbankAllowed}
             onChange={(e) => {
@@ -90,11 +140,11 @@ export function BlockConfigPanel({ block, stufe, onConfigChange }: Props) {
         </ConfigField>
         {wortbank && (
           <>
-            <ConfigField label="Distraktoren (Anzahl)" error={errors.distraktoren}>
+            <ConfigField feld="distraktoren" label="Distraktoren (Anzahl)" error={errors.distraktoren}>
               <input type="number" min={0} value={distraktoren}
                 onChange={(e) => set('distraktoren', parseInt(e.target.value) || 0)} />
             </ConfigField>
-            <ConfigField label="Distraktor-Wörter (kommagetrennt, optional)">
+            <ConfigField feld="distraktorWoerter" label="Distraktor-Wörter (kommagetrennt, optional)">
               <input type="text"
                 value={(config.distraktorWoerter as string[] ?? []).join(', ')}
                 placeholder="z. B. falsch, auch falsch, noch einer"
@@ -293,15 +343,15 @@ export function BlockConfigPanel({ block, stufe, onConfigChange }: Props) {
     return (
       <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
         <h3 style={{ marginBottom: '0.75rem', fontSize: '0.8125rem' }}>Schreibaufgabe-Konfiguration</h3>
-        <ConfigField label="Situation">
+        <ConfigField feld="situation" label="Situation">
           <textarea rows={2} value={config.situation as string ?? ''} placeholder="Ausgangssituation beschreiben"
             onChange={(e) => set('situation', e.target.value)} />
         </ConfigField>
-        <ConfigField label="Textsorte">
+        <ConfigField feld="textsorte" label="Textsorte">
           <input type="text" value={config.textsorte as string ?? ''} placeholder="z. B. Kommentar, Erörterung"
             onChange={(e) => set('textsorte', e.target.value)} />
         </ConfigField>
-        <ConfigField label="Umfang (Wörter)" error={errors.umfang}>
+        <ConfigField feld="umfangWorte" label="Umfang (Wörter)" error={errors.umfang}>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             <input type="number" min={1} value={umfang.min} placeholder="Min"
               onChange={(e) => set('umfangWorte', { ...umfang, min: parseInt(e.target.value) || 1 })} />
@@ -310,7 +360,7 @@ export function BlockConfigPanel({ block, stufe, onConfigChange }: Props) {
               onChange={(e) => set('umfangWorte', { ...umfang, max: parseInt(e.target.value) || 1 })} />
           </div>
         </ConfigField>
-        <ConfigField label="Aspekte">
+        <ConfigField feld="aspekte" label="Aspekte">
           {aspekte.map((asp, i) => (
             <div key={i} style={{ display: 'flex', gap: '0.375rem', marginBottom: '0.375rem' }}>
               <input type="text" value={asp} placeholder={`Aspekt ${i + 1}`}
@@ -350,7 +400,9 @@ export function BlockConfigPanel({ block, stufe, onConfigChange }: Props) {
   }
 
   if (block.typ === 'wordScramble') {
-    const modus = (config.eingabemodus as 'ki' | 'manuell') ?? 'ki';
+    // Nach der Erstellung ist der Inhalt fertig: dann IMMER den manuellen Zweig zeigen,
+    // sonst stuende hier nur ein Hinweistext und die erzeugten Inhalte waeren unerreichbar.
+    const modus = ansicht === 'ergebnis' ? 'manuell' : ((config.eingabemodus as 'ki' | 'manuell') ?? 'ki');
     const saetze = (config.saetze as Array<{ wort: string }> | undefined) ?? [{ wort: '' }];
     const anzahl = Math.max(1, saetze.length);
     const mkArray = (n: number) => Array.from({ length: n }, (_, i) => saetze[i] ?? { wort: '' });
@@ -365,7 +417,7 @@ export function BlockConfigPanel({ block, stufe, onConfigChange }: Props) {
       <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
         <h3 style={{ marginBottom: '0.75rem', fontSize: '0.8125rem' }}>Wörter ordnen</h3>
         <ManuellToggle modus={modus} onChange={switchModus} />
-        <ConfigField label="Anzahl Sätze">
+        <ConfigField feld="anzahlSaetze" label="Anzahl Sätze">
           <input type="number" min={1} max={12} value={anzahl}
             onChange={(e) => setAnzahl(Math.max(1, Math.min(12, parseInt(e.target.value) || 1)))} />
         </ConfigField>
@@ -679,7 +731,7 @@ export function BlockConfigPanel({ block, stufe, onConfigChange }: Props) {
     return (
       <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
         <h3 style={{ marginBottom: '0.75rem', fontSize: '0.8125rem' }}>Stilübung</h3>
-        <ConfigField label="Zielniveau">
+        <ConfigField feld="zielniveau" label="Zielniveau">
           <select value={config.zielniveau as string} onChange={(e) => set('zielniveau', e.target.value)}>
             <option value="umgangssprachlich">Umgangssprachlich</option>
             <option value="standard">Standard</option>
@@ -687,7 +739,7 @@ export function BlockConfigPanel({ block, stufe, onConfigChange }: Props) {
             <option value="fachsprachlich">Fachsprachlich</option>
           </select>
         </ConfigField>
-        <ConfigField label="Transformation">
+        <ConfigField feld="transformation" label="Transformation">
           <select value={config.transformation as string} onChange={(e) => set('transformation', e.target.value)}>
             <option value="verdeutlichen">Verdeutlichen</option>
             <option value="variieren">Variieren</option>
@@ -731,7 +783,7 @@ export function BlockConfigPanel({ block, stufe, onConfigChange }: Props) {
           />
         </ConfigField>
 
-        <ConfigField label="Aufgabentyp">
+        <ConfigField feld="aufgabe" label="Aufgabentyp">
           <select
             value={config.aufgabe as string ?? 'inhaltsangabe'}
             onChange={(e) => set('aufgabe', e.target.value)}
@@ -757,7 +809,9 @@ export function BlockConfigPanel({ block, stufe, onConfigChange }: Props) {
 
   if (block.typ === 'kreuzwortraetsel') {
     const anzahl = (config.anzahlWoerter as number) ?? 6;
-    const modus = (config.eingabemodus as 'ki' | 'manuell') ?? 'ki';
+    // Nach der Erstellung ist der Inhalt fertig: dann IMMER den manuellen Zweig zeigen,
+    // sonst stuende hier nur ein Hinweistext und die erzeugten Inhalte waeren unerreichbar.
+    const modus = ansicht === 'ergebnis' ? 'manuell' : ((config.eingabemodus as 'ki' | 'manuell') ?? 'ki');
     const eintraege = (config.eintraege as { wort: string; hinweis: string }[] | undefined) ?? [];
     const mkArray = (n: number) => Array.from({ length: n }, (_, i) => eintraege[i] ?? { wort: '', hinweis: '' });
     const setAnzahl = (n: number) => {
@@ -775,9 +829,10 @@ export function BlockConfigPanel({ block, stufe, onConfigChange }: Props) {
       <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
         <h3 style={{ marginBottom: '0.75rem', fontSize: '0.8125rem' }}>Kreuzworträtsel</h3>
         <ManuellToggle modus={modus} onChange={switchModus} />
-        <ConfigField label="Anzahl Wörter">
-          <input type="number" min={3} max={20} value={anzahl}
-            onChange={(e) => setAnzahl(Math.max(3, Math.min(20, parseInt(e.target.value) || 6)))} />
+        <ConfigField feld="anzahlWoerter" label="Anzahl Wörter"
+          hinweis={`Höchstens ${MAX_RAETSEL_EINTRRAEGE} — mehr passt nicht sinnvoll auf ein Blatt. Längere Hinweise laufen auf die Folgeseite.`}>
+          <input type="number" min={3} max={MAX_RAETSEL_EINTRRAEGE} value={anzahl}
+            onChange={(e) => setAnzahl(Math.max(3, Math.min(MAX_RAETSEL_EINTRRAEGE, parseInt(e.target.value) || 6)))} />
         </ConfigField>
         {modus === 'manuell' ? (
           <div>
@@ -804,7 +859,9 @@ export function BlockConfigPanel({ block, stufe, onConfigChange }: Props) {
 
   if (block.typ === 'wortgitter') {
     const anzahl = (config.anzahlWoerter as number) ?? 6;
-    const modus = (config.eingabemodus as 'ki' | 'manuell') ?? 'ki';
+    // Nach der Erstellung ist der Inhalt fertig: dann IMMER den manuellen Zweig zeigen,
+    // sonst stuende hier nur ein Hinweistext und die erzeugten Inhalte waeren unerreichbar.
+    const modus = ansicht === 'ergebnis' ? 'manuell' : ((config.eingabemodus as 'ki' | 'manuell') ?? 'ki');
     const woerter = (config.woerter as string[] | undefined) ?? [];
     const mkArray = (n: number) => Array.from({ length: n }, (_, i) => woerter[i] ?? '');
     const setAnzahl = (n: number) => {
@@ -819,9 +876,10 @@ export function BlockConfigPanel({ block, stufe, onConfigChange }: Props) {
       <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
         <h3 style={{ marginBottom: '0.75rem', fontSize: '0.8125rem' }}>Wortgitter</h3>
         <ManuellToggle modus={modus} onChange={switchModus} />
-        <ConfigField label="Anzahl Wörter">
-          <input type="number" min={3} max={20} value={anzahl}
-            onChange={(e) => setAnzahl(Math.max(3, Math.min(20, parseInt(e.target.value) || 6)))} />
+        <ConfigField feld="anzahlWoerter" label="Anzahl Wörter"
+          hinweis={`Höchstens ${MAX_RAETSEL_EINTRRAEGE} — mehr passt nicht sinnvoll auf ein Blatt. Die Wortliste läuft bei Bedarf auf die Folgeseite.`}>
+          <input type="number" min={3} max={MAX_RAETSEL_EINTRRAEGE} value={anzahl}
+            onChange={(e) => setAnzahl(Math.max(3, Math.min(MAX_RAETSEL_EINTRRAEGE, parseInt(e.target.value) || 6)))} />
         </ConfigField>
         {modus === 'manuell' ? (
           <div>
@@ -845,7 +903,9 @@ export function BlockConfigPanel({ block, stufe, onConfigChange }: Props) {
   if (block.typ === 'vokabeluebung') {
     const richtung = (config.richtung as 'de_fremd' | 'fremd_de') ?? 'de_fremd';
     const anzahl = (config.anzahlVokabeln as number) ?? 6;
-    const modus = (config.eingabemodus as 'ki' | 'manuell') ?? 'ki';
+    // Nach der Erstellung ist der Inhalt fertig: dann IMMER den manuellen Zweig zeigen,
+    // sonst stuende hier nur ein Hinweistext und die erzeugten Inhalte waeren unerreichbar.
+    const modus = ansicht === 'ergebnis' ? 'manuell' : ((config.eingabemodus as 'ki' | 'manuell') ?? 'ki');
     type Vok = { deutsch: string; fremdsprache: string; kontextsatz?: string };
     const vokabeln = (config.vokabeln as Vok[] | undefined) ?? [];
     const mkArray = (n: number): Vok[] => Array.from({ length: n }, (_, i) => vokabeln[i] ?? { deutsch: '', fremdsprache: '' });
@@ -872,7 +932,7 @@ export function BlockConfigPanel({ block, stufe, onConfigChange }: Props) {
         </ConfigField>
 
         <ManuellToggle modus={modus} onChange={switchModus} />
-        <ConfigField label="Anzahl Vokabeln">
+        <ConfigField feld="anzahlVokabeln" label="Anzahl Vokabeln">
           <input type="number" min={3} max={20} value={anzahl}
             onChange={(e) => setAnzahl(Math.max(3, Math.min(20, parseInt(e.target.value) || 6)))} />
         </ConfigField>
@@ -901,7 +961,9 @@ export function BlockConfigPanel({ block, stufe, onConfigChange }: Props) {
 
   if (block.typ === 'fehlerkorrektur') {
     const anzahl = (config.anzahlSaetze as number) ?? 1;
-    const modus = (config.eingabemodus as 'ki' | 'manuell') ?? 'ki';
+    // Nach der Erstellung ist der Inhalt fertig: dann IMMER den manuellen Zweig zeigen,
+    // sonst stuende hier nur ein Hinweistext und die erzeugten Inhalte waeren unerreichbar.
+    const modus = ansicht === 'ergebnis' ? 'manuell' : ((config.eingabemodus as 'ki' | 'manuell') ?? 'ki');
     type Satz = { nr: number; satz: string; anzahlFehler: number };
     const saetze = (config.saetze as Satz[] | undefined) ?? [];
     const mkArray = (n: number): Satz[] => Array.from({ length: n }, (_, i) => ({
@@ -924,7 +986,7 @@ export function BlockConfigPanel({ block, stufe, onConfigChange }: Props) {
       <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
         <h3 style={{ marginBottom: '0.75rem', fontSize: '0.8125rem' }}>Fehlerkorrektur</h3>
         <ManuellToggle modus={modus} onChange={switchModus} />
-        <ConfigField label="Anzahl Sätze">
+        <ConfigField feld="anzahlSaetze" label="Anzahl Sätze">
           <input type="number" min={1} max={12} value={anzahl}
             onChange={(e) => setAnzahl(Math.max(1, Math.min(12, parseInt(e.target.value) || 1)))} />
         </ConfigField>
@@ -972,7 +1034,7 @@ export function BlockConfigPanel({ block, stufe, onConfigChange }: Props) {
           <input type="text" value={String(config.quelleId ?? '')} placeholder="z. B. q1"
             onChange={(e) => set('quelleId', e.target.value)} />
         </ConfigField>
-        <ConfigField label="Quellentyp">
+        <ConfigField feld="quellentyp" label="Quellentyp">
           <select value={String(config.quellentyp ?? 'text')} onChange={(e) => set('quellentyp', e.target.value)}>
             <option value="text">Textquelle</option>
             <option value="rede">Rede / politischer Text</option>
@@ -1139,7 +1201,9 @@ export function BlockConfigPanel({ block, stufe, onConfigChange }: Props) {
   }
 
   if (block.typ === 'roleplay') {
-    const modus = (config.eingabemodus as 'ki' | 'manuell') ?? 'ki';
+    // Nach der Erstellung ist der Inhalt fertig: dann IMMER den manuellen Zweig zeigen,
+    // sonst stuende hier nur ein Hinweistext und die erzeugten Inhalte waeren unerreichbar.
+    const modus = ansicht === 'ergebnis' ? 'manuell' : ((config.eingabemodus as 'ki' | 'manuell') ?? 'ki');
     type Rolle = { name: string; beschreibung: string; aufgabe: string; redemittel: string[] };
     const rollen = (config.rollen as Rolle[] | undefined) ?? [];
     const redemittel = (config.redemittel as string[] | undefined) ?? [];
@@ -1175,19 +1239,19 @@ export function BlockConfigPanel({ block, stufe, onConfigChange }: Props) {
         <h3 style={{ marginBottom: '0.75rem', fontSize: '0.8125rem' }}>Rollenspiel</h3>
         <ManuellToggle modus={modus} onChange={switchModus} />
 
-        <ConfigField label="Situation">
+        <ConfigField feld="situation" label="Situation">
           <input type="text" placeholder="z. B. Im Restaurant" value={String(config.situation ?? '')}
             onChange={(e) => set('situation', e.target.value)} />
         </ConfigField>
-        <ConfigField label="Setting (Kontext)">
+        <ConfigField feld="setting" label="Setting (Kontext)">
           <input type="text" placeholder="Wer, wo, warum?" value={String(config.setting ?? '')}
             onChange={(e) => set('setting', e.target.value)} />
         </ConfigField>
-        <ConfigField label="Ziel">
+        <ConfigField feld="ziel" label="Ziel">
           <input type="text" placeholder="Was sollen die Schüler erreichen?" value={String(config.ziel ?? '')}
             onChange={(e) => set('ziel', e.target.value)} />
         </ConfigField>
-        <ConfigField label="Zeit (Minuten)">
+        <ConfigField feld="zeitMinuten" label="Zeit (Minuten)">
           <input type="number" min={1} max={20} value={config.zeitMinuten as number ?? 5}
             onChange={(e) => set('zeitMinuten', Math.max(1, Math.min(20, parseInt(e.target.value) || 5)))} />
         </ConfigField>
@@ -1213,7 +1277,7 @@ export function BlockConfigPanel({ block, stufe, onConfigChange }: Props) {
               <input style={{ width: '100%', marginBottom: '0.4rem' }} placeholder="Aufgabe" value={rolle.aufgabe}
                 onChange={(e) => updateRolle(i, 'aufgabe', e.target.value)} />
               <textarea style={{ width: '100%' }} rows={2} placeholder="Rollenspezifische Redemittel (eine Phrase pro Zeile)"
-                value={rolle.redemittel.join('\n')}
+                value={(rolle.redemittel ?? []).join('\n')}
                 onChange={(e) => updateRolle(i, 'redemittel', e.target.value.split('\n').map((s) => s.trim()).filter(Boolean))} />
             </div>
           ))}
@@ -1238,7 +1302,9 @@ export function BlockConfigPanel({ block, stufe, onConfigChange }: Props) {
   }
 
   if (block.typ === 'rollenkartenSet') {
-    const modus = (config.eingabemodus as 'ki' | 'manuell') ?? 'ki';
+    // Nach der Erstellung ist der Inhalt fertig: dann IMMER den manuellen Zweig zeigen,
+    // sonst stuende hier nur ein Hinweistext und die erzeugten Inhalte waeren unerreichbar.
+    const modus = ansicht === 'ergebnis' ? 'manuell' : ((config.eingabemodus as 'ki' | 'manuell') ?? 'ki');
     type RKRolle = { name: string; rollenhinweis: string; inhaltsLabel: string; sprachhinweis: string };
     type RKRollenInhalt = { untertitel: string; punkte: string[] };
     type RKSzenario = { nummer: number; titel: string; fakten: string; rollenInhalte: RKRollenInhalt[] };
@@ -1298,12 +1364,12 @@ export function BlockConfigPanel({ block, stufe, onConfigChange }: Props) {
       <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
         <h3 style={{ marginBottom: '0.75rem', fontSize: '0.8125rem' }}>Rollenkarten-Set</h3>
 
-        <ConfigField label="Rahmen">
+        <ConfigField feld="rahmen" label="Rahmen">
           <input type="text" value={rahmen} placeholder="z. B. Disaster Reports — live TV news"
             onChange={(e) => set('rahmen', e.target.value)} />
         </ConfigField>
 
-        <ConfigField label="Zeit pro Paar (Minuten)">
+        <ConfigField feld="zeitMinuten" label="Zeit pro Paar (Minuten)">
           <input type="number" min={1} max={20} value={zeitMinuten}
             onChange={(e) => set('zeitMinuten', Math.max(1, Math.min(20, parseInt(e.target.value) || 8)))} />
         </ConfigField>
@@ -1333,7 +1399,7 @@ export function BlockConfigPanel({ block, stufe, onConfigChange }: Props) {
           </button>
         </ConfigField>
 
-        <ConfigField label="Anzahl Szenarien">
+        <ConfigField feld="anzahlSzenarien" label="Anzahl Szenarien">
           <input type="number" min={1} max={15} value={szenarien.length}
             onChange={(e) => setAnzahl(parseInt(e.target.value) || 1)} />
         </ConfigField>
@@ -1373,4 +1439,16 @@ export function BlockConfigPanel({ block, stufe, onConfigChange }: Props) {
   }
 
   return null;
+}
+
+/**
+ * Setzt die Ansicht fuer die ganze Baumgruppe. Ueber Context, damit die ~50 Felder der
+ * 20 Typ-Zweige nicht einzeln durchgereicht werden mussten.
+ */
+export function BlockConfigPanel({ ansicht = 'anforderung', ...rest }: Props) {
+  return (
+    <AnsichtContext.Provider value={ansicht}>
+      <BlockConfigPanelAnsicht {...rest} />
+    </AnsichtContext.Provider>
+  );
 }

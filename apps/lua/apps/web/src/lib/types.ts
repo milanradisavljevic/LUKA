@@ -140,6 +140,13 @@ export type AppAction =
   | { type: 'UPDATE_QUELLTEXT'; id: string; quelltext: Partial<QuellText> }
   | { type: 'ADD_BLOCK'; block: Block }
   | { type: 'UPDATE_BLOCK'; id: string; block: Partial<Block> }
+  /**
+   * Ersetzt die Anforderungsliste als Ganzes, OHNE das erzeugte Dokument als veraltet zu
+   * markieren. Gedacht fuer das Zurueckspiegeln aus der Vorschau: dort aendert sich die
+   * Anforderung, um dem Dokument zu folgen — das Dokument ist dadurch juenger, nicht
+   * aelter. `UPDATE_BLOCK` waere hier falsch (setzt `generatedOutdated`).
+   */
+  | { type: 'SET_BLOECKE'; bloecke: Block[] }
   | { type: 'REMOVE_BLOCK'; id: string }
   | { type: 'REMOVE_BLOCKS_BY_TYPE'; typ: string }
   | { type: 'REORDER_BLOCKS'; bloecke: Block[] }

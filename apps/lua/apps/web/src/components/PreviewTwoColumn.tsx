@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AlertTriangle, CheckCircle2, Check, Circle, Pencil, RefreshCw, FileText, KeyRound, Database, Lightbulb } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Check, Circle, Pencil, RefreshCw, Settings2, FileText, KeyRound, Database, Lightbulb } from 'lucide-react';
 import { istSprachfach, fachLabel } from '@lehrunterlagen/schema';
 import { RENDER_LAYOUTS, RENDER_TEMPLATES, anzeigeQuelltext, getDefaultLayout, getDefaultTemplate, pruefeRaetselA4 } from '@lehrunterlagen/renderer';
 import type { RenderLayout, RenderTemplate } from '@lehrunterlagen/renderer';
@@ -9,6 +9,8 @@ import { BlockPreview } from './BlockPreview';
 import { BLOCK_TYPE_DEFS } from '../lib/constants';
 import { useGenerate } from '../hooks/useGenerate';
 import { useAufgabenPool } from '../hooks/useAufgabenPool';
+import { spiegeleBlockEinstellungen, type SpiegelbareWerte } from '../lib/einstellungenSpiegeln';
+import { EinstellungsPanel } from './EinstellungsPanel';
 
 interface Props {
   state: AppState;
@@ -105,6 +107,8 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
   const [diffData, setDiffData] = useState<{ oldBlock: Block; newBlock: Block } | null>(null);
   // Freitext-Hinweis fuer die Neu-Generierung EINER Aufgabe (statt der Presets).
   const [hinweisText, setHinweisText] = useState('');
+  // Aufgabe, deren Einstellungen neben dem Blatt offen sind.
+  const [einstellungenId, setEinstellungenId] = useState<string | null>(null);
   const windowWidth = useWindowWidth();
   const isNarrow = windowWidth < 768;
   const { regenerateBlock, generating, stage } = useGenerate(dispatch);
@@ -140,6 +144,9 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
   const meta = doc ? doc.meta : state.meta;
   const renderTemplate = RENDER_TEMPLATES[state.renderTemplate];
   const renderLayout = RENDER_LAYOUTS[state.renderLayout];
+  // Aufgabe, deren Einstellungs-Panel offen ist. Faellt weg, wenn der Block verschwindet
+  // (z. B. durch eine Aktion in einem anderen Schritt), damit kein Panel ohne Inhalt steht.
+  const settingsBlock = einstellungenId ? bloecke.find((b) => b.id === einstellungenId) : undefined;
 
   const handleUpdate = (id: string, field: string, value: unknown) => {
     setEditierteIds((prev) => new Set(prev).add(id));
@@ -148,6 +155,19 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
     } else {
       dispatch({ type: 'UPDATE_BLOCK', id, block: { [field]: value } as Partial<Block> });
     }
+  };
+
+  // Eine Aenderung an den Einstellungen im Panel. Wirkt aufs Dokument und wird — soweit
+  // das Modell das Feld bei einer Neugenerierung wiederbekommt — in die Anforderung
+  // zurueckgespiegelt, damit sie nicht beim naechsten Erstellen verloren geht.
+  const aendereEinstellung = (blockId: string, patch: Partial<Block>) => {
+    dispatch({ type: 'UPDATE_GENERIERTER_BLOCK', id: blockId, block: patch });
+    if (patch.punkte === undefined && patch.hinweis === undefined) return;
+    const werte: SpiegelbareWerte = {};
+    if (patch.punkte !== undefined) werte.punkte = patch.punkte;
+    if (patch.hinweis !== undefined) werte.hinweis = patch.hinweis;
+    const gespiegelt = spiegeleBlockEinstellungen(blockId, werte, state.bloecke);
+    if (gespiegelt) dispatch({ type: 'SET_BLOECKE', bloecke: gespiegelt });
   };
 
   // Einen Block mit frei formuliertem Hinweis neu generieren. Ein Code-Pfad fuer
@@ -444,7 +464,13 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
             </div>
           )}
           <div
-            style={{ marginBottom: '1.25rem', paddingBottom: '1rem', borderBottom: '1px solid #cccccc', cursor: 'pointer' }}
+            style={{
+              marginBottom: '1.25rem', paddingBottom: '1rem', borderBottom: '1px solid #cccccc',
+              cursor: 'pointer',
+              ...(einstellungenId === block.id
+                ? { boxShadow: 'inset 3px 0 0 var(--color-accent)', paddingLeft: '0.6rem', background: 'var(--color-highlight-bg)' }
+                : {}),
+            }}
             onClick={() => setEditingId(editingId === block.id ? null : block.id)}
           >
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.375rem', fontSize: '9pt', color: PAPER_SECONDARY }}>
@@ -483,6 +509,25 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
                     }}
                   >
                     <RefreshCw size={13} /> Neu generieren
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEinstellungenId(einstellungenId === block.id ? null : block.id);
+                    }}
+                    style={{
+                      fontSize: '0.75rem',
+                      padding: '0.2rem 0.5rem',
+                      borderRadius: 'var(--radius)',
+                      border: `1px solid ${einstellungenId === block.id ? 'var(--color-accent)' : '#cccccc'}`,
+                      background: einstellungenId === block.id ? 'var(--color-bg-selected)' : '#ffffff',
+                      cursor: 'pointer',
+                      color: einstellungenId === block.id ? 'var(--color-accent)' : PAPER_SECONDARY,
+                      display: 'inline-flex', alignItems: 'center', gap: '0.375rem',
+                    }}
+                    title="Einstellungen dieser Aufgabe neben dem Blatt öffnen"
+                  >
+                    <Settings2 size={13} /> Einstellungen
                   </button>
                   <button
                     onClick={(e) => {
@@ -719,20 +764,83 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
       </div>
 
       {/* Papier-Container */}
+      {/* Blatt und Einstellungs-Panel nebeneinander. Ohne offenes Panel bleibt das Blatt
+          allein und zentriert; mit Panel rueckt es nach links und gibt Breite ab. */}
       <div
-        role="tabpanel"
         style={{
-          maxWidth: 800,
-          margin: '0 auto',
-          background: PAPER_BG,
-          padding: '2rem',
-          borderRadius: 2,
-          boxShadow: '0 2px 12px var(--color-shadow)',
-          color: PAPER_TEXT,
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '1rem',
+          ...(isNarrow ? { flexDirection: 'column' } : {}),
         }}
       >
-        {activeTab === 'schueler' ? renderSchuelerFassung() : renderLoesungsFassung()}
+        <div
+          role="tabpanel"
+          style={{
+            maxWidth: settingsBlock ? 'none' : 800,
+            flex: settingsBlock ? '1 1 auto' : undefined,
+            minWidth: 0,
+            margin: '0 auto',
+            background: PAPER_BG,
+            padding: '2rem',
+            borderRadius: 2,
+            boxShadow: '0 2px 12px var(--color-shadow)',
+            color: PAPER_TEXT,
+          }}
+        >
+          {activeTab === 'schueler' ? renderSchuelerFassung() : renderLoesungsFassung()}
+        </div>
+
+        {settingsBlock && !isNarrow && (
+          <aside
+            aria-label="Einstellungen der gewählten Aufgabe"
+            style={{
+              width: 340,
+              flexShrink: 0,
+              position: 'sticky',
+              top: '1rem',
+              maxHeight: 'calc(100vh - 6rem)',
+              overflowY: 'auto',
+              background: 'var(--color-bg-surface)',
+              border: '1px solid var(--color-border)',
+              borderRadius: 'var(--radius)',
+              padding: '1rem',
+            }}
+          >
+            <EinstellungsPanel
+              block={settingsBlock}
+              stufe={meta.stufe}
+              onChange={(field, value) => aendereEinstellung(settingsBlock.id, { [field]: value } as Partial<Block>)}
+              onConfigChange={(config) => aendereEinstellung(settingsBlock.id, { config } as unknown as Partial<Block>)}
+              onClose={() => setEinstellungenId(null)}
+            />
+          </aside>
+        )}
       </div>
+
+      {/* Auf schmalen Fenstern hat neben dem Blatt keinen Platz: das Panel wandert darunter. */}
+      {settingsBlock && isNarrow && (
+        <div
+          aria-label="Einstellungen der gewählten Aufgabe"
+          style={{
+            maxWidth: 800,
+            width: '100%',
+            margin: '1rem auto 0',
+            background: 'var(--color-bg-surface)',
+            border: '1px solid var(--color-border)',
+            borderRadius: 'var(--radius)',
+            padding: '1rem',
+          }}
+        >
+          <EinstellungsPanel
+            block={settingsBlock}
+            stufe={meta.stufe}
+            onChange={(field, value) => aendereEinstellung(settingsBlock.id, { [field]: value } as Partial<Block>)}
+            onConfigChange={(config) => aendereEinstellung(settingsBlock.id, { config } as unknown as Partial<Block>)}
+            onClose={() => setEinstellungenId(null)}
+          />
+        </div>
+      )}
 
       {/* Block-Diff Panel */}
       {diffData && (

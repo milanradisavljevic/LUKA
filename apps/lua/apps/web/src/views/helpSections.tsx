@@ -310,6 +310,7 @@ export const HELP_SECTIONS: HelpSection[] = [
         <P><strong>Bewertung (Punkte an/aus):</strong> In Schritt „Absicht" legst du fest, ob die Unterlage Punkte trägt. Schulübungen sind standardmäßig <em>ohne</em> Punkte; mit dem Schalter „Punkte vergeben / Ohne Punkte" überschreibst du das pro Dokument. „Ohne Punkte" blendet Punktespalte und Gesamtpunkte überall aus — in Vorschau <em>und</em> Export gleich.</P>
         <P><strong>Einzelne Aufgabe neu generieren:</strong> In der Vorschau bei einem Block auf „Neu generieren" — die fertigen Vorschläge („Kürzer", „Schwieriger", „Andere Formulierung") oder dein eigener Hinweis im Eingabefeld daneben („zwei Teilsätze, jeweils mit Beispiel"). Nur dieser Block wird ersetzt; die alte und die neue Fassung stehen zum Vergleich da.</P>
         <P><strong>Quelltext aufbereiten lassen:</strong> Texte von Webseiten bringen oft Navigation, Werbung und kaputte Absätze mit. Der Schalter „Quelltext aufbereiten lassen" (Schritt „Generieren", neben „Quelltext im Arbeitsblatt abdrucken") lässt dein KI-Modell die Absätze setzen und die Reste entfernen. Anders als der Abdruck-Schalter wirkt er bei der <em>nächsten Erstellung</em>. Dein Originaltext wird dabei nicht verändert — er bleibt die Grundlage für Aufgaben, Korrektur und Folgeübung, aufbereitet wird nur das, was gedruckt wird. Verlässt sich das Modell nicht auf deinen Originalwortlaut, verwirft LUKA die Fassung, druckt den unveränderten Text und weist dich darauf hin. Die fortlaufenden Zeilennummern bleiben unverändert.</P>
+        <P><strong>Einstellungen an der fertigen Aufgabe:</strong> In der Vorschau bei einer Aufgabe auf „Einstellungen" — dann öffnet sich das Panel <em>neben dem Blatt</em>, die Aufgabe bleibt sichtbar. Du passt Punkte, Arbeitsanweisung, Clue, den KI-Hinweis und die aufgabenartigen Felder an, ohne zwei Schritte in den Baukasten zurückzugehen. Zähler wie „Anzahl Lücken" fehlen dort bewusst: Sie steuerten nur die Erzeugung und würden am fertigen Text nichts ändern. <strong>Punkte</strong> und der <strong>KI-Hinweis</strong> übernimmt LUKA dabei in den Baukasten zurück, damit sie eine spätere Neugenerierung überstehen; Arbeitsanweisung und Clue gelten nur für das aktuelle Dokument — das steht auch so im Panel. Bei Lückentext und offenen Schreibaufgaben steckt alles im erzeugten Text selbst: den bearbeitest du mit einem Klick auf die Aufgabe direkt im Blatt.</P>
         <P><strong>Qualität schärfen:</strong> Nach der Generierung kannst du den Qualitätspass bewusst einmal starten. Dein gewählter KI-Anbieter prüft das eigene Dokument als strenger Fachkollege gegen Kriterien wie konkrete Schreibsituation, Textbezug, beobachtbaren Erwartungshorizont sowie plausibles Niveau und liefert eine verbesserte Fassung mit zwei bis drei Änderungsnotizen. Dafür wird ein weiterer API-Aufruf deines Anbieters verwendet; Blockstruktur, IDs und Textbeilagen-Verweise bleiben unverändert.</P>
         <P><strong>Export-Varianten:</strong> „Beide Dokumente" (Schülerfassung + Lösung), „Korrekturraster", im Kompetenz-Modus zusätzlich „Kompetenznachweis", sowie „Als PDF". Für PDF exportierst du zuerst die Schülerfassung als DOCX und wählst danach den Speicherort im nativen Datei-Dialog; dafür muss LibreOffice installiert sein. Vor dem Export prüft ein <strong>Quality-Gate</strong> Lernziel-Abdeckung und Wortzahl der Schreibaufgaben — bei Auffälligkeiten kannst du „Nochmal prüfen" oder „Trotzdem exportieren".</P>
         <P><strong>Differenzierung (leichter / schwerer):</strong> Im Akkordeon „Differenzierung" (nach dem Generieren) erzeugst du zusätzlich zur Standardfassung (mittel = „Beide Dokumente") gezielt eine <em>leichtere</em> und/oder <em>schwerere</em> Variante: Häkchen setzen, dann „Variante(n) erstellen &amp; exportieren". <em>Leicht</em> vereinfacht unterstützte Aufgaben ohne KI-Kosten. Bei <em>schwer</em> werden offene Aufgaben mit dem gewählten Modell anspruchsvoller neu erzeugt; geschlossene Lückentexte verlieren eine vorhandene Wortbank. Weitere Lücken werden nur mit vollständig vorhandenem Lösungsschlüssel ergänzt; bei Cloze-Texten müssen auch die nummerierten Textmarker passen. Nicht sicher transformierbare Teile bleiben unverändert. Dateinamen tragen <code>_leicht</code>/<code>_schwer</code>.</P>
@@ -604,6 +605,54 @@ export const HELP_SECTIONS: HelpSection[] = [
         <P><strong>Retro-Import:</strong> Bereits außerhalb der App korrigierte Abgaben (vorhandene Analyse-JSONs) holst du über „Retro-Import" im Abgaben-Kopf nachträglich in die Datenbank.</P>
         <P><strong>Erweiterte Einstellungen:</strong> Die Korrektur ist in der Desktop-App integriert und prüft sich vor einer Analyse selbst. Falls die Installation nicht bereit ist, zeigt die App eine verständliche Diagnose; der technische TUI-Fallback liegt in den <strong>erweiterten Einstellungen</strong>.</P>
         <Tip>Über den Schülernamen in der Detailansicht springst du direkt zum Längsschnitt dieses Schülers.</Tip>
+      </>
+    ),
+  },
+  {
+    id: 'leseverstaendnis',
+    kapitel: 'bewerten',
+    title: 'Leseverständnis prüfen',
+    Icon: BookOpen,
+    natascha: true,
+    body: (
+      <>
+        <P>
+          Die bisherigen Raster bewerten <strong>Schreibaufträge</strong> — Kommentar,
+          Erörterung, Interpretation. Für die Frage „wer hat den Auszug wirklich
+          verstanden?" gibt es zwei eigene Raster: <strong>Leseverständnis</strong> für die
+          Oberstufe und für die Unterstufe.
+        </P>
+        <P>
+          Statt Schreibqualität messen sie <strong>Sachverständnis</strong>,{' '}
+          <strong>Detailverständnis</strong>, <strong>Schlussfolgern</strong>, den{' '}
+          <strong>Aufbau des Ausgangstextes</strong> und die{' '}
+          <strong>Bedeutungsschicht</strong> (Symbolik, Metaphern, Themen).{' '}
+          <strong>Ausdruck</strong> und <strong>Sprachrichtigkeit</strong> sind nur Begleitung.
+        </P>
+        <P>
+          <strong>Das Verstehen wiegt 85 %</strong>, die Formulierung 15 % (Oberstufe). Fehlt das
+          Verständnis, gibt es „Nicht genügend" — auch bei fehlerfreier Sprache. Das ist
+          Absicht: wer den Text nicht verstanden hat, kann die Aufgabe nicht erfüllen.
+        </P>
+        <Steps items={[
+          <><strong>Quelltext festlegen.</strong> In der Ansicht <strong>Erwartungshorizont</strong> findest du das Feld <strong>Quelltext</strong>: Text einfügen oder eine Datei wählen (DOCX, TXT, MD). Nimm den Auszug, der in der Aufgabe tatsächlich vorkommt — bei einem Roman den Abschnitt, nicht das ganze Werk.</>,
+          <><strong>Einmal pflegen genügt.</strong> Was du dort einträgst, steht danach auch im Korrekturdialog als Ausgangsmaterial bereit.</>,
+          <><strong>Erwartungshorizont erzeugen</strong> und prüfen. Bei einem Verständnisraster fragt LUKA nach 6–8 Verständnisfragen mit Erwartungsbildern und typischen Fehlverständnissen — statt Pro- und Contra-Argumenten.</>,
+          <><strong>Korrigieren:</strong> Im Führungsassistenten im Feld <em>Textsorte</em> <strong>Leseverständnis</strong> wählen. LUKA schlägt das passende Raster selbst vor.</>,
+          <><strong>Raster anpassen:</strong> Der <strong>Rubrik-Editor</strong> in derselben Ansicht öffnet jedes Raster als Text. Änderungen wirken bei der nächsten Korrektur mit diesem Raster.</>,
+        ]} />
+        <P>
+          <strong>Aufpassen bei den Kriterien-Schlüsseln:</strong> Die Namen unter{' '}
+          <em>JSON-Kriterien</em> sind für LUKA verbindlich. Benennst du sie um, muss die
+          <em>Gewichtung</em> unten mitziehen — sonst geht dieser Anteil in der Note verloren.
+        </P>
+        <P>
+          In der <strong>Unterlagenerstellung</strong> bekommt die Aufgabenart
+          <strong> Verständnisfrage</strong> bei Deutsch und Sachfächern dasselbe Raster. In
+          Englisch bleibt das bisherige Bewertungsschema, weil dort die sprachliche Richtigkeit
+          das Kriterium ist.
+        </P>
+        <Tip>Ohne hinterlegten Quelltext prüft LUKA nur die Antwort, nicht das Verständnis — die Notenempfehlung ist dann nicht aussagekräftig. Lege den Auszug deshalb zuerst fest.</Tip>
       </>
     ),
   },

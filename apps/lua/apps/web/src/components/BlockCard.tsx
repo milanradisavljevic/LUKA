@@ -3,10 +3,11 @@ import { CSS } from '@dnd-kit/utilities';
 import type { Block, Meta } from '@lehrunterlagen/schema';
 import type { AppAction } from '../lib/types';
 import { Pencil, X } from 'lucide-react';
-import { getBlockLabel, BLOCK_ARBEITSANWEISUNG_PLACEHOLDER } from '../lib/blockDefaults';
+import { getBlockLabel } from '../lib/blockDefaults';
 import { BLOCK_TYPE_DEFS } from '../lib/constants';
 
 import { BlockConfigPanel } from './BlockConfigPanel';
+import { PunkteFeld, BlockTextfelder } from './BlockKopfFelder';
 
 interface Props {
   block: Block;
@@ -157,11 +158,7 @@ export function BlockCard({ block, dispatch, stufe, index, isSelected, onSelect 
               <Pencil size={15} />
             </button>
           )}
-          <label style={{ margin: 0, fontSize: '0.75rem', whiteSpace: 'nowrap', color: 'var(--color-text-secondary)' }}>Punkte</label>
-          <input type="number" min={0} value={block.punkte}
-            aria-label="Punkte für diesen Block"
-            onChange={(e) => handleChange('punkte', parseInt(e.target.value) || 0)}
-            style={{ width: 64, padding: '0.25rem 0.5rem' }} />
+          <PunkteFeld block={block} onChange={handleChange} marginBottom="0" />
         </div>
         <button className="btn-danger" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
           onClick={handleRemove}
@@ -171,29 +168,7 @@ export function BlockCard({ block, dispatch, stufe, index, isSelected, onSelect 
         </button>
       </div>
 
-      <div style={{ marginBottom: '0.75rem' }}>
-        <label>Arbeitsanweisung</label>
-        <input type="text" value={block.arbeitsanweisung}
-          placeholder={BLOCK_ARBEITSANWEISUNG_PLACEHOLDER[block.typ]}
-          onChange={(e) => handleChange('arbeitsanweisung', e.target.value)} />
-      </div>
-
-      <div style={{ marginBottom: '0.75rem' }}>
-        <label>Clue (optional, kursiv)</label>
-        <input type="text" value={block.clue ?? ''}
-          placeholder="Hinweis in Klammern (kursiv)"
-          onChange={(e) => handleChange('clue', e.target.value || undefined)} />
-      </div>
-
-      <div style={{ marginBottom: '0.75rem' }}>
-        <label>Hinweis für KI (optional)</label>
-        <input type="text" value={block.hinweis ?? ''}
-          placeholder="z.B. Nimm ausschließlich Wörter aus Absatz 3"
-          onChange={(e) => handleChange('hinweis', e.target.value || undefined)} />
-        <span style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)' }}>
-          Individuelle Vorgabe für diesen Block (z.B. Kreuzwort-Quellen)
-        </span>
-      </div>
+      <BlockTextfelder block={block} onChange={handleChange} />
 
       <BlockConfigPanel block={block} stufe={stufe} onConfigChange={handleConfigChange} />
     </div>

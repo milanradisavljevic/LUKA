@@ -9,6 +9,18 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ### Das ist neu
 
+**Einstellungen stehen jetzt neben der fertigen Aufgabe.** Bisher musstestest du für
+eine Änderung an einer Aufgabe zwei Schritte zurück in den Baukasten — und dort die
+Platzhalter statt des Ergebnisses sehen. Jetzt öffnet sich in Schritt „Generieren" über
+**Einstellungen** ein Panel direkt neben dem Blatt: Die Aufgabe bleibt sichtbar, während
+du Punkte, Arbeitsanweisung, Clue, den KI-Hinweis und die aufgabenartigen Felder
+anpasst. Auf kleinen Fenstern wandert das Panel unter das Blatt.
+
+Dabei zeigt das Panel nur, was auf die fertige Unterlage wirkt. Zähler wie „Anzahl
+Lücken" oder „Wortbank" steuerten nur die Erzeugung — sie wären nach der Erstellung
+irreführend. Punkte und der KI-Hinweis übernimmt LUKA zusätzlich in die Aufgabenliste
+des Baukastens, damit sie eine spätere Neugenerierung überstehen.
+
 **Quelltext ordentlich aufbereiten lassen.** Ein Text, den du von einer Webseite
 übernommen hast, bringt oft Navigation, Werbung und kaputte Absätze mit. Der neue
 Schalter **„Quelltext aufbereiten lassen“** (Schritt 4, direkt neben „Quelltext im

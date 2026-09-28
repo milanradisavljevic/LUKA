@@ -1,4 +1,5 @@
 import type { Block, Fach } from '@lehrunterlagen/schema';
+import { getBlockLabel } from '../lib/blockDefaults';
 import { BlockPreviewLueckentext } from './BlockPreviewLueckentext';
 import { BlockPreviewMatching } from './BlockPreviewMatching';
 import { BlockPreviewMultipleChoice } from './BlockPreviewMultipleChoice';
@@ -83,5 +84,17 @@ export function BlockPreview({ block, showSolution, solutionStep, onUpdate, temp
       return pass(BlockPreviewDiagrammAnalyse);
     case 'roleplay':
       return pass(BlockPreviewRoleplay);
+    default:
+      // Typ OHNE eigene Vorschau. Statt still nichts zu rendern (das war ein Loch
+      // im Blatt, waehrend das DOCX den Block druckte) sagt die Vorschau, was gilt.
+      return (
+        <p style={{
+          fontSize: '9pt', fontStyle: 'italic', color: '#888888',
+          border: '1px dashed #cccccc', padding: '0.5rem 0.75rem', margin: '0 0 0.5rem',
+        }}>
+          Für „{getBlockLabel(block.typ)}" gibt es in der Vorschau keine Darstellung.
+          Die Aufgabe wird im Export trotzdem gedruckt — bitte im DOCX prüfen.
+        </p>
+      );
   }
 }

@@ -56,6 +56,10 @@ export function wizardReducer(state: AppState, action: AppAction): AppState {
       };
     case 'ADD_BLOCK':
       return { ...state, bloecke: [...state.bloecke, action.block] };
+    // Bewusst NICHT in der Liste aus useWizard.ts:33 — hier folgt die Anforderung dem
+    // erzeugten Dokument, das Dokument wird also nicht veraltet.
+    case 'SET_BLOECKE':
+      return { ...state, bloecke: action.bloecke };
     case 'UPDATE_BLOCK':
       return {
         ...state,

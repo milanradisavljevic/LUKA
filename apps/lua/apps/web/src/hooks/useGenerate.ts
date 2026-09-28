@@ -428,7 +428,19 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
       const neu = ergebnis.bloecke[0];
       if (!neu) throw new Error('Kein Block in der Antwort.');
       // id des Originalblocks beibehalten, restliche Felder ersetzen.
-      const neuMitId = { ...neu, id: blockId } as Block;
+      // Einstellungen werden bewusst UEBERNOMMEN und nicht neu erzeugt: Punkte,
+      // KI-Hinweis und Clue hat die Lehrkraft gesetzt (ggf. ueber das Einstellungs-
+      // Panel neben der Vorschau). Ohne das wuerde ein Klick auf "Neu generieren"
+      // ihre Punkte wieder auf einen Modellwert zuruecksetzen. Der Inhalt der
+      // Aufgabe und ihre Arbeitsanweisung kommen dagegen neu vom Modell — genau
+      // darum wird diese Funktion ja aufgerufen.
+      const neuMitId = {
+        ...neu,
+        id: blockId,
+        punkte: ziel.punkte,
+        hinweis: ziel.hinweis,
+        ...(ziel.clue !== undefined ? { clue: ziel.clue } : {}),
+      } as Block;
       dispatch({ type: 'UPDATE_GENERIERTER_BLOCK', id: blockId, block: neuMitId as Partial<Block> });
       setStage('fertig');
       return neuMitId;
