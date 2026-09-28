@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Paragraph, Table, TableRow, TableCell } from 'docx';
-import { RENDER_TEMPLATES } from './template.js';
+import { RENDER_TEMPLATES, getDefaultTemplate } from './template.js';
 import { getDefaultLayout } from './layout.js';
 import {
   buildBlock,
@@ -8,6 +8,8 @@ import {
   numbersForLines,
   quelltextAbsaetze,
   anzeigeQuelltext,
+  pruefeRaetselA4,
+  zellGroesseInCm,
   type RenderBlockCtx,
 } from './index.js';
 import type { Block, DocumentV1, QuellText } from '@lehrunterlagen/schema';
@@ -646,6 +648,77 @@ describe('blocks - kreuzwortraetsel Richtungs-Labels', () => {
     expect(text).toContain('Down:');
     expect(text).not.toContain('Waagrecht');
     expect(text).not.toContain('Senkrecht');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Rätsel auf A4 — Bug-Report v1.5.4: Export brach komplett ab
+// ---------------------------------------------------------------------------
+// Das Modell lieferte 25 Einträge, obwohl 20 angefordert waren. Die A4-Prüfung
+// rechnete die Hinweiszeilen von der Gitterfläche ab, kam bei 0 Twips Resthöhe
+// zu "passt nicht" — und der Renderer WARPF. Folge für die Lehrkraft: keine
+// DOCX-Datei, obwohl die Unterlage inhaltlich fertig war.
+
+describe('blocks — Rätsel passen immer aufs Blatt', () => {
+  // Echte deutsche Wörter mit Überlappungen. Platzhalter wie "WORT1" greifen sich
+  // nicht und das Gitter baut daraus 4x1 — damit wäre der Bug nicht reproduzierbar.
+  const WOERTER = [
+    'HAUS', 'BAUM', 'MAUS', 'SCHULE', 'LEHRER', 'TASCHE', 'BALL', 'WASSER', 'FEUER', 'WIND',
+    'HAHN', 'NEST', 'DORF', 'WOLF', 'MOND', 'SAND', 'UFER', 'ZUG', 'ARZT', 'HAAR',
+  ];
+  const LANGER_HINWEIS = 'Ein ausführlicher Hinweis, der über zwei Zeilen läuft und damit die Blattfläche belegt.';
+  const eintraege = (n: number) => WOERTER.slice(0, n).map((wort) => ({ wort, hinweis: LANGER_HINWEIS }));
+
+  const docMit = (bloecke: Block[]): DocumentV1 => ({
+    schemaVersion: '0.1.0',
+    meta: { stufe: 'oberstufe', fach: 'deutsch', thema: 'Rätsel', datum: '2026-06-30', klasse: '7A', notizen: '' },
+    quelltexte: [baseQuelltext],
+    bloecke,
+  });
+
+  const kreuzwortBlock = (n: number): Extract<Block, { typ: 'kreuzwortraetsel' }> => ({
+    id: 'bR', typ: 'kreuzwortraetsel', punkte: 8, arbeitsanweisung: 'Löse das Rätsel.',
+    config: { eintraege: eintraege(n) },
+  });
+
+  it('25 Kreuzwort-Einträge erzeugen trotzdem eine DOCX-Datei', async () => {
+    const { renderDocument } = await import('./index.js');
+    const result = await renderDocument(docMit([kreuzwortBlock(25)]));
+    expect(result.schueler.length).toBeGreaterThan(0);
+    expect(result.schueler[0]).toBe(0x50);
+  });
+
+  it('25 Wortgitter-Wörter erzeugen trotzdem eine DOCX-Datei', async () => {
+    const { renderDocument } = await import('./index.js');
+    const wortgitter: Block = {
+      id: 'bW', typ: 'wortgitter', punkte: 6, arbeitsanweisung: 'Finde alle Wörter.',
+      config: { woerter: WOERTER },
+    };
+    const result = await renderDocument(docMit([wortgitter]));
+    expect(result.schueler.length).toBeGreaterThan(0);
+  });
+
+  it('Gitter bleibt auch bei 25 Einträgen bei 0,65 cm', () => {
+    const pruefung = pruefeRaetselA4(kreuzwortBlock(25), getDefaultTemplate(), getDefaultLayout());
+    // Der Renderer schrumpft notfalls bis zur kleinsten sinnvollen Größe, statt den
+    // Export zu verweigern. 368 Twips sind die 0,65 cm, die das Panel anzeigt.
+    expect(pruefung.passt).toBe(true);
+    expect(pruefung.zellgroesse).toBeGreaterThanOrEqual(368);
+    // Anzeige-String fürs Panel: gerundet auf zwei Nachkommastellen.
+    expect(zellGroesseInCm(pruefung.zellgroesse)).toBe('0.65');
+  });
+
+  it('Hinweise laufen ab 12 langen Hinweisen auf die Folgeseite', () => {
+    const layout = getDefaultLayout();
+    const tpl = getDefaultTemplate();
+    const kurz = pruefeRaetselA4(kreuzwortBlock(8), tpl, layout);
+    const lang = pruefeRaetselA4(kreuzwortBlock(12), tpl, layout);
+    // Bei 8 Einträgen stehen die Hinweise noch unter dem Gitter, bei 12 nicht mehr
+    // ⇒ das DOCX bekommt vor der Hinweisliste einen Seitenumbruch. Das Gitter
+    // selbst wird in beiden Fällen gleich gezeichnet.
+    expect(kurz.hinweisePassen).toBe(true);
+    expect(lang.hinweisePassen).toBe(false);
+    expect(kurz.zellgroesse).toBe(lang.zellgroesse);
   });
 });
 

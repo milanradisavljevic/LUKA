@@ -401,4 +401,49 @@ describe('normalizeDocument', () => {
       expect(result.bloecke[0].loesung.antworten[0].erwartung).toContain('B ist');
     });
   });
+
+  // Bug-Report v1.5.4: Das Modell lieferte 25 Kreuzwort-Wörter, das Blatt fasst 20.
+  // Ohne Kappung hätte der Block mehr Wörter im Speicher, als das DOCX zeigen kann.
+  describe('Rätsel: harte Blattgrenze', () => {
+    const meta = { stufe: 'oberstufe', fach: 'deutsch', thema: 'Test', datum: '2026-01-01', klasse: '7A', notizen: '' };
+    const nEintraege = (n: number) =>
+      Array.from({ length: n }, (_, i) => ({ wort: `WORT${i}`, hinweis: 'Hinweis' }));
+
+    it('kreuzwortraetsel: 25 Einträge werden auf 20 gekappt', () => {
+      const result = normalizeDocument({
+        schemaVersion: '0.1.0', meta, quelltexte: [],
+        bloecke: [{
+          typ: 'kreuzwortraetsel', id: 'b1', punkte: 8, arbeitsanweisung: 'Löse.',
+          config: { eintraege: nEintraege(25) },
+        }],
+      }) as any;
+      expect(result.bloecke[0].config.eintraege).toHaveLength(20);
+      // anzahlWoerter darf nicht die Länge der gekappten Liste überleben.
+      expect(result.bloecke[0].config.anzahlWoerter).toBe(20);
+    });
+
+    it('wortgitter: 25 Wörter werden auf 20 gekappt', () => {
+      const result = normalizeDocument({
+        schemaVersion: '0.1.0', meta, quelltexte: [],
+        bloecke: [{
+          typ: 'wortgitter', id: 'b1', punkte: 6, arbeitsanweisung: 'Finde.',
+          config: { woerter: nEintraege(25).map((e) => e.wort) },
+        }],
+      }) as any;
+      expect(result.bloecke[0].config.woerter).toHaveLength(20);
+      expect(result.bloecke[0].config.anzahlWoerter).toBe(20);
+    });
+
+    it('kürzere Rätsel bleiben unangetastet', () => {
+      const result = normalizeDocument({
+        schemaVersion: '0.1.0', meta, quelltexte: [],
+        bloecke: [{
+          typ: 'kreuzwortraetsel', id: 'b1', punkte: 8, arbeitsanweisung: 'Löse.',
+          config: { eintraege: nEintraege(6) },
+        }],
+      }) as any;
+      expect(result.bloecke[0].config.eintraege).toHaveLength(6);
+      expect(result.bloecke[0].config.anzahlWoerter).toBe(6);
+    });
+  });
 });

@@ -27,7 +27,7 @@ import type { RenderTemplate } from './template.js';
 import { RENDER_TEMPLATES, getDefaultTemplate } from './template.js';
 import type { RenderLayout, RenderLayoutId } from './layout.js';
 import { RENDER_LAYOUTS, getDefaultLayout } from './layout.js';
-import { pruefeRaetselA4, RaetselPasstNichtAufA4Error } from './puzzleLayout.js';
+import { pruefeRaetselA4 } from './puzzleLayout.js';
 import { baueWortbank, shuffle, baueKreuzwortgitter, baueWortgitter, bereinigeQuelltext, fachLabel as fachLabelOf } from '@lehrunterlagen/schema';
 
 const DEFAULT_TEMPLATE = RENDER_TEMPLATES.klassisch;
@@ -693,11 +693,11 @@ function buildDocumentChildren(
   template: RenderTemplate,
   layout: RenderLayout = getDefaultLayout(),
 ): (Paragraph | Table)[] {
-  for (const block of doc.bloecke) {
-    if (block.typ !== 'kreuzwortraetsel' && block.typ !== 'wortgitter') continue;
-    const pruefung = pruefeRaetselA4(block, template, layout);
-    if (!pruefung.passt) throw new RaetselPasstNichtAufA4Error(pruefung);
-  }
+  // Bewusst KEIN Abbruch mehr, wenn ein Rätsel die Seite sprengt. Vorher warf
+  // buildBlock hier und der Export lieferte gar keine Datei — bei 25 Feldern
+  // blieb für das Gitter 0 Twips übrig, weil allein die Hinweiszeilen die Seite
+  // auffraßen. Jetzt gilt: Gitter auf eine Seite (mit kleinster Kästchengröße),
+  // Hinweise laufen bei Bedarf auf die Folgeseite.
   const quelltextMap = new Map<string, QuellText>(
     doc.quelltexte.map((q) => [q.id, q]),
   );
@@ -2902,7 +2902,9 @@ function buildKreuzwortraetsel(
   if (gitter.zeilen === 0) return result;
 
   const pruefung = pruefeRaetselA4(block, template, layout);
-  if (!pruefung.passt) throw new RaetselPasstNichtAufA4Error(pruefung);
+  // Kein Wurf: notfalls wird bis zur kleinsten Kästchengröße geschrumpft, und was
+  // dann noch nicht passt, läuft über den Seitenumbruch. Ein nicht exportierbares
+  // Kreuzworträtsel ist schlechter als ein sehr kleines.
   const CELL = pruefung.zellgroesse;
 
   const cellBorder = { top: thinBorder(template), bottom: thinBorder(template), left: thinBorder(template), right: thinBorder(template) };
@@ -2968,6 +2970,12 @@ function buildKreuzwortraetsel(
   };
   // Richtungs-Label in der Ausgabesprache (Bug-Report v1.5.0: „Waagrecht/Senkrecht
   // sollte auch auf Englisch sein") — Standard-Kreuzwort-Begriffe, nicht "horizontal".
+  // Reichen die Hinweise nicht mehr unter das Gitter, kommen sie auf die Folgeseite.
+  // Das ist Blattfluss und kein Fehler — genau dieser Fall hat vorher den Export
+  // verhindert (25 Felder ⇒ 0 Twips ⇒ "DOCX-Export nicht möglich").
+  if (!pruefeRaetselA4(block, template, layout).hinweisePassen) {
+    result.push(new Paragraph({ children: [new PageBreak()] }));
+  }
   hinweisListe(isEnglish ? 'Across:' : 'Waagrecht:', waag);
   hinweisListe(isEnglish ? 'Down:' : 'Senkrecht:', senk);
 
@@ -2997,7 +3005,7 @@ function buildWortgitter(
   }
 
   const pruefung = pruefeRaetselA4(block, template, layout);
-  if (!pruefung.passt) throw new RaetselPasstNichtAufA4Error(pruefung);
+  // Kein Wurf — siehe buildKreuzwortraetsel.
   const CELL = pruefung.zellgroesse;
 
   const cellBorder = { top: thinBorder(template), bottom: thinBorder(template), left: thinBorder(template), right: thinBorder(template) };
@@ -3026,7 +3034,11 @@ function buildWortgitter(
     layout: TableLayoutType.FIXED,
   }));
 
-  // Wortliste zum Suchen.
+  // Wortliste zum Suchen. Passt sie nicht mehr unter das Gitter, kommt sie auf die
+  // Folgeseite — Blattfluss statt Abbruch (siehe buildKreuzwortraetsel).
+  if (!pruefeRaetselA4(block, template, layout).hinweisePassen) {
+    result.push(new Paragraph({ children: [new PageBreak()] }));
+  }
   result.push(new Paragraph({
     keepNext: true,
     children: [run('Finde diese Wörter:', { font: template.font, size: template.fontSize.body, bold: true })],
@@ -3216,7 +3228,8 @@ function chunkArray<T>(arr: T[], size: number): T[][] {
 
 
 export { RENDER_TEMPLATES, getDefaultTemplate };
-export { pruefeRaetselA4, RaetselPasstNichtAufA4Error } from './puzzleLayout.js';
+export { pruefeRaetselA4, maxEintraegeFuerBlatt, zellGroesseInCm } from './puzzleLayout.js';
+export { MAX_RAETSEL_EINTRRAEGE } from '@lehrunterlagen/schema';
 export type { RenderTemplate, RenderTemplateId } from './template.js';
 export type { RenderLayout, RenderLayoutId } from './layout.js';
 export { RENDER_LAYOUTS, getDefaultLayout } from './layout.js';

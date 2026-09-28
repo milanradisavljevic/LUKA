@@ -78,6 +78,21 @@ export function fachLabel(fach: Fach): string {
 }
 
 /**
+ * Aufgabenarten, die **nicht** Schreibtextsorten sind, sondern den Umgang mit
+ * einem vorgegebenen Text pruefen. Bewusst getrennt von
+ * `SRDP_DEUTSCH_TEXTSORTEN`: dort stehen die Textsorten, die Schuelerinnen und
+ * Schueler selbst schreiben. Eine Verstaendnisaufgabe ist eine andere
+ * Aufgabenart — sie gehoert nicht in den Matura-Katalog der Schreibtextsorten
+ * und wuerde dort einen amtlichen Anschein erzeugen, den sie nicht hat.
+ *
+ * Wird im Korrekturdialog zusaetzlich angeboten, damit sich das passende
+ * Bewertungsraster (`leseverstaendnis.md`) direkt vorschlagen laesst.
+ */
+export const LESEVERSTAENDNIS_AUFGABENARTEN = [
+  'Leseverständnis',
+] as const;
+
+/**
  * Kuratierte Textsorten-Auswahl fuer die Deutsch-SRDP-Korrektur (Oberstufe).
  * Die ersten 7 sind die offiziellen BMB-Leitfaden-Textsorten.
  * "Empfehlung" ist eine zusaetzliche, nicht offizielle SRDP-Textsorte.
@@ -655,6 +670,16 @@ export type SonganalyseBlock = z.infer<typeof SonganalyseBlockSchema>;
 // LLM liefert nur Wort+Hinweis; das Gitter baut `baueKreuzwortgitter` (grids.ts)
 // deterministisch. Keine separate loesung — die Wörter in config.eintraege SIND
 // die Lösung (Renderer zeigt sie nur in der Lösungsfassung).
+
+/**
+ * Obergrenze für Kreuzworträtsel- und Wortgitter-Einträge.
+ *
+ * Bewusst eine gemeinsame Zahl: das LLM liebt mehr Begriffe, als ein Blatt hergibt.
+ * `normalize.ts` kappt beim Speichern darauf, `puzzleLayout.ts` beim Rechnen und das
+ * Zahlenfeld im Panel zeigt sie als `max` an. So entsteht nie ein Block, der im
+ * Speicher mehr Wörter hat, als das Blatt zeigen kann.
+ */
+export const MAX_RAETSEL_EINTRRAEGE = 20;
 
 export const KreuzwortraetselBlockSchema = BlockBaseSchema.extend({
   typ: z.literal('kreuzwortraetsel'),

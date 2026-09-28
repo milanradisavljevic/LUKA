@@ -44,15 +44,21 @@ describe('A4-Prüfung für Rätsel', () => {
     expect(pruefung.passt).toBe(true);
     expect(pruefung.benoetigteBreite).toBeLessThanOrEqual(pruefung.verfuegbareBreite);
   });
-
-  it('blockiert ein zu breites Wortgitter statt es über den Seitenrand zu drücken', () => {
+  // Ein 60-Buchstaben-Wort erzeugt ein 60x60-Gitter. Das ist zu groß für ein Blatt —
+  // früher hat der Export deshalb abgebrochen und die Lehrkraft bekam gar keine Datei.
+  // Heute wird auf die kleinste lesbare Kästchengröße geschrumpft.
+  it('schrumpft ein zu breites Wortgitter, statt es über den Seitenrand zu drücken', () => {
     const block: Extract<DocumentV1['bloecke'][number], { typ: 'wortgitter' }> = {
-      id: 'word-too-wide', typ: 'wortgitter', punkte: 4, arbeitsanweisung: 'Finde die Wörter.',
+      id: 'word-too-wide', typ: 'wortgitter', punkte: 4,
+      arbeitsanweisung: 'Finde die Wörter.',
       config: { woerter: ['A'.repeat(60)] },
     };
     const pruefung = pruefeRaetselA4(block, template, RENDER_LAYOUTS.standard);
-    expect(pruefung.passt).toBe(false);
-    expect(pruefung.grund).toContain('60 × 60');
+    // Nie über den Satzspiegel hinaus, und nie unter die kleinste lesbare Kästchengröße.
+    expect(pruefung.benoetigteBreite).toBeLessThanOrEqual(pruefung.verfuegbareBreite);
+    expect(pruefung.benoetigteHoehe).toBeLessThanOrEqual(pruefung.verfuegbareHoehe);
+    expect(pruefung.zellgroesse).toBeGreaterThanOrEqual(141); // 0,25 cm
+    expect(pruefung.spalten).toBe(60);
   });
 
   it('berücksichtigt die kleinere Innenfläche des gerahmten Layouts', () => {
@@ -64,13 +70,17 @@ describe('A4-Prüfung für Rätsel', () => {
     const gerahmt = pruefeRaetselA4(block, template, RENDER_LAYOUTS.gerahmt);
     expect(gerahmt.verfuegbareBreite).toBe(standard.verfuegbareBreite - 280);
   });
-
-  it('verweigert den DOCX-Export bei einem nicht passenden Rätsel', async () => {
+  // Kern des Bug-Reports v1.5.4: ein Rätsel, das die Seite sprengt, darf den
+  // Export nicht mehr verhindern. Notfalls läuft der Hinweisblock auf Seite 2.
+  it('exportiert ein zu großes Rätsel trotzdem, statt den Export zu verweigern', async () => {
     const doc = makeDoc([{
-      id: 'word-too-wide', typ: 'wortgitter', punkte: 4, arbeitsanweisung: 'Finde die Wörter.',
+      id: 'word-too-wide', typ: 'wortgitter', punkte: 4,
+      arbeitsanweisung: 'Finde die Wörter.',
       config: { woerter: ['A'.repeat(60)] },
     }]);
-    await expect(renderDocument(doc)).rejects.toThrow('Mindestens 180 Twips');
+    const result = await renderDocument(doc);
+    expect(isDocx(result.schueler)).toBe(true);
+    expect(isDocx(result.loesung)).toBe(true);
   });
 });
 

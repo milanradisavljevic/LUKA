@@ -7,6 +7,8 @@
  * unveraendert gelassen und Zod schlaegt fehl.
  */
 
+import { MAX_RAETSEL_EINTRRAEGE } from '@lehrunterlagen/schema';
+
 type AnyObj = Record<string, unknown>;
 
 function isObject(val: unknown): val is AnyObj {
@@ -532,7 +534,10 @@ function normalizeKreuzwortraetsel(block: AnyObj): AnyObj {
   // Manche LLMs nennen das Feld anders (woerter/eintraege/items).
   const roh: unknown = config.eintraege ?? config.woerter ?? config.items;
   if (Array.isArray(roh)) {
-    config.eintraege = roh.map((e: unknown) => {
+    // Auf die Blattgrenze kappen: das Modell liefert gern mehr, als die Oberfläche
+    // anbietet. Ohne Kappung hätte der Block mehr Wörter im Speicher, als das
+    // Blatt zeigen kann, und die Anzeige würde stillschweigend schrumpfen.
+    const eintraege: { wort: string; hinweis: string }[] = roh.slice(0, MAX_RAETSEL_EINTRRAEGE).map((e: unknown) => {
       if (typeof e === 'string') return { wort: e, hinweis: '' };
       if (isObject(e)) {
         const wort = typeof e.wort === 'string' ? e.wort
@@ -545,6 +550,8 @@ function normalizeKreuzwortraetsel(block: AnyObj): AnyObj {
       }
       return { wort: '', hinweis: '' };
     });
+    config.eintraege = eintraege;
+    config.anzahlWoerter = Math.min(eintraege.length, MAX_RAETSEL_EINTRRAEGE);
     delete (config as AnyObj).woerter;
     delete (config as AnyObj).items;
   }
@@ -560,7 +567,9 @@ function normalizeWortgitter(block: AnyObj): AnyObj {
   const config = isObject(block.config) ? { ...block.config } : {};
   const roh: unknown = config.woerter ?? config.eintraege ?? config.items;
   if (Array.isArray(roh)) {
-    config.woerter = roh
+    // Siehe normalizeKreuzwortraetsel: harte Blattgrenze statt Anzeige-Kappung.
+    const woerter: string[] = roh
+      .slice(0, MAX_RAETSEL_EINTRRAEGE)
       .map((e: unknown) => {
         if (typeof e === 'string') return e;
         if (isObject(e)) {
@@ -570,6 +579,8 @@ function normalizeWortgitter(block: AnyObj): AnyObj {
         return '';
       })
       .filter((w: string) => w.length > 0);
+    config.woerter = woerter;
+    config.anzahlWoerter = Math.min(woerter.length, MAX_RAETSEL_EINTRRAEGE);
     delete (config as AnyObj).eintraege;
     delete (config as AnyObj).items;
   }

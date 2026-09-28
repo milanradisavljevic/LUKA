@@ -39,6 +39,21 @@ fortlaufend.
 Eingabefeld. Du schreibst hin, was du brauchst - „zwei Teilsätze, jeweils mit
 Beispiel“ oder „nur die Satzanalyse, keine Wortfrage“ - und LUKA erstellt diese eine
 Aufgabe neu. Die alte und die neue Fassung stehen danach zum Vergleich da.
+
+**Kreuzworträtsel und Wortgitter lassen sich wieder exportieren.** Kam in ein Rätsel
+zu viel hinein, brach der Export mit „DOCX-Export nicht möglich“ ab und du bekamst
+gar keine Datei. Jetzt gilt:
+
+- Das Rätsel wird nie mehr abgelehnt. Notfalls werden die Kästchen so klein wie
+  lesbar gesetzt, und lange Hinweise rutschen auf die nächste Seite.
+- Die Kästchen haben eine feste Größe von 0,65 cm. Ein Blatt mit drei Wörtern ist
+  damit genauso gut beschreibbar wie eines mit zwanzig.
+- Mehr als 20 Wörter nimmt LUKA nicht mehr an – im Baukasten ist das Feld begrenzt,
+  und bringt das Modell trotzdem mehr, werden die überzähligen weggelassen. Die
+  Unterlage zeigt damit nie mehr Wörter, als sie drucken kann.
+
+Beide Rätselarten waren gleich betroffen.
+
 ## Version 1.5.3 — 2026-09-26
 
 ### Das ist neu
