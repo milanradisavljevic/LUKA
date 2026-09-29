@@ -5,11 +5,20 @@ Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 (auch andere Coding-Agents) — siehe `AGENTS.md`.
 
-## Unreleased (v1.5.4)
+## Version 1.5.4 — 2026-09-29
 
 ### Das ist neu
 
-**Einstellungen stehen jetzt neben der fertigen Aufgabe.** Bisher musstestest du für
+- Aufgaben direkt neben der Vorschau anpassen und gezielt mit eigenen Hinweisen neu erstellen.
+- Quelltexte fürs Arbeitsblatt aufbereiten lassen; der eingegebene Originaltext bleibt erhalten.
+- Kreuzworträtsel und Wortgitter auch bei umfangreichen Rätseln als DOCX exportieren.
+- Leseverständnis mit passenden Rastern für Ober- und Unterstufe korrigieren; der Ausgangstext wird übernommen und als Voraussetzung kenntlich gemacht.
+- Bewertungsraster separat verwalten, aus Vorlagen anlegen und auf Unstimmigkeiten prüfen.
+- In der Notenübersicht sehen, welche Kriterien das gewählte Raster tatsächlich bewertet.
+
+### Änderungen im Detail
+
+**Einstellungen stehen jetzt neben der fertigen Aufgabe.** Bisher musstest du für
 eine Änderung an einer Aufgabe zwei Schritte zurück in den Baukasten — und dort die
 Platzhalter statt des Ergebnisses sehen. Jetzt öffnet sich in Schritt „Generieren" über
 **Einstellungen** ein Panel direkt neben dem Blatt: Die Aufgabe bleibt sichtbar, während

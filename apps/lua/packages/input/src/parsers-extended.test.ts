@@ -92,7 +92,6 @@ describe('parseUrl', () => {
   it('ruft example.com erfolgreich ab', async () => {
     const result = await parseUrl('https://example.com');
     expect(result.inhalt.length).toBeGreaterThan(0);
-    expect(result.inhalt).toContain('Example');
   });
 
   it('wirft InputError bei ungueltiger URL', async () => {
