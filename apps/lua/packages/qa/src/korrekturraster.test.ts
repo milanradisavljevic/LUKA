@@ -113,18 +113,36 @@ describe('Builder: Geschlossene Blocks', () => {
 // ---------------------------------------------------------------------------
 
 describe('Builder: Offene Verstaendnisfragen', () => {
-  it('erzeugt pro Frage 2 Kriterien (Aufgabenerfuellung + Sprache)', () => {
-    const doc = makeDoc([{
+    const verstaendnisBlock = {
       id: 'b1', typ: 'offeneVerstaendnisfrage', punkte: 10, arbeitsanweisung: 'Beantworte.',
       config: { fragen: [{ nr: 1, frage: 'Was?', zeilen: 4 }, { nr: 2, frage: 'Warum?', zeilen: 4 }] },
       loesung: { antworten: { '1': 'Weil...', '2': 'Denn...' } },
-    }]);
-    const raster = buildRaster(doc);
-    // 2 Fragen * 2 Kriterien = 4 Kriterien
-    expect(raster.bloecke[0].kriterien).toHaveLength(4);
-    expect(raster.bloecke[0].maxPunkte).toBe(10);
+    } as const;
+
+    it('misst im Deutschen Verstaendnis, nicht Formulierung', () => {
+      const raster = buildRaster(makeDoc([verstaendnisBlock]));
+      const namen = raster.bloecke[0].kriterien.map((k) => k.kriterium);
+      expect(namen).toContain('Sachverständnis');
+      expect(namen).toContain('Schlussfolgern');
+      // Der alte CEFR-Katalog vergab pro Frage "Aufgabenerfuellung + Sprache".
+      // Bei einer Verstaendnispruefung ist die Formulierung Nebensache.
+      expect(namen.some((n) => n.startsWith('Frage '))).toBe(false);
+      // Verstehen muss den groessten Anteil ausmachen.
+      const verstehen = raster.bloecke[0].kriterien
+        .filter((k) => !/Formulierung|Sprachrichtigkeit/.test(k.kriterium))
+        .reduce((s, k) => s + k.maxPunkte, 0);
+      expect(verstehen / raster.bloecke[0].maxPunkte).toBeGreaterThan(0.75);
+    });
+
+    it('behaelt im Englischen das CEFR-Schema pro Frage', () => {
+      const raster = buildRaster(makeDoc([verstaendnisBlock], 'englisch'));
+      const namen = raster.bloecke[0].kriterien.map((k) => k.kriterium);
+      // 2 Fragen * 2 Kriterien = 4 Kriterien
+      expect(namen).toHaveLength(4);
+      expect(namen[0]).toContain('Frage 1');
+      expect(raster.bloecke[0].maxPunkte).toBe(10);
+    });
   });
-});
 
 // ---------------------------------------------------------------------------
 // Builder: Schreibaufgabe

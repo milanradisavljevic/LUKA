@@ -136,6 +136,27 @@ export function readingComprehension(anzahlFragen: number): KriterienKatalog[] {
 }
 
 // ---------------------------------------------------------------------------
+// Leseverstaendnis (Deutsch / Sachfächer) — Verständnis des Ausgangstextes
+// ---------------------------------------------------------------------------
+
+/**
+ * Bewertet, was die Schülerinnen und Schüler *verstanden* haben — nicht, wie
+ * sauber sie formulieren. Derselbe Gedanke steckt in der Rubrik
+ * `leseverstaendnis.md` auf der Korrekturseite; hier geht es um die Punkte der
+ * erzeugten Unterlage.
+ *
+ * Gewichtung 80/15/5: Verstehen dominiert, Sprache ist Begleitung.
+ */
+export const LESEVERSTAENDNIS: KriterienKatalog[] = [
+  { kriterium: 'Sachverständnis', beschreibung: 'Kernaussage und Handlung korrekt erfasst; Figuren und deren Beziehungen wiedergegeben', maxPunkte: 8 },
+  { kriterium: 'Detailverständnis', beschreibung: 'Gefragte Informationen richtig aufgesucht; Zeit, Ort und Reihenfolge stimmen', maxPunkte: 6 },
+  { kriterium: 'Schlussfolgern', beschreibung: 'Zwischenzeilen gelesen; Schlussfolgerung mit einer Textstelle begründet', maxPunkte: 6 },
+  { kriterium: 'Bedeutungsschicht', beschreibung: 'Zentrale Bilder, Metaphern oder Symbole erkannt und gedeutet; Themenebene erfasst', maxPunkte: 6 },
+  { kriterium: 'Eigene Formulierung', beschreibung: 'In eigenen Worten; Zitate nur als Beleg und gekennzeichnet', maxPunkte: 2 },
+  { kriterium: 'Sprachrichtigkeit', beschreibung: 'Grammatik, Rechtschreibung, Zeichensetzung der Antwort', maxPunkte: 1 },
+];
+
+// ---------------------------------------------------------------------------
 // wordScramble (Unter- und Oberstufe)
 // ---------------------------------------------------------------------------
 

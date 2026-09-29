@@ -13,6 +13,7 @@ import {
   SACHERORTERUNG,
   MEDIENQUELLENANALYSE,
   readingComprehension,
+  LESEVERSTAENDNIS,
   WORD_SCRAMBLE,
   KATEGORISIERUNG,
   TABELLE,
@@ -57,8 +58,15 @@ function waehleKatalog(block: Block, fach: DocumentV1['meta']['fach'], typ?: Doc
     case 'quellenanalyse':
       return QUELLENANALYSE;
 
-    case 'offeneVerstaendnisfrage':
-      return readingComprehension(block.config.fragen.length);
+    case 'offeneVerstaendnisfrage': {
+      // Eine Verständnisfrage an einem *literarischen oder Sach-Text* misst
+      // Textverständnis. Der bisherige CEFR-Katalog vergab pro Frage 2 Punkte
+      // Aufgabe gegen 1 Punkt Sprache — bei einer Verständnisprüfung genau
+      // verkehrt herum, denn die Formulierung ist hier Nebensache.
+      // Fremdsprachen behalten das CEFR-Schema (dort ist Sprache das Kriterium).
+      if (istSprachfach(fach)) return readingComprehension(block.config.fragen.length);
+      return LESEVERSTAENDNIS;
+    }
 
     case 'offeneSchreibaufgabe': {
       const textsorte = block.config.textsorte.toLowerCase();
@@ -78,6 +86,7 @@ function waehleKatalog(block: Block, fach: DocumentV1['meta']['fach'], typ?: Doc
       // informatikki: kein eigener Zweig -- faellt auf den generischen Textsorte-Fallback
       // unten durch (Deutsch-Logik als Default fuer noch nicht spezialisierte Sachfaecher).
       // Deutsch: nach Textsorte
+      if (textsorte.includes('leseverständnis') || textsorte.includes('leseverstaendnis')) return LESEVERSTAENDNIS;
       if (textsorte.includes('zusammenfassung')) return ZUSAMMENFASSUNG;
       if (textsorte.includes('erörterung') || textsorte.includes('erorterung') || textsorte.includes('stellungnahme')) return ERORTERUNG;
       if (textsorte.includes('analyse') || textsorte.includes('interpretation')) return TEXTANALYSE;

@@ -476,6 +476,73 @@ Die Farbe erscheint im Wochenstreifen, im Monatsraster, in der Rasterliste, in d
 
 ---
 
+## Leseverständnis prüfen
+
+Bisher bewertet LUKA vor allem **Schreibaufträge** – Kommentar, Erörterung,
+Interpretation. Für die Frage „wer hat den Auszug wirklich verstanden?" gibt es
+zwei eigene Bewertungsraster: **Leseverständnis** (Oberstufe) und
+**Leseverständnis** (Unterstufe).
+
+### Was gemessen wird
+
+| Kriterium | Oberstufe | Unterstufe |
+|---|---|---|
+| **Sachverständnis** | Kernaussage, Handlung, Figuren | Kernaussage und Handlung |
+| **Detailverständnis** | Informationen gezielt auffinden | Informationen wiedergeben |
+| **Schlussfolgern** | Implizites erschließen und belegen | – |
+| **Aufbau des Ausgangstextes** | Figurenkonstellation, Brüche, Wiederholungen | – |
+| **Bedeutungsschicht** | Symbolik, Metaphern, Themen | Bedeutung erklärt |
+| **Ausdruck** | eigene Formulierung | eigene Formulierung |
+| **Sprachrichtigkeit** | Sprache der Antwort | Sprache der Antwort |
+
+**Das Verstehen wiegt 85 %, die Formulierung 15 %** (Oberstufe) – bei einem
+Verständnistest ist das die ehrliche Verteilung. Fehlt das Verständnis ganz,
+gibt es „Nicht genügend", auch bei fehlerfreier Sprache. Das ist Absicht: wer den
+Text nicht verstanden hat, kann die Aufgabe nicht erfüllen.
+
+> **Wichtig:** Ohne hinterlegten Ausgangstext prüft LUKA nur die Antwort, nicht
+> das Verständnis. Die Notenempfehlung ist dann nicht aussagekräftig. Lege den
+> Text deshalb zuerst fest (siehe unten).
+
+### In drei Schritten
+
+**1 · Quelltext festlegen.** Öffne **Erwartungshorizont**, wähle Klasse und
+Aufgabe, und hinterlege den Auszug, den die Schüler gelesen haben, im Feld
+**Quelltext** – Text einfügen oder eine Datei wählen (`.docx`, `.txt`, `.md`).
+Bei einem Romanauszug nimm den Abschnitt, der in der Aufgabe tatsächlich
+vorkommt; ein ganzer Roman ist als Ausschnitt gemeint.
+
+Was du dort einträgst, steht danach auch im Korrekturdialog als
+Ausgangsmaterial zur Verfügung – du pflegst den Auszug also nur einmal. Ohne
+eigene Eingabe sucht LUKA wie bisher im Ordner `ausgangstext/` der Aufgabe und
+im zuletzt gespeicherten Quelltext.
+
+**2 · Erwartungshorizont erzeugen.** **Generieren** erzeugt aus Raster,
+Textsorte und Quelltext die Grundlage für die Korrektur. Bei einem
+Verständnisraster fragt LUKA nach 6–8 Verständnisfragen mit Erwartungsbildern,
+typischen Fehlverständnissen und den Textstellen, an denen Verständnis ablesbar
+sein muss. Prüfe das Ergebnis, passe es an und wähle **Akzeptieren & speichern**.
+
+**3 · Korrigieren.** **Korrektur → Neuer Korrekturauftrag** → Klasse und Aufgabe
+→ im Feld *Textsorte* **Leseverständnis** wählen. LUKA schlägt das passende
+Raster selbst vor → Abgaben hinzufügen → starten.
+
+### Bearbeiten
+
+Der **Rubrik-Editor** in derselben Ansicht öffnet jedes Raster als Text. Nach
+einer Änderung **Rubrik speichern** – die Änderung wirkt bei der nächsten
+Korrektur mit diesem Raster. Die Kriterien-Schlüssel in der Liste *JSON-Kriterien*
+sind für LUKA verbindlich: Wenn du sie umbenennst, muss die *Gewichtung* unten
+mitziehen, sonst geht dieser Anteil in der Note verloren.
+
+### In der Unterlagenerstellung
+
+Die Aufgabenart **Verständnisfrage** bekommt bei Deutsch und Sachfächern dasselbe
+Raster wie die Korrektur. In Englisch bleibt das bisherige Bewertungsschema, weil
+dort die sprachliche Richtigkeit das Kriterium ist.
+
+---
+
 ## Suche & Befehle
 
 Die **Such-/Befehlsleiste** oben im Kopf (oder `Mod`+`K`) durchsucht die gesamte App und führt Befehle aus - eine Eingabe, beides zugleich.

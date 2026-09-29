@@ -457,7 +457,14 @@ _RUBRIK_HEADER_RE = re.compile(
     r"^\ufeff?<!--[ \t]*luka-rubrik[ \t]*\r?\n(?P<body>.*?)[ \t]*\r?\n-->[ \t]*(?:\r?\n[ \t]*)*",
     re.DOTALL,
 )
-_RUBRIK_HEADER_FIELDS = ("titel", "fach", "schulstufe", "textsorte")
+# `k1`/`k3` sind optional: eine Rubrik, die sie setzt, steuert selbst, welche ihrer
+# JSON-Kriterien in den SRDP-Kompetenzbereich fallen (siehe berechne_note_srdp).
+# Ohne sie gilt weiterhin die feste Zuordnung über KRITERIUM_KEY_VARIANTS.
+# `aufgabenart` steuert die Zusatzanweisungen bei der Erwartungshorizont-Generierung:
+# ein Verständnisraster erwartet Fragen, kein Schreibauftrag.
+_RUBRIK_HEADER_FIELDS = (
+    "titel", "fach", "schulstufe", "textsorte", "k1", "k3", "aufgabenart",
+)
 
 
 def parse_rubrik_header(text: str) -> dict[str, str]:
@@ -483,6 +490,73 @@ def strip_rubrik_header(text: str) -> str:
     return _RUBRIK_HEADER_RE.sub("", text, count=1)
 
 
+def _key_norm(value: str) -> str:
+    """Vergleicht Rubrik-Schlüssel und -Beschriftungen tolerant.
+
+    Gross-/Kleinschreibung und Umlaut-Schreibweisen (ä/ae, ß/ss) werden
+    vereinheitlicht, damit "Inhaltsverstaendnis" und "inhaltsverständnis" als
+    derselbe Schlüssel gelten. Einzige Normalisierungsstelle — verwenden statt
+    eigene casefold-Varianten zu bauen.
+    """
+    return (
+        (value or "")
+        .strip()
+        .casefold()
+        .replace("ä", "ae")
+        .replace("ö", "oe")
+        .replace("ü", "ue")
+        .replace("ß", "ss")
+    )
+
+
+def _rubrik_key_norm(value: str) -> str:
+    """Normalisierung fuer den Abgleich zwischen Gewichtungs-Beschriftung und
+    JSON-Schluessel.
+
+    ``_key_norm`` plus Trennzeichen-Vereinheitlichung: im Raster steht der
+    Schluessel als ``aufbau_ausgangstext``, in der Gewichtung natuerlich als
+    "Aufbau Ausgangstext" geschrieben — beide muessen denselben Key ergeben.
+    """
+    return re.sub(r"[\s_]+", "_", _key_norm(value))
+
+
+def rubric_area_keys(header: dict[str, str], area: str) -> tuple[str, ...]:
+    """Liest die optionale ``k1:``/``k3:``-Deklaration eines Rubrik-Headers.
+
+    Enthält die Liste der JSON-Kriterien-Schlüssel, die in den SRDP-Kompetenzbereich
+    fallen. Leeres Tuple = nicht deklariert; die Aufrufer nutzen dann ihren
+    festen Fallback (KRITERIUM_KEY_VARIANTS). Unbekannte Schlüssel werden hier
+    bewusst *nicht* herausgefiltert — die Korrektur meldet sie als Warnung,
+    statt still zu rechnen.
+    """
+    raw = (header.get(area) or "").strip()
+    if not raw:
+        return ()
+    return tuple(
+        key
+        for key in (part.strip().strip("`\"'").strip() for part in raw.split(","))
+        if key
+    )
+
+
+def rubric_header_for(rubric_name: str, config: dict[str, Any]) -> dict[str, str]:
+    """Liest nur den Metadaten-Header einer Rubrik-Datei (ohne sie zu laden).
+
+    ``load_rubric`` schneidet den Header ab, weil er nicht in den Prompt gehoert.
+    Die K1/K3-Deklaration wird aber in der Notenberechnung gebraucht — deshalb
+    dieser zweite, bewusst schmale Zugriff. Unlesbare Datei = leere Felder,
+    niemals ein Absturz mitten im Korrekturlauf.
+    """
+    leer = {field: "" for field in _RUBRIK_HEADER_FIELDS}
+    if not rubric_name:
+        return leer
+    try:
+        text = (resolve_path(config, "rubrics") / rubric_name).read_text(encoding="utf-8")
+    except OSError:
+        return leer
+    return parse_rubrik_header(text)
+
+
 def load_rubric(rubric_filename: str, config: dict[str, Any]) -> str:
     rubric_dir = resolve_path(config, "rubrics")
     rubric_path = rubric_dir / rubric_filename
@@ -501,6 +575,32 @@ def list_all_rubrics(config: dict[str, Any]) -> list[str]:
     )
 
 
+def rubric_name_for_aufgabe(config: dict[str, Any], klasse: str | None, aufgabe: str | None) -> str:
+    """Ermittelt den Dateinamen der Rubrik einer Aufgabe — dieselbe Fallback-Kette wie
+    `load_rubric_for_aufgabe`, nur ohne den Inhalt zu laden.
+
+    Nötig, weil `load_rubric` den Metadaten-Header abschneidet: Wer die
+    K1/K3-Zuordnung oder die Aufgabenart braucht, muss wissen, *welche* Datei
+    das war. Zwei getrennte Aufloesungen koennten auseinanderlaufen.
+    """
+    auf_cfg = get_aufgabe_cfg(config, klasse or "", aufgabe or "") if klasse and aufgabe else {}
+    rubric_name = auf_cfg.get("rubric", "")
+    if rubric_name:
+        return rubric_name
+    fach = auf_cfg.get("fach") or config.get("defaults", {}).get("fach", "Deutsch")
+    schulstufe = auf_cfg.get("schulstufe") or config.get("defaults", {}).get(
+        "schulstufe", "Oberstufe"
+    )
+    default = default_rubric_for(fach, schulstufe, config)
+    if default:
+        return default
+    rubric_dir = resolve_path(config, "rubrics")
+    for f in sorted(rubric_dir.glob("*.md")):
+        if not f.name.upper().startswith("README"):
+            return f.name
+    return ""
+
+
 def load_rubric_for_aufgabe(config: dict[str, Any], klasse: str | None, aufgabe: str | None) -> str:
     """Lädt die Rubrik für eine Aufgabe — mit Fallback-Kette.
 
@@ -508,25 +608,10 @@ def load_rubric_for_aufgabe(config: dict[str, Any], klasse: str | None, aufgabe:
     2. default_rubric_for(fach, schulstufe)
     3. Erste verfügbare .md-Datei in rubrics/
     """
-    auf_cfg = get_aufgabe_cfg(config, klasse or "", aufgabe or "") if klasse and aufgabe else {}
-    rubric_name = auf_cfg.get("rubric", "")
-    if rubric_name:
-        try:
-            return load_rubric(rubric_name, config)
-        except FileNotFoundError:
-            pass
-    fach = auf_cfg.get("fach") or config.get("defaults", {}).get("fach", "Deutsch")
-    schulstufe = auf_cfg.get("schulstufe") or config.get("defaults", {}).get(
-        "schulstufe", "Oberstufe"
-    )
-    default = default_rubric_for(fach, schulstufe, config)
-    if default:
-        return load_rubric(default, config)
-    rubric_dir = resolve_path(config, "rubrics")
-    for f in sorted(rubric_dir.glob("*.md")):
-        if not f.name.upper().startswith("README"):
-            return load_rubric(f.name, config)
-    raise FileNotFoundError("Keine Rubrik gefunden")
+    name = rubric_name_for_aufgabe(config, klasse, aufgabe)
+    if not name:
+        raise FileNotFoundError("Keine Rubrik gefunden")
+    return load_rubric(name, config)
 
 
 def set_rubric_for_aufgabe(klasse: str, aufgabe: str, rubric_name: str) -> None:
@@ -1122,6 +1207,8 @@ def run_llm_analysis(
     correction_basis: dict[str, Any] | None = None,
     land: str = "at",
     dichte_prompt_variante: FehlerdichtePromptVariante = "neutral",
+    rubrik_k1_keys: tuple[str, ...] | None = None,
+    rubrik_k3_keys: tuple[str, ...] | None = None,
 ) -> tuple[dict[str, Any] | None, list[str]]:
     """
     Fuehrt die vollstaendige LLM-Analyse durch: Prompt bauen, API aufrufen,
@@ -1484,18 +1571,35 @@ def run_llm_analysis(
                     for w in fehler_warnungen
                 )
 
+        # K1/K3-Zuordnung: explizit übergeben, sonst aus dem Rubrik-Header holen.
+        # Ohne Deklaration (leeres Tupel) gilt der feste Kanon weiter.
+        if rubrik_k1_keys is None or rubrik_k3_keys is None:
+            _header = rubric_header_for(rubric_name, config)
+            if rubrik_k1_keys is None:
+                rubrik_k1_keys = rubric_area_keys(_header, "k1")
+            if rubrik_k3_keys is None:
+                rubrik_k3_keys = rubric_area_keys(_header, "k3")
+        rubrik_mapped = bool(rubrik_k1_keys or rubrik_k3_keys)
+        # Beschriftungen der Kriterien fuer die Notenuebersicht im Feedback-DOCX.
+        _labels = extract_criteria_labels(rubric_content or "")
+        rubrik_k1_titel = rubric_area_titel(tuple(rubrik_k1_keys or ()), _labels)
+        rubrik_k3_titel = rubric_area_titel(tuple(rubrik_k3_keys or ()), _labels)
+
         # SRDP-Detailbewertung (zweiter LLM-Call) — vor Notenberechnung, damit Note daraus folgt.
         # Auch hier die Alias-Fassung, sonst gingen die Namen im zweiten Call doch raus.
         # SRDP ist österreichspezifisch — für DE entfällt der zweite Call (Notenberechnung
         # rechnet direkt aus den Kriterien, siehe berechne_note_de), für Englisch ebenfalls
         # (der SRDP-Prompt ist deutschlehrkraft-spezifisch; die Note rechnet aus den
         # Kriterien der Englisch-Rubrik via KRITERIUM_KEY_VARIANTS).
-        if (
-            bewertungsmodus == "benotet"
-            and docx_text_llm
-            and not vision_mode
-            and land != "de"
-            and fach.strip().lower() != "englisch"
+        # Ebenso bei einem Raster mit eigener k1:/k3:-Deklaration — siehe
+        # srdp_detail_noetig() fuer die sechs Voraussetzungen im Einzelnen.
+        if srdp_detail_noetig(
+            bewertungsmodus=bewertungsmodus,
+            hat_text=bool(docx_text_llm),
+            vision_modus=vision_mode,
+            land=land,
+            fach=fach,
+            rubrik_mapped=rubrik_mapped,
         ):
             srdp = generate_srdp_detail(
                 docx_text_llm, data, config, cancel_event=cancel_event, textsorte=textsorte
@@ -1521,7 +1625,9 @@ def run_llm_analysis(
                 app_note = berechne_note_de(data["bewertung"], gew)
             elif schulstufe.lower() in ("oberstufe", "ahs-oberstufe"):
                 app_note = berechne_note_srdp(
-                    data["bewertung"], data.get("srdp_detail")
+                    data["bewertung"], data.get("srdp_detail"),
+                    k1_keys=tuple(rubrik_k1_keys or ()), k3_keys=tuple(rubrik_k3_keys or ()),
+                    k1_titel=rubrik_k1_titel, k3_titel=rubrik_k3_titel,
                 )
             else:
                 gew = parse_gewichtung(rubric_content) if rubric_content else None
@@ -1532,6 +1638,12 @@ def run_llm_analysis(
                 "bezeichnung": app_note["bezeichnung"],
                 "begruendung": app_note["begruendung"],
             }
+            # K1/K3-Beschriftungen nur mitgeben, wenn das Raster eigene Kriterien
+            # deklariert hat. Sonst bliebe im DOCX der Klartext fuer die vier
+            # Kanonkriterien stehen — der bei eigenen Kriterien falsch waere.
+            if app_note.get("k1_titel") or app_note.get("k3_titel"):
+                data["notenempfehlung"]["k1_titel"] = app_note.get("k1_titel", "")
+                data["notenempfehlung"]["k3_titel"] = app_note.get("k3_titel", "")
             data["notendetail"] = app_note
 
         # Aliasse in der Antwort zurücksetzen, BEVOR gespeichert wird: Zitate
@@ -2060,10 +2172,12 @@ _BEZ_DE = {
     6: "ungenügend",
 }
 
-# Kriteriumsnamen variieren je nach Rubrik (Deutsch/Englisch). Diese Zuordnung mappt die
-# vier SRDP-Hauptkriterien (kanonisch) auf die möglichen Schlüssel in `bewertung`/
+# Die vier SRDP-Hauptkriterien (kanonisch) auf die möglichen Schlüssel in `bewertung`/
 # `kriterium_historie`. Single Source of Truth — wird von berechne_note_srdp() und der
 # Längsschnitt-Aggregation (natascha_db.get_schueler_laengsschnitt) gemeinsam genutzt.
+# `parse_gewichtung` braucht dieselbe Liste, um Beschriftungen in Raster-Dateien
+# aufzulösen; deshalb steht sie nicht als reines Tupel in der Schleife dort.
+KANON_SCHLUESSEL = ("inhalt", "textstruktur", "ausdruck", "sprachrichtigkeit")
 KRITERIUM_KEY_VARIANTS: dict[str, tuple[str, ...]] = {
     "inhalt": ("inhalt", "task_achievement", "analyse", "interpretation"),
     "textstruktur": ("textstruktur", "aufbau", "organisation_layout", "einleitung_aufbau"),
@@ -2087,8 +2201,18 @@ def _srdp_result(
     sonderregel: str | None,
     begruendung: str,
     quelle: str = "app",
+    k1_titel: str = "",
+    k3_titel: str = "",
 ) -> dict:
-    """Einheitliches Ergebnis-Dict für die SRDP-Notenberechnung."""
+    """Einheitliches Ergebnis-Dict für die SRDP-Notenberechnung.
+
+    `k1_titel`/`k3_titel` nennen die Kriterien des Bereichs, wenn das Raster sie
+    selbst deklariert. Ohne sie beschriftet das Feedback-DOCX die Bereiche mit
+    dem bisherigen Klartext — der nur stimmt, solange es die vier Kanonkriterien
+    sind. Ein Verständnisraster käme sonst als "K1 (Inhalt + Textstruktur)" daher,
+    obwohl dort Sachverständnis, Schlussfolgern und Bedeutungsschicht geprüft
+    wurden.
+    """
     return {
         "note": note,
         "bezeichnung": bezeichnung,
@@ -2097,14 +2221,92 @@ def _srdp_result(
         "k3_note": k3_note,
         "k1_schnitt": round(k1_stufe, 2),
         "k3_schnitt": round(k3_stufe, 2),
+        "k1_titel": k1_titel,
+        "k3_titel": k3_titel,
         "sonderregel": sonderregel,
         "begruendung": begruendung,
         "quelle": quelle,
     }
 
 
+def _loese_gewichtungsschluessel(
+    beschriftung: str,
+    json_keys: dict[str, str],
+    kanon_vorhanden: set[str],
+) -> str:
+    """Loest eine Gewichtungs-Beschriftung auf einen Schluessel der Rubrik auf.
+
+    Siehe parse_gewichtung() fuer die Reihenfolge. Der Rueckgabewert ist ein
+    Schluessel aus `json_keys`, oder — wenn nichts passt — die normalisierte
+    Beschriftung selbst. Letzteres ist kein Phantom: der Key fehlt dann in
+    `bewertung`, der Wert bleibt 3.0, und genau deshalb loggt der Pfad eine
+    Warnung und meldet es der Rubrik-Pruefung.
+    """
+    roh = beschriftung.strip().lower()
+    norm = _rubrik_key_norm(roh)
+
+    if not json_keys:
+        # Kein Vertrag in der Datei: altes Kanon-Raumverfahren beibehalten.
+        for kanon in KANON_SCHLUESSEL:
+            if kanon in norm:
+                return kanon
+        return roh
+
+    # 1) exakt
+    if norm in json_keys:
+        return json_keys[norm]
+
+    # 2) ein Schluessel steckt als ganze Woerter in der Beschriftung
+    woerter = set(norm.split("_"))
+    treffer = [
+        schluessel
+        for norm_schluessel, schluessel in json_keys.items()
+        if set(norm_schluessel.split("_")) <= woerter
+    ]
+    if treffer:
+        # Frueheste Stelle gewinnt, bei Gleichstand der laengere Schluessel.
+        return min(treffer, key=lambda s: (norm.find(_rubrik_key_norm(s)), -len(s)))
+
+    # 3) Kanon-Teilstring, aber nur wenn er hier ueberhaupt ein Schluessel ist
+    for kanon in KANON_SCHLUESSEL:
+        if kanon in norm and kanon in kanon_vorhanden:
+            return kanon
+
+    logging.warning(
+        "Rubrik-Gewichtung: %r liess sich keinem JSON-Kriterium zu — der Anteil "
+        "faellt mit 3.0 (Mittelstufe) aus der Notenberechnung heraus. Schluessel "
+        "dieser Rubrik: %s",
+        roh,
+        ", ".join(sorted(json_keys.values())),
+    )
+    return roh
+
+
 def parse_gewichtung(rubric_text: str) -> dict[str, float]:
-    """Liest die Gewichtung aus dem '## Gewichtung'-Abschnitt eines Rubric-MD."""
+    """Liest die Gewichtung aus dem '## Gewichtung'-Abschnitt eines Rubric-MD.
+
+    Ist in der Rubrik ein '## JSON-Kriterien'-Abschnitt vorhanden, ist das der
+    Vertrag: jede Beschriftung wird auf *einen dieser Schluessel* aufgeloest,
+    sonst taugt der Key nichts (der Wert landet still bei 3.0). Aufgeloest wird in
+    dieser Reihenfolge:
+
+    1. exakter Treffer nach Normalisierung ("Sprachrichtigkeit" -> `sprachrichtigkeit`)
+    2. ein Schluessel kommt als ganzes Wort in der Beschriftung vor
+       ("Aufbau und Struktur" -> `aufbau`)
+    3. einer der vier SRDP-Kanonen steckt in der Beschriftung *und* ist selbst
+       ein Schluessel dieser Rubrik ("Stil und Ausdruck" -> `ausdruck`)
+
+    Schritt 3 pruft die Existenz bewusst mit: `kommentar.md` schreibt "Aufbau und
+    Struktur" bei einem Schluessel `aufbau`. Der Kanon-Teilstring "textstruktur"
+    liegt zwar in der Beschriftung, ist aber *kein* Schluessel dieser Rubrik —
+    die alte Aufloesung lieferte den Phantom-Key "aufbau und struktur", und 25 %
+    der Note blieben konstant 3.0, egal was das LLM bewertet hat.
+
+    Ohne '## JSON-Kriterien' (aeltere, frei benannte Raster) gilt weiter das
+    reine Kanon-Teilstring-Raumverfahren.
+    """
+    json_keys = {_rubrik_key_norm(k): k for k in extract_criteria_keys(rubric_text)}
+    kanon_vorhanden = {k for k in KANON_SCHLUESSEL if k in json_keys.values()}
     gewichtung: dict[str, float] = {}
     in_section = False
     for line in rubric_text.split("\n"):
@@ -2112,15 +2314,12 @@ def parse_gewichtung(rubric_text: str) -> dict[str, float]:
             in_section = True
             continue
         if in_section and line.strip().startswith("- "):
-            match = re.match(r"-\s*([\w\s]+?):\s*(\d+)\s*%", line)
+            # Backticks/Anfuehrungszeichen um den Schluessel duerfen stehen —
+            # die Kriterien in '## JSON-Kriterien' sind so notiert.
+            match = re.match(r"-\s*[`'\"]?([\w\s]+?)[`'\"]?\s*:\s*(\d+)\s*%", line)
             if match:
-                key = match.group(1).strip().lower()
-                for canon in ("inhalt", "textstruktur", "ausdruck", "sprachrichtigkeit"):
-                    if canon in key:
-                        key = canon
-                        break
-                pct = int(match.group(2)) / 100
-                gewichtung[key] = pct
+                key = _loese_gewichtungsschluessel(match.group(1), json_keys, kanon_vorhanden)
+                gewichtung[key] = int(match.group(2)) / 100
         elif in_section and line.strip().startswith("##"):
             break
     return gewichtung or {
@@ -2131,14 +2330,108 @@ def parse_gewichtung(rubric_text: str) -> dict[str, float]:
     }
 
 
+def _stufe_aus(bewertung: dict, keys: tuple[str, ...]) -> float:
+    """Mittelstufe einer Kriteriengruppe; 3.0 (Default) nur, wenn nichts gefunden wurde."""
+    werte: list[float] = []
+    for k in keys:
+        if k in bewertung:
+            val = bewertung[k]
+            werte.append(float(val.get("punkte", 3) if isinstance(val, dict) else val))
+    return sum(werte) / len(werte) if werte else 3.0
+
+
+def extract_criteria_labels(rubric_content: str) -> dict[str, str]:
+    """Liest die deutschen Beschriftungen der Kriterien aus den Stufenbeschreibungen.
+
+    Erwartet Ueberschriften der Form ``### Sachverstaendnis (`sachverstaendnis`)``
+    und liefert ``{"sachverstaendnis": "Sachverstaendnis", ...}``. Fehlt die
+    Ueberschriftform, bleibt der Schluessel leer — dann greift im Feedback-DOCX
+    der Klartext-Key, nie eine erfundene Beschriftung.
+    """
+    beschriftungen: dict[str, str] = {}
+    for zeile in rubric_content.split("\n"):
+        match = re.match(r"^#{2,4}\s+(.+?)\s*\(`([a-z][a-z_]*)`\)\s*$", zeile.strip())
+        if match:
+            beschriftungen[match.group(2)] = match.group(1).strip()
+    return beschriftungen
+
+
+def rubric_area_titel(
+    keys: tuple[str, ...],
+    beschriftungen: dict[str, str],
+    *,
+    max_kriterien: int = 3,
+) -> str:
+    """Kurzer, korrekter Titel fuer einen Kompetenzbereich im Feedback-DOCX.
+
+    Ohne eigene Kriterien (Legacy-Pfad) bleibt der Titel leer, und der Aufrufer
+    behält den bisherigen Klartext ("Inhalt + Textstruktur"). Sonst werden die
+    Beschriftungen der Kriterien aufgelistet — bei mehr als `max_kriterien` mit
+    "u. a." gekürzt, damit die Notenübersicht lesbar bleibt.
+    """
+    if not keys:
+        return ""
+    namen = [beschriftungen.get(k, k) for k in keys]
+    if len(namen) <= max_kriterien:
+        return " + ".join(namen)
+    return " + ".join(namen[:max_kriterien]) + " u. a."
+
+
+def srdp_detail_noetig(
+    *,
+    bewertungsmodus: str,
+    hat_text: bool,
+    vision_modus: bool,
+    land: str,
+    fach: str,
+    rubrik_mapped: bool,
+) -> bool:
+    """Ob der zweite LLM-Call fuer die SRDP-Detailbewertung noetig ist.
+
+    Getrennt aus ``run_llm_analysis`` herausgezogen, weil die Bedingung sechs
+    unabhaengige Voraussetzungen hat und sonst nur im laufenden Korrekturlauf
+    auffaellt.
+
+    * ``land != 'de'`` und *fach != Englisch* — der SRDP-Prompt ist
+      oesterreichspezifisch und deutschlehrkraft-orientiert.
+    * kein Raster mit eigener ``k1:``/``k3:``-Deklaration. Der SRDP-Prompt
+      bewertet die *Schreibhandlung* an 15 festen Subkriterien ("Eigenstaendigkeit",
+      "Textbeilage", "Situation adaequat"). Bei einem Verstaendnisraster ist das
+      sachlich falsch — und die Detailstufen ueberschrieben die aus den eigenen
+      Kriterien berechnete Note.
+    """
+    return (
+        bewertungsmodus == "benotet"
+        and hat_text
+        and not vision_modus
+        and land != "de"
+        and fach.strip().lower() != "englisch"
+        and not rubrik_mapped
+    )
+
+
 def berechne_note_srdp(
-    bewertung: dict, srdp_detail: dict | None = None
+    bewertung: dict,
+    srdp_detail: dict | None = None,
+    *,
+    k1_keys: tuple[str, ...] = (),
+    k3_keys: tuple[str, ...] = (),
+    k1_titel: str = "",
+    k3_titel: str = "",
 ) -> dict:
     """SRDP-konforme Notenberechnung für Oberstufe.
 
     Skala: 1-5 (1=nicht erfüllt, 5=sehr gut).
     K1 = Inhalt + Textstruktur, K3 = Stil + Sprachnormen.
     Note = 6 - Stufe (invertiert: Stufe 5 → Note 1).
+
+    Drei Wege zur K1/K3-Trennung, in dieser Reihenfolge:
+    1. `srdp_detail` — die 15 SRDP-Subkriterien aus dem zweiten LLM-Call.
+    2. `k1_keys`/`k3_keys` — die Kriterien, die das Raster selbst deklariert
+       (`k1:`/`k3:` im Header). Nötig für Raster mit eigenen Kriterien, z. B.
+       Leseverständnis: dort wäre der zweite Call falsch, weil er die
+       Schreibhandlung bewertet, und der Kanon-Fallback fiele auf 3.0 zurück.
+    3. Fester Kanon über KRITERIUM_KEY_VARIANTS — unveränderter Legacy-Pfad.
     """
     if srdp_detail:
         k1_vals: list[float] = []
@@ -2155,23 +2448,22 @@ def berechne_note_srdp(
 
         k1_stufe = sum(k1_vals) / len(k1_vals) if k1_vals else 3.0
         k3_stufe = sum(k3_vals) / len(k3_vals) if k3_vals else 3.0
+    elif k1_keys or k3_keys:
+        k1_stufe = _stufe_aus(bewertung, k1_keys)
+        k3_stufe = _stufe_aus(bewertung, k3_keys)
     else:
-        def _get(variants: tuple) -> float:
-            for k in variants:
-                if k in bewertung:
-                    val = bewertung[k]
-                    return float(val.get("punkte", 3) if isinstance(val, dict) else val)
-            return 3.0
-
-        inhalt = _get(KRITERIUM_KEY_VARIANTS["inhalt"])
-        struktur = _get(KRITERIUM_KEY_VARIANTS["textstruktur"])
-        ausdruck = _get(KRITERIUM_KEY_VARIANTS["ausdruck"])
-        sprache = _get(KRITERIUM_KEY_VARIANTS["sprachrichtigkeit"])
-        k1_stufe = (inhalt + struktur) / 2
-        k3_stufe = (ausdruck + sprache) / 2
+        k1_stufe = (
+            _stufe_aus(bewertung, KRITERIUM_KEY_VARIANTS["inhalt"])
+            + _stufe_aus(bewertung, KRITERIUM_KEY_VARIANTS["textstruktur"])
+        ) / 2
+        k3_stufe = (
+            _stufe_aus(bewertung, KRITERIUM_KEY_VARIANTS["ausdruck"])
+            + _stufe_aus(bewertung, KRITERIUM_KEY_VARIANTS["sprachrichtigkeit"])
+        ) / 2
 
     k1_note = max(1, min(5, round(6 - k1_stufe)))
     k3_note = max(1, min(5, round(6 - k3_stufe)))
+    titel = {"k1_titel": k1_titel, "k3_titel": k3_titel}
 
     if k1_stufe <= 1.5:
         return _srdp_result(
@@ -2186,6 +2478,7 @@ def berechne_note_srdp(
                 f"K1 nicht erfüllt (Stufe {k1_stufe:.2f}). "
                 "Automatisch Nicht genügend gemäß SRDP."
             ),
+            **titel,
         )
 
     if k3_stufe <= 1.5:
@@ -2201,6 +2494,7 @@ def berechne_note_srdp(
                 f"K3/1 nicht erfüllt (Stufe {k3_stufe:.2f}). "
                 "Automatisch Nicht genügend gemäß SRDP."
             ),
+            **titel,
         )
 
     gesamt = round((k1_note + k3_note) / 2)
@@ -2218,6 +2512,7 @@ def berechne_note_srdp(
             f"K1: Note {k1_note} (Stufe {k1_stufe:.2f}), "
             f"K3/1: Note {k3_note} (Stufe {k3_stufe:.2f})."
         ),
+        **titel,
     )
 
 
@@ -2419,7 +2714,14 @@ def build_project_paths(
     )
 
 
-_AUSGANGSTEXT_EXTENSIONS: frozenset[str] = frozenset({".docx", ".pdf", ".jpg", ".jpeg", ".png"})
+# Was `detect_ausgangstext` im Ordner `ausgangstext/` überhaupt findet.
+# .txt/.md gehoeren dazu, weil `_lies_ausgangstext_datei` sie lesen kann und
+# ein Auszug als Textdatei das naheliegendste Format ist — vorher war der
+# Ordner-Scan auf Bild-/PDF-Dateien beschraenkt, sodass der .txt-Zweig des
+# Lesers ueber diesen Weg unerreichbar war.
+_AUSGANGSTEXT_EXTENSIONS: frozenset[str] = frozenset(
+    {".docx", ".txt", ".md", ".pdf", ".jpg", ".jpeg", ".png"}
+)
 
 
 def detect_ausgangstext(config: dict[str, Any], klasse: str, aufgabe: str) -> Path | None:
@@ -2546,6 +2848,90 @@ def save_erwartungshorizont_to_config(klasse: str, aufgabe: str, eh_filename: st
     _save_toml_doc(doc)
 
 
+def _ausgangstext_fuer_erwartungshorizont(
+    config: dict[str, Any],
+    klasse: str,
+    aufgabe: str,
+    ausgangstext_text: str | None,
+    ausgangstext_path: Path | str | None,
+    db_path: Path | None,
+) -> tuple[str | None, str, bool]:
+    """Ermittelt den Text, aus dem der Erwartungshorizont entsteht.
+
+    Reihenfolge, bewusst so gewaehlt:
+    1. der ausdruecklich uebergebene Text bzw. die angegebene Datei — die
+       Lehrkraft weiss, worauf sich die Generierung beziehen soll
+    2. eine Datei in ``input/<klasse>/<aufgabe>/ausgangstext/`` (alter Weg)
+    3. der zuletzt bei einer Korrektur gespeicherte Ausgangstext aus der DB
+
+    Schritt 3 macht den Weg in sich geschlossen: der Ausgangstext wird nach
+    einer Korrektur ohnehin in ``aufgabe_quelltext`` abgelegt (dient der
+    Uebungs-Vorbelegung in LUA). Ohne ihn muesste die Lehrkraft den Ordner
+    ``ausgangstext/`` kennen, den die Oberflaeche nirgends nennt.
+
+    Rueckgabe: (Text oder None, Herkunftsbeschreibung, ob die Angabe ausdruecklich
+    kam). Das dritte Element unterscheidet "die Lehrkraft hat das gerade angegeben"
+    von "steht schon im Projekt" — nur im ersten Fall wird der Text als
+    Quelltext der Aufgabe abgelegt.
+    """
+    if ausgangstext_text and ausgangstext_text.strip():
+        return ausgangstext_text.strip(), "dem übergebenen Text", True
+
+    if ausgangstext_path:
+        pfad = Path(ausgangstext_path)
+        if not pfad.exists():
+            raise ValueError(f"Ausgangstext-Datei nicht gefunden: {pfad}")
+        return _lies_ausgangstext_datei(pfad), f"der Datei {pfad.name}", True
+
+    datei = detect_ausgangstext(config, klasse, aufgabe)
+    if datei:
+        return _lies_ausgangstext_datei(datei), f"der Datei {datei.name}", False
+
+    if db_path is not None:
+        try:
+            import natascha_db as ndb
+
+            gespeichert = ndb.get_aufgabe_quelltext(db_path, klasse, aufgabe)
+        except Exception as exc:  # DB optional — nie den Korrekturlauf stoppen
+            logging.warning("Quelltext aus DB nicht lesbar: %s", exc)
+            gespeichert = None
+        if gespeichert and gespeichert.strip():
+            return gespeichert.strip(), "dem gespeicherten Quelltext dieser Aufgabe", False
+
+    return None, "", False
+
+
+# Formate, die `detect_ausgangstext` findet, aber nicht lesen kann. Bewusst
+# aufgezählt statt pauschal abgelehnt: der Fehlertext landet im Dialog.
+_ERWARTUNGSHORIZONT_UNLESBAR = ", ".join(
+    sorted({".pdf", ".jpg", ".jpeg", ".png"})
+)
+
+
+def _lies_ausgangstext_datei(pfad: Path) -> str:
+    """Liest eine Ausgangstext-Datei als Text.
+
+    DOCX und Textdateien werden unterstützt. `detect_ausgangstext` findet auch
+    PDF und Bilder — die kann diese Generierung nicht als Text lesen. Statt mit
+    einer technischen Endung zu antworten, wird der Grund genannt; die Datei
+    bitte als .docx oder .txt ablegen oder den Text direkt einfuegen.
+
+    Der Text wird getrimmt, damit ein abschliessender Zeilenumbruch aus der
+    Datei nicht mit in den Prompt wandert — die Text- und DB-Wege tun das
+    ebenfalls, und alle drei Quellen muessen vergleichbar behandelt werden.
+    """
+    suf = pfad.suffix.lower()
+    if suf == ".docx":
+        return read_docx_text(pfad).strip()
+    if suf in (".txt", ".md"):
+        return pfad.read_text(encoding="utf-8").strip()
+    raise ValueError(
+        f"Ausgangstext '{pfad.name}' ist keine Textdatei. Für den Erwartungshorizont "
+        f"werden .docx, .txt und .md gelesen. Bitte den Auszug als .docx oder .txt "
+        f"ablegen oder den Text direkt in das Feld einfügen."
+    )
+
+
 def generate_erwartungshorizont(
     config: dict[str, Any],
     klasse: str,
@@ -2553,6 +2939,9 @@ def generate_erwartungshorizont(
     provider: str = "",
     model: str = "",
     cancel_event: threading.Event | None = None,
+    ausgangstext_text: str | None = None,
+    ausgangstext_path: Path | str | None = None,
+    db_path: Path | None = None,
 ) -> str:
     """Generiert einen Erwartungshorizont aus Ausgangstext + Rubrik + Textsorte.
 
@@ -2563,24 +2952,34 @@ def generate_erwartungshorizont(
     textsorte = auf_cfg.get("textsorte", "")
     situation = auf_cfg.get("situation", "")
 
-    ausgangstext_path = detect_ausgangstext(config, klasse, aufgabe)
-    if not ausgangstext_path:
+    ausgangstext_text, quelle, aus_eigener_angabe = (
+        _ausgangstext_fuer_erwartungshorizont(
+            config, klasse, aufgabe, ausgangstext_text, ausgangstext_path, db_path
+        )
+    )
+    if not ausgangstext_text:
         raise ValueError(
-            "Kein Ausgangstext gefunden. Bitte zuerst in ausgangstext/ ablegen."
+            "Kein Ausgangstext gefunden. Bitte den Text in das Feld 'Quelltext' "
+            "einfügen, eine .docx/.txt-Datei wählen oder die Datei unter "
+            "ausgangstext/ ablegen."
         )
 
-    suf = ausgangstext_path.suffix.lower()
-    if suf == ".docx":
-        ausgangstext_text = read_docx_text(ausgangstext_path)
-    elif suf in (".txt", ".md"):
-        ausgangstext_text = ausgangstext_path.read_text(encoding="utf-8")
-    else:
-        raise ValueError(
-            f"Ausgangstext-Format nicht unterstützt: {suf}. "
-            "Bitte als .docx oder .txt ablegen."
-        )
+    # Ein bewusst uebergebener Text wird als Quelltext der Aufgabe abgelegt. Damit
+    # steht er spaeter auch der Korrektur zur Verfuegung (dort laesst er sich als
+    # Ausgangsmaterial vorbelegen) und der Closed Loop braucht kein zweites
+    # Pflegefeld. Nur bei eigener Eingabe — ein aus dem Ordner oder der DB
+    # gelesener Text wird nicht ungefragt zurueckgeschrieben.
+    if aus_eigener_angabe and db_path is not None:
+        try:
+            import natascha_db as ndb
+
+            ndb.upsert_aufgabe_quelltext(db_path, klasse, aufgabe, ausgangstext_text)
+        except Exception as exc:  # Speichern ist optional, Generierung nicht
+            logging.warning("Quelltext nicht gespeichert: %s", exc)
 
     rubric = load_rubric_for_aufgabe(config, klasse, aufgabe)
+    rubric_header = rubric_header_for(rubric_name_for_aufgabe(config, klasse, aufgabe), config)
+    aufgabenart = (rubric_header.get("aufgabenart") or "").strip().lower()
 
     prompt_template_path = PROJECT_ROOT / "prompts" / "PROMPT_ERWARTUNGSHORIZONT.md"
     prompt_template = (
@@ -2598,14 +2997,33 @@ def generate_erwartungshorizont(
         prompt += f"SITUATION: {situation}\n"
     prompt += (
         f"\nBEWERTUNGSRASTER:\n---\n{rubric}\n---\n\n"
-        f"AUSGANGSTEXT + AUFGABENSTELLUNG:\n---\n{ausgangstext_text}\n---\n\n"
+        f"AUSGANGSTEXT (Quelle für {quelle}):\n---\n{ausgangstext_text}\n---\n\n"
         "AUSGABEFORMAT:\n"
         "Antworte ausschließlich im Markdown-Format.\n"
         "Leite die erwarteten Inhalte AUS DER TEXTBEILAGE ab.\n"
-        "Nenne Pro- UND Kontra-Argumente.\n"
-        "Nenne typische Fehler pro Operator.\n"
         "Verwende korrekte Umlaute (ä, ö, ü, ß).\n"
     )
+    if aufgabenart == "verstaendnis":
+        # Die Vorgabe "Nenne Pro- UND Kontra-Argumente" waere fuer ein
+        # Verstaendnisraster falsch: es wird nicht argumentiert, sondern der Text
+        # erschlossen. Stattdessen Fragen mit Erwartungsbildern und die typischen
+        # Fehlverstaendnisse zum Text.
+        prompt += (
+            "\nDas Raster misst das Verstehen des Ausgangstextes, nicht das Formulieren.\n"
+            "Erstelle deshalb:\n"
+            "- 6 bis 8 Verständnisfragen zum Text, von der Sacherfassung bis zur "
+            "Bedeutungsschicht (Symbolik, Bilder, Themen).\n"
+            "- Je Frage: was inhaltlich erwartet wird, und welche Antworten noch "
+            "als ausreichend gelten.\n"
+            "- Typische Fehlverständnisse zum Text — also womit Schülerinnen und "
+            "Schüler typischerweise danebenliegen, nicht Formfehler.\n"
+            "- Eine kurze Liste der Textstellen, an denen Verständnis ablesbar sein muss.\n"
+        )
+    else:
+        prompt += (
+            "Nenne Pro- UND Kontra-Argumente.\n"
+            "Nenne typische Fehler pro Operator.\n"
+        )
     if prompt_template:
         prompt += f"\nVORLAGE (Struktur):\n---\n{prompt_template}\n---\n"
 
@@ -2801,18 +3219,6 @@ def rubric_options_for(
             return "oberstufe"
         return "generic"
 
-    def _rubrik_fach_key(value: str) -> str:
-        """Vergleicht Fachnamen tolerant zwischen UI-Akzenten und Enum-Alias."""
-        return (
-            (value or "")
-            .strip()
-            .casefold()
-            .replace("ä", "ae")
-            .replace("ö", "oe")
-            .replace("ü", "ue")
-            .replace("ß", "ss")
-        )
-
     def _fach_match(filename: str) -> bool:
         if not fach_kanon:
             return True
@@ -2823,8 +3229,7 @@ def rubric_options_for(
         header_fach = parse_rubrik_header(text).get("fach", "").strip()
         if not header_fach:
             return True
-        return _rubrik_fach_key(header_fach) == _rubrik_fach_key(fach_kanon)
-
+        return _key_norm(header_fach) == _key_norm(fach_kanon)
     stufe_lower = (schulstufe or "").strip().lower()
     if stufe_lower == "unterstufe":
         filtered = [f for f in all_rubrics if _stage(f) in ("unterstufe", "generic")]

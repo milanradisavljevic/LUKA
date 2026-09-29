@@ -195,6 +195,24 @@ fn status_from_probe(mode: &'static str, probe: Result<(), String>) -> NataschaS
     }
 }
 
+/// Python-Interpreter einer mitgelieferten Projekt-Venv, falls vorhanden.
+///
+/// `apps/natascha/.venv` ist dienatuerliche Stelle fuer eine Entwicklungs- und
+/// Testumgebung. Ohne diese Suche faellt die App auf `python` zurueck - und auf
+/// Windows ist das haeufig der Microsoft-Store-Stub, der "Python was not found"
+/// ausgibt. Die Korrektur startet dann nicht, obwohl Python auf der Maschine ist.
+fn venv_python(natascha_dir: &Path) -> Option<PathBuf> {
+    let kandidaten: &[&str] = if cfg!(windows) {
+        &[".venv\\Scripts\\python.exe", ".venv/Scripts/python.exe"]
+    } else {
+        &[".venv/bin/python", ".venv\\Scripts\\python.exe"]
+    };
+    kandidaten
+        .iter()
+        .map(|rel| natascha_dir.join(rel))
+        .find(|p| p.is_file())
+}
+
 fn default_python() -> &'static str {
     if cfg!(windows) {
         "python"
@@ -204,11 +222,24 @@ fn default_python() -> &'static str {
 }
 
 fn resolve_python(python: &str) -> String {
-    if python.trim().is_empty() {
-        default_python().to_string()
-    } else {
-        python.trim().to_string()
+    if !python.trim().is_empty() {
+        return python.trim().to_string();
     }
+    "python".to_string()
+}
+
+/// Wie `resolve_python`, aber mit der Venv-Suche vor dem namensbasierten
+/// Rueckfall. Die Reihenfolge ist Absicht:
+/// 1. der in den Einstellungen eingetragene Befehl - dafuer ist das Feld da
+/// 2. die Projekt-Venv neben dem NATASCHA-Quellcode
+/// 3. `python` / `python3` aus dem PATH
+fn resolve_python_in_dir(python: &str, natascha_dir: &Path) -> String {
+    if !python.trim().is_empty() {
+        return python.trim().to_string();
+    }
+    venv_python(natascha_dir)
+        .map(|p| p.to_string_lossy().to_string())
+        .unwrap_or_else(|| default_python().to_string())
 }
 
 /// Validiert den Python-Befehl gegen eine Whitelist, bevor er (in `launch_natascha`)
@@ -287,7 +318,7 @@ fn spawn_terminal(work: &PathBuf, py: &str) -> std::io::Result<()> {
 #[tauri::command]
 pub async fn launch_natascha(dir: String, python: String) -> Result<(), String> {
     let work = resolve_dir(&dir)?;
-    let py = resolve_python(&python);
+    let py = resolve_python_in_dir(&python, &work);
     validate_python_command(&py)?;
     spawn_terminal(&work, &py).map_err(|e| {
         format!(
@@ -349,7 +380,7 @@ fn build_cli_command(dir: &str, python: &str) -> Result<Command, String> {
         return Ok(cmd);
     }
     let natascha_dir = resolve_dir(dir)?;
-    let py = resolve_python(python);
+    let py = resolve_python_in_dir(python, &natascha_dir);
     let mut cmd = background_command(&py);
     inject_provider_keys(&mut cmd);
     cmd.env("PYTHONIOENCODING", "utf-8");
@@ -401,7 +432,9 @@ async fn natascha_status(dir: &str, python: &str) -> NataschaStatus {
             return status_unavailable("sidecar_missing", "Korrektur-Modul nicht gefunden", detail)
         }
     };
-    let py = resolve_python(python);
+    // Gleiche Aufloesung wie build_cli_command: sonst meldet die Diagnose
+    // "nicht bereit", waehrend der Lauf ueber die Projekt-Venv funktioniert.
+    let py = resolve_python_in_dir(python, &natascha_dir);
     let mut cmd = background_command(py);
     cmd.arg(natascha_dir.join("natascha_cli.py"));
     status_from_probe("python", probe_command(cmd).await)
@@ -832,6 +865,15 @@ pub async fn natascha_feedback_docx(
 }
 
 /// Generiert einen Erwartungshorizont via CLI.
+///
+/// `quelltext` nimmt eingefuegten Text entgegen, `ausgangstext` einen Dateipfad
+/// (docx/txt/md) — beides freiwillig. Ohne Angabe sucht die Python-Seite erst in
+/// `ausgangstext/` und dann den zuletzt bei einer Korrektur gespeicherten
+/// Quelltext der Aufgabe.
+///
+/// Eingefuegter Text geht bewusst ueber eine Datei und nicht als Argument: die
+/// Kommandozeile von Windows stiessst bei rund 32 KB an, und ein Romanauszug ist
+/// laenger.
 #[tauri::command]
 pub async fn natascha_erwartungshorizont(
     dir: String,
@@ -840,6 +882,8 @@ pub async fn natascha_erwartungshorizont(
     aufgabe: String,
     provider: Option<String>,
     model: Option<String>,
+    ausgangstext: Option<String>,
+    quelltext: Option<String>,
 ) -> Result<String, String> {
     let mut cmd = build_cli_command(&dir, &python)?;
     cmd.arg("erwartungshorizont")
@@ -853,7 +897,42 @@ pub async fn natascha_erwartungshorizont(
     if let Some(ref v) = model {
         cmd.arg("--model").arg(v);
     }
+    // Eine gewaehlte Datei schlaegt eingefuegten Text.
+    let mut pfad: Option<String> = ausgangstext.filter(|v| !v.is_empty());
+    if pfad.is_none() {
+        if let Some(ref text) = quelltext {
+            if !text.trim().is_empty() {
+                pfad = Some(schreibe_quelltext_temp(&klasse, &aufgabe, text)?);
+            }
+        }
+    }
+    if let Some(ref v) = pfad {
+        cmd.arg("--ausgangstext").arg(v);
+    }
     run_cli_and_capture(cmd, None, "Korrektur-Erwartungshorizont").await
+}
+
+/// Legt eingefuegten Quelltext als Datei im Temp-Verzeichnis ab und liefert den Pfad.
+///
+/// Der Name enthaelt Klasse und Aufgabe, damit parallele Aufgaben sich nicht
+/// ins Gehege kommen. Ueberschrieben wird bei jeder Generierung — die Datei ist
+/// ein Transportweg, kein Archiv.
+fn schreibe_quelltext_temp(klasse: &str, aufgabe: &str, text: &str) -> Result<String, String> {
+    fn segment(roh: &str) -> String {
+        let s: String = roh
+            .chars()
+            .map(|c| if c.is_alphanumeric() { c } else { '_' })
+            .collect();
+        if s.is_empty() { "_".to_string() } else { s }
+    }
+    let datei = std::env::temp_dir().join(format!(
+        "luka-quelltext-{}-{}.txt",
+        segment(klasse),
+        segment(aufgabe)
+    ));
+    std::fs::write(&datei, text.trim())
+        .map_err(|e| format!("Quelltext konnte nicht abgelegt werden: {e}"))?;
+    Ok(datei.to_string_lossy().to_string())
 }
 
 /// Dev-Hilfe: lädt synthetische Testdaten in die gemeinsame DB
@@ -861,7 +940,7 @@ pub async fn natascha_erwartungshorizont(
 #[tauri::command]
 pub async fn natascha_seed_testdaten(dir: String, python: String) -> Result<String, String> {
     let nat_dir = resolve_dir(&dir)?;
-    let py = resolve_python(&python);
+    let py = resolve_python_in_dir(&python, &nat_dir);
     let output = background_command(&py)
         .arg(nat_dir.join("seed_testdaten.py"))
         .arg("--db-path")
@@ -1213,9 +1292,74 @@ mod tests {
         });
         std::fs::write(&suffixed, b"build").unwrap();
 
-        assert_eq!(bundled_cli_from_exe(&exe), Some(suffixed));
-        let _ = std::fs::remove_dir_all(root);
-    }
+          assert_eq!(bundled_cli_from_exe(&exe), Some(suffixed));
+          let _ = std::fs::remove_dir_all(root);
+      }
+
+      #[test]
+      fn projekt_venv_wird_vor_dem_namensrueckfall_gefunden() {
+          // Ohne diese Suche faellt die App unter Windows auf den Store-Stub
+          // `python` zurueck, der "Python was not found" ausgibt.
+          let root = std::env::temp_dir()
+              .join(format!("luka-venv-{}", std::process::id()));
+          let _ = std::fs::remove_dir_all(&root);
+          let nat = root.join("natascha");
+          let venv = nat.join(if cfg!(windows) {
+              ".venv/Scripts"
+          } else {
+              ".venv/bin"
+          });
+          std::fs::create_dir_all(&venv).unwrap();
+          let interpreter = venv.join(if cfg!(windows) {
+              "python.exe"
+          } else {
+              "python"
+          });
+          std::fs::write(&interpreter, b"venv").unwrap();
+
+          // Pfade werden mit nativem Trennzeichen gebaut; deshalb auf Name und
+          // Ort pruefen statt auf einen exakten String.
+          let gefunden = venv_python(&nat).expect("Venv-Interpreter muss gefunden werden");
+          assert_eq!(gefunden.file_name(), interpreter.file_name());
+          assert_eq!(gefunden.parent(), interpreter.parent());
+          assert_eq!(resolve_python_in_dir("", &nat), gefunden.to_string_lossy());
+          let _ = std::fs::remove_dir_all(root);
+      }
+
+      #[test]
+      fn ohne_venv_bleibt_der_namensrueckfall() {
+          let root =
+              std::env::temp_dir().join(format!("luka-venv-leer-{}", std::process::id()));
+          let _ = std::fs::remove_dir_all(&root);
+          std::fs::create_dir_all(&root).unwrap();
+
+          assert_eq!(venv_python(&root), None);
+          assert_eq!(
+              resolve_python_in_dir("", &root),
+              if cfg!(windows) { "python" } else { "python3" }
+          );
+          let _ = std::fs::remove_dir_all(root);
+      }
+
+      #[test]
+      fn eingetragener_befehl_hat_vorrang_vor_der_venv() {
+          // Das Einstellungsfeld existiert, damit man ihn nutzen kann.
+          let root = std::env::temp_dir()
+              .join(format!("luka-venv-prio-{}", std::process::id()));
+          let _ = std::fs::remove_dir_all(&root);
+          let nat = root.join("natascha");
+          let venv = nat.join(if cfg!(windows) {
+              ".venv/Scripts"
+          } else {
+              ".venv/bin"
+          });
+          std::fs::create_dir_all(&venv).unwrap();
+          std::fs::write(venv.join(if cfg!(windows) { "python.exe" } else { "python" }), b"venv")
+              .unwrap();
+
+          assert_eq!(resolve_python_in_dir("  /usr/bin/python3  ", &nat), "/usr/bin/python3");
+          let _ = std::fs::remove_dir_all(root);
+      }
 
     #[test]
     fn status_probe_maps_ready_and_unstartable_states() {

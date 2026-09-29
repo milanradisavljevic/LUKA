@@ -16,7 +16,7 @@ import { useKlassenMeta } from '../hooks/useKlassenMeta';
 import { einsatzAnzeigeDatum, formatEinsatzDatum } from '../lib/einsatz';
 import { ViewShell } from './_ViewShell';
 import { anzeigeName } from '../lib/anzeigeName';
-import { gruppiereRubriken, rubrikLabel } from '../lib/rubrikAuswahl';
+import { gruppiereRubriken, rubrikLabel, rubrikPasstZurTextsorte } from '../lib/rubrikAuswahl';
 import { InfoDot } from '../components/ui/InfoDot';
 import { isKorrekturReady, type KorrekturStatus } from '../lib/korrekturStatus';
 import { averageVertrauensstufe, VERTRAUENS_COLORS, VERTRAUENS_LABELS } from '../lib/vertrauensstufe';
@@ -1858,7 +1858,7 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }:
                     setAnalyzeTextsorte(e.target.value);
                     // Auto-Vorschlag: Passendes Raster basierend auf Textsorte
                     const matching = rubrikListe.rubrics.find(r =>
-                      r.textsorte?.toLowerCase().includes(e.target.value.toLowerCase())
+                      rubrikPasstZurTextsorte(r, e.target.value)
                     );
                     if (matching) setSelectedRubrik(matching.filename);
                   }}
@@ -1889,7 +1889,7 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }:
                 </select>
                 {analyzeTextsorte && rubrikListe.rubrics.length > 0 && (
                   <p style={{ margin: '0.25rem 0 0', fontSize: '0.6875rem', color: 'var(--color-text-secondary)' }}>
-                    {rubrikListe.rubrics.filter(r => r.textsorte?.toLowerCase().includes(analyzeTextsorte.toLowerCase())).length > 0
+                    {rubrikListe.rubrics.some(r => rubrikPasstZurTextsorte(r, analyzeTextsorte))
                       ? `Raster filtert nach "${analyzeTextsorte}"`
                       : `Kein Raster spezifisch für "${analyzeTextsorte}" — generisches Raster wird verwendet`}
                   </p>

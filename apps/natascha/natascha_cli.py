@@ -682,6 +682,8 @@ def cmd_erwartungshorizont(args):
             aufgabe=args.aufgabe,
             provider=args.provider or "",
             model=args.model or "",
+            ausgangstext_path=args.ausgangstext or args.ausgangstext_datei or None,
+            db_path=db_path,
         )
     except (ValueError, RuntimeError) as e:
         print(str(e), file=sys.stderr)
@@ -1000,6 +1002,16 @@ def main():
     p_eh.add_argument("--aufgabe", required=True)
     p_eh.add_argument("--provider", default="")
     p_eh.add_argument("--model", default="")
+    p_eh.add_argument(
+        "--ausgangstext",
+        default="",
+        help="Quelltext direkt uebergeben (Pfad zu .docx/.txt/.md)",
+    )
+    p_eh.add_argument(
+        "--ausgangstext-datei",
+        default="",
+        help="Alias fuer --ausgangstext; nimmt einen Dateipfad entgegen",
+    )
     p_ehs = sub.add_parser("erwartungshorizont-save", help="Erwartungshorizont (stdin) speichern + verlinken")
     p_ehs.add_argument("--klasse", required=True)
     p_ehs.add_argument("--aufgabe", required=True)

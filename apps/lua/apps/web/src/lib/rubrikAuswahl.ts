@@ -45,3 +45,31 @@ export function gruppiereRubriken(rubriken: RubrikOption[]): RubrikGruppe[] {
       rubriken: [...entries].sort((a, b) => rubrikLabel(a).localeCompare(rubrikLabel(b), 'de')),
     }));
 }
+
+/**
+ * Suchschlüssel-Vergleich, tolerant gegen die Schreibweise der Umlaute.
+ *
+ * Die Rubrik-Dateien führen Textsorten maschinenlesbar (`leseverstaendnis`),
+ * das Auswahlfeld zeigt sie lesbar (`Leseverständnis`). Ohne Normalisierung
+ * findet der Vorschlag kein Raster — ä ≠ ae. Gleiche Normalisierung wie in
+ * `natascha_core._key_norm`, damit beide Seiten dasselbe meinen.
+ */
+export function normiereSuchbegriff(wert: string | undefined | null): string {
+  return (wert ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/ä/g, 'ae')
+    .replace(/ö/g, 'oe')
+    .replace(/ü/g, 'ue')
+    .replace(/ß/g, 'ss');
+}
+
+/** Passt die Rubrik-Textsorte zur gewählten Aufgabenart? */
+export function rubrikPasstZurTextsorte(
+  rubrik: RubrikOption,
+  textsorte: string | undefined | null,
+): boolean {
+  const gesucht = normiereSuchbegriff(textsorte);
+  if (!gesucht) return false;
+  return normiereSuchbegriff(rubrik.textsorte).includes(gesucht);
+}

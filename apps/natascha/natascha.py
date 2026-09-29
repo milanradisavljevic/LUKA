@@ -1630,6 +1630,9 @@ class ErwartungshorizontGeneratorScreen(ModalScreen[bool]):
                 self.config, self.klasse, self.aufgabe,
                 provider=provider, model=model,
                 cancel_event=self._cancel_event,
+                # Aus dem Ordner `ausgangstext/` oder dem zuletzt gespeicherten
+                # Quelltext; ohne beides meldet die Funktion einen klaren Fehler.
+                db_path=ndb.get_db_path(self.config),
             )
             self._result_text = result
             self.call_from_thread(self.query_one("#eh-preview", Markdown).update, result)

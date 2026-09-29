@@ -52,7 +52,7 @@ Natascha3/
 ├── input/                   # Schüler-Abgaben (gitignored)
 ├── output/                  # Feedback-DOCX + JSON-Daten (gitignored)
 │   └── feedback_data/       # Zwischengespeicherte Analyse-JSONs
-├── rubrics/                 # 27 Markdown-Bewertungsraster
+├── rubrics/                 # Markdown-Bewertungsraster (n + erwartungshorizont_*.md)
 ├── tests/                   # Testsuite
 │   ├── test_feedback.py
 │   ├── test_llm_pipeline.py
@@ -239,15 +239,70 @@ DASHSCOPE_API_KEY=...   # alternativer Name für QWEN_API_KEY
 
 ## 11. Rubriken-Verzeichnis (`rubrics/`)
 
-27 Markdown-Dateien. Jede Rubrik enthält:
-- `## JSON-Kriterien` – exakte Schlüssel für die Bewertung
+Markdown-Dateien. Jede Rubrik enthält:
+- `## JSON-Kriterien` – exakte Schlüssel für die Bewertung (in Backticks)
 - `## Checkliste Kriterien` – menschenlesbare Checkliste
 - `## Stufenbeschreibungen (1–5)` – je Kriterium
 - `## Gewichtung` – Prozentwerte je Kriterium
 - `## SRDP-Detail` (nur Oberstufe) – K1/K3 Sub-Kriterien
 
-**Unterstufe:** `*_unterstufe.md`  
+**Unterstufe:** `*_unterstufe.md`
 **Oberstufe:** `srdp_deutsch_oberstufe.md`, `kommentar.md`, `textinterpretation.md`, etc.
+
+### Metadaten-Header
+
+Optionaler HTML-Kommentar am Dateianfang. Ohne ihn bleibt eine Rubrik
+vollständig nutzbar, nur ohne Metadaten.
+
+```
+<!-- luka-rubrik
+titel: Leseverständnis
+fach: deutsch
+schulstufe: oberstufe
+textsorte: leseverstaendnis
+aufgabenart: verstaendnis
+k1: sachverstaendnis, detailverstaendnis, schlussfolgern
+k3: ausdruck, sprachrichtigkeit
+-->
+```
+
+| Feld | Wirkung |
+|------|---------|
+| `titel` | Anzeigename in LUA und im Korrekturdialog |
+| `fach` | Filterung der Rubrikliste (L3) |
+| `schulstufe` | Einordnung in der Fallback-Kette |
+| `textsorte` | maschinenlesbar – **Umlaute ausschreiben** (`leseverstaendnis`), das Auswahlfeld zeigt die lesbare Form und normalisiert beim Vergleich |
+| `aufgabenart` | `verstaendnis` schaltet die Erwartungshorizont-Anweisung auf Verständnisfragen statt Pro-/Contra-Argumente |
+| `k1` / `k3` | eigene Kriterium-Zuordnung zu den SRDP-Kompetenzbereichen |
+
+**Warum `k1`/`k3`?** Oberstufe/AT rechnet die Note aus vier festen
+SRDP-Hauptkriterien. Ein Raster mit eigenen Kriterien fällt dort sonst auf die
+Mittelstufe 3.0 zurück und ergibt konstant Note 3. Wer `k1`/`k3` setzt,
+bestimmt die Aufteilung selbst — und der zweite LLM-Call für die
+SRDP-Subkriterien entfällt, weil er die *Schreibhandlung* bewertet und die
+eigene Note überschreiben würde.
+
+### Fallen beim Schreiben
+
+- **Eigene Kriterien-Keys dürfen keinen Kanon-Teilstring enthalten.**
+  `textstruktur_ausgangstext` enthält „textstruktur"; `aufbau_ausgangstext`
+  ist richtig. Vorhandene Raster folgen dem bereits
+  (`sprachfach_*.md` nutzt `textaufbau`).
+- **In `## Gewichtung` Klartext schreiben, keine Backticks-Zeilen** — die
+  Formate ohne Klammern sind sicher: `- Sachverstaendnis: 25 %`.
+  Umlaute sind erlaubt und werden aufgelöst.
+- **Summe = 100 %** je Rubrik mit Gewichtungsabschnitt.
+
+### Prüfung
+
+`natascha_rubrik_check.py` prüft alle mitgelieferten Raster;
+`tests/test_leseverstaendnis.py` lässt die Prüfung über die ganze Sammlung
+laufen und hält bekannte Bestandsbefunde namentlich fest. Nach jeder Änderung
+an einer Rubrik:
+
+```bash
+python3 -m pytest tests/test_leseverstaendnis.py -q
+```
 
 ---
 

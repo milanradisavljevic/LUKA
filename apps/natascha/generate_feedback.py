@@ -280,6 +280,10 @@ class GradeRecommendation:
     k3_note: int | None = None
     k1_schnitt: float | None = None
     k3_schnitt: float | None = None
+    # Beschriftung des Kompetenzbereichs aus dem Raster (siehe rubric_area_titel).
+    # Leer = die vier Kanonkriterien, dann gilt der bisherige Klartext.
+    k1_titel: str = ""
+    k3_titel: str = ""
     sonderregel: str | None = None
 
 
@@ -1281,12 +1285,14 @@ def parse_feedback_data(payload: dict[str, Any]) -> FeedbackData:
             note=note_raw["note"],
             bezeichnung=note_raw["bezeichnung"],
             begruendung=note_raw["begruendung"],
-            k1_note=note_raw.get("k1_note"),
-            k3_note=note_raw.get("k3_note"),
-            k1_schnitt=note_raw.get("k1_schnitt"),
-            k3_schnitt=note_raw.get("k3_schnitt"),
-            sonderregel=note_raw.get("sonderregel"),
-        )
+        k1_note=note_raw.get("k1_note"),
+        k3_note=note_raw.get("k3_note"),
+        k1_schnitt=note_raw.get("k1_schnitt"),
+        k3_schnitt=note_raw.get("k3_schnitt"),
+        k1_titel=note_raw.get("k1_titel") or "",
+        k3_titel=note_raw.get("k3_titel") or "",
+        sonderregel=note_raw.get("sonderregel"),
+    )
 
     criteria = [
         parse_criterion(key, value) for key, value in payload["bewertung"].items()
@@ -1862,26 +1868,26 @@ def build_feedback_document(
         add_divider(doc)
 
         if has_k1k3:
+            # Die Bereichsbeschriftung kommt aus dem Raster, sobald es eigene
+            # Kriterien deklariert. Fest verdrahtet "Inhalt + Textstruktur" waere
+            # bei einem Verstaendnisraster falsch beschriftet: dort tragen
+            # Sachverstaendnis, Schlussfolgern und Bedeutungsschicht den K1-Bereich.
+            k1_text = f"K1 ({data.notenempfehlung.k1_titel})" if data.notenempfehlung.k1_titel else "K1 (Inhalt + Textstruktur)"
+            k3_text = f"K3/1 ({data.notenempfehlung.k3_titel})" if data.notenempfehlung.k3_titel else "K3/1 (Stil + Sprachnormen)"
             if data.notenempfehlung.k1_note is not None:
                 k1_schnitt_str = (
                     f" [Stufe {data.notenempfehlung.k1_schnitt:.1f}]"
                     if data.notenempfehlung.k1_schnitt is not None
                     else ""
                 )
-                add_label(
-                    doc, "K1 (Inhalt + Textstruktur)",
-                    f"Note {data.notenempfehlung.k1_note}{k1_schnitt_str}",
-                )
+                add_label(doc, k1_text, f"Note {data.notenempfehlung.k1_note}{k1_schnitt_str}")
             if data.notenempfehlung.k3_note is not None:
                 k3_schnitt_str = (
                     f" [Stufe {data.notenempfehlung.k3_schnitt:.1f}]"
                     if data.notenempfehlung.k3_schnitt is not None
                     else ""
                 )
-                add_label(
-                    doc, "K3/1 (Stil + Sprachnormen)",
-                    f"Note {data.notenempfehlung.k3_note}{k3_schnitt_str}",
-                )
+                add_label(doc, k3_text, f"Note {data.notenempfehlung.k3_note}{k3_schnitt_str}")
         else:
             for criterion in ordered_criteria(data):
                 label = criterion_label(data, criterion.key).title()

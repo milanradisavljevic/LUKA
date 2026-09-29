@@ -2,6 +2,7 @@
 // Englisch-Listen sind kuratiert (SRDP-orientiert), kein amtlicher Anspruch.
 import {
   ENGLISCH_UNTERSTUFE_TEXTSORTEN,
+  LESEVERSTAENDNIS_AUFGABENARTEN,
   SRDP_DEUTSCH_TEXTSORTEN,
   SRDP_ENGLISCH_TEXTSORTEN,
   SPRACHFACH_TEXTSORTEN,
@@ -55,7 +56,11 @@ export function textsortenFuer(fach?: string | null, schulstufe?: string | null)
     const family = SPRACHFACH_TEXTSORTEN[fachKey];
     return oberstufe ? [...family.oberstufe] : [...family.unterstufe];
   }
-  return oberstufe ? [...SRDP_DEUTSCH_TEXTSORTEN] : [...DE_UNTERSTUFE_TEXTSORTEN];
+  // Leseverständnis ist eine Aufgabenart, keine Schreibtextsorte — steht
+  // deshalb hinter den Textsorten und nicht darin (siehe schema).
+  return oberstufe
+    ? [...SRDP_DEUTSCH_TEXTSORTEN, ...LESEVERSTAENDNIS_AUFGABENARTEN]
+    : [...DE_UNTERSTUFE_TEXTSORTEN, ...LESEVERSTAENDNIS_AUFGABENARTEN];
 }
 
 /** Kurzer Hinweis unter dem Auswahlfeld — je Fach und Stufe. */
@@ -78,6 +83,6 @@ export function textsortenHint(fach?: string | null, schulstufe?: string | null)
       : `${label[fachKey]}: kuratierte fachbezogene Textsorten (keine amtliche Vollständigkeitsliste)`;
   }
   return istOberstufe(schulstufe)
-    ? 'Oberstufe: 7 offizielle SRDP-Textsorten + Empfehlung'
-    : 'Unterstufe: altersgerechte Textsorten';
+    ? 'Oberstufe: 7 offizielle SRDP-Textsorten + Empfehlung, dazu Leseverständnis'
+    : 'Unterstufe: altersgerechte Textsorten, dazu Leseverständnis';
 }

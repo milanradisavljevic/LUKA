@@ -583,4 +583,73 @@ Startpaket im Pool und zwei Klassen. Sie tippt `goethe` in die Palette.
   ein Fach, ein Aufgabentyp, ein Kürzel oder ein unerklärtes Navigationsziel.
 - Ein neuer Aufgabentyp ohne `gruppe` fällt ebenfalls durch — die Liste wird
   nicht unvollständig, sondern gar nicht erst gerendert.
-- Ein Kürzel ohne bekannten Geltungsbereich wird abgelehnt.
+- Ein Kürzel ohne bekannten Geltungsbereich wird abgelehrt.
+
+---
+
+## Szenario 29 - Leseverständnis prüfen (Oberstufe Deutsch)
+
+**Auslöser:** Eine Lehrkraft will wissen, wie gut die Klasse einen Romanauszug
+verstanden hat — nicht, wie sauber sie schreibt.
+
+**Schritte:**
+1. **Erwartungshorizont** öffnen, Klasse und Aufgabe wählen.
+2. Den Auszug, den die Schüler gelesen haben, in **Quelltext** einfügen
+   (alternativ eine `.docx`/`.txt`/`.md`-Datei wählen).
+3. **Generieren**, den Erwartungshorizont prüfen, **Akzeptieren & speichern**.
+4. **Korrektur** → **Neuer Korrekturauftrag** → Klasse und Aufgabe wählen →
+   *Textsorte* auf **Leseverständnis** stellen → Abgaben hinzufügen →
+   Korrektur starten.
+5. Feedback-DOCX der Abgabe öffnen.
+
+**Erwartet:**
+- Schritt 3 liefert 6–8 **Verständnisfragen** mit Erwartungsbildern, typischen
+  Fehlverständnissen und den Textstellen, an denen Verständnis ablesbar sein muss —
+  keine Pro-/Contra-Argumente.
+- Schritt 4 schlägt das Raster **Leseverständnis** von selbst vor.
+- Das Feedback nennt fünf Verständnis-Kriterien (Sachverständnis,
+  Detailverständnis, Schlussfolgern, Aufbau des Ausgangstextes, Bedeutungsschicht)
+  und weist Ausdruck und Sprachrichtigkeit als Begleitung aus.
+- Die Notenübersicht ist über den **ganzen** Bereich unterscheidbar: sehr gutes
+  Verständnis führt zu Note 1, fehlendes zu Note 5. **Eine vollkommen fehlerfreie
+  Antwort ohne Textverständnis führt trotzdem zu „Nicht genügend"** — das ist der
+  Kern dieser Aufgabenart.
+- Der SRDP-Detailraster-Block (Schreibhandlung, Eigenständigkeit, Textbeilage)
+  erscheint **nicht** — er beurteilt das Schreiben und wäre hier ohne Aussagekraft.
+- Der eingefügte Quelltext steht danach auch im Korrekturdialog als
+  Ausgangsmaterial zur Verfügung (er wird nicht ein zweites Mal erfasst).
+- Die Kriterien-Beschriftung in der Notenübersicht nennt die tatsächlich
+  geprüften Kriterien, nicht „Inhalt + Textstruktur".
+
+**Gegenprobe (Unterstufe / Deutschland):**
+- Dasselbe Raster funktioniert auch ohne Kompetenzbereiche; dort greift die
+  Gewichtung aus dem Raster (Verstehen 75 %, Formulierung 20 %).
+
+**Grenze des Szenarios:** Ohne hinterlegten Quelltext prüft LUKA nur die Antwort,
+nicht das Verständnis. Die Notenempfehlung ist dann nicht aussagekräftig — das
+Raster weist darauf hin.
+
+---
+
+## Szenario 30 - Ein Bewertungsraster darf keine stille Verdrängung verursachen
+
+**Nicht als Nutzererlebnis, sondern als Prüfregel für alle mitgelieferten
+und selbst angelegten Raster.**
+
+**Schritte:**
+1. Eine Rubrik-Datei in `apps/natascha/rubrics/` anlegen oder ändern.
+2. `pytest tests/` in `apps/natascha/` laufen lassen.
+
+**Erwartet:**
+- Jeder Schlüssel aus `## JSON-Kriterien` taucht in `## Gewichtung` auf, und
+  jeder Gewichtungsschlüssel existiert als Kriterium. Die Summe ist 100 %.
+- Ein eigener Kriterien-Name enthält nicht versehentlich einen der vier
+  SRDP-Kanonen (`inhalt`, `textstruktur`, `ausdruck`, `sprachrichtigkeit`) —
+  `textstruktur_ausgangstext` wird abgelehnt, `aufbau_ausgangstext` nicht.
+- Ein Raster mit `k1:`/`k3:` verweist nur auf eigene Kriterien, und jedes
+  Kriterium liegt in genau einem Kompetenzbereich.
+- Kein Schlüssel wird stillschweigend mit der Mittelstufe 3.0 gewertet: Eine
+  Gewichtungszeile, die sich auf keinen Kriterienschlüssel auflösen lässt,
+  erzeugt im Log eine Warnung **und** einen Befund.
+- Raster ohne auflösbare Gewichtung erscheinen namentlich in
+  `test_bekannte_bestandsbefunde_sind_benannt` — sie sind bekannt, nicht vergessen.

@@ -265,17 +265,26 @@ export function useNatascha() {
   }, []);
 
   // Wirft bei Fehler (z. B. API-Key/Netzwerk) — die View zeigt die kategorisierte Meldung.
-  const generateErwartungshorizont = useCallback(async (klasse: string, aufgabe: string, provider?: string, model?: string): Promise<string> => {
-    const settings = loadSettings();
-    return invoke<string>('natascha_erwartungshorizont', {
-      dir: settings.nataschaDir ?? '',
-      python: settings.pythonCommand ?? '',
-      klasse,
-      aufgabe,
-      provider: provider ?? null,
-      model: model ?? null,
-    });
-  }, []);
+const generateErwartungshorizont = useCallback(async (
+  klasse: string,
+  aufgabe: string,
+  provider?: string,
+  model?: string,
+  ausgangstext?: string,
+  quelltext?: string,
+): Promise<string> => {
+  const settings = loadSettings();
+  return invoke<string>('natascha_erwartungshorizont', {
+    dir: settings.nataschaDir ?? '',
+    python: settings.pythonCommand ?? '',
+    klasse,
+    aufgabe,
+    provider: provider ?? null,
+    model: model ?? null,
+    ausgangstext: ausgangstext || null,
+    quelltext: quelltext || null,
+  });
+}, []);
 
   // Speichert den (bearbeiteten) Erwartungshorizont + verlinkt ihn in der Config (→ Korrektur nutzt ihn).
   const saveErwartungshorizont = useCallback(async (klasse: string, aufgabe: string, text: string): Promise<{ klasse: string; aufgabe: string; datei: string }> => {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   ENGLISCH_UNTERSTUFE_TEXTSORTEN,
+  LESEVERSTAENDNIS_AUFGABENARTEN,
   SRDP_DEUTSCH_TEXTSORTEN,
   SRDP_ENGLISCH_TEXTSORTEN,
   SPRACHFACH_TEXTSORTEN,
@@ -40,19 +41,38 @@ describe('textsortenFuer', () => {
     expect(textsortenFuer('englisch', 'unterstufe')).toEqual([...ENGLISCH_UNTERSTUFE_TEXTSORTEN]);
   });
 
-  it('deutsch + oberstufe → SRDP-Deutsch-Liste', () => {
-    expect(textsortenFuer('deutsch', 'oberstufe')).toEqual([...SRDP_DEUTSCH_TEXTSORTEN]);
+  it('deutsch + oberstufe → SRDP-Deutsch-Liste plus Leseverständnis', () => {
+    expect(textsortenFuer('deutsch', 'oberstufe')).toEqual([
+      ...SRDP_DEUTSCH_TEXTSORTEN, ...LESEVERSTAENDNIS_AUFGABENARTEN,
+    ]);
   });
 
-  it('deutsch + unterstufe → altersgerechte DE-Liste', () => {
+  it('deutsch + unterstufe → altersgerechte DE-Liste plus Leseverständnis', () => {
     expect(textsortenFuer('deutsch', 'unterstufe')).toEqual([
       'Erzählung', 'Beschreibung', 'Bericht', 'Zusammenfassung', 'Kommentar', 'Leserbrief',
+      ...LESEVERSTAENDNIS_AUFGABENARTEN,
     ]);
   });
 
   it('leeres/fehlendes Fach → Deutsch-Listen (Default)', () => {
-    expect(textsortenFuer('', 'oberstufe')).toEqual([...SRDP_DEUTSCH_TEXTSORTEN]);
-    expect(textsortenFuer(undefined, undefined)).toHaveLength(6);
+    expect(textsortenFuer('', 'oberstufe')).toEqual([
+      ...SRDP_DEUTSCH_TEXTSORTEN, ...LESEVERSTAENDNIS_AUFGABENARTEN,
+    ]);
+    expect(textsortenFuer(undefined, undefined)).toHaveLength(7);
+  });
+
+  it('Leseverständnis steht in keiner Schreibtextsorten-Liste', () => {
+    // Der Eintrag darf den amtlichen SRDP-Katalog nicht verfaelschen.
+    expect(SRDP_DEUTSCH_TEXTSORTEN as readonly string[]).not.toContain('Leseverständnis');
+    expect(ENGLISCH_UNTERSTUFE_TEXTSORTEN as readonly string[]).not.toContain('Leseverständnis');
+    expect(SRDP_ENGLISCH_TEXTSORTEN as readonly string[]).not.toContain('Leseverständnis');
+  });
+
+  it('Fremdsprachen bekommen die Verständnis-Aufgabenart nicht', () => {
+    for (const sprachfach of Object.keys(SPRACHFACH_TEXTSORTEN)) {
+      expect(textsortenFuer(sprachfach, 'oberstufe'), sprachfach)
+        .not.toContain('Leseverständnis');
+    }
   });
 
   it('weitere Sprachfächer erhalten eigene Familienlisten', () => {

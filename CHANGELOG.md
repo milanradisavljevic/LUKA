@@ -66,11 +66,78 @@ Beide Rätselarten waren gleich betroffen.
 
 **Fehlerliste und Schülertext sind verzahnt.** Ein Klick auf einen Vorschlag holt die Stelle im Schülertext in den Blick, und die Fehlerliste lässt sich nach Reihenfolge im Text sortieren.
 
+**Leseverständnis prüfen – endlich auch den Text, den die Schüler gelesen haben.**
+Bisher konnte LUKA nur *Schreibaufträge* bewerten: Kommentar, Erörterung, Interpretation. Die
+Frage „wer hat den Auszug wirklich verstanden?" ließ sich nicht stellen — und die vorhandene
+Textinterpretations-Rubrik bewertete zu Hälfte die Formulierung, nicht das Verstehen.
+
+Neu sind zwei Bewertungsraster **Leseverständnis** (Oberstufe und Unterstufe). Sie messen
+Sachverständnis, Detailverständnis, Schlussfolgern, den Aufbau des Ausgangstextes und die
+Bedeutungsschicht (Symbolik, Bilder, Themen). **Das Verstehen wiegt 85 %**, die Formulierung
+nur 15 % — bei einem Verständnistest ist das die ehrliche Verteilung. Wer den Text nicht
+verstanden hat, bekommt „Nicht genügend", auch bei fehlerfreier Sprache.
+
+Du findest die Raster unter **Korrektur → Neuer Korrekturauftrag → Bewertungsraster** und
+als Aufgabenart **Leseverständnis** im Feld *Textsorte*. Wählst du die Aufgabenart, schlägt
+LUKA das passende Raster selbst vor. In der Unterlagenerstellung bekommt die
+**Verständnisfrage** bei Deutsch und Sachfächern dasselbe Raster; Englisch behält sein
+bisheriges Bewertungsschema, weil dort die Sprache das Kriterium ist.
+
+**Der Quelltext gehört jetzt dorthin, wo du ihn brauchst.** Für einen Erwartungshorizont —
+also für die Aufgabenstellung und das Raster, nach dem später korrigiert wird — brauchte
+LUKA den Text bisher aus einem Ordner, den die App nirgends nennt. Die Ansicht
+**Erwartungshorizont** hat jetzt ein Feld **Quelltext**: Text einfügen oder eine Datei
+wählen (`.docx`, `.txt`, `.md`). Was du dort hinterlegst, liegt danach auch der Korrektur
+dieser Aufgabe vor — du pflegst den Auszug einmal, nicht zweimal. Ohne eigene Eingabe sucht
+LUKA wie bisher im Ordner und im zuletzt gespeicherten Quelltext.
+
+Erzeugt LUKA den Erwartungshorizont aus einem Verständnisraster, fragt es nach **6–8
+Verständnisfragen** mit Erwartungsbildern und typischen Fehlverständnissen — vorher fragte es
+Pro- und Contra-Argumente, was bei einer Verständnisaufgabe nichts verloren hat. In der
+Notenübersicht des Feedbacks stehen jetzt die Kriterien, die tatsächlich geprüft wurden,
+statt fest „Inhalt + Textstruktur".
+
 **Hilfe, Suche und Navigation neu.** Die Hilfe ist in sechs Kapitel gegliedert, die Tastenkürzel stehen in einer Liste statt an fünf Stellen verstreut, und eine große Trefferliste in der Suche verdrängt die anderen Bereiche nicht mehr.
 
 Details im Änderungsprotokoll: https://github.com/milanradisavljevic/LUKA/blob/main/CHANGELOG.md
 
 ### Behobene Fehler
+
+**Noten – hier hat LUKA selbst etwas unterschlagen**
+
+- **Ein Viertel der Note war fest, egal was die KI bewertet hat.** Die Rubrik *Kommentar*
+  gewichtet „Aufbau und Struktur" mit 25 %, nennt das Kriterium im Bewertungsteil aber
+  `aufbau`. LUKA suchte nach „Textstruktur" im Wortlaut der Zeile, fand diesen Begriff aber
+  gar nicht in dieser Rubrik — und rechnete mit der mittleren Stufe weiter. Bei einer
+  Unterstufenklasse in Deutschland bekam eine Arbeit mit starkem Aufbau dieselbe Note wie
+  eine mit schwachem. Der Anteil wird jetzt dem Kriterium zugeordnet, das es wirklich gibt:
+  deutlicher Aufbau hebt die Note, schwacher senkt sie.
+- **Bei Latein war die Note konstant „Befriedigend".** Das Raster *Latein* nennt vier eigene
+  Kriterien (Textverständnis, Übersetzungsgenauigkeit, Spracherschließung, Kulturbezug) und
+  keine Gewichtung. LUKA fiel damit auf eine Standardverteilung zurück, die keines dieser
+  Kriterien trifft — jede Leistung, von 1 bis 5, ergab Note 3. **Das ist hier noch nicht
+  behoben**, weil eine Gewichtung für diese Raster eine fachliche Entscheidung ist und die
+  Noten bestehender Korrekturen verschiebt. Betroffen sind derzeit *Latein* sowie die
+  Englisch-Raster in der Unterstufe; der Befund ist in den Tests namentlich festgehalten, damit
+  er nicht verschwindet. Bis zur Entscheidung bitte bei diesen Fächern die Note selbst setzen.
+- **Ein eigenes Bewertungsraster hätte eine falsche Note ergeben.** Raster mit eigenen
+  Kriterien rechnete LUKA über vier fest verdrahtete Namen; was nicht passte, zählte als
+  Mittelstufe. Mit den neuen Kriterien-Schlüsseln im Raster entscheidet das Raster jetzt
+  selbst, welche seiner Kriterien in den Kompetenzbereich gehören.
+
+**Leseverständnis & Erwartungshorizont**
+
+- **Die Auswahl „Leseverständnis" hätte kein Raster gefunden.** Die Raster-Dateien führen
+  Textsorten maschinenlesbar (`leseverstaendnis`), das Auswahlfeld zeigt sie lesbar
+  (`Leseverständnis`) — der Vergleich scheiterte an „ä ≠ ae", und der Vorschlag blieb stumm.
+- **Ein Ausgangstext als `.txt` im Aufgabenordner wurde ignoriert.** LUKA durchsuchte dort nur
+  Bild- und PDF-Dateien, obwohl es reine Textdateien lesen kann. Ein Auszug als Textdatei ist
+  jetzt gefunden.
+- **Eine Bild- oder PDF-Vorlage brach die Erwartungshorizont-Erzeugung mit einer
+  Endungsmeldung ab.** Statt „Format nicht unterstützt" steht jetzt drin, was zu tun ist.
+- **Wortlaut und Quelle stimmen nicht mehr:** Die Meldung bei fehlendem Text verlangte, eine
+  Datei in einem Ordner abzulegen, den die App nicht nennt; der Prompt sagte „die Textbeilage",
+  obwohl es mehrere Quellen gab.
 
 **Hilfe & Suche**
 
