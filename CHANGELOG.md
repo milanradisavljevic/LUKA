@@ -146,6 +146,19 @@ bleibt die bisherige Beschriftung, denn dort stimmt sie.
 **Verwandt:** Im Feedback-DOCX fehlte dieser Hinweis ganz – der entsprechende Abschnitt
 wurde nie erreicht, obwohl er vorhanden war. Er erscheint jetzt.
 
+**Der Korrekturauftrag übernimmt den Ausgangstext für die Aufgabe.** Wer den Quelltext im
+Erwartungshorizont hinterlegt hatte, musste ihn beim Korrigieren trotzdem noch einmal
+eingeben: gespeichert war er, gelesen wurde er von der Korrektur nicht. LUKA trägt ihn jetzt
+von selbst ein und sagt dazu, woher er stammt.
+
+**Dabei gefunden: Beim Aufgabenwechsel blieb der Text der vorigen Aufgabe stehen.** Wer 6a
+mit einem Romanauszug korrigiert hatte und dann auf 6b wechselte, hatte den Auszug noch im
+Feld – und konnte, ohne es zu merken, gegen den falschen Text korrigieren. Beim Wechsel
+wird das Feld jetzt geleert.
+
+**Nie überschrieben:** Trägst du selbst etwas ein, bleibt es stehen. Und leerst du das
+Feld absichtlich, wird es nicht sofort wieder gefüllt.
+
 ## Version 1.5.3 — 2026-09-26
 
 ### Das ist neu

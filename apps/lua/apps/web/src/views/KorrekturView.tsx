@@ -5,6 +5,7 @@ import { zentriereInPaneWennNoetig } from '../lib/paneScroll';
 import { MODEL_MAP } from '../lib/runtimeModel';
 import { LLM_PROVIDERS, PROVIDER_KEY_IDS } from '../lib/constants';
 import { textsortenFuer, textsortenHint } from '../lib/textsortenAuswahl';
+import { aufgabenSchluessel, entscheideVorfuellung } from '../lib/quelltextVorfuellung';
 import { useDialogFocus } from '../hooks/useDialogFocus';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { GraduationCap, Save, AlertTriangle, Loader2, Upload, FolderOpen, FileDown, ChevronRight, Eye, EyeOff, Files, XCircle, CheckCircle2, ShieldCheck, RefreshCw, Check, X, Pencil, Undo2, Trash2, Unlink } from 'lucide-react';
@@ -183,7 +184,7 @@ interface KorrekturViewProps {
 }
 
 export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }: KorrekturViewProps = {}) {
-  const { analyze, activeJobId, cancel, analyzing, progressStage, progressMessage, listKlassen, listAufgaben, getAbgaben, getAbgabeDetail, getKorrekturKontext, upsertLehrerFeedback, updateFehlerStatus, activateKorrekturRevision, deleteKorrekturRevision, generateFeedbackDocx, retroImport, personenVorschau, listSchueler, listRubrics } = useNatascha();
+  const { analyze, activeJobId, cancel, analyzing, progressStage, progressMessage, listKlassen, listAufgaben, getAbgaben, getAbgabeDetail, getKorrekturKontext, upsertLehrerFeedback, updateFehlerStatus, activateKorrekturRevision, deleteKorrekturRevision, generateFeedbackDocx, retroImport, personenVorschau, listSchueler, listRubrics, quelltextGet } = useNatascha();
   const { list: listEinsaetze } = useEinsatz();
   const { klassen: klassenMeta, refresh: refreshKlassenMeta } = useKlassenMeta();
 
@@ -230,9 +231,16 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }:
   // Anbieter/Modell pro Auftrag (Default: Settings)
   const [analyzeProvider, setAnalyzeProvider] = useLocalDraft('analyzeProvider', '');
   const [analyzeModel, setAnalyzeModel] = useLocalDraft('analyzeModel', '');
-  // Ausgangstext (Angabe/Quelltext der Arbeit) — optional.
+  // Ausgangstext (Angabe/Quelltext der Arbeit). Gehört der Aufgabe: er wird
+  // unter Klasse + Aufgabe gespeichert und von Erwartungshorizont wie Korrektur
+  // gebraucht. `herkunft` sagt, woher der Text stammt, damit die Lehrkraft eine
+  // übernommene Eingabe nicht ungeprüft verwendet.
   const [analyzeAusgangstext, setAnalyzeAusgangstext] = useLocalDraft('analyzeAusgangstext', '');
   const [analyzeAusgangstextDatei, setAnalyzeAusgangstextDatei] = useLocalDraft('analyzeAusgangstextDatei', '');
+  const [ausgangstextHerkunft, setAusgangstextHerkunft] = useState('');
+  // Für welche Aufgabe schon vorbelegt wurde — verhindert, dass ein bewusst
+  // geleertes Feld sofort wieder gefüllt wird.
+  const [vorbelegtFuer, setVorbelegtFuer] = useState('');
   const [selectedEinsatzId, setSelectedEinsatzId] = useLocalDraft('selectedEinsatzId', '');
   const [einsatzOptions, setEinsatzOptions] = useState<EinsatzRecord[]>([]);
   const [analyzeSuccess, setAnalyzeSuccess] = useState<string | null>(null);
@@ -387,6 +395,64 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }:
     })();
     return () => { active = false; };
   }, [analyzeOpen, listEinsaetze, klassenMeta]);
+
+  /**
+   * Ausgangstext aus dem Speicher der Aufgabe übernehmen.
+   *
+   * Bisher las nur der Erwartungshorizont-Reiter aus `aufgabe_quelltext`. Ein im
+   * Erwartungshorizont-Reiter hinterlegter Text — oder einer aus einer früheren
+   * Korrektur — stand im Korrekturauftrag trotzdem auf leer, obwohl er direkt
+   * passt. Die eigentliche Entscheidung liegt in `entscheideVorfuellung`, damit
+   * sie ohne React prüfbar ist.
+   */
+  useEffect(() => {
+    if (!analyzeKlasse.trim() || !analyzeAufgabe.trim()) return;
+    const schluessel = aufgabenSchluessel(analyzeKlasse, analyzeAufgabe);
+    // Erste Prüfung ohne den Speicher: sie entscheidet nur, ob ein Laden
+    // überhaupt sinnvoll ist.
+    const tor = entscheideVorfuellung({
+      klasse: analyzeKlasse,
+      aufgabe: analyzeAufgabe,
+      gespeichert: '',
+      eigenerText: analyzeAusgangstext,
+      eigeneDatei: analyzeAusgangstextDatei,
+      bereitsGefuellt: vorbelegtFuer,
+    });
+    if (tor.grund === 'bereits_gefuehlt') return;
+    if (tor.grund === 'eigene_eingabe') {
+      setAusgangstextHerkunft(tor.hinweis);
+      return;
+    }
+    // Der Aufgabenname entsteht durch Tippen: "S", "SA", "SA2". Ohne Verzögerung
+    // würde dreimal geladen — und es könnte eine Aufgabe namens "S" treffen.
+    // `aktiv` gilt auch nach dem Auslösen: bricht der Effekt während des Ladens
+    // ab (Aufgabe weiter getippt), darf die alte Antwort das Feld nicht füllen.
+    let aktiv = true;
+    const id = setTimeout(() => {
+      quelltextGet(analyzeKlasse.trim(), analyzeAufgabe.trim())
+        .then((gespeichert) => {
+          if (!aktiv) return;
+          const ergebnis = entscheideVorfuellung({
+            klasse: analyzeKlasse,
+            aufgabe: analyzeAufgabe,
+            gespeichert,
+            eigenerText: analyzeAusgangstext,
+            eigeneDatei: analyzeAusgangstextDatei,
+            bereitsGefuellt: vorbelegtFuer,
+          });
+          setVorbelegtFuer(schluessel);
+          if (!ergebnis.fuellen) return;
+          setAnalyzeAusgangstext(ergebnis.text);
+          setAusgangstextHerkunft(ergebnis.hinweis);
+        })
+        .catch(() => {
+          // Kein gespeicherter Text oder Sidecar nicht erreichbar: das Feld
+          // bleibt leer. Ein Fehler hier wäre irreführend — der Text ist optional.
+          if (aktiv) setVorbelegtFuer(schluessel);
+        });
+    }, 300);
+    return () => { aktiv = false; clearTimeout(id); };
+  }, [analyzeKlasse, analyzeAufgabe, analyzeAusgangstext, analyzeAusgangstextDatei, vorbelegtFuer, quelltextGet]);
 
   const handleEinsatzChange = useCallback((id: string) => {
     setSelectedEinsatzId(id);
@@ -710,6 +776,8 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }:
     setSelectedRubrik(korrekturKontext?.rubrik ?? '');
     setAnalyzeAusgangstext(korrekturKontext?.ausgangstext ?? '');
     setAnalyzeAusgangstextDatei('');
+    setAusgangstextHerkunft('');
+    setVorbelegtFuer('');
     setAnalyzeStep(1);
     setAnalyzeOpen(true);
   }, [korrekturStatus, korrekturKontext, selectedAufgabe, selectedKlasse, analyzeKlasse, analyzeFile, batchFiles.length, profilLand, korrekturLand]);
@@ -729,6 +797,8 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }:
     setSelectedRubrik(korrekturKontext?.klasse === selectedAbgabe.abgabe.klasse && korrekturKontext?.aufgabe === selectedAbgabe.abgabe.aufgabe ? korrekturKontext.rubrik : '');
     setAnalyzeAusgangstext(korrekturKontext?.ausgangstext ?? '');
     setAnalyzeAusgangstextDatei('');
+    setAusgangstextHerkunft('');
+    setVorbelegtFuer('');
     setAnalyzeProvider('');
     setAnalyzeModel('');
     setAnalyzeStep(1);
@@ -1797,6 +1867,11 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }:
                   onChange={(e) => {
                     setAnalyzeKlasse(normalizeKlasse(e.target.value));
                     setAnalyzeAufgabe('');setAssignments({});setSelectedRubrik('');setAnalyzeTextsorte('');setBatchResults([]);
+                    // Der Ausgangstext gehört zu EINER Aufgabe. Ohne ihn
+                    // mitzuleeren, stuende nach dem Wechsel der Text der
+                    // vorigen Aufgabe im Feld — und niemand korrigiert
+                    // absichtlich gegen den falschen Text.
+                    setAnalyzeAusgangstext('');setAnalyzeAusgangstextDatei('');setAusgangstextHerkunft('');
                   }}
                   style={{ width: '100%' }}
                 >
@@ -1813,7 +1888,14 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }:
                   type="text"
                   list="korrektur-aufgaben-optionen"
                   value={analyzeAufgabe}
-                  onChange={(e) => setAnalyzeAufgabe(e.target.value)}
+                  onChange={(e) => {
+                    setAnalyzeAufgabe(e.target.value);
+                    // Beim Tippen zählt jede Änderung als neue Aufgabe: sonst
+                    // hinge der Quelltext der ersten drei Buchstaben an der
+                    // Aufgabe "SA2" und würde beim Weitertippen mitlaufen.
+                    setAnalyzeAusgangstext('');setAnalyzeAusgangstextDatei('');setAusgangstextHerkunft('');
+                    setVorbelegtFuer('');
+                  }}
                   placeholder={analyzeKlasse ? 'Vorhandene Aufgabe wählen oder neue eingeben' : 'Zuerst Klasse auswählen'}
                   disabled={!analyzeKlasse}
                   style={{ width: '100%' }}
@@ -1917,7 +1999,7 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }:
                   <input
                     type="text"
                     value={analyzeAusgangstextDatei ? baseName(analyzeAusgangstextDatei) : analyzeAusgangstext}
-                    onChange={(e) => { setAnalyzeAusgangstextDatei(''); setAnalyzeAusgangstext(e.target.value); }}
+                    onChange={(e) => { setAnalyzeAusgangstextDatei(''); setAnalyzeAusgangstext(e.target.value); setAusgangstextHerkunft(''); }}
                     placeholder="Text eingeben oder Datei wählen"
                     style={{ flex: 1 }}
                   />
@@ -1928,7 +2010,12 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }:
                 {analyzeAusgangstextDatei && (
                   <p style={{ margin: '0.25rem 0 0', fontSize: '0.72rem', color: 'var(--color-text-secondary)' }}>
                     Datei: {baseName(analyzeAusgangstextDatei)}
-                    <button type="button" className="btn-ghost" onClick={() => setAnalyzeAusgangstextDatei('')} style={{ marginLeft: '0.5rem', fontSize: '0.72rem' }}>entfernen</button>
+                    <button type="button" className="btn-ghost" onClick={() => { setAnalyzeAusgangstextDatei(''); setAusgangstextHerkunft(''); }} style={{ marginLeft: '0.5rem', fontSize: '0.72rem' }}>entfernen</button>
+                  </p>
+                )}
+                {ausgangstextHerkunft && (
+                  <p style={{ margin: '0.25rem 0 0', fontSize: '0.6875rem', color: 'var(--color-text-secondary)' }}>
+                    {ausgangstextHerkunft}
                   </p>
                 )}
                 <p style={{ margin: '0.25rem 0 0', fontSize: '0.6875rem', color: 'var(--color-text-secondary)' }}>
