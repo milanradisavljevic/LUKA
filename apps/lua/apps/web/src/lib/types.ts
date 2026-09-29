@@ -19,6 +19,7 @@ export type ActiveView =
   | 'klassen'
   | 'schueler'
   | 'erwartungshorizont'
+  | 'bewertungsraster'
   | 'planung'
   | 'kompetenz'
   | 'quick'

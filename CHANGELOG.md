@@ -81,6 +81,22 @@ Diese Meldungen erscheinen nicht mehr. Erscheinen dafür keine Raster mehr,
 stimmt etwas nicht mit dem Ordner, und LUKA sagt es, statt still eine leere Liste
 zu zeigen.
 
+**Bewertungsraster hat ein eigenes Feld in der Seitenleiste.** Bis jetzt lagen
+Erwartungshorizont und Bewertungsraster in einer Ansicht. Das war unlogisch, weil die
+beiden grundverschieden lange gültig sind: Ein Erwartungshorizont gehört zu **einer**
+Aufgabe und wird erneuert, sobald sich die Aufgabenstellung ändert. Ein Bewertungsraster
+gilt für **beliebige viele** Aufgaben und wird gepflegt. Der Reiter hieß trotzdem
+„Erwartungshorizont & Raster" – beim Wechseln bekam man den Eindruck, es gäbe nur ein
+Objekt.
+
+Jetzt gibt es „Bewertungsraster" als eigenen Reiter, direkt daneben. Die Korrekturen-Seite
+ist zweizeilig: oben die Arbeit an der Klasse, unten die Dinge, die man vorher festlegt.
+Die Hilfe ist entsprechend getrennt, und im Erwartungshorizont steht ein Hinweis, wo das
+Raster jetzt liegt.
+
+**Verwandt:** Das Auswahlfeld beim Korrigieren bleibt, wie es war – dort wird ein Raster
+gewählt, nicht bearbeitet. Das Bearbeiten hat jetzt einen Ort.
+
 ## Version 1.5.3 — 2026-09-26
 
 ### Das ist neu

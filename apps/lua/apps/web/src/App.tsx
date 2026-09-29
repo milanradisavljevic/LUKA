@@ -40,6 +40,7 @@ const SettingsView = lazy(() => import('./views/SettingsView').then((m) => ({ de
 const KorrekturView = lazy(() => import('./views/KorrekturView').then((m) => ({ default: m.KorrekturView })));
 const SchuelerView = lazy(() => import('./views/SchuelerView').then((m) => ({ default: m.SchuelerView })));
 const ErwartungshorizontView = lazy(() => import('./views/ErwartungshorizontView').then((m) => ({ default: m.ErwartungshorizontView })));
+const BewertungsrasterView = lazy(() => import('./views/BewertungsrasterView').then((m) => ({ default: m.BewertungsrasterView })));
 const KompetenzView = lazy(() => import('./views/KompetenzView').then((m) => ({ default: m.KompetenzView })));
 const QuickExerciseView = lazy(() => import('./views/QuickExerciseView').then((m) => ({ default: m.QuickExerciseView })));
 const PlanungView = lazy(() => import('./views/PlanungView').then((m) => ({ default: m.PlanungView })));
@@ -89,7 +90,8 @@ const VIEW_TITLES: Record<ActiveView, string> = {
   klassen: 'Meine Klassen',
   korrektur: 'Korrektur',
   schueler: 'Schüler',
-  erwartungshorizont: 'Erwartungshorizont',
+    erwartungshorizont: 'Erwartungshorizont',
+    bewertungsraster: 'Bewertungsraster',
   templates: 'Vorlagen',
   history: 'Verlauf',
   favorites: 'Favoriten',
@@ -797,6 +799,8 @@ if (hydrating) {
         );
       case 'erwartungshorizont':
         return <ErwartungshorizontView />;
+      case 'bewertungsraster':
+        return <BewertungsrasterView />;
       case 'quick':
         return <QuickExerciseView dispatch={dispatch} onDone={() => setActiveView('wizard')} />;
       case 'planung':

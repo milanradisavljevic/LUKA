@@ -639,7 +639,7 @@ export const HELP_SECTIONS: HelpSection[] = [
           <><strong>Einmal pflegen genügt.</strong> Was du dort einträgst, steht danach auch im Korrekturdialog als Ausgangsmaterial bereit.</>,
           <><strong>Erwartungshorizont erzeugen</strong> und prüfen. Bei einem Verständnisraster fragt LUKA nach 6–8 Verständnisfragen mit Erwartungsbildern und typischen Fehlverständnissen — statt Pro- und Contra-Argumenten.</>,
           <><strong>Korrigieren:</strong> Im Führungsassistenten im Feld <em>Textsorte</em> <strong>Leseverständnis</strong> wählen. LUKA schlägt das passende Raster selbst vor.</>,
-          <><strong>Raster anpassen:</strong> Der <strong>Rubrik-Editor</strong> in derselben Ansicht öffnet jedes Raster als Text. Änderungen wirken bei der nächsten Korrektur mit diesem Raster.</>,
+          <><strong>Raster anpassen:</strong> Der Reiter <strong>Bewertungsraster</strong> öffnet jedes Raster als Text. Änderungen wirken bei der nächsten Korrektur mit diesem Raster.</>,
         ]} />
         <P>
           <strong>Aufpassen bei den Kriterien-Schlüsseln:</strong> Die Namen unter{' '}
@@ -706,7 +706,7 @@ export const HELP_SECTIONS: HelpSection[] = [
   {
     id: 'erwartungshorizont',
     kapitel: 'bewerten',
-    title: 'Erwartungshorizont & Raster',
+    title: 'Erwartungshorizont',
     Icon: ClipboardCheck,
     natascha: true,
     body: (
@@ -717,15 +717,42 @@ export const HELP_SECTIONS: HelpSection[] = [
           nutzt die Korrektur dieser Aufgabe ihn automatisch als Maßstab.
         </P>
         <P>
-          Im <strong>Rubrik-Editor</strong> (gleiche Ansicht) bearbeitest du die Bewertungsraster
-          direkt: Rubrik wählen, Markdown anpassen, speichern. Änderungen wirken bei der nächsten
-          Korrektur mit dieser Rubrik.
+          Er gilt für <strong>genau diese eine Aufgabe</strong>. Änderst du die Aufgabenstellung,
+          gehört er neu erzeugt. Woran dauerhaft gemessen wird, steht im Reiter
+          <strong> Bewertungsraster</strong>.
         </P>
         <P>
           LUKA liefert eigene Grundraster für Englisch, Französisch, Spanisch, Italienisch und
           Latein. Das <strong>Feedback bleibt deutsch</strong>, Zitate und Korrekturen stehen in
           der Zielsprache. Bei Land Deutschland korrigiert Deutsch mit Skala 1–6 und der
           Bezeichnung „Klassenarbeit".
+        </P>
+        <Tip>Der Erwartungshorizont ist ein Entwurf — prüfe ihn, bevor du ihn zur Grundlage machst.</Tip>
+      </>
+    ),
+  },
+  {
+    id: 'bewertungsraster',
+    kapitel: 'bewerten',
+    title: 'Bewertungsraster',
+    Icon: ClipboardCheck,
+    natascha: true,
+    body: (
+      <>
+        <P>
+          Ein <strong>Bewertungsraster</strong> sagt LUKA, <em>woran</em> es eine Leistung misst.
+          Im Reiter <strong>Bewertungsraster</strong> wählst du eines aus, bearbeitest es als Text
+          und speicherst es. Änderungen wirken ab dem nächsten Korrekturauftrag mit diesem Raster —
+          bereits erzeugte Feedbacks enthalten die alte Bewertung.
+        </P>
+        <P>
+          Ein Raster gilt für <strong>beliebig viele Aufgaben</strong> und wird gepflegt, nicht neu
+          erzeugt. Deshalb steht es in einem eigenen Reiter und nicht beim Erwartungshorizont,
+          der nur für eine Aufgabe gilt.
+        </P>
+        <P>
+          LUKA wählt das Raster im Korrekturdialog nach Textsorte, Fach und Schulstufe vor. Passen
+          mehrere, entscheidest du selbst.
         </P>
         <Tip>So steuerst du die Bewertung gezielt — z. B. strengere oder fachspezifische Kriterien.</Tip>
       </>

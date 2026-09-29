@@ -12,6 +12,15 @@ import type { ActiveView } from './types';
  *
  *  `gruppen` ist optional: eine Fläche mit vielen Reitern (Bibliothek) wird sonst
  *  zu einem Regal. Statt einer einzigen Knopfzeile bekommt jede Gruppe eine eigene.
+ *
+ *  Die Korrekturen-Fläche nutzt zwei Gruppen, weil dort zwei verschiedene Fragen
+ *  stehen: „was ist aus der Klasse herausgekommen" (Klassen, Korrektur, Schüler)
+ *  und „was lege ich vorher fest" (Erwartungshorizont, Bewertungsraster).
+ *  Erwartungshorizont und Bewertungsraster liegen darum in **verschiedenen** Tabs
+ *  und nicht in einem: der Erwartungshorizont gilt für genau eine Aufgabe und wird
+ *  bei jeder Änderung neu erzeugt, ein Bewertungsraster gilt für viele Aufgaben und
+ *  wird gepflegt. Der Gültigkeitsbereich ist der Unterschied, nicht die Zugehörigkeit
+ *  zum Korrekturthema.
  */
 export interface WorkArea {
   label: string;
@@ -23,7 +32,15 @@ export interface WorkArea {
 export const WORK_AREAS: WorkArea[] = [
   { label: 'Start', view: 'dashboard', views: ['dashboard'] },
   { label: 'Unterricht', view: 'wizard', views: ['wizard', 'planung', 'kompetenz', 'quick'] },
-  { label: 'Korrekturen', view: 'klassen', views: ['klassen', 'korrektur', 'schueler', 'erwartungshorizont'] },
+  {
+    label: 'Korrekturen',
+    view: 'klassen',
+    views: ['klassen', 'korrektur', 'schueler', 'erwartungshorizont', 'bewertungsraster'],
+    gruppen: [
+      ['klassen', 'korrektur', 'schueler'],
+      ['erwartungshorizont', 'bewertungsraster'],
+    ],
+  },
   {
     label: 'Bibliothek',
     view: 'documents',

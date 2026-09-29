@@ -13,7 +13,9 @@ export interface NavTarget {
 }
 
 /** Views, die erst mit NATASCHA-Integration sichtbar werden. */
-export const NATASCHA_VIEWS: ActiveView[] = ['klassen', 'korrektur', 'schueler', 'erwartungshorizont'];
+export const NATASCHA_VIEWS: ActiveView[] = [
+  'klassen', 'korrektur', 'schueler', 'erwartungshorizont', 'bewertungsraster',
+];
 
 export const NAV_TARGETS: NavTarget[] = [
   { view: 'dashboard', label: 'Übersicht', description: 'Unterlagen, Schnellstarts und Weiterarbeiten' },
@@ -27,7 +29,8 @@ export const NAV_TARGETS: NavTarget[] = [
   { view: 'klassen', label: 'Meine Klassen', description: 'Klassenübersicht mit Notenverteilung' },
   { view: 'korrektur', label: 'Korrektur', description: 'Korrektur-Exporte einsehen' },
   { view: 'schueler', label: 'Schüler', description: 'Einzelne Schüler/innen und deren Ergebnisse' },
-  { view: 'erwartungshorizont', label: 'Erwartungshorizont', description: 'Lösungserwartungen und Bewertungsraster' },
+  { view: 'erwartungshorizont', label: 'Erwartungshorizont', description: 'Lösungserwartungen für eine Aufgabe erzeugen' },
+  { view: 'bewertungsraster', label: 'Bewertungsraster', description: 'Bewertungsraster ansehen, bearbeiten und anlegen' },
   { view: 'history', label: 'Verlauf', description: 'Bisherige Generierungen und Exporte' },
   { view: 'favorites', label: 'Favoriten', description: 'Markierte Dokumente' },
   { view: 'trash', label: 'Papierkorb', description: 'Gelöschte Dokumente wiederherstellen' },
