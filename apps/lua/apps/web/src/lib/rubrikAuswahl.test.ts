@@ -1,13 +1,22 @@
 import { describe, expect, it } from 'vitest';
 import {
-  fachLabel, gruppiereRubriken, normiereSuchbegriff, rubrikLabel, rubrikPasstZurTextsorte,
+  fachLabel, gruppiereRubriken, normiereSuchbegriff, rubrikLabel, rubrikMetaZeile,
+  rubrikPasstZurTextsorte, stufeLabel,
 } from './rubrikAuswahl';
+import { textsortenLabel } from './textsortenAuswahl';
 
 describe('Rubrik-Auswahl', () => {
   it('zeigt den Header-Titel, sonst einen aufbereiteten Dateinamen', () => {
     expect(rubrikLabel({ filename: 'srdp_deutsch_oberstufe.md', titel: 'SRDP Deutsch Oberstufe' }))
       .toBe('SRDP Deutsch Oberstufe');
     expect(rubrikLabel({ filename: 'offener_brief.md' })).toBe('Offener Brief');
+  });
+
+  it('zeigt nie den Dateinamen mit Endung', () => {
+    // Der eigentliche Aerger: im Auswahlfeld stand "leseverstaendnis.md".
+    for (const datei of ['leseverstaendnis.md', 'srdp_deutsch_oberstufe.md', 'AB_Checkliste.md']) {
+      expect(rubrikLabel({ filename: datei })).not.toContain('.md');
+    }
   });
 
   it('gruppiert die Optionen nach Fach und sortiert innerhalb der Gruppe', () => {
@@ -24,6 +33,42 @@ describe('Rubrik-Auswahl', () => {
   it('bezeichnet leere oder unbekannte Fachangaben nachvollziehbar', () => {
     expect(fachLabel('')).toBe('Weitere Raster');
     expect(fachLabel('geschichte')).toBe('Geschichte');
+  });
+});
+
+describe('Rubrik-Beschriftung ohne Dateinamen', () => {
+  it('macht die Schulstufe lesbar', () => {
+    expect(stufeLabel('unterstufe')).toBe('Unterstufe');
+    expect(stufeLabel('Oberstufe')).toBe('Oberstufe');
+    // "alle" ist keine Angabe, sondern eine Abgrenzung - da steht nichts.
+    expect(stufeLabel('alle')).toBe('');
+    expect(stufeLabel('')).toBe('');
+  });
+
+  it('baut die Nebenzeile aus Fach und Stufe', () => {
+    expect(rubrikMetaZeile({ filename: 'x.md', fach: 'deutsch', schulstufe: 'oberstufe' }))
+      .toBe('Deutsch · Oberstufe');
+    // Ohne Stufenangabe bleibt kein Füllwort zurück.
+    expect(rubrikMetaZeile({ filename: 'x.md', fach: 'deutsch' })).toBe('Deutsch');
+  });
+
+  it('macht die maschinenlesbare Textsorte wieder lesbar', () => {
+    // Die Raster-Koepfe muessen "leseverstaendnis" schreiben (Python vergleicht
+    // ohne Umlaute), angezeigt wird aber die Form aus den Auswahllisten.
+    expect(textsortenLabel('leseverstaendnis')).toBe('Leseverständnis');
+    expect(textsortenLabel('Leseverständnis')).toBe('Leseverständnis');
+    expect(textsortenLabel('erzaehlung')).toBe('Erzählung');
+  });
+
+  it('lässt "alle" weg, statt es als Textsorte zu nennen', () => {
+    expect(textsortenLabel('alle')).toBe('');
+    expect(textsortenLabel('')).toBe('');
+    expect(textsortenLabel(undefined)).toBe('');
+  });
+
+  it('macht auch unbekannte Angaben lesbar, statt sie roh zu zeigen', () => {
+    expect(textsortenLabel('offener-brief')).toBe('Offener Brief');
+    expect(textsortenLabel('lehrstueck')).toBe('Lehrstueck');
   });
 });
 

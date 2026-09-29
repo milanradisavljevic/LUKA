@@ -7,6 +7,7 @@ import {
   SRDP_ENGLISCH_TEXTSORTEN,
   SPRACHFACH_TEXTSORTEN,
 } from '@lehrunterlagen/schema';
+import { normiereSuchbegriff } from './rubrikAuswahl';
 
 const DE_UNTERSTUFE_TEXTSORTEN = [
   'Erzählung',
@@ -85,4 +86,40 @@ export function textsortenHint(fach?: string | null, schulstufe?: string | null)
   return istOberstufe(schulstufe)
     ? 'Oberstufe: 7 offizielle SRDP-Textsorten + Empfehlung, dazu Leseverständnis'
     : 'Unterstufe: altersgerechte Textsorten, dazu Leseverständnis';
+}
+
+/**
+ * Alle kuratierten Textsorten, die LUKA anbietet — für die Anzeige.
+ *
+ * Die Listen enthalten bereits die lesbare Schreibweise („Leseverständnis"),
+ * die Auswahlfelder verwenden sie als Wert. Die Raster-Köpfe schreiben
+ * dagegen maschinenlesbar (`textsorte: leseverstaendnis`), weil Python sie
+ * ohne Umlaute vergleicht. Für Anzeigen wird deshalb über
+ * `normiereSuchbegriff` zurück auf die lesbare Form aufgelöst; eine unbekannte
+ * Angabe wird trotzdem lesbar gemacht, statt ungewandelt zu erscheinen.
+ */
+const ALLE_TEXTSORTEN: string[] = [
+  ...SRDP_DEUTSCH_TEXTSORTEN,
+  ...SRDP_ENGLISCH_TEXTSORTEN,
+  ...ENGLISCH_UNTERSTUFE_TEXTSORTEN,
+  ...DE_UNTERSTUFE_TEXTSORTEN,
+  ...LESEVERSTAENDNIS_AUFGABENARTEN,
+  // SPRACHFACH_TEXTSORTEN ist Fach -> { unterstufe, oberstufe }, also zwei
+  // Listen je Fach, nicht eine.
+  ...Object.values(SPRACHFACH_TEXTSORTEN).flatMap((stufen) => [...stufen.unterstufe, ...stufen.oberstufe]),
+];
+
+const TEXTSORTEN_LABELS = new Map(
+  ALLE_TEXTSORTEN.map((ts) => [normiereSuchbegriff(ts), ts]),
+);
+
+/** Lesbare Form einer Textsorte. `alle` kommt als leerer String zurück. */
+export function textsortenLabel(textsorte: string | null | undefined): string {
+  const roh = (textsorte ?? '').trim();
+  if (!roh || normiereSuchbegriff(roh) === 'alle') return '';
+  const bekannt = TEXTSORTEN_LABELS.get(normiereSuchbegriff(roh));
+  if (bekannt) return bekannt;
+  return roh
+    .replace(/[-_]+/g, ' ')
+    .replace(/\b\p{L}/gu, (letter) => letter.toUpperCase());
 }

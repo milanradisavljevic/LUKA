@@ -6,6 +6,9 @@ export interface RubrikOption {
   fach?: string;
   schulstufe?: string;
   textsorte?: string;
+  aufgabenart?: string;
+  k1?: string;
+  k3?: string;
 }
 
 export interface RubrikGruppe {
@@ -29,6 +32,28 @@ export function fachLabel(fach: string | undefined): string {
   const bekannt = FACH_META[normalized as Fach]?.label;
   if (bekannt) return bekannt;
   return normalized.replace(/\b\p{L}/gu, (letter) => letter.toUpperCase());
+}
+
+/**
+ * Schulstufe lesbar. `alle` und leer heißen "für beide Stufen" — das ist
+ * keine Angabe, deshalb steht dort nichts Falsches im Weg.
+ */
+export function stufeLabel(stufe: string | undefined): string {
+  const normalized = stufe?.trim().toLowerCase() ?? '';
+  if (!normalized || normalized === 'alle') return '';
+  if (normalized === 'unterstufe') return 'Unterstufe';
+  if (normalized === 'oberstufe') return 'Oberstufe';
+  return normalized.replace(/\b\p{L}/gu, (letter) => letter.toUpperCase());
+}
+
+/**
+ * Nebenzeile unter der Auswahl: was das Raster gilt, in einer Zeile.
+ * Leer, wenn das Raster für alles gilt — das ist der Normalfall bei
+ * `textsorte: alle` und soll keine Füllwörter erzeugen.
+ */
+export function rubrikMetaZeile(rubrik: RubrikOption): string {
+  const teile = [fachLabel(rubrik.fach), stufeLabel(rubrik.schulstufe)].filter(Boolean);
+  return teile.join(' · ');
 }
 
 export function gruppiereRubriken(rubriken: RubrikOption[]): RubrikGruppe[] {

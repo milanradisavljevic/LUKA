@@ -97,6 +97,20 @@ Raster jetzt liegt.
 **Verwandt:** Das Auswahlfeld beim Korrigieren bleibt, wie es war – dort wird ein Raster
 gewählt, nicht bearbeitet. Das Bearbeiten hat jetzt einen Ort.
 
+**Im Auswahlfeld steht kein Dateiname mehr.** Bisher stand dort „leseverstaendnis.md" –
+für eine Lehrkraft eine Zeichenfolge ohne Bedeutung. Jetzt steht dort der Name, den das
+Raster selbst angibt („Leseverständnis"), nach Fach sortiert („Deutsch“, „Englisch“, …).
+Darunter steht, für welche Schulstufe und Textsorte das Raster gilt.
+
+Der Dateiname verschwindet dabei nicht zufällig: Seit der vorige Punkt entscheidet er
+nichts mehr. Wer heute ein eigenes Raster anlegt, muss ihm also keinen Stufen-Suffix
+geben – der Kopf genügt.
+
+**Nur noch eine Liste statt zwei.** Für das Bearbeiten gab es einen eigenen Befehl, der
+die Raster anders gefiltert hat als das Auswahlfeld. Der ist entfallen; beide nutzen
+jetzt dieselbe Quelle. Damit kann es nicht mehr passieren, dass ein Raster an einer Stelle
+existiert und an der anderen nicht.
+
 ## Version 1.5.3 — 2026-09-26
 
 ### Das ist neu

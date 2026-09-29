@@ -1075,14 +1075,6 @@ pub async fn natascha_quelltext_get(
     run_cli_and_capture(cmd, None, "Korrektur-Ausgangstext").await
 }
 
-/// Listet alle Rubrik-Markdown-Dateien (roh) für den Editor.
-#[tauri::command]
-pub async fn natascha_list_rubric_files(dir: String, python: String) -> Result<String, String> {
-    let mut cmd = build_cli_command(&dir, &python)?;
-    cmd.arg("list-rubric-files");
-    run_cli_and_capture(cmd, None, "Korrektur-Rubrikdateien").await
-}
-
 /// Liest den Roh-Markdown einer Rubrik.
 #[tauri::command]
 pub async fn natascha_read_rubric(

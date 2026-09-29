@@ -805,19 +805,6 @@ def _is_safe_rubric_name(name: str) -> bool:
     return name.endswith(".md")
 
 
-def cmd_list_rubric_files(args):
-    """Listet alle Bewertungsraster fuer den Editor.
-
-    Nutzt `nc.list_all_rubrics`, damit der Editor und das Auswahlfeld im
-    Korrekturdialog dieselbe Menge zeigen. Vorher filterte dieser Weg nichts,
-    wodurch `README_ENGLISH.md` und alle `erwartungshorizont_*.md` im
-    Dropdown standen - beides sind keine Raster.
-    """
-    nc, ndb, config, db_path = _load_env_and_config()
-    _json_out(nc.list_all_rubrics(config))
-    return 0
-
-
 def cmd_read_rubric(args):
     """Liest den Roh-Markdown einer Rubrik."""
     nc, ndb, config, db_path = _load_env_and_config()
@@ -1040,8 +1027,9 @@ def main():
         help="Aktuell zugewiesene Rubrik — erscheint immer in der Liste (L3)",
     )
 
-    # Rubrik-Editor
-    sub.add_parser("list-rubric-files", help="Alle Rubrik-Markdown-Dateien (roh) auflisten")
+    # Rubrik-Editor. `list-rubrics` ohne Filter bedient auch den Editor: es
+    # liefert dieselben Metadaten und damit die Anzeigename. Ein zweiter Weg
+    # hätte nur zwei Mengen bedeuten können.
     p_rr = sub.add_parser("read-rubric", help="Roh-Markdown einer Rubrik lesen")
     p_rr.add_argument("--name", required=True)
     p_sr = sub.add_parser("save-rubric", help="Rubrik (stdin) speichern/überschreiben")
@@ -1086,7 +1074,6 @@ def main():
         "add-klasse": cmd_add_klasse,
         "add-aufgabe": cmd_add_aufgabe,
         "list-rubrics": cmd_list_rubrics,
-        "list-rubric-files": cmd_list_rubric_files,
         "read-rubric": cmd_read_rubric,
         "save-rubric": cmd_save_rubric,
         "quelltext-get": cmd_quelltext_get,

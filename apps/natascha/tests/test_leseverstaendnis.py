@@ -45,11 +45,14 @@ def _bewertung(rubrik_text: str, werte: dict[str, int]) -> dict:
 
 
 def test_editor_und_korrekturauswahl_zeigen_dieselbe_menge() -> None:
-    """Beide Wege zur Rasterliste muessen dasselbe liefern.
+    """Es gibt nur noch eine Rasterliste, und die ist richtig gefiltert.
 
-    Der Editor (`list-rubric-files`) filterte nichts und zeigte darum
-    `README_ENGLISH.md` und alle `erwartungshorizont_*.md` im Dropdown — Dateien,
-    die keine Raster sind. `list_all_rubrics` ist jetzt die einzige Filterstelle.
+    Der Editor hatte einen eigenen Befehl (`list-rubric-files`), der gar nichts
+    filterte und darum `README_ENGLISH.md` und alle `erwartungshorizont_*.md`
+    im Dropdown zeigte - Dateien, die keine Raster sind. Mit v1.5.4 ist der
+    Befundweg entfallen; der Editor nimmt dieselbe Liste wie der Korrekturweg,
+    nur ohne Fach-/Stufenfilter, und braucht deren Kopf-Metadaten fuer die
+    Anzeige.
     """
     alle = nc.list_all_rubrics(CFG)
     assert alle, "keine Raster gefunden - der Test prueft nichts"
@@ -57,11 +60,38 @@ def test_editor_und_korrekturauswahl_zeigen_dieselbe_menge() -> None:
     assert not [f for f in alle if f.upper().startswith("README")]
     assert not [f for f in alle if f.startswith("erwartungshorizont_")]
 
-    # Der Korrekturweg filtert zusaetzlich nach Fach und Stufe, kann also nur eine
-    # Teilmenge liefern - aber nie etwas ausserhalb der Grundmenge.
+    # Ohne Filter liefert der Weg, den der Editor nutzt, dieselbe Menge.
     for stufe in ("unterstufe", "oberstufe"):
         auswahl = nc.rubric_options_for("deutsch", stufe, CFG)
         assert set(auswahl) <= set(alle), f"Auswahl enthaelt Fremdes: {set(auswahl) - set(alle)}"
+
+
+def test_ohne_filter_kommen_alle_raster_zurueck() -> None:
+    """Der Editor ruft ohne Fach und Stufe - dann darf nichts wegfallen.
+
+    Sonst bekaeme der Reiter "Bewertungsraster" nicht alle Raster zu sehen,
+    sondern nur die einer Klasse - und die Liste waere je nach Aufruf anders.
+    """
+    alles = nc.rubric_options_for("", "", CFG)
+    assert sorted(alles) == nc.list_all_rubrics(CFG)
+    # Sanity: es sind wirklich die mitgelieferten und nicht etwa eine Teilmenge.
+    assert len(alles) >= 25, f"nur {len(alles)} Raster - Filter zu aggressiv?"
+
+
+def test_jedes_gelistete_raster_hat_einen_lesbaren_titel() -> None:
+    """Die Anzeige braucht `titel` - ohne sie stuende der Dateiname im Feld.
+
+    Die Liste liefert die Kopf-Felder mit; der Editor zeigt daraus den Titel.
+    Der Dateiname traegt seit v1.5.4 keine Bedeutung mehr fuer die Zuordnung,
+    darf aber auch nicht das sein, was man liest.
+    """
+    ordner = nc.resolve_path(CFG, "rubrics")
+    ohne_titel = [
+        datei
+        for datei in nc.list_all_rubrics(CFG)
+        if not nc.parse_rubrik_header((ordner / datei).read_text(encoding="utf-8"))["titel"].strip()
+    ]
+    assert not ohne_titel, "ohne Titel im Auswahlfeld:\n" + "\n".join(ohne_titel)
 
 
 def test_alle_mitgelieferten_rubriken_sind_vertragskonform() -> None:

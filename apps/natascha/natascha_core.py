@@ -573,10 +573,10 @@ def list_all_rubrics(config: dict[str, Any]) -> list[str]:
     Loesungserwartungen). Beide werden hier zentral herausgefiltert.
 
     Das ist bewusst die einzige Filterstelle: `rubric_options_for` (Auswahl
-    beim Korrigieren) und `list-rubric-files` (Editor) holen sich beide hier
-    ihre Grundmenge. Vorher filterten sie getrennt, mit unterschiedlichen
-    Regeln - dadurch stand `README_ENGLISH.md` im Editor-Dropdown, im
-    Korrektur-Dropdown aber nicht.
+    beim Korrigieren und Anzeige im Editor) holt sich hier ihre Grundmenge.
+    Vorher filterten zwei Wege getrennt mit unterschiedlichen Regeln — dadurch
+    stand `README_ENGLISH.md` in der Editor-Liste, in der Auswahl nicht. Der
+    zweite Weg (`list-rubric-files`) ist mit v1.5.4 entfallen.
     """
     rubric_dir = resolve_path(config, "rubrics")
     if not rubric_dir.exists():

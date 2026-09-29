@@ -1,8 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Loader2, FileText, Save, Check } from 'lucide-react';
 import { useNatascha } from '../hooks/useNatascha';
 import { ViewShell } from './_ViewShell';
 import { InfoDot } from '../components/ui/InfoDot';
+import { gruppiereRubriken, rubrikLabel, rubrikMetaZeile, type RubrikOption } from '../lib/rubrikAuswahl';
+import { textsortenLabel } from '../lib/textsortenAuswahl';
 
 /**
  * Bewertungsraster ansehen und bearbeiten.
@@ -19,22 +21,32 @@ import { InfoDot } from '../components/ui/InfoDot';
  * bereits erzeugte Analysen enthalten die alte Bewertung.
  */
 export function BewertungsrasterView() {
-  const { listRubricFiles, readRubric, saveRubric } = useNatascha();
+  const { listRubrics, readRubric, saveRubric } = useNatascha();
 
-  const [rubricFiles, setRubricFiles] = useState<string[]>([]);
+  const [rubriken, setRubriken] = useState<RubrikOption[]>([]);
   const [rubricName, setRubricName] = useState('');
   const [rubricContent, setRubricContent] = useState('');
   const [rubricLoading, setRubricLoading] = useState(false);
   const [rubricSaving, setRubricSaving] = useState(false);
   const [rubricMsg, setRubricMsg] = useState<string | null>(null);
 
+  // Ohne Filter: alle Raster, nach Fach gruppiert. Die Liste im Korrekturdialog
+  // filtert nach Klasse — hier geht es darum, ALLES zu sehen und zu pflegen.
+  const gruppen = useMemo(() => gruppiereRubriken(rubriken), [rubriken]);
+  const gewaehlt = useMemo(
+    () => rubriken.find((r) => r.filename === rubricName),
+    [rubriken, rubricName],
+  );
+
   useEffect(() => {
-    listRubricFiles()
-      .then(setRubricFiles)
+    // Fehler werden bewusst nicht geschluckt: eine leere Auswahlliste sieht aus
+    // wie "alle Raster weg" und ist die schlechteste Diagnose, die es gibt.
+    listRubrics()
+      .then((liste) => setRubriken(liste.rubrics))
       .catch((e: unknown) => {
         setRubricMsg(`Raster konnten nicht geladen werden: ${e instanceof Error ? e.message : String(e)}`);
       });
-  }, [listRubricFiles]);
+  }, [listRubrics]);
 
   const loadRubric = useCallback(async (name: string) => {
     setRubricName(name);
@@ -56,14 +68,14 @@ export function BewertungsrasterView() {
     setRubricSaving(true); setRubricMsg(null);
     try {
       const r = await saveRubric(rubricName, rubricContent);
-      setRubricMsg(`Gespeichert (${r.name}, ${r.bytes} Bytes).`);
-      await listRubricFiles().then(setRubricFiles);
+      setRubricMsg(`Gespeichert (${rubrikLabel(gewaehlt ?? { filename: r.name })}, ${r.bytes} Bytes).`);
+      await listRubrics().then((liste) => setRubriken(liste.rubrics));
     } catch (e) {
       setRubricMsg(typeof e === 'string' ? e : e instanceof Error ? e.message : 'Speichern fehlgeschlagen.');
     } finally {
       setRubricSaving(false);
     }
-  }, [rubricName, rubricContent, saveRubric, listRubricFiles]);
+  }, [rubricName, rubricContent, gewaehlt, saveRubric, listRubrics]);
 
   return (
     <ViewShell
@@ -79,15 +91,38 @@ export function BewertungsrasterView() {
           <div>
             <label style={labelStyle}>
               Bewertungsraster
-              <InfoDot text="Die Auswahl zeigt den Namen aus dem Raster-Kopf. Der Dateiname spielt keine Rolle — entscheidend ist der Inhalt darunter." />
+              <InfoDot text="Angezeigt wird der Name aus dem Raster-Kopf, nach Fach sortiert. Der Dateiname spielt keine Rolle — entscheidend ist der Inhalt darunter." />
             </label>
-            <select value={rubricName} onChange={(e) => loadRubric(e.target.value)} style={{ minWidth: 260 }}>
+            <select
+              value={rubricName}
+              onChange={(e) => loadRubric(e.target.value)}
+              aria-label="Bewertungsraster wählen"
+              style={{ minWidth: 260 }}
+            >
               <option value="">— wählen —</option>
-              {rubricFiles.map((f) => <option key={f} value={f}>{f}</option>)}
+              {gruppen.map((gruppe) => (
+                <optgroup key={gruppe.fach || 'ohne'} label={gruppe.label}>
+                  {gruppe.rubriken.map((r) => (
+                    <option key={r.filename} value={r.filename}>{rubrikLabel(r)}</option>
+                  ))}
+                </optgroup>
+              ))}
             </select>
           </div>
           {rubricLoading && <Loader2 size={16} className="spin" style={{ marginBottom: 8 }} />}
         </div>
+
+        {gewaehlt && (
+          <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', margin: '0.5rem 0 0' }}>
+            {[
+              rubrikMetaZeile(gewaehlt),
+              // Nur nennen, wenn es etwas einschränkt — "alle" wäre Füllwort.
+              textsortenLabel(gewaehlt.textsorte)
+                ? `Textsorte: ${textsortenLabel(gewaehlt.textsorte)}`
+                : '',
+            ].filter(Boolean).join(' · ')}
+          </p>
+        )}
 
         {rubricName && !rubricLoading && (
           <>
