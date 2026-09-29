@@ -111,6 +111,20 @@ die Raster anders gefiltert hat als das Auswahlfeld. Der ist entfallen; beide nu
 jetzt dieselbe Quelle. Damit kann es nicht mehr passieren, dass ein Raster an einer Stelle
 existiert und an der anderen nicht.
 
+**Eigene Bewertungsraster anlegen.** Über **Neues Raster** im neuen Reiter nimmst du ein
+vorhandenes Raster als Vorlage, gibst den Namen für die Listen an und legst es an.
+Kriterien, Gewichtung und Stufen werden vollständig übernommen – du änderst nur, was
+abweichen soll.
+
+Bewusst gibt es **keine leere Vorlage**: Ein Raster besteht aus Kriterien-Schlüsseln, einer
+Gewichtung mit Summe 100 % und fünf Stufen je Kriterium. Leer angelegt wäre die Note
+aussagelos. Mit einer Vorlage stimmt die Struktur von Anfang an.
+
+**Achtung beim Überschreiben:** Existiert unter dem gewählten Dateinamen bereits ein
+Raster, warnt LUKA und fragt nach. Bisher hat das Speichern bedingungslos überschrieben –
+ein Tippfehler im Namen hätte ein mitgeliefertes Raster zerstört, ohne dass etwas sichtbar
+geworden wäre.
+
 ## Version 1.5.3 — 2026-09-26
 
 ### Das ist neu

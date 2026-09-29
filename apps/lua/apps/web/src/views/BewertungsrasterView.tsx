@@ -1,10 +1,13 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Loader2, FileText, Save, Check } from 'lucide-react';
+import { Loader2, FileText, Save, Check, Plus } from 'lucide-react';
 import { useNatascha } from '../hooks/useNatascha';
 import { ViewShell } from './_ViewShell';
 import { InfoDot } from '../components/ui/InfoDot';
 import { gruppiereRubriken, rubrikLabel, rubrikMetaZeile, type RubrikOption } from '../lib/rubrikAuswahl';
 import { textsortenLabel } from '../lib/textsortenAuswahl';
+import {
+  dateinameVorschlag, mitRubrikEndung, pruefeRubrikName, rubrikMitTitel, titelAusRubrik,
+} from '../lib/rubrikAnlegen';
 
 /**
  * Bewertungsraster ansehen und bearbeiten.
@@ -29,6 +32,14 @@ export function BewertungsrasterView() {
   const [rubricLoading, setRubricLoading] = useState(false);
   const [rubricSaving, setRubricSaving] = useState(false);
   const [rubricMsg, setRubricMsg] = useState<string | null>(null);
+
+  // Neues Raster aus einer Vorlage anlegen
+  const [neuOffen, setNeuOffen] = useState(false);
+  const [neuQuelle, setNeuQuelle] = useState('');
+  const [neuTitel, setNeuTitel] = useState('');
+  const [neuDateiname, setNeuDateiname] = useState('');
+  const [neuFehler, setNeuFehler] = useState<string | null>(null);
+  const [neuBusy, setNeuBusy] = useState(false);
 
   // Ohne Filter: alle Raster, nach Fach gruppiert. Die Liste im Korrekturdialog
   // filtert nach Klasse — hier geht es darum, ALLES zu sehen und zu pflegen.
@@ -77,6 +88,57 @@ export function BewertungsrasterView() {
     }
   }, [rubricName, rubricContent, gewaehlt, saveRubric, listRubrics]);
 
+  /** Vorlage wählen: Titel und Vorschlag für den Dateinamen vorbelegen. */
+  const waehleVorlage = useCallback(async (quelle: string) => {
+    setNeuQuelle(quelle);
+    if (!quelle) { setNeuTitel(''); return; }
+    try {
+      const inhalt = await readRubric(quelle);
+      const titel = titelAusRubrik(inhalt) || rubrikLabel({ filename: quelle });
+      setNeuTitel(titel);
+      setNeuDateiname(dateinameVorschlag(titel));
+      setNeuFehler(null);
+    } catch (e) {
+      setNeuFehler(e instanceof Error ? e.message : String(e));
+    }
+  }, [readRubric]);
+
+  const dateiName = mitRubrikEndung(neuDateiname);
+  const namePruefung = pruefeRubrikName(dateiName);
+  const nameVorhanden = rubriken.some((r) => r.filename === dateiName);
+  const kannAnlegen = neuQuelle !== '' && neuTitel.trim() !== '' && namePruefung.ok;
+
+  const legeAn = useCallback(async () => {
+    if (!kannAnlegen) return;
+    // Überschreiben ist der gefährlichste Moment in diesem Reiter: `save-rubric`
+    // schreibt bedingungslos. Ein Tippfehler im Namen würde ein mitgeliefertes
+    // Raster zerstören, ohne dass etwas sichtbar würde.
+    if (nameVorhanden) {
+      const treffer = rubriken.find((r) => r.filename === dateiName);
+      const ok = window.confirm(
+        `Es gibt bereits ein Raster mit dem Namen „${dateiName}"${treffer ? ` („${rubrikLabel(treffer)}")` : ''}.\n\n`
+        + 'Beim Anlegen wird es vollständig ersetzt. Der bisherige Stand geht verloren.\n\n'
+        + 'Trotzdem fortfahren?',
+      );
+      if (!ok) return;
+    }
+    setNeuBusy(true); setNeuFehler(null);
+    try {
+      const inhalt = await readRubric(neuQuelle);
+      const kopie = rubrikMitTitel(inhalt, neuTitel.trim());
+      await saveRubric(dateiName, kopie);
+      await listRubrics().then((liste) => setRubriken(liste.rubrics));
+      setNeuOffen(false);
+      setNeuQuelle(''); setNeuTitel(''); setNeuDateiname('');
+      await loadRubric(dateiName);
+      setRubricMsg('Neues Raster angelegt. Prüfe es und passe Kriterien und Gewichtung an.');
+    } catch (e) {
+      setNeuFehler(e instanceof Error ? e.message : String(e));
+    } finally {
+      setNeuBusy(false);
+    }
+  }, [kannAnlegen, nameVorhanden, dateiName, rubriken, neuTitel, neuQuelle, readRubric, saveRubric, listRubrics, loadRubric]);
+
   return (
     <ViewShell
       title="Bewertungsraster"
@@ -110,7 +172,110 @@ export function BewertungsrasterView() {
             </select>
           </div>
           {rubricLoading && <Loader2 size={16} className="spin" style={{ marginBottom: 8 }} />}
+          <button
+            type="button"
+            onClick={() => { setNeuOffen(!neuOffen); setNeuFehler(null); }}
+            style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.8125rem', padding: '0.35rem 0.8rem' }}
+          >
+            <Plus size={14} /> {neuOffen ? 'Abbrechen' : 'Neues Raster'}
+          </button>
         </div>
+
+        {neuOffen && (
+          <div style={panelStyle}>
+            <p style={hinweisStyle}>
+              Ein neues Raster entsteht aus einer Vorlage. Das ist Absicht: Ein Raster
+              besteht aus Kriterien-Schlüsseln, Gewichtung und fünf Stufen je Kriterium —
+              wer das leer anlegt, bekommt eine Note, die nichts aussagt. Mit einer Vorlage
+              ist die Struktur schon richtig, und du änderst nur, was abweichen soll.
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
+              <div>
+                <label style={labelStyle}>
+                  Vorlage
+                  <InfoDot text="Wird vollständig übernommen: Kriterien, Gewichtung, Stufen. Danach änderst du nur, was abweichen soll." />
+                </label>
+                <select
+                  value={neuQuelle}
+                  onChange={(e) => waehleVorlage(e.target.value)}
+                  aria-label="Vorlage wählen"
+                  style={{ width: '100%' }}
+                >
+                  <option value="">— wählen —</option>
+                  {gruppen.map((gruppe) => (
+                    <optgroup key={gruppe.fach || 'ohne'} label={gruppe.label}>
+                      {gruppe.rubriken.map((r) => (
+                        <option key={r.filename} value={r.filename}>{rubrikLabel(r)}</option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={labelStyle}>
+                  Name im Auswahlfeld
+                  <InfoDot text="Das ist der Text, den du später in den Listen siehst. Er steht im Raster-Kopf und kann jederzeit geändert werden." />
+                </label>
+                <input
+                  value={neuTitel}
+                  onChange={(e) => {
+                    const titel = e.target.value;
+                    setNeuTitel(titel);
+                    // Dateiname nur vorschlagen, solange die Lehrkraft ihn nicht
+                    // selbst überschrieben hat. `neuTitel` ist hier noch der
+                    // Wert VOR dieser Änderung - genau der, aus dem der bisherige
+                    // Vorschlag stammt.
+                    if (!neuDateiname || neuDateiname === dateinameVorschlag(neuTitel)) {
+                      setNeuDateiname(dateinameVorschlag(titel));
+                    }
+                  }}
+                  placeholder="z. B. Leseverständnis Unterstufe"
+                  style={{ width: '100%', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>
+                  Dateiname im Ordner
+                  <InfoDot text="Technisch, aber harmlos: Der Dateiname entscheidet nichts. Fach und Schulstufe stehen im Raster-Kopf." />
+                </label>
+                <input
+                  value={neuDateiname}
+                  onChange={(e) => setNeuDateiname(e.target.value)}
+                  placeholder="leseverstaendnis_unterstufe.md"
+                  style={{ width: '100%', boxSizing: 'border-box', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}
+                />
+              </div>
+            </div>
+
+            {!namePruefung.ok && dateiName && (
+              <p style={{ ...hinweisStyle, color: 'var(--color-danger, #c0392b)' }}>{namePruefung.grund}</p>
+            )}
+            {namePruefung.ok && nameVorhanden && (
+              <p style={{ ...hinweisStyle, color: 'var(--color-warning, #b8860b)' }}>
+                Achtung: Unter diesem Namen gibt es bereits ein Raster. Beim Anlegen wird
+                es ersetzt — der bisherige Stand geht verloren.
+              </p>
+            )}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.75rem' }}>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={legeAn}
+                disabled={!kannAnlegen || neuBusy}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.8125rem', padding: '0.35rem 0.8rem' }}
+              >
+                <Plus size={14} /> {neuBusy ? 'Lege an …' : 'Raster anlegen'}
+              </button>
+              {!kannAnlegen && !neuBusy && (
+                <span style={hinweisStyle}>Vorlage und Name wählen, dann kann angelegt werden.</span>
+              )}
+              {neuFehler && (
+                <span style={{ ...hinweisStyle, color: 'var(--color-danger, #c0392b)' }}>{neuFehler}</span>
+              )}
+            </div>
+          </div>
+        )}
 
         {gewaehlt && (
           <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', margin: '0.5rem 0 0' }}>
@@ -179,4 +344,18 @@ const labelStyle: React.CSSProperties = {
   fontWeight: 600,
   marginBottom: '0.25rem',
   color: 'var(--color-text-secondary)',
+};
+
+const panelStyle: React.CSSProperties = {
+  marginTop: '0.75rem',
+  padding: '0.875rem',
+  border: '1px solid var(--color-border)',
+  borderRadius: 'var(--radius)',
+  background: 'var(--color-bg-base)',
+};
+
+const hinweisStyle: React.CSSProperties = {
+  fontSize: '0.75rem',
+  color: 'var(--color-text-secondary)',
+  margin: '0.5rem 0 0',
 };
