@@ -1,13 +1,16 @@
 """Tests fuer die Leseverstaendnis-Aufgabenart und den Rubrik-Vertrag.
 
-Drei Interessen:
+Vier Interessen:
 
 1. **Vertrag** — `natascha_rubrik_check` haelt alle mitgelieferten Raster in
    Ordnung. Eine Rubrik, deren Gewichtung sich auf keinen Schluessel aufloesen
    laesst, verliert sonst still 25 % der Note.
-2. **Regressionsschutz** — der Legacy-Pfad (Raster ohne `k1:`/`k3:`) rechnet
+2. **Stufenzuordnung** — die Schulstufe kommt aus dem `<!-- luka-rubrik -->`
+   -Header, nicht aus dem Dateinamen. Aus dem Dateinamen entstand still das
+   falsche Raster in der Vorauswahl.
+3. **Regressionsschutz** — der Legacy-Pfad (Raster ohne `k1:`/`k3:`) rechnet
    genauso wie vorher. Das ist der Pfad, den *jede* Oberstufen-Korrektur nimmt.
-3. **Ehrlichkeit** — ein Verstaendnisraster unterscheidet Leistung ueber den
+4. **Ehrlichkeit** — ein Verstaendnisraster unterscheidet Leistung ueber den
    ganzen Notenbereich und beschriftet die Kompetenzbereiche richtig.
 """
 
@@ -87,7 +90,90 @@ def test_bekannte_bestandsbefunde_sind_benannt() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 2. K1/K3-Deklaration im Header
+# 2. Stufenzuordnung kommt aus dem Header, nicht aus dem Dateinamen
+# ---------------------------------------------------------------------------
+
+
+def _stufenliste(fach: str, stufe: str) -> list[str]:
+    return nc.rubric_options_for(fach, stufe, CFG)
+
+
+def test_leseverstaendnis_erscheint_nur_in_seiner_echten_stufe() -> None:
+    """Der Kern des Bug-Reports: die Stufe stand im Dateinamen, nicht im Header.
+
+    `leseverstaendnis.md` hat kein `_unterstufe`-Suffix und kein `srdp_`-Praefix,
+    wurde also zu `generic` und stand in BEIDEN Stufenlisten. Sortiert lag es vor
+    `leseverstaendnis_unterstufe.md`, und der erste Treffer gewinnt — eine
+    Unterstufenklasse bekam damit das Oberstufen-Raster (5 Kriterien, 85/15)
+    vorgeschlagen, mit falscher Gewichtung. Beide Raster tragen ihre Stufe
+    bereits im Header, der Code muesse nur danach fragen.
+    """
+    unterstufe = _stufenliste("deutsch", "unterstufe")
+    oberstufe = _stufenliste("deutsch", "oberstufe")
+
+    assert "leseverstaendnis_unterstufe.md" in unterstufe
+    assert "leseverstaendnis.md" not in unterstufe, (
+        "Unterstufe bekommt das Oberstufen-Raster vorgeschlagen"
+    )
+    assert "leseverstaendnis.md" in oberstufe
+    assert "leseverstaendnis_unterstufe.md" not in oberstufe
+
+
+def test_erstes_leseverstaendnis_raster_ist_richtig_vorgeschlagen() -> None:
+    """Gegenprobe zur Auswahl: das erste passende Raster muss das der Stufe sein.
+
+    `KorrekturView` nimmt `list.find(...)`, also den ERSTEN Treffer. Die
+    Reihenfolge der Liste ist damit Teil des Vertrags, nicht Kosmetik.
+    """
+    for stufe, erwartet in (
+        ("unterstufe", "leseverstaendnis_unterstufe.md"),
+        ("oberstufe", "leseverstaendnis.md"),
+    ):
+        treffer = [f for f in _stufenliste("deutsch", stufe) if "leseverstaendnis" in f]
+        assert treffer, f"kein Leseverstaendnis-Raster fuer {stufe}"
+        assert treffer[0] == erwartet, f"{stufe}: zuerst {treffer[0]}, erwartet {erwartet}"
+
+
+def test_raster_mit_stufe_alle_bleibt_in_beiden_stufen() -> None:
+    """`schulstufe: alle` (die Sprachfächer) darf nicht verschwinden."""
+    for stufe in ("unterstufe", "oberstufe"):
+        assert "sprachfach_latein.md" in _stufenliste("latein", stufe)
+
+
+def test_alle_mitgelieferten_rubriken_halten_ihre_eigene_stufe_ein() -> None:
+    """Kein Raster darf still aus seiner Schulstufe verschwinden.
+
+    Geprueft wird gegen den Header jeder Datei — der ist die Wahrheit. Fach und
+    Stufe kommen beide aus dem Header, sonst wuerde der Test die Englisch- und
+    Sprachfach-Raster wegfiltern und nichts pruefen. Ein Raster ohne
+    `schulstufe:`-Header bleibt laut AGENTS.md in beiden Stufen nutzbar.
+    """
+    verwaessert: list[str] = []
+    geprueft = 0
+    for pfad in sorted(RUB_DIR.glob("*.md")):
+        if pfad.name.upper().startswith("README") or pfad.name.startswith(
+            "erwartungshorizont_"
+        ):
+            continue
+        header = nc.parse_rubrik_header(pfad.read_text(encoding="utf-8"))
+        stufe = (header.get("schulstufe") or "").strip().lower()
+        if stufe not in ("unterstufe", "oberstufe"):
+            continue  # "alle" oder kein Header → in beiden Stufen, gewollt
+        geprueft += 1
+        # Fach aus dem Header: sonst filtert der Fachfilter das Raster weg und
+        # der Test wuerde einen Fehler melden, den es nicht gibt.
+        fach = (header.get("fach") or "").strip() or "deutsch"
+        if pfad.name not in _stufenliste(fach, stufe):
+            verwaessert.append(f"{pfad.name} (Header: {fach}/{stufe})")
+
+    assert geprueft >= 20, f"nur {geprueft} Raster mit Stufenheader - Test prueft zu wenig"
+    assert not verwaessert, "Raster trotz passendem Header nicht waehlbar:\n" + "\n".join(
+        verwaessert
+    )
+
+
+# ---------------------------------------------------------------------------
+# 3. K1/K3-Deklaration im Header
 # ---------------------------------------------------------------------------
 
 
@@ -129,7 +215,7 @@ def test_rubrik_header_for_ist_robust_gegen_fehlende_datei() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 3. Notenberechnung mit deklariertem K1/K3
+# 4. Notenberechnung mit deklariertem K1/K3
 # ---------------------------------------------------------------------------
 
 
@@ -185,7 +271,7 @@ def test_ohne_deklaration_wuerde_dasselbe_raster_konstante_note_drehen() -> None
 
 
 # ---------------------------------------------------------------------------
-# 4. Regressionsschutz: der Legacy-Pfad rechnet unveraendert
+# 5. Regressionsschutz: der Legacy-Pfad rechnet unveraendert
 # ---------------------------------------------------------------------------
 
 
@@ -255,7 +341,7 @@ def test_kommentar_gewichtet_aufbau_jetzt_wirklich() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 5. Gewichtungsaufloesung
+# 6. Gewichtungsaufloesung
 # ---------------------------------------------------------------------------
 
 
@@ -353,7 +439,7 @@ def test_phantom_schluessel_wird_vom_validator_gemeldet() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 6. SRDP-Zweitcall
+# 7. SRDP-Zweitcall
 # ---------------------------------------------------------------------------
 
 
@@ -392,7 +478,7 @@ def test_zweitcall_voraussetzungen_unveraendert(aenderung: dict) -> None:
 
 
 # ---------------------------------------------------------------------------
-# 7. Beschriftung der Kompetenzbereiche im Feedback
+# 8. Beschriftung der Kompetenzbereiche im Feedback
 # ---------------------------------------------------------------------------
 
 

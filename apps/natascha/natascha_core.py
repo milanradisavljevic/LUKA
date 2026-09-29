@@ -3192,7 +3192,8 @@ def rubric_options_for(
     (L3 — zuvor sah eine Englisch-Klasse alle Deutsch-Rubriken). Rubriken ohne
     Fach-Header bleiben "generic" und in beiden Fächern auswählbar; die aktuell
     zugewiesene Rubrik erscheint immer, auch wenn sie nicht passt.
-    Schulstufen-spezifische Rubriken werden getrennt.
+    Schulstufe: `schulstufe:` im Header entscheidet, `alle`/leer heißt beide
+    Stufen (siehe `_stage`).
     """
     rubric_dir = resolve_path(config, "rubrics")
     fach_kanon = kanonisches_fach(fach)
@@ -3211,7 +3212,41 @@ def rubric_options_for(
         and not f.name.startswith("erwartungshorizont_")
     )
 
+    # Beide Filter brauchen denselben Header — einmal lesen, dann cachen. Bei ~30
+    # Rubriken spart das 30 Dateizugriffe pro Korrekturdialog.
+    _header_cache: dict[str, dict[str, str]] = {}
+
+    def _header_of(filename: str) -> dict[str, str]:
+        if filename not in _header_cache:
+            try:
+                text = (rubric_dir / filename).read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                text = ""  # Unlesbar nicht hart rausfiltern (Muster R3, 4B-fix)
+            _header_cache[filename] = parse_rubrik_header(text) if text else {}
+        return _header_cache[filename]
+
     def _stage(filename: str) -> str:
+        """Schulstufe einer Rubrik: der Header entscheidet, nicht der Dateiname.
+
+        Der Dateiname war bis v1.5.4 die führende Quelle (`_unterstufe`, `srdp_`-
+        Präfix, `englisch_a2.md`). Das war ein stiller Fehler: `leseverstaendnis.md`
+        trägt `schulstufe: oberstufe` im Header, wurde aber zu `generic` und stand
+        deshalb in BEIDEN Stufenlisten. Sortiert lag es vor
+        `leseverstaendnis_unterstufe.md` (`.` = 0x2E < `_` = 0x5F), und der erste
+        Treffer gewinnt — eine Unterstufenklasse bekam dadurch automatisch das
+        Oberstufen-Raster mit falscher Gewichtung vorgeschlagen.
+
+        Regel: `schulstufe:` im Header ist führend; `alle` oder leer heißt
+        "beide Stufen". Nur wenn der Header die Datei gar nicht ausweist, greift
+        für Altbestand der Dateiname — ohne Header ist eine Rubrik laut AGENTS.md
+        ohnehin in beiden Stufen nutzbar.
+        """
+        stufe = _header_of(filename).get("schulstufe", "").strip()
+        if stufe:
+            normiert = _key_norm(stufe)
+            if normiert in ("unterstufe", "oberstufe"):
+                return normiert
+            return "generic"  # "alle" oder unbekannter Wert → beide Stufen
         name = filename.lower()
         if name == "englisch_a2.md" or "_unterstufe" in name:
             return "unterstufe"
@@ -3222,14 +3257,11 @@ def rubric_options_for(
     def _fach_match(filename: str) -> bool:
         if not fach_kanon:
             return True
-        try:
-            text = (rubric_dir / filename).read_text(encoding="utf-8", errors="replace")
-        except OSError:
-            return True  # Unlesbar nicht hart rausfiltern (Muster R3, 4B-fix)
-        header_fach = parse_rubrik_header(text).get("fach", "").strip()
+        header_fach = _header_of(filename).get("fach", "").strip()
         if not header_fach:
-            return True
+            return True  # Rubrik ohne Fach-Header ist in allen Fächern nutzbar
         return _key_norm(header_fach) == _key_norm(fach_kanon)
+
     stufe_lower = (schulstufe or "").strip().lower()
     if stufe_lower == "unterstufe":
         filtered = [f for f in all_rubrics if _stage(f) in ("unterstufe", "generic")]

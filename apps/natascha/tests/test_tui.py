@@ -63,6 +63,16 @@ def test_rubric_options_for_english_upper_stage_offers_b2_and_b1() -> None:
 
 
 def test_rubric_options_filter_stage_specific_files_but_keep_generic() -> None:
+    """Die Schulstufe kommt aus dem `<!-- luka-rubrik -->`-Header, nicht aus dem Dateinamen.
+
+    `kommentar.md` hat kein Stufen-Suffix im Namen und war deshalb bis v1.5.4
+    "generic" — es stand in BEIDEN Stufenlisten, obwohl sein Header
+    `schulstufe: oberstufe` sagt. Dieselbe Luecke hat `leseverstaendnis.md` in der
+    Unterstufe das Oberstufen-Raster vorgeschlagen.
+
+    "generic" bedeutet jetzt nur noch: Header sagt `alle` oder gar nichts
+    (`rhetorische_figuren.md` sagt `alle`).
+    """
     config = load_config()
 
     upper = rubric_options_for("Deutsch", "Oberstufe", config)
@@ -76,7 +86,13 @@ def test_rubric_options_filter_stage_specific_files_but_keep_generic() -> None:
     assert "deutsch_unterstufe.md" in lower
     assert "srdp_deutsch_oberstufe.md" not in lower
     assert "srdp_englisch_b2.md" not in lower
-    assert "kommentar.md" in lower
+    # Header sagt oberstufe → nicht in der Unterstufen-Liste
+    assert "kommentar.md" not in lower
+    assert "rhetorische_figuren.md" not in lower
+    # Header sagt unterstufe → nur unten. Der Dateiname "Zusammenfassung.md"
+    # traegt kein Stufen-Suffix; bis v1.5.4 stand es deshalb in beiden Listen.
+    assert "Zusammenfassung.md" in lower
+    assert "Zusammenfassung.md" not in upper
 
 
 def test_rubric_options_exclude_erwartungshorizont_files() -> None:

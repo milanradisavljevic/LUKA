@@ -54,6 +54,20 @@ gar keine Datei. Jetzt gilt:
 
 Beide Rätselarten waren gleich betroffen.
 
+**Leseverständnis: das Raster passt jetzt zur Schulstufe.** LUKA hat bisher aus dem
+*Dateinamen* erraten, ob eine Bewertung zur Ober- oder Unterstufe gehört. Zwei
+Beispiele: Das Leseverständnis-Rater für die Oberstufe hieß `leseverstaendnis.md` ohne
+erkennbaren Stufen-Zusatz — LUKA wusste also nicht, zu welcher Stufe es gehört, und
+hat es **beiden** angeboten. In der Unterstufe stand es in der Liste ganz oben, und
+weil der erste Treffer gewinnt, bekam eine Unterstufenklasse automatisch das
+Oberstufen-Raster mit falscher Gewichtung vorgeschlagen. Dasselbe galt für
+`kommentar.md` und `Zusammenfassung.md`.
+
+Beide Raster tragen ihre Schulstufe längst im Raster-Kopf. LUKA schaute nur an der
+falschen Stelle hin. Jetzt gilt der Kopf als Wahrheit; der Dateiname ist nur noch der
+Rückfall für Raster ohne Kopf. Neue Bewertungsraster müssen deshalb nichts
+Besonderes im Dateinamen mehr befolgen.
+
 ## Version 1.5.3 — 2026-09-26
 
 ### Das ist neu
