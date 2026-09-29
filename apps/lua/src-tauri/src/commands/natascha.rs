@@ -649,6 +649,18 @@ fn categorize_cli_error(stderr: &str) -> String {
     }
     let hint = if s.contains("[provider_unavailable]") {
         "Der ausgewählte KI-Anbieter ist derzeit nicht verfügbar. Bitte Anbieterauswahl und Zugang prüfen."
+    // Rubrik-Fehler zuerst: sie sagen nichts ueber Anbieter oder Modell aus.
+    // Ohne diese Zweige landete "Ungueltiger Rubrik-Name" und ein fehlgeschlagenes
+    // Schreiben in der Generikausgabe "Bitte Anbieter und Modell pruefen" - die
+    // dann fuer die Anwenderin voellig falsch ist.
+    } else if s.contains("rubrik-name") || (s.contains("rubrik") && s.contains("ungültig")) || (s.contains("rubrik") && s.contains("ungueltig")) {
+        "Ungültiger Name für das Bewertungsraster — er muss auf .md enden und darf keinen Pfad enthalten."
+    } else if s.contains("rubrik nicht gefunden") || s.contains("keine rubrik gefunden") {
+        "Dieses Bewertungsraster existiert nicht mehr — bitte in der Liste neu auswählen."
+    } else if s.contains("kein rubrik-inhalt") || s.contains("stdin leer") {
+        "Es kam kein Inhalt an — bitte den Text noch einmal einfügen und speichern."
+    } else if s.contains("permission denied") || s.contains("errno 13") || s.contains("zugriff verweigert") {
+        "Kein Zugriff auf den Ordner der Bewertungsraster — bitte Schreibrechte prüfen."
     } else if s.contains("api")
         && (s.contains("key")
             || s.contains("401")

@@ -806,11 +806,15 @@ def _is_safe_rubric_name(name: str) -> bool:
 
 
 def cmd_list_rubric_files(args):
-    """Listet alle Rubrik-Markdown-Dateien (roh) für den Editor."""
+    """Listet alle Bewertungsraster fuer den Editor.
+
+    Nutzt `nc.list_all_rubrics`, damit der Editor und das Auswahlfeld im
+    Korrekturdialog dieselbe Menge zeigen. Vorher filterte dieser Weg nichts,
+    wodurch `README_ENGLISH.md` und alle `erwartungshorizont_*.md` im
+    Dropdown standen - beides sind keine Raster.
+    """
     nc, ndb, config, db_path = _load_env_and_config()
-    rubrics_dir = nc.resolve_path(config, "rubrics")
-    files = sorted(p.name for p in rubrics_dir.glob("*.md")) if rubrics_dir.is_dir() else []
-    _json_out(files)
+    _json_out(nc.list_all_rubrics(config))
     return 0
 
 

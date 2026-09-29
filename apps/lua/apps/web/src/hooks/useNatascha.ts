@@ -428,14 +428,17 @@ const generateErwartungshorizont = useCallback(async (
   }, []);
 
   // --- Rubrik-Editor ---
+  // Fehler werden bewusst NICHT geschluckt. Vorher kam bei jedem Problem eine
+  // leere Liste zurueck, und ein leeres Dropdown ist die schlechteste Diagnose,
+  // die es gibt: die Anwenderin glaubt, ihre Raster seien weg. Der Rust-Befehl
+  // liefert inzwischen eine lesbare Fehlermeldung (categorize_cli_error), die der
+  // Aufrufer anzeigen kann.
   const listRubricFiles = useCallback(async (): Promise<string[]> => {
     const s = loadSettings();
-    try {
-      const result = await invoke<string>('natascha_list_rubric_files', {
-        dir: s.nataschaDir ?? '', python: s.pythonCommand ?? '',
-      });
-      return JSON.parse(result);
-    } catch { return []; }
+    const result = await invoke<string>('natascha_list_rubric_files', {
+      dir: s.nataschaDir ?? '', python: s.pythonCommand ?? '',
+    });
+    return JSON.parse(result);
   }, []);
 
   const readRubric = useCallback(async (name: string): Promise<string> => {

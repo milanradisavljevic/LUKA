@@ -566,12 +566,26 @@ def load_rubric(rubric_filename: str, config: dict[str, Any]) -> str:
 
 
 def list_all_rubrics(config: dict[str, Any]) -> list[str]:
-    """Gibt alle .md-Dateien aus rubrics/ zurück (ohne README-Dateien)."""
+    """Gibt alle Bewertungsraster aus `rubrics/` zurueck (Dateinamen, sortiert).
+
+    Zwei Dateigattungen liegen im selben Ordner und sind KEINE Raster:
+    `README*` (Dokumentation) und `erwartungshorizont_*` (aufgabenbezogene
+    Loesungserwartungen). Beide werden hier zentral herausgefiltert.
+
+    Das ist bewusst die einzige Filterstelle: `rubric_options_for` (Auswahl
+    beim Korrigieren) und `list-rubric-files` (Editor) holen sich beide hier
+    ihre Grundmenge. Vorher filterten sie getrennt, mit unterschiedlichen
+    Regeln - dadurch stand `README_ENGLISH.md` im Editor-Dropdown, im
+    Korrektur-Dropdown aber nicht.
+    """
     rubric_dir = resolve_path(config, "rubrics")
     if not rubric_dir.exists():
         return []
     return sorted(
-        f.name for f in rubric_dir.glob("*.md") if not f.name.upper().startswith("README")
+        f.name
+        for f in rubric_dir.glob("*.md")
+        if not f.name.upper().startswith("README")
+        and not f.name.startswith("erwartungshorizont_")
     )
 
 
@@ -3205,12 +3219,7 @@ def rubric_options_for(
         ("Englisch", "Oberstufe"): ["srdp_englisch_b2.md", "srdp_englisch_b1.md"],
     }
     preferred = _preferred.get((fach_kanon, stufe_kanon), [])
-    all_rubrics = sorted(
-        f.name
-        for f in rubric_dir.glob("*.md")
-        if not f.name.upper().startswith("README")
-        and not f.name.startswith("erwartungshorizont_")
-    )
+    all_rubrics = list_all_rubrics(config)
 
     # Beide Filter brauchen denselben Header — einmal lesen, dann cachen. Bei ~30
     # Rubriken spart das 30 Dateizugriffe pro Korrekturdialog.

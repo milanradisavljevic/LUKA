@@ -68,6 +68,19 @@ falschen Stelle hin. Jetzt gilt der Kopf als Wahrheit; der Dateiname ist nur noc
 Rückfall für Raster ohne Kopf. Neue Bewertungsraster müssen deshalb nichts
 Besonderes im Dateinamen mehr befolgen.
 
+**Bewertungsraster: derselbe Ordner enthält auch anderes.** Im Ordner liegen neben
+den Rastern eine README und die gespeicherten Erwartungshorizonte. Nur die
+Korrektur-Auswahl hat sie ausgefiltert, das Bearbeiten nicht – dort standen alle
+drei im Dropdown. Jetzt ist die Liste der Bearbeitung dieselbe wie die der
+Auswahl.
+
+**Fehler beim Bearbeiten sagen jetzt, was los ist.** Ein ungültiger Name oder ein
+fehlender Zugriff auf den Ordner wurde als „Bitte Anbieter und Modell prüfen"
+gemeldet – für eine Lehrkraft völlig falsch, weil gar kein Anbieter beteiligt war.
+Diese Meldungen erscheinen nicht mehr. Erscheinen dafür keine Raster mehr,
+stimmt etwas nicht mit dem Ordner, und LUKA sagt es, statt still eine leere Liste
+zu zeigen.
+
 ## Version 1.5.3 — 2026-09-26
 
 ### Das ist neu

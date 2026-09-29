@@ -45,7 +45,13 @@ export function ErwartungshorizontView() {
   const [rubricSaving, setRubricSaving] = useState(false);
   const [rubricMsg, setRubricMsg] = useState<string | null>(null);
 
-  useEffect(() => { listRubricFiles().then(setRubricFiles); }, [listRubricFiles]);
+  useEffect(() => {
+    listRubricFiles()
+      .then(setRubricFiles)
+      .catch((e: unknown) => {
+        setRubricMsg(`Raster konnten nicht geladen werden: ${e instanceof Error ? e.message : String(e)}`);
+      });
+  }, [listRubricFiles]);
 
   const loadRubric = useCallback(async (name: string) => {
     setRubricName(name);

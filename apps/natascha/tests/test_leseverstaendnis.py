@@ -44,6 +44,26 @@ def _bewertung(rubrik_text: str, werte: dict[str, int]) -> dict:
 # ---------------------------------------------------------------------------
 
 
+def test_editor_und_korrekturauswahl_zeigen_dieselbe_menge() -> None:
+    """Beide Wege zur Rasterliste muessen dasselbe liefern.
+
+    Der Editor (`list-rubric-files`) filterte nichts und zeigte darum
+    `README_ENGLISH.md` und alle `erwartungshorizont_*.md` im Dropdown — Dateien,
+    die keine Raster sind. `list_all_rubrics` ist jetzt die einzige Filterstelle.
+    """
+    alle = nc.list_all_rubrics(CFG)
+    assert alle, "keine Raster gefunden - der Test prueft nichts"
+    assert alle == sorted(alle), "Liste ist nicht sortiert"
+    assert not [f for f in alle if f.upper().startswith("README")]
+    assert not [f for f in alle if f.startswith("erwartungshorizont_")]
+
+    # Der Korrekturweg filtert zusaetzlich nach Fach und Stufe, kann also nur eine
+    # Teilmenge liefern - aber nie etwas ausserhalb der Grundmenge.
+    for stufe in ("unterstufe", "oberstufe"):
+        auswahl = nc.rubric_options_for("deutsch", stufe, CFG)
+        assert set(auswahl) <= set(alle), f"Auswahl enthaelt Fremdes: {set(auswahl) - set(alle)}"
+
+
 def test_alle_mitgelieferten_rubriken_sind_vertragskonform() -> None:
     """Kein Raster darf einen harten Vertragsbruch haben.
 
