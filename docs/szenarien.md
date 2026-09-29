@@ -623,7 +623,7 @@ verstanden hat — nicht, wie sauber sie schreibt.
 
 **Gegenprobe (Unterstufe / Deutschland):**
 - Dasselbe Raster funktioniert auch ohne Kompetenzbereiche; dort greift die
-  Gewichtung aus dem Raster (Verstehen 75 %, Formulierung 20 %).
+  Gewichtung aus dem Raster (Verstehen 80 %, Formulierung 20 %).
 
 **Grenze des Szenarios:** Ohne hinterlegten Quelltext prüft LUKA nur die Antwort,
 nicht das Verständnis. Die Notenempfehlung ist dann nicht aussagekräftig — das

@@ -682,10 +682,13 @@ def cmd_erwartungshorizont(args):
             aufgabe=args.aufgabe,
             provider=args.provider or "",
             model=args.model or "",
-            ausgangstext_path=args.ausgangstext or args.ausgangstext_datei or None,
+            ausgangstext_path=args.ausgangstext or None,
             db_path=db_path,
         )
-    except (ValueError, RuntimeError) as e:
+    except (ValueError, RuntimeError, OSError) as e:
+        # OSError gehoert dazu: `_lies_ausgangstext_datei` kann mit
+        # `PermissionError` oder `FileNotFoundError` enden, und die landen sonst
+        # als Traceback auf stderr statt als Meldung fuer die Lehrkraft.
         print(str(e), file=sys.stderr)
         return 1
     _json_out({"erwartungshorizont": text})
@@ -1026,12 +1029,7 @@ def main():
     p_eh.add_argument(
         "--ausgangstext",
         default="",
-        help="Quelltext direkt uebergeben (Pfad zu .docx/.txt/.md)",
-    )
-    p_eh.add_argument(
-        "--ausgangstext-datei",
-        default="",
-        help="Alias fuer --ausgangstext; nimmt einen Dateipfad entgegen",
+        help="Pfad zur Ausgangsdatei (.docx/.txt/.md); der Text selbst kommt ueber stdin",
     )
     p_ehs = sub.add_parser("erwartungshorizont-save", help="Erwartungshorizont (stdin) speichern + verlinken")
     p_ehs.add_argument("--klasse", required=True)

@@ -150,6 +150,6 @@ nicht aussagekräftig.
 **Hinweis:** Bei einem Verständnisraster zählt das Verstehen fast vollständig (K1 = 85 %).
 Formulierung und Sprachrichtigkeit sind nur Begleitung (K3 = 15 %) — die Notenempfehlung
 misst die Texterschließung, nicht die Schreibqualität. Für beide Bereiche zusammen gilt:
-**Ohne erreichten K1-Bereich gibt es keine positive Gesamtbeurteilung** (K1 unter Stufe 2
+**Ohne erreichten K1-Bereich gibt es keine positive Gesamtbeurteilung** (K1 bis Stufe 1,5
 führt nach SRDP automatisch zu „Nicht genügend") — das ist hier genau richtig, denn wer den
 Text nicht verstanden hat, kann die Aufgabe nicht erfüllen, egal wie sauber er schreibt.

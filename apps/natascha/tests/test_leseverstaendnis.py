@@ -651,3 +651,42 @@ def test_rubric_check_braucht_inhalt() -> None:
         assert natascha_cli.cmd_rubric_check(argparse.Namespace(name="x.md")) == 1
     finally:
         sys.stdin = stdin
+
+
+# ---------------------------------------------------------------------------
+# 10. Fallback-Kette der Raster-Zuordnung
+# ---------------------------------------------------------------------------
+
+
+def test_rubrik_name_faellt_bei_geloeschter_datei_zurueck() -> None:
+    """Ein Rubrik-Eintrag, dessen Datei fehlt, darf nicht den Default verlassen.
+
+    `load_rubric` wirft bei fehlender Datei. Ohne Existenzpruefung in
+    `rubric_name_for_aufgabe` lief die Aufloesung durch, und der Absturz kam
+    weiter unten - ohne die dokumentierte Fallback-Kette. Der Fehler war
+    komplett ungetestet.
+    """
+    cfg = {
+        "paths": {"rubrics": str(RUB_DIR)},
+        "defaults": {"fach": "deutsch", "schulstufe": "oberstufe"},
+        "rubric_mapping": {"Deutsch+Oberstufe": "srdp_deutsch_oberstufe.md"},
+        "classes": {"7A": {"aufgaben": {"SA2": {"fach": "deutsch", "schulstufe": "oberstufe",
+                                                "rubric": "geloescht_und_umbenannt.md"}}}},
+    }
+    name = nc.rubric_name_for_aufgabe(cfg, "7A", "SA2")
+
+    # Nicht der nicht existierende Name, sondern das Default-Raster.
+    assert name != "geloescht_und_umbenannt.md"
+    assert (RUB_DIR / name).is_file(), f"{name} existiert nicht"
+
+
+def test_rubric_name_behaelt_einen_vorhandenen_eintrag() -> None:
+    """Der Normalfall: ein gesetzter Rubrik-Eintrag gewinnt."""
+    cfg = {
+        "paths": {"rubrics": str(RUB_DIR)},
+        "defaults": {"fach": "deutsch", "schulstufe": "oberstufe"},
+        "rubric_mapping": {"Deutsch+Oberstufe": "srdp_deutsch_oberstufe.md"},
+        "classes": {"7A": {"aufgaben": {"SA2": {"fach": "deutsch", "schulstufe": "oberstufe",
+                                                "rubric": "leseverstaendnis.md"}}}},
+    }
+    assert nc.rubric_name_for_aufgabe(cfg, "7A", "SA2") == "leseverstaendnis.md"

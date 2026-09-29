@@ -1569,7 +1569,14 @@ class ErwartungshorizontGeneratorScreen(ModalScreen[bool]):
         auf_cfg = nc.get_aufgabe_cfg(self.config, self.klasse, self.aufgabe)
         label = auf_cfg.get("label", self.aufgabe)
         ausgangstext = nc.detect_ausgangstext(self.config, self.klasse, self.aufgabe)
-        at_status = f"✓ {ausgangstext.name}" if ausgangstext else "✗ Kein Ausgangstext in ausgangstext/"
+        # "Kein Ausgangstext in ausgangstext/" war nach dem v1.5.4-Stand falsch:
+        # der Text kann auch in der Datenbank liegen, und DOCX/TXT/MD werden
+        # gelesen. Ein rotes Kreuz trotz funktionierender Generierung.
+        at_status = (
+            f"✓ {ausgangstext.name}"
+            if ausgangstext
+            else "? Kein Ausgangstext — in der Aufgabe hinterlegen"
+        )
 
         eh_cfg = self.config.get("erwartungshorizont", {})
         api_cfg = self.config.get("api", {})

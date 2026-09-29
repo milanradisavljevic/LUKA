@@ -41,7 +41,7 @@ KANON_KEYS = ("inhalt", "textstruktur", "ausdruck", "sprachrichtigkeit")
 
 # Raster ohne `## JSON-Kriterien` nennen ihre Kriterien nicht verbindlich; fuer sie
 # bleiben die Notfall-Gewichte der vier Kanonen in Kraft (siehe parse_gewichtung).
-KANNON_GEWICHTUNG = set(KANON_KEYS)
+KANON_GEWICHTUNG = set(KANON_KEYS)
 
 
 class Befund:
@@ -107,7 +107,7 @@ def pruefe_rubrik(dateiname: str, text: str) -> Befund:
     kriterien_set = set(kriterien)
 
     if not hat_gewichtungsabschnitt:
-        if not kriterien_set & KANNON_GEWICHTUNG:
+        if not kriterien_set & KANON_GEWICHTUNG:
             # Genau hier ist sprachfach_latein.md: vier eigene Kriterien, kein
             # Gewichtungsabschnitt → es greift die 4er-Notfallgewichtung, die
             # keines dieser Kriterien trifft → Note ist konstant 3.

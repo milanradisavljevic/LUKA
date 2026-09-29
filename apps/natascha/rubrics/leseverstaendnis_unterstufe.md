@@ -100,6 +100,6 @@ nicht aussagekräftig.
 - Ausdruck: 12 %
 - Sprachrichtigkeit: 8 %
 
-**Hinweis:** Bei einem Verständnisraster zählt das Verstehen (75 %), die Formulierung
+**Hinweis:** Bei einem Verständnisraster zählt das Verstehen (80 %), die Formulierung
 begleitet nur (20 %). Die Notenempfehlung misst die Texterschließung, nicht die
 Schreibqualität.

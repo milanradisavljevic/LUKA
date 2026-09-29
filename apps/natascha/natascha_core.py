@@ -596,10 +596,17 @@ def rubric_name_for_aufgabe(config: dict[str, Any], klasse: str | None, aufgabe:
     Nötig, weil `load_rubric` den Metadaten-Header abschneidet: Wer die
     K1/K3-Zuordnung oder die Aufgabenart braucht, muss wissen, *welche* Datei
     das war. Zwei getrennte Aufloesungen koennten auseinanderlaufen.
+
+    Deshalb wird hier jede Kandidatin auf Existenz geprueft. `load_rubric` wirft
+    bei fehlender Datei; ohne diese Pruefung wuerde ein Rubrik-Eintrag in der
+    Config, dessen Datei umbenannt oder geloescht wurde, hier durchgewunken und
+    weiter unten als Absturz auftauchen, statt auf das Default-Raster
+    zurueckzufallen — genau das tat die Kette in `load_rubric_for_aufgabe`.
     """
     auf_cfg = get_aufgabe_cfg(config, klasse or "", aufgabe or "") if klasse and aufgabe else {}
+    rubric_dir = resolve_path(config, "rubrics")
     rubric_name = auf_cfg.get("rubric", "")
-    if rubric_name:
+    if rubric_name and (rubric_dir / rubric_name).is_file():
         return rubric_name
     fach = auf_cfg.get("fach") or config.get("defaults", {}).get("fach", "Deutsch")
     schulstufe = auf_cfg.get("schulstufe") or config.get("defaults", {}).get(
@@ -608,7 +615,6 @@ def rubric_name_for_aufgabe(config: dict[str, Any], klasse: str | None, aufgabe:
     default = default_rubric_for(fach, schulstufe, config)
     if default:
         return default
-    rubric_dir = resolve_path(config, "rubrics")
     for f in sorted(rubric_dir.glob("*.md")):
         if not f.name.upper().startswith("README"):
             return f.name
@@ -2789,7 +2795,10 @@ _AUSGANGSTEXT_EXTENSIONS: frozenset[str] = frozenset(
 def detect_ausgangstext(config: dict[str, Any], klasse: str, aufgabe: str) -> Path | None:
     """Sucht die Ausgangstext-Datei im Unterordner ausgangstext/ der Aufgabe.
 
-    Unterstützte Formate: DOCX, PDF, JPG, JPEG, PNG.
+    Erkannte Dateiendungen: DOCX, TXT, MD, PDF, JPG, JPEG, PNG. Nur DOCX, TXT und
+    MD werden danach auch gelesen — PDF und Bilder werden gefunden, damit der
+    Aufrufer eine klare Meldung bekommt statt "kein Ausgangstext".
+
     Gibt die erste Datei (alphabetisch) zurück, oder None wenn nicht gefunden.
     Fehlende Ordner werden stillschweigend ignoriert.
     """

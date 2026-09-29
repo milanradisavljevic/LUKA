@@ -221,14 +221,7 @@ fn default_python() -> &'static str {
     }
 }
 
-fn resolve_python(python: &str) -> String {
-    if !python.trim().is_empty() {
-        return python.trim().to_string();
-    }
-    "python".to_string()
-}
-
-/// Wie `resolve_python`, aber mit der Venv-Suche vor dem namensbasierten
+/// Ermittelt den Python-Befehl mit der Venv-Suche vor dem namensbasierten
 /// Rueckfall. Die Reihenfolge ist Absicht:
 /// 1. der in den Einstellungen eingetragene Befehl - dafuer ist das Feld da
 /// 2. die Projekt-Venv neben dem NATASCHA-Quellcode
