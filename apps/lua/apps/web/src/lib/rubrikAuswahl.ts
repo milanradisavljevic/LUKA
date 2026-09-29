@@ -98,3 +98,21 @@ export function rubrikPasstZurTextsorte(
   if (!gesucht) return false;
   return normiereSuchbegriff(rubrik.textsorte).includes(gesucht);
 }
+
+/**
+ * Misst dieses Raster Verstehen statt Schreibfähigkeit?
+ *
+ * Der Raster-Kopf sagt es über `aufgabenart: verstaendnis`. Das ist der
+ * Unterschied, der im Korrekturauftrag vorher nur im Raster-Text stand: ohne
+ * Ausgangstext prüft ein solches Raster nicht das Verständnis, sondern nur
+ * die Antwort — die Notenempfehlung ist dann nicht aussagekräftig. Die
+ * Oberfläche stand dagegen bei „(optional)" und deutete auf
+ * Textanalyse/Textinterpretation.
+ *
+ * Bewusst streng: nur die ausdrückliche Deklaration zählt. Ein Raster ohne
+ * `aufgabenart` verhält sich wie bisher, statt still zur Voraussetzung zu
+ * werden.
+ */
+export function istVerstaendnisRubrik(rubrik: RubrikOption | undefined | null): boolean {
+  return normiereSuchbegriff(rubrik?.aufgabenart) === 'verstaendnis';
+}

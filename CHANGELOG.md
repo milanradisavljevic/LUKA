@@ -159,6 +159,17 @@ wird das Feld jetzt geleert.
 **Nie überschrieben:** Trägst du selbst etwas ein, bleibt es stehen. Und leerst du das
 Feld absichtlich, wird es nicht sofort wieder gefüllt.
 
+**Beim Leseverständnis ist der Ausgangstext jetzt „erforderlich“.** LUKA hat
+das Feld bisher „Ausgangsmaterial (optional)“ genannt und auf Textanalyse und
+Textinterpretation verwiesen. Bei einem Raster, das Verständnis misst, stimmt das nicht:
+Ohne den Ausgangstext prüft LUKA nur die Antwort, und die Notenempfehlung ist dann nicht
+aussagekräftig. Genau das stand die ganze Zeit im Raster-Text — nur nicht in der
+Oberfläche. Steht jetzt an beiden Stellen und heißt dort „Ausgangstext –
+erforderlich“.
+
+**Korrigieren kannst du trotzdem**, wenn du bewusst nur die Sprache bewerten lassen willst.
+LUKA sagt dir nur, was dann nicht gemessen wird.
+
 ## Version 1.5.3 — 2026-09-26
 
 ### Das ist neu

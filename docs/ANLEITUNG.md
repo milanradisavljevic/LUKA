@@ -512,10 +512,16 @@ Aufgabe, und hinterlege den Auszug, den die Schüler gelesen haben, im Feld
 Bei einem Romanauszug nimm den Abschnitt, der in der Aufgabe tatsächlich
 vorkommt; ein ganzer Roman ist als Ausschnitt gemeint.
 
-Was du dort einträgst, steht danach auch im Korrekturdialog als
-Ausgangsmaterial zur Verfügung – du pflegst den Auszug also nur einmal. Ohne
-eigene Eingabe sucht LUKA wie bisher im Ordner `ausgangstext/` der Aufgabe und
-im zuletzt gespeicherten Quelltext.
+Was du dort einträgst, steht danach auch im Korrekturdialog zur
+Verfügung – du pflegst den Auszug also nur einmal. LUKA trägt ihn
+dort von selbst ein und sagt, dass er übernommen wurde. Ohne eigene Eingabe
+sucht LUKA wie bisher im Ordner `ausgangstext/` der Aufgabe und im zuletzt
+gespeicherten Quelltext.
+
+**Beim Leseverständnis ist der Ausgangstext keine Kür.** Solange das Raster
+Verstehen misst, steht im Korrekturdialog „Ausgangstext – erforderlich“.
+Fehlt er, prüft LUKA nur die Antwort, nicht das Verständnis, und die
+Notenempfehlung ist dann nicht aussagekräftig.
 
 **2 · Erwartungshorizont erzeugen.** **Generieren** erzeugt aus Raster,
 Textsorte und Quelltext die Grundlage für die Korrektur. Bei einem

@@ -6,6 +6,7 @@ import { MODEL_MAP } from '../lib/runtimeModel';
 import { LLM_PROVIDERS, PROVIDER_KEY_IDS } from '../lib/constants';
 import { textsortenFuer, textsortenHint } from '../lib/textsortenAuswahl';
 import { aufgabenSchluessel, entscheideVorfuellung } from '../lib/quelltextVorfuellung';
+import { istVerstaendnisRubrik } from '../lib/rubrikAuswahl';
 import { useDialogFocus } from '../hooks/useDialogFocus';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { GraduationCap, Save, AlertTriangle, Loader2, Upload, FolderOpen, FileDown, ChevronRight, Eye, EyeOff, Files, XCircle, CheckCircle2, ShieldCheck, RefreshCw, Check, X, Pencil, Undo2, Trash2, Unlink } from 'lucide-react';
@@ -296,6 +297,15 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }:
     };
   }, [analyzeProvider, analyzeModel, settings.defaultProvider, settings.defaultModel]);
   const [queueContext,setQueueContext]=useLocalDraft('correction-context','');
+  // Misst das gewählte Raster Verstehen statt Schreibfähigkeit? Dann ist der
+  // Ausgangstext keine Empfehlung, sondern Voraussetzung — das steht so im
+  // Raster, stand aber vorher nur in dessen Text.
+  const gewaehltesRubrik = useMemo(
+    () => rubrikListe.rubrics.find((r) => r.filename === (selectedRubrik || rubrikListe.defaultRubric)),
+    [rubrikListe, selectedRubrik],
+  );
+  const verstaendnisGewaehlt = istVerstaendnisRubrik(gewaehltesRubrik);
+  const hatAusgangstext = Boolean(analyzeAusgangstext.trim() || analyzeAusgangstextDatei.trim());
   const contextKey=JSON.stringify([analyzeKlasse,analyzeAufgabe,selectedRubrik,analyzeAusgangstext,analyzeAusgangstextDatei,selectedEinsatzId,effectiveRuntime.provider,effectiveRuntime.model,pseudoAktiv,assignments,revisionOfAbgabeId]);
   const [fileChecks,setFileChecks]=useState<Record<string,PersonenVorschau | null>>({});
   const [checkingFiles,setCheckingFiles]=useState(false);
@@ -1680,7 +1690,12 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }:
                             title={sortierModus?.hinweis}
                           >
                             {SORTIER_MODI.map(m => <option key={m.wert} value={m.wert}>{m.label}</option>)}
-                          </select>
+                </select>
+                {verstaendnisGewaehlt && (
+                  <p style={{ margin: '0.25rem 0 0', fontSize: '0.6875rem', color: 'var(--color-warning, #b8860b)' }}>
+                    Dieses Raster prüft Verstehen — dafür wird im nächsten Schritt der Ausgangstext gebraucht.
+                  </p>
+                )}
                           <button
                             type="button"
                             aria-pressed={zeigeNummern}
@@ -1994,7 +2009,12 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }:
             {/* ─── Schritt 3: Ausgangsmaterial & Erwartungshorizont ─── */}
             {analyzeStep === 3 && (<>
               <div style={{ marginBottom: '0.75rem' }}>
-                <label>Ausgangsmaterial <span style={{ color: 'var(--color-text-secondary)', fontWeight: 400 }}>(optional)</span></label>
+                <label>
+                  {verstaendnisGewaehlt ? 'Ausgangstext' : 'Ausgangsmaterial'}{' '}
+                  {verstaendnisGewaehlt
+                    ? <span style={{ color: verstaendnisGewaehlt && !hatAusgangstext ? 'var(--color-warning, #b8860b)' : 'var(--color-text-secondary)', fontWeight: 400 }}>erforderlich</span>
+                    : <span style={{ color: 'var(--color-text-secondary)', fontWeight: 400 }}>(optional)</span>}
+                </label>
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                   <input
                     type="text"
@@ -2019,8 +2039,16 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }:
                   </p>
                 )}
                 <p style={{ margin: '0.25rem 0 0', fontSize: '0.6875rem', color: 'var(--color-text-secondary)' }}>
-                  Bei textgebundenen Aufgaben (Textanalyse, Textinterpretation) wird der Quelltext empfohlen.
+                  {verstaendnisGewaehlt
+                    ? 'Dieses Raster misst Verstehen, nicht Schreibfähigkeit. Ohne den Ausgangstext prüft LUKA nur die Antwort, nicht das Verständnis — die Note ist dann nicht aussagekräftig.'
+                    : 'Bei textgebundenen Aufgaben (Textanalyse, Textinterpretation) wird der Quelltext empfohlen.'}
                 </p>
+                {verstaendnisGewaehlt && !hatAusgangstext && (
+                  <p style={{ margin: '0.35rem 0 0', fontSize: '0.6875rem', color: 'var(--color-warning, #b8860b)' }}>
+                    Du kannst trotzdem korrigieren — dann bewertet LUKA nur, was an der Antwort
+                    steht. Gib besser den Text ein oder wähle die Datei.
+                  </p>
+                )}
               </div>
             </>)}
             {/* ─── Schritt 4: Abgaben hinzufügen ─── */}

@@ -1,9 +1,34 @@
 import { describe, expect, it } from 'vitest';
 import {
-  fachLabel, gruppiereRubriken, normiereSuchbegriff, rubrikLabel, rubrikMetaZeile,
-  rubrikPasstZurTextsorte, stufeLabel,
+  fachLabel, gruppiereRubriken, istVerstaendnisRubrik, normiereSuchbegriff,
+  rubrikLabel, rubrikMetaZeile, rubrikPasstZurTextsorte, stufeLabel,
 } from './rubrikAuswahl';
 import { textsortenLabel } from './textsortenAuswahl';
+
+describe('Verständnisraster erkennen', () => {
+  // `aufgabenart` kommt seit v1.5.4 mit der Rasterliste mit (Python liefert den
+  // ganzen Kopf), wurde aber nirgends gelesen. Genau daran hing die Frage, ob der
+  // Ausgangstext Voraussetzung ist oder Kür.
+  const verstaendnis = { filename: 'leseverstaendnis.md', titel: 'Leseverständnis', aufgabenart: 'verstaendnis' };
+  const kanonisch = { filename: 'kommentar.md', titel: 'Kommentar', aufgabenart: 'kommentar' };
+
+  it('erkennt ein Raster, das Verstehen misst', () => {
+    expect(istVerstaendnisRubrik(verstaendnis)).toBe(true);
+  });
+
+  it('erkennt es auch bei abweichender Schreibweise', () => {
+    expect(istVerstaendnisRubrik({ filename: 'x.md', aufgabenart: 'Verständnis' })).toBe(true);
+    expect(istVerstaendnisRubrik({ filename: 'x.md', aufgabenart: ' Verstaendnis ' })).toBe(true);
+  });
+
+  it('lässt alles andere wie bisher', () => {
+    expect(istVerstaendnisRubrik(kanonisch)).toBe(false);
+    // Ohne Deklaration wird es nicht still zur Voraussetzung.
+    expect(istVerstaendnisRubrik({ filename: 'srdp_deutsch_oberstufe.md' })).toBe(false);
+    expect(istVerstaendnisRubrik(undefined)).toBe(false);
+    expect(istVerstaendnisRubrik(null)).toBe(false);
+  });
+});
 
 describe('Rubrik-Auswahl', () => {
   it('zeigt den Header-Titel, sonst einen aufbereiteten Dateinamen', () => {

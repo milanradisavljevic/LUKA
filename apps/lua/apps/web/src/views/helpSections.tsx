@@ -591,7 +591,7 @@ export const HELP_SECTIONS: HelpSection[] = [
           <>Ein neuer Führungsassistent begleitet dich in fünf Schritten: Klasse &amp; Aufgabe, Textsorte &amp; Raster, Material, Abgaben, Übersicht &amp; Start.</>,
           <>KI-Anbieter und Modell lassen sich direkt im Dialog wählen, ohne Umweg über die Einstellungen.</>,
           <>Lade die Abgabe als Datei (DOCX/PDF/TXT) hoch. Mehrere Dateien können als Stapel laufen.</>,
-          <>Optional Ausgangsmaterial als Text oder Datei und ein Bewertungsraster hinterlegen. Beides bleibt am Korrekturauftrag erhalten und steht später für Folgeübungen wieder bereit.</>,
+          <>Ausgangsmaterial als Text oder Datei und ein Bewertungsraster hinterlegen. Beides bleibt am Korrekturauftrag erhalten und steht später für Folgeübungen wieder bereit. LUKA trägt ein für die Aufgabe gespeichertes Ausgangsmaterial von selbst ein. Bei einem Raster, das Verstehen misst, ist es erforderlich — dort prüft LUKA sonst nur die Antwort.</>,
           <>Vor dem Versand zeigt LUKA die erkannte Schülerzuordnung und — bei Textabgaben — die Redaktionsvorschau. Namen werden standardmäßig durch stabile Aliasse ersetzt; PDF- und Bildinhalte können nicht automatisch redigiert werden.</>,
           <>Nach der Analyse zeigt die Detailansicht links die Bewertung (Note, Kriterien, Fehlerliste) und rechts den <strong>markierten Schülertext</strong> als A4-Vorschau.</>,
           <>Eigene <strong>Lehrernote</strong> und einen Kommentar erfassen und speichern — die App vergleicht deine Note später mit der KI-Note (Kalibrierung).</>,
@@ -636,7 +636,8 @@ export const HELP_SECTIONS: HelpSection[] = [
         </P>
         <Steps items={[
           <><strong>Quelltext festlegen.</strong> In der Ansicht <strong>Erwartungshorizont</strong> findest du das Feld <strong>Quelltext</strong>: Text einfügen oder eine Datei wählen (DOCX, TXT, MD). Nimm den Auszug, der in der Aufgabe tatsächlich vorkommt — bei einem Roman den Abschnitt, nicht das ganze Werk.</>,
-          <><strong>Einmal pflegen genügt.</strong> Was du dort einträgst, steht danach auch im Korrekturdialog als Ausgangsmaterial bereit.</>,
+          <><strong>Einmal pflegen genügt.</strong> Was du dort einträgst, steht danach auch im Korrekturdialog zur Verfügung — LUKA trägt es von selbst ein und sagt, dass es übernommen wurde.</>,
+          <><strong>Beim Leseverständnis ist der Ausgangstext Pflicht, nicht Kür.</strong> Fehlt er, prüft LUKA nur die Antwort, nicht das Verständnis — die Notenempfehlung ist dann nicht aussagekräftig. Korrigieren kannst du trotzdem, wenn du nur die Sprache bewerten willst.</>,
           <><strong>Erwartungshorizont erzeugen</strong> und prüfen. Bei einem Verständnisraster fragt LUKA nach 6–8 Verständnisfragen mit Erwartungsbildern und typischen Fehlverständnissen — statt Pro- und Contra-Argumenten.</>,
           <><strong>Korrigieren:</strong> Im Führungsassistenten im Feld <em>Textsorte</em> <strong>Leseverständnis</strong> wählen. LUKA schlägt das passende Raster selbst vor.</>,
           <><strong>Raster anpassen:</strong> Der Reiter <strong>Bewertungsraster</strong> öffnet jedes Raster als Text. Änderungen wirken bei der nächsten Korrektur mit diesem Raster.</>,
