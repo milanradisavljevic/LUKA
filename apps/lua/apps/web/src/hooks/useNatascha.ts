@@ -104,6 +104,18 @@ export interface RubrikListe {
   defaultRubric: string;
 }
 
+/**
+ * Befund einer Raster-Prüfung. Blockiert nichts — beides sind Hinweise, die
+ * Fehler wiegen schwerer. Die Meldungen kommen aus `natascha_rubrik_check`
+ * und sind auf Deutsch formuliert.
+ */
+export interface RubrikBefund {
+  name: string;
+  ok: boolean;
+  fehler: string[];
+  hinweise: string[];
+}
+
 export interface KorrekturKontext {
   id: string;
   klasse: string;
@@ -448,6 +460,27 @@ const generateErwartungshorizont = useCallback(async (
     return JSON.parse(result);
   }, []);
 
+  /**
+   * Prueft ein Raster, ohne es zu speichern. Wirft nicht: die Pruefung ist ein
+   * Hinweis, kein Fehler. Schlaegt der Befehl selbst fehl (kein Sidecar, alte
+   * Installation), kommt `null` zurueck und die Oberflaeche schweigt, statt
+   * mit einem Fehler zu erschrecken, den niemand ausloesen kann.
+   */
+  const checkRubric = useCallback(async (
+    name: string,
+    content: string,
+  ): Promise<RubrikBefund | null> => {
+    const s = loadSettings();
+    try {
+      const result = await invoke<string>('natascha_rubric_check', {
+        dir: s.nataschaDir ?? '', python: s.pythonCommand ?? '', name, content,
+      });
+      return JSON.parse(result) as RubrikBefund;
+    } catch {
+      return null;
+    }
+  }, []);
+
   const getSchuelerLaengsschnitt = useCallback(async (schuelerId: number): Promise<SchuelerLaengsschnitt | null> => {
     try {
       return await invoke<SchuelerLaengsschnitt>('db_get_schueler_laengsschnitt', { schuelerId });
@@ -581,6 +614,7 @@ const generateErwartungshorizont = useCallback(async (
     getSchuelerProfil,
     readRubric,
     saveRubric,
+    checkRubric,
     retroImport,
     quelltextGet,
   };

@@ -844,6 +844,36 @@ def cmd_save_rubric(args):
     return 0
 
 
+def cmd_rubric_check(args):
+    """Prueft eine Rubrik aus stdin und meldet harte Fehler + Hinweise.
+
+    Bewusst **nicht** blockierend: `save-rubric` speichert unveraendert, dieser
+    Befehl liefert nur den Befund, den die Oberflaeche anzeigt. Die Entscheidung
+    bleibt bei der Lehrkraft — ein Raster kann gueltig sein und trotzdem nicht
+    zu ihrem Unterricht passen, das kann die Pruefung nicht wissen.
+
+    Der Inhalt kommt ueber stdin wie beim Speichern, damit der Befund genau das
+    prueft, was gespeichert wuerde, und nicht den Stand von vor dem Bearbeiten.
+    """
+    import natascha_rubrik_check as rc  # lokal: nur dieser Befund braucht es
+
+    if not _is_safe_rubric_name(args.name):
+        print("Ungültiger Rubrik-Name (muss auf .md enden, kein Pfad)", file=sys.stderr)
+        return 1
+    text = sys.stdin.read()
+    if not text.strip():
+        print("Kein Rubrik-Inhalt übergeben (stdin leer)", file=sys.stderr)
+        return 1
+    befund = rc.pruefe_rubrik(args.name, text)
+    _json_out({
+        "name": args.name,
+        "ok": befund.ok,
+        "fehler": list(befund.fehler),
+        "hinweise": list(befund.hinweise),
+    })
+    return 0
+
+
 def cmd_retro_import(args):
     """Importiert bestehende *_analysis.json (aus output/.../feedback_data) in die DB,
     damit alte Korrekturen in Heatmap/Statistik/Längsschnitt erscheinen.
@@ -1034,6 +1064,11 @@ def main():
     p_rr.add_argument("--name", required=True)
     p_sr = sub.add_parser("save-rubric", help="Rubrik (stdin) speichern/überschreiben")
     p_sr.add_argument("--name", required=True)
+    p_rc = sub.add_parser(
+        "rubric-check",
+        help="Rubrik (stdin) prüfen — meldet harte Fehler und Hinweise, speichert nichts",
+    )
+    p_rc.add_argument("--name", required=True)
 
     # Ausgangstext einer Aufgabe lesen (In-App-Übung-Vorbefüllung)
     p_qg = sub.add_parser("quelltext-get", help="Gespeicherten Ausgangstext einer Aufgabe lesen")
@@ -1076,6 +1111,7 @@ def main():
         "list-rubrics": cmd_list_rubrics,
         "read-rubric": cmd_read_rubric,
         "save-rubric": cmd_save_rubric,
+        "rubric-check": cmd_rubric_check,
         "quelltext-get": cmd_quelltext_get,
         "retro-import": cmd_retro_import,
         "personen-vorschau": cmd_personen_vorschau,

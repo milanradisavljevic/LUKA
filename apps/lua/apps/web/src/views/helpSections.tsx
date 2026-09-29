@@ -758,6 +758,7 @@ export const HELP_SECTIONS: HelpSection[] = [
           <><strong>Eigenes Raster anlegen:</strong> Über <strong>Neues Raster</strong> wählst du ein vorhandenes als Vorlage, gibst den Namen für die Listen an und legst es an. Kriterien, Gewichtung und Stufen werden vollständig übernommen — du änderst nur, was abweichen soll.</>,
           <><strong>Warum aus einer Vorlage?</strong> Ein Raster besteht aus Kriterien-Schlüsseln, einer Gewichtung mit Summe 100 % und fünf Stufen je Kriterium. Leer angelegt wäre die Note aussagelos. Mit Vorlage stimmt die Struktur von Anfang an.</>,
           <><strong>Achtung beim Namen:</strong> Existiert unter dem gewählten Dateinamen schon ein Raster, warnt LUKA und fragt nach — beim Anlegen wird es ersetzt.</>,
+          <><strong>Nachsehen, ob es zusammenpasst:</strong> Beim Öffnen und nach dem Speichern prüft LUKA das Raster selbst und zeigt, was nicht stimmt — etwa wenn die Gewichtung sich nicht auf die Kriterien aufteilen lässt. Speichern bleibt trotzdem möglich; ob das Raster zu deinem Unterricht passt, entscheidest du.</>,
         ]} />
         <Tip>So steuerst du die Bewertung gezielt — z. B. strengere oder fachspezifische Kriterien.</Tip>
       </>

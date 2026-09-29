@@ -125,6 +125,15 @@ Raster, warnt LUKA und fragt nach. Bisher hat das Speichern bedingungslos übers
 ein Tippfehler im Namen hätte ein mitgeliefertes Raster zerstört, ohne dass etwas sichtbar
 geworden wäre.
 
+**LUKA sagt, wenn ein Raster nicht zusammenpasst.** Beim Öffnen und nach dem Speichern
+prüft LUKA das Raster und zeigt, was nicht stimmt – zum Beispiel, wenn die Gewichtung
+sich nicht auf die angegebenen Kriterien aufteilen lässt oder eine Kriterienangabe
+zweimal vorkommt. Bisher fiel das erst beim Korrigieren auf, mit einer Note, die
+trotzdem ausgewiesen wurde.
+
+**Das Speichern bleibt möglich.** Die Prüfung warnt nur. Ob ein Raster zu deinem
+Unterricht passt, weiß LUKA nicht – das entscheidest du.
+
 ## Version 1.5.3 — 2026-09-26
 
 ### Das ist neu

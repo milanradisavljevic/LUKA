@@ -1,6 +1,6 @@
 """Tests fuer die Leseverstaendnis-Aufgabenart und den Rubrik-Vertrag.
 
-Vier Interessen:
+Fuenf Interessen:
 
 1. **Vertrag** — `natascha_rubrik_check` haelt alle mitgelieferten Raster in
    Ordnung. Eine Rubrik, deren Gewichtung sich auf keinen Schluessel aufloesen
@@ -12,6 +12,8 @@ Vier Interessen:
    genauso wie vorher. Das ist der Pfad, den *jede* Oberstufen-Korrektur nimmt.
 4. **Ehrlichkeit** — ein Verstaendnisraster unterscheidet Leistung ueber den
    ganzen Notenbereich und beschriftet die Kompetenzbereiche richtig.
+5. **Pruefbarkeit** — `rubric-check` macht die vorhandene Pruefung aus der
+   Oberflaeche erreichbar, ohne zu speichern.
 """
 
 from __future__ import annotations
@@ -549,3 +551,103 @@ def test_ohne_dokumentierte_beschriftung_bleibt_der_schluessel() -> None:
     """Kein Raster, keine erfundenen Namen: der Klartext-Key ist ehrlicher."""
     assert nc.rubric_area_titel(("bedeutungsschicht",), {}) == "bedeutungsschicht"
     assert nc.rubric_area_titel((), {}) == ""
+
+
+# ---------------------------------------------------------------------------
+# 9. rubric-check: die Pruefung aus der Oberflaeche erreichbar
+# ---------------------------------------------------------------------------
+
+
+def _pruefe_ueber_cli(name: str, text: str) -> dict:
+    """Ruft `cmd_rubric_check` mit gefaelschtem stdin auf und liest das JSON."""
+    import argparse
+    import io
+    import json
+
+    import natascha_cli
+
+    args = argparse.Namespace(name=name)
+    stdin, stdout = sys.stdin, sys.stdout
+    sys.stdin = io.StringIO(text)
+    sys.stdout = io.StringIO()
+    try:
+        rc_code = natascha_cli.cmd_rubric_check(args)
+        ausgabe = sys.stdout.getvalue()
+    finally:
+        sys.stdin, sys.stdout = stdin, stdout
+
+    assert rc_code == 0, f"rubric-check meldete Fehler statt zu pruefen (rc={rc_code})"
+    return json.loads(ausgabe)
+
+
+def test_rubric_check_meldet_ein_kaputtes_raster() -> None:
+    """Gewichtung passt nicht zum Kriterium: das ist der Befund, der zaehlt.
+
+    Genau dieser Fall verliert sonst still einen Anteil der Note - 25 % bleiben
+    konstant 3.0, ohne dass irgendwo etwas sichtbar wuerde.
+    """
+    kaputt = """<!-- luka-rubrik
+titel: Kaputt
+fach: deutsch
+schulstufe: oberstufe
+textsorte: kommentar
+-->
+
+# Kaputt
+
+## JSON-Kriterien
+
+- `inhalt` — Inhalt
+- `textstruktur_ausgangstext` — Aufbau
+
+## Gewichtung
+
+- Inhalt: 50 %
+"""
+    befund = _pruefe_ueber_cli("kaputt.md", kaputt)
+    assert befund["ok"] is False
+    assert befund["fehler"], "kein harter Fehler gemeldet"
+    # `textstruktur_ausgangstext` enthaelt den Kanon-Teilstring "textstruktur".
+    assert any("textstruktur" in f for f in befund["fehler"]), befund["fehler"]
+
+
+def test_rubric_check_ist_fuer_alle_mitgelieferten_raster_still() -> None:
+    """Die Oberflaeche darf bei den mitgelieferten Rastern nichts melden.
+
+    Sonst traegt die Anzeige bei jedem Oeffnen einen roten Hinweis und die
+    Warnung verliert ihre Bedeutung.
+    """
+    gemeldet: list[str] = []
+    for pfad in sorted(RUB_DIR.glob("*.md")):
+        if pfad.name.upper().startswith("README"):
+            continue
+        befund = _pruefe_ueber_cli(pfad.name, pfad.read_text(encoding="utf-8"))
+        if befund["fehler"]:
+            gemeldet.append(f"{pfad.name}: {befund['fehler']}")
+    assert not gemeldet, "mitgelieferte Raster melden harte Fehler:\n" + "\n".join(gemeldet)
+
+
+def test_rubric_check_verweigert_pfade_wie_save_rubric() -> None:
+    """Dieselbe Pfad-Traversal-Sperre wie beim Speichern."""
+    import argparse
+
+    import natascha_cli
+
+    for name in ("../raus.md", "unter/ordner.md", "kein_md.txt", ""):
+        args = argparse.Namespace(name=name)
+        assert natascha_cli.cmd_rubric_check(args) == 1, f"{name!r} wurde angenommen"
+
+
+def test_rubric_check_braucht_inhalt() -> None:
+    """Leerer stdin ist ein Bedienfehler, kein gueltiges Raster."""
+    import argparse
+    import io
+
+    import natascha_cli
+
+    stdin = sys.stdin
+    sys.stdin = io.StringIO("")
+    try:
+        assert natascha_cli.cmd_rubric_check(argparse.Namespace(name="x.md")) == 1
+    finally:
+        sys.stdin = stdin

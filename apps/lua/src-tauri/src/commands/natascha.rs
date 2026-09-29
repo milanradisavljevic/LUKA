@@ -1126,6 +1126,48 @@ pub async fn natascha_save_rubric(
     Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
 }
 
+/// Prueft eine Rubrik (Text via stdin) und liefert harte Fehler + Hinweise.
+///
+/// Blockiert nichts: `save-rubric` laeuft unabhaengig davon. Der Befund geht
+/// nur an die Anzeige — die Entscheidung bleibt bei der Lehrkraft.
+#[tauri::command]
+pub async fn natascha_rubric_check(
+    dir: String,
+    python: String,
+    name: String,
+    content: String,
+) -> Result<String, String> {
+    let mut cmd = build_cli_command(&dir, &python)?;
+    cmd.arg("rubric-check")
+        .arg("--name")
+        .arg(&name)
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
+    let mut child = cmd.spawn().map_err(|e| {
+        format!("Python konnte nicht gestartet werden: {e}. Python-Befehl ggf. in den Einstellungen setzen.")
+    })?;
+    if let Some(mut stdin) = child.stdin.take() {
+        stdin
+            .write_all(content.as_bytes())
+            .await
+            .map_err(|e| format!("stdin-Schreibfehler: {e}"))?;
+    }
+    let output = timeout(
+        Duration::from_secs(NATASCHA_CLI_TIMEOUT_SECS),
+        child.wait_with_output(),
+    )
+    .await
+    .map_err(|_| "Rubrik-Pruefung hat zu lange gedauert und wurde abgebrochen.".to_string())?
+    .map_err(|e| format!("CLI-Aufruf fehlgeschlagen: {e}"))?;
+    if !output.status.success() {
+        return Err(categorize_cli_error(&String::from_utf8_lossy(
+            &output.stderr,
+        )));
+    }
+    Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+}
+
 /// Speichert den (bearbeiteten) Erwartungshorizont (Text via stdin) als
 /// rubrics/erwartungshorizont_*.md und verlinkt ihn in der Config.
 #[tauri::command]

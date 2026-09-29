@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Loader2, FileText, Save, Check, Plus } from 'lucide-react';
-import { useNatascha } from '../hooks/useNatascha';
+import { Loader2, FileText, Save, Check, Plus, ShieldCheck } from 'lucide-react';
+import { useNatascha, type RubrikBefund } from '../hooks/useNatascha';
 import { ViewShell } from './_ViewShell';
 import { InfoDot } from '../components/ui/InfoDot';
 import { gruppiereRubriken, rubrikLabel, rubrikMetaZeile, type RubrikOption } from '../lib/rubrikAuswahl';
@@ -24,7 +24,7 @@ import {
  * bereits erzeugte Analysen enthalten die alte Bewertung.
  */
 export function BewertungsrasterView() {
-  const { listRubrics, readRubric, saveRubric } = useNatascha();
+  const { listRubrics, readRubric, saveRubric, checkRubric } = useNatascha();
 
   const [rubriken, setRubriken] = useState<RubrikOption[]>([]);
   const [rubricName, setRubricName] = useState('');
@@ -32,6 +32,8 @@ export function BewertungsrasterView() {
   const [rubricLoading, setRubricLoading] = useState(false);
   const [rubricSaving, setRubricSaving] = useState(false);
   const [rubricMsg, setRubricMsg] = useState<string | null>(null);
+  const [befund, setBefund] = useState<RubrikBefund | null>(null);
+  const [befundPrueft, setBefundPrueft] = useState(false);
 
   // Neues Raster aus einer Vorlage anlegen
   const [neuOffen, setNeuOffen] = useState(false);
@@ -63,16 +65,23 @@ export function BewertungsrasterView() {
     setRubricName(name);
     setRubricContent('');
     setRubricMsg(null);
+    setBefund(null);
     if (!name) return;
     setRubricLoading(true);
     try {
-      setRubricContent(await readRubric(name));
+      const inhalt = await readRubric(name);
+      setRubricContent(inhalt);
+      // Beim Laden mitprüfen: bei den mitgelieferten Rastern ist das der
+      // Normalfall, und die Lehrkraft sieht so sofort, ob etwas nicht
+      // zusammenpasst, ohne vorher etwas zu tun.
+      setBefundPrueft(true);
+      checkRubric(name, inhalt).then(setBefund).finally(() => setBefundPrueft(false));
     } catch (e) {
       setRubricMsg(typeof e === 'string' ? e : e instanceof Error ? e.message : 'Laden fehlgeschlagen.');
     } finally {
       setRubricLoading(false);
     }
-  }, [readRubric]);
+  }, [readRubric, checkRubric]);
 
   const handleSaveRubric = useCallback(async () => {
     if (!rubricName) return;
@@ -81,12 +90,23 @@ export function BewertungsrasterView() {
       const r = await saveRubric(rubricName, rubricContent);
       setRubricMsg(`Gespeichert (${rubrikLabel(gewaehlt ?? { filename: r.name })}, ${r.bytes} Bytes).`);
       await listRubrics().then((liste) => setRubriken(liste.rubrics));
+      // Nach dem Speichern ist genau der Stand geprüft, der jetzt auf der
+      // Platte liegt — nicht der von davor.
+      setBefundPrueft(true);
+      checkRubric(rubricName, rubricContent).then(setBefund).finally(() => setBefundPrueft(false));
     } catch (e) {
       setRubricMsg(typeof e === 'string' ? e : e instanceof Error ? e.message : 'Speichern fehlgeschlagen.');
     } finally {
       setRubricSaving(false);
     }
-  }, [rubricName, rubricContent, gewaehlt, saveRubric, listRubrics]);
+  }, [rubricName, rubricContent, gewaehlt, saveRubric, listRubrics, checkRubric]);
+
+  /** Prüft den aktuellen Text, ohne zu speichern. */
+  const pruefeJetzt = useCallback(() => {
+    if (!rubricName || befundPrueft) return;
+    setBefundPrueft(true);
+    checkRubric(rubricName, rubricContent).then(setBefund).finally(() => setBefundPrueft(false));
+  }, [rubricName, rubricContent, checkRubric, befundPrueft]);
 
   /** Vorlage wählen: Titel und Vorschlag für den Dateinamen vorbelegen. */
   const waehleVorlage = useCallback(async (quelle: string) => {
@@ -291,6 +311,31 @@ export function BewertungsrasterView() {
 
         {rubricName && !rubricLoading && (
           <>
+            {befund && (befund.fehler.length > 0 || befund.hinweise.length > 0) && (
+              <div style={befundStyle}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.35rem' }}>
+                  <strong style={{ fontSize: '0.75rem' }}>Prüfung</strong>
+                  {befund.fehler.length > 0 ? (
+                    <span style={{ fontSize: '0.6875rem', padding: '0.1rem 0.4rem', borderRadius: 999, color: '#fff', background: 'var(--color-danger, #c0392b)' }}>
+                      {befund.fehler.length} {befund.fehler.length === 1 ? 'Hinweis' : 'Hinweise'} zum Nachsehen
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: '0.6875rem', padding: '0.1rem 0.4rem', borderRadius: 999, color: '#fff', background: 'var(--color-warning, #b8860b)' }}>
+                      gut, mit {befund.hinweise.length} {befund.hinweise.length === 1 ? 'Anmerkung' : 'Anmerkungen'}
+                    </span>
+                  )}
+                  <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)' }}>
+                    — das Speichern ist trotzdem möglich
+                  </span>
+                </div>
+                <ul style={{ margin: 0, paddingLeft: '1.1rem', fontSize: '0.75rem', lineHeight: 1.5 }}>
+                  {[...befund.fehler, ...befund.hinweise].map((meldung) => (
+                    <li key={meldung}>{meldung}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             <textarea
               value={rubricContent}
               onChange={(e) => setRubricContent(e.target.value)}
@@ -312,6 +357,15 @@ export function BewertungsrasterView() {
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.8125rem', padding: '0.35rem 0.8rem' }}
               >
                 <Save size={14} /> {rubricSaving ? 'Speichere …' : 'Speichern'}
+              </button>
+              <button
+                type="button"
+                onClick={pruefeJetzt}
+                disabled={befundPrueft}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.8125rem', padding: '0.35rem 0.8rem' }}
+              >
+                {befundPrueft ? <Loader2 size={14} className="spin" /> : <ShieldCheck size={14} />}
+                {befundPrueft ? 'Prüfe …' : 'Prüfen'}
               </button>
               {rubricMsg && (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
@@ -350,6 +404,15 @@ const panelStyle: React.CSSProperties = {
   marginTop: '0.75rem',
   padding: '0.875rem',
   border: '1px solid var(--color-border)',
+  borderRadius: 'var(--radius)',
+  background: 'var(--color-bg-base)',
+};
+
+const befundStyle: React.CSSProperties = {
+  marginTop: '0.75rem',
+  padding: '0.625rem 0.75rem',
+  border: '1px solid var(--color-border)',
+  borderLeft: '3px solid var(--color-warning, #b8860b)',
   borderRadius: 'var(--radius)',
   background: 'var(--color-bg-base)',
 };

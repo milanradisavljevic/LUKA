@@ -42,6 +42,7 @@ fn main() {
             commands::natascha::natascha_personen_vorschau,
             commands::natascha::natascha_read_rubric,
             commands::natascha::natascha_save_rubric,
+            commands::natascha::natascha_rubric_check,
             commands::natascha::natascha_save_erwartungshorizont,
             commands::natascha::natascha_klassen_briefing,
             commands::natascha::natascha_schueler_profil,
