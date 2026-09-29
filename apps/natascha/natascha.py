@@ -610,19 +610,9 @@ class ReviewScreen(ModalScreen[None]):
                     classes="review-note",
                 )
                 if notendetail:
-                    k1_note = notendetail.get("k1_note")
-                    k1_schnitt = notendetail.get("k1_schnitt")
-                    k3_note = notendetail.get("k3_note")
-                    k3_schnitt = notendetail.get("k3_schnitt")
-                    detail_parts = []
-                    if k1_note is not None:
-                        k1_s = f" [Stufe {k1_schnitt:.1f}]" if k1_schnitt is not None else ""
-                        detail_parts.append(f"K1 (Inhalt + Textstruktur): Note {k1_note}{k1_s}")
-                    if k3_note is not None:
-                        k3_s = f" [Stufe {k3_schnitt:.1f}]" if k3_schnitt is not None else ""
-                        detail_parts.append(f"K3/1 (Stil + Sprachnormen): Note {k3_note}{k3_s}")
-                    if detail_parts:
-                        yield Static("  " + "  |  ".join(detail_parts), classes="review-note")
+                    zeile = nc.srdp_notenzeile(notendetail, praefix="  ")
+                    if zeile:
+                        yield Static(zeile, classes="review-note")
                     sonderregel = notendetail.get("sonderregel")
                     if sonderregel:
                         yield Static(
@@ -3700,16 +3690,9 @@ class NataschaApp(App):
                 text.append(f"\nDurchschnitt: {schnitt}")
 
                 if notendetail:
-                    k1_note = notendetail.get("k1_note")
-                    k1_schnitt = notendetail.get("k1_schnitt")
-                    k3_note = notendetail.get("k3_note")
-                    k3_schnitt = notendetail.get("k3_schnitt")
-                    if k1_note is not None:
-                        k1_s = f" [Stufe {k1_schnitt:.1f}]" if k1_schnitt is not None else ""
-                        text.append(f"\n  K1 (Inhalt + Textstruktur): Note {k1_note}{k1_s}")
-                    if k3_note is not None:
-                        k3_s = f" [Stufe {k3_schnitt:.1f}]" if k3_schnitt is not None else ""
-                        text.append(f"\n  K3/1 (Stil + Sprachnormen): Note {k3_note}{k3_s}")
+                    zeile = nc.srdp_notenzeile(notendetail, praefix="\n  ")
+                    if zeile:
+                        text.append(zeile)
                     sonderregel = notendetail.get("sonderregel")
                     if sonderregel:
                         text.append(

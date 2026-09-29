@@ -335,3 +335,113 @@ def test_parse_feedback_data_alle_verworfen_fehler_none() -> None:
     ])
     data = gf.parse_feedback_data(payload)
     assert data.fehler is None
+
+
+# ---------------------------------------------------------------------------
+# K1/K3-Beschriftung und -Noten im DOCX
+# ---------------------------------------------------------------------------
+
+
+def _srdp_payload(k1_titel: str = "", k3_titel: str = "") -> dict:
+    """Analyse-Payload mit einer Notenempfehlung, die K1/K3 mitbringt."""
+    notenempfehlung = {
+        "durchschnitt": 2.5,
+        "note": 3,
+        "bezeichnung": "Befriedigend",
+        "begruendung": "Solide im Verstaendnis, schwach im Ausdruck.",
+    }
+    if k1_titel or k3_titel:
+        # So schreibt es `run_llm_analysis` seit v1.5.4: Titel UND Noten.
+        notenempfehlung.update({
+            "k1_titel": k1_titel,
+            "k3_titel": k3_titel,
+            "k1_note": 2,
+            "k3_note": 4,
+            "k1_schnitt": 2.0,
+            "k3_schnitt": 3.5,
+        })
+    return {
+        "datei": "probe",
+        "schueler": "TokenA SuffixA",
+        "textsorte": "Leseverstaendnis",
+        "fach": "Deutsch",
+        "schulstufe": "oberstufe",
+        "rubrik": "leseverstaendnis.md",
+        "bewertung": {
+            "sachverstaendnis": {
+                "stufe": 2.0, "punkte": 3,
+                "staerken": ["Nennt die Hauptpunkte."],
+                "schwaechen": [],
+                "vorschlaege": ["Detailangaben ergaenzen."],
+            },
+            "ausdruck": {
+                "stufe": 3.5, "punkte": 2,
+                "staerken": ["Eigenstaendig formuliert."],
+                "schwaechen": ["Unsichere Satzzeichen."],
+                "vorschlaege": [],
+            },
+        },
+        "fehler": [],
+        "notenempfehlung": notenempfehlung,
+    }
+
+
+def test_srdp_notenzeile_nimmt_die_beschriftung_des_rasters() -> None:
+    """Nicht "Inhalt + Textstruktur", sondern was tatsaechlich geprueft wurde."""
+    nc = __import__("natascha_core")
+
+    zeile = nc.srdp_notenzeile({
+        "k1_note": 2, "k1_schnitt": 2.0, "k1_titel": "Sachverstaendnis + Detailverstaendnis",
+        "k3_note": 4, "k3_schnitt": 3.5, "k3_titel": "Ausdruck",
+    })
+    assert "K1 (Sachverstaendnis + Detailverstaendnis): Note 2" in zeile
+    assert "K3/1 (Ausdruck): Note 4" in zeile
+    # Der alte Klartext waere hier eine Falschangabe.
+    assert "Inhalt + Textstruktur" not in zeile
+    assert "Stufe 2.0" in zeile
+
+
+def test_srdp_notenzeile_bleibt_beim_kanon_bei_altem_klartext() -> None:
+    """Ohne deklarierte Kriterien (Legacy-Pfad) bleibt die uebliche Beschriftung."""
+    nc = __import__("natascha_core")
+
+    zeile = nc.srdp_notenzeile({
+        "k1_note": 2, "k1_schnitt": 2.0,
+        "k3_note": 3, "k3_schnitt": 3.0,
+    })
+    assert "K1 (Inhalt + Textstruktur)" in zeile
+    assert "K3/1 (Stil + Sprachnormen)" in zeile
+
+
+def test_srdp_notenzeile_verträgt_leere_und_ungueltige_werte() -> None:
+    nc = __import__("natascha_core")
+
+    assert nc.srdp_notenzeile({}) == ""
+    assert nc.srdp_notenzeile({"k1_note": None}) == ""
+    assert nc.srdp_notenzeile("kein dict") == ""
+    # Ohne Schnitt keine Stufenangabe - kein Absturz.
+    assert "Stufe" not in nc.srdp_notenzeile({"k1_note": 2})
+
+
+def test_docx_zeigt_die_rasterbeschriftung() -> None:
+    """Der SRDP-Zweig im DOCX war toter Code und wird jetzt erreicht."""
+    data = gf.parse_feedback_data(
+        _srdp_payload("Sachverstaendnis + Detailverstaendnis", "Ausdruck")
+    )
+    assert data.notenempfehlung.k1_note == 2
+    document = gf.build_feedback_document(data)
+    text = "\n".join(paragraph.text for paragraph in document.paragraphs)
+
+    assert "NOTENEMPFEHLUNG (SRDP-basiert)" in text
+    assert "Sachverstaendnis + Detailverstaendnis" in text
+    assert "Inhalt + Textstruktur" not in text
+
+
+def test_docx_bleibt_ohne_srdp_bei_gewohnter_ueberschrift() -> None:
+    """Ohne K1/K3-Noten bleibt der Kriterien-Zweig unberuehrt."""
+    data = gf.parse_feedback_data(_srdp_payload())
+    document = gf.build_feedback_document(data)
+    text = "\n".join(paragraph.text for paragraph in document.paragraphs)
+
+    assert "NOTENEMPFEHLUNG (SRDP-basiert)" not in text
+    assert "NOTENEMPFEHLUNG" in text

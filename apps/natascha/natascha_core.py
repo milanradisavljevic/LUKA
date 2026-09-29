@@ -1652,12 +1652,22 @@ def run_llm_analysis(
                 "bezeichnung": app_note["bezeichnung"],
                 "begruendung": app_note["begruendung"],
             }
-            # K1/K3-Beschriftungen nur mitgeben, wenn das Raster eigene Kriterien
-            # deklariert hat. Sonst bliebe im DOCX der Klartext fuer die vier
-            # Kanonkriterien stehen — der bei eigenen Kriterien falsch waere.
+            # K1/K3-Beschriftungen und -Noten nur mitgeben, wenn das Raster
+            # eigene Kriterien deklariert hat. Sonst bliebe im DOCX der Klartext
+            # fuer die vier Kanonkriterien stehen — der bei eigenen Kriterien
+            # falsch waere.
+            #
+            # Die Noten gehoeren dazu: `generate_feedback.parse_feedback_data`
+            # liest sie aus `notenempfehlung`, nicht aus `notendetail`. Ohne sie
+            # war der ganze SRDP-Zweig im DOCX toter Code — `has_k1k3` war immer
+            # False und die Ueberschrift "(SRDP-basiert)" kam nie.
             if app_note.get("k1_titel") or app_note.get("k3_titel"):
                 data["notenempfehlung"]["k1_titel"] = app_note.get("k1_titel", "")
                 data["notenempfehlung"]["k3_titel"] = app_note.get("k3_titel", "")
+                data["notenempfehlung"]["k1_note"] = app_note.get("k1_note")
+                data["notenempfehlung"]["k3_note"] = app_note.get("k3_note")
+                data["notenempfehlung"]["k1_schnitt"] = app_note.get("k1_schnitt")
+                data["notenempfehlung"]["k3_schnitt"] = app_note.get("k3_schnitt")
             data["notendetail"] = app_note
 
         # Aliasse in der Antwort zurücksetzen, BEVOR gespeichert wird: Zitate
@@ -2389,6 +2399,44 @@ def rubric_area_titel(
     if len(namen) <= max_kriterien:
         return " + ".join(namen)
     return " + ".join(namen[:max_kriterien]) + " u. a."
+
+
+def srdp_notenzeile(notendetail: dict[str, Any], *, praefix: str = "") -> str:
+    """Eine Zeile ueber die K1/K3-Noten, mit der Beschriftung des Rasters.
+
+    Die Klartexte "K1 (Inhalt + Textstruktur)" und "K3/1 (Stil + Sprachnormen)"
+    stimmen nur, solange die vier SRDP-Kanonkriterien geprueft werden. Hat das
+    Raster eigene Kriterien deklariert, nennt `k1_titel`/`k3_titel` die
+    tatsaechlich geprueften — und dann ist der Klartext eine Falschangabe, die
+    noch dazu hartnäckig bleibt: die Noten selbst sind korrekt.
+
+    Diese Funktion ist die einzige Stelle, die das entscheidet. Vorher stand
+    der Klartext an vier Stellen fest im TUI, während das DOCX die Titel
+    auswertete — dieselbe Note, zwei Beschriftungen, eine davon falsch.
+
+    Ohne Titel (Legacy-Pfad) bleibt der Klartext. `praefix` dient der
+    Einrueckung im Review-Dialog.
+    """
+    if not isinstance(notendetail, dict):
+        return ""
+    teile: list[str] = []
+    for schluessel, note_key, schnitt_key, klartext in (
+        ("k1", "k1_note", "k1_schnitt", "K1 (Inhalt + Textstruktur)"),
+        ("k3", "k3_note", "k3_schnitt", "K3/1 (Stil + Sprachnormen)"),
+    ):
+        note = notendetail.get(note_key)
+        if note is None:
+            continue
+        titel = (notendetail.get(f"{schluessel}_titel") or "").strip()
+        beschriftung = f"K1 ({titel})" if schluessel == "k1" and titel else klartext
+        if schluessel == "k3" and titel:
+            beschriftung = f"K3/1 ({titel})"
+        schnitt = notendetail.get(schnitt_key)
+        stufe = f" [Stufe {schnitt:.1f}]" if isinstance(schnitt, (int, float)) else ""
+        teile.append(f"{beschriftung}: Note {note}{stufe}")
+    if not teile:
+        return ""
+    return f"{praefix}{'  |  '.join(teile)}"
 
 
 def srdp_detail_noetig(

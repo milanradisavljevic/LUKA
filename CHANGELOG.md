@@ -134,6 +134,18 @@ trotzdem ausgewiesen wurde.
 **Das Speichern bleibt möglich.** Die Prüfung warnt nur. Ob ein Raster zu deinem
 Unterricht passt, weiß LUKA nicht – das entscheidest du.
 
+**Korrektur: LUKA nennt beim Leseverständnis nicht mehr „Inhalt + Textstruktur".** Bei
+einer Verständnisaufgabe stehen im Rückmeldedialog wörtlich „K1 (Inhalt + Textstruktur)"
+und „K3/1 (Stil + Sprachnormen)" – geprüft wurden aber Sachverständnis, Schlussfolgern
+und Bedeutungsschicht. Die Noten waren richtig, die Beschriftung war es nicht, und sie
+stand an mehreren Stellen fest verdrahtet.
+
+Jetzt steht dort, was das Raster tatsächlich prüft. Für Raster ohne eigene Kriterien
+bleibt die bisherige Beschriftung, denn dort stimmt sie.
+
+**Verwandt:** Im Feedback-DOCX fehlte dieser Hinweis ganz – der entsprechende Abschnitt
+wurde nie erreicht, obwohl er vorhanden war. Er erscheint jetzt.
+
 ## Version 1.5.3 — 2026-09-26
 
 ### Das ist neu
