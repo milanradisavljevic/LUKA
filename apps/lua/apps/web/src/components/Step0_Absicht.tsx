@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { ArrowRight, Clock, FolderOpen, BookOpen, ClipboardCheck, Target, Grid3X3, Languages, Pencil, AlertTriangle, GraduationCap, X } from 'lucide-react';
+import { ArrowRight, Clock, FolderOpen, BookOpen, ClipboardCheck, Target, Grid3X3, Languages, Pencil, AlertTriangle, GraduationCap, X, Layers } from 'lucide-react';
 import type { AppState, AppAction } from '../lib/types';
 import { BLOCK_TYPE_DEFS, SCHWIERIGKEIT_RULES, UNTERLAGENTYP_MINUTEN } from '../lib/constants';
 import { buildSkelett, FACH_META, fachLabel, istSprachfach, schulstufenFuerLand, stufeFromSchulstufe, stufeLabelFuerLand, type Auftrag, type Fach } from '@lehrunterlagen/schema';
@@ -11,6 +11,7 @@ import { consumePendingUebung } from '../lib/korrekturBridge';
 import { bewertePrefillQuelle } from '../lib/prefillQuelle';
 import { kompetenzNiveauFuerGruppe } from '../lib/niveauGruppen';
 import { getDefaultTemplate } from '@lehrunterlagen/renderer';
+import { createVokabelMasterblattBlocks } from '../lib/vokabelMasterblatt';
 import { useKlassenMeta } from '../hooks/useKlassenMeta';
 import { Tile } from './ui/Tile';
 import { SectionLabel } from './ui/SectionLabel';
@@ -95,6 +96,7 @@ export function Step0_Absicht({
   const [prefillQuelleStatus, setPrefillQuelleStatus] = useState<'fehlt' | 'zu_kurz' | null>(null);
   const [fehler, setFehler] = useState<string | null>(null);
   const [schnellOhneQuelltext, setSchnellOhneQuelltext] = useState(false);
+  const [vokabelMasterblattAktiv, setVokabelMasterblattAktiv] = useState(false);
   // Punkte vergeben? Schulübung standardmäßig ohne Punkte, sonst mit.
   const [punkteVergeben, setPunkteVergeben] = useState<boolean>((lastMeta?.typ ?? 'schularbeit') !== 'schuluebung');
   const setFachManuell = useCallback((neuesFach: Fach) => {
@@ -465,7 +467,23 @@ export function Step0_Absicht({
     };
 
     try {
-      const bloecke = buildSkelett(auftrag);
+      const masterblattMeta = {
+        ...state.meta,
+        stufe,
+        land,
+        schulstufe,
+        fach,
+        thema: thema.trim(),
+        datum,
+        klasse: klasse.trim(),
+        notizen: notizenFinal,
+        typ,
+        punkteAusblenden: !punkteVergeben,
+        schwierigkeit,
+      };
+      const bloecke = vokabelMasterblattAktiv
+        ? createVokabelMasterblattBlocks(masterblattMeta)
+        : buildSkelett(auftrag);
       dispatch({ type: 'SET_AUFTRAG', auftrag });
       // Ersetze vorhandene Blöcke durch das Skelett
       for (const b of [...state.bloecke]) {
@@ -510,7 +528,7 @@ export function Step0_Absicht({
     } catch (err) {
       setFehler(err instanceof Error ? err.message : 'Fehler beim Erstellen des Skeletts.');
     }
-  }, [typ, fach, stufe, land, isDeutschSrdpTraining, thema, datum, klasse, dauerMinuten, schwierigkeit, gewuenschteAufgabenarten, gesamtpunkteZiel, punkteVergeben, notizen, lernzieleRaw, fokusThemen, nataschaFehler, nataschaLoopQuelle, nataschaNiveaugruppe, modus, freieKompetenz, state.quelltexte, state.bloecke, dispatch, onDismissFirstRunHint]);
+  }, [typ, fach, stufe, land, isDeutschSrdpTraining, thema, datum, klasse, dauerMinuten, schwierigkeit, gewuenschteAufgabenarten, gesamtpunkteZiel, punkteVergeben, notizen, lernzieleRaw, fokusThemen, nataschaFehler, nataschaLoopQuelle, nataschaNiveaugruppe, modus, freieKompetenz, vokabelMasterblattAktiv, state.meta, state.quelltexte, state.bloecke, dispatch, onDismissFirstRunHint]);
 
   const fachLabelCurrent = fachLabel(fach);
   const stufeLabel = stufeLabelFuerLand(stufe, land);
@@ -784,6 +802,17 @@ export function Step0_Absicht({
               thema: 'Vokabeltest — Thema anpassen',
             },
             {
+              id: 'schnell-vokabel-masterblatt',
+              label: 'Vokabel-Masterblatt Englisch',
+              beschreibung: 'Eine Wortliste in fünf Aufgabenarten. Füge danach deine Wortliste als Quelltext ein.',
+              Icon: Layers,
+              fach: 'englisch' as const,
+              stufe: 'unterstufe' as const,
+              typ: 'vokabeluebung' as const,
+              thema: 'Vokabel-Masterblatt Englisch',
+              masterblatt: true,
+            },
+            {
               id: 'schnell-fehler',
               label: 'Fehlerkorrektur',
               beschreibung: 'Mit eigenen Sätzen.',
@@ -800,13 +829,16 @@ export function Step0_Absicht({
                 setTyp('schuluebung');
                 setFachManuell(s.fach);
                 setStufe(s.stufe);
+                setVokabelMasterblattAktiv('masterblatt' in s && s.masterblatt === true);
                 dispatch({ type: 'SET_RENDER_TEMPLATE', template: getDefaultTemplate(s.stufe).id });
                 setThema(s.thema);
                 setDauerMinuten(15);
                 setSchwierigkeit('mittel');
                 setLernzieleRaw('');
                 setNotizen('');
-                setGewuenschteAufgabenarten([s.typ]);
+                setGewuenschteAufgabenarten('masterblatt' in s && s.masterblatt
+                  ? ['vokabeluebung', 'matching', 'lueckentext', 'kreuzwortraetsel', 'wortgitter']
+                  : [s.typ]);
                 setPunkteVergeben(false);
                 setSchnellOhneQuelltext(true);
                 window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });

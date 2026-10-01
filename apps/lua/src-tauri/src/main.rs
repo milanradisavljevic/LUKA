@@ -95,6 +95,7 @@ fn main() {
             // Unterrichtsplanung: Wochenraster, Anlagen, „Woche einplanen".
             commands::planung::raster_list,
             commands::planung::raster_upsert,
+            commands::planung::raster_import,
             commands::planung::raster_delete,
             commands::planung::raster_uebernehmen,
             commands::planung::ferien_list,

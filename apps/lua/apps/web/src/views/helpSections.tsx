@@ -336,6 +336,15 @@ export const HELP_SECTIONS: HelpSection[] = [
           <strong>einzelnen Stunden</strong>. Das Raster pflegst du einmal pro Schuljahr, die
           Stunden erzeugst du daraus, wann du sie brauchst.
         </P>
+        <P>
+          <strong>Wochenraster importieren:</strong> Über „CSV hochladen“ kannst du eine CSV mit
+          Wochentag, Beginn, Ende, Klasse und Fach einlesen. In der Vorschau ordnest du die Klassen deinen
+          vorhandenen Klassen zu und prüfst die Angaben, bevor sie gespeichert werden. Zeilen, die LUKA nicht
+          lesen kann, bleiben in der Vorschau liegen und lassen sich dort korrigieren — nichts wird stillschweigend
+          übersprungen. Eine CSV-Vorlage kannst du direkt dort laden. Du kannst eine KI bitten, aus einem gut
+          lesbaren Stundenplanfoto eine solche CSV zu erstellen; LUKA selbst verarbeitet oder versendet das Foto
+          nicht. Prüfe KI-Ergebnisse immer in der Vorschau.
+        </P>
         <P><strong>1. Wochenraster eintragen</strong></P>
         <Steps items={[
           <>Unten im Abschnitt „Mein Wochenraster" trägst du Tag, Klasse, Uhrzeit und Fach ein. <strong>Ohne Klasse</strong> bedeutet Freistunde oder Aufsicht: Die Zeile bleibt im Raster stehen, erzeugt aber keine Stunde.</>,
@@ -593,6 +602,7 @@ export const HELP_SECTIONS: HelpSection[] = [
           <>Lade die Abgabe als Datei (DOCX/PDF/TXT) hoch. Mehrere Dateien können als Stapel laufen.</>,
           <>Ausgangsmaterial als Text oder Datei und ein Bewertungsraster hinterlegen. Beides bleibt am Korrekturauftrag erhalten und steht später für Folgeübungen wieder bereit. LUKA trägt ein für die Aufgabe gespeichertes Ausgangsmaterial von selbst ein. Bei einem Raster, das Verstehen misst, ist es erforderlich — dort prüft LUKA sonst nur die Antwort.</>,
           <>Vor dem Versand zeigt LUKA die erkannte Schülerzuordnung und — bei Textabgaben — die Redaktionsvorschau. Namen werden standardmäßig durch stabile Aliasse ersetzt; PDF- und Bildinhalte können nicht automatisch redigiert werden.</>,
+          <>Im letzten Schritt nennt LUKA unter <strong>„Für das beste Ergebnis"</strong>, was schon gesetzt ist und was die Korrektur verbessern würde. Der Hinweis kostet nichts: Raster, Ausgangstext und Abgaben lassen sich mit „Ändern" direkt daneben ergänzen. Bei einem Raster, das Verstehen misst, ist der Ausgangstext erforderlich — sonst prüft LUKA nur die Antwort.</>,
           <>Nach der Analyse zeigt die Detailansicht links die Bewertung (Note, Kriterien, Fehlerliste) und rechts den <strong>markierten Schülertext</strong> als A4-Vorschau.</>,
           <>Eigene <strong>Lehrernote</strong> und einen Kommentar erfassen und speichern — die App vergleicht deine Note später mit der KI-Note (Kalibrierung).</>,
           <>Mit „Feedback-DOCX" ein Rückmelde-Dokument für die Schülerin/den Schüler erzeugen.</>,

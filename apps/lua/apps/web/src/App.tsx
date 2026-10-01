@@ -50,6 +50,7 @@ import {
   TERMIN_BLOCKTYPEN, unterlageAusTermin, type TerminKontext,
 } from './lib/unterlageBauen';
 import { createDefaultBlock } from './lib/blockDefaults';
+import { createVokabelMasterblattBlocks } from './lib/vokabelMasterblatt';
 import type { NataschaPrefill } from './lib/nataschaBridge';
 import { loadDocuments, saveDocumentConfirmed, flushPersistence, snapshotFromState, saveTemplate, deleteTemplate, loadTemplates, hydrateCache, isHydrated, setPersistErrorHandler, loadSettings, subscribeSettings, getCache } from './lib/storage';
 import { buildSearchIndex } from './lib/search';
@@ -544,7 +545,7 @@ export default function App() {
     }
   }, [tafelBloecke.length]);
 
-  const handleStartQuickExercise = useCallback((config: { fach: 'deutsch' | 'englisch'; stufe: 'unterstufe' | 'oberstufe'; typ: Block['typ']; thema: string }) => {
+  const handleStartQuickExercise = useCallback((config: { fach: 'deutsch' | 'englisch'; stufe: 'unterstufe' | 'oberstufe'; typ: Block['typ']; thema: string; masterblatt?: boolean }) => {
     if (!bestaetigeVerwerfen('Aktuellen Stand verwerfen und eine schnelle Übung beginnen?')) {
       return;
     }
@@ -560,12 +561,14 @@ export default function App() {
       punkteAusblenden: true,
       schwierigkeit: 'mittel',
     };
-    const block = createDefaultBlock(config.typ, meta);
+    const bloecke = config.masterblatt
+      ? createVokabelMasterblattBlocks(meta)
+      : [createDefaultBlock(config.typ, meta)];
     setDraftAtmosphereFach(null);
     setFreshStart(false);
     dispatch({ type: 'RESET_STATE' });
     dispatch({ type: 'SET_META', meta });
-    dispatch({ type: 'ADD_BLOCK', block });
+    for (const block of bloecke) dispatch({ type: 'ADD_BLOCK', block });
     dispatch({ type: 'SET_STEP', step: 'baukasten' });
     setActiveView('wizard');
   }, [bestaetigeVerwerfen, dispatch]);

@@ -146,6 +146,62 @@ describe('buildMessages — Bloom-Steuerung (C1)', () => {
   });
 });
 
+describe('buildMessages — gemeinsamer Vokabelpool', () => {
+  const vocabSource = {
+    id: 'q-vocab',
+    titel: 'Vocabulary list',
+    inhalt: Array.from({ length: 50 }, (_, i) => `word${i + 1} — Wort${i + 1}`).join('\n'),
+    herkunft: { typ: 'upload' as const, ref: 'vocabulary.txt' },
+  };
+
+  it('lässt eine normale Vokabelaufgabe unverändert – die Wortlisten-Regel gehört zur Vorlage', () => {
+    const messages = buildMessages({
+      ...input({ fach: 'englisch' }),
+      quelltexte: [vocabSource],
+      bloecke: [
+        { typ: 'vokabeluebung', punkte: 0, anzahlVokabeln: 2, richtung: 'de_fremd' },
+        { typ: 'vokabeluebung', punkte: 0, anzahlVokabeln: 2, richtung: 'de_fremd' },
+      ],
+    });
+    const user = messages.find((message) => message.role === 'user')?.content ?? '';
+    expect(user).not.toContain('VOKABEL-MASTERSHEET');
+    expect(user).not.toContain('GEMEINSAMER VOKABELPOOL');
+  });
+
+  it('behandelt das Masterblatt als gemeinsamen Pool über passende Aufgabenarten', () => {
+    const messages = buildMessages({
+      ...input({ fach: 'englisch' }),
+      quelltexte: [vocabSource],
+      bloecke: [
+        { typ: 'vokabeluebung', punkte: 0, anzahlVokabeln: 1, richtung: 'de_fremd', hinweis: 'Vokabel-Masterblatt Englisch (Vorlage): Verwende die Quelle als Pool.' },
+        { typ: 'matching', punkte: 0, anzahlItems: 1 },
+        { typ: 'lueckentext', punkte: 0, anzahlLuecken: 1, wortbank: true, distraktoren: 1 },
+        { typ: 'kreuzwortraetsel', punkte: 0, anzahlWoerter: 1 },
+        { typ: 'wortgitter', punkte: 0, anzahlWoerter: 1 },
+      ],
+    });
+    const user = messages.find((message) => message.role === 'user')?.content ?? '';
+    expect(user).toContain('VOKABEL-MASTERSHEET (ausdruecklich ausgewaehlte Vorlage)');
+    expect(user).toContain('EINEN gemeinsamen Wortpool');
+    expect(user).toContain('matching-');
+    expect(user).toContain('senke die jeweilige anzahlWoerter auf die tatsaechliche Anzahl');
+    expect(user).toContain('ergaenze weitere vokabeluebung-Bloecke');
+    expect(user).toContain('Gewoehnlichen Fliesstext nicht als Vokabelliste behandeln');
+  });
+
+  it('aktiviert keine Masterblatt-Anweisung ohne die ausgewählte Vorlage', () => {
+    const messages = buildMessages({
+      ...input({ fach: 'englisch' }),
+      quelltexte: [vocabSource],
+      bloecke: [
+        { typ: 'vokabeluebung', punkte: 0, anzahlVokabeln: 3, richtung: 'de_fremd' },
+      ],
+    });
+    const user = messages.find((message) => message.role === 'user')?.content ?? '';
+    expect(user).not.toContain('VOKABEL-MASTERSHEET (ausdruecklich ausgewaehlte Vorlage)');
+  });
+});
+
 describe('buildMessages — Quellenanalyse', () => {
   it('verlangt fachliche Erwartung und Quellenbeleg', () => {
     const messages = buildMessages({

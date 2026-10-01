@@ -2247,6 +2247,44 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }:
                   </div>
                 )}
 
+                {/* Was das Ergebnis gut macht – bevor die Lehrkraft startet. */}
+                <div
+                  style={{ fontSize: '0.75rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', padding: '0.625rem 0.75rem', background: 'var(--color-bg-base)' }}
+                >
+                  <strong style={{ display: 'block', marginBottom: '.25rem' }}>Für das beste Ergebnis</strong>
+                  <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '.2rem' }}>
+                    {[
+                      {
+                        ok: Boolean(gewaehltesRubrik),
+                        text: gewaehltesRubrik
+                          ? `Bewertungsraster: ${rubrikLabel(gewaehltesRubrik)}`
+                          : 'Kein Bewertungsraster gewählt – LUKA misst dann nur, was wörtlich passt.',
+                      },
+                      {
+                        ok: hatAusgangstext,
+                        text: hatAusgangstext
+                          ? 'Ausgangstext hinterlegt – Fehler lassen sich am Original belegen.'
+                          : verstaendnisGewaehlt
+                            ? 'Ausgangstext fehlt. Dieses Raster prüft Verstehen: ohne Originaltext prüft LUKA nur die Antwort.'
+                            : 'Ausgangstext fehlt – die Korrektur stützt sich dann nur auf den Schülertext.',
+                      },
+                      {
+                        ok: batchFiles.length > 0,
+                        text: batchFiles.length > 0
+                          ? `${batchFiles.length} Abgabe(n) bereit`
+                          : 'Noch keine Abgabe hinzugefügt.',
+                      },
+                    ].map((hinweis) => (
+                      <li key={hinweis.text} style={{ display: 'flex', gap: '.375rem', alignItems: 'flex-start' }}>
+                        {hinweis.ok
+                          ? <CheckCircle2 size={13} style={{ color: 'var(--color-success)', flexShrink: 0, marginTop: '0.1rem' }} />
+                          : <AlertTriangle size={13} style={{ color: 'var(--color-warning, #b45309)', flexShrink: 0, marginTop: '0.1rem' }} />}
+                        <span style={{ color: hinweis.ok ? 'var(--color-text-secondary)' : 'var(--color-text)' }}>{hinweis.text}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
                 {/* Runtime + Datenschutz */}
                 <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', padding: '0.5rem 0' }}>
                   <strong>KI-Anbieter:</strong> {LLM_PROVIDERS.find(p => p.id === (analyzeProvider || settings.defaultProvider))?.label ?? effectiveRuntime.provider} · {analyzeModel || settings.defaultModel}

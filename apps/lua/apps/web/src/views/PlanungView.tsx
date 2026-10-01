@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  AlertTriangle, CalendarCheck, CalendarPlus, Check, ChevronLeft, ChevronRight, FileText,
+  AlertTriangle, CalendarCheck, CalendarPlus, Check, ChevronLeft, ChevronRight, Download, FileText, FileUp,
   FolderOpen, Info, Link2, Package, Paperclip, Pencil, Plus, Repeat, Sparkles, Trash2, Unlink, X,
 } from 'lucide-react';
 import { ViewShell } from './_ViewShell';
@@ -33,6 +33,7 @@ import { farbListeAusKlassen, klasseFarbStil } from '../lib/klassenFarben';
 import { alsRasterSlots, alsStunden } from '../lib/planungAdapter';
 import { ZeitFeld } from '../components/ui/ZeitFeld';
 import { DatumFeld } from '../components/ui/DatumFeld';
+import { gleicheKlasse, pruefeStundenplanCsv, zeileProbleme, type StundenplanCsvZeile } from '../lib/stundenplanCsv';
 
 const MATERIAL_LABEL: Record<string, string> = {
   ablage: 'In LUA abgelegt',
@@ -68,6 +69,10 @@ interface EinzelStunde {
   thema: string;
 }
 
+interface RasterCsvZeile extends StundenplanCsvZeile {
+  klasseId: string;
+}
+
 /** Schuljahre rund um das jetzige – Vorjahr, aktuelles, zwei voraus. */
 const SCHULJAHR_SPANNE = 3;
 
@@ -95,6 +100,12 @@ export function PlanungView({
   const [meldung, setMeldung] = useState<string | null>(null);
   const [rasterOffen, setRasterOffen] = useState(false);
   const [neuerSlot, setNeuerSlot] = useState<RasterSlotInput | null>(null);
+  const [rasterCsv, setRasterCsv] = useState<{ dateiname: string; zeilen: RasterCsvZeile[]; fehler: string[] } | null>(null);
+  const [rasterCsvBusy, setRasterCsvBusy] = useState(false);
+  const [rasterCsvMeldung, setRasterCsvMeldung] = useState<string | null>(null);
+  const rasterCsvInput = useRef<HTMLInputElement>(null);
+  const rasterCsvVorschau = useRef<HTMLElement>(null);
+  const rasterCsvScrollPending = useRef(false);
   const [verweis, setVerweis] = useState('');
   const [ferienOffen, setFerienOffen] = useState(false);
   const [jahresplanungOffen, setJahresplanungOffen] = useState(false);
@@ -104,6 +115,89 @@ export function PlanungView({
   const [einzel, setEinzel] = useState<EinzelStunde>({
     datum: heuteIso(), klasseId: '', startZeit: '08:00', endeZeit: '08:45', thema: '',
   });
+
+  const zuOrdnung = (name: string): string =>
+    klassen.find((k) => !k.archiviert && k.id && gleicheKlasse(k.name, name))?.id ?? '';
+
+  /**
+   * Haelt eine Vorschauzeile aktuell: Ordner der Klasse nachziehen und die
+   * Befunde neu bewerten. Wird nach jeder Bearbeitung aufgerufen, damit eine
+   * Korrektur ihren Befund aufloest statt die Liste zu leeren.
+   */
+  const mitKlasse = (zeile: StundenplanCsvZeile, klasseId: string): RasterCsvZeile => {
+    const csvProbleme = zeileProbleme(zeile);
+    const zuordnen = !klasseId && zeile.klasse.trim() !== '';
+    return {
+      ...zeile,
+      klasseId,
+      probleme: zuordnen
+        ? [...csvProbleme, 'Keiner vorhandenen Klasse zugeordnet — bitte zuordnen oder die Zeile entfernen']
+        : csvProbleme,
+    };
+  };
+
+  const rasterCsvZeileAendern = (id: string, aenderung: Partial<RasterCsvZeile>) => {
+    setRasterCsv((vorher) => vorher && ({
+      ...vorher,
+      zeilen: vorher.zeilen.map((zeile) => (
+        zeile.id === id ? mitKlasse({ ...zeile, ...aenderung }, aenderung.klasseId ?? zeile.klasseId) : zeile
+      )),
+    }));
+  };
+
+  const rasterCsvLesen = async (file: File) => {
+    try {
+      const pruefung = pruefeStundenplanCsv(await file.text());
+      const zeilen = pruefung.zeilen.map((zeile) => mitKlasse(zeile, zuOrdnung(zeile.klasse)));
+      rasterCsvScrollPending.current = true;
+      setRasterCsv({ dateiname: file.name, zeilen, fehler: pruefung.fehler.map((f) => `Zeile ${f.zeile}: ${f.meldung}`) });
+    } catch (error) {
+      rasterCsvScrollPending.current = true;
+      setRasterCsv({ dateiname: file.name, zeilen: [], fehler: [error instanceof Error ? error.message : String(error)] });
+    }
+  };
+
+  const rasterCsvImportieren = async () => {
+    if (!rasterCsv || rasterCsvBusy || rasterCsv.fehler.length || !rasterCsv.zeilen.length) return;
+    // Letzte Sperre: eine Zeile mit Befund darf nie ungefragt fehlen.
+    const offen = rasterCsv.zeilen.filter((zeile) => zeile.probleme.length || !zeile.klasseId);
+    if (offen.length) {
+      setRasterCsv({
+        ...rasterCsv,
+        fehler: offen.map((zeile) => `Zeile ${zeile.zeile}: ${zeile.probleme.join('; ') || 'Es ist keine Klasse zugeordnet.'}`),
+      });
+      return;
+    }
+    setRasterCsvBusy(true);
+    const ergebnis = await planung.importiereRaster(rasterCsv.zeilen.map((zeile) => ({
+      wochentag: zeile.wochentag,
+      startZeit: zeile.startZeit,
+      endeZeit: zeile.endeZeit,
+      klasseId: zeile.klasseId,
+      bezeichnung: zeile.bezeichnung,
+      schuljahr,
+      aktiv: 1,
+    })));
+    setRasterCsvBusy(false);
+    if (ergebnis) {
+      const text = `${ergebnis.importiert} Rasterstunde(n) importiert${ergebnis.uebersprungen ? `, ${ergebnis.uebersprungen} Duplikat(e) übersprungen` : ''}.`;
+      setMeldung(text);
+      setRasterCsvMeldung(text);
+      setRasterCsv(null);
+    } else {
+      setRasterCsv({ ...rasterCsv, fehler: [planung.error ?? 'Der Import ist fehlgeschlagen. Es wurde nichts übernommen.'] });
+    }
+  };
+
+  const rasterCsvVorlageLaden = () => {
+    const blob = new Blob(['Wochentag;Beginn;Ende;Klasse;Fach\r\n'], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'luka-stundenplan-vorlage.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
   /** Legt genau eine Stunde an – ohne Rasterzeile, für einen bestimmten Tag.
    *
@@ -166,6 +260,12 @@ export function PlanungView({
       setRegion(p.land === 'AT' ? p.regionAt : p.land === 'DE' ? p.regionDe : p.regionCh);
     });
   }, []);
+
+  useEffect(() => {
+    if (!rasterCsv || !rasterCsvScrollPending.current) return;
+    rasterCsvScrollPending.current = false;
+    rasterCsvVorschau.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [rasterCsv]);
 
 
   /** Name → Farbslot, damit Klassen ohne hinterlegte Farbe trotzdem farblich
@@ -583,6 +683,14 @@ export function PlanungView({
           style={{ fontSize: '.75rem', display: 'inline-flex', alignItems: 'center', gap: '.375rem' }}
         >
           <Plus size={14} /> Stunde hinzufügen
+        </button>
+        <button
+          className="btn-secondary"
+          onClick={() => rasterCsvInput.current?.click()}
+          title="Wiederkehrende Stunden aus einer CSV ins Wochenraster übernehmen"
+          style={{ fontSize: '.75rem', display: 'inline-flex', alignItems: 'center', gap: '.375rem' }}
+        >
+          <FileUp size={14} /> CSV hochladen
         </button>
         {/* Steht beim Knopf, auf den es sich auswirkt. Vorher lag die Option
             unter der Liste aller Stunden, wer tausend Pixel weiter unten. */}
@@ -1087,6 +1195,113 @@ export function PlanungView({
           Die feste Form deiner Woche – einmal für das Schuljahr. <strong>Einplanen</strong> macht daraus
           einzelne Stunden; jede davon kann danach ausfallen, verschoben oder mit Unterlagen versehen werden.
         </p>
+
+        <input
+          ref={rasterCsvInput}
+          type="file"
+          accept=".csv,text/csv,.txt"
+          hidden
+          onChange={(event) => {
+            const file = event.currentTarget.files?.[0];
+            if (file) {
+              setRasterCsvMeldung(null);
+              void rasterCsvLesen(file);
+            }
+            event.currentTarget.value = '';
+          }}
+        />
+        <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap', marginBottom: '.75rem' }}>
+          <button
+            className="btn-secondary"
+            onClick={rasterCsvVorlageLaden}
+            style={{ fontSize: '.75rem', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+          >
+            <Download size={13} /> CSV-Vorlage laden
+          </button>
+        </div>
+        <p style={{ fontSize: '.6875rem', color: 'var(--color-text-secondary)', margin: '0 0 .75rem', lineHeight: 1.5 }}>
+          Eine CSV-Zeile steht für eine Stunde, die jede Woche stattfindet. Wechselnde A/B-Wochen sind noch nicht unterstützt. Eine KI kann aus einem gut lesbaren Foto eine CSV erstellen; kontrolliere die Angaben vor dem Import. LUA verarbeitet oder versendet das Foto nicht.
+        </p>
+
+        {rasterCsv && (
+          <section
+            ref={rasterCsvVorschau}
+            aria-label="Stundenplan-CSV prüfen"
+            style={{ marginBottom: '.875rem', padding: '.75rem', border: '1px solid color-mix(in srgb, var(--color-accent) 45%, var(--color-border))', borderRadius: 'var(--radius)', background: 'var(--color-bg-base)' }}
+          >
+            <strong style={{ display: 'block', fontSize: '.8125rem', marginBottom: '.25rem' }}>Vorschau: {rasterCsv.dateiname}</strong>
+            <p style={{ fontSize: '.6875rem', color: 'var(--color-text-secondary)', margin: '0 0 .5rem', lineHeight: 1.5 }}>
+              Prüfe und bearbeite alle Zeilen. Zeilen, die LUKA nicht lesen kann, bleiben hier liegen und lassen
+              sich korrigieren oder entfernen — es wird nichts stillschweigend weggelassen. Nicht zugeordnete
+              Klassen musst du einer vorhandenen Klasse zuweisen. Importiert wird ins Schuljahr {schuljahrLabel(schuljahr)};
+              gleiche Einträge werden übersprungen.
+            </p>
+            {rasterCsv.fehler.length > 0 && (
+              <div role="alert" style={{ marginBottom: '.5rem', color: 'var(--color-danger, #b91c1c)', fontSize: '.6875rem' }}>
+                {rasterCsv.fehler.map((fehler, i) => <div key={`${i}-${fehler}`}>{fehler}</div>)}
+              </div>
+            )}
+            {rasterCsv.zeilen.length > 0 && (
+              <div style={{ maxHeight: 290, overflow: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '.6875rem' }}>
+                  <thead><tr>{['Tag', 'Beginn', 'Ende', 'Klasse', 'Fach', ''].map((label, i) => <th key={label || `leer-${i}`} style={{ textAlign: 'left', padding: '.25rem' }}>{label}</th>)}</tr></thead>
+                  <tbody>
+                    {rasterCsv.zeilen.map((zeile) => (
+                      <tr key={zeile.id} style={zeile.probleme.length ? { background: 'var(--color-bg-error, #fef2f2)' } : undefined}>
+                        <td style={{ padding: '.2rem' }}>
+                          <select aria-label={`Wochentag Zeile ${zeile.zeile}`} value={zeile.wochentag} onChange={(e) => rasterCsvZeileAendern(zeile.id, { wochentag: Number(e.target.value) })}>
+                            <option value={0}>—</option>
+                            {WOCHENTAGE_LANG.map((tag, i) => <option key={tag} value={i + 1}>{tag}</option>)}
+                          </select>
+                        </td>
+                        <td style={{ padding: '.2rem' }}><input aria-label={`Beginn Zeile ${zeile.zeile}`} type="time" value={zeile.startZeit} onChange={(e) => rasterCsvZeileAendern(zeile.id, { startZeit: e.target.value })} /></td>
+                        <td style={{ padding: '.2rem' }}><input aria-label={`Ende Zeile ${zeile.zeile}`} type="time" value={zeile.endeZeit} onChange={(e) => rasterCsvZeileAendern(zeile.id, { endeZeit: e.target.value })} /></td>
+                        <td style={{ padding: '.2rem' }}>
+                          <select aria-label={`Klasse Zeile ${zeile.zeile}`} value={zeile.klasseId} onChange={(e) => rasterCsvZeileAendern(zeile.id, { klasseId: e.target.value })}>
+                            <option value="">Klasse zuordnen …</option>
+                            {klassen.filter((k) => !k.archiviert && k.id).map((k) => <option key={k.id!} value={k.id!}>{k.name}</option>)}
+                          </select>
+                        </td>
+                        <td style={{ padding: '.2rem' }}><input aria-label={`Fach Zeile ${zeile.zeile}`} value={zeile.bezeichnung} onChange={(e) => rasterCsvZeileAendern(zeile.id, { bezeichnung: e.target.value })} /></td>
+                        <td style={{ padding: '.2rem' }}>
+                          <button
+                            type="button"
+                            className="btn-ghost"
+                            aria-label={`Zeile ${zeile.zeile} entfernen`}
+                            title="Diese Zeile nicht übernehmen"
+                            onClick={() => setRasterCsv((vorher) => vorher && ({ ...vorher, zeilen: vorher.zeilen.filter((z) => z.id !== zeile.id) }))}
+                            style={{ fontSize: '.6875rem', color: 'var(--color-danger, #b91c1c)' }}
+                          >
+                            Entfernen
+                          </button>
+                          {zeile.probleme.length > 0 && (
+                            <ul style={{ margin: '.15rem 0 0', paddingLeft: '1rem', color: 'var(--color-danger, #b91c1c)' }}>
+                              {zeile.probleme.map((problem) => <li key={problem}>{problem}</li>)}
+                            </ul>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {rasterCsvMeldung && (
+              <p role="status" style={{ marginTop: '.5rem', fontSize: '.6875rem', color: 'var(--color-success, #15803d)' }}>{rasterCsvMeldung}</p>
+            )}
+            <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap', marginTop: '.625rem' }}>
+              <button
+                className="btn-primary"
+                disabled={rasterCsvBusy || rasterCsv.fehler.length > 0 || rasterCsv.zeilen.length === 0 || rasterCsv.zeilen.some((z) => z.probleme.length > 0)}
+                onClick={() => void rasterCsvImportieren()}
+                style={{ fontSize: '.75rem' }}
+              >
+                {rasterCsvBusy ? 'Importiere …' : `${rasterCsv.zeilen.length} Stunden ins Wochenraster übernehmen`}
+              </button>
+              <button className="btn-secondary" disabled={rasterCsvBusy} onClick={() => setRasterCsv(null)} style={{ fontSize: '.75rem' }}>Abbrechen</button>
+            </div>
+          </section>
+        )}
 
         {jahresplanungOffen && (
           <div className="planung-jahresplanung">

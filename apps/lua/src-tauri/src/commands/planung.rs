@@ -66,6 +66,13 @@ pub struct RasterRecord {
     pub updated_at: String,
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RasterImportErgebnis {
+    pub importiert: usize,
+    pub uebersprungen: usize,
+}
+
 /// Liest eine Schuljahrszahl, die in einer Spalte mit **TEXT-Affinität** steht.
 ///
 ///  Hintergrund: `migrate_planung_jahresbezug` in `db.rs` hat die Spalte
@@ -967,6 +974,58 @@ pub async fn raster_upsert(
     raster_upsert_impl(&guard, meta)
 }
 
+/// Importiert ein Wochenraster in einer Transaktion. Exakte vorhandene Slots
+/// werden übersprungen; bei einem Validierungsfehler wird der ganze Import
+/// zurückgerollt.
+#[tauri::command]
+pub async fn raster_import(
+    state: tauri::State<'_, DbState>,
+    slots: Vec<RasterMeta>,
+) -> Result<RasterImportErgebnis, String> {
+    let mut guard = state.conn()?;
+    raster_import_impl(&mut guard, slots)
+}
+
+pub(crate) fn raster_import_impl(
+    conn: &mut Connection,
+    slots: Vec<RasterMeta>,
+) -> Result<RasterImportErgebnis, String> {
+    if slots.is_empty() {
+        return Err("Die Importdatei enthält keine Stunden.".to_string());
+    }
+    if slots.len() > 500 {
+        return Err("Der Import ist auf 500 Stunden pro Datei begrenzt.".to_string());
+    }
+    let tx = conn.transaction().map_err(|e| format!("Rasterimport starten: {e}"))?;
+    let mut importiert = 0;
+    let mut uebersprungen = 0;
+    for meta in slots {
+        let start = validiere_zeit(meta.start_zeit.clone(), "Startzeit")?;
+        let ende = validiere_zeit(meta.ende_zeit.clone(), "Endzeit")?;
+        let fach = meta.bezeichnung.as_deref().unwrap_or_default().trim().to_string();
+        let klasse_id = optional_string(meta.klasse_id.clone());
+        let tag = meta.wochentag;
+        let schuljahr = meta.schuljahr;
+        let bereits_da: bool = tx.query_row(
+            "SELECT EXISTS(SELECT 1 FROM stundenraster
+             WHERE COALESCE(klasse_id, '')=COALESCE(?1, '')
+               AND wochentag=?2 AND start_zeit=?3 AND ende_zeit=?4
+               AND TRIM(bezeichnung)=?5
+               AND COALESCE(CAST(schuljahr AS TEXT), '')=COALESCE(CAST(?6 AS TEXT), ''))",
+            params![klasse_id, tag, start, ende, fach, schuljahr],
+            |row| row.get(0),
+        ).map_err(|e| format!("Rasterimport Duplikate prüfen: {e}"))?;
+        if bereits_da {
+            uebersprungen += 1;
+        } else {
+            raster_upsert_impl(&tx, meta)?;
+            importiert += 1;
+        }
+    }
+    tx.commit().map_err(|e| format!("Rasterimport speichern: {e}"))?;
+    Ok(RasterImportErgebnis { importiert, uebersprungen })
+}
+
 #[tauri::command]
 pub async fn raster_delete(state: tauri::State<'_, DbState>, id: String) -> Result<(), String> {
     let guard = state.conn()?;
@@ -1324,6 +1383,43 @@ mod tests {
         assert_eq!(slot.klasse_name_snapshot, "6b");
         assert_eq!(slot.aktiv, true);
         assert_eq!(raster_list_impl(&conn, None).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn raster_import_ueberspringt_duplikate_und_ist_wiederholbar() {
+        let mut conn = setup();
+        let slot = || RasterMeta {
+            klasse_id: Some("k-6b".into()),
+            wochentag: 1,
+            start_zeit: Some("08:00".into()),
+            ende_zeit: Some("08:45".into()),
+            bezeichnung: Some("Deutsch".into()),
+            schuljahr: Some(2026),
+            ..Default::default()
+        };
+        let first = raster_import_impl(&mut conn, vec![slot(), slot()]).unwrap();
+        assert_eq!(first.importiert, 1);
+        assert_eq!(first.uebersprungen, 1);
+        let second = raster_import_impl(&mut conn, vec![slot()]).unwrap();
+        assert_eq!(second.importiert, 0);
+        assert_eq!(second.uebersprungen, 1);
+        assert_eq!(raster_list_impl(&conn, None).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn raster_import_rollt_alle_zeilen_bei_validierungsfehler_zurueck() {
+        let mut conn = setup();
+        let gut = RasterMeta {
+            klasse_id: Some("k-6b".into()),
+            wochentag: 1,
+            start_zeit: Some("08:00".into()),
+            ende_zeit: Some("08:45".into()),
+            bezeichnung: Some("Deutsch".into()),
+            ..Default::default()
+        };
+        let schlecht = RasterMeta { wochentag: 8, ..gut.clone() };
+        assert!(raster_import_impl(&mut conn, vec![gut, schlecht]).is_err());
+        assert!(raster_list_impl(&conn, None).unwrap().is_empty());
     }
 
     #[test]

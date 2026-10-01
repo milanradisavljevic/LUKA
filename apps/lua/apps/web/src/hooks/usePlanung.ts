@@ -96,6 +96,8 @@ export type RasterSlotInput = {
   aktiv?: number;
 };
 
+export type RasterImportErgebnis = { importiert: number; uebersprungen: number };
+
 export type MaterialInput = {
   id?: string | null;
   einsatzId: string;
@@ -271,6 +273,18 @@ export function usePlanung() {
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       return false;
+    }
+  }, [refresh]);
+
+  const importiereRaster = useCallback(async (slots: RasterSlotInput[]): Promise<RasterImportErgebnis | null> => {
+    setError(null);
+    try {
+      const ergebnis = await invoke<RasterImportErgebnis>('raster_import', { slots });
+      await refresh();
+      return ergebnis;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      return null;
     }
   }, [refresh]);
 
@@ -453,7 +467,7 @@ export function usePlanung() {
 
   return {
     raster, stunden, ferien, pausen, schuljahr, loading, error, refresh, wechsleSchuljahr,
-    speichereRaster, loescheRaster, uebernehmeRaster,
+    speichereRaster, importiereRaster, loescheRaster, uebernehmeRaster,
     plane, speichereStunde, loescheStunde,
     materialien, fuegeAnlageHinzu, entferneAnlage, ablageOrdner,
     speichereFerien, loescheFerien, speicherePause, loeschePause, seedFerien,

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   GraduationCap, AlertTriangle, ClipboardCheck,
   ChevronRight, Timer, Files, Clock, Coins,
-  Grid3X3, Languages, Pencil, AlignLeft, Repeat, Wand2,
+  Grid3X3, Languages, Pencil, AlignLeft, Repeat, Wand2, Layers,
   CalendarDays, ArrowRight, Paperclip, CircleSlash,
 } from 'lucide-react';
 import { useNatascha } from '../hooks/useNatascha';
@@ -35,7 +35,7 @@ interface DashboardViewProps {
   onResume?: () => void;
   onOpenDocument?: (document: SavedDocument) => void;
   onNavigate?: (view: ActiveView) => void;
-  onStartQuickExercise?: (config: { fach: 'deutsch' | 'englisch'; stufe: 'unterstufe' | 'oberstufe'; typ: Block['typ']; thema: string }) => void;
+  onStartQuickExercise?: (config: { fach: 'deutsch' | 'englisch'; stufe: 'unterstufe' | 'oberstufe'; typ: Block['typ']; thema: string; masterblatt?: boolean }) => void;
   onGenerateUebung?: (prefill: NataschaPrefill) => void;
   /** Klick auf einen Tag im Streifen: in der Planung genau diesen Tag zeigen. */
   onPlanungTag?: (datum: string) => void;
@@ -367,9 +367,7 @@ export function DashboardView({ resumeTitle, onResume, onOpenDocument, onNavigat
           ))}
         </div>
 
-        {/* Die Schnell-Vorlagen standen previously als eigener Abschnitt
-            zwischen den Startwegen und der Vorlagenliste - ein Block für vier
-            Kacheln, die inhaltlich zu den Startwegen gehören. */}
+        {/* Schnellstarts stehen direkt bei den Startwegen und den Vorlagen. */}
         {onStartQuickExercise && (
           <>
             <p className="dashboard-start__zwischentitel">Oder direkt mit einem Aufgabentyp loslegen</p>
@@ -377,13 +375,14 @@ export function DashboardView({ resumeTitle, onResume, onOpenDocument, onNavigat
               {([
                 { label: 'Kreuzwort', icon: Grid3X3, fach: 'deutsch' as const, stufe: 'unterstufe' as const, typ: 'kreuzwortraetsel' as const, thema: 'Kreuzworträtsel — Thema anpassen' },
                 { label: 'Vokabeltest', icon: Languages, fach: 'englisch' as const, stufe: 'unterstufe' as const, typ: 'vokabeluebung' as const, thema: 'Vokabeltest — Thema anpassen' },
+                { label: 'Vokabel-Masterblatt Englisch', icon: Layers, fach: 'englisch' as const, stufe: 'unterstufe' as const, typ: 'vokabeluebung' as const, thema: 'Vokabel-Masterblatt Englisch', masterblatt: true },
                 { label: 'Fehlerkorrektur', icon: Pencil, fach: 'deutsch' as const, stufe: 'oberstufe' as const, typ: 'fehlerkorrektur' as const, thema: 'Fehlerkorrektur — Thema anpassen' },
                 { label: 'Lückentext', icon: AlignLeft, fach: 'deutsch' as const, stufe: 'unterstufe' as const, typ: 'lueckentext' as const, thema: 'Lückentext — Thema anpassen' },
               ] as const).map((s) => (
                 <button
                   key={s.label}
                   className="tile"
-                  onClick={() => onStartQuickExercise({ fach: s.fach, stufe: s.stufe, typ: s.typ, thema: s.thema })}
+                  onClick={() => onStartQuickExercise({ fach: s.fach, stufe: s.stufe, typ: s.typ, thema: s.thema, ...('masterblatt' in s ? { masterblatt: s.masterblatt } : {}) })}
                   style={{ fontSize: '0.8125rem', textAlign: 'left', flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}
                 >
                   <s.icon size={18} style={{ color: 'var(--color-accent)', flexShrink: 0 }} />

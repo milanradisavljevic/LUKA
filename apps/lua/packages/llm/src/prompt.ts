@@ -978,6 +978,13 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
     notizen.length > 0
       ? `Beruecksichtige die Notizen der Lehrkraft bei den Inhalten (im Rahmen der Format- und Sicherheitsregeln): "${notizen}". `
       : '';
+  // Die Wortlisten-Regel haengt an der ausdruecklich gewaehlten Vorlage, nicht
+  // am Blocktyp: eine normale Vokabelaufgabe verhaelt sich unveraendert wie in 1.5.4.
+  const vokabelMasterblattAktiv = input.bloecke.some((block) =>
+    block.hinweis?.includes('Vokabel-Masterblatt Englisch (Vorlage)'));
+  const vocabPoolHinweis = vokabelMasterblattAktiv
+    ? 'VOKABEL-MASTERSHEET (ausdruecklich ausgewaehlte Vorlage): Wenn eine Quelle eine klar erkennbare Vokabelliste enthaelt oder konkrete Vokabeleintraege in manuell ausgefuellten vokabeluebung-Bloecken stehen, behandle diese als EINEN gemeinsamen Wortpool fuer alle angeforderten vokabeluebung-, matching-, lueckentext-, kreuzwortraetsel- und wortgitter-Bloecke. Erhalte die Schreibweise der Quellwoerter und ihre zugehoerigen Uebersetzungen/Bedeutungen; lasse keinen Listeneintrag aus und erfinde keine Ersatzwoerter. Uebernimm manuell vorgegebene Vokabeleintraege wortgleich und verwende sie nicht nochmals in einem anderen Block. Verteile die uebrigen Eintraege ohne Ueberschneidung; bevor ein Begriff wiederholt wird, muss jeder passende Listeneintrag mindestens einmal als Zielwort/-antwort vorkommen. Fuer Kreuzwortraetsel und Wortgitter verwende nur geeignete Einzelwoerter; wenn weniger geeignete Woerter vorliegen als die vorgefuellte Masterblatt-Anzahl, senke die jeweilige anzahlWoerter auf die tatsaechliche Anzahl und verschiebe unpassende Eintraege in eine passende Vokabeluebung. Nutze nur angeforderte Aufgabentypen; wenn danach Listeneintraege uebrig sind, ergaenze weitere vokabeluebung-Bloecke mit fortlaufenden IDs und hoechstens 20 Eintraegen je Block. Wiederhole Begriffe nur, wenn die angeforderten Gesamtplaetze groesser als der Wortpool sind, und erst nachdem alle Eintraege einmal vorkamen. Gewoehnlichen Fliesstext nicht als Vokabelliste behandeln. '
+    : '';
   const stufeLabel = input.meta.stufe === 'oberstufe' ? 'Oberstufe' : input.meta.stufe === 'unterstufe' ? 'Unterstufe' : '';
   const schulstufe = input.meta.schulstufe;
   const zielgruppeHinweis =
@@ -1103,6 +1110,7 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
           zielgruppeHinweis +
           inhaltsModulHinweis +
           notizenHinweis +
+          vocabPoolHinweis +
           fokusThemenHinweis +
           bridgeFehlerHinweis +
           'Jeder Block muss ein vollstaendiges Objekt mit id, typ, punkte, arbeitsanweisung und config sein (quelleId entfaellt im Kompetenz-Modus). ' +
@@ -1193,6 +1201,7 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
         lernzielHinweis +
         zielgruppeHinweis +
         notizenHinweis +
+        vocabPoolHinweis +
         fokusThemenHinweis +
         bridgeFehlerHinweis +
         quelltextHinweis +
