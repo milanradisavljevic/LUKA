@@ -23,6 +23,12 @@ bevor du Code änderst.
    `docs/DATENSCHUTZ.md`, `docs/invarianten.md`, `docs/szenarien.md` und
    `docs/lehrplan-quellen/` (Input der Stoffkatalog-Generierung). Neue echte
    Doku ausdrücklich in die Whitelist aufnehmen, nicht `docs/*` aufweichen.
+   **Stand 2026-10-01:** `TESTPLAN-installer.md`, `TESTDURCHFUEHRUNG-korrektur-ux.md`,
+   `TESTFEEDBACK-korrektur-ux.md` und `STATUS-offene-themen-2026-09.md` waren
+   trotz Arbeitsdokument-Charakter in der Whitelist und sind entfernt worden —
+   Tests, Abnahmen, Gate-Protokolle und offene Punkte bleiben damit lokal. Wer
+   den Stand liest, findet ihn im lokalen Zielbild und STATUS. Nichts davon darf
+   in den CHANGELOG wandern, außer als kurze, lehrkraftverständliche Aussage.
 6. **CHANGELOG vor Release-Tag lehrkraft-tauglich.** Vor jedem Versions-Tag
    muss der CHANGELOG-Abschnitt der Version existieren und die
    nutzersichtbaren Punkte so formulieren, dass eine Lehrkraft sie versteht

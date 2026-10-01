@@ -21,7 +21,7 @@
 |------------|-------------|-------|
 | TUI-Framework | `textual>=0.47` | Dashboard-UI (3-Spalten-Layout, modale Dialoge) |
 | DOCX-Verarbeitung | `python-docx>=1.1` | Lesen von Abgaben, Schreiben von Feedback-DOCX |
-| LLM-APIs | `anthropic>=0.30`, `openai>=1.30` | API-Clients für Claude, OpenAI, DeepSeek, Qwen, Kimi |
+| LLM-APIs | `anthropic>=0.30`, `openai>=1.30` | API-Clients für Claude, OpenAI, DeepSeek, Qwen, Mistral, Kimi |
 | JSON-Validierung | `jsonschema>=4.20` | Schema-Validierung der LLM-Antworten |
 | TOML-Bearbeitung | `tomlkit>=0.13` | Editierbares TOML (Kommentare bleiben erhalten) |
 | Rich Text | `rich>=13` | Konsolen-Output, Formatierung |
@@ -177,7 +177,7 @@ NataschaApp (App)
 | `build_vision_prompt()` | Bild/PDF-Analyse-Prompt |
 | `berechne_note_srdp()` | SRDP-Benotung inkl. Sonderregel (nutzt `KRITERIUM_KEY_VARIANTS`) |
 | `berechne_note_unterstufe()` | Gewichtete Unterstufe-Benotung |
-| `run_llm_api()` | Provider-Dispatch (anthropic, openai, deepseek, qwen, kimi, ollama) |
+| `run_llm_api()` | Provider-Dispatch (anthropic, openai, deepseek, qwen, mistral, kimi, ollama) |
 | `build_schueler_profil_prompt()` | **Entwurf** (Schicht 3): datenminimierter LLM-Prompt aus dem Längsschnitt — kein API-Call, keine UI; DSGVO: enthält nie Name/Klasse/Texte |
 
 ### Schüler-Längsschnitt (dreischichtig)
@@ -220,6 +220,7 @@ DEEPSEEK_API_KEY=...
 KIMI_API_KEY=...
 QWEN_API_KEY=...
 DASHSCOPE_API_KEY=...   # alternativer Name für QWEN_API_KEY
+MISTRAL_API_KEY=...      # gepinntes Modell des Qualitätsgates
 ```
 
 ---
@@ -231,6 +232,7 @@ DASHSCOPE_API_KEY=...   # alternativer Name für QWEN_API_KEY
 | anthropic | `ANTHROPIC_API_KEY` | Standard; Vision (PDF+Bild); JSON forced |
 | deepseek | `DEEPSEEK_API_KEY` | `deepseek-chat` (V3); `response_format: json_object` |
 | qwen | `QWEN_API_KEY` oder `DASHSCOPE_API_KEY` | DashScope-Endpoint; `enable_thinking: false` |
+| mistral | `MISTRAL_API_KEY` | **nur Text, kein Vision** (`natascha_core.py`, Vision-Pfad lehnt ab). `mistral-medium-3-5` (256k/32k) ist das **gepinnte Modell des Qualitätsgates** — `benchmarks/evaluiere.py` akzeptiert keinen anderen Provider. Achtung: der Anbieter beantwortet HTTP 429 `code: 1300`, wenn das Konto kein Inferenzkontingent hat; ein 401 bedeutet dagegen einen ungültigen Schlüssel |
 | openai | `OPENAI_API_KEY` | OpenAI-kompatibel |
 | kimi | `KIMI_API_KEY` | moonshot-v1 |
 | ollama | — | Lokal; kein JSON-Modus; nur Bracket-Counting-Fallback |

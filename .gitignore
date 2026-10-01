@@ -64,10 +64,6 @@ docs/*
 !docs/DATENSCHUTZ.md
 !docs/invarianten.md
 !docs/szenarien.md
-!docs/TESTPLAN-installer.md
-!docs/STATUS-offene-themen-2026-09.md
-!docs/TESTFEEDBACK-korrektur-ux.md
-!docs/TESTDURCHFUEHRUNG-korrektur-ux.md
 PLAN-*.md
 # Lokale Chat- und Sitzungsprotokolle koennen personenbezogene Inhalte enthalten.
 apps/natascha/Chat mit Claude*
