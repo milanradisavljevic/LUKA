@@ -207,6 +207,8 @@ def test_profil_prompt_json_schema_keys(db_path: Path) -> None:
     assert "befund" in prompt
     assert "uebung" in prompt
     assert "maturabezug" in prompt
+    assert "aus einer korrigierten Arbeit" in prompt
+    assert "kein Lerntrend erkennbar" in prompt
     # Altes Feld 'schwaechen' darf nicht mehr auftauchen
     assert "schwaechen" not in prompt
 
@@ -219,6 +221,10 @@ def test_profil_prompt_enthaelt_keine_personendaten(db_path: Path) -> None:
     _abgabe_mit_kriterien(db_path, sid, "SA2", "h2", 3.0,
                           {"inhalt": 4, "textstruktur": 4, "ausdruck": 4, "sprachrichtigkeit": 4})
     db.insert_fehler(db_path, 1, "das Haus", "das Haus,", "Z", "Komma")
+    db.insert_fehler(
+        db_path, 1, "Felix Müller schrieb", "Felix Müller, schrieb", "Z", "Komma",
+        regel_muster="Felix Müller in einem Regelmuster",
+    )
     ls = db.get_schueler_laengsschnitt(db_path, sid)
     # Sicherstellen, dass die Identifikatoren tatsächlich im Aggregat stehen …
     assert ls["schueler"]["vorname"] == "Felix"
@@ -228,6 +234,9 @@ def test_profil_prompt_enthaelt_keine_personendaten(db_path: Path) -> None:
     assert "Felix" not in prompt
     assert "Müller" not in prompt
     assert "6i" not in prompt
+    assert "Felix Müller schrieb" not in prompt
+    assert "Felix Müller in einem Regelmuster" not in prompt
+    assert "das Haus" not in prompt
     # Aggregierte Inhalte müssen sehr wohl drin sein:
     assert "VERLAUF" in prompt
     assert "Zeichensetzung" in prompt

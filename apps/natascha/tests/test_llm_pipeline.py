@@ -721,8 +721,7 @@ def test_example_fixture_ist_gepinnt() -> None:
 
 
 def test_srdp_detail_prompt_nennt_skalenhinweis(monkeypatch) -> None:
-    """N2: Der SRDP-Detail-Call grenzt seine 0-4-Skala explizit von den
-    1-5-Rubrikstufen ab."""
+    """Der SRDP-Detail-Call verwendet dieselben fünf Stufen wie das Raster."""
     captured: dict = {}
 
     def fake_api(prompt: str, config: dict, cancel_event=None, **kwargs) -> str:
@@ -732,8 +731,9 @@ def test_srdp_detail_prompt_nennt_skalenhinweis(monkeypatch) -> None:
     monkeypatch.setattr(nc, "run_llm_api", fake_api)
     nc.generate_srdp_detail("Text", {"bewertung": {}}, {}, textsorte="Kommentar")
     assert "SKALEN-HINWEIS" in captured["prompt"]
-    assert "0-4" in captured["prompt"]
-    assert "NICHT" in captured["prompt"]
+    assert "1 = nicht erfüllt" in captured["prompt"]
+    assert "5 = weit über das Wesentliche hinausgehend erfüllt" in captured["prompt"]
+    assert '"stufe": 0' not in captured["prompt"]
 
 
 class TestFehlerFilterP2c:

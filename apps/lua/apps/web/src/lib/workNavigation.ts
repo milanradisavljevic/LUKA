@@ -31,7 +31,7 @@ export interface WorkArea {
 
 export const WORK_AREAS: WorkArea[] = [
   { label: 'Start', view: 'dashboard', views: ['dashboard'] },
-  { label: 'Unterricht', view: 'wizard', views: ['wizard', 'planung', 'kompetenz', 'quick'] },
+  { label: 'Unterricht', view: 'wizard', views: ['wizard', 'planung', 'kompetenz', 'quick', 'ib'] },
   {
     label: 'Korrekturen',
     view: 'klassen',

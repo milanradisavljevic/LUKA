@@ -2098,6 +2098,34 @@ def compute_vertrauensstufe(
     return fehler_list
 
 
+_SRDP_DETAIL_KRITERIEN = {
+    "k1_inhalt": ("schreibhandlung", "arbeitsauftraege", "textbeilage", "sachlich", "qualitaet"),
+    "k1_textstruktur": ("kohaerenz", "bezugnahme", "kohaesion"),
+    "k3_stil": ("situationsadaequat", "wortwahl", "satzstrukturen", "eigenstaendigkeit"),
+    "k3_sprachnormen": ("orthografie", "zeichensetzung", "grammatik"),
+}
+
+
+def _srdp_detail_ist_gueltig(detail: object) -> bool:
+    """Nur vollständige ganzzahlige 1–5-Detailstufen dürfen eine Note beeinflussen."""
+    if not isinstance(detail, dict):
+        return False
+    for bereich, kriterien in _SRDP_DETAIL_KRITERIEN.items():
+        eintraege = detail.get(bereich)
+        if not isinstance(eintraege, dict) or set(eintraege) != set(kriterien):
+            return False
+        for kriterium in kriterien:
+            eintrag = eintraege[kriterium]
+            if not isinstance(eintrag, dict):
+                return False
+            stufe = eintrag.get("stufe")
+            if type(stufe) is not int or not 1 <= stufe <= 5:
+                return False
+            if not isinstance(eintrag.get("begruendung"), str) or not eintrag["begruendung"].strip():
+                return False
+    return True
+
+
 def generate_srdp_detail(
     schuelertext: str,
     hauptanalyse: dict[str, Any],
@@ -2124,37 +2152,38 @@ def generate_srdp_detail(
         f"HAUPTANALYSE (Zusammenfassung):\n{bewertung_json}\n\n"
         "Erstelle eine Detailbewertung nach dem SRDP-Beurteilungsraster. "
         "Für jedes der folgenden 15 Kriterien:\n"
-        "- Eine Stufe (0-4)\n"
+        "- Eine ganzzahlige Kompetenzstufe (1-5)\n"
         "- Eine Begründung (2-4 Sätze mit konkreten Textbelegen)\n"
-        "SKALEN-HINWEIS: Die Detailskala 0-4 ist die offizielle SRDP-Subkriterien-Skala\n"
-        "(0 = nicht erfüllt … 4 = weit über das Wesentliche hinausgehend). Sie ist NICHT\n"
-        "identisch mit den 1-5-Stufen des Bewertungsrasters aus der Hauptanalyse —\n"
-        "übernimm deren Werte nicht.\n\n"
+        "SKALEN-HINWEIS: Verwende dieselben fünf Kompetenzstufen wie im Bewertungsraster:\n"
+        "1 = nicht erfüllt, 2 = das Wesentliche überwiegend erfüllt,\n"
+        "3 = das Wesentliche zur Gänze erfüllt, 4 = über das Wesentliche hinausgehend erfüllt,\n"
+        "5 = weit über das Wesentliche hinausgehend erfüllt.\n"
+        "Bewerte jedes Detail eigenständig anhand des Schülertexts.\n\n"
         "Antworte als JSON mit diesem Schema:\n"
         '{\n'
         '  "gesamteindruck": "3-5 Sätze Gesamteinschätzung",\n'
         '  "k1_inhalt": {\n'
-        '    "schreibhandlung": {"stufe": 0, "begruendung": "..."},\n'
-        '    "arbeitsauftraege": {"stufe": 0, "begruendung": "..."},\n'
-        '    "textbeilage": {"stufe": 0, "begruendung": "..."},\n'
-        '    "sachlich": {"stufe": 0, "begruendung": "..."},\n'
-        '    "qualitaet": {"stufe": 0, "begruendung": "..."}\n'
+        '    "schreibhandlung": {"stufe": 3, "begruendung": "..."},\n'
+        '    "arbeitsauftraege": {"stufe": 3, "begruendung": "..."},\n'
+        '    "textbeilage": {"stufe": 3, "begruendung": "..."},\n'
+        '    "sachlich": {"stufe": 3, "begruendung": "..."},\n'
+        '    "qualitaet": {"stufe": 3, "begruendung": "..."}\n'
         '  },\n'
         '  "k1_textstruktur": {\n'
-        '    "kohaerenz": {"stufe": 0, "begruendung": "..."},\n'
-        '    "bezugnahme": {"stufe": 0, "begruendung": "..."},\n'
-        '    "kohaesion": {"stufe": 0, "begruendung": "..."}\n'
+        '    "kohaerenz": {"stufe": 3, "begruendung": "..."},\n'
+        '    "bezugnahme": {"stufe": 3, "begruendung": "..."},\n'
+        '    "kohaesion": {"stufe": 3, "begruendung": "..."}\n'
         '  },\n'
         '  "k3_stil": {\n'
-        '    "situationsadaequat": {"stufe": 0, "begruendung": "..."},\n'
-        '    "wortwahl": {"stufe": 0, "begruendung": "..."},\n'
-        '    "satzstrukturen": {"stufe": 0, "begruendung": "..."},\n'
-        '    "eigenstaendigkeit": {"stufe": 0, "begruendung": "..."}\n'
+        '    "situationsadaequat": {"stufe": 3, "begruendung": "..."},\n'
+        '    "wortwahl": {"stufe": 3, "begruendung": "..."},\n'
+        '    "satzstrukturen": {"stufe": 3, "begruendung": "..."},\n'
+        '    "eigenstaendigkeit": {"stufe": 3, "begruendung": "..."}\n'
         '  },\n'
         '  "k3_sprachnormen": {\n'
-        '    "orthografie": {"stufe": 0, "begruendung": "..."},\n'
-        '    "zeichensetzung": {"stufe": 0, "begruendung": "..."},\n'
-        '    "grammatik": {"stufe": 0, "begruendung": "..."}\n'
+        '    "orthografie": {"stufe": 3, "begruendung": "..."},\n'
+        '    "zeichensetzung": {"stufe": 3, "begruendung": "..."},\n'
+        '    "grammatik": {"stufe": 3, "begruendung": "..."}\n'
         '  },\n'
         '  "verbesserung_inhaltlich": "2-3 Sätze",\n'
         '  "verbesserung_strukturell": "2-3 Sätze",\n'
@@ -2163,7 +2192,7 @@ def generate_srdp_detail(
         "REGELN:\n"
         "- Begründungen MÜSSEN konkrete Textzitate enthalten.\n"
         "- Verwende den SRDP-Stufenwortlaut in der Begründung.\n"
-        "- Bewerte STRENG aber FAIR. Stufe 3-4 nur bei erkennbar guter Leistung.\n"
+        "- Bewerte STRENG aber FAIR. Stufen 4-5 nur bei erkennbar guter Leistung.\n"
         "- Antworte NUR mit dem JSON, kein Text davor oder danach."
     )
 
@@ -2178,10 +2207,14 @@ def generate_srdp_detail(
         return None
 
     try:
-        return extract_json_from_llm(raw)
+        detail = extract_json_from_llm(raw)
     except (json.JSONDecodeError, AttributeError) as e:
         logging.warning("SRDP-Detailbewertung: JSON-Extraktion fehlgeschlagen: %s", e)
         return None
+    if not _srdp_detail_ist_gueltig(detail):
+        logging.warning("SRDP-Detailbewertung: unvollständige oder ungültige 1–5-Stufen")
+        return None
+    return detail
 
 
 # ---------------------------------------------------------------------------
@@ -2501,39 +2534,56 @@ def berechne_note_srdp(
        Schreibhandlung bewertet, und der Kanon-Fallback fiele auf 3.0 zurück.
     3. Fester Kanon über KRITERIUM_KEY_VARIANTS — unveränderter Legacy-Pfad.
     """
-    if srdp_detail:
+    if srdp_detail and _srdp_detail_ist_gueltig(srdp_detail):
         k1_vals: list[float] = []
+        k1_dimensionen: list[float] = []
         for section in ("k1_inhalt", "k1_textstruktur"):
+            werte: list[float] = []
             for entry in srdp_detail.get(section, {}).values():
                 if isinstance(entry, dict) and "stufe" in entry:
-                    k1_vals.append(float(entry["stufe"]))
+                    werte.append(float(entry["stufe"]))
+            if werte:
+                k1_dimensionen.append(sum(werte) / len(werte))
+                k1_vals.extend(werte)
 
         k3_vals: list[float] = []
+        k3_dimensionen: list[float] = []
         for section in ("k3_stil", "k3_sprachnormen"):
+            werte = []
             for entry in srdp_detail.get(section, {}).values():
                 if isinstance(entry, dict) and "stufe" in entry:
-                    k3_vals.append(float(entry["stufe"]))
+                    werte.append(float(entry["stufe"]))
+            if werte:
+                k3_dimensionen.append(sum(werte) / len(werte))
+                k3_vals.extend(werte)
 
         k1_stufe = sum(k1_vals) / len(k1_vals) if k1_vals else 3.0
         k3_stufe = sum(k3_vals) / len(k3_vals) if k3_vals else 3.0
+        # Die Ein-Text-Rubrik verlangt je Kompetenzbereich beide Dimensionen
+        # mindestens auf Stufe 2. Ein starker Bereich darf einen negativen
+        # anderen Bereich nicht über den Gesamtschnitt verdecken.
+        k1_negativ = any(stufe < 2 for stufe in k1_dimensionen)
+        k3_negativ = any(stufe < 2 for stufe in k3_dimensionen)
     elif k1_keys or k3_keys:
         k1_stufe = _stufe_aus(bewertung, k1_keys)
         k3_stufe = _stufe_aus(bewertung, k3_keys)
+        k1_negativ = k1_stufe <= 1.5
+        k3_negativ = k3_stufe <= 1.5
     else:
-        k1_stufe = (
-            _stufe_aus(bewertung, KRITERIUM_KEY_VARIANTS["inhalt"])
-            + _stufe_aus(bewertung, KRITERIUM_KEY_VARIANTS["textstruktur"])
-        ) / 2
-        k3_stufe = (
-            _stufe_aus(bewertung, KRITERIUM_KEY_VARIANTS["ausdruck"])
-            + _stufe_aus(bewertung, KRITERIUM_KEY_VARIANTS["sprachrichtigkeit"])
-        ) / 2
+        inhalt = _stufe_aus(bewertung, KRITERIUM_KEY_VARIANTS["inhalt"])
+        struktur = _stufe_aus(bewertung, KRITERIUM_KEY_VARIANTS["textstruktur"])
+        ausdruck = _stufe_aus(bewertung, KRITERIUM_KEY_VARIANTS["ausdruck"])
+        sprachrichtigkeit = _stufe_aus(bewertung, KRITERIUM_KEY_VARIANTS["sprachrichtigkeit"])
+        k1_stufe = (inhalt + struktur) / 2
+        k3_stufe = (ausdruck + sprachrichtigkeit) / 2
+        k1_negativ = inhalt < 2 or struktur < 2
+        k3_negativ = ausdruck < 2 or sprachrichtigkeit < 2
 
     k1_note = max(1, min(5, round(6 - k1_stufe)))
     k3_note = max(1, min(5, round(6 - k3_stufe)))
     titel = {"k1_titel": k1_titel, "k3_titel": k3_titel}
 
-    if k1_stufe <= 1.5:
+    if k1_negativ:
         return _srdp_result(
             5,
             "Nicht genügend",
@@ -2549,7 +2599,7 @@ def berechne_note_srdp(
             **titel,
         )
 
-    if k3_stufe <= 1.5:
+    if k3_negativ:
         return _srdp_result(
             5,
             "Nicht genügend",
@@ -4095,16 +4145,14 @@ def compute_class_progress(config: dict[str, Any], klasse: str) -> list[dict[str
 def build_schueler_profil_prompt(laengsschnitt: dict[str, Any]) -> str:
     """Baut einen DATENMINIMIERTEN Prompt für ein LLM-Schülerprofil.
 
-    ENTWURF — Schicht 3 des dreischichtigen Längsschnitt-Systems. Diese Funktion baut
-    NUR den Prompt-String und gibt ihn zurück: KEIN API-Call, KEINE UI-Verdrahtung, kein
-    automatischer Aufruf. Sie dient als Diskussionsgrundlage.
+    Schicht 3 des dreischichtigen Längsschnitt-Systems. Der erzeugte Prompt
+    wird über TUI und CLI an den gewählten Anbieter gesendet.
 
     DSGVO-KRITISCH: Dieser Prompt darf NIEMALS enthalten:
     - Vorname, Nachname, Klasse, Schüler-ID, Dateinamen
-    - zusammenhängende Schülertexte oder ganze Sätze
-    Erlaubt sind NUR: aggregierte Stufen/Noten, Fehlertyp-Häufigkeiten und die kurzen
-    isolierten Fehlerzitate (max. 6 Wörter), die ohnehin schon in der DB stehen. Der Name
-    wird erst NACH der LLM-Antwort lokal wieder ans Profil geheftet.
+    - Schülertexte, Fehlerzitate oder ganze Sätze
+    Erlaubt sind NUR aggregierte Stufen/Noten und Fehlertyp-Häufigkeiten.
+    Der Name wird erst NACH der LLM-Antwort lokal wieder ans Profil geheftet.
 
     Diese Funktion liest bewusst NUR `verlauf`, `trend` und `fehlerschwerpunkte` aus dem
     Aggregat — niemals `laengsschnitt["schueler"]`. Ein DSGVO-Regressionstest sichert ab,
@@ -4138,10 +4186,13 @@ def build_schueler_profil_prompt(laengsschnitt: dict[str, Any]) -> str:
         "Schüler."
     )
     zeilen.append("")
+    datenbasis = (
+        "einer korrigierten Arbeit" if anzahl == 1 else "mehreren korrigierten Arbeiten"
+    )
     zeilen.append(
-        "Datenbasis sind aggregierte Kennzahlen aus mehreren korrigierten Arbeiten desselben "
-        "Schülers. Es liegen bewusst keine Namen und keine Texte vor, nur Zahlen und kurze "
-        "Fehlerbeispiele."
+        f"Datenbasis sind aggregierte Kennzahlen aus {datenbasis} desselben Schülers. "
+        "Es liegen bewusst keine Namen, Texte oder wörtlichen Fehlerbeispiele "
+        "vor, nur aggregierte Zahlen."
     )
     zeilen.append("")
     zeilen.append(f"Anzahl ausgewerteter Arbeiten: {anzahl}")
@@ -4168,16 +4219,19 @@ def build_schueler_profil_prompt(laengsschnitt: dict[str, Any]) -> str:
     zeilen.append(_trendzeile("k1", "K1 (Inhalt + Textstruktur)"))
     zeilen.append(_trendzeile("k3", "K3 (Ausdruck + Sprachnormen)"))
     zeilen.append("")
-    zeilen.append("FEHLERSCHWERPUNKTE (häufigste Fehlertypen, mit kurzen Beispielzitaten):")
+    zeilen.append("FEHLERSCHWERPUNKTE (häufigste Fehlertypen, ohne Textzitate):")
     if fehlerschwerpunkte:
+        sichere_labels = {
+            "R": "Rechtschreibung",
+            "G": "Grammatik",
+            "Z": "Zeichensetzung",
+            "A": "Ausdruck / Stil",
+        }
         for f in fehlerschwerpunkte:
-            beispiele = "; ".join(
-                # defensiv auf 6 Wörter kürzen — es dürfen nur kurze isolierte Zitate rein
-                " ".join((b.get("zitat", "")).split()[:6])
-                for b in f.get("beispiele", [])
-            )
-            zusatz = f" (z. B. {beispiele})" if beispiele else ""
-            zeilen.append(f"  - {f.get('label', f.get('typ'))}: {f.get('anzahl', 0)}×{zusatz}")
+            typ = f.get("typ")
+            anzahl_fehler = f.get("anzahl")
+            if typ in sichere_labels and type(anzahl_fehler) is int and anzahl_fehler >= 0:
+                zeilen.append(f"  - {sichere_labels[typ]}: {anzahl_fehler}×")
     else:
         zeilen.append("  (keine Fehlerdaten vorhanden)")
     zeilen.append("")
@@ -4186,6 +4240,8 @@ def build_schueler_profil_prompt(laengsschnitt: dict[str, Any]) -> str:
         "- Eine einzelne schwache Arbeit zwischen besseren ist meist ein Ausreißer, keine "
         "Tendenz. Benenne den Trend über mehrere Arbeiten, nicht einen einzelnen Einbruch."
     )
+    if anzahl < 2:
+        zeilen.append("- Bei nur einer Arbeit ist kein Lerntrend erkennbar; behaupte keinen Verlauf.")
     zeilen.append(
         "- Eine Stagnation auf hoher Stufe (4 bis 5) ist gefestigtes Können, keine Schwäche. "
         "Eine Stagnation auf niedriger Stufe (1 bis 2) ist ein Förderauftrag. Unterscheide das."

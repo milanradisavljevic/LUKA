@@ -109,6 +109,50 @@ describe('MetaSchema', () => {
     expect(MetaSchema.safeParse(meta).success).toBe(true);
   });
 
+  it('round-trips the IB English A Paper 1 course context and leaves older meta valid', () => {
+    const meta: Meta = {
+      stufe: 'oberstufe', fach: 'englisch', thema: 'Paper 1 practice',
+      datum: '2026-09-29', klasse: '', notizen: '', rahmenwerk: 'ib-dp',
+      bewertungsschema: 'ib-1-7',
+      ibAssessment: {
+        programme: 'ib-dp', course: 'english-a-language-and-literature', language: 'en',
+        level: 'sl', programmeYear: 'coursewide', assessmentComponent: 'paper1',
+        syllabusVersion: 'first-teaching-2021',
+      },
+    };
+    expect(MetaSchema.parse(meta).ibAssessment).toEqual(meta.ibAssessment);
+    expect(MetaSchema.safeParse({
+      stufe: 'oberstufe', fach: 'deutsch', thema: 'Alt', datum: '2026-09-29', klasse: '', notizen: '',
+    }).success).toBe(true);
+  });
+
+  it('accepts the German A Literature SL/HL component context with criteria and source forms', () => {
+    const context = {
+      programme: 'ib-dp' as const, course: 'german-a-literature' as const, language: 'de' as const,
+      level: 'hl' as const, programmeYear: 'dp2' as const, assessmentComponent: 'paper1' as const,
+      examSession: { session: 'may' as const, year: 2027 },
+      syllabusVersion: 'first-assessment-2026', paper1LiteraryForms: ['poetry', 'drama'] as ['poetry', 'drama'],
+      assessmentCriteria: [{ id: 'A', label: 'Verständnis und Interpretation', maxMarks: 5 }],
+    };
+    expect(MetaSchema.parse({
+      stufe: 'oberstufe', fach: 'deutsch', thema: 'Paper 1', datum: '2026-10-01', klasse: '', notizen: '',
+      rahmenwerk: 'ib-dp', ibAssessment: context,
+    }).ibAssessment).toEqual(context);
+  });
+
+  it('rejects incompatible German-course language, duplicate Paper 1 forms and SL HL Essay metadata', () => {
+    const common = {
+      programme: 'ib-dp', course: 'german-a-literature', programmeYear: 'coursewide',
+      syllabusVersion: 'first-assessment-2026',
+    };
+    const parseAssessment = (assessment: Record<string, unknown>) => MetaSchema.safeParse({
+      stufe: 'oberstufe', fach: 'deutsch', thema: 'IB', datum: '2026-10-01', klasse: '', notizen: '', ibAssessment: assessment,
+    });
+    expect(parseAssessment({ ...common, language: 'en', level: 'sl', assessmentComponent: 'paper2' }).success).toBe(false);
+    expect(parseAssessment({ ...common, language: 'de', level: 'sl', assessmentComponent: 'hl-essay' }).success).toBe(false);
+    expect(parseAssessment({ ...common, language: 'de', level: 'sl', assessmentComponent: 'paper1', paper1LiteraryForms: ['poetry', 'poetry'] }).success).toBe(false);
+  });
+
   it('rejects invalid schwierigkeit', () => {
     const result = MetaSchema.safeParse({
       stufe: 'oberstufe',

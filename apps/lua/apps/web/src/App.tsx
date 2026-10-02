@@ -43,6 +43,7 @@ const ErwartungshorizontView = lazy(() => import('./views/ErwartungshorizontView
 const BewertungsrasterView = lazy(() => import('./views/BewertungsrasterView').then((m) => ({ default: m.BewertungsrasterView })));
 const KompetenzView = lazy(() => import('./views/KompetenzView').then((m) => ({ default: m.KompetenzView })));
 const QuickExerciseView = lazy(() => import('./views/QuickExerciseView').then((m) => ({ default: m.QuickExerciseView })));
+const IbDiplomaView = lazy(() => import('./views/IbDiplomaView').then((m) => ({ default: m.IbDiplomaView })));
 const PlanungView = lazy(() => import('./views/PlanungView').then((m) => ({ default: m.PlanungView })));
 import { setPendingPlanung, setPendingUebung } from './lib/korrekturBridge';
 import { fuegeAnlageHinzuDirekt } from './hooks/usePlanung';
@@ -86,6 +87,7 @@ const VIEW_TITLES: Record<ActiveView, string> = {
   planung: 'Unterrichtsplanung',
   kompetenz: 'Kompetenz-Übung',
   quick: 'Schnell-Übung',
+  ib: 'IB Diploma',
   documents: 'Meine Unterlagen',
   pool: 'Aufgaben-Pool',
   klassen: 'Meine Klassen',
@@ -732,7 +734,14 @@ export default function App() {
           />
         );
       case 'input':
-        return <Step1_Input state={state} dispatch={dispatch} />;
+        return <Step1_Input
+          state={state}
+          dispatch={dispatch}
+          onEditIntent={() => {
+            if (state.meta.ibAssessment) setActiveView('ib');
+            else goToStep('absicht');
+          }}
+        />;
       case 'baukasten':
         return <Step2_Baukasten state={state} dispatch={dispatch} onNavigateToPool={() => setActiveView('pool')} />;
       case 'llm':
@@ -760,7 +769,10 @@ if (hydrating) {
 
   return (
           <div style={{ maxWidth: 1080, margin: '0 auto' }}>
-            <WizardStepper currentStep={state.step} onStepClick={goToStep} />
+            <WizardStepper currentStep={state.step} onStepClick={(step) => {
+              if (step === 'absicht' && state.meta.ibAssessment) setActiveView('ib');
+              else goToStep(step);
+            }} />
             <p style={{ textAlign: 'center', fontSize: '0.8125rem', color: 'var(--color-text-muted)', marginTop: '0.5rem' }}>
               Schritt {currentIndex + 1}/5 — {STEP_DESCRIPTIONS[state.step]}
             </p>
@@ -806,6 +818,8 @@ if (hydrating) {
         return <BewertungsrasterView />;
       case 'quick':
         return <QuickExerciseView dispatch={dispatch} onDone={() => setActiveView('wizard')} />;
+      case 'ib':
+        return <IbDiplomaView state={state} dispatch={dispatch} onDone={() => setActiveView('wizard')} />;
       case 'planung':
         return <PlanungView onGenerateUnterlage={handleUnterlageAusTermin} startTag={planungTag} />;
       case 'settings':
@@ -1004,7 +1018,10 @@ if (hydrating) {
             borderTop: '1px solid var(--color-border)',
           }}>
             {currentIndex > 0 ? (
-              <button className="btn-secondary" onClick={goBack}
+              <button className="btn-secondary" onClick={() => {
+                if (state.step === 'input' && state.meta.ibAssessment) setActiveView('ib');
+                else goBack();
+              }}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
                 <ArrowLeft size={16} /> Zurück
               </button>

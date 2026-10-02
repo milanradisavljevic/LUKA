@@ -21,7 +21,6 @@ interface Props {
 const RAHMENWERKE = [
   { id: 'at-lehrplan' as const, label: 'Österr. Lehrplan' },
   { id: 'de-lehrplan' as const, label: 'Deutscher Lehrplan (KMK)' },
-  { id: 'ib-dp' as const, label: 'IB Diploma Programme' },
 ] as const;
 
 const FAECHER = Object.entries(FACH_META).map(([id, m]) => ({ id: id as Fach, label: m.label }));
@@ -163,6 +162,9 @@ export function KompetenzView({ state, dispatch, onNavigateToWizard }: Props) {
       freieKompetenz: hatFreitext ? freitext : undefined,
       kompetenzNiveau: niveau,
       punkteAusblenden: !punkteVergeben,
+      // IB wird ausschließlich im eigenen Arbeitsbereich initialisiert.
+      ibAssessment: undefined,
+      bewertungsschema: undefined,
       datum: heute,
     };
 

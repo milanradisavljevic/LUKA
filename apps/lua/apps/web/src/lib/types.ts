@@ -1,4 +1,4 @@
-import type { DocumentV1, Meta, QuellText, Block, Auftrag } from '@lehrunterlagen/schema';
+import type { DocumentV1, IBLiteratureWork, Meta, QuellText, Block, Auftrag } from '@lehrunterlagen/schema';
 import type { RenderTemplateId, RenderLayoutId } from '@lehrunterlagen/renderer';
 
 export type StepId = 'absicht' | 'input' | 'baukasten' | 'llm' | 'generate';
@@ -23,6 +23,7 @@ export type ActiveView =
   | 'planung'
   | 'kompetenz'
   | 'quick'
+  | 'ib'
   | 'settings'
   | 'help';
 
@@ -49,6 +50,8 @@ export interface AppSettings {
   exportDir?: string;
   /** Bei jedem Export einen „Speichern unter…"-Dialog zeigen (statt direkt in exportDir). */
   exportAskEachTime?: boolean;
+  /** Lokal gepflegter Werkkatalog für IB Language A: Literature. */
+  ibLiteratureWorks?: IBLiteratureWork[];
 }
 
 export interface AppState {

@@ -1076,6 +1076,96 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
         `wiederhole kein Muster mehrfach und erfinde KEINE zusaetzlichen Fehler im Rest des Satzes. Andere Blocktypen duerfen die Muster als ` +
         `inhaltliche Orientierung nutzen (z. B. Luecken genau an diesen Konstruktionen). `
       : '';
+  const ibAssessment = input.meta.ibAssessment;
+  if (ibAssessment?.programme === 'ib-dp' && ibAssessment.course === 'german-a-literature') {
+    const sources = input.quelltexte.map((q) => ({ id: q.id, titel: q.titel, inhalt: sanitizeQuelltext(q.inhalt) }));
+    const requestedBlocks = input.bloecke.map((block, index) => {
+      if (block.typ !== 'offeneSchreibaufgabe' || ibAssessment.assessmentComponent !== 'paper1') return block;
+      // The wizard creates q1/q2 placeholders before the teacher uploads their
+      // passages. Resolve by position so saved drafts bind to the actual source IDs.
+      const source = sources[index];
+      return source ? { ...block, quelleId: source.id } : block;
+    });
+    const practiceModeInstruction = ibAssessment.practiceMode === 'guided'
+      ? 'Verwende knappe, nicht-lenkende Analyseimpulse und erkläre den Zweck der Teilaufgaben.'
+      : ibAssessment.practiceMode === 'timed'
+        ? 'Halte die Hilfen knapp und gestalte Umfang und Zahl der Antworten passend zur offiziellen Bearbeitungszeit.'
+        : 'Gib eine fokussierte Aufgabe mit moderater Strukturhilfe.';
+    const selectedWorks = ibAssessment.selectedWorks ?? [];
+    const criteria = ibAssessment.assessmentCriteria ?? [];
+    const commonRules = `IB LANGUAGE A: LITERATURE, GERMAN A, ERSTPRÜFUNG 2026. Schreibe Aufgaben und Hinweise auf Deutsch. Verwende ausschließlich literarische Texte und untersuche, wie Form, Sprache, Struktur und Autorentscheidungen Bedeutung erzeugen. Behandle Interpretation und Belege, nicht bloß das Benennen rhetorischer Mittel. Erzeuge keine IB-Gesamtnote von 1–7 und behaupte keine offizielle IB-Prüfung. ${practiceModeInstruction} `;
+    const componentRules: Record<typeof ibAssessment.assessmentComponent, string> = {
+      paper1: ibAssessment.level === 'sl'
+        ? `PAPER 1 SL: Es liegen zwei unveröffentlichte literarische Texte vor: Text 1 in der Form ${ibAssessment.paper1LiteraryForms?.[0] ?? 'literarische Form 1'}, Text 2 in der Form ${ibAssessment.paper1LiteraryForms?.[1] ?? 'literarische Form 2'}. Erstelle genau ZWEI getrennte Schreibaufgaben als Wahloptionen, je eine geführte Analyse pro Text. Jede Aufgabe muss mit dem passenden Quelltext (q1 bzw. q2) verknüpft sein und eine eigene präzise Leitfrage enthalten. Weise klar an, genau EINE der beiden Optionen zu bearbeiten; verlange keine Analyse beider. Jede Option hat maximal 20 Rohpunkte.`
+        : `PAPER 1 HL: Erstelle genau ZWEI voneinander unabhängige geführte Analysen, je eine pro unveröffentlichtem literarischem Text (Formen: ${JSON.stringify(ibAssessment.paper1LiteraryForms ?? [])}). Verknüpfe Aufgabe 1 mit q1 und Aufgabe 2 mit q2. Jede Analyse erhält eine eigene Leitfrage und wird separat mit maximal 20 Rohpunkten geführt.`,
+      paper2: `PAPER 2: Erstelle vier allgemeine literarische Essayfragen und weise an, genau eine zu wählen. Der Aufsatz muss die zwei ausgewählten Werke explizit vergleichen und/oder kontrastieren; balanciere beide Werke, verlange Textbelege und bespreche, wie Form und Autorentscheidungen Bedeutung gestalten. Nur eine Schreibaufgabe, maximal 25 Rohpunkte. Keine Quellenbeilage; die Werkangaben sind Kurskontext.`,
+      'individual-oral': `INDIVIDUAL ORAL: Die erste gelieferte Passage gehört zum ursprünglich deutschsprachigen Werk, die zweite zum Werk in Übersetzung. Erstelle eine Probe für einen 10-minütigen vorbereiteten Vortrag zum Global Issue "${ibAssessment.globalIssue ?? ''}" sowie passende, offene Lehrkraftfragen für die anschließenden 5 Minuten. Der Vortrag untersucht die Darstellung des Global Issue in Inhalt und Form beider Werke; er ist KEIN Vergleich der Werke und darf nicht als ausformulierter, auswendig lernbarer Vortrag erscheinen. Die erforderliche Musterlösung ist nur ein nicht einreichbares Bewertungs-/Planungsgerüst, kein ausformulierter Vortrag. Eine Aufgabe, maximal 40 Rohpunkte.`,
+      'hl-essay': `HL ESSAY: Erstelle ausschließlich ein Coachingblatt für einen eigenständigen Essay von 1.200–1.500 Wörtern zu einem behandelten Werk und zur Line of Inquiry "${ibAssessment.lineOfInquiry ?? ''}". Halte auch umfangWorte im Aufgabenblock exakt auf 1.200–1.500. Liefere Planungsfragen, eine Gliederungsstruktur, Kriterien für eine werkweite literarische Argumentation und eine Überarbeitungscheckliste. Schreibe KEINEN Musteressay, keine fertigen Absätze und keine einreichbare Schülerantwort. Falls ein Schülerentwurf als Quelle vorliegt, gib dazu kriterienorientierte Rückmeldung und nenne eine nachvollziehbare Wortzahl; schreibe den Entwurf nicht um, ergänze keine fertigen Absätze und ersetze nicht die eigene Überarbeitung. Die erforderliche Musterlösung ist nur ein nicht einreichbares Coaching-/Prüfgerüst, niemals Beispielprosa. Eine Aufgabe, maximal 20 Rohpunkte.`,
+    };
+    const component = ibAssessment.assessmentComponent;
+    const sourceRequirement = component === 'paper1' || component === 'individual-oral'
+      ? `Die Lehrkraft hat die benötigten Quelltexte bereitgestellt. Unveränderte Quelltextinhalte: ${sources.length}. Erfinde, kürze, übersetze oder ersetze sie nicht. `
+      : component === 'hl-essay' && sources.length > 0
+        ? 'Die optionale Quelle ist ein authentischer Schülerentwurf. Gib ausschließlich entwicklungsorientiertes, kriterienspezifisches Feedback; übernimm oder überarbeite den Entwurf nicht stellvertretend. '
+      : 'Die Aufgabe stützt sich auf die ausgewählten Werkangaben und benötigt keine neu erzeugte Textbeilage. ';
+    return [
+      {
+        role: 'system',
+        content: SYSTEM + `\n\n${commonRules} ${componentRules[component]} `
+          + `Nutze die angegebenen Aufgabenblöcke und gib exakt ein JSON-Array vollständig schema-konformer Blöcke zurück. `
+          + `Bewertungsorientierung mit Kriterien und maximalen Rohpunkten: ${JSON.stringify(criteria)}. Formuliere kriterienspezifische Feedback-Hinweise, aber vergib keine automatische Punktzahl und keine Gesamtnote. `
+          + sourceRequirement,
+      },
+      {
+        role: 'user',
+        content: `Erzeuge Übungsmaterial für German A: Literature ${ibAssessment.level.toUpperCase()}, ${component}, Kursphase ${ibAssessment.programmeYear === 'coursewide' ? 'DP1 und DP2' : ibAssessment.programmeYear.toUpperCase()}, Prüfungssession ${ibAssessment.examSession ? `${ibAssessment.examSession.session === 'may' ? 'May' : 'November'} ${ibAssessment.examSession.year}` : 'noch nicht festgelegt'}, Leitfaden ${ibAssessment.syllabusVersion}. `
+          + (ibAssessment.guidingQuestion ? `Verwende die Lehrkraft-Leitfrage wortgetreu: ${JSON.stringify(ibAssessment.guidingQuestion)}. ` : '')
+          + `Ausgewählte Werke: ${JSON.stringify(selectedWorks)}. Rohpunkt-Kriterien dieses Components: ${JSON.stringify(criteria)}. Paper-1-Formen: ${JSON.stringify(ibAssessment.paper1LiteraryForms ?? [])}. Quellen (unverändert): ${JSON.stringify(sources)}. `
+          + `Angeforderte Blöcke: ${JSON.stringify(requestedBlocks)}. Gib nur die JSON-Blöcke zurück.`,
+      },
+    ];
+  }
+  const ibPaper1 = ibAssessment?.programme === 'ib-dp'
+    && ibAssessment.course === 'english-a-language-and-literature'
+    && ibAssessment.level === 'sl'
+    && ibAssessment.assessmentComponent === 'paper1';
+  if (ibPaper1) {
+    const sources = input.quelltexte.map((q) => ({ id: q.id, titel: q.titel, inhalt: sanitizeQuelltext(q.inhalt) }));
+    const sourceId = sources[0]?.id;
+    const requestedBlocks = input.bloecke.map((block) => (
+      block.typ === 'offeneSchreibaufgabe' && sourceId
+        ? { ...block, quelleId: sourceId }
+        : block
+    ));
+    const practiceMode = ibAssessment.practiceMode ?? 'standard';
+    const practiceModeInstruction = practiceMode === 'guided'
+      ? 'This is guided formative practice: include concise, non-leading analysis prompts in the criteria hints while preserving genuine student thinking.'
+      : practiceMode === 'timed'
+        ? 'This is timed, exam-near practice: keep scaffolding minimal and formulate one concise, self-contained task.'
+        : 'This is standard formative practice: provide a focused task with moderate scaffolding.';
+    const guidingQuestionInstruction = ibAssessment.guidingQuestion
+      ? `Use this teacher-authored guiding question verbatim: ${JSON.stringify(ibAssessment.guidingQuestion)}.`
+      : 'Create one focused Paper 1 guiding question grounded in the supplied text.';
+    return [
+      {
+        role: 'system',
+        content: SYSTEM + `\n\nIB ENGLISH A: LANGUAGE AND LITERATURE — SL PAPER 1 PILOT. `
+          + `Create a text-based practice task for analysis of an unseen non-literary text. Use clear English and IB-style command terms. `
+          + `The teacher supplied the source. Never rewrite, summarize, replace, or add to it. Do not invent visual features or claim a multimodal analysis. `
+          + `Ground every task criterion in observable choices in the supplied text (for example diction, structure, tone, audience, purpose, or persuasive choices). `
+          + `Return exactly one offeneSchreibaufgabe block, linked to the exact source id in quelleId. Include a focused Paper 1 guiding question, reasonable timed-practice scope, and criteria hints that ask students to support interpretations with precise textual evidence. `
+          + `${practiceModeInstruction} ${guidingQuestionInstruction} `
+          + `Do not produce an IB 1–7 grade or a claim that this practice task is an official IB assessment.`,
+      },
+      {
+        role: 'user',
+        content: `Create one IB English A: Language and Literature SL Paper 1 practice task for ${ibAssessment.programmeYear === 'coursewide' ? 'DP1 and DP2' : ibAssessment.programmeYear.toUpperCase()}. `
+          + `Syllabus context: ${ibAssessment.syllabusVersion}. Return only the normal JSON block array matching the requested block schema. `
+          + `Keep every supplied source unchanged; cite its exact id in the writing task. The task should invite analysis of how the text creates meaning for its audience and purpose, and its criteria hints must reward precise evidence and explanation rather than feature-spotting.\n\n`
+          + JSON.stringify({ meta: promptMeta, quelltexte: sources, angeforderteBloecke: requestedBlocks }, null, 2),
+      },
+    ];
+  }
   // --- KOMPETENZ-MODUS: erfindet Beispiele zur Kompetenz, kein Quelltext ---
   if (modus === 'kompetenz') {
     const niveau = input.meta.kompetenzNiveau;

@@ -304,6 +304,67 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
     if (!state.meta.thema?.trim()) return 'Bitte gib ein Thema ein (Schritt 1: Absicht).';
     if (state.bloecke.length === 0) return 'Keine Aufgabenblöcke vorhanden (Schritt 3: Baukasten).';
 
+    const ibAssessment = state.meta.ibAssessment;
+    if (ibAssessment?.programme === 'ib-dp'
+      && ibAssessment.course === 'german-a-literature'
+      && ibAssessment.assessmentComponent === 'hl-essay'
+      && ibAssessment.level !== 'hl') {
+      return 'Der HL Essay ist nur für German A: Literature auf Higher Level verfügbar.';
+    }
+
+    if (ibAssessment?.programme === 'ib-dp' && ibAssessment.course === 'german-a-literature') {
+      const works = ibAssessment.selectedWorks ?? [];
+      if (ibAssessment.assessmentComponent === 'paper2'
+        && (works.length !== 2 || new Set(works.map((work) => work.author.trim().toLocaleLowerCase())).size !== 2)) {
+        return 'Paper 2 benötigt genau zwei behandelte Werke unterschiedlicher Autor:innen.';
+      }
+      if (ibAssessment.assessmentComponent === 'individual-oral'
+        && (works.length !== 2
+          || !works.some((work) => ['de', 'deu', 'ger', 'german', 'deutsch'].includes(work.originalLanguage.trim().toLowerCase()))
+          || !works.some((work) => !['de', 'deu', 'ger', 'german', 'deutsch'].includes(work.originalLanguage.trim().toLowerCase())))) {
+        return 'Das Individual Oral benötigt genau ein ursprünglich deutschsprachiges Werk und ein Werk in Übersetzung.';
+      }
+      if (ibAssessment.assessmentComponent === 'hl-essay' && works.length !== 1) {
+        return 'Der HL Essay benötigt genau ein behandeltes Werk als Grundlage.';
+      }
+    }
+
+    if (ibAssessment?.programme === 'ib-dp'
+      && ibAssessment.course === 'german-a-literature'
+      && ibAssessment.assessmentComponent === 'paper1'
+      && state.quelltexte.length !== 2) {
+      return 'German A Literature Paper 1 benötigt genau zwei unveröffentlichte literarische Texte unterschiedlicher Formen.';
+    }
+
+    if (ibAssessment?.programme === 'ib-dp'
+      && ibAssessment.course === 'german-a-literature'
+      && ibAssessment.assessmentComponent === 'paper1'
+      && (!ibAssessment.paper1LiteraryForms || ibAssessment.paper1LiteraryForms[0] === ibAssessment.paper1LiteraryForms[1])) {
+      return 'Paper 1 benötigt zwei Texte unterschiedlicher literarischer Formen.';
+    }
+
+    if (ibAssessment?.programme === 'ib-dp'
+      && ibAssessment.course === 'german-a-literature'
+      && ibAssessment.assessmentComponent === 'individual-oral'
+      && state.quelltexte.length !== 2) {
+      return 'Das Individual Oral benötigt zwei Auszüge: einen aus einem ursprünglich deutschsprachigen Werk und einen aus einem Werk in Übersetzung.';
+    }
+
+    if (ibAssessment?.programme === 'ib-dp'
+      && ibAssessment.course === 'german-a-literature'
+      && ['paper1', 'individual-oral'].includes(ibAssessment.assessmentComponent)
+      && state.quelltexte.some((source) => !source.inhalt?.trim())) {
+      return 'Jeder IB-Ausgangstext muss Inhalt enthalten.';
+    }
+
+    if (ibAssessment?.programme === 'ib-dp'
+      && ibAssessment.course === 'english-a-language-and-literature'
+      && ibAssessment.level === 'sl'
+      && ibAssessment.assessmentComponent === 'paper1'
+      && state.quelltexte.length === 0) {
+      return 'IB English A Paper 1 braucht einen von der Lehrkraft eingefügten Ausgangstext. Bitte füge ihn im Quelltext-Schritt ein.';
+    }
+
     const modus = state.meta.modus ?? 'text';
     if (modus === 'kompetenz') {
       const hatKatalog = (state.meta.stoffItemIds?.length ?? 0) > 0;
@@ -315,12 +376,16 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
     }
 
     // Text-Modus: Quelltext-Pflicht
-    if (state.quelltexte.length === 0) return 'Mindestens ein Quelltext ist erforderlich (Schritt 2: Quelltexte).';
+    const ibUsesWorksInsteadOfSources = ibAssessment?.course === 'german-a-literature'
+      && ['paper2', 'hl-essay'].includes(ibAssessment.assessmentComponent);
+    const ibUsesLiteraryExcerpts = ibAssessment?.course === 'german-a-literature'
+      && ['paper1', 'individual-oral'].includes(ibAssessment.assessmentComponent);
+    if (state.quelltexte.length === 0 && !ibUsesWorksInsteadOfSources) return 'Mindestens ein Quelltext ist erforderlich (Schritt 2: Quelltexte).';
     const MIN_WOERTER = 80;
     const woerter = state.quelltexte.reduce(
       (sum, q) => sum + (q.inhalt?.trim() ? q.inhalt.trim().split(/\s+/).length : 0), 0,
     );
-    if (woerter < MIN_WOERTER) {
+    if (woerter < MIN_WOERTER && !ibUsesWorksInsteadOfSources && !ibUsesLiteraryExcerpts) {
       return `Die Quelltexte sind zu kurz (${woerter} Wörter, mindestens ${MIN_WOERTER} nötig). Bitte lade längere Texte hoch.`;
     }
     return null;

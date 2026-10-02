@@ -512,6 +512,11 @@ export function Step0_Absicht({
           lernziele: lernzieleRaw.split(',').map((s) => s.trim()).filter(Boolean) || undefined,
           fokusThemen: fokusThemen.length > 0 ? fokusThemen : undefined,
           modus,
+          // Der nationale Assistent besitzt keinen IB-Kontext. Explizites
+          // Leeren verhindert Altlasten, weil SET_META Felder zusammenführt.
+          rahmenwerk: undefined,
+          bewertungsschema: undefined,
+          ibAssessment: undefined,
           freieKompetenz: modus === 'kompetenz' ? freieKompetenz.trim() || undefined : undefined,
           // Nur setzen, wenn vorhanden: SET_META merged — ein undefined würde den
           // Marker eines geladenen Folgeübung-Entwurfs beim Neu-Speichern löschen.

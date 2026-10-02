@@ -205,7 +205,7 @@ export const HELP_SECTIONS: HelpSection[] = [
         ]} />
         <P>
           <strong>Die Seitenleiste</strong> ist in vier Bereiche getrennt: <strong>Start</strong>,
-          <strong>Unterricht</strong> (Assistent, Unterrichtsplanung, Kompetenz- und Schnell-Übung),
+          <strong>Unterricht</strong> (Assistent, Unterrichtsplanung, Kompetenz-, Schnell-Übung und IB Diploma),
           <strong>Korrekturen</strong> (Klassen, Abgaben, Schüler, Bewertungsraster) und
           <strong>Bibliothek</strong> (Unterlagen, Pool, Vorlagen, Verlauf, Papierkorb).
           Unten findest du <strong>Einstellungen</strong>, <strong>Fehler melden</strong> und <strong>Hilfe</strong>.
@@ -228,7 +228,7 @@ export const HELP_SECTIONS: HelpSection[] = [
         <Steps items={[
           <>Öffne <strong>Einstellungen</strong> und trage deinen API-Schlüssel ein (z. B. Anthropic, OpenAI, Mistral, DeepSeek). Schlüssel werden im Schlüsselspeicher des Betriebssystems abgelegt — nicht im Klartext.</>,
           <>Wähle Standard-Anbieter und -Modell (standardmäßig <strong>Mistral Medium 3.5</strong>). Für günstige Tests eignet sich ein kleines Modell.</>,
-          <>Starte über <strong>Neue Unterlage</strong> (oben in der Seitenleiste), <strong>Kompetenz-Übung</strong> oder <strong>Schnell-Übung</strong> und exportiere eine erste Schüler- und Lösungsfassung.</>,
+          <>Starte über <strong>Neue Unterlage</strong> (oben in der Seitenleiste), <strong>Kompetenz-Übung</strong>, <strong>Schnell-Übung</strong> oder den getrennten Bereich <strong>IB Diploma</strong> und exportiere eine erste Schüler- und Lösungsfassung.</>,
         ]} />
         <P><strong>Kein-Key-Hinweis:</strong> Wählst du in Schritt „KI-Modell" einen Anbieter, für den noch kein Schlüssel hinterlegt ist, zeigt die App dort einen Hinweis mit Direkt-Link zu den Einstellungen — so scheiterst du nicht erst beim Generieren.</P>
         <P><strong>Rechnen mit der KI:</strong> Jede Generierung kostet einen API-Aufruf bei deinem Anbieter. Der <strong>Qualitätspass</strong> und die schwerere Differenzierungsvariante sind zusätzliche Aufrufe. Für closed-loop-Übungen empfiehlt sich deshalb ein günstiges Modell.</P>
@@ -527,6 +527,39 @@ export const HELP_SECTIONS: HelpSection[] = [
           Arbeitsanweisungen deutsch, auch wenn der Quelltext lateinisch ist.
         </P>
         <Tip>Faustregel: <strong>Aus Quelltext</strong> = Schularbeit/Test zu einem konkreten Text. <strong>Ohne Quelltext</strong> = schnelle Grammatik-/Kompetenz-Übung.</Tip>
+      </>
+    ),
+  },
+  {
+    id: 'ib',
+    kapitel: 'unterricht',
+    title: 'IB Diploma',
+    Icon: GraduationCap,
+    body: (
+      <>
+        <P>
+          <strong>IB Diploma</strong> ist ein eigener Arbeitsbereich neben der Schnell-Übung.
+          Dadurch bleiben der nationale Lehrplan-Assistent und vorhandene Unterlagen von
+          IB-spezifischen Angaben getrennt.
+        </P>
+        <P>
+          Der ausgearbeitete Kurs ist <strong>German A: Literature</strong> für SL und HL. Zur
+          Auswahl stehen Paper 1, Paper 2, Individual Oral und auf HL zusätzlich der HL Essay.
+          Die erste Prüfungssession des hinterlegten Leitfadens ist 2026.
+        </P>
+        <Steps items={[
+          <><strong>Paper 1:</strong> zwei unveröffentlichte literarische Texte unterschiedlicher Formen; SL analysiert einen nach Wahl, HL beide.</>,
+          <><strong>Paper 2:</strong> eine von vier Fragen zu zwei behandelten Werken vergleichen oder kontrastieren.</>,
+          <><strong>Individual Oral:</strong> ein Global Issue anhand eines ursprünglich deutschsprachigen Werks und eines Werks in Übersetzung untersuchen.</>,
+          <><strong>HL Essay:</strong> nur HL; 1.200–1.500 Wörter zu einer eigenen Line of Inquiry und einem behandelten Werk.</>,
+        ]} />
+        <P>
+          Die Werkeliste wird von der Lehrkraft gepflegt und lokal gespeichert. Sie enthält
+          bibliografische Angaben und Zuordnungen, keine vollständigen Buchtexte. LUKA unterstützt
+          beim HL Essay Planung und Überarbeitung, verfasst aber keinen einzureichenden Essay.
+          Es gibt keine automatische IB-Gesamtnote von 1–7.
+        </P>
+        <Tip>Der Bereich erstellt Übungsmaterial für den Unterricht und kein offizielles IB-Prüfungsmaterial.</Tip>
       </>
     ),
   },

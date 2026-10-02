@@ -194,6 +194,77 @@ export type Rahmenwerk = z.infer<typeof RahmenwerkSchema>;
 export const BewertungsschemaSchema = z.enum(['at-1-5', 'de-1-6', 'de-punkte-15', 'ib-1-7']);
 export type Bewertungsschema = z.infer<typeof BewertungsschemaSchema>;
 
+/** Von der Lehrkraft gepflegtes Werk im Kursbestand Language A: Literature. */
+export const IBLiteratureWorkSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  author: z.string().min(1),
+  literaryForm: z.enum(['prose-fiction', 'prose-nonfiction', 'poetry', 'drama', 'other']),
+  originalLanguage: z.string().min(2).max(35),
+  selectionCategory: z.enum(['translated-prl', 'original-prl', 'free-choice']),
+  reservedFor: z.enum(['paper2', 'individual-oral', 'hl-essay']).optional(),
+}).superRefine((work, ctx) => {
+  const germanOriginal = ['de', 'deu', 'ger', 'german', 'deutsch'].includes(work.originalLanguage.trim().toLowerCase());
+  if (work.selectionCategory === 'original-prl' && !germanOriginal) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['originalLanguage'], message: 'Original-prl works must be in the language of the course.' });
+  }
+  if (work.selectionCategory === 'translated-prl' && germanOriginal) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['originalLanguage'], message: 'Translated-prl works must have a non-German original language.' });
+  }
+});
+export type IBLiteratureWork = z.infer<typeof IBLiteratureWorkSchema>;
+
+export const IBLiteratureFormSchema = z.enum(['prose-fiction', 'prose-nonfiction', 'poetry', 'drama', 'other']);
+export type IBLiteratureForm = z.infer<typeof IBLiteratureFormSchema>;
+
+export const IBAssessmentCriterionSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  maxMarks: z.number().int().positive(),
+});
+
+export const IBExamSessionSchema = z.object({
+  session: z.enum(['may', 'november']),
+  year: z.number().int().min(2026).max(2099),
+});
+export type IBExamSession = z.infer<typeof IBExamSessionSchema>;
+
+/** Kurs- und Assessmentkontext fuer IB-DP Language A. */
+export const IBAssessmentContextSchema = z.object({
+  programme: z.literal('ib-dp'),
+  // English A: Language and Literature bleibt für gespeicherte Pilotdokumente lesbar.
+  course: z.enum(['german-a-literature', 'english-a-language-and-literature']),
+  language: z.enum(['de', 'en']),
+  level: z.enum(['sl', 'hl']),
+  programmeYear: z.enum(['coursewide', 'dp1', 'dp2']),
+  examSession: IBExamSessionSchema.optional(),
+  assessmentComponent: z.enum(['paper1', 'paper2', 'individual-oral', 'hl-essay']),
+  syllabusVersion: z.string().min(1),
+  // Formative Ausgestaltung des Piloten. Optional fuer bereits gespeicherte
+  // Dokumente, die vor dem eigenen IB-Arbeitsbereich angelegt wurden.
+  practiceMode: z.enum(['guided', 'standard', 'timed']).optional(),
+  guidingQuestion: z.string().min(1).optional(),
+  selectedWorks: z.array(IBLiteratureWorkSchema).optional(),
+  paper1LiteraryForms: z.tuple([IBLiteratureFormSchema, IBLiteratureFormSchema]).optional(),
+  assessmentCriteria: z.array(IBAssessmentCriterionSchema).optional(),
+  globalIssue: z.string().min(1).optional(),
+  lineOfInquiry: z.string().min(1).optional(),
+}).superRefine((assessment, ctx) => {
+  if (assessment.course === 'german-a-literature' && assessment.language !== 'de') {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['language'], message: 'German A: Literature must use German.' });
+  }
+  if (assessment.course === 'english-a-language-and-literature' && assessment.language !== 'en') {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['language'], message: 'English A: Language and Literature must use English.' });
+  }
+  if (assessment.course === 'german-a-literature' && assessment.assessmentComponent === 'hl-essay' && assessment.level !== 'hl') {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['level'], message: 'HL Essay is only available at Higher Level.' });
+  }
+  if (assessment.paper1LiteraryForms && assessment.paper1LiteraryForms[0] === assessment.paper1LiteraryForms[1]) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['paper1LiteraryForms'], message: 'Paper 1 requires different literary forms.' });
+  }
+});
+export type IBAssessmentContext = z.infer<typeof IBAssessmentContextSchema>;
+
 // Lehrplan-Deskriptor (Ebene 1: Nachweis/Coverage)
 export const DeskriptorSchema = z.object({
   id: z.string().min(1),
@@ -303,6 +374,9 @@ export const MetaSchema = z.object({
   // Kompetenz-Modus (opt-in; Default 'text' wird im Code angenommen).
   modus: ModusSchema.optional(),
   rahmenwerk: RahmenwerkSchema.optional(),
+  // Konkreter IB-Kurs/Assessment-Kontext. Optional und additive Erweiterung:
+  // ältere Dokumente und der generische IB-Modus bleiben gueltig.
+  ibAssessment: IBAssessmentContextSchema.optional(),
   stoffItemIds: z.array(z.string().min(1)).optional(),
   schulstufe: z.number().int().min(5).max(13).optional(),
   // Deterministische Closed-Loop-Gruppierung; nur Herkunft/Steuerung, keine

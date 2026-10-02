@@ -16,7 +16,7 @@ import type { ActiveView } from './types';
 
 /** Alle Ansichten, die die Sidebar kennt. */
 const ALLE_ANSICHTEN: ActiveView[] = [
-  'dashboard', 'wizard', 'planung', 'kompetenz', 'quick',
+  'dashboard', 'wizard', 'planung', 'kompetenz', 'quick', 'ib',
   'klassen', 'korrektur', 'schueler', 'erwartungshorizont',
   'documents', 'pool', 'templates', 'favorites', 'history', 'trash',
   'settings', 'help',
@@ -79,6 +79,11 @@ describe('workNavigation — die gewählte Aufteilung', () => {
 
   it('hält die Unterrichtsplanung beim Erstellen, nicht beim Bewerten', () => {
     expect(label('planung')).toBe('Unterricht');
+  });
+
+  it('führt IB als eigenen Einstieg im Unterrichtsbereich', () => {
+    expect(label('ib')).toBe('Unterricht');
+    expect(workArea('ib')?.views).toEqual(['wizard', 'planung', 'kompetenz', 'quick', 'ib']);
   });
 
   it('zeigt genau vier Bereichen – nicht fünf', () => {

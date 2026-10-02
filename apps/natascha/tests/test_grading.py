@@ -19,6 +19,14 @@ def _krit(punkte: float) -> dict:
     return {"punkte": punkte}
 
 
+def _srdp_detail(inhalt: int, struktur: int, stil: int, sprache: int) -> dict:
+    stufen = (inhalt, struktur, stil, sprache)
+    return {
+        bereich: {k: {"stufe": stufe, "begruendung": "Synthetischer Beleg."} for k in kriterien}
+        for (bereich, kriterien), stufe in zip(nc._SRDP_DETAIL_KRITERIEN.items(), stufen)
+    }
+
+
 # ── Unterstufe (gewichteter Durchschnitt) ──────────────────────────────────
 
 
@@ -89,3 +97,23 @@ def test_srdp_sonderregel_k3_nicht_erfuellt() -> None:
     res = nc.berechne_note_srdp(best)
     assert res["note"] == 5
     assert res["sonderregel"] == "K3_NICHT_ERFUELLT"
+
+
+def test_srdp_detail_volle_stufe_fuenf_ergibt_note_eins() -> None:
+    res = nc.berechne_note_srdp({}, _srdp_detail(5, 5, 5, 5))
+    assert res["note"] == 1
+    assert res["sonderregel"] is None
+
+
+def test_srdp_detail_negative_dimension_wird_nicht_ueberdeckt() -> None:
+    res = nc.berechne_note_srdp({}, _srdp_detail(1, 5, 5, 5))
+    assert res["note"] == 5
+    assert res["sonderregel"] == "K1_NICHT_ERFUELLT"
+
+
+def test_srdp_detail_mit_ungueltiger_stufe_faellt_auf_hauptanalyse_zurueck() -> None:
+    detail = _srdp_detail(5, 5, 5, 5)
+    detail["k1_inhalt"]["sachlich"]["stufe"] = "gut"
+    best = {k: _krit(3) for k in ("inhalt", "textstruktur", "ausdruck", "sprachrichtigkeit")}
+    assert nc._srdp_detail_ist_gueltig(detail) is False
+    assert nc.berechne_note_srdp(best, detail)["note"] == nc.berechne_note_srdp(best)["note"]

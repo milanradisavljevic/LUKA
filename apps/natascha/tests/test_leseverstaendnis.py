@@ -129,6 +129,7 @@ def test_bekannte_bestandsbefunde_sind_benannt() -> None:
     befunde = {b.datei: b for b in rc.pruefe_alle(list(RUB_DIR.glob("*.md")))}
     erwartet_ununterscheidbar = {
         "englisch_a2.md",
+        "ib_english_a_language_and_literature_sl_paper1.md",
         "srdp_englisch_b1.md",
         "srdp_englisch_b2.md",
         "sprachfach_latein.md",

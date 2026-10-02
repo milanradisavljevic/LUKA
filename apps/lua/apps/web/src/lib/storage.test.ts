@@ -70,6 +70,24 @@ describe('storage — Dokumente', () => {
     expect(loadDocuments()).toHaveLength(2);
   });
 
+  it('speichert und lädt den strukturierten IB-Paper-1-Kurskontext', () => {
+    const context = {
+      programme: 'ib-dp' as const,
+      course: 'english-a-language-and-literature' as const,
+      language: 'en' as const,
+      level: 'sl' as const,
+      programmeYear: 'coursewide' as const,
+      assessmentComponent: 'paper1' as const,
+      syllabusVersion: 'first-teaching-2021',
+    };
+    const doc = makeDoc('ib-paper1', { snapshot: {
+      ...makeDoc('ib-paper1').snapshot,
+      meta: { stufe: 'oberstufe', fach: 'englisch', thema: 'Paper 1', datum: '2026-09-29', klasse: '', notizen: '', ibAssessment: context } as never,
+    } });
+    saveDocuments([doc]);
+    expect(loadDocuments()[0]?.snapshot.meta.ibAssessment).toEqual(context);
+  });
+
   it('upsertDocument ersetzt bei gleicher id statt zu duplizieren', () => {
     upsertDocument(makeDoc('a', { title: 'Erst' }));
     const after = upsertDocument(makeDoc('a', { title: 'Neu' }));
@@ -158,6 +176,15 @@ describe('storage — Standard-Vorgaben', () => {
       nataschaDir: '',
       pythonCommand: '',
     });
+  });
+
+  it('speichert und lädt den lehrkraftgepflegten IB-Werkbestand', () => {
+    const works = [{
+      id: 'werk-1', title: 'Die Verwandlung', author: 'Franz Kafka', literaryForm: 'prose-fiction' as const,
+      originalLanguage: 'de', selectionCategory: 'original-prl' as const,
+    }];
+    saveSettings({ ...DEFAULT_SETTINGS, ibLiteratureWorks: works });
+    expect(loadSettings().ibLiteratureWorks).toEqual(works);
   });
 });
 

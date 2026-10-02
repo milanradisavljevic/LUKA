@@ -22,6 +22,7 @@ export const NAV_TARGETS: NavTarget[] = [
   { view: 'wizard', label: 'Assistent', description: 'Zum Aktuellen Dokument zurück' },
   { view: 'kompetenz', label: 'Kompetenz-Übung', description: 'Übung ohne Quelltext aus Lehrplan-Kompetenzen' },
   { view: 'quick', label: 'Schnell-Übung', description: 'Thema + Aufgabentyp → sofort Baukasten' },
+  { view: 'ib', label: 'IB Diploma', description: 'Kurs- und assessmentbezogene IB-Unterlagen' },
   { view: 'planung', label: 'Unterrichtsplanung', description: 'Wochenraster, nächste Stunden und ihre Unterlagen' },
   { view: 'documents', label: 'Meine Unterlagen', description: 'Gespeicherte Dokumente durchsuchen' },
   { view: 'pool', label: 'Aufgaben-Pool', description: 'Wiederverwendbare Aufgaben-Blöcke' },

@@ -9,11 +9,33 @@ import sys
 from argparse import Namespace
 from pathlib import Path
 
+import pytest
 import natascha_cli as cli
 import natascha_db as db
 
 ROOT = Path(__file__).resolve().parent.parent
 CLI = ROOT / "natascha_cli.py"
+
+
+def test_ib_paper1_requires_readable_text_source(tmp_path: Path) -> None:
+    class TextReader:
+        @staticmethod
+        def read_docx_text(_path: Path) -> str:
+            return "Synthetic DOCX source"
+
+    with pytest.raises(ValueError, match="benötigt den Ausgangstext"):
+        cli._ib_paper1_source_text(None, None, TextReader)
+
+    source = "  A synthetic source, unchanged.\n"
+    text_file = tmp_path / "source.txt"
+    text_file.write_text(source, encoding="utf-8")
+    assert cli._ib_paper1_source_text(None, text_file, TextReader) == source
+    assert cli._ib_paper1_source_text(source, None, TextReader) == source
+
+    image_file = tmp_path / "poster.png"
+    image_file.write_bytes(b"synthetic")
+    with pytest.raises(ValueError, match="derzeit nur Text"):
+        cli._ib_paper1_source_text(None, image_file, TextReader)
 
 
 def run_cli(db_path: Path, *args: str) -> dict:

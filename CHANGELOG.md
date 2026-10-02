@@ -5,6 +5,19 @@ Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 (auch andere Coding-Agents) — siehe `AGENTS.md`.
 
+## Version 1.5.5 — 2026-10-02
+
+### Das ist neu
+
+- Stundenpläne lassen sich als CSV ins Wochenraster übernehmen. Zeilen, die LUKA nicht lesen kann, bleiben in der Vorschau liegen und lassen sich dort korrigieren — es kann kein Teil der Datei stillschweigend fehlen.
+- Für Englisch gibt es ein Vokabel-Masterblatt: eine Wortliste wird auf Vokabelübung, Zuordnung, Lückentext, Kreuzworträtsel und Wortgitter verteilt, ohne einen Eintrag doppelt zu verwenden.
+- Der Korrekturauftrag zeigt vor dem Start, was schon gesetzt ist und was das Ergebnis verbessern würde — zum Beispiel, wenn bei einem Leseverständnis-Raster noch der Ausgangstext fehlt.
+- Die Notenempfehlung für Deutsch-Schularbeiten verwendet beim SRDP-Detail dieselben fünf Stufen wie das Bewertungsraster. Eine schwache Dimension kann nicht mehr durch starke andere Bereiche verdeckt werden.
+- Unvollständige oder ungültige SRDP-Detailbewertungen beeinflussen die Note nicht; die App nutzt dann die Hauptbewertung.
+- Das KI-Schülerprofil erhält nur zusammengefasste Fehlertypen und Häufigkeiten, keine wörtlichen Fehlerzitate mehr.
+- Der Pilotbereich für IB German A: Literature unterstützt SL und HL mit Paper 1, Paper 2, Individual Oral und HL Essay. Bitte Aufgaben und Kriterien vor dem Unterricht fachlich prüfen; LUKA erstellt keine IB-Gesamtnote.
+- Für IB English A: Language and Literature gibt es einen unbenoteten Paper-1-Pilot für textbasierte Übung mit bereitgestelltem Ausgangstext.
+
 ## Version 1.5.4 — 2026-09-29
 
 ### Das ist neu

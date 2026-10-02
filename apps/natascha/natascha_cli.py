@@ -74,6 +74,29 @@ def _progress(stage: str, message: str) -> None:
     print(json.dumps({"stage": stage, "message": message}, ensure_ascii=False), file=sys.stderr)
 
 
+def _ib_paper1_source_text(source_text: str | None, source_path: Path | None, nc) -> str:
+    """Require a readable text source for the text-only IB Paper 1 pilot."""
+    if source_text and source_text.strip():
+        return source_text
+    if source_path is None:
+        raise ValueError("IB English A Paper 1 benötigt den Ausgangstext. Füge den Text vor der Analyse ein.")
+    if not source_path.is_file():
+        raise ValueError("Der IB-Paper-1-Ausgangstext wurde nicht gefunden. Bitte prüfe die Textquelle.")
+    suffix = source_path.suffix.casefold()
+    try:
+        if suffix in {".txt", ".md", ".markdown"}:
+            extracted = source_path.read_text(encoding="utf-8")
+        elif suffix == ".docx":
+            extracted = nc.read_docx_text(source_path)
+        else:
+            raise ValueError("Der IB-Paper-1-Pilot verarbeitet derzeit nur Text, TXT, Markdown oder DOCX.")
+    except (OSError, UnicodeError) as exc:
+        raise ValueError(f"Der IB-Paper-1-Ausgangstext konnte nicht gelesen werden: {exc}") from exc
+    if not extracted.strip():
+        raise ValueError("Der IB-Paper-1-Ausgangstext enthält keinen lesbaren Text.")
+    return extracted
+
+
 def cmd_analyze(args):
     _progress("start", "Analyse wird vorbereitet")
     nc, ndb, config, db_path = _load_env_and_config()
@@ -111,6 +134,7 @@ def cmd_analyze(args):
     rubric_path = nc.resolve_path(config, "rubrics") / rubric_name
     rubric_header = nc.parse_rubrik_header(rubric_path.read_text(encoding="utf-8")) if rubric_path and rubric_path.exists() else {}
     rubrik_titel = rubric_header.get("titel", "") or rubric_name
+    is_ib_paper1 = rubric_header.get("aufgabenart", "").strip().casefold() == "ib-paper1"
     auftrag_key = "|".join([
         args.klasse, args.aufgabe, rubric_name,
         args.einsatz_id or "", args.material_id or "",
@@ -126,6 +150,12 @@ def cmd_analyze(args):
     # --ausgangstext-Schalter bleibt als kompatibler Dateipfad erhalten;
     # neue Aufrufer verwenden die eindeutig benannten Varianten.
     ausgangstext_text = args.ausgangstext_text
+
+    if is_ib_paper1:
+        ausgangstext_text = _ib_paper1_source_text(ausgangstext_text, ausgangstext_path, nc)
+        # Paper 1 pilot feedback is formative: the result must not contain an
+        # automatically generated overall grade or IB 1–7 recommendation.
+        args.bewertungsmodus = "unbenotet"
 
     cancel_event = None
     if args.cancel_timeout:
@@ -176,6 +206,15 @@ def cmd_analyze(args):
             "erwartungshorizont": erwartungshorizont_text,
             "unterrichtseinsatz_id": args.einsatz_id,
             "material_id": args.material_id,
+            **({"ib_assessment": {
+                "programme": "ib-dp",
+                "course": "english-a-language-and-literature",
+                "language": "en",
+                "level": "sl",
+                "assessment_component": "paper1",
+                "feedback_mode": "formative",
+                "numeric_overall_grade": False,
+            }} if is_ib_paper1 else {}),
         },
         dichte_prompt_variante=getattr(args, "benchmark_fehlerdichte_prompt", "neutral"),
         land=getattr(args, "land", "at"),

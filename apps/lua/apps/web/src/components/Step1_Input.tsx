@@ -6,10 +6,12 @@ import { istUrlArtig, titelAusUrl } from '../lib/urlTitle';
 import { bereinigeQuelltext, fachLabel } from '@lehrunterlagen/schema';
 import type { Fach } from '@lehrunterlagen/schema';
 import { analysiereQuelltext } from '../lib/quelltextInfo';
+import { ibComponentLabel } from '../lib/ibPilot';
 
 interface Props {
   state: AppState;
   dispatch: React.Dispatch<AppAction>;
+  onEditIntent?: () => void;
 }
 
 function isTauri(): boolean {
@@ -106,11 +108,37 @@ function labelSchwierigkeit(value: string | undefined): string {
   return value ? labels[value] ?? value : '-';
 }
 
-export function Step1_Input({ state, dispatch }: Props) {
+export function Step1_Input({ state, dispatch, onEditIntent }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [urlInput, setUrlInput] = useState('');
   const [urlLoading, setUrlLoading] = useState(false);
   const [urlError, setUrlError] = useState<string | null>(null);
+  const ibAssessment = state.meta.ibAssessment;
+  const summaryRows: Array<[string, string]> = ibAssessment
+    ? [
+        ['Programm', 'IB Diploma Programme'],
+        ['Kurs', ibAssessment.course === 'german-a-literature' ? 'German A: Literature' : 'English A: Language and Literature'],
+        ['Niveau / Phase', `${ibAssessment.level.toUpperCase()} · ${ibAssessment.programmeYear === 'coursewide' ? 'DP1 und DP2' : ibAssessment.programmeYear.toUpperCase()}`],
+        ...(ibAssessment.examSession ? [['Prüfungssession', `${ibAssessment.examSession.session === 'may' ? 'Mai' : 'November'} ${ibAssessment.examSession.year}`] as [string, string]] : []),
+        ['Assessment', ibAssessment.course === 'german-a-literature'
+          ? ibComponentLabel(ibAssessment.assessmentComponent)
+          : 'Paper 1 · Guided textual analysis'],
+        ['Übungsform', ibAssessment.practiceMode === 'guided' ? 'Angeleitet' : ibAssessment.practiceMode === 'timed' ? 'Prüfungsnah' : 'Standard'],
+        ...(ibAssessment.guidingQuestion ? [['Leitfrage', ibAssessment.guidingQuestion] as [string, string]] : []),
+        ...(ibAssessment.globalIssue ? [['Global Issue', ibAssessment.globalIssue] as [string, string]] : []),
+        ...(ibAssessment.lineOfInquiry ? [['Line of Inquiry', ibAssessment.lineOfInquiry] as [string, string]] : []),
+        ...(ibAssessment.selectedWorks?.length ? [['Werke', ibAssessment.selectedWorks.map((work) => `${work.title} (${work.author})`).join('; ')] as [string, string]] : []),
+      ]
+    : [
+        ['Typ', labelTyp(state.meta.typ)],
+        ['Fach / Stufe', `${labelFach(state.meta.fach)} · ${labelStufe(state.meta.stufe)}`],
+        ['Thema', formatValue(state.meta.thema)],
+        ['Klasse', formatValue(state.meta.klasse)],
+        ['Datum', formatValue(state.meta.datum)],
+        ['Schwierigkeit', labelSchwierigkeit(state.meta.schwierigkeit)],
+        ['Lernziele', state.meta.lernziele?.length ? state.meta.lernziele.join(', ') : '-'],
+        ['Notizen', formatValue(state.meta.notizen)],
+      ];
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -195,7 +223,10 @@ export function Step1_Input({ state, dispatch }: Props) {
             Diese Angaben kommen aus deiner Absicht und werden beim Generieren verwendet.
           </p>
         </div>
-        <button className="btn-secondary" onClick={() => dispatch({ type: 'SET_STEP', step: 'absicht' })}>
+        <button className="btn-secondary" onClick={() => {
+          if (onEditIntent) onEditIntent();
+          else dispatch({ type: 'SET_STEP', step: 'absicht' });
+        }}>
           Bearbeiten
         </button>
       </div>
@@ -208,16 +239,7 @@ export function Step1_Input({ state, dispatch }: Props) {
         marginBottom: '1.5rem',
       }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem 1rem' }}>
-          {[
-            ['Typ', labelTyp(state.meta.typ)],
-            ['Fach / Stufe', `${labelFach(state.meta.fach)} · ${labelStufe(state.meta.stufe)}`],
-            ['Thema', formatValue(state.meta.thema)],
-            ['Klasse', formatValue(state.meta.klasse)],
-            ['Datum', formatValue(state.meta.datum)],
-            ['Schwierigkeit', labelSchwierigkeit(state.meta.schwierigkeit)],
-            ['Lernziele', state.meta.lernziele?.length ? state.meta.lernziele.join(', ') : '-'],
-            ['Notizen', formatValue(state.meta.notizen)],
-          ].map(([label, value]) => (
+          {summaryRows.map(([label, value]) => (
             <div key={label}>
               <div style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', fontWeight: 700, marginBottom: '0.125rem' }}>
                 {label}

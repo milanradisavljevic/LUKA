@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { buildMessages, buildRefinementMessages, nummeriereAbsaetze } from './prompt.js';
-import type { Meta } from '@lehrunterlagen/schema';
+import type { IBLiteratureWork, Meta } from '@lehrunterlagen/schema';
 
 const baseMeta: Meta = {
   stufe: 'oberstufe',
@@ -199,6 +199,100 @@ describe('buildMessages — gemeinsamer Vokabelpool', () => {
     });
     const user = messages.find((message) => message.role === 'user')?.content ?? '';
     expect(user).not.toContain('VOKABEL-MASTERSHEET (ausdruecklich ausgewaehlte Vorlage)');
+  });
+});
+
+describe('buildMessages — IB English A SL Paper 1 pilot', () => {
+  it('uses the teacher source unchanged and requests source-linked, evidence-based practice', () => {
+    const original = 'A synthetic notice: The city library will open late on Fridays. Bring your card.';
+    const messages = buildMessages({
+      ...input({ fach: 'englisch', rahmenwerk: 'ib-dp', modus: 'text', ibAssessment: {
+        programme: 'ib-dp', course: 'english-a-language-and-literature', language: 'en',
+        level: 'sl', programmeYear: 'coursewide', assessmentComponent: 'paper1',
+        syllabusVersion: 'first-teaching-2021', practiceMode: 'guided',
+        guidingQuestion: 'How does the writer use structure to address the audience?',
+      } }),
+      quelltexte: [{ id: 'q-paper-1', titel: 'Library notice', inhalt: original, herkunft: { typ: 'upload', ref: 'synthetic.txt' } }],
+      // Der UI-Entwurf entsteht vor dem Upload mit q1. Der Prompt muss die
+      // echte Quellen-ID nach dem Upload einsetzen.
+      bloecke: [{ typ: 'offeneSchreibaufgabe', punkte: 0, quelleId: 'q1', textsorte: 'analysis', situation: 'practice', umfangWorte: { min: 250, max: 350 }, aspekte: ['evidence'] }],
+    });
+    expect(messages[0]?.content).toContain('IB ENGLISH A: LANGUAGE AND LITERATURE — SL PAPER 1 PILOT');
+    expect(messages[0]?.content).toContain('Do not produce an IB 1–7 grade');
+    expect(messages[1]?.content).toContain(original);
+    expect(messages[1]?.content).toContain('q-paper-1');
+    expect(messages[1]?.content).toContain('evidence');
+    expect(messages[0]?.content).toContain('guided formative practice');
+    expect(messages[0]?.content).toContain('How does the writer use structure to address the audience?');
+  });
+});
+
+describe('buildMessages — German A: Literature SL/HL', () => {
+  const selectedWorks: IBLiteratureWork[] = [
+    { id: 'w-de', title: 'Werk auf Deutsch', author: 'Autorin A', literaryForm: 'drama', originalLanguage: 'de', selectionCategory: 'original-prl' },
+    { id: 'w-translated', title: 'Übersetztes Werk', author: 'Autor B', literaryForm: 'prose-fiction', originalLanguage: 'en', selectionCategory: 'translated-prl' },
+  ];
+
+  const germanInput = (level: 'sl' | 'hl', assessmentComponent: 'paper1' | 'paper2' | 'individual-oral' | 'hl-essay') => {
+    const sources = assessmentComponent === 'paper1' || assessmentComponent === 'individual-oral'
+      ? [
+          { id: 'source-a', titel: 'Text 1', inhalt: 'Erster synthetischer literarischer Text.', herkunft: { typ: 'upload' as const, ref: 'a.txt' } },
+          { id: 'source-b', titel: 'Text 2', inhalt: 'Zweiter synthetischer literarischer Text.', herkunft: { typ: 'upload' as const, ref: 'b.txt' } },
+        ]
+      : [];
+    return {
+      ...input({ fach: 'deutsch', rahmenwerk: 'ib-dp', modus: 'text', ibAssessment: {
+        programme: 'ib-dp', course: 'german-a-literature', language: 'de', level,
+        programmeYear: 'dp1', assessmentComponent, syllabusVersion: 'first-assessment-2026',
+        selectedWorks: assessmentComponent === 'paper1' ? undefined : assessmentComponent === 'hl-essay' ? [selectedWorks[0]!] : selectedWorks,
+        globalIssue: 'Macht und individuelle Freiheit', lineOfInquiry: 'Wie formt die Erzählperspektive die Wirkung?',
+        paper1LiteraryForms: ['drama', 'poetry'],
+        assessmentCriteria: [{ id: 'A', label: 'Verständnis und Interpretation', maxMarks: 5 }],
+      } }),
+      quelltexte: sources,
+      bloecke: assessmentComponent === 'paper1'
+        ? [
+            { typ: 'offeneSchreibaufgabe' as const, punkte: 20, quelleId: 'q1', textsorte: 'analysis', situation: 'practice', umfangWorte: { min: 250, max: 350 }, aspekte: ['Belege'] },
+            { typ: 'offeneSchreibaufgabe' as const, punkte: 20, quelleId: 'q2', textsorte: 'analysis', situation: 'practice', umfangWorte: { min: 250, max: 350 }, aspekte: ['Belege'] },
+          ]
+        : [{ typ: 'offeneSchreibaufgabe' as const, punkte: 20, textsorte: 'analysis', situation: 'practice', umfangWorte: assessmentComponent === 'hl-essay' ? { min: 1200, max: 1500 } : { min: 250, max: 350 }, aspekte: ['Belege'] }],
+    };
+  };
+
+  it('gibt SL Paper 1 als zwei verknüpfte Wahloptionen und HL als zwei Analysen aus', () => {
+    const sl = buildMessages(germanInput('sl', 'paper1'));
+    expect(sl[0]?.content).toContain('PAPER 1 SL');
+    expect(sl[0]?.content).toContain('genau ZWEI getrennte Schreibaufgaben als Wahloptionen');
+    expect(sl[0]?.content).toContain('Text 1 in der Form');
+    expect(sl[1]?.content).toContain('"quelleId":"source-b"');
+    const hl = buildMessages(germanInput('hl', 'paper1'));
+    expect(hl[0]?.content).toContain('PAPER 1 HL');
+    expect(hl[0]?.content).toContain('genau ZWEI');
+    expect(hl[1]?.content).toContain('"quelleId":"source-b"');
+    expect(hl[0]?.content).toContain('Erzeuge keine IB-Gesamtnote von 1–7');
+  });
+
+  it('verlangt bei Paper 2 einen vergleichenden Essay zu genau zwei Kurswerken', () => {
+    const messages = buildMessages(germanInput('sl', 'paper2'));
+    expect(messages[0]?.content).toContain('vier allgemeine literarische Essayfragen');
+    expect(messages[0]?.content).toContain('genau eine zu wählen');
+    expect(messages[0]?.content).toContain('explizit vergleichen');
+    expect(messages[1]?.content).toContain('Werk auf Deutsch');
+  });
+
+  it('hält das Individual Oral nicht-vergleichend und den HL Essay eigenständig', () => {
+    const oral = buildMessages(germanInput('sl', 'individual-oral'));
+    expect(oral[0]?.content).toContain('KEIN Vergleich der Werke');
+    expect(oral[0]?.content).toContain('10-minütigen vorbereiteten Vortrag');
+    const essay = buildMessages(germanInput('hl', 'hl-essay'));
+    expect(essay[0]?.content).toContain('1.200–1.500 Wörtern');
+    expect(essay[0]?.content).toContain('Schreibe KEINEN Musteressay');
+    const draft = buildMessages({
+      ...germanInput('hl', 'hl-essay'),
+      quelltexte: [{ id: 'student-draft', titel: 'Schülerentwurf', inhalt: 'Ein eigener synthetischer Entwurf.', herkunft: { typ: 'upload', ref: 'draft.txt' } }],
+    });
+    expect(draft[0]?.content).toContain('authentischer Schülerentwurf');
+    expect(draft[0]?.content).toContain('schreibe den Entwurf nicht um');
   });
 });
 
