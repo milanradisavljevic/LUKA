@@ -838,7 +838,8 @@ pub(crate) fn conn_assign_schueler_klasse(conn: &rusqlite::Connection, schueler_
     let class_name: String = conn.query_row("SELECT name FROM klasse_stammdaten WHERE id=?1", [klasse_id], |r| r.get(0))
         .optional().map_err(|e| format!("Klasse prüfen: {e}"))?
         .ok_or_else(|| "Die ausgewählte Klasse wurde nicht gefunden.".to_string())?;
-    conn.execute("INSERT OR IGNORE INTO schueler_klassen (schueler_id, klasse_id) VALUES (?1, ?2)",
+    conn.execute("INSERT INTO schueler_klassen (schueler_id, klasse_id) VALUES (?1, ?2) \
+                  ON CONFLICT(schueler_id, klasse_id) DO UPDATE SET status='aktiv', zugeordnet_am=CURRENT_TIMESTAMP",
         rusqlite::params![schueler_id, klasse_id])
         .map_err(|e| format!("Schüler Kurszuordnung speichern: {e}"))?;
     // `klasse` bleibt als Kompatibilitätswert für ältere NATASCHA-Aufgaben
@@ -854,17 +855,26 @@ pub async fn db_remove_schueler_klasse(
     state: tauri::State<'_, DbState>, schueler_id: i64, klasse_id: String,
 ) -> Result<(), String> {
     let guard = state.conn()?;
-    let conn = &*guard;
+    conn_remove_schueler_klasse(&guard, schueler_id, &klasse_id)
+}
+
+pub(crate) fn conn_remove_schueler_klasse(
+    conn: &rusqlite::Connection,
+    schueler_id: i64,
+    klasse_id: &str,
+) -> Result<(), String> {
     conn.execute("BEGIN IMMEDIATE", []).map_err(|e| format!("Kurszuordnung lösen starten: {e}"))?;
     let result = (|| -> rusqlite::Result<()> {
-        conn.execute("DELETE FROM schueler_klassen WHERE schueler_id=?1 AND klasse_id=?2", rusqlite::params![schueler_id, klasse_id])?;
+        // Als inaktive Zeile bleibt die bewusste Abmeldung erkennbar. Die
+        // idempotente Altbestandsmigration darf sie nicht wiederherstellen.
+        conn.execute("UPDATE schueler_klassen SET status='inaktiv' WHERE schueler_id=?1 AND klasse_id=?2", rusqlite::params![schueler_id, klasse_id])?;
         let fallback: Option<(String, String)> = conn.query_row(
             "SELECT sk.klasse_id,k.name FROM schueler_klassen sk JOIN klasse_stammdaten k ON k.id=sk.klasse_id \
              WHERE sk.schueler_id=?1 AND sk.status='aktiv' ORDER BY sk.zugeordnet_am LIMIT 1",
             [schueler_id], |r| Ok((r.get(0)?, r.get(1)?)),
         ).optional()?;
         let current: Option<String> = conn.query_row("SELECT klasse_id FROM schueler WHERE id=?1", [schueler_id], |r| r.get(0)).optional()?.flatten();
-        if current.as_deref() == Some(klasse_id.as_str()) {
+        if current.as_deref() == Some(klasse_id) {
             if let Some((next_id, next_name)) = fallback {
                 conn.execute("UPDATE schueler SET klasse_id=?1,klasse=?2 WHERE id=?3", rusqlite::params![next_id,next_name,schueler_id])?;
             } else {
@@ -1660,6 +1670,43 @@ mod tests {
         assert_eq!(confirmed.len(), 1);
         assert!(!confirmed[0].zuordnung_pruefen);
         assert!(list_schueler_by_class_id_impl(&conn, "year-b").unwrap().is_empty());
+    }
+
+    #[test]
+    fn entfernte_letzte_zuordnung_bleibt_nach_migration_inaktiv_und_reaktivierbar() {
+        let conn = Connection::open_in_memory().unwrap();
+        crate::db::init_schema(&conn).unwrap();
+        conn.execute(
+            "INSERT INTO lua_klassen (id,name,fach,schuljahr) VALUES ('class-7a','7A','deutsch','2026/27')",
+            [],
+        ).unwrap();
+        conn.execute(
+            "INSERT INTO klasse_stammdaten (id,name,fach,schuljahr) VALUES ('class-7a','7A','deutsch','2026/27')",
+            [],
+        ).unwrap();
+        let student_id = insert_schueler_with_class_id_impl(
+            &conn, "7A", "Mia", Some("Beispiel"), Some("class-7a"),
+        ).unwrap();
+
+        conn_remove_schueler_klasse(&conn, student_id, "class-7a").unwrap();
+        crate::db::init_schema(&conn).unwrap();
+
+        let removed: (Option<String>, String) = conn.query_row(
+            "SELECT klasse_id,(SELECT status FROM schueler_klassen WHERE schueler_id=?1 AND klasse_id='class-7a') \
+             FROM schueler WHERE id=?1",
+            [student_id], |row| Ok((row.get(0)?, row.get(1)?)),
+        ).unwrap();
+        assert_eq!(removed, (None, "inaktiv".to_string()));
+        assert!(list_schueler_by_class_id_impl(&conn, "class-7a").unwrap().is_empty());
+
+        conn_assign_schueler_klasse(&conn, student_id, "class-7a").unwrap();
+        crate::db::init_schema(&conn).unwrap();
+        let active: i64 = conn.query_row(
+            "SELECT COUNT(*) FROM schueler_klassen WHERE schueler_id=?1 AND klasse_id='class-7a' AND status='aktiv'",
+            [student_id], |row| row.get(0),
+        ).unwrap();
+        assert_eq!(active, 1);
+        assert_eq!(list_schueler_by_class_id_impl(&conn, "class-7a").unwrap().len(), 1);
     }
 
     #[test]

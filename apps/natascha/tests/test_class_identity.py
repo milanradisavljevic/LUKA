@@ -69,3 +69,32 @@ def test_reused_legacy_name_is_not_assigned_to_either_school_year(tmp_path):
     assert submission_id is None
     assert review_flags == 2
     assert snapshot == "7A"
+
+
+def test_explicitly_removed_membership_stays_inactive_after_migration(tmp_path):
+    path = tmp_path / "shared.db"
+    db.init_db(path)
+    with sqlite3.connect(path) as conn:
+        conn.execute(
+            "INSERT INTO klasse_stammdaten (id,name,fach,schuljahr) VALUES ('class-7a','7A','deutsch','2026/27')"
+        )
+        conn.execute("INSERT INTO schueler (klasse,vorname) VALUES ('7A','Mia')")
+        student_id = conn.execute("SELECT id FROM schueler WHERE vorname='Mia'").fetchone()[0]
+        conn.execute(
+            "INSERT INTO schueler_klassen (schueler_id,klasse_id,status) VALUES (?,'class-7a','inaktiv')",
+            (student_id,),
+        )
+
+    db.init_db(path)
+    db.init_db(path)
+    with sqlite3.connect(path) as conn:
+        membership = conn.execute(
+            "SELECT status FROM schueler_klassen WHERE schueler_id=? AND klasse_id='class-7a'",
+            (student_id,),
+        ).fetchone()
+        student_class_id = conn.execute(
+            "SELECT klasse_id FROM schueler WHERE id=?", (student_id,)
+        ).fetchone()[0]
+
+    assert membership == ("inaktiv",)
+    assert student_class_id is None

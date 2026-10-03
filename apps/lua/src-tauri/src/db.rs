@@ -270,7 +270,13 @@ fn migrate_class_identity_and_memberships(conn: &Connection) -> Result<(), Strin
            SELECT k.id FROM klasse_stammdaten k WHERE k.name=schueler.klasse COLLATE NOCASE \
              AND k.pruefung_noetig=0 AND trim(COALESCE(k.schuljahr,''))<>'' \
              AND (SELECT COUNT(*) FROM klasse_stammdaten x WHERE x.name=schueler.klasse COLLATE NOCASE)=1 \
-         ) WHERE klasse_id IS NULL; \
+         ) WHERE klasse_id IS NULL AND NOT EXISTS ( \
+           SELECT 1 FROM schueler_klassen sk JOIN klasse_stammdaten k ON k.id=sk.klasse_id \
+           WHERE sk.schueler_id=schueler.id AND sk.status='inaktiv' \
+             AND k.name=schueler.klasse COLLATE NOCASE AND k.pruefung_noetig=0 \
+             AND trim(COALESCE(k.schuljahr,''))<>'' \
+             AND (SELECT COUNT(*) FROM klasse_stammdaten x WHERE x.name=schueler.klasse COLLATE NOCASE)=1 \
+         ); \
          UPDATE abgabe SET klasse_id=( \
            SELECT k.id FROM klasse_stammdaten k WHERE k.name=abgabe.klasse COLLATE NOCASE \
              AND k.pruefung_noetig=0 AND trim(COALESCE(k.schuljahr,''))<>'' \

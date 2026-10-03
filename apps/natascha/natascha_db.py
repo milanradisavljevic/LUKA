@@ -344,8 +344,10 @@ def _migrate_klasse_stammdaten(conn: sqlite3.Connection) -> None:
             (class_id, name),
         )
         conn.execute(
-            "UPDATE schueler SET klasse_id=? WHERE klasse=? COLLATE NOCASE AND klasse_id IS NULL",
-            (class_id, name),
+            "UPDATE schueler SET klasse_id=? WHERE klasse=? COLLATE NOCASE AND klasse_id IS NULL "
+            "AND NOT EXISTS (SELECT 1 FROM schueler_klassen sk "
+            "WHERE sk.schueler_id=schueler.id AND sk.klasse_id=? AND sk.status='inaktiv')",
+            (class_id, name, class_id),
         )
         conn.execute(
             "UPDATE abgabe SET klasse_id=? WHERE klasse=? COLLATE NOCASE AND klasse_id IS NULL",

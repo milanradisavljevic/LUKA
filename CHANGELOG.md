@@ -15,6 +15,7 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 - Querverweise aus Korrekturen und Klassenliste öffnen den Schüler-Längsschnitt mit stabiler Klassen-ID. Bei mehrdeutigen Altklassen fragt LUKA nach einer Auswahl, statt Schülerlisten zu vermischen.
 - Der Klassenbereich zeigt Abgabezahlen auch für gleichnamige Klassen getrennt nach Klassen-ID; unsichere Altdaten ohne eindeutige Zuordnung bleiben als prüfbedürftig markiert.
 - Gleichnamige Klassen aus verschiedenen Schuljahren bleiben in der Übersicht und den Korrekturauswertungen getrennt. Unsichere Altdaten werden keiner Klasse zugerechnet.
+- Bewusst entfernte Kurszuordnungen bleiben nach erneutem Start entfernt und lassen sich später gezielt wieder aktivieren.
 - Geplante Stunden zeigen bestätigte Lernziele und ihre Korrekturquelle. Spätere Abrufchecks sind mit einer künftigen Stunde verknüpft und lassen sich von dort öffnen; verschobene Termine werden konsistent angezeigt.
 - Für neue Abrufchecks hält LUKA den Klassenstand fest und unterscheidet Teilnahme, Nichtteilnahme, offene Teilnahme und Antworten je Schüler/in. Alte Checks erhalten keine rückwirkend erfundene Anwesenheitsliste.
 - Spätere Änderungen an Check-Ergebnissen bleiben mit Zeitpunkt, alter und neuer Einstufung nachvollziehbar. Frühere Antworttexte werden dafür nicht erneut gespeichert.
