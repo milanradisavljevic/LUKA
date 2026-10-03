@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Users, TrendingUp, AlertTriangle, Loader2, BarChart3, ChevronRight, Trash2, UserPlus, UserMinus, Sparkles, Wand2, FileUp, User, School, Check, Archive } from 'lucide-react';
+import { Users, TrendingUp, AlertTriangle, Loader2, BarChart3, ChevronRight, Trash2, UserPlus, UserMinus, Sparkles, Wand2, FileUp, User, School, Archive } from 'lucide-react';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { EmptyState } from './_EmptyState';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, Legend, CartesianGrid } from 'recharts';
-import { useNatascha, type RubrikListe, type SchuelerInfo } from '../hooks/useNatascha';
+import { useNatascha, type SchuelerInfo } from '../hooks/useNatascha';
 import type { KlasseInfo } from '../lib/storage';
 import type { SchuelerProfilRow } from '../hooks/useNatascha';
 import { KATEGORIE_TO_BLOCKTYPEN, fehlerkorrekturZuerst, type NataschaPrefill, type BridgeBeispiel } from '../lib/nataschaBridge';
-import { FACH_META, fachLabel, stufeFromSchulstufe } from '@lehrunterlagen/schema';
+import { stufeFromSchulstufe } from '@lehrunterlagen/schema';
 import type { BlockTyp, Fach, Land, Stufe } from '@lehrunterlagen/schema';
 import { loadTeacherProfile } from '../lib/profile';
 import { ViewShell } from './_ViewShell';
@@ -53,7 +53,7 @@ interface SchuelerViewProps {
 }
 
 export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }: SchuelerViewProps = {}) {
-  const { listKlassen, listSchueler, insertSchueler, deleteSchueler, assignSchuelerToKlasse, removeSchuelerFromKlasse, addKlasse, addAufgabe, listRubrics, getSchuelerLaengsschnitt, generateSchuelerProfil, getSchuelerProfil, quelltextGet } = useNatascha();
+  const { listKlassen, listSchueler, insertSchueler, deleteSchueler, assignSchuelerToKlasse, removeSchuelerFromKlasse, getSchuelerLaengsschnitt, generateSchuelerProfil, getSchuelerProfil, quelltextGet } = useNatascha();
   const { klassen: bekannteKlassen, refresh: refreshKlassenMeta } = useKlassenMeta();
 
   const [klassen, setKlassen] = useState<KlasseInfoMitIdentitaet[]>([]);
@@ -69,14 +69,6 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
   const [neuVorname, setNeuVorname] = useState('');
   const [neuNachname, setNeuNachname] = useState('');
   const [adding, setAdding] = useState(false);
-  // Aufgabe-anlegen (Welle 4)
-  const [aufLabel, setAufLabel] = useState('');
-  const [aufFach, setAufFach] = useState('Deutsch');
-  const [aufStufe, setAufStufe] = useState('Oberstufe');
-  const [aufRubric, setAufRubric] = useState('');
-  const [rubrics, setRubrics] = useState<RubrikListe['rubrics']>([]);
-  const [aufBusy, setAufBusy] = useState(false);
-  const [aufMsg, setAufMsg] = useState<string | null>(null);
   const [profil, setProfil] = useState<SchuelerProfilRow | null>(null);
   const [profilBusy, setProfilBusy] = useState(false);
   const [profilError, setProfilError] = useState<string | null>(null);
@@ -97,25 +89,6 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
       .catch(() => { /* Profil ist optional; Step 0 verwendet dann den Profilwert selbst. */ });
     return () => { active = false; };
   }, []);
-
-  useEffect(() => {
-    listRubrics(aufFach, aufStufe).then((r) => { setRubrics(r.rubrics); setAufRubric(r.defaultRubric || r.rubrics[0]?.filename || ''); });
-  }, [listRubrics, aufFach, aufStufe]);
-
-  const handleAddAufgabe = useCallback(async () => {
-    const klasse = normalizeKlasse(neuKlasse || selectedKlasse || '');
-    if (!klasse || !aufLabel.trim()) { setAufMsg('Klasse und Bezeichnung erforderlich.'); return; }
-    setAufBusy(true); setAufMsg(null);
-    try {
-      try { await addKlasse(klasse); } catch { /* Klasse existiert evtl. schon — ok */ }
-      const res = await addAufgabe(klasse, aufLabel.trim(), { fach: aufFach, schulstufe: aufStufe, rubric: aufRubric });
-      setAufMsg(`Aufgabe „${res.aufgabe}" in ${klasse} angelegt (Rubrik: ${res.rubric || '—'}).`);
-      setAufLabel('');
-      await listKlassen().then(setKlassen);
-    } catch (e) {
-      setAufMsg(typeof e === 'string' ? e : e instanceof Error ? e.message : 'Anlegen fehlgeschlagen.');
-    } finally { setAufBusy(false); }
-  }, [neuKlasse, selectedKlasse, aufLabel, aufFach, aufStufe, aufRubric, addKlasse, addAufgabe, listKlassen]);
 
   const loadSchueler = useCallback(async (klasse: string, klasseId?: string | null) => {
     setSelectedKlasse(klasse);
@@ -586,36 +559,6 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
             )}
           </div>
 
-          <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--color-border)' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, marginBottom: '0.5rem' }}>Aufgabe anlegen (Rubrik)</div>
-            <input value={aufLabel} onChange={(e) => setAufLabel(e.target.value)} placeholder="Bezeichnung (z.B. Schularbeit 2)"
-              style={{ width: '100%', boxSizing: 'border-box', marginBottom: 4, fontSize: '0.75rem', padding: '0.25rem 0.4rem' }} />
-            <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
-              <select value={aufFach} onChange={(e) => setAufFach(e.target.value)} style={{ flex: 1, fontSize: '0.7rem' }}>
-                {Object.entries(FACH_META).map(([f, m]) => (
-                  <option key={f} value={m.label}>{m.label}</option>
-                ))}
-              </select>
-              <select value={aufStufe} onChange={(e) => setAufStufe(e.target.value)} style={{ flex: 1, fontSize: '0.7rem' }}>
-                <option>Oberstufe</option><option>Unterstufe</option>
-              </select>
-            </div>
-            <select value={aufRubric} onChange={(e) => setAufRubric(e.target.value)}
-              style={{ width: '100%', boxSizing: 'border-box', marginBottom: 6, fontSize: '0.7rem' }}>
-              {rubrics.length === 0 && <option value="">(keine Rubriken gefunden)</option>}
-              {rubrics.map((r) => <option key={r.filename} value={r.filename}>{r.titel || r.filename}</option>)}
-            </select>
-            <button className="btn-primary" disabled={aufBusy} onClick={handleAddAufgabe}
-              style={{ width: '100%', fontSize: '0.75rem', padding: '0.35rem' }}>
-              {aufBusy ? 'Anlegen …' : 'Aufgabe + Rubrik anlegen'}
-            </button>
-            {aufMsg && (
-              <p style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.7rem', marginTop: 4, marginBottom: 0, color: 'var(--color-text-secondary)' }}>
-                {aufMsg.startsWith('Aufgabe') && <Check size={13} aria-hidden="true" style={{ color: 'var(--color-success)' }} />}
-                {aufMsg}
-              </p>
-            )}
-          </div>
         </div>
 
         <div>

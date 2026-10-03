@@ -1451,8 +1451,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .textpane[data-fokus="true"] mark:not(.is-aktiv):not(.is-vorschau) {opacity:.4;}
 /* Nummer: nicht markierbar, damit sie beim Kopieren des Schülertexts nicht mitschreibt. */
 .textpane mark sup {font-family:'Ubuntu',Arial,sans-serif; font-size:.6em; font-weight:700; vertical-align:super; margin-left:1px; opacity:.75; user-select:none; -webkit-user-select:none;}
-/* Mehrdeutig: gleiche Farbe wie der Typ, aber gestrichelter Unterstrich. */
-.textpane mark[data-mehrdeutig="true"] {border-bottom-style:dashed !important;}
+/* Mehrdeutig: gestrichelter Rahmen zeigt, dass mehrere Fundstellen gemeint sein können. */
+.textpane mark[data-mehrdeutig="true"] {outline:1px dashed #777; outline-offset:1px;}
 
 @media (prefers-reduced-motion:reduce) { .textpane mark {transition:none;} }
 

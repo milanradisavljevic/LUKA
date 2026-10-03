@@ -5,6 +5,13 @@ Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 (auch andere Coding-Agents) — siehe `AGENTS.md`.
 
+## In Arbeit — 2026-10-04
+
+### Änderungen
+
+- Aufgaben und Bewertungsraster werden im Korrekturauftrag festgelegt; der Schülerbereich bleibt auf Klassen und Schüler konzentriert.
+- Kriteriennamen in der Einzelkorrektur sind verständlich formatiert. Fehlerstellen erscheinen als dezente Flächenmarkierungen statt farbiger Unterstreichungen.
+
 ## In Arbeit — 2026-10-03
 
 ### Änderungen

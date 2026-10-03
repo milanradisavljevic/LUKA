@@ -18,6 +18,7 @@ import { useKlassenMeta } from '../hooks/useKlassenMeta';
 import { einsatzAnzeigeDatum, formatEinsatzDatum } from '../lib/einsatz';
 import { ViewShell } from './_ViewShell';
 import { anzeigeName } from '../lib/anzeigeName';
+import { kriteriumAnzeige } from '../lib/kriteriumAnzeige';
 import { gruppiereRubriken, rubrikLabel, rubrikPasstZurTextsorte } from '../lib/rubrikAuswahl';
 import { InfoDot } from '../components/ui/InfoDot';
 import { isKorrekturReady, type KorrekturStatus } from '../lib/korrekturStatus';
@@ -151,10 +152,10 @@ function renderMarkierungen(
     ].filter(Boolean).join(' · ');
 
     const stil = seg.aktion === 'verworfen'
-      ? { background: '#99999922', borderBottom: '2px solid #999', textDecoration: 'line-through' as const, color: '#999' }
+      ? { background: '#99999922', borderRadius: '0.2em', padding: '0 0.06em', textDecoration: 'line-through' as const, color: '#777' }
       : seg.aktion === 'geaendert'
-        ? { background: '#9b59b628', borderBottom: '2px solid #9b59b6' }
-        : { background: (FEHLER_COLORS[seg.typ] ?? '#999') + (seg.aktion === 'uebernommen' ? '38' : '28'), borderBottom: `2px solid ${FEHLER_COLORS[seg.typ] ?? '#999'}` };
+        ? { background: '#9b59b628', borderRadius: '0.2em', padding: '0 0.06em' }
+        : { background: (FEHLER_COLORS[seg.typ] ?? '#999') + (seg.aktion === 'uebernommen' ? '38' : '28'), borderRadius: '0.2em', padding: '0 0.06em' };
 
     const klasse = ['mark', istAktiv && 'is-aktiv', istVorschau && 'is-vorschau'].filter(Boolean).join(' ');
     nodes.push(
@@ -1495,7 +1496,7 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }:
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.375rem' }}>
                           {selectedAbgabe.kriterien.map((k) => (
                             <div key={k.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.25rem 0.5rem', background: 'var(--color-bg-base)', borderRadius: 'var(--radius)' }}>
-                              <span style={{ fontSize: '0.8125rem' }}>{k.kriteriumName}</span>
+                              <span style={{ fontSize: '0.8125rem' }}>{kriteriumAnzeige(k.kriteriumName)}</span>
                               <span style={{ fontSize: '0.8125rem', fontWeight: 600 }}>
                                 {k.stufe !== null ? `${k.stufe.toFixed(1)}` : '—'}
                                 {k.gewichtung !== null ? ` (${(k.gewichtung * 100).toFixed(0)}%)` : ''}
