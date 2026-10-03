@@ -58,8 +58,46 @@ pub struct DbLoadAllResult {
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct KlasseInfo {
+    pub id: Option<String>,
     pub klasse: String,
     pub anzahl_abgaben: i64,
+}
+
+fn load_klassen(conn: &Connection) -> Result<Vec<KlasseInfo>, String> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT k.id, k.klasse, COALESCE(a.cnt, 0) AS cnt \
+         FROM ( \
+           SELECT id, name AS klasse FROM lua_klassen \
+           UNION ALL \
+           SELECT NULL AS id, legacy.klasse FROM ( \
+             SELECT DISTINCT klasse FROM abgabe \
+             UNION SELECT DISTINCT klasse FROM schueler \
+           ) legacy \
+           WHERE NOT EXISTS (SELECT 1 FROM lua_klassen known WHERE known.name=legacy.klasse COLLATE NOCASE) \
+         ) k \
+         LEFT JOIN ( \
+           SELECT klasse_id AS id, NULL AS legacy_name, COUNT(*) AS cnt FROM abgabe \
+             WHERE klasse_id IS NOT NULL GROUP BY klasse_id \
+           UNION ALL \
+           SELECT NULL AS id, klasse AS legacy_name, COUNT(*) AS cnt FROM abgabe \
+             WHERE klasse_id IS NULL GROUP BY klasse \
+         ) a ON (k.id IS NOT NULL AND a.id=k.id) \
+           OR (k.id IS NULL AND a.id IS NULL AND a.legacy_name=k.klasse) \
+         ORDER BY k.klasse, k.id",
+        )
+        .map_err(|e| format!("prepare klassen: {e}"))?;
+    let rows = stmt
+        .query_map([], |row| {
+            Ok(KlasseInfo {
+                id: row.get(0)?,
+                klasse: row.get(1)?,
+                anzahl_abgaben: row.get(2)?,
+            })
+        })
+        .map_err(|e| format!("query klassen: {e}"))?;
+    rows.map(|row| row.map_err(|e| format!("row klassen: {e}")))
+        .collect()
 }
 
 #[tauri::command]
@@ -138,26 +176,9 @@ pub async fn db_load_all(state: tauri::State<'_, DbState>) -> Result<DbLoadAllRe
         serde_json::to_string(&tpl_array).unwrap_or_else(|_| "[]".to_string())
     };
 
-    let mut klassen = Vec::new();
-    {
-        // Klassen aus Abgaben UND Schülern (damit eine neu angelegte Klasse ohne
-        // Abgaben trotzdem erscheint). anzahlAbgaben = 0, falls noch keine Abgabe.
-        let mut stmt = conn.prepare(
-            "SELECT k.klasse, COALESCE(a.cnt, 0) AS cnt \
-             FROM (SELECT DISTINCT klasse FROM abgabe UNION SELECT DISTINCT klasse FROM schueler) k \
-             LEFT JOIN (SELECT klasse, COUNT(*) AS cnt FROM abgabe GROUP BY klasse) a ON a.klasse = k.klasse \
-             ORDER BY k.klasse",
-        ).map_err(|e| format!("prepare klassen: {}", e))?;
-        let rows = stmt.query_map([], |row| {
-            Ok(KlasseInfo {
-                klasse: row.get(0)?,
-                anzahl_abgaben: row.get(1)?,
-            })
-        }).map_err(|e| format!("query klassen: {}", e))?;
-        for row in rows {
-            klassen.push(row.map_err(|e| format!("row klassen: {}", e))?);
-        }
-    }
+    // Stable identities keep same-named classes apart. Unlinked historic
+    // submissions stay visible only for legacy names without class metadata.
+    let klassen = load_klassen(conn)?;
 
     let db_path = db::resolve_db_path().to_string_lossy().to_string();
 
@@ -533,4 +554,60 @@ pub async fn db_restore_from_backup(
     }
 
     Ok(current_db.to_string_lossy().to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::load_klassen;
+    use rusqlite::Connection;
+
+    #[test]
+    fn klassenliste_trennt_gleichnamige_jahre_und_zaehlt_legacy_namen_nur_eindeutig() {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(
+            "CREATE TABLE lua_klassen (id TEXT PRIMARY KEY, name TEXT NOT NULL);
+             CREATE TABLE abgabe (klasse TEXT NOT NULL, klasse_id TEXT);
+             CREATE TABLE schueler (klasse TEXT NOT NULL, klasse_id TEXT);
+             INSERT INTO lua_klassen (id,name) VALUES ('jahr-alt','7A'),('jahr-neu','7A');
+             INSERT INTO abgabe (klasse,klasse_id) VALUES
+               ('7A','jahr-alt'),('7A Alt','jahr-alt'),('7A','jahr-neu'),('7A','jahr-neu'),
+               ('7A',NULL),('7a',NULL),('8B',NULL);
+             INSERT INTO schueler (klasse,klasse_id) VALUES ('9C',NULL);",
+        ).unwrap();
+
+        let klassen = load_klassen(&conn).unwrap();
+        let alt = klassen
+            .iter()
+            .find(|klasse| klasse.id.as_deref() == Some("jahr-alt"))
+            .unwrap();
+        let neu = klassen
+            .iter()
+            .find(|klasse| klasse.id.as_deref() == Some("jahr-neu"))
+            .unwrap();
+        let legacy = klassen
+            .iter()
+            .find(|klasse| klasse.id.is_none() && klasse.klasse == "8B")
+            .unwrap();
+        let ohne_abgaben = klassen
+            .iter()
+            .find(|klasse| klasse.id.is_none() && klasse.klasse == "9C")
+            .unwrap();
+
+        assert_eq!(alt.anzahl_abgaben, 2);
+        assert_eq!(neu.anzahl_abgaben, 2);
+        assert_eq!(legacy.anzahl_abgaben, 1);
+        assert_eq!(ohne_abgaben.anzahl_abgaben, 0);
+        // Nicht verknüpfte 7A-Abgaben sind mehrdeutig und dürfen nicht beiden
+        // Schuljahren als vermeintlich eigene Ergebnisse zugeschlagen werden.
+        assert_eq!(
+            klassen
+                .iter()
+                .filter(|klasse| klasse.klasse == "7A")
+                .count(),
+            2
+        );
+        assert!(!klassen.iter().any(|klasse| {
+            klasse.id.is_none() && klasse.klasse.eq_ignore_ascii_case("7A")
+        }));
+    }
 }

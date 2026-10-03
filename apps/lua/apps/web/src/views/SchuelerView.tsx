@@ -41,6 +41,8 @@ const TREND_LABELS: Record<string, string> = {
   sprachrichtigkeit: 'Sprachrichtigkeit',
 };
 
+type KlasseInfoMitIdentitaet = KlasseInfo & { id?: string | null };
+
 interface SchuelerViewProps {
   /** Cross-Nav-Vorauswahl (aus der Korrektur). */
   preselect?: { klasse: string; id: number } | null;
@@ -54,7 +56,7 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
   const { listKlassen, listSchueler, insertSchueler, deleteSchueler, assignSchuelerToKlasse, removeSchuelerFromKlasse, addKlasse, addAufgabe, listRubrics, getSchuelerLaengsschnitt, generateSchuelerProfil, getSchuelerProfil, quelltextGet } = useNatascha();
   const { klassen: bekannteKlassen } = useKlassenMeta();
 
-  const [klassen, setKlassen] = useState<KlasseInfo[]>([]);
+  const [klassen, setKlassen] = useState<KlasseInfoMitIdentitaet[]>([]);
   const [selectedKlasse, setSelectedKlasse] = useState<string | null>(null);
   const [selectedKlasseId, setSelectedKlasseId] = useState<string | null>(null);
   const [schueler, setSchueler] = useState<SchuelerInfo[]>([]);
@@ -348,7 +350,11 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
   const sichtbareKlassen = [
     ...bekannteKlassen.map((meta) => ({
       klasse: meta.name,
-      anzahlAbgaben: klassen.find((item) => item.klasse === meta.name)?.anzahlAbgaben ?? 0,
+      anzahlAbgaben: meta.id
+        ? klassen.find((item) => item.id === meta.id)?.anzahlAbgaben ?? 0
+        : klassen.filter((item) => item.klasse.toLocaleLowerCase('de') === meta.name.toLocaleLowerCase('de')).length === 1
+          ? klassen.find((item) => item.klasse.toLocaleLowerCase('de') === meta.name.toLocaleLowerCase('de'))?.anzahlAbgaben ?? 0
+          : 0,
       id: meta.id ?? undefined,
       meta,
     })),
@@ -390,7 +396,12 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
                   borderRadius: 'var(--radius)', cursor: 'pointer',
                 }}
               >
-                {k.klasse} <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.75rem' }}>({k.anzahlAbgaben})</span>
+                <span>{k.klasse} <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.75rem' }}>({k.anzahlAbgaben})</span></span>
+                {k.meta && [k.meta.fach, k.meta.schuljahr].some(Boolean) && (
+                  <small style={{ display: 'block', marginTop: '0.125rem', color: 'var(--color-text-secondary)', fontSize: '0.675rem' }}>
+                    {[k.meta.fach, k.meta.schuljahr].filter(Boolean).join(' · ')}
+                  </small>
+                )}
               </button>
               {selectedKlasse === k.klasse && selectedKlasseId === (k.id ?? null) && schueler.length > 0 && (
                 <div style={{ paddingLeft: '0.75rem', marginBottom: '0.5rem' }}>
