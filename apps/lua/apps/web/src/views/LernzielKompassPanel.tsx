@@ -3,7 +3,7 @@ import { CheckCircle2, ClipboardCheck, Loader2, Plus, Save } from 'lucide-react'
 import type { KlasseMeta } from '../hooks/useKlassenMeta';
 import { useNatascha, type SchuelerInfo } from '../hooks/useNatascha';
 import { useEinsatz, type EinsatzRecord } from '../hooks/useEinsatz';
-import { useLernzielKompass, type AbrufCheck, type AbrufCheckTeilnahme, type LernzielEvidenz, type LernzielFokus } from '../hooks/useLernzielKompass';
+import { useLernzielKompass, type AbrufCheck, type AbrufCheckErgebnisAenderung, type AbrufCheckTeilnahme, type LernzielEvidenz, type LernzielFokus } from '../hooks/useLernzielKompass';
 import { ausgangsstundenOptions, isoDatum, spaetereCheckStunden, vorgeschlageneCheckStunde } from '../lib/lernzielKompassTermine';
 import { heuteIso } from '../lib/lokalDatum';
 
@@ -32,6 +32,16 @@ function readableDate(value: string | null | undefined): string {
   return Number.isNaN(parsed.getTime()) ? date : parsed.toLocaleDateString('de-DE');
 }
 
+function readableTimestamp(value: string): string {
+  const normalized = value.includes('T') ? value : `${value.replace(' ', 'T')}Z`;
+  const parsed = new Date(normalized);
+  return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' });
+}
+
+const ERGEBNIS_LABELS: Record<AbrufCheckErgebnisAenderung['ergebnisVorher'], string> = {
+  richtig: 'Ziel erreicht', teilweise: 'Teilweise gezeigt', noch_nicht: 'Noch nicht gezeigt',
+};
+
 function formatPeriod(from: string | null, to: string | null): string {
   if (!from && !to) return 'Zeitraum unbekannt';
   if (from && to && dateOnly(from) !== dateOnly(to)) return `${readableDate(from)} bis ${readableDate(to)}`;
@@ -52,7 +62,7 @@ function optionen(check: AbrufCheck): string[] {
 export function LernzielKompassPanel({ klasse, klasseName, aufgabe, abrufcheckId }: Props & { abrufcheckId?: string | null }) {
   const { listSchueler } = useNatascha();
   const { list: listEinsaetze } = useEinsatz();
-  const { evidenz, listFokus, bestaetigen, ausgangsstundeVerbinden, listChecks, listTeilnahme, teilnahmeSpeichern, erstellen, ergebnisSpeichern } = useLernzielKompass();
+  const { evidenz, listFokus, bestaetigen, ausgangsstundeVerbinden, listChecks, listTeilnahme, listErgebnisAenderungen, teilnahmeSpeichern, erstellen, ergebnisSpeichern } = useLernzielKompass();
   const [evidenzZeilen, setEvidenzZeilen] = useState<LernzielEvidenz[]>([]);
   const [fokus, setFokus] = useState<LernzielFokus[]>([]);
   const [checks, setChecks] = useState<AbrufCheck[]>([]);
@@ -77,6 +87,9 @@ export function LernzielKompassPanel({ klasse, klasseName, aufgabe, abrufcheckId
   const [antwortEntwuerfe, setAntwortEntwuerfe] = useState<Record<number, string>>({});
   const [auswertungen, setAuswertungen] = useState<Record<number, 'richtig' | 'teilweise' | 'noch_nicht'>>({});
   const [teilnahmeBusyId, setTeilnahmeBusyId] = useState<number | null>(null);
+  const [ergebnisAenderungen, setErgebnisAenderungen] = useState<Record<string, AbrufCheckErgebnisAenderung[]>>({});
+  const [offenerVerlauf, setOffenerVerlauf] = useState<string | null>(null);
+  const [verlaufBusy, setVerlaufBusy] = useState<string | null>(null);
 
   useEffect(() => { setAusgangsstundenId(''); setLegacyStundenIds({}); }, [klasse?.id]);
 
@@ -201,12 +214,32 @@ export function LernzielKompassPanel({ klasse, klasseName, aufgabe, abrufcheckId
         antwort: answerText, ergebnis: selectedCheck.antwortmodus === 'offen' ? (auswertungen[targetStudentId] ?? 'noch_nicht') : null });
       await reload();
       setTeilnahmen(await listTeilnahme(selectedCheck.id));
+      setErgebnisAenderungen((current) => {
+        const next = { ...current };
+        delete next[`${selectedCheck.id}:${targetStudentId}`];
+        return next;
+      });
       setMessage(selectedCheck.antwortmodus === 'auswahl'
         ? `Antwort lokal als „${result === 'richtig' ? 'richtig' : 'noch nicht richtig'}“ geprüft.`
         : 'Antwort und Lehrkraftauswertung gespeichert.');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
     } finally { setBusy(false); }
+  };
+
+  const toggleErgebnisVerlauf = async (student: AbrufCheckTeilnahme) => {
+    if (!selectedCheck || student.aenderungAnzahl === 0) return;
+    const key = `${selectedCheck.id}:${student.schuelerId}`;
+    if (offenerVerlauf === key) { setOffenerVerlauf(null); return; }
+    setOffenerVerlauf(key);
+    if (Object.prototype.hasOwnProperty.call(ergebnisAenderungen, key)) return;
+    setVerlaufBusy(key); setError(null);
+    try {
+      const rows = await listErgebnisAenderungen(selectedCheck.id, student.schuelerId);
+      setErgebnisAenderungen((current) => ({ ...current, [key]: rows }));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+    } finally { setVerlaufBusy(null); }
   };
 
   const saveAttendance = async (student: AbrufCheckTeilnahme, status: AbrufCheckTeilnahme['status']) => {
@@ -233,7 +266,7 @@ export function LernzielKompassPanel({ klasse, klasseName, aufgabe, abrufcheckId
     const currentIds = new Set(students.filter((student) => !student.zuordnungPruefen).map((student) => student.id));
     const currentRoster = students.filter((student) => !student.zuordnungPruefen).map((student) => recorded.get(student.id) ?? ({
       schuelerId: student.id, vorname: student.vorname, nachname: student.nachname,
-      status: 'offen' as const, antwort: null, ergebnis: null,
+      status: 'offen' as const, antwort: null, ergebnis: null, aenderungAnzahl: 0,
     }));
     return [...currentRoster, ...teilnahmen.filter((row) => !currentIds.has(row.schuelerId))];
   }, [selectedCheck, students, teilnahmen]);
@@ -386,7 +419,10 @@ export function LernzielKompassPanel({ klasse, klasseName, aufgabe, abrufcheckId
           {visibleParticipation.map((student) => {
             const answerDraft = antwortEntwuerfe[student.schuelerId] ?? student.antwort ?? '';
             const hasSavedAnswer = student.ergebnis !== null;
-            return <article key={student.schuelerId} style={{ display: 'grid', gridTemplateColumns: 'minmax(145px, .7fr) minmax(140px, .6fr) minmax(210px, 1.4fr) auto', gap: 8, alignItems: 'end', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', padding: '.6rem' }}>
+            const historyKey = `${selectedCheck.id}:${student.schuelerId}`;
+            const historyOpen = offenerVerlauf === historyKey;
+            return <div key={student.schuelerId} style={{ display: 'grid', gap: 5 }}>
+            <article style={{ display: 'grid', gridTemplateColumns: 'minmax(145px, .7fr) minmax(140px, .6fr) minmax(210px, 1.4fr) auto', gap: 8, alignItems: 'end', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', padding: '.6rem' }}>
               <strong style={{ alignSelf: 'center' }}>{studentName(student)}</strong>
               <label style={{ fontSize: '0.78rem' }}>Teilnahme
                 <select value={student.status} disabled={busy || teilnahmeBusyId === student.schuelerId || !selectedCheck.terminGueltig}
@@ -412,10 +448,25 @@ export function LernzielKompassPanel({ klasse, klasseName, aufgabe, abrufcheckId
                   </label>
                 </>}
               </div>}
-              {student.status === 'abwesend' ? <span /> : <button className="btn-secondary" disabled={busy || !selectedCheck.terminGueltig || !answerDraft.trim()} onClick={() => void saveAnswer(student.schuelerId, answerDraft)}>
-                <Save size={14} style={{ verticalAlign: -2, marginRight: 4 }} />{hasSavedAnswer ? 'Antwort aktualisieren' : 'Antwort speichern'}
-              </button>}
-            </article>;
+              <div style={{ display: 'flex', gap: 5, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                {student.status !== 'abwesend' && <button className="btn-secondary" disabled={busy || !selectedCheck.terminGueltig || !answerDraft.trim()} onClick={() => void saveAnswer(student.schuelerId, answerDraft)}>
+                  <Save size={14} style={{ verticalAlign: -2, marginRight: 4 }} />{hasSavedAnswer ? 'Antwort aktualisieren' : 'Antwort speichern'}
+                </button>}
+                {student.aenderungAnzahl > 0 && <button className="btn-secondary" aria-expanded={historyOpen} onClick={() => void toggleErgebnisVerlauf(student)}>
+                  {verlaufBusy === historyKey ? 'Verlauf lädt …' : `${historyOpen ? 'Verlauf schließen' : 'Änderungen'} (${student.aenderungAnzahl})`}
+                </button>}
+              </div>
+            </article>
+            {historyOpen && <div style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', padding: '.6rem .75rem', fontSize: '.78rem', color: 'var(--color-text-secondary)' }}>
+              <strong style={{ color: 'var(--color-text)' }}>Änderungsverlauf</strong>
+              {ergebnisAenderungen[historyKey]?.length ? <ol style={{ margin: '.35rem 0 0', paddingLeft: '1.2rem' }}>
+                {ergebnisAenderungen[historyKey].map((change) => <li key={change.id}>
+                  {readableTimestamp(change.geaendertAm)} · Einstufung: „{ERGEBNIS_LABELS[change.ergebnisVorher]}“ → „{ERGEBNIS_LABELS[change.ergebnisNachher]}“
+                  {change.antwortGeaendert ? ' · Antwort geändert; der frühere Antworttext wird nicht gespeichert.' : ''}
+                </li>)}
+              </ol> : <p style={{ margin: '.3rem 0 0' }}>{verlaufBusy === historyKey ? 'Änderungen werden geladen …' : 'Keine Änderungen vorhanden.'}</p>}
+            </div>}
+            </div>;
           })}
         </div>}
         <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: '0.5rem 1rem', fontSize: '0.82rem' }}>

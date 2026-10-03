@@ -153,6 +153,22 @@ CREATE TABLE IF NOT EXISTS abrufcheck_ergebnis (
 );
 CREATE INDEX IF NOT EXISTS idx_abrufcheck_ergebnis_check ON abrufcheck_ergebnis(abrufcheck_id);
 
+-- Korrekturen bleiben für die diagnostische Nachvollziehbarkeit sichtbar,
+-- ohne frühere freie Schülerantworten erneut zu speichern.
+CREATE TABLE IF NOT EXISTS abrufcheck_ergebnis_aenderung (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    abrufcheck_id TEXT NOT NULL REFERENCES abrufcheck(id) ON DELETE CASCADE,
+    schueler_id INTEGER NOT NULL REFERENCES schueler(id) ON DELETE CASCADE,
+    antwort_geaendert INTEGER NOT NULL CHECK (antwort_geaendert IN (0, 1)),
+    ergebnis_vorher TEXT NOT NULL CHECK (ergebnis_vorher IN ('richtig', 'teilweise', 'noch_nicht')),
+    ergebnis_nachher TEXT NOT NULL CHECK (ergebnis_nachher IN ('richtig', 'teilweise', 'noch_nicht')),
+    ausgewertet_von_vorher TEXT NOT NULL CHECK (ausgewertet_von_vorher IN ('lokal', 'lehrkraft')),
+    ausgewertet_von_nachher TEXT NOT NULL CHECK (ausgewertet_von_nachher IN ('lokal', 'lehrkraft')),
+    geaendert_am TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_abrufcheck_aenderung_pair
+    ON abrufcheck_ergebnis_aenderung(abrufcheck_id, schueler_id, id);
+
 -- Evidenzschicht zwischen erzeugtem Material, Klasse und späterer Auswertung.
 -- Die Identitätsfelder bleiben bewusst nullable und werden im Rust-Code validiert;
 -- NATASCHA kennt diese LUA-eigenen Tabellen nicht.

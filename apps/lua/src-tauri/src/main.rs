@@ -142,6 +142,7 @@ fn main() {
             commands::lernziel::abrufcheck_teilnahme_speichern,
             commands::lernziel::abrufcheck_erstellen,
             commands::lernziel::abrufcheck_ergebnis_speichern,
+            commands::lernziel::abrufcheck_ergebnis_aenderungen_list,
             commands::feedback::submit_bug_report,
         ])
         .run(tauri::generate_context!())

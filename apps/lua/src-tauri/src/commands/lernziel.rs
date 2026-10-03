@@ -81,6 +81,19 @@ pub struct AbrufCheckTeilnahme {
     pub status: String,
     pub antwort: Option<String>,
     pub ergebnis: Option<String>,
+    pub aenderung_anzahl: i64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AbrufCheckErgebnisAenderung {
+    pub id: i64,
+    pub geaendert_am: String,
+    pub antwort_geaendert: bool,
+    pub ergebnis_vorher: String,
+    pub ergebnis_nachher: String,
+    pub ausgewertet_von_vorher: String,
+    pub ausgewertet_von_nachher: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -439,13 +452,15 @@ pub(crate) fn abrufcheck_teilnahme_list_impl(
 ) -> Result<Vec<AbrufCheckTeilnahme>, String> {
     let mut stmt = conn.prepare(
         "SELECT * FROM ( \
-           SELECT s.id,s.vorname,s.nachname,COALESCE(t.status,'anwesend'),r.antwort,r.ergebnis \
+           SELECT s.id,s.vorname,s.nachname,COALESCE(t.status,'anwesend'),r.antwort,r.ergebnis, \
+                  (SELECT COUNT(*) FROM abrufcheck_ergebnis_aenderung h WHERE h.abrufcheck_id=c.id AND h.schueler_id=s.id) \
              FROM abrufcheck c JOIN abrufcheck_ergebnis r ON r.abrufcheck_id=c.id \
              JOIN schueler s ON s.id=r.schueler_id \
              LEFT JOIN abrufcheck_teilnahme t ON t.abrufcheck_id=c.id AND t.schueler_id=s.id \
             WHERE c.id=?1 AND t.schueler_id IS NULL \
            UNION ALL \
-           SELECT s.id,s.vorname,s.nachname,t.status,r.antwort,r.ergebnis \
+           SELECT s.id,s.vorname,s.nachname,t.status,r.antwort,r.ergebnis, \
+                  (SELECT COUNT(*) FROM abrufcheck_ergebnis_aenderung h WHERE h.abrufcheck_id=t.abrufcheck_id AND h.schueler_id=s.id) \
              FROM abrufcheck_teilnahme t JOIN schueler s ON s.id=t.schueler_id \
              LEFT JOIN abrufcheck_ergebnis r ON r.abrufcheck_id=t.abrufcheck_id AND r.schueler_id=t.schueler_id \
             WHERE t.abrufcheck_id=?1 \
@@ -460,11 +475,48 @@ pub(crate) fn abrufcheck_teilnahme_list_impl(
                 status: r.get(3)?,
                 antwort: r.get(4)?,
                 ergebnis: r.get(5)?,
+                aenderung_anzahl: r.get(6)?,
             })
         })
         .map_err(|e| format!("Check-Teilnahmeliste abfragen: {e}"))?;
     rows.collect::<Result<Vec<_>, _>>()
         .map_err(|e| format!("Check-Teilnahmeliste lesen: {e}"))
+}
+
+#[tauri::command]
+pub async fn abrufcheck_ergebnis_aenderungen_list(
+    state: tauri::State<'_, DbState>,
+    abrufcheck_id: String,
+    schueler_id: i64,
+) -> Result<Vec<AbrufCheckErgebnisAenderung>, String> {
+    let conn = state.conn()?;
+    abrufcheck_ergebnis_aenderungen_list_impl(&conn, &abrufcheck_id, schueler_id)
+}
+
+pub(crate) fn abrufcheck_ergebnis_aenderungen_list_impl(
+    conn: &Connection,
+    abrufcheck_id: &str,
+    schueler_id: i64,
+) -> Result<Vec<AbrufCheckErgebnisAenderung>, String> {
+    let mut stmt = conn.prepare(
+        "SELECT id,geaendert_am,antwort_geaendert,ergebnis_vorher,ergebnis_nachher, \
+                ausgewertet_von_vorher,ausgewertet_von_nachher \
+           FROM abrufcheck_ergebnis_aenderung \
+          WHERE abrufcheck_id=?1 AND schueler_id=?2 ORDER BY id",
+    ).map_err(|e| format!("Check-Änderungsverlauf vorbereiten: {e}"))?;
+    let rows = stmt.query_map(params![abrufcheck_id, schueler_id], |r| {
+        Ok(AbrufCheckErgebnisAenderung {
+            id: r.get(0)?,
+            geaendert_am: r.get(1)?,
+            antwort_geaendert: r.get::<_, i64>(2)? != 0,
+            ergebnis_vorher: r.get(3)?,
+            ergebnis_nachher: r.get(4)?,
+            ausgewertet_von_vorher: r.get(5)?,
+            ausgewertet_von_nachher: r.get(6)?,
+        })
+    }).map_err(|e| format!("Check-Änderungsverlauf abfragen: {e}"))?;
+    rows.collect::<Result<Vec<_>, _>>()
+        .map_err(|e| format!("Check-Änderungsverlauf lesen: {e}"))
 }
 
 #[tauri::command]
@@ -730,6 +782,37 @@ pub(crate) fn abrufcheck_ergebnis_speichern_impl(
     conn.execute_batch("SAVEPOINT save_abrufcheck_ergebnis")
         .map_err(|e| format!("Check-Ergebnis-Speicherung vorbereiten: {e}"))?;
     let save_result = (|| -> Result<(), String> {
+        let previous: Option<(String, String, String)> = conn.query_row(
+            "SELECT antwort,ergebnis,ausgewertet_von FROM abrufcheck_ergebnis \
+              WHERE abrufcheck_id=?1 AND schueler_id=?2",
+            params![meta.abrufcheck_id, meta.schueler_id],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+        ).optional().map_err(|e| format!("Vorheriges Check-Ergebnis lesen: {e}"))?;
+
+        if let Some((previous_answer, previous_result, previous_scored_by)) = previous {
+            let answer_changed = previous_answer != answer;
+            let result_changed = previous_result != result;
+            let scored_by_changed = previous_scored_by != scored_by;
+            if answer_changed || result_changed || scored_by_changed {
+                conn.execute(
+                    "INSERT INTO abrufcheck_ergebnis_aenderung \
+                     (abrufcheck_id,schueler_id,antwort_geaendert,ergebnis_vorher,ergebnis_nachher, \
+                      ausgewertet_von_vorher,ausgewertet_von_nachher,geaendert_am) \
+                     VALUES (?1,?2,?3,?4,?5,?6,?7,?8)",
+                    params![
+                        meta.abrufcheck_id,
+                        meta.schueler_id,
+                        answer_changed as i64,
+                        previous_result,
+                        result,
+                        previous_scored_by,
+                        scored_by,
+                        now,
+                    ],
+                ).map_err(|e| format!("Check-Ergebnisänderung protokollieren: {e}"))?;
+            }
+        }
+
         conn.execute(
             "INSERT INTO abrufcheck_teilnahme (abrufcheck_id,schueler_id,status,updated_at) \
              VALUES (?1,?2,'anwesend',?3) \
@@ -739,7 +822,7 @@ pub(crate) fn abrufcheck_ergebnis_speichern_impl(
         conn.execute(
             "INSERT INTO abrufcheck_ergebnis (id,abrufcheck_id,schueler_id,antwort,ergebnis,ausgewertet_von,erstellt_am) \
              VALUES (?1,?2,?3,?4,?5,?6,?7) ON CONFLICT(abrufcheck_id,schueler_id) DO UPDATE SET \
-             antwort=excluded.antwort,ergebnis=excluded.ergebnis,ausgewertet_von=excluded.ausgewertet_von,erstellt_am=excluded.erstellt_am",
+             antwort=excluded.antwort,ergebnis=excluded.ergebnis,ausgewertet_von=excluded.ausgewertet_von",
             params![id, meta.abrufcheck_id, meta.schueler_id, answer, result, scored_by, now],
         ).map_err(|e| format!("Check-Ergebnis speichern: {e}"))?;
         Ok(())
@@ -1034,6 +1117,72 @@ mod tests {
             }
         )
         .is_err());
+    }
+
+    #[test]
+    fn nachtraegliche_aenderungen_halten_einstufung_aber_keinen_alten_antworttext_fest() {
+        let conn = setup();
+        let fokus = lernziel_fokus_bestaetigen_impl(
+            &conn,
+            LernzielFokusNeu {
+                klasse_id: "k1".into(),
+                klasse_name_snapshot: "7A".into(),
+                lernziel: "Verbformen unterscheiden".into(),
+                fehler_typ: "G".into(),
+                aufgabe_snapshot: "Aufsatz".into(),
+                ausgangseinsatz_id: "e0".into(),
+            },
+        ).unwrap();
+        let check = abrufcheck_erstellen_impl(
+            &conn,
+            AbrufCheckNeu {
+                fokus_id: fokus.id,
+                einsatz_id: "e1".into(),
+                antwortmodus: "offen".into(),
+                frage: "Schreibe einen Satz mit passender Verbform.".into(),
+                optionen: vec![],
+                loesung: None,
+                vergleichsgrundlage_bestaetigt: true,
+            },
+        ).unwrap();
+
+        let save = |antwort: &str, ergebnis: &str| abrufcheck_ergebnis_speichern_impl(
+            &conn,
+            AbrufCheckErgebnisNeu {
+                abrufcheck_id: check.id.clone(),
+                schueler_id: 1,
+                antwort: antwort.into(),
+                ergebnis: Some(ergebnis.into()),
+            },
+        );
+
+        save("Sie ging nach Hause.", "noch_nicht").unwrap();
+        assert!(abrufcheck_ergebnis_aenderungen_list_impl(&conn, &check.id, 1).unwrap().is_empty());
+        // Ein erneutes Speichern desselben Standes erzeugt keinen Scheineintrag.
+        save("Sie ging nach Hause.", "noch_nicht").unwrap();
+        assert!(abrufcheck_ergebnis_aenderungen_list_impl(&conn, &check.id, 1).unwrap().is_empty());
+        save("Sie ging nach Hause.", "teilweise").unwrap();
+        save("Sie ging gestern nach Hause.", "teilweise").unwrap();
+
+        let history = abrufcheck_ergebnis_aenderungen_list_impl(&conn, &check.id, 1).unwrap();
+        assert_eq!(history.len(), 2);
+        assert_eq!(history[0].ergebnis_vorher, "noch_nicht");
+        assert_eq!(history[0].ergebnis_nachher, "teilweise");
+        assert!(!history[0].antwort_geaendert);
+        assert_eq!(history[1].ergebnis_vorher, "teilweise");
+        assert_eq!(history[1].ergebnis_nachher, "teilweise");
+        assert!(history[1].antwort_geaendert);
+        assert_eq!(history[0].ausgewertet_von_nachher, "lehrkraft");
+
+        let row = abrufcheck_teilnahme_list_impl(&conn, &check.id).unwrap().remove(0);
+        assert_eq!(row.aenderung_anzahl, 2);
+        let summary = abrufcheck_list_impl(&conn, "k1").unwrap().remove(0);
+        assert_eq!(summary.teilweise_anzahl, 1);
+        assert_eq!(summary.noch_nicht_anzahl, 0);
+
+        let columns: Vec<String> = conn.prepare("PRAGMA table_info(abrufcheck_ergebnis_aenderung)").unwrap()
+            .query_map([], |r| r.get(1)).unwrap().collect::<Result<_, _>>().unwrap();
+        assert!(!columns.iter().any(|column| column.contains("antwort_vorher") || column.contains("antwort_nachher")));
     }
 
     #[test]

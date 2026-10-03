@@ -58,6 +58,17 @@ export interface AbrufCheckTeilnahme {
   status: 'offen' | 'anwesend' | 'abwesend';
   antwort: string | null;
   ergebnis: 'richtig' | 'teilweise' | 'noch_nicht' | null;
+  aenderungAnzahl: number;
+}
+
+export interface AbrufCheckErgebnisAenderung {
+  id: number;
+  geaendertAm: string;
+  antwortGeaendert: boolean;
+  ergebnisVorher: 'richtig' | 'teilweise' | 'noch_nicht';
+  ergebnisNachher: 'richtig' | 'teilweise' | 'noch_nicht';
+  ausgewertetVonVorher: 'lokal' | 'lehrkraft';
+  ausgewertetVonNachher: 'lokal' | 'lehrkraft';
 }
 
 export interface LernzielFokusNeu {
@@ -110,11 +121,13 @@ export function useLernzielKompass() {
     invoke<AbrufCheck[]>('abrufcheck_list', { klasseId }), []);
   const listTeilnahme = useCallback((abrufcheckId: string) =>
     invoke<AbrufCheckTeilnahme[]>('abrufcheck_teilnahme_list', { abrufcheckId }), []);
+  const listErgebnisAenderungen = useCallback((abrufcheckId: string, schuelerId: number) =>
+    invoke<AbrufCheckErgebnisAenderung[]>('abrufcheck_ergebnis_aenderungen_list', { abrufcheckId, schuelerId }), []);
   const teilnahmeSpeichern = useCallback((meta: AbrufCheckTeilnahmeNeu) =>
     invoke<void>('abrufcheck_teilnahme_speichern', { meta }), []);
   const erstellen = useCallback((meta: AbrufCheckNeu) =>
     invoke<AbrufCheck>('abrufcheck_erstellen', { meta }), []);
   const ergebnisSpeichern = useCallback((meta: AbrufCheckErgebnisNeu) =>
     invoke<string>('abrufcheck_ergebnis_speichern', { meta }), []);
-  return { evidenz, listFokus, bestaetigen, ausgangsstundeVerbinden, listChecks, listTeilnahme, teilnahmeSpeichern, erstellen, ergebnisSpeichern };
+  return { evidenz, listFokus, bestaetigen, ausgangsstundeVerbinden, listChecks, listTeilnahme, listErgebnisAenderungen, teilnahmeSpeichern, erstellen, ergebnisSpeichern };
 }
