@@ -59,6 +59,8 @@ interface AbgabeInfo {
   noteFinal: number | null;
 }
 
+type KlasseInfoMitIdentitaet = KlasseInfo & { id?: string | null };
+
 interface HeatmapEntry {
   typ: string;
   anzahl: number;
@@ -167,7 +169,7 @@ export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler,
   const { list: listEinsaetze } = useEinsatz();
 
   const [tab, setTab] = useState<Tab>('uebersicht');
-  const [klassen, setKlassen] = useState<KlasseInfo[]>([]);
+  const [klassen, setKlassen] = useState<KlasseInfoMitIdentitaet[]>([]);
   const [selectedKlasse, setSelectedKlasse] = useState<string | null>(null);
   const [selectedKlasseId, setSelectedKlasseId] = useState<string | null>(null);
   const [abrufcheckPreselect, setAbrufcheckPreselect] = useState<string | null>(null);
@@ -292,12 +294,19 @@ export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler,
   const klassenListe = useMemo(() => {
     const namenMitMeta = new Set(klassenMeta.map((meta) => meta.name.toLocaleLowerCase('de')));
     const liste = [
-      ...klassenMeta.map((meta) => ({
-        name: meta.name,
-        anzahlAbgaben: klassenMeta.filter((item) => item.name.toLocaleLowerCase('de') === meta.name.toLocaleLowerCase('de')).length > 1
-          ? null : (klassen.find((k) => k.klasse === meta.name)?.anzahlAbgaben ?? 0),
-        meta,
-      })),
+      ...klassenMeta.map((meta) => {
+        const gleichnamigeMetas = klassenMeta.filter((item) => item.name.toLocaleLowerCase('de') === meta.name.toLocaleLowerCase('de'));
+        const legacyKlasse = klassen.find((item) => item.klasse.toLocaleLowerCase('de') === meta.name.toLocaleLowerCase('de'));
+        return {
+          name: meta.name,
+          anzahlAbgaben: meta.id
+            ? klassen.find((item) => item.id === meta.id)?.anzahlAbgaben ?? 0
+            : gleichnamigeMetas.length > 1
+              ? null
+              : legacyKlasse?.anzahlAbgaben ?? 0,
+          meta,
+        };
+      }),
       ...klassen.filter((k) => !namenMitMeta.has(k.klasse.toLocaleLowerCase('de')))
         .map((k) => ({ name: k.klasse, anzahlAbgaben: k.anzahlAbgaben, meta: undefined })),
     ];
