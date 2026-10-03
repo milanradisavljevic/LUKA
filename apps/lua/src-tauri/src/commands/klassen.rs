@@ -407,7 +407,7 @@ mod tests {
             "INSERT INTO lua_klassen (id, name, fach, land, stufe, schulstufe, schuljahr, notizen, archiviert, farbe) \
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10) \
              ON CONFLICT(id) DO UPDATE SET \
-               fach=excluded.fach, land=excluded.land, stufe=excluded.stufe, schulstufe=excluded.schulstufe, \
+               name=excluded.name, fach=excluded.fach, land=excluded.land, stufe=excluded.stufe, schulstufe=excluded.schulstufe, \
                schuljahr=excluded.schuljahr, notizen=excluded.notizen, archiviert=excluded.archiviert, \
                farbe=excluded.farbe",
             rusqlite::params![id, meta.name, meta.fach, meta.land, meta.stufe, meta.schulstufe, meta.schuljahr, meta.notizen, meta.archiviert as i64, meta.farbe],
@@ -484,6 +484,77 @@ mod tests {
 
         klasse_archivieren_impl(&conn, &id, false).unwrap();
         assert!(!klassen_meta_list_impl(&conn).unwrap()[0].archiviert);
+    }
+
+    #[test]
+    fn gleichnamige_kurse_und_historische_abgabe_bleiben_beim_archivieren_getrennt() {
+        let conn = setup_full();
+        let mut previous_year = beispiel("7A");
+        previous_year.schuljahr = Some("2025/26".to_string());
+        upsert(&conn, &previous_year);
+        let previous_id: String = conn.query_row(
+            "SELECT id FROM lua_klassen WHERE name='7A' AND schuljahr='2025/26'",
+            [], |row| row.get(0),
+        ).unwrap();
+
+        let current_year = beispiel("7A");
+        upsert(&conn, &current_year);
+        let current_id: String = conn.query_row(
+            "SELECT id FROM lua_klassen WHERE name='7A' AND schuljahr='2026/27'",
+            [], |row| row.get(0),
+        ).unwrap();
+        assert_ne!(previous_id, current_id);
+
+        let student_id = crate::commands::natascha_read::insert_schueler_with_class_id_impl(
+            &conn, "7A", "Mia", Some("Beispiel"), Some(&previous_id),
+        ).unwrap();
+        crate::commands::natascha_read::conn_assign_schueler_klasse(
+            &conn, student_id, &current_id,
+        ).unwrap();
+        let student_memberships: i64 = conn.query_row(
+            "SELECT COUNT(*) FROM schueler_klassen WHERE schueler_id=?1 AND status='aktiv'",
+            [student_id], |row| row.get(0),
+        ).unwrap();
+        assert_eq!(student_memberships, 2);
+        for class_id in [&previous_id, &current_id] {
+            let students = crate::commands::natascha_read::list_schueler_by_class_id_impl(&conn, class_id).unwrap();
+            assert_eq!(students.len(), 1);
+            assert_eq!(students[0].id, student_id);
+            assert!(!students[0].zuordnung_pruefen);
+        }
+
+        conn.execute(
+            "INSERT INTO abgabe (schueler_id, klasse, klasse_id, aufgabe, dateiname, datei_hash) \
+             VALUES (?1, '7A', ?2, 'SA1', 'mia.docx', 'history-7a')",
+            rusqlite::params![student_id, previous_id],
+        ).unwrap();
+
+        let mut renamed_previous_year = previous_year;
+        renamed_previous_year.id = Some(previous_id.clone());
+        renamed_previous_year.name = "7A Alt".to_string();
+        upsert(&conn, &renamed_previous_year);
+        klasse_archivieren_impl(&conn, &previous_id, true).unwrap();
+
+        let old_class = klassen_meta_list_impl(&conn).unwrap().into_iter()
+            .find(|class| class.id.as_deref() == Some(previous_id.as_str())).unwrap();
+        let current_class = klassen_meta_list_impl(&conn).unwrap().into_iter()
+            .find(|class| class.id.as_deref() == Some(current_id.as_str())).unwrap();
+        assert_eq!(old_class.name, "7A Alt");
+        assert!(old_class.archiviert);
+        assert_eq!(current_class.name, "7A");
+        assert!(!current_class.archiviert);
+
+        let (historic_label, historic_id): (String, Option<String>) = conn.query_row(
+            "SELECT klasse, klasse_id FROM abgabe WHERE datei_hash='history-7a'",
+            [], |row| Ok((row.get(0)?, row.get(1)?)),
+        ).unwrap();
+        assert_eq!(historic_label, "7A");
+        assert_eq!(historic_id.as_deref(), Some(previous_id.as_str()));
+        let student_memberships_after_archive: i64 = conn.query_row(
+            "SELECT COUNT(*) FROM schueler_klassen WHERE schueler_id=?1 AND status='aktiv'",
+            [student_id], |row| row.get(0),
+        ).unwrap();
+        assert_eq!(student_memberships_after_archive, 2);
     }
 
     #[test]

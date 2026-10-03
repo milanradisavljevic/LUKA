@@ -771,7 +771,9 @@ pub(crate) fn list_schueler_by_class_id_impl(conn: &rusqlite::Connection, klasse
         "SELECT s.id, k.name, s.vorname, s.nachname, s.created_at, \
                 CASE WHEN sk.schueler_id IS NULL THEN 1 ELSE 0 END \
          FROM klasse_stammdaten k JOIN schueler s \
-           ON (s.klasse_id=k.id OR (s.klasse_id IS NULL AND s.klasse=k.name COLLATE NOCASE AND EXISTS ( \
+           ON (s.klasse_id=k.id OR EXISTS ( \
+             SELECT 1 FROM schueler_klassen enrolled WHERE enrolled.schueler_id=s.id \
+               AND enrolled.klasse_id=k.id AND enrolled.status='aktiv') OR (s.klasse_id IS NULL AND s.klasse=k.name COLLATE NOCASE AND EXISTS ( \
              SELECT 1 FROM legacy_klasse_pruefung r WHERE r.legacy_name=s.klasse COLLATE NOCASE) AND NOT EXISTS ( \
              SELECT 1 FROM schueler_klassen existing WHERE existing.schueler_id=s.id AND existing.status='aktiv'))) \
          LEFT JOIN schueler_klassen sk ON sk.schueler_id=s.id AND sk.klasse_id=k.id \
