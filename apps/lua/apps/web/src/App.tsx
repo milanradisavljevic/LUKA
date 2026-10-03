@@ -90,7 +90,7 @@ const VIEW_TITLES: Record<ActiveView, string> = {
   ib: 'IB Diploma',
   documents: 'Meine Unterlagen',
   pool: 'Aufgaben-Pool',
-  klassen: 'Meine Klassen',
+  klassen: 'Klassen',
   korrektur: 'Korrektur',
   schueler: 'Schüler',
     erwartungshorizont: 'Erwartungshorizont',
@@ -246,6 +246,7 @@ export default function App() {
   const [toast, setToast] = useState<ToastMessage | null>(null);
   // Cross-Nav: aus der Korrektur zu einem bestimmten Schüler springen.
   const [pendingSchueler, setPendingSchueler] = useState<{ klasse: string; id: number } | null>(null);
+  const [pendingAbrufcheck, setPendingAbrufcheck] = useState<{ klasseId: string; abrufcheckId: string } | null>(null);
   // Cross-Nav (L1): aus der Klassenansicht direkt in eine konkrete Korrektur springen.
   const [pendingKorrektur, setPendingKorrektur] = useState<{ abgabeId: number; klasse: string; aufgabe: string } | null>(null);
   // First-Run-Onboarding: mindestens ein API-Key nötig, bevor die App bedienbar ist.
@@ -654,6 +655,13 @@ export default function App() {
     setActiveView('schueler');
   }, []);
 
+  const handleOpenAbrufcheck = useCallback((klasseId: string, abrufcheckId: string) => {
+    setPendingAbrufcheck({ klasseId, abrufcheckId });
+    setActiveView('klassen');
+  }, []);
+
+  const consumePendingAbrufcheck = useCallback(() => setPendingAbrufcheck(null), []);
+
   // Cross-Nav (L1): Klick auf eine Abgabe in der Klassenansicht → Korrektur dieser Arbeit.
   const handleOpenKorrektur = useCallback((ziel: { abgabeId: number; klasse: string; aufgabe: string }) => {
     setPendingKorrektur(ziel);
@@ -803,7 +811,7 @@ if (hydrating) {
       case 'schueler':
         return <SchuelerView preselect={pendingSchueler} onConsumePreselect={() => setPendingSchueler(null)} onGenerateUebung={handleGenerateUebung} />;
       case 'klassen':
-        return <KlassenView onGenerateUebung={handleGenerateUebung} onOpenKorrektur={handleOpenKorrektur} onOpenSchueler={handleOpenSchueler} onOpenUnterlage={handleOpenUnterlageById} />;
+        return <KlassenView onGenerateUebung={handleGenerateUebung} onOpenKorrektur={handleOpenKorrektur} onOpenSchueler={handleOpenSchueler} onOpenUnterlage={handleOpenUnterlageById} openAbrufcheck={pendingAbrufcheck} onConsumeAbrufcheck={consumePendingAbrufcheck} />;
       case 'kompetenz':
         return (
           <KompetenzView
@@ -821,7 +829,7 @@ if (hydrating) {
       case 'ib':
         return <IbDiplomaView state={state} dispatch={dispatch} onDone={() => setActiveView('wizard')} />;
       case 'planung':
-        return <PlanungView onGenerateUnterlage={handleUnterlageAusTermin} startTag={planungTag} />;
+          return <PlanungView onGenerateUnterlage={handleUnterlageAusTermin} onOpenUnterlage={handleOpenUnterlageById} onOpenAbrufcheck={handleOpenAbrufcheck} startTag={planungTag} />;
       case 'settings':
         return <SettingsView />;
       case 'help':

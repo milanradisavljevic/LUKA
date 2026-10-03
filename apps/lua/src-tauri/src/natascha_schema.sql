@@ -6,9 +6,41 @@
 CREATE TABLE IF NOT EXISTS schueler (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     klasse TEXT NOT NULL,
+    klasse_id TEXT,
     vorname TEXT NOT NULL,
     nachname TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Gemeinsame Stammdaten: die sichtbare Bezeichnung ist kein Schlüssel. Ein
+-- Klassenname darf in verschiedenen Schuljahren/Kursen erneut verwendet werden.
+CREATE TABLE IF NOT EXISTS klasse_stammdaten (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    fach TEXT,
+    schuljahr TEXT,
+    archiviert INTEGER NOT NULL DEFAULT 0,
+    pruefung_noetig INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_klasse_stammdaten_name ON klasse_stammdaten(name COLLATE NOCASE);
+
+CREATE TABLE IF NOT EXISTS schueler_klassen (
+    schueler_id INTEGER NOT NULL REFERENCES schueler(id) ON DELETE CASCADE,
+    klasse_id TEXT NOT NULL REFERENCES klasse_stammdaten(id) ON DELETE CASCADE,
+    zugeordnet_am TEXT NOT NULL DEFAULT (datetime('now')),
+    status TEXT NOT NULL DEFAULT 'aktiv',
+    PRIMARY KEY (schueler_id, klasse_id)
+);
+CREATE INDEX IF NOT EXISTS idx_schueler_klassen_klasse ON schueler_klassen(klasse_id, status);
+
+CREATE TABLE IF NOT EXISTS legacy_klasse_pruefung (
+    legacy_name TEXT PRIMARY KEY,
+    grund TEXT NOT NULL,
+    schueler_anzahl INTEGER NOT NULL DEFAULT 0,
+    abgaben_anzahl INTEGER NOT NULL DEFAULT 0,
+    erstellt_am TEXT NOT NULL DEFAULT (datetime('now')),
+    erledigt_am TEXT
 );
 
 CREATE TABLE IF NOT EXISTS abgabe (
@@ -18,6 +50,7 @@ CREATE TABLE IF NOT EXISTS abgabe (
     unterrichtseinsatz_id TEXT,
     material_id TEXT,
     klasse TEXT NOT NULL,
+    klasse_id TEXT,
     aufgabe TEXT NOT NULL,
     dateiname TEXT NOT NULL,
     datei_hash TEXT UNIQUE NOT NULL,

@@ -33,6 +33,8 @@ import { farbListeAusKlassen, klasseFarbStil } from '../lib/klassenFarben';
 import { alsRasterSlots, alsStunden } from '../lib/planungAdapter';
 import { ZeitFeld } from '../components/ui/ZeitFeld';
 import { DatumFeld } from '../components/ui/DatumFeld';
+import { AbrufCheckStundenkarte } from '../components/AbrufCheckStundenkarte';
+import { LernzielAusgangsstundenkarte } from '../components/LernzielAusgangsstundenkarte';
 import { gleicheKlasse, pruefeStundenplanCsv, zeileProbleme, type StundenplanCsvZeile } from '../lib/stundenplanCsv';
 
 const MATERIAL_LABEL: Record<string, string> = {
@@ -78,12 +80,16 @@ const SCHULJAHR_SPANNE = 3;
 
 export function PlanungView({
   onGenerateUnterlage,
+  onOpenUnterlage,
+  onOpenAbrufcheck,
   startTag,
 }: {
   /** Baut aus der gewählten Stunde eine Unterlage, speichert sie und hängt sie
    *  an den Termin. Fehlt dem Termin das Thema oder das Fach der Klasse, öffnet
    *  `App.tsx` stattdessen den Assistenten mit Vorbefüllung. */
   onGenerateUnterlage?: (kontext: TerminKontext, einsatzId: string, onFertig?: (meldung: string) => void) => Promise<void>;
+  onOpenUnterlage?: (materialId: string) => void;
+  onOpenAbrufcheck?: (klasseId: string, abrufcheckId: string) => void;
   /** Tag, auf den beim Öffnen gesprungen werden soll – von der Startseite aus
    *  angeklickt. Springt in die Woche dieses Tages und wählt die Tageskarte. */
   startTag?: string | null;
@@ -1056,6 +1062,19 @@ export function PlanungView({
                   </button>
                 </div>
               </div>
+
+              <AbrufCheckStundenkarte
+                key={`check-${gewaehlt.id}`}
+                einsatzId={gewaehlt.id}
+                klasseId={gewaehlt.klasseId}
+                onOpen={(klasseId, checkId) => onOpenAbrufcheck?.(klasseId, checkId)}
+              />
+              <LernzielAusgangsstundenkarte
+                key={`lernziel-${gewaehlt.id}`}
+                einsatzId={gewaehlt.id}
+                klasseId={gewaehlt.klasseId}
+                onOpenCheck={(klasseId, checkId) => onOpenAbrufcheck?.(klasseId, checkId)}
+              />
 
               <div className="planung-abschnitt">
                 <h5>

@@ -11,6 +11,7 @@ interface AbgabeInfo {
   unterrichtseinsatzId: string | null;
   materialId: string | null;
   klasse: string;
+  klasseId: string | null;
   aufgabe: string;
   dateiname: string;
   datum: string | null;
@@ -146,7 +147,7 @@ export function useNatascha() {
     filePath: string,
     klasse: string,
     aufgabe: string,
-    opts?: { runtime?: {provider:string;model:string}; fach?: string; schulstufe?: string; textsorte?: string; land?: string; schueler?: string; bewertungsmodus?: string; ausgangstext?: string; ausgangstextDatei?: string; rubric?: string; pseudonymisierung?: boolean; schuelerId?: number; einsatzId?: string; materialId?: string; revisionOfAbgabeId?: number },
+    opts?: { runtime?: {provider:string;model:string}; fach?: string; schulstufe?: string; textsorte?: string; land?: string; schueler?: string; bewertungsmodus?: string; ausgangstext?: string; ausgangstextDatei?: string; rubric?: string; pseudonymisierung?: boolean; schuelerId?: number; einsatzId?: string; materialId?: string; revisionOfAbgabeId?: number; klasseId?: string },
   ) => {
     if(analyzeBusy.current) throw new Error('Eine Analyse läuft bereits.');
     analyzeBusy.current=true;
@@ -168,6 +169,7 @@ export function useNatascha() {
         python: settings.pythonCommand ?? '',
         filePath,
         klasse,
+        klasseId: opts?.klasseId,
         aufgabe,
         fach: opts?.fach,
         schulstufe: opts?.schulstufe,
@@ -241,12 +243,12 @@ export function useNatascha() {
     }
   }, []);
 
-  const listAufgaben = useCallback(async (klasse: string): Promise<string[]> => {
-    return invoke<string[]>('db_list_aufgaben', { klasse });
+  const listAufgaben = useCallback(async (klasse: string, klasseId?: string | null): Promise<string[]> => {
+    return invoke<string[]>('db_list_aufgaben', { klasse, klasseId: klasseId ?? null });
   }, []);
 
-  const getAbgaben = useCallback(async (klasse: string, aufgabe?: string): Promise<AbgabeInfo[]> => {
-    return invoke<AbgabeInfo[]>('db_get_abgaben', { klasse, aufgabe: aufgabe ?? null });
+  const getAbgaben = useCallback(async (klasse: string, aufgabe?: string, klasseId?: string | null): Promise<AbgabeInfo[]> => {
+    return invoke<AbgabeInfo[]>('db_get_abgaben', { klasse, aufgabe: aufgabe ?? null, klasseId: klasseId ?? null });
   }, []);
 
   const getHeatmap = useCallback(async (klasse: string, aufgabe?: string): Promise<HeatmapEntry[]> => {
@@ -362,16 +364,24 @@ export function useNatascha() {
     }
   }, []);
 
-  const listSchueler = useCallback(async (klasse: string): Promise<SchuelerInfo[]> => {
+  const listSchueler = useCallback(async (klasse: string, klasseId?: string | null): Promise<SchuelerInfo[]> => {
     try {
-      return await invoke<SchuelerInfo[]>('db_list_schueler', { klasse });
+      return await invoke<SchuelerInfo[]>('db_list_schueler', { klasse, klasseId: klasseId ?? null });
     } catch {
       return [];
     }
   }, []);
 
-  const insertSchueler = useCallback(async (klasse: string, vorname: string, nachname: string | null): Promise<number> => {
-    return invoke<number>('db_insert_schueler', { klasse, vorname, nachname });
+  const insertSchueler = useCallback(async (klasse: string, vorname: string, nachname: string | null, klasseId?: string | null): Promise<number> => {
+    return invoke<number>('db_insert_schueler', { klasse, vorname, nachname, klasseId: klasseId ?? null });
+  }, []);
+
+  const assignSchuelerToKlasse = useCallback(async (schuelerId: number, klasseId: string): Promise<void> => {
+    await invoke('db_assign_schueler_klasse', { schuelerId, klasseId });
+  }, []);
+
+  const removeSchuelerFromKlasse = useCallback(async (schuelerId: number, klasseId: string): Promise<void> => {
+    await invoke('db_remove_schueler_klasse', { schuelerId, klasseId });
   }, []);
 
   // --- Welle 4: Setup (Klasse/Aufgabe/Rubrik via Sidecar) ---
@@ -597,6 +607,8 @@ export function useNatascha() {
     updateFehlerStatus,
     listSchueler,
     insertSchueler,
+    assignSchuelerToKlasse,
+    removeSchuelerFromKlasse,
     deleteSchueler,
     addKlasse,
     addAufgabe,
@@ -635,6 +647,7 @@ export interface SchuelerInfo {
   vorname: string;
   nachname: string | null;
   createdAt: string | null;
+  zuordnungPruefen?: boolean;
 }
 
 interface LaengsschnittEintrag {

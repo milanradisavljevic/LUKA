@@ -47,6 +47,8 @@ pub fn init_schema(conn: &Connection) -> Result<(), String> {
     migrate_fehler_cluster_columns(conn)?;
     conn.execute_batch(NATASCHA_SCHEMA_SQL).map_err(|e| format!("Korrektur-Schema fehlgeschlagen: {}", e))?;
     conn.execute_batch(LUA_SCHEMA_SQL).map_err(|e| format!("LUA-Schema fehlgeschlagen: {}", e))?;
+    migrate_lernziel_fokus_ausgangsstunde(conn)?;
+    migrate_abrufcheck_teilnahmeliste(conn)?;
     migrate_natascha_abgabe_link_columns(conn)?;
     migrate_fehler_cluster_columns(conn)?;
     // Bewusst außerhalb des Schema-Batches: Der Index darf erst entstehen,
@@ -61,6 +63,257 @@ pub fn init_schema(conn: &Connection) -> Result<(), String> {
     migrate_unterrichtseinsatz_zeit(conn)?;
     migrate_lua_klassen_farbe(conn)?;
     migrate_planung_jahresbezug(conn)?;
+    migrate_lua_klassen_base_columns(conn)?;
+    migrate_lua_klassen_primary_key(conn)?;
+    conn.execute_batch(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_lua_klassen_natural_key \
+         ON lua_klassen(name COLLATE NOCASE, COALESCE(fach, ''), COALESCE(schuljahr, ''));",
+    ).map_err(|e| format!("Klassen-Naturschlüssel anlegen: {e}"))?;
+    migrate_class_identity_and_memberships(conn)?;
+    Ok(())
+}
+
+/// Adds the lesson provenance to existing learning goals without resetting
+/// their confirmed correction evidence.
+fn migrate_lernziel_fokus_ausgangsstunde(conn: &Connection) -> Result<(), String> {
+    let mut stmt = conn.prepare("PRAGMA table_info(lernziel_fokus)")
+        .map_err(|e| format!("Lernziel-Stundenfelder prüfen: {e}"))?;
+    let columns = stmt.query_map([], |row| row.get::<_, String>(1))
+        .map_err(|e| format!("Lernziel-Stundenfelder lesen: {e}"))?
+        .collect::<Result<std::collections::HashSet<_>, _>>()
+        .map_err(|e| format!("Lernziel-Stundenfelder sammeln: {e}"))?;
+    for (name, definition) in [
+        ("ausgangseinsatz_id", "TEXT REFERENCES unterrichtseinsatz(id) ON DELETE SET NULL"),
+        ("ausgangsstunden_titel_snapshot", "TEXT"),
+        ("ausgangsdatum_snapshot", "TEXT"),
+    ] {
+        if !columns.contains(name) {
+            conn.execute_batch(&format!("ALTER TABLE lernziel_fokus ADD COLUMN {name} {definition}"))
+                .map_err(|e| format!("Lernziel-Stundenfeld {name} ergänzen: {e}"))?;
+        }
+    }
+    conn.execute_batch(
+        "CREATE INDEX IF NOT EXISTS idx_lernziel_fokus_ausgangseinsatz ON lernziel_fokus(ausgangseinsatz_id);",
+    ).map_err(|e| format!("Lernziel-Stundenindex anlegen: {e}"))?;
+    Ok(())
+}
+
+/// Markiert, ob bei einem Check ein Klassenroster als Startbestand gesichert
+/// wurde. Alte Checks erhalten absichtlich `0`, weil ihre frühere Teilnahme
+/// nicht aus der heutigen Schülerliste rekonstruiert werden darf.
+fn migrate_abrufcheck_teilnahmeliste(conn: &Connection) -> Result<(), String> {
+    let mut stmt = conn.prepare("PRAGMA table_info(abrufcheck)")
+        .map_err(|e| format!("Teilnahmeliste-Spalten prüfen: {e}"))?;
+    let columns = stmt.query_map([], |row| row.get::<_, String>(1))
+        .map_err(|e| format!("Teilnahmeliste-Spalten lesen: {e}"))?
+        .collect::<Result<std::collections::HashSet<_>, _>>()
+        .map_err(|e| format!("Teilnahmeliste-Spalten sammeln: {e}"))?;
+    if !columns.contains("teilnahmeliste_snapshot") {
+        conn.execute_batch(
+            "ALTER TABLE abrufcheck ADD COLUMN teilnahmeliste_snapshot INTEGER NOT NULL DEFAULT 0;",
+        ).map_err(|e| format!("Teilnahmelisten-Bestand ergänzen: {e}"))?;
+    }
+    Ok(())
+}
+
+/// Ergänzt alle älteren optionalen Metadatenspalten, bevor das Klassenblatt
+/// auf die stabile ID als Primärschlüssel umgebaut wird.
+fn migrate_lua_klassen_base_columns(conn: &Connection) -> Result<(), String> {
+    let mut stmt = conn.prepare("PRAGMA table_info(lua_klassen)")
+        .map_err(|e| format!("Klassenfelder prüfen: {e}"))?;
+    let columns = stmt.query_map([], |row| row.get::<_, String>(1))
+        .map_err(|e| format!("Klassenfelder lesen: {e}"))?
+        .collect::<Result<std::collections::HashSet<_>, _>>()
+        .map_err(|e| format!("Klassenfelder sammeln: {e}"))?;
+    for (name, definition) in [
+        ("fach", "TEXT"),
+        ("stufe", "TEXT"),
+        ("schulstufe", "INTEGER"),
+        ("schuljahr", "TEXT"),
+        ("notizen", "TEXT"),
+        ("archiviert", "INTEGER NOT NULL DEFAULT 0"),
+        ("created_at", "TEXT NOT NULL DEFAULT ''"),
+    ] {
+        if !columns.contains(name) {
+            conn.execute_batch(&format!("ALTER TABLE lua_klassen ADD COLUMN {name} {definition};"))
+                .map_err(|e| format!("Klassenfeld {name} ergänzen: {e}"))?;
+        }
+    }
+    Ok(())
+}
+
+/// Gemeinsames Klassenfundament. Bestehende Anzeigenamen bleiben Snapshots;
+/// nur eindeutig auflösbare Schülerzuordnungen werden automatisch übernommen.
+fn migrate_class_identity_and_memberships(conn: &Connection) -> Result<(), String> {
+    for (table, column) in [("schueler", "klasse_id"), ("abgabe", "klasse_id")] {
+        let exists: bool = conn.query_row(
+            "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name=?1)",
+            [table], |row| row.get(0),
+        ).map_err(|e| format!("Klassen-ID Tabelle {table} prüfen: {e}"))?;
+        if !exists { continue; }
+        let mut stmt = conn.prepare(&format!("PRAGMA table_info({table})"))
+            .map_err(|e| format!("Klassen-ID {table} Spalten lesen: {e}"))?;
+        let columns = stmt.query_map([], |row| row.get::<_, String>(1))
+            .map_err(|e| format!("Klassen-ID {table} Spalten abfragen: {e}"))?
+            .collect::<Result<std::collections::HashSet<_>, _>>()
+            .map_err(|e| format!("Klassen-ID {table} Spalten sammeln: {e}"))?;
+        if !columns.contains(column) {
+            conn.execute_batch(&format!("ALTER TABLE {table} ADD COLUMN {column} TEXT;"))
+                .map_err(|e| format!("Klassen-ID {table}.{column} ergänzen: {e}"))?;
+        }
+    }
+
+    // LUA-Metadaten haben dieselbe stabile Identität. Sie bleiben eine
+    // Erweiterung des NATASCHA-eigenen Stammblatts.
+    let metadata = {
+        let mut stmt = conn.prepare(
+            "SELECT id, name, fach, schuljahr, archiviert FROM lua_klassen WHERE id IS NOT NULL AND trim(id)<>''",
+        ).map_err(|e| format!("Klassenstamm aus LUA lesen: {e}"))?;
+        let rows = stmt.query_map([], |row| Ok((
+            row.get::<_, String>(0)?, row.get::<_, String>(1)?, row.get::<_, Option<String>>(2)?,
+            row.get::<_, Option<String>>(3)?, row.get::<_, i64>(4)?,
+        ))).map_err(|e| format!("Klassenstamm abfragen: {e}"))?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| format!("Klassenstamm sammeln: {e}"))?;
+        rows
+    };
+    for (id, name, fach, schuljahr, archiviert) in metadata {
+        let needs_review = schuljahr.as_deref().map_or(true, |year| year.trim().is_empty());
+        conn.execute(
+            "INSERT OR IGNORE INTO klasse_stammdaten (id, name, fach, schuljahr, archiviert, pruefung_noetig) \
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            rusqlite::params![id, name, fach, schuljahr, archiviert, needs_review as i64],
+        ).map_err(|e| format!("Klassenstamm {name} übernehmen: {e}"))?;
+        if needs_review {
+            conn.execute(
+                "INSERT OR IGNORE INTO legacy_klasse_pruefung (legacy_name, grund, schueler_anzahl, abgaben_anzahl) \
+                 SELECT ?1, 'Schuljahr der Bestandsklasse fehlt', \
+                    (SELECT COUNT(*) FROM schueler WHERE klasse=?1 COLLATE NOCASE), \
+                    (SELECT COUNT(*) FROM abgabe WHERE klasse=?1 COLLATE NOCASE)",
+                [&name],
+            ).map_err(|e| format!("Klassenprüfung {name} vormerken: {e}"))?;
+        }
+    }
+
+    // NATASCHA kann auch unabhängig von LUA gestartet werden. Solche alten
+    // Klassen werden als vorläufige Identitäten angelegt, aber nicht still mit
+    // einem Schuljahr oder einer Kurszuordnung versehen.
+    let mut legacy_names = std::collections::BTreeSet::new();
+    for table in ["schueler", "abgabe"] {
+        let mut stmt = conn.prepare(&format!("SELECT DISTINCT klasse FROM {table} WHERE trim(klasse)<>''"))
+            .map_err(|e| format!("Alte Klassen {table} lesen: {e}"))?;
+        let names = stmt.query_map([], |row| row.get::<_, String>(0))
+            .map_err(|e| format!("Alte Klassen {table} abfragen: {e}"))?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| format!("Alte Klassen {table} sammeln: {e}"))?;
+        legacy_names.extend(names);
+    }
+    for name in legacy_names {
+        let ids = {
+            let mut stmt = conn.prepare("SELECT id FROM klasse_stammdaten WHERE name=?1 COLLATE NOCASE")
+                .map_err(|e| format!("Klassenname {name} prüfen: {e}"))?;
+            let rows = stmt.query_map([&name], |row| row.get::<_, String>(0))
+                .map_err(|e| format!("Klassenname {name} abfragen: {e}"))?
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(|e| format!("Klassenname {name} sammeln: {e}"))?;
+            rows
+        };
+        if ids.is_empty() {
+            let id = Uuid::new_v4().to_string();
+            conn.execute(
+                "INSERT INTO klasse_stammdaten (id, name, pruefung_noetig) VALUES (?1, ?2, 1)",
+                rusqlite::params![id, name],
+            ).map_err(|e| format!("Vorläufige Klasse {name} anlegen: {e}"))?;
+            conn.execute(
+                "INSERT OR IGNORE INTO lua_klassen (id,name) VALUES (?1,?2)",
+                rusqlite::params![id, name],
+            ).map_err(|e| format!("LUA-Erweiterung für Altkasse {name} anlegen: {e}"))?;
+            conn.execute(
+                "INSERT OR IGNORE INTO legacy_klasse_pruefung (legacy_name, grund, schueler_anzahl, abgaben_anzahl) \
+                 SELECT ?1, 'Schuljahr oder Kurs der Altdaten ist nicht belegt', \
+                    (SELECT COUNT(*) FROM schueler WHERE klasse=?1 COLLATE NOCASE), \
+                    (SELECT COUNT(*) FROM abgabe WHERE klasse=?1 COLLATE NOCASE)",
+                [&name],
+            ).map_err(|e| format!("Vorläufige Klassenprüfung {name}: {e}"))?;
+        } else if ids.len() > 1 {
+            conn.execute("UPDATE klasse_stammdaten SET pruefung_noetig=1 WHERE name=?1 COLLATE NOCASE", [&name])
+                .map_err(|e| format!("Mehrdeutige Klassenidentitäten markieren: {e}"))?;
+            conn.execute(
+                "INSERT OR IGNORE INTO legacy_klasse_pruefung (legacy_name, grund, schueler_anzahl, abgaben_anzahl) \
+                 SELECT ?1, 'Mehrere Klassenidentitäten passen zum alten Anzeigenamen', \
+                    (SELECT COUNT(*) FROM schueler WHERE klasse=?1 COLLATE NOCASE), \
+                    (SELECT COUNT(*) FROM abgabe WHERE klasse=?1 COLLATE NOCASE)",
+                [&name],
+            ).map_err(|e| format!("Mehrdeutige Klassenprüfung {name}: {e}"))?;
+            continue;
+        }
+    }
+
+    // NATASCHA kann Klassen unabhängig von LUA anlegen. Beim nächsten Öffnen
+    // werden diese Identitäten in LUA gespiegelt, damit auch Klassen ohne
+    // Abgaben oder Stundenplan in der Klassenverwaltung sichtbar bleiben.
+    conn.execute(
+        "INSERT OR IGNORE INTO lua_klassen (id,name,fach,schuljahr,archiviert) \
+         SELECT id,name,fach,schuljahr,archiviert FROM klasse_stammdaten",
+        [],
+    ).map_err(|e| format!("NATASCHA-Klassen in LUA spiegeln: {e}"))?;
+
+    // Zuordnungen werden nur übernommen, wenn genau eine Identität zum alten
+    // Anzeigenamen passt. Sonst bleiben die Historien-Snapshots unangetastet.
+    conn.execute_batch(
+        "INSERT OR IGNORE INTO schueler_klassen (schueler_id, klasse_id) \
+         SELECT s.id, k.id FROM schueler s JOIN klasse_stammdaten k \
+           ON k.name=s.klasse COLLATE NOCASE \
+         WHERE k.pruefung_noetig=0 AND trim(COALESCE(k.schuljahr,''))<>'' \
+           AND (SELECT COUNT(*) FROM klasse_stammdaten x WHERE x.name=s.klasse COLLATE NOCASE)=1; \
+         UPDATE schueler SET klasse_id=( \
+           SELECT k.id FROM klasse_stammdaten k WHERE k.name=schueler.klasse COLLATE NOCASE \
+             AND k.pruefung_noetig=0 AND trim(COALESCE(k.schuljahr,''))<>'' \
+             AND (SELECT COUNT(*) FROM klasse_stammdaten x WHERE x.name=schueler.klasse COLLATE NOCASE)=1 \
+         ) WHERE klasse_id IS NULL; \
+         UPDATE abgabe SET klasse_id=( \
+           SELECT k.id FROM klasse_stammdaten k WHERE k.name=abgabe.klasse COLLATE NOCASE \
+             AND k.pruefung_noetig=0 AND trim(COALESCE(k.schuljahr,''))<>'' \
+             AND (SELECT COUNT(*) FROM klasse_stammdaten x WHERE x.name=abgabe.klasse COLLATE NOCASE)=1 \
+         ) WHERE klasse_id IS NULL; \
+         CREATE INDEX IF NOT EXISTS idx_abgabe_klasse_id ON abgabe(klasse_id); \
+         CREATE INDEX IF NOT EXISTS idx_schueler_klasse_id ON schueler(klasse_id);",
+    ).map_err(|e| format!("Schüler-Klassen-Zuordnungen übernehmen: {e}"))?;
+    Ok(())
+}
+
+/// Alte Datenbanken hatten `name` als Primärschlüssel. Rebuild auf ID als
+/// Primärschlüssel erlaubt wiederverwendete Anzeigenamen in anderen Kursjahren.
+fn migrate_lua_klassen_primary_key(conn: &Connection) -> Result<(), String> {
+    let mut stmt = conn.prepare("PRAGMA table_info(lua_klassen)")
+        .map_err(|e| format!("Klassen-ID-Schema prüfen: {e}"))?;
+    let rows = stmt.query_map([], |row| Ok((row.get::<_, String>(1)?, row.get::<_, i64>(5)?)))
+        .map_err(|e| format!("Klassen-ID-Schema lesen: {e}"))?;
+    let mut name_is_primary = false;
+    for row in rows {
+        let (name, primary) = row.map_err(|e| format!("Klassen-ID-Schema Zeile: {e}"))?;
+        name_is_primary |= name == "name" && primary > 0;
+    }
+    if !name_is_primary { return Ok(()); }
+    conn.execute_batch(
+        "BEGIN IMMEDIATE; \
+         CREATE TABLE lua_klassen_v2 ( \
+           id TEXT PRIMARY KEY, name TEXT NOT NULL, fach TEXT, land TEXT, stufe TEXT, schulstufe INTEGER, \
+           schuljahr TEXT, notizen TEXT, farbe TEXT, archiviert INTEGER NOT NULL DEFAULT 0, \
+           created_at TEXT NOT NULL DEFAULT (datetime('now')) \
+         ); \
+         INSERT INTO lua_klassen_v2 (id,name,fach,land,stufe,schulstufe,schuljahr,notizen,farbe,archiviert,created_at) \
+           SELECT id,name,fach,land,stufe,schulstufe,schuljahr,notizen,farbe,archiviert,created_at FROM lua_klassen; \
+         DROP TABLE lua_klassen; \
+         ALTER TABLE lua_klassen_v2 RENAME TO lua_klassen; \
+         CREATE UNIQUE INDEX IF NOT EXISTS idx_lua_klassen_id ON lua_klassen(id); \
+         CREATE UNIQUE INDEX IF NOT EXISTS idx_lua_klassen_natural_key \
+           ON lua_klassen(name COLLATE NOCASE, COALESCE(fach, ''), COALESCE(schuljahr, '')); \
+         COMMIT;",
+    ).map_err(|e| {
+        let _ = conn.execute_batch("ROLLBACK;");
+        format!("Klassenidentitäten migrieren: {e}")
+    })?;
     Ok(())
 }
 
@@ -607,6 +860,74 @@ mod tests {
         }
     }
 
+    #[test]
+    fn lernziel_ausgangsstunde_migration_ergaenzt_altbestand_wiederholbar() {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(
+            "CREATE TABLE lernziel_fokus (
+                id TEXT PRIMARY KEY, klasse_id TEXT NOT NULL, klasse_name_snapshot TEXT NOT NULL,
+                lernziel TEXT NOT NULL, fehler_typ TEXT NOT NULL, aufgabe_snapshot TEXT NOT NULL,
+                zeitraum_von TEXT, zeitraum_bis TEXT, antwort_anzahl INTEGER NOT NULL DEFAULT 0,
+                fehler_anzahl INTEGER NOT NULL DEFAULT 0, bestaetigt_am TEXT NOT NULL,
+                created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+            );
+            INSERT INTO lernziel_fokus
+              (id,klasse_id,klasse_name_snapshot,lernziel,fehler_typ,aufgabe_snapshot,bestaetigt_am,created_at,updated_at)
+              VALUES ('legacy-focus','k1','7A','Kommas setzen','Z','SA1','2026-10-03','2026-10-03','2026-10-03');",
+        ).unwrap();
+
+        init_schema(&conn).unwrap();
+        init_schema(&conn).unwrap();
+
+        let columns = conn.prepare("PRAGMA table_info(lernziel_fokus)").unwrap()
+            .query_map([], |row| row.get::<_, String>(1)).unwrap()
+            .collect::<Result<std::collections::HashSet<_>, _>>().unwrap();
+        assert!(columns.contains("ausgangseinsatz_id"));
+        assert!(columns.contains("ausgangsstunden_titel_snapshot"));
+        assert!(columns.contains("ausgangsdatum_snapshot"));
+        let retained: (String, String, Option<String>) = conn.query_row(
+            "SELECT lernziel,aufgabe_snapshot,ausgangseinsatz_id FROM lernziel_fokus WHERE id='legacy-focus'",
+            [], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        ).unwrap();
+        assert_eq!(retained, ("Kommas setzen".into(), "SA1".into(), None));
+        let indexes: i64 = conn.query_row(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND name='idx_lernziel_fokus_ausgangseinsatz'",
+            [], |row| row.get(0),
+        ).unwrap();
+        assert_eq!(indexes, 1);
+    }
+
+    #[test]
+    fn abrufcheck_teilnahmeliste_migration_markiert_altbestand_als_unbekannt_wiederholbar() {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(
+            "CREATE TABLE abrufcheck (
+                id TEXT PRIMARY KEY, fokus_id TEXT NOT NULL, klasse_id TEXT NOT NULL,
+                klasse_name_snapshot TEXT NOT NULL, einsatz_id TEXT NOT NULL, faellig_am TEXT NOT NULL,
+                antwortmodus TEXT NOT NULL, frage TEXT NOT NULL, optionen_json TEXT NOT NULL DEFAULT '[]',
+                loesung TEXT, vergleichsgrundlage_bestaetigt INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+             );
+             INSERT INTO abrufcheck
+               (id,fokus_id,klasse_id,klasse_name_snapshot,einsatz_id,faellig_am,antwortmodus,frage,created_at,updated_at)
+               VALUES ('legacy-check','f1','k1','7A','e1','2026-10-15','offen','Alte Frage','2026-10-03','2026-10-03');",
+        ).unwrap();
+
+        init_schema(&conn).unwrap();
+        init_schema(&conn).unwrap();
+
+        let snapshot: i64 = conn.query_row(
+            "SELECT teilnahmeliste_snapshot FROM abrufcheck WHERE id='legacy-check'",
+            [], |row| row.get(0),
+        ).unwrap();
+        let question: String = conn.query_row(
+            "SELECT frage FROM abrufcheck WHERE id='legacy-check'",
+            [], |row| row.get(0),
+        ).unwrap();
+        assert_eq!(snapshot, 0);
+        assert_eq!(question, "Alte Frage");
+    }
+
     /// `schulferien.region` speichert einen Bundeslandnamen. Nichts an der
     /// Datenbank darf ihn auf eine Nummer festlegen – die Umstellung auf
     /// Namen ist genau deshalb ohne Migration möglich geblieben.
@@ -699,6 +1020,39 @@ mod tests {
             .into_iter()
             .any(|(name, unique)| name == "idx_lua_klassen_id" && unique);
         assert!(unique_index_exists);
+    }
+
+    #[test]
+    fn klassenidentitaeten_lassen_unsichere_altdaten_offen_und_migrieren_idempotent() {
+        let conn = Connection::open_in_memory().unwrap();
+        init_schema(&conn).unwrap();
+        conn.execute_batch(
+            "INSERT INTO lua_klassen (id,name,schuljahr) VALUES ('incomplete','7A',NULL);
+             INSERT INTO lua_klassen (id,name,fach,schuljahr) VALUES
+               ('older','8B','deutsch','2025/26'),('newer','8B','deutsch','2026/27');
+             INSERT INTO klasse_stammdaten (id,name,schuljahr) VALUES ('from-natascha','9C','2026/27');
+             INSERT INTO schueler (klasse,vorname) VALUES ('7A','Mia'),('8B','Noah');
+             INSERT INTO abgabe (klasse,aufgabe,dateiname,datei_hash) VALUES
+               ('7A','SA1','mia.docx','hash-a'),('8B','SA1','noah.docx','hash-b');",
+        ).unwrap();
+
+        migrate_class_identity_and_memberships(&conn).unwrap();
+        migrate_class_identity_and_memberships(&conn).unwrap();
+
+        let uncertain_student: Option<String> = conn.query_row("SELECT klasse_id FROM schueler WHERE vorname='Mia'", [], |r| r.get(0)).unwrap();
+        let uncertain_submission: Option<String> = conn.query_row("SELECT klasse_id FROM abgabe WHERE dateiname='mia.docx'", [], |r| r.get(0)).unwrap();
+        let memberships: i64 = conn.query_row("SELECT COUNT(*) FROM schueler_klassen", [], |r| r.get(0)).unwrap();
+        let review: i64 = conn.query_row("SELECT COUNT(*) FROM legacy_klasse_pruefung WHERE legacy_name IN ('7A','8B')", [], |r| r.get(0)).unwrap();
+        let ambiguous_flags: i64 = conn.query_row("SELECT SUM(pruefung_noetig) FROM klasse_stammdaten WHERE name='8B'", [], |r| r.get(0)).unwrap();
+        let mirrored: bool = conn.query_row("SELECT EXISTS(SELECT 1 FROM lua_klassen WHERE id='from-natascha' AND name='9C')", [], |r| r.get(0)).unwrap();
+
+        assert!(uncertain_student.is_none());
+        assert!(uncertain_submission.is_none());
+        assert_eq!(memberships, 0);
+        assert_eq!(review, 2);
+        assert_eq!(ambiguous_flags, 2);
+        assert!(mirrored);
+        assert_eq!(conn.query_row("SELECT COUNT(*) FROM klasse_stammdaten WHERE id='incomplete'", [], |r| r.get::<_, i64>(0)).unwrap(), 1);
     }
 
     #[test]

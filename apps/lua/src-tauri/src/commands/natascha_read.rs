@@ -22,6 +22,7 @@ pub struct AbgabeInfo {
     pub unterrichtseinsatz_id: Option<String>,
     pub material_id: Option<String>,
     pub klasse: String,
+    pub klasse_id: Option<String>,
     pub aufgabe: String,
     pub dateiname: String,
     pub datum: Option<String>,
@@ -73,9 +74,21 @@ pub struct KriteriumDurchschnitt {
 }
 
 #[tauri::command]
-pub async fn db_list_aufgaben(state: tauri::State<'_, DbState>, klasse: String) -> Result<Vec<String>, String> {
+pub async fn db_list_aufgaben(state: tauri::State<'_, DbState>, klasse: String, klasse_id: Option<String>) -> Result<Vec<String>, String> {
     let guard = state.conn()?;
-    list_aufgaben_impl(&guard, &klasse)
+    if let Some(id) = klasse_id.as_deref() { list_aufgaben_by_class_id_impl(&guard, &klasse, id) }
+    else { list_aufgaben_impl(&guard, &klasse) }
+}
+
+pub(crate) fn list_aufgaben_by_class_id_impl(conn: &rusqlite::Connection, klasse: &str, klasse_id: &str) -> Result<Vec<String>, String> {
+    let mut stmt = conn.prepare(
+        "SELECT DISTINCT aufgabe FROM abgabe WHERE klasse_id=?1 OR \
+         (klasse_id IS NULL AND klasse=?2 COLLATE NOCASE AND \
+          (SELECT COUNT(*) FROM klasse_stammdaten WHERE name=?2 COLLATE NOCASE)=1) ORDER BY aufgabe",
+    ).map_err(|e| format!("prepare Aufgaben nach Klassen-ID: {e}"))?;
+    let rows = stmt.query_map(rusqlite::params![klasse_id, klasse], |r| r.get::<_, String>(0))
+        .map_err(|e| format!("query Aufgaben nach Klassen-ID: {e}"))?;
+    rows.collect::<Result<Vec<_>, _>>().map_err(|e| format!("Aufgaben nach Klassen-ID lesen: {e}"))
 }
 
 pub(crate) fn list_aufgaben_impl(conn: &rusqlite::Connection, klasse: &str) -> Result<Vec<String>, String> {
@@ -89,20 +102,20 @@ pub(crate) fn list_aufgaben_impl(conn: &rusqlite::Connection, klasse: &str) -> R
 }
 
 #[tauri::command]
-pub async fn db_get_abgaben(state: tauri::State<'_, DbState>, klasse: String, aufgabe: Option<String>) -> Result<Vec<AbgabeInfo>, String> {
+pub async fn db_get_abgaben(state: tauri::State<'_, DbState>, klasse: String, aufgabe: Option<String>, klasse_id: Option<String>) -> Result<Vec<AbgabeInfo>, String> {
     let guard = state.conn()?;
     let conn = &*guard;
 
     let sql = if aufgabe.is_some() {
-        "SELECT a.id, a.schueler_id, a.unterrichtseinsatz_id, a.material_id, a.klasse, a.aufgabe, a.dateiname, a.datum, a.note, a.gesamtstufe, a.wortanzahl, a.fach, a.schulstufe, a.textsorte, s.vorname, s.nachname, CASE WHEN lf.id IS NOT NULL THEN 1 ELSE 0 END, lf.note_final, r.id, r.provider, r.model FROM abgabe a LEFT JOIN schueler s ON a.schueler_id=s.id LEFT JOIN lehrer_feedback lf ON a.id=lf.abgabe_id LEFT JOIN korrektur_revision r ON r.abgabe_id=a.id AND r.is_active=1 WHERE a.klasse=?1 AND a.aufgabe=?2 ORDER BY s.nachname, s.vorname, a.dateiname"
+        "SELECT a.id, a.schueler_id, a.unterrichtseinsatz_id, a.material_id, a.klasse, a.aufgabe, a.dateiname, a.datum, a.note, a.gesamtstufe, a.wortanzahl, a.fach, a.schulstufe, a.textsorte, s.vorname, s.nachname, CASE WHEN lf.id IS NOT NULL THEN 1 ELSE 0 END, lf.note_final, r.id, r.provider, r.model, a.klasse_id FROM abgabe a LEFT JOIN schueler s ON a.schueler_id=s.id LEFT JOIN lehrer_feedback lf ON a.id=lf.abgabe_id LEFT JOIN korrektur_revision r ON r.abgabe_id=a.id AND r.is_active=1 WHERE (a.klasse=?1 AND ?3 IS NULL OR a.klasse_id=?3 OR (a.klasse_id IS NULL AND a.klasse=?1 COLLATE NOCASE AND (SELECT COUNT(*) FROM klasse_stammdaten WHERE name=?1 COLLATE NOCASE)=1)) AND a.aufgabe=?2 ORDER BY s.nachname, s.vorname, a.dateiname"
     } else {
-        "SELECT a.id, a.schueler_id, a.unterrichtseinsatz_id, a.material_id, a.klasse, a.aufgabe, a.dateiname, a.datum, a.note, a.gesamtstufe, a.wortanzahl, a.fach, a.schulstufe, a.textsorte, s.vorname, s.nachname, CASE WHEN lf.id IS NOT NULL THEN 1 ELSE 0 END, lf.note_final, r.id, r.provider, r.model FROM abgabe a LEFT JOIN schueler s ON a.schueler_id=s.id LEFT JOIN lehrer_feedback lf ON a.id=lf.abgabe_id LEFT JOIN korrektur_revision r ON r.abgabe_id=a.id AND r.is_active=1 WHERE a.klasse=?1 ORDER BY a.aufgabe, s.nachname, s.vorname, a.dateiname"
+        "SELECT a.id, a.schueler_id, a.unterrichtseinsatz_id, a.material_id, a.klasse, a.aufgabe, a.dateiname, a.datum, a.note, a.gesamtstufe, a.wortanzahl, a.fach, a.schulstufe, a.textsorte, s.vorname, s.nachname, CASE WHEN lf.id IS NOT NULL THEN 1 ELSE 0 END, lf.note_final, r.id, r.provider, r.model, a.klasse_id FROM abgabe a LEFT JOIN schueler s ON a.schueler_id=s.id LEFT JOIN lehrer_feedback lf ON a.id=lf.abgabe_id LEFT JOIN korrektur_revision r ON r.abgabe_id=a.id AND r.is_active=1 WHERE (a.klasse=?1 AND ?2 IS NULL OR a.klasse_id=?2 OR (a.klasse_id IS NULL AND a.klasse=?1 COLLATE NOCASE AND (SELECT COUNT(*) FROM klasse_stammdaten WHERE name=?1 COLLATE NOCASE)=1)) ORDER BY a.aufgabe, s.nachname, s.vorname, a.dateiname"
     };
 
     let params: Vec<Box<dyn rusqlite::types::ToSql>> = if let Some(ref af) = aufgabe {
-        vec![Box::new(klasse), Box::new(af.clone())]
+        vec![Box::new(klasse), Box::new(af.clone()), Box::new(klasse_id.clone())]
     } else {
-        vec![Box::new(klasse)]
+        vec![Box::new(klasse), Box::new(klasse_id)]
     };
     let param_refs: Vec<&dyn rusqlite::types::ToSql> = params.iter().map(|p| p.as_ref()).collect();
 
@@ -131,6 +144,7 @@ pub async fn db_get_abgaben(state: tauri::State<'_, DbState>, klasse: String, au
             revision_id: row.get(18)?,
             provider: row.get(19)?,
             model: row.get(20)?,
+            klasse_id: row.get(21)?,
         })
     }).map_err(|e| format!("query: {}", e))?;
     Ok(rows.filter_map(|r| r.ok()).collect())
@@ -396,7 +410,7 @@ pub async fn db_get_abgabe_detail(state: tauri::State<'_, DbState>, abgabe_id: i
     let conn = &*guard;
 
     let abgabe = conn.query_row(
-        "SELECT a.id, a.schueler_id, a.unterrichtseinsatz_id, a.material_id, a.klasse, a.aufgabe, a.dateiname, a.datum, a.note, a.gesamtstufe, a.wortanzahl, a.fach, a.schulstufe, a.textsorte, s.vorname, s.nachname, CASE WHEN lf.id IS NOT NULL THEN 1 ELSE 0 END, lf.note_final, a.rohtext, r.id, r.provider, r.model, a.feedback_json_path FROM abgabe a LEFT JOIN schueler s ON a.schueler_id=s.id LEFT JOIN lehrer_feedback lf ON a.id=lf.abgabe_id LEFT JOIN korrektur_revision r ON r.abgabe_id=a.id AND r.is_active=1 WHERE a.id=?1",
+        "SELECT a.id, a.schueler_id, a.unterrichtseinsatz_id, a.material_id, a.klasse, a.aufgabe, a.dateiname, a.datum, a.note, a.gesamtstufe, a.wortanzahl, a.fach, a.schulstufe, a.textsorte, s.vorname, s.nachname, CASE WHEN lf.id IS NOT NULL THEN 1 ELSE 0 END, lf.note_final, a.rohtext, r.id, r.provider, r.model, a.feedback_json_path, a.klasse_id FROM abgabe a LEFT JOIN schueler s ON a.schueler_id=s.id LEFT JOIN lehrer_feedback lf ON a.id=lf.abgabe_id LEFT JOIN korrektur_revision r ON r.abgabe_id=a.id AND r.is_active=1 WHERE a.id=?1",
         rusqlite::params![abgabe_id], |row| {
             Ok(AbgabeInfo {
                 id: row.get(0)?,
@@ -421,6 +435,7 @@ pub async fn db_get_abgabe_detail(state: tauri::State<'_, DbState>, abgabe_id: i
                 revision_id: row.get(19)?,
                 provider: row.get(20)?,
                 model: row.get(21)?,
+                klasse_id: row.get(23)?,
             })
         }
     ).map_err(|e| format!("query abgabe: {}", e))?;
@@ -741,12 +756,33 @@ pub struct SchuelerInfo {
     pub vorname: String,
     pub nachname: Option<String>,
     pub created_at: Option<String>,
+    pub zuordnung_pruefen: bool,
 }
 
 #[tauri::command]
-pub async fn db_list_schueler(state: tauri::State<'_, DbState>, klasse: String) -> Result<Vec<SchuelerInfo>, String> {
+pub async fn db_list_schueler(state: tauri::State<'_, DbState>, klasse: String, klasse_id: Option<String>) -> Result<Vec<SchuelerInfo>, String> {
     let guard = state.conn()?;
-    list_schueler_impl(&guard, &klasse)
+    if let Some(id) = klasse_id.as_deref() { list_schueler_by_class_id_impl(&guard, id) }
+    else { list_schueler_impl(&guard, &klasse) }
+}
+
+pub(crate) fn list_schueler_by_class_id_impl(conn: &rusqlite::Connection, klasse_id: &str) -> Result<Vec<SchuelerInfo>, String> {
+    let mut stmt = conn.prepare(
+        "SELECT s.id, k.name, s.vorname, s.nachname, s.created_at, \
+                CASE WHEN sk.schueler_id IS NULL THEN 1 ELSE 0 END \
+         FROM klasse_stammdaten k JOIN schueler s \
+           ON (s.klasse_id=k.id OR (s.klasse_id IS NULL AND s.klasse=k.name COLLATE NOCASE AND EXISTS ( \
+             SELECT 1 FROM legacy_klasse_pruefung r WHERE r.legacy_name=s.klasse COLLATE NOCASE) AND NOT EXISTS ( \
+             SELECT 1 FROM schueler_klassen existing WHERE existing.schueler_id=s.id AND existing.status='aktiv'))) \
+         LEFT JOIN schueler_klassen sk ON sk.schueler_id=s.id AND sk.klasse_id=k.id \
+         WHERE k.id=?1 AND (sk.status='aktiv' OR s.klasse_id=k.id OR sk.schueler_id IS NULL) \
+         ORDER BY s.vorname, s.nachname",
+    ).map_err(|e| format!("prepare schueler nach Klassen-ID: {e}"))?;
+    let rows = stmt.query_map([klasse_id], |row| Ok(SchuelerInfo {
+        id: row.get(0)?, klasse: row.get(1)?, vorname: row.get(2)?,
+        nachname: row.get(3)?, created_at: row.get(4)?, zuordnung_pruefen: row.get::<_, i64>(5)? != 0,
+    })).map_err(|e| format!("query schueler nach Klassen-ID: {e}"))?;
+    rows.collect::<Result<Vec<_>, _>>().map_err(|e| format!("Schüler nach Klassen-ID lesen: {e}"))
 }
 
 pub(crate) fn list_schueler_impl(conn: &rusqlite::Connection, klasse: &str) -> Result<Vec<SchuelerInfo>, String> {
@@ -759,6 +795,7 @@ pub(crate) fn list_schueler_impl(conn: &rusqlite::Connection, klasse: &str) -> R
             vorname: row.get(2)?,
             nachname: row.get(3)?,
             created_at: row.get(4)?,
+            zuordnung_pruefen: false,
         })
     }).map_err(|e| format!("query schueler: {}", e))?;
     Ok(rows.filter_map(|r| r.ok()).collect())
@@ -771,9 +808,10 @@ pub async fn db_insert_schueler(
     klasse: String,
     vorname: String,
     nachname: Option<String>,
+    klasse_id: Option<String>,
 ) -> Result<i64, String> {
     let guard = state.conn()?;
-    insert_schueler_impl(&guard, &klasse, &vorname, nachname.as_deref())
+    insert_schueler_with_class_id_impl(&guard, &klasse, &vorname, nachname.as_deref(), klasse_id.as_deref())
 }
 
 pub(crate) fn insert_schueler_impl(
@@ -782,18 +820,96 @@ pub(crate) fn insert_schueler_impl(
     vorname: &str,
     nachname: Option<&str>,
 ) -> Result<i64, String> {
+    insert_schueler_with_class_id_impl(conn, klasse, vorname, nachname, None)
+}
+
+pub(crate) fn insert_schueler_with_class_id_impl(
+    conn: &rusqlite::Connection,
+    klasse: &str,
+    vorname: &str,
+    nachname: Option<&str>,
+    klasse_id: Option<&str>,
+) -> Result<i64, String> {
     let klasse = normalize_klasse(klasse);
     let vorname = vorname.trim();
     if klasse.is_empty() || vorname.is_empty() {
         return Err("Klasse und Vorname dürfen nicht leer sein.".to_string());
     }
     let nachname = nachname.map(str::trim).filter(|s| !s.is_empty());
+    let resolved_class = if let Some(id) = klasse_id {
+        Some(conn.query_row("SELECT id FROM klasse_stammdaten WHERE id=?1", [id], |row| row.get::<_, String>(0))
+            .optional().map_err(|e| format!("Klassen-ID prüfen: {e}"))?
+            .ok_or_else(|| "Die ausgewählte Klasse existiert nicht mehr.".to_string())?)
+    } else { None };
     conn.execute(
-        "INSERT INTO schueler (klasse, vorname, nachname) VALUES (?1, ?2, ?3)",
-        rusqlite::params![klasse, vorname, nachname],
+        "INSERT INTO schueler (klasse, klasse_id, vorname, nachname) VALUES (?1, ?2, ?3, ?4)",
+        rusqlite::params![klasse, resolved_class, vorname, nachname],
     )
     .map_err(|e| format!("insert schueler: {}", e))?;
-    Ok(conn.last_insert_rowid())
+    let schueler_id = conn.last_insert_rowid();
+    if let Some(class_id) = resolved_class {
+        conn.execute("INSERT OR IGNORE INTO schueler_klassen (schueler_id, klasse_id) VALUES (?1, ?2)",
+            rusqlite::params![schueler_id, class_id])
+            .map_err(|e| format!("Schüler-Klassenzuordnung speichern: {e}"))?;
+    }
+    Ok(schueler_id)
+}
+
+/// Fügt einen bestehenden Schüler einer weiteren Klasse bzw. einem Kurs hinzu.
+#[tauri::command]
+pub async fn db_assign_schueler_klasse(
+    state: tauri::State<'_, DbState>, schueler_id: i64, klasse_id: String,
+) -> Result<(), String> {
+    let guard = state.conn()?;
+    conn_assign_schueler_klasse(&guard, schueler_id, &klasse_id)
+}
+
+pub(crate) fn conn_assign_schueler_klasse(conn: &rusqlite::Connection, schueler_id: i64, klasse_id: &str) -> Result<(), String> {
+    let exists: bool = conn.query_row("SELECT EXISTS(SELECT 1 FROM schueler WHERE id=?1)", [schueler_id], |r| r.get(0))
+        .map_err(|e| format!("Schüler prüfen: {e}"))?;
+    if !exists { return Err("Schüler wurde nicht gefunden.".to_string()); }
+    let class_name: String = conn.query_row("SELECT name FROM klasse_stammdaten WHERE id=?1", [klasse_id], |r| r.get(0))
+        .optional().map_err(|e| format!("Klasse prüfen: {e}"))?
+        .ok_or_else(|| "Die ausgewählte Klasse wurde nicht gefunden.".to_string())?;
+    conn.execute("INSERT OR IGNORE INTO schueler_klassen (schueler_id, klasse_id) VALUES (?1, ?2)",
+        rusqlite::params![schueler_id, klasse_id])
+        .map_err(|e| format!("Schüler Kurszuordnung speichern: {e}"))?;
+    // `klasse` bleibt als Kompatibilitätswert für ältere NATASCHA-Aufgaben
+    // erhalten; neue Ansichten lesen die Mitgliedschaften über die stabile ID.
+    conn.execute("UPDATE schueler SET klasse_id=?1,klasse=?2 WHERE id=?3 AND klasse_id IS NULL",
+        rusqlite::params![klasse_id, class_name, schueler_id])
+        .map_err(|e| format!("Primäre Schüler-Klassenzuordnung setzen: {e}"))?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn db_remove_schueler_klasse(
+    state: tauri::State<'_, DbState>, schueler_id: i64, klasse_id: String,
+) -> Result<(), String> {
+    let guard = state.conn()?;
+    let conn = &*guard;
+    conn.execute("BEGIN IMMEDIATE", []).map_err(|e| format!("Kurszuordnung lösen starten: {e}"))?;
+    let result = (|| -> rusqlite::Result<()> {
+        conn.execute("DELETE FROM schueler_klassen WHERE schueler_id=?1 AND klasse_id=?2", rusqlite::params![schueler_id, klasse_id])?;
+        let fallback: Option<(String, String)> = conn.query_row(
+            "SELECT sk.klasse_id,k.name FROM schueler_klassen sk JOIN klasse_stammdaten k ON k.id=sk.klasse_id \
+             WHERE sk.schueler_id=?1 AND sk.status='aktiv' ORDER BY sk.zugeordnet_am LIMIT 1",
+            [schueler_id], |r| Ok((r.get(0)?, r.get(1)?)),
+        ).optional()?;
+        let current: Option<String> = conn.query_row("SELECT klasse_id FROM schueler WHERE id=?1", [schueler_id], |r| r.get(0)).optional()?.flatten();
+        if current.as_deref() == Some(klasse_id.as_str()) {
+            if let Some((next_id, next_name)) = fallback {
+                conn.execute("UPDATE schueler SET klasse_id=?1,klasse=?2 WHERE id=?3", rusqlite::params![next_id,next_name,schueler_id])?;
+            } else {
+                conn.execute("UPDATE schueler SET klasse_id=NULL WHERE id=?1", [schueler_id])?;
+            }
+        }
+        Ok(())
+    })();
+    match result {
+        Ok(()) => conn.execute("COMMIT", []).map(|_| ()).map_err(|e| format!("Kurszuordnung lösen abschließen: {e}")),
+        Err(e) => { let _ = conn.execute("ROLLBACK", []); Err(format!("Kurszuordnung lösen: {e}")) }
+    }
 }
 
 /// Löscht einen Schüler samt seinen Abgaben und abhängigen Historien.
@@ -950,7 +1066,7 @@ pub async fn db_get_schueler_laengsschnitt(state: tauri::State<'_, DbState>, sch
     let schueler = conn.query_row(
         "SELECT id, klasse, vorname, nachname, created_at FROM schueler WHERE id=?1",
         rusqlite::params![schueler_id],
-        |row| Ok(SchuelerInfo { id: row.get(0)?, klasse: row.get(1)?, vorname: row.get(2)?, nachname: row.get(3)?, created_at: row.get(4)? })
+        |row| Ok(SchuelerInfo { id: row.get(0)?, klasse: row.get(1)?, vorname: row.get(2)?, nachname: row.get(3)?, created_at: row.get(4)?, zuordnung_pruefen: false })
     ).map_err(|e| format!("query schueler: {}", e))?;
 
     let mut abgabe_stmt = conn.prepare(
@@ -1561,6 +1677,29 @@ mod tests {
         conn.execute_batch("PRAGMA foreign_keys=ON;").unwrap();
         conn.execute_batch(crate::db::NATASCHA_SCHEMA_SQL).unwrap();
         conn
+    }
+
+    #[test]
+    fn ungepruefte_schueler_bleiben_offen_bis_einer_kurszuordnung() {
+        let conn = setup();
+        conn.execute_batch(
+            "INSERT INTO klasse_stammdaten (id,name,schuljahr,pruefung_noetig) VALUES \
+             ('year-a','7A','2025/26',1),('year-b','7A','2026/27',1); \
+             INSERT INTO legacy_klasse_pruefung (legacy_name,grund) VALUES ('7A','Altdaten mehrdeutig'); \
+             INSERT INTO schueler (klasse,vorname) VALUES ('7A','Mia');",
+        ).unwrap();
+        let student_id = conn.last_insert_rowid();
+
+        let unresolved = list_schueler_by_class_id_impl(&conn, "year-a").unwrap();
+        assert_eq!(unresolved.len(), 1);
+        assert!(unresolved[0].zuordnung_pruefen);
+        assert!(list_schueler_by_class_id_impl(&conn, "year-b").unwrap()[0].zuordnung_pruefen);
+
+        conn_assign_schueler_klasse(&conn, student_id, "year-a").unwrap();
+        let confirmed = list_schueler_by_class_id_impl(&conn, "year-a").unwrap();
+        assert_eq!(confirmed.len(), 1);
+        assert!(!confirmed[0].zuordnung_pruefen);
+        assert!(list_schueler_by_class_id_impl(&conn, "year-b").unwrap().is_empty());
     }
 
     #[test]

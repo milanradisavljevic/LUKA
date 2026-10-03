@@ -13,6 +13,7 @@ export interface KlasseMeta {
   /** Farbslot 1..8 im Stundenplan; null = noch nicht zugewiesen. */
   farbe?: string | null;
   archiviert: boolean;
+  pruefungNoetig?: boolean;
   createdAt: string;
 }
 
@@ -68,11 +69,11 @@ export function useKlassenMeta() {
     }
   }, [refresh]);
 
-  const remove = useCallback(async (name: string): Promise<boolean> => {
+  const remove = useCallback(async (id: string): Promise<boolean> => {
     setError(null);
     try {
-      await invoke('klassen_meta_delete', { name });
-      setKlassen((prev) => prev.filter((k) => k.name !== name));
+      await invoke('klassen_meta_delete', { id });
+      setKlassen((prev) => prev.filter((k) => k.id !== id));
       return true;
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -80,10 +81,10 @@ export function useKlassenMeta() {
     }
   }, []);
 
-  const archive = useCallback(async (name: string, archiviert: boolean): Promise<boolean> => {
+  const archive = useCallback(async (id: string, name: string, archiviert: boolean): Promise<boolean> => {
     setError(null);
     try {
-      await invoke('db_klasse_archivieren', { klasse: name, archiviert });
+      await invoke('db_klasse_archivieren', { klasse: name, klasseId: id, archiviert });
       await refresh();
       return true;
     } catch (e) {

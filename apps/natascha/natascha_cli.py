@@ -186,6 +186,7 @@ def cmd_analyze(args):
         pseudonymisierung=not args.keine_pseudonymisierung,
         db_path_override=db_path,
         bestaetigte_schueler_id=args.schueler_id,
+        klasse_id=args.klasse_id,
         unterrichtseinsatz_id=args.einsatz_id,
         material_id=args.material_id,
         korrekturauftrag_id=korrekturauftrag_id,
@@ -991,6 +992,7 @@ def main():
     p_analyze = sub.add_parser("analyze", help="LLM-Analyse einer Schuelerabgabe")
     p_analyze.add_argument("file", help="Pfad zur DOCX/PDF-Datei")
     p_analyze.add_argument("--klasse", required=True)
+    p_analyze.add_argument("--klasse-id", default=None, help="Stabile Identität der Klasse (bei LUA-Aufruf).")
     p_analyze.add_argument("--aufgabe", required=True)
     p_analyze.add_argument("--fach", default="")
     p_analyze.add_argument("--schulstufe", default="")

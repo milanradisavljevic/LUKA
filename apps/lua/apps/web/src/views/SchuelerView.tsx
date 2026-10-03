@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Users, TrendingUp, AlertTriangle, Loader2, BarChart3, ChevronRight, Trash2, UserPlus, Sparkles, Wand2, FileUp, User, School, Check, Archive } from 'lucide-react';
+import { Users, TrendingUp, AlertTriangle, Loader2, BarChart3, ChevronRight, Trash2, UserPlus, UserMinus, Sparkles, Wand2, FileUp, User, School, Check, Archive } from 'lucide-react';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { EmptyState } from './_EmptyState';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, Legend, CartesianGrid } from 'recharts';
-import { useNatascha, type RubrikListe } from '../hooks/useNatascha';
+import { useNatascha, type RubrikListe, type SchuelerInfo } from '../hooks/useNatascha';
 import type { KlasseInfo } from '../lib/storage';
 import type { SchuelerProfilRow } from '../hooks/useNatascha';
 import { KATEGORIE_TO_BLOCKTYPEN, fehlerkorrekturZuerst, type NataschaPrefill, type BridgeBeispiel } from '../lib/nataschaBridge';
@@ -15,7 +15,6 @@ import { KiTextBlock } from '../components/KiTextBlock';
 import { InfoDot } from '../components/ui/InfoDot';
 import { useKlassenMeta } from '../hooks/useKlassenMeta';
 import { pruefeCsvImport, type CsvImportPruefung, type CsvImportWarnung } from '../lib/csvImportPruefung';
-import { filterKlassenNachArchiv } from '../lib/archivFilter';
 
 const FEHLER_LABELS: Record<string, string> = { R: 'Rechtschreibung', G: 'Grammatik', Z: 'Zeichensetzung', A: 'Ausdruck' };
 
@@ -52,17 +51,19 @@ interface SchuelerViewProps {
 }
 
 export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }: SchuelerViewProps = {}) {
-  const { listKlassen, listSchueler, insertSchueler, deleteSchueler, addKlasse, addAufgabe, listRubrics, getSchuelerLaengsschnitt, generateSchuelerProfil, getSchuelerProfil, quelltextGet } = useNatascha();
+  const { listKlassen, listSchueler, insertSchueler, deleteSchueler, assignSchuelerToKlasse, removeSchuelerFromKlasse, addKlasse, addAufgabe, listRubrics, getSchuelerLaengsschnitt, generateSchuelerProfil, getSchuelerProfil, quelltextGet } = useNatascha();
   const { klassen: bekannteKlassen } = useKlassenMeta();
 
   const [klassen, setKlassen] = useState<KlasseInfo[]>([]);
   const [selectedKlasse, setSelectedKlasse] = useState<string | null>(null);
-  const [schueler, setSchueler] = useState<{ id: number; vorname: string; nachname: string | null; klasse: string }[]>([]);
+  const [selectedKlasseId, setSelectedKlasseId] = useState<string | null>(null);
+  const [schueler, setSchueler] = useState<SchuelerInfo[]>([]);
   const [selectedSchuelerId, setSelectedSchuelerId] = useState<number | null>(null);
   const [laengsschnitt, setLaengsschnitt] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [neuKlasse, setNeuKlasse] = useState('');
+  const [neuKlasseId, setNeuKlasseId] = useState('');
   const [neuVorname, setNeuVorname] = useState('');
   const [neuNachname, setNeuNachname] = useState('');
   const [adding, setAdding] = useState(false);
@@ -78,7 +79,7 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
   const [profilBusy, setProfilBusy] = useState(false);
   const [profilError, setProfilError] = useState<string | null>(null);
   const [importMsg, setImportMsg] = useState<string | null>(null);
-  const [csvVorschau, setCsvVorschau] = useState<{ klasse: string; pruefung: CsvImportPruefung } | null>(null);
+  const [csvVorschau, setCsvVorschau] = useState<{ klasse: string; klasseId?: string; pruefung: CsvImportPruefung } | null>(null);
   const [csvImportBusy, setCsvImportBusy] = useState(false);
   const [zeigeArchivierte, setZeigeArchivierte] = useState(false);
   const [land, setLand] = useState<Land | undefined>();
@@ -113,13 +114,14 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
     } finally { setAufBusy(false); }
   }, [neuKlasse, selectedKlasse, aufLabel, aufFach, aufStufe, aufRubric, addKlasse, addAufgabe, listKlassen]);
 
-  const loadSchueler = useCallback(async (klasse: string) => {
+  const loadSchueler = useCallback(async (klasse: string, klasseId?: string | null) => {
     setSelectedKlasse(klasse);
+    setSelectedKlasseId(klasseId ?? null);
     setSelectedSchuelerId(null);
     setLaengsschnitt(null);
     setLoading(true);
     try {
-      const result = await listSchueler(klasse);
+      const result = await listSchueler(klasse, klasseId);
       setSchueler(result);
     } catch (e) { setError(String(e)); }
     finally { setLoading(false); }
@@ -143,13 +145,14 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
     if (!preselect) return;
     let cancelled = false;
     (async () => {
-      await loadSchueler(preselect.klasse);
+      const matching = bekannteKlassen.filter((item) => item.name.toLocaleLowerCase('de') === preselect.klasse.toLocaleLowerCase('de'));
+      await loadSchueler(preselect.klasse, matching.length === 1 ? matching[0]?.id : undefined);
       if (cancelled) return;
       await loadLaengsschnitt(preselect.id);
       onConsumePreselect?.();
     })();
     return () => { cancelled = true; };
-  }, [preselect, loadSchueler, loadLaengsschnitt, onConsumePreselect]);
+  }, [preselect, bekannteKlassen, loadSchueler, loadLaengsschnitt, onConsumePreselect]);
 
   // Closed Loop pro Schüler: aus den Fehlerschwerpunkten ein Übungsblatt erzeugen.
   const handleGenerateUebung = useCallback(async () => {
@@ -229,38 +232,42 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
 
   const handleAddSchueler = useCallback(async () => {
     const klasse = normalizeKlasse(neuKlasse || selectedKlasse || '');
+    const selectedIdentity = neuKlasseId || selectedKlasseId || '';
+    const klasseId = selectedIdentity && !selectedIdentity.startsWith('legacy:') ? selectedIdentity : undefined;
     if (!klasse || !neuVorname.trim()) { setError('Klasse und Vorname sind erforderlich.'); return; }
     setAdding(true); setError(null);
     try {
-      await insertSchueler(klasse, neuVorname.trim(), neuNachname.trim() || null);
-      setNeuVorname(''); setNeuNachname(''); setNeuKlasse('');
+      await insertSchueler(klasse, neuVorname.trim(), neuNachname.trim() || null, klasseId);
+      setNeuVorname(''); setNeuNachname(''); setNeuKlasse(''); setNeuKlasseId('');
       await listKlassen().then(setKlassen);
-      await loadSchueler(klasse);
+      await loadSchueler(klasse, klasseId);
     } catch (e) {
       setError(typeof e === 'string' ? e : e instanceof Error ? e.message : 'Anlegen fehlgeschlagen.');
     } finally { setAdding(false); }
-  }, [neuKlasse, selectedKlasse, neuVorname, neuNachname, insertSchueler, listKlassen, loadSchueler]);
+  }, [neuKlasse, neuKlasseId, selectedKlasse, selectedKlasseId, neuVorname, neuNachname, insertSchueler, listKlassen, loadSchueler]);
 
   // CSV-Import: zuerst prüfen und Vorschau anzeigen, erst danach explizit speichern.
   const handleCsvImport = useCallback(async (file: File) => {
     const klasse = normalizeKlasse(neuKlasse || selectedKlasse || '');
+    const selectedIdentity = neuKlasseId || selectedKlasseId || '';
+    const klasseId = selectedIdentity && !selectedIdentity.startsWith('legacy:') ? selectedIdentity : undefined;
     if (!klasse) { setImportMsg('Bitte zuerst eine Klasse wählen oder eingeben.'); return; }
     setImportMsg('CSV wird geprüft …');
     try {
       const text = await file.text();
-      const bestand = await listSchueler(klasse);
+      const bestand = await listSchueler(klasse, klasseId);
       const pruefung = pruefeCsvImport(text, bestand);
       if (pruefung.zeilen.length === 0) {
         setCsvVorschau(null);
         setImportMsg('Die CSV-Datei enthält keine Importzeilen.');
         return;
       }
-      setCsvVorschau({ klasse, pruefung });
+      setCsvVorschau({ klasse, klasseId, pruefung });
       setImportMsg(null);
     } catch (e) {
       setImportMsg(typeof e === 'string' ? e : e instanceof Error ? e.message : 'Import fehlgeschlagen.');
     }
-  }, [neuKlasse, selectedKlasse, listSchueler]);
+  }, [neuKlasse, neuKlasseId, selectedKlasse, selectedKlasseId, listSchueler]);
 
   const handleCsvConfirm = useCallback(async () => {
     if (!csvVorschau) return;
@@ -276,7 +283,7 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
     try {
       for (const row of auswahl) {
         try {
-          await insertSchueler(csvVorschau.klasse, row.vorname, row.nachname.trim() || null);
+          await insertSchueler(csvVorschau.klasse, row.vorname, row.nachname.trim() || null, csvVorschau.klasseId);
           ok++;
         } catch {
           skip++;
@@ -285,13 +292,30 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
       setCsvVorschau(null);
       setImportMsg(`${ok} Schüler importiert${skip ? `, ${skip} übersprungen` : ''}.`);
       await listKlassen().then(setKlassen);
-      await loadSchueler(csvVorschau.klasse);
+      await loadSchueler(csvVorschau.klasse, csvVorschau.klasseId);
     } catch (e) {
       setImportMsg(typeof e === 'string' ? e : e instanceof Error ? e.message : 'Import fehlgeschlagen.');
     } finally {
       setCsvImportBusy(false);
     }
   }, [csvVorschau, insertSchueler, listKlassen, loadSchueler]);
+
+  const handleAddFurtherClass = useCallback(async (schuelerId: number, klasseId: string) => {
+    if (!klasseId) return;
+    try {
+      await assignSchuelerToKlasse(schuelerId, klasseId);
+      if (selectedKlasse) await loadSchueler(selectedKlasse, selectedKlasseId);
+    } catch (e) { setError(typeof e === 'string' ? e : e instanceof Error ? e.message : 'Kurszuordnung fehlgeschlagen.'); }
+  }, [assignSchuelerToKlasse, selectedKlasse, selectedKlasseId, loadSchueler]);
+
+  const handleRemoveFromClass = useCallback(async (schuelerId: number) => {
+    if (!selectedKlasseId || !selectedKlasse) return;
+    if (!window.confirm('Schüler/in aus der gewählten Klasse entfernen? Das Schülerprofil und andere Kurszuordnungen bleiben erhalten.')) return;
+    try {
+      await removeSchuelerFromKlasse(schuelerId, selectedKlasseId);
+      await loadSchueler(selectedKlasse, selectedKlasseId);
+    } catch (e) { setError(typeof e === 'string' ? e : e instanceof Error ? e.message : 'Zuordnung konnte nicht entfernt werden.'); }
+  }, [removeSchuelerFromKlasse, selectedKlasse, selectedKlasseId, loadSchueler]);
 
   const handleDeleteSchueler = useCallback(async (id: number, name: string) => {
     const abgabenHinweis = selectedSchuelerId === id && laengsschnitt
@@ -321,7 +345,16 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
   const schuelerName = (s: { vorname: string; nachname: string | null }) =>
     [s.vorname, s.nachname].filter(Boolean).join(' ') || '—';
 
-  const sichtbareKlassen = filterKlassenNachArchiv(klassen, bekannteKlassen, zeigeArchivierte);
+  const sichtbareKlassen = [
+    ...bekannteKlassen.map((meta) => ({
+      klasse: meta.name,
+      anzahlAbgaben: klassen.find((item) => item.klasse === meta.name)?.anzahlAbgaben ?? 0,
+      id: meta.id ?? undefined,
+      meta,
+    })),
+    ...klassen.filter((item) => !bekannteKlassen.some((meta) => meta.name.toLocaleLowerCase('de') === item.klasse.toLocaleLowerCase('de')))
+      .map((item) => ({ klasse: item.klasse, anzahlAbgaben: item.anzahlAbgaben, id: undefined, meta: undefined })),
+  ].filter((item) => zeigeArchivierte || !item.meta?.archiviert);
 
   const trendIcon = (r: string) => r === 'steigt' ? '↑' : r === 'fällt' ? '↓' : '→';
 
@@ -346,20 +379,20 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
           </button>
 
           {sichtbareKlassen.map((k) => (
-            <div key={k.klasse}>
+            <div key={k.id ?? ('legacy:' + k.klasse.toLocaleLowerCase('de'))}>
               <button
-                onClick={() => loadSchueler(k.klasse)}
+                onClick={() => { setNeuKlasse(k.klasse); setNeuKlasseId(k.id ?? ('legacy:' + k.klasse.toLocaleLowerCase('de'))); void loadSchueler(k.klasse, k.id); }}
                 style={{
                   display: 'block', width: '100%', textAlign: 'left',
                   padding: '0.4rem 0.6rem', marginBottom: '0.125rem', fontSize: '0.8125rem',
-                  background: selectedKlasse === k.klasse ? 'var(--color-highlight-bg)' : 'none',
-                  border: selectedKlasse === k.klasse ? '2px solid var(--color-accent)' : '1px solid transparent',
+                  background: selectedKlasse === k.klasse && selectedKlasseId === (k.id ?? null) ? 'var(--color-highlight-bg)' : 'none',
+                  border: selectedKlasse === k.klasse && selectedKlasseId === (k.id ?? null) ? '2px solid var(--color-accent)' : '1px solid transparent',
                   borderRadius: 'var(--radius)', cursor: 'pointer',
                 }}
               >
                 {k.klasse} <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.75rem' }}>({k.anzahlAbgaben})</span>
               </button>
-              {selectedKlasse === k.klasse && schueler.length > 0 && (
+              {selectedKlasse === k.klasse && selectedKlasseId === (k.id ?? null) && schueler.length > 0 && (
                 <div style={{ paddingLeft: '0.75rem', marginBottom: '0.5rem' }}>
                   {schueler.map((s) => (
                     <div key={s.id} style={{ display: 'flex', gap: '0.25rem', marginBottom: '0.125rem' }}>
@@ -374,7 +407,7 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
                           borderRadius: 'var(--radius)', cursor: 'pointer',
                         }}
                       >
-                        <span>{schuelerName(s)}</span>
+                        <span>{schuelerName(s)}{s.zuordnungPruefen ? <small style={{ display: 'block', color: 'var(--color-warning, #a66c00)' }}>Zuordnung prüfen</small> : null}</span>
                         <ChevronRight size={12} />
                       </button>
                       <button
@@ -387,6 +420,14 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
                       >
                         <Trash2 size={12} />
                       </button>
+                      {selectedKlasseId && (s.zuordnungPruefen || bekannteKlassen.some((meta) => meta.id && meta.id !== selectedKlasseId && !meta.archiviert)) && <>
+                        <select aria-label={schuelerName(s) + (s.zuordnungPruefen ? ' Klassenmitgliedschaft bestätigen' : ' einem weiteren Kurs zuordnen')} defaultValue="" onChange={(event) => { const id = event.target.value; if (id) void handleAddFurtherClass(s.id, id); event.currentTarget.value = ''; }} style={{ maxWidth: 130, fontSize: '0.65rem' }}>
+                          <option value="">{s.zuordnungPruefen ? 'Zuordnen …' : '+ Kurs'}</option>
+                          {s.zuordnungPruefen && <option value={selectedKlasseId}>Hier zuordnen bestätigen</option>}
+                          {bekannteKlassen.filter((meta) => meta.id && meta.id !== selectedKlasseId && !meta.archiviert).map((meta) => <option key={meta.id} value={meta.id!}>{[meta.name, meta.fach, meta.schuljahr].filter(Boolean).join(' · ')}</option>)}
+                        </select>
+                        {!s.zuordnungPruefen && <button onClick={() => handleRemoveFromClass(s.id)} title="Aus dieser Klasse entfernen" aria-label={schuelerName(s) + ' aus dieser Klasse entfernen'} style={{ padding: '0.25rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', background: 'none', cursor: 'pointer', color: 'var(--color-text-secondary)', lineHeight: 0 }}><UserMinus size={12} /></button>}
+                      </>}
                     </div>
                   ))}
                 </div>
@@ -407,14 +448,15 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
             <div style={{ fontSize: '0.75rem', fontWeight: 700, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: 4 }}>
               <UserPlus size={14} /> Schüler anlegen
             </div>
-            <input value={neuKlasse || selectedKlasse || ''} onChange={(e) => setNeuKlasse(e.target.value)} placeholder="Klasse (z.B. 7a)"
-              list="schueler-klasse-optionen"
-              style={{ width: '100%', boxSizing: 'border-box', marginBottom: 4, fontSize: '0.75rem', padding: '0.25rem 0.4rem' }} />
-            <datalist id="schueler-klasse-optionen">
-              {[...new Set([...klassen.map((k) => k.klasse), ...bekannteKlassen.map((k) => k.name)])].map((name) => (
-                <option key={name} value={name} />
-              ))}
-            </datalist>
+            <select value={neuKlasseId || selectedKlasseId || (selectedKlasse ? 'legacy:' + selectedKlasse.toLocaleLowerCase('de') : '')} onChange={(e) => {
+              const identity = e.target.value;
+              const item = sichtbareKlassen.find((row) => (row.id ?? ('legacy:' + row.klasse.toLocaleLowerCase('de'))) === identity);
+              setNeuKlasse(item?.klasse ?? '');
+              setNeuKlasseId(item?.id ?? (item ? 'legacy:' + item.klasse.toLocaleLowerCase('de') : ''));
+            }} style={{ width: '100%', boxSizing: 'border-box', marginBottom: 4, fontSize: '0.75rem', padding: '0.25rem 0.4rem' }}>
+              <option value="">Klasse wählen</option>
+              {sichtbareKlassen.map((item) => <option key={item.id ?? ('legacy:' + item.klasse.toLocaleLowerCase('de'))} value={item.id ?? ('legacy:' + item.klasse.toLocaleLowerCase('de'))}>{[item.klasse, item.meta?.fach, item.meta?.schuljahr].filter(Boolean).join(' · ')}</option>)}
+            </select>
             <input value={neuVorname} onChange={(e) => setNeuVorname(e.target.value)} placeholder="Vorname"
               style={{ width: '100%', boxSizing: 'border-box', marginBottom: 4, fontSize: '0.75rem', padding: '0.25rem 0.4rem' }} />
             <input value={neuNachname} onChange={(e) => setNeuNachname(e.target.value)} placeholder="Nachname (optional)"

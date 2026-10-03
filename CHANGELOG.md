@@ -5,6 +5,15 @@ Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 (auch andere Coding-Agents) — siehe `AGENTS.md`.
 
+## In Arbeit — 2026-10-03
+
+### Änderungen
+
+- Klassen sind ein eigener Arbeitsbereich. Schüler/innen können Kursen in verschiedenen Schuljahren zugeordnet werden; unsichere Altdaten bleiben zur Prüfung markiert.
+- Geplante Stunden zeigen bestätigte Lernziele und ihre Korrekturquelle. Spätere Abrufchecks sind mit einer künftigen Stunde verknüpft und lassen sich von dort öffnen; verschobene Termine werden konsistent angezeigt.
+- Für neue Abrufchecks hält LUKA den Klassenstand fest und unterscheidet Teilnahme, Nichtteilnahme, offene Teilnahme und Antworten je Schüler/in. Alte Checks erhalten keine rückwirkend erfundene Anwesenheitsliste.
+- Ausgangskorrekturen und spätere Check-Antworten erscheinen mit Quelle, Zeitraum und Antwortzahlen getrennt. LUKA verrechnet unterschiedliche Erhebungen nicht zu einer Fortschrittszahl.
+
 ## Version 1.5.5 — 2026-10-02
 
 ### Das ist neu

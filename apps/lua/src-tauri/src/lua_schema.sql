@@ -75,8 +75,8 @@ CREATE INDEX IF NOT EXISTS idx_pool_thema ON aufgabe_pool(thema);
 -- nicht geprüft. Umbenennen einer Klasse hier ändert NICHTS an existierenden
 -- NATASCHA-Datensätzen — die UI muss das kommunizieren.
 CREATE TABLE IF NOT EXISTS lua_klassen (
-    id TEXT,
-    name TEXT PRIMARY KEY,
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
     fach TEXT,
     land TEXT,
     stufe TEXT,
@@ -87,6 +87,71 @@ CREATE TABLE IF NOT EXISTS lua_klassen (
     archiviert INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+-- Bestätigte Verbindung zwischen einem beobachteten Korrekturmuster und einem
+-- Lernziel. Planungsdaten allein werden ausdrücklich nicht als Lernergebnis gezählt.
+CREATE TABLE IF NOT EXISTS lernziel_fokus (
+    id TEXT PRIMARY KEY,
+    klasse_id TEXT NOT NULL,
+    klasse_name_snapshot TEXT NOT NULL,
+    lernziel TEXT NOT NULL,
+    fehler_typ TEXT NOT NULL,
+    aufgabe_snapshot TEXT NOT NULL,
+    ausgangseinsatz_id TEXT REFERENCES unterrichtseinsatz(id) ON DELETE SET NULL,
+    ausgangsstunden_titel_snapshot TEXT,
+    ausgangsdatum_snapshot TEXT,
+    zeitraum_von TEXT,
+    zeitraum_bis TEXT,
+    antwort_anzahl INTEGER NOT NULL DEFAULT 0,
+    fehler_anzahl INTEGER NOT NULL DEFAULT 0,
+    bestaetigt_am TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_lernziel_fokus_klasse ON lernziel_fokus(klasse_id, updated_at DESC);
+
+-- Ein kurzer, zeitversetzter Abrufcheck wird an einen tatsächlichen späteren
+-- Unterrichtseinsatz gehängt. Offene Antworten bleiben lehrkraftbewertet.
+CREATE TABLE IF NOT EXISTS abrufcheck (
+    id TEXT PRIMARY KEY,
+    fokus_id TEXT NOT NULL REFERENCES lernziel_fokus(id) ON DELETE CASCADE,
+    klasse_id TEXT NOT NULL,
+    klasse_name_snapshot TEXT NOT NULL,
+    einsatz_id TEXT NOT NULL REFERENCES unterrichtseinsatz(id) ON DELETE CASCADE,
+    faellig_am TEXT NOT NULL,
+    antwortmodus TEXT NOT NULL CHECK (antwortmodus IN ('offen', 'auswahl')),
+    frage TEXT NOT NULL,
+    optionen_json TEXT NOT NULL DEFAULT '[]',
+    loesung TEXT,
+    vergleichsgrundlage_bestaetigt INTEGER NOT NULL DEFAULT 0,
+    teilnahmeliste_snapshot INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_abrufcheck_einsatz ON abrufcheck(einsatz_id);
+
+-- Roster und Teilnahme werden zum Zeitpunkt des Check-Anlegens festgehalten.
+-- "Offen" bedeutet noch keine verlässliche Teilnahmemeldung, nicht abwesend.
+CREATE TABLE IF NOT EXISTS abrufcheck_teilnahme (
+    abrufcheck_id TEXT NOT NULL REFERENCES abrufcheck(id) ON DELETE CASCADE,
+    schueler_id INTEGER NOT NULL REFERENCES schueler(id) ON DELETE CASCADE,
+    status TEXT NOT NULL DEFAULT 'offen' CHECK (status IN ('offen', 'anwesend', 'abwesend')),
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (abrufcheck_id, schueler_id)
+);
+CREATE INDEX IF NOT EXISTS idx_abrufcheck_teilnahme_schueler ON abrufcheck_teilnahme(schueler_id, abrufcheck_id);
+
+CREATE TABLE IF NOT EXISTS abrufcheck_ergebnis (
+    id TEXT PRIMARY KEY,
+    abrufcheck_id TEXT NOT NULL REFERENCES abrufcheck(id) ON DELETE CASCADE,
+    schueler_id INTEGER NOT NULL REFERENCES schueler(id) ON DELETE CASCADE,
+    antwort TEXT NOT NULL DEFAULT '',
+    ergebnis TEXT NOT NULL CHECK (ergebnis IN ('richtig', 'teilweise', 'noch_nicht')),
+    ausgewertet_von TEXT NOT NULL CHECK (ausgewertet_von IN ('lokal', 'lehrkraft')),
+    erstellt_am TEXT NOT NULL,
+    UNIQUE (abrufcheck_id, schueler_id)
+);
+CREATE INDEX IF NOT EXISTS idx_abrufcheck_ergebnis_check ON abrufcheck_ergebnis(abrufcheck_id);
 
 -- Evidenzschicht zwischen erzeugtem Material, Klasse und späterer Auswertung.
 -- Die Identitätsfelder bleiben bewusst nullable und werden im Rust-Code validiert;

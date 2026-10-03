@@ -13,5 +13,6 @@ pub mod profil;
 pub mod einsatz;
 pub mod feedback;
 pub mod planung;
+pub mod lernziel;
 
 pub mod diagnostics;

@@ -695,6 +695,7 @@ pub async fn natascha_analyze(
     python: String,
     file_path: String,
     klasse: String,
+    klasse_id: Option<String>,
     aufgabe: String,
     provider: Option<String>,
     model: Option<String>,
@@ -724,6 +725,9 @@ pub async fn natascha_analyze(
         .arg(&klasse)
         .arg("--aufgabe")
         .arg(&aufgabe);
+    if let Some(ref id) = klasse_id {
+        cmd.arg("--klasse-id").arg(id);
+    }
     if let Some(ref v) = fach {
         cmd.arg("--fach").arg(v);
     }

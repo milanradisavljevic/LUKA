@@ -12,6 +12,7 @@ import hashlib
 import json
 import sqlite3
 import sys
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -39,9 +40,41 @@ SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS schueler (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     klasse TEXT NOT NULL,
+    klasse_id TEXT,
     vorname TEXT NOT NULL,
     nachname TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Gemeinsame Stammdaten: die sichtbare Bezeichnung ist kein Schlüssel. Ein
+-- Klassenname darf in verschiedenen Schuljahren/Kursen erneut verwendet werden.
+CREATE TABLE IF NOT EXISTS klasse_stammdaten (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    fach TEXT,
+    schuljahr TEXT,
+    archiviert INTEGER NOT NULL DEFAULT 0,
+    pruefung_noetig INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_klasse_stammdaten_name ON klasse_stammdaten(name COLLATE NOCASE);
+
+CREATE TABLE IF NOT EXISTS schueler_klassen (
+    schueler_id INTEGER NOT NULL REFERENCES schueler(id) ON DELETE CASCADE,
+    klasse_id TEXT NOT NULL REFERENCES klasse_stammdaten(id) ON DELETE CASCADE,
+    zugeordnet_am TEXT NOT NULL DEFAULT (datetime('now')),
+    status TEXT NOT NULL DEFAULT 'aktiv',
+    PRIMARY KEY (schueler_id, klasse_id)
+);
+CREATE INDEX IF NOT EXISTS idx_schueler_klassen_klasse ON schueler_klassen(klasse_id, status);
+
+CREATE TABLE IF NOT EXISTS legacy_klasse_pruefung (
+    legacy_name TEXT PRIMARY KEY,
+    grund TEXT NOT NULL,
+    schueler_anzahl INTEGER NOT NULL DEFAULT 0,
+    abgaben_anzahl INTEGER NOT NULL DEFAULT 0,
+    erstellt_am TEXT NOT NULL DEFAULT (datetime('now')),
+    erledigt_am TEXT
 );
 
 CREATE TABLE IF NOT EXISTS abgabe (
@@ -51,6 +84,7 @@ CREATE TABLE IF NOT EXISTS abgabe (
     unterrichtseinsatz_id TEXT,
     material_id TEXT,
     klasse TEXT NOT NULL,
+    klasse_id TEXT,
     aufgabe TEXT NOT NULL,
     dateiname TEXT NOT NULL,
     datei_hash TEXT UNIQUE NOT NULL,
@@ -241,6 +275,95 @@ def init_db(db_path: Path | str) -> None:
             conn.execute("ALTER TABLE korrektur_revision ADD COLUMN basis_json TEXT NOT NULL DEFAULT '{}' ")
         _migrate_korrektur_revisionen(conn)
         _migrate_fehler_historie_columns(conn)
+        _migrate_klasse_stammdaten(conn)
+
+
+def _migrate_klasse_stammdaten(conn: sqlite3.Connection) -> None:
+    """Backfillt eindeutige Legacy-Klassen. Mehrdeutige Namen bleiben prüfbar.
+
+    Historische `klasse`-Texte werden dabei nicht geändert. Bei unbekanntem
+    Schuljahr wird eine vorläufige Identität angelegt und die Lehrkraft sieht
+    den Prüfbedarf, statt dass Datensätze mit einer geratenen Klasse verschmelzen.
+    """
+    for table in ("schueler", "abgabe"):
+        columns = {row[1] for row in conn.execute(f"PRAGMA table_info({table})")}
+        if "klasse_id" not in columns:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN klasse_id TEXT")
+
+    if "lua_klassen" in {
+        row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
+    }:
+        cols = {row[1] for row in conn.execute("PRAGMA table_info(lua_klassen)")}
+        if {"id", "name"}.issubset(cols):
+            fach_expr = "fach" if "fach" in cols else "NULL"
+            jahr_expr = "schuljahr" if "schuljahr" in cols else "NULL"
+            archiv_expr = "archiviert" if "archiviert" in cols else "0"
+            rows = conn.execute(
+                f"SELECT id,name,{fach_expr},{jahr_expr},{archiv_expr} FROM lua_klassen WHERE id IS NOT NULL AND name IS NOT NULL"
+            ).fetchall()
+            for class_id, name, fach, school_year, archived in rows:
+                conn.execute(
+                    "INSERT OR IGNORE INTO klasse_stammdaten (id,name,fach,schuljahr,archiviert,pruefung_noetig) "
+                    "VALUES (?,?,?,?,?,?)",
+                    (class_id, name, fach, school_year, archived or 0, int(not school_year)),
+                )
+
+    legacy_names = set()
+    for table in ("schueler", "abgabe"):
+        legacy_names.update(
+            row[0] for row in conn.execute(f"SELECT DISTINCT klasse FROM {table} WHERE trim(klasse)<>''")
+        )
+    for name in sorted(legacy_names, key=str.casefold):
+        matches = conn.execute(
+            "SELECT id, schuljahr FROM klasse_stammdaten WHERE name=? COLLATE NOCASE", (name,)
+        ).fetchall()
+        if not matches:
+            class_id = str(uuid.uuid4())
+            conn.execute(
+                "INSERT INTO klasse_stammdaten (id,name,pruefung_noetig) VALUES (?,?,1)",
+                (class_id, name),
+            )
+            matches = [(class_id, None)]
+        if len(matches) != 1:
+            conn.execute(
+                "UPDATE klasse_stammdaten SET pruefung_noetig=1 WHERE name=? COLLATE NOCASE",
+                (name,),
+            )
+            _upsert_legacy_class_review(conn, name, "Mehrere Klassenidentitäten passen zum alten Anzeigenamen")
+            continue
+        class_id, school_year = matches[0]
+        needs_review = conn.execute(
+            "SELECT pruefung_noetig FROM klasse_stammdaten WHERE id=?", (class_id,)
+        ).fetchone()
+        if not school_year or not needs_review or needs_review[0]:
+            _upsert_legacy_class_review(conn, name, "Schuljahr oder Kurs der Altdaten ist nicht belegt")
+            continue
+        conn.execute(
+            "INSERT OR IGNORE INTO schueler_klassen (schueler_id,klasse_id) "
+            "SELECT id,? FROM schueler WHERE klasse=? COLLATE NOCASE",
+            (class_id, name),
+        )
+        conn.execute(
+            "UPDATE schueler SET klasse_id=? WHERE klasse=? COLLATE NOCASE AND klasse_id IS NULL",
+            (class_id, name),
+        )
+        conn.execute(
+            "UPDATE abgabe SET klasse_id=? WHERE klasse=? COLLATE NOCASE AND klasse_id IS NULL",
+            (class_id, name),
+        )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_abgabe_klasse_id ON abgabe(klasse_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_schueler_klasse_id ON schueler(klasse_id)")
+
+
+def _upsert_legacy_class_review(conn: sqlite3.Connection, name: str, reason: str) -> None:
+    conn.execute(
+        "INSERT INTO legacy_klasse_pruefung (legacy_name,grund,schueler_anzahl,abgaben_anzahl) "
+        "VALUES (?,?,(SELECT COUNT(*) FROM schueler WHERE klasse=? COLLATE NOCASE),"
+        "(SELECT COUNT(*) FROM abgabe WHERE klasse=? COLLATE NOCASE)) "
+        "ON CONFLICT(legacy_name) DO UPDATE SET grund=excluded.grund,"
+        "schueler_anzahl=excluded.schueler_anzahl,abgaben_anzahl=excluded.abgaben_anzahl",
+        (name, reason, name, name),
+    )
 
 
 def _migrate_korrektur_revisionen(conn: sqlite3.Connection) -> None:
@@ -388,27 +511,58 @@ def insert_schueler(
     klasse: str,
     vorname: str,
     nachname: str = "",
+    klasse_id: str | None = None,
 ) -> int:
     """Fügt einen Schüler hinzu und gibt die neue ID zurück."""
     klasse = normalize_klasse(klasse)
     with sqlite3.connect(str(db_path)) as conn:
+        if not klasse_id:
+            klasse_id = _resolve_or_create_class(conn, klasse)
         cur = conn.execute(
-            "INSERT INTO schueler (klasse, vorname, nachname) VALUES (?, ?, ?)",
-            (klasse, vorname, nachname),
+            "INSERT INTO schueler (klasse, klasse_id, vorname, nachname) VALUES (?, ?, ?, ?)",
+            (klasse, klasse_id, vorname, nachname),
         )
+        if klasse_id:
+            conn.execute(
+                "INSERT OR IGNORE INTO schueler_klassen (schueler_id, klasse_id) VALUES (?, ?)",
+                (cur.lastrowid, klasse_id),
+            )
         conn.commit()
         return int(cur.lastrowid)  # type: ignore[arg-type]
 
 
-def get_schueler_by_klasse(db_path: Path | str, klasse: str) -> list[dict[str, Any]]:
+def _resolve_or_create_class(conn: sqlite3.Connection, name: str) -> str | None:
+    """Löst einen Anzeigenamen nur bei genau einer Identität automatisch auf."""
+    rows = conn.execute(
+        "SELECT id FROM klasse_stammdaten WHERE name=? COLLATE NOCASE", (normalize_klasse(name),)
+    ).fetchall()
+    if len(rows) == 1:
+        return str(rows[0][0])
+    if len(rows) > 1:
+        _upsert_legacy_class_review(conn, name, "Mehrere Klassenidentitäten passen zum alten Anzeigenamen")
+        return None
+    class_id = str(uuid.uuid4())
+    conn.execute("INSERT INTO klasse_stammdaten (id,name,pruefung_noetig) VALUES (?,?,1)", (class_id, normalize_klasse(name)))
+    _upsert_legacy_class_review(conn, name, "Schuljahr oder Kurs der Klasse fehlt")
+    return class_id
+
+
+def get_schueler_by_klasse(db_path: Path | str, klasse: str, klasse_id: str | None = None) -> list[dict[str, Any]]:
     """Alle Schüler einer Klasse, sortiert nach Vorname."""
     klasse = normalize_klasse(klasse)
     with sqlite3.connect(str(db_path)) as conn:
         conn.row_factory = sqlite3.Row
-        rows = conn.execute(
-            "SELECT * FROM schueler WHERE klasse = ? COLLATE NOCASE ORDER BY vorname, nachname",
-            (klasse,),
-        ).fetchall()
+        if klasse_id:
+            rows = conn.execute(
+                "SELECT s.* FROM schueler_klassen sk JOIN schueler s ON s.id=sk.schueler_id "
+                "WHERE sk.klasse_id=? AND sk.status='aktiv' ORDER BY s.vorname,s.nachname",
+                (klasse_id,),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT * FROM schueler WHERE klasse = ? COLLATE NOCASE ORDER BY vorname, nachname",
+                (klasse,),
+            ).fetchall()
         return [dict(r) for r in rows]
 
 
@@ -1096,6 +1250,7 @@ def save_analysis_to_db(
     revision_of_abgabe_id: int | None = None,
     correction_basis: dict[str, Any] | None = None,
     started_at: str | None = None,
+    klasse_id: str | None = None,
 ) -> int:
     """
     Bequemlichkeits-Funktion: Nimmt das validierte JSON-Dict nach der Analyse
@@ -1144,6 +1299,12 @@ def save_analysis_to_db(
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys=ON")
         conn.execute("BEGIN IMMEDIATE")
+        if klasse_id:
+            exists = conn.execute("SELECT 1 FROM klasse_stammdaten WHERE id=?", (klasse_id,)).fetchone()
+            if not exists:
+                raise ValueError("Die Klassenidentität der Korrektur ist nicht mehr vorhanden.")
+        else:
+            klasse_id = _resolve_or_create_class(conn, klasse)
         existing = conn.execute(
             "SELECT * FROM abgabe WHERE datei_hash=?", (datei_hash,)
         ).fetchone()
@@ -1162,10 +1323,10 @@ def save_analysis_to_db(
             conn.execute("DELETE FROM fehler_historie WHERE abgabe_id=?", (abgabe_id,))
             conn.execute("DELETE FROM lehrer_feedback WHERE abgabe_id=?", (abgabe_id,))
             conn.execute(
-                "UPDATE abgabe SET korrekturauftrag_id=?, unterrichtseinsatz_id=?, material_id=?, "
+                "UPDATE abgabe SET korrekturauftrag_id=?, unterrichtseinsatz_id=?, material_id=?, klasse_id=?, "
                 "klasse=?, aufgabe=?, dateiname=?, rohtext=?, note=?, gesamtstufe=?, "
                 "feedback_json_path=?, wortanzahl=?, fach=?, schulstufe=?, textsorte=?, rubrik=? WHERE id=?",
-                (korrekturauftrag_id, unterrichtseinsatz_id, material_id, klasse, aufgabe,
+                (korrekturauftrag_id, unterrichtseinsatz_id, material_id, klasse_id, klasse, aufgabe,
                  dateiname, rohtext, note, gesamtstufe, feedback_json_path, wortanzahl,
                  data.get("fach", ""), data.get("schulstufe", ""), data.get("textsorte", ""),
                  data.get("rubrik", ""), abgabe_id),
@@ -1175,10 +1336,16 @@ def save_analysis_to_db(
                 return -1
             schueler_id: int | None = None
             if bestaetigte_schueler_id is not None:
-                confirmed = conn.execute(
-                    "SELECT id FROM schueler WHERE id=? AND klasse=?",
-                    (bestaetigte_schueler_id, klasse),
-                ).fetchone()
+                if klasse_id:
+                    confirmed = conn.execute(
+                        "SELECT schueler_id AS id FROM schueler_klassen WHERE schueler_id=? AND klasse_id=? AND status='aktiv'",
+                        (bestaetigte_schueler_id, klasse_id),
+                    ).fetchone()
+                else:
+                    confirmed = conn.execute(
+                        "SELECT id FROM schueler WHERE id=? AND klasse=?",
+                        (bestaetigte_schueler_id, klasse),
+                    ).fetchone()
                 if confirmed:
                     schueler_id = int(confirmed["id"])
             # Namensheuristik bleibt nur für neue Abgaben bestehen.
@@ -1187,21 +1354,31 @@ def save_analysis_to_db(
                 parts = student_name.split(maxsplit=1)
                 first_name = parts[0] if parts else student_name
                 last_name = parts[1] if len(parts) > 1 else ""
-                student = conn.execute(
-                    "SELECT id FROM schueler WHERE klasse=? AND vorname=? AND COALESCE(nachname,'')=? LIMIT 1",
-                    (klasse, first_name, last_name),
-                ).fetchone()
+                if klasse_id:
+                    student = conn.execute(
+                        "SELECT s.id FROM schueler_klassen sk JOIN schueler s ON s.id=sk.schueler_id "
+                        "WHERE sk.klasse_id=? AND sk.status='aktiv' AND LOWER(s.vorname)=LOWER(?) AND LOWER(COALESCE(s.nachname,''))=LOWER(?) LIMIT 1",
+                        (klasse_id, first_name, last_name),
+                    ).fetchone()
+                else:
+                    student = conn.execute(
+                        "SELECT id FROM schueler WHERE klasse=? AND vorname=? AND COALESCE(nachname,'')=? LIMIT 1",
+                        (klasse, first_name, last_name),
+                    ).fetchone()
                 if student:
                     schueler_id = int(student["id"])
                 else:
-                    schueler_id = int(conn.execute(
-                        "INSERT INTO schueler (klasse, vorname, nachname) VALUES (?, ?, ?)",
-                        (klasse, first_name, last_name or None),
-                    ).lastrowid)
+                    student_cur = conn.execute(
+                        "INSERT INTO schueler (klasse, klasse_id, vorname, nachname) VALUES (?, ?, ?, ?)",
+                        (klasse, klasse_id, first_name, last_name or None),
+                    )
+                    schueler_id = int(student_cur.lastrowid)
+                    if klasse_id:
+                        conn.execute("INSERT OR IGNORE INTO schueler_klassen (schueler_id,klasse_id) VALUES (?,?)", (schueler_id,klasse_id))
             cur = conn.execute(
-                "INSERT INTO abgabe (schueler_id, korrekturauftrag_id, unterrichtseinsatz_id, material_id, klasse, aufgabe, dateiname, datei_hash, rohtext, note, gesamtstufe, feedback_json_path, wortanzahl, fach, schulstufe, textsorte, rubrik) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO abgabe (schueler_id, korrekturauftrag_id, unterrichtseinsatz_id, material_id, klasse, klasse_id, aufgabe, dateiname, datei_hash, rohtext, note, gesamtstufe, feedback_json_path, wortanzahl, fach, schulstufe, textsorte, rubrik) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (schueler_id, korrekturauftrag_id, unterrichtseinsatz_id, material_id,
-                 klasse, aufgabe, dateiname, datei_hash, rohtext, note, gesamtstufe,
+                 klasse, klasse_id, aufgabe, dateiname, datei_hash, rohtext, note, gesamtstufe,
                  feedback_json_path, wortanzahl, data.get("fach", ""),
                  data.get("schulstufe", ""), data.get("textsorte", ""), data.get("rubrik", "")),
             )

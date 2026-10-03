@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use rusqlite::OptionalExtension;
 use uuid::Uuid;
 
 use super::db::DbState;
@@ -22,6 +23,7 @@ pub struct KlasseMeta {
     /// vergibt die Oberfläche den naechsten freien Slot.
     pub farbe: Option<String>,
     pub archiviert: bool,
+    pub pruefung_noetig: bool,
     pub created_at: String,
 }
 
@@ -34,8 +36,10 @@ pub async fn klassen_meta_list(state: tauri::State<'_, DbState>) -> Result<Vec<K
 pub(crate) fn klassen_meta_list_impl(conn: &rusqlite::Connection) -> Result<Vec<KlasseMeta>, String> {
     let mut stmt = conn
         .prepare(
-            "SELECT id, name, fach, land, stufe, schulstufe, schuljahr, notizen, archiviert, created_at, farbe \
-             FROM lua_klassen ORDER BY archiviert ASC, name ASC",
+            "SELECT k.id, k.name, k.fach, k.land, k.stufe, k.schulstufe, k.schuljahr, k.notizen, \
+                    k.archiviert, k.created_at, k.farbe, COALESCE(s.pruefung_noetig,0) \
+             FROM lua_klassen k LEFT JOIN klasse_stammdaten s ON s.id=k.id \
+             ORDER BY k.archiviert ASC, k.name ASC, k.schuljahr ASC, k.fach ASC",
         )
         .map_err(|e| format!("klassen_meta_list prepare: {e}"))?;
     let rows = stmt
@@ -52,6 +56,7 @@ pub(crate) fn klassen_meta_list_impl(conn: &rusqlite::Connection) -> Result<Vec<
                 archiviert: row.get::<_, i64>(8)? != 0,
                 created_at: row.get(9)?,
                 farbe: row.get(10)?,
+                pruefung_noetig: row.get::<_, i64>(11)? != 0,
             })
         })
         .map_err(|e| format!("klassen_meta_list query: {e}"))?;
@@ -62,7 +67,8 @@ pub(crate) fn klassen_meta_list_impl(conn: &rusqlite::Connection) -> Result<Vec<
     Ok(result)
 }
 
-/// Legt eine Klasse neu an oder aktualisiert sie (Name ist der Primärschlüssel).
+/// Legt eine Klassenidentität neu an oder aktualisiert sie. Der Anzeigename ist
+/// absichtlich kein Schlüssel: gleiche Namen können in anderen Jahren/Kursen vorkommen.
 #[tauri::command]
 pub async fn klassen_meta_upsert(
     state: tauri::State<'_, DbState>,
@@ -90,14 +96,25 @@ pub async fn klassen_meta_upsert(
             _ => return Err("Farbe muss ein Slot 1 bis 8 sein.".to_string()),
         },
     };
-    let id = meta.id.filter(|id| !id.trim().is_empty()).unwrap_or_else(|| Uuid::new_v4().to_string());
+    let id = if let Some(id) = meta.id.filter(|id| !id.trim().is_empty()) {
+        id
+    } else if let Some(id) = conn.query_row(
+        "SELECT id FROM lua_klassen WHERE name=?1 COLLATE NOCASE \
+         AND COALESCE(fach,'')=COALESCE(?2,'') AND COALESCE(schuljahr,'')=COALESCE(?3,'') LIMIT 1",
+        rusqlite::params![name, meta.fach, meta.schuljahr], |row| row.get::<_, String>(0),
+    ).optional().map_err(|e| format!("Klassenidentität suchen: {e}"))? {
+        id
+    } else {
+        Uuid::new_v4().to_string()
+    };
+    let old_name: Option<String> = conn.query_row("SELECT name FROM klasse_stammdaten WHERE id=?1", [&id], |row| row.get(0))
+        .optional().map_err(|e| format!("Bisherigen Klassennamen lesen: {e}"))?;
     conn.execute(
         "INSERT INTO lua_klassen (id, name, fach, land, stufe, schulstufe, schuljahr, notizen, archiviert, farbe) \
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10) \
-         ON CONFLICT(name) DO UPDATE SET \
-           fach=excluded.fach, land=excluded.land, stufe=excluded.stufe, schulstufe=excluded.schulstufe, \
-           schuljahr=excluded.schuljahr, notizen=excluded.notizen, archiviert=excluded.archiviert, \
-           farbe=excluded.farbe",
+         ON CONFLICT(id) DO UPDATE SET name=excluded.name, fach=excluded.fach, land=excluded.land, \
+           stufe=excluded.stufe, schulstufe=excluded.schulstufe, schuljahr=excluded.schuljahr, \
+           notizen=excluded.notizen, archiviert=excluded.archiviert, farbe=excluded.farbe",
         rusqlite::params![
             id,
             name,
@@ -112,17 +129,28 @@ pub async fn klassen_meta_upsert(
         ],
     )
     .map_err(|e| format!("klassen_meta_upsert: {e}"))?;
+    conn.execute(
+        "INSERT INTO klasse_stammdaten (id,name,fach,schuljahr,archiviert,pruefung_noetig) \
+         VALUES (?1,?2,?3,?4,?5,0) ON CONFLICT(id) DO UPDATE SET \
+         name=excluded.name,fach=excluded.fach,schuljahr=excluded.schuljahr,archiviert=excluded.archiviert, \
+         pruefung_noetig=CASE WHEN excluded.schuljahr IS NOT NULL AND trim(excluded.schuljahr)<>'' THEN 0 ELSE klasse_stammdaten.pruefung_noetig END",
+        rusqlite::params![id, name, meta.fach, meta.schuljahr, meta.archiviert as i64],
+    ).map_err(|e| format!("Klassenstamm speichern: {e}"))?;
+    if old_name.as_deref().is_some_and(|old| old != name) {
+        conn.execute("UPDATE schueler SET klasse=?1 WHERE klasse_id=?2", rusqlite::params![name, id])
+            .map_err(|e| format!("Schülernamen nach Klassenänderung aktualisieren: {e}"))?;
+    }
     Ok(())
 }
 
 #[tauri::command]
-pub async fn klassen_meta_delete(state: tauri::State<'_, DbState>, name: String) -> Result<(), String> {
+pub async fn klassen_meta_delete(state: tauri::State<'_, DbState>, id: String) -> Result<(), String> {
     let guard = state.conn()?;
-    conn_delete(&guard, &name)
+    conn_delete(&guard, &id)
 }
 
-fn conn_delete(conn: &rusqlite::Connection, name: &str) -> Result<(), String> {
-    conn.execute("DELETE FROM lua_klassen WHERE name=?1", rusqlite::params![name])
+fn conn_delete(conn: &rusqlite::Connection, id: &str) -> Result<(), String> {
+    conn.execute("DELETE FROM lua_klassen WHERE id=?1", rusqlite::params![id])
         .map_err(|e| format!("klassen_meta_delete: {e}"))?;
     Ok(())
 }
@@ -162,6 +190,14 @@ fn klasse_loeschvorschau_impl(
     name: &str,
 ) -> Result<KlassenLoeschvorschau, String> {
     let klasse = normalisiere_klasse(name)?;
+    let identitaeten: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM klasse_stammdaten WHERE name=?1 COLLATE NOCASE",
+        rusqlite::params![klasse],
+        |row| row.get(0),
+    ).map_err(|e| format!("Klassenidentitäten vor Löschung zählen: {e}"))?;
+    if identitaeten > 1 {
+        return Err("Gleichnamige Klassen lassen sich nicht über den Anzeigenamen löschen. Bitte archiviere die gewünschte Klasse.".to_string());
+    }
     let einsaetze = conn
         .query_row(
             "SELECT COUNT(*) FROM unterrichtseinsatz
@@ -198,23 +234,23 @@ pub async fn db_klasse_loeschvorschau(
 pub async fn db_klasse_archivieren(
     state: tauri::State<'_, DbState>,
     klasse: String,
+    klasse_id: Option<String>,
     archiviert: bool,
 ) -> Result<(), String> {
     let guard = state.conn()?;
-    klasse_archivieren_impl(&guard, &klasse, archiviert)
+    let id = klasse_id.unwrap_or_else(|| klasse.clone());
+    klasse_archivieren_impl(&guard, &id, archiviert)
 }
 
 pub(crate) fn klasse_archivieren_impl(
     conn: &rusqlite::Connection,
-    name: &str,
+    id: &str,
     archiviert: bool,
 ) -> Result<(), String> {
-    let klasse = normalisiere_klasse(name)?;
-    conn.execute(
-        "INSERT INTO lua_klassen (id, name, archiviert) VALUES (?1, ?2, ?3) \
-         ON CONFLICT(name) DO UPDATE SET archiviert=excluded.archiviert",
-        rusqlite::params![Uuid::new_v4().to_string(), klasse, archiviert as i64],
-    ).map_err(|e| format!("db_klasse_archivieren: {e}"))?;
+    conn.execute("UPDATE lua_klassen SET archiviert=?1 WHERE id=?2", rusqlite::params![archiviert as i64, id])
+        .map_err(|e| format!("db_klasse_archivieren: {e}"))?;
+    conn.execute("UPDATE klasse_stammdaten SET archiviert=?1 WHERE id=?2", rusqlite::params![archiviert as i64, id])
+        .map_err(|e| format!("db_klasse_archivieren Stamm: {e}"))?;
     Ok(())
 }
 
@@ -234,12 +270,40 @@ pub(crate) fn klasse_loeschen_impl(
     name: &str,
 ) -> Result<KlassenLoeschvorschau, String> {
     let preview = klasse_loeschvorschau_impl(conn, name)?;
+    let klasse_id: Option<String> = conn.query_row(
+        "SELECT id FROM klasse_stammdaten WHERE name=?1 COLLATE NOCASE",
+        rusqlite::params![preview.klasse],
+        |row| row.get(0),
+    ).optional().map_err(|e| format!("Klassenidentität vor Löschung laden: {e}"))?;
     conn.execute_batch("BEGIN IMMEDIATE;")
         .map_err(|e| format!("Klassenlöschung transaction start: {e}"))?;
     let klasse = preview.klasse.clone();
     let result = (|| -> rusqlite::Result<()> {
-        conn.execute("DELETE FROM abgabe WHERE klasse=?1", rusqlite::params![klasse])?;
-        conn.execute("DELETE FROM schueler WHERE klasse=?1", rusqlite::params![klasse])?;
+        if let Some(ref id) = klasse_id {
+            // Bei Mehrfachzuordnung den Schülerbestand an eine verbleibende
+            // Klasse hängen, bevor die ausgewählte Mitgliedschaft entfernt wird.
+            conn.execute(
+                "UPDATE schueler SET \
+                   klasse_id=(SELECT sk.klasse_id FROM schueler_klassen sk JOIN klasse_stammdaten k ON k.id=sk.klasse_id \
+                     WHERE sk.schueler_id=schueler.id AND sk.klasse_id<>?1 AND sk.status='aktiv' ORDER BY sk.zugeordnet_am LIMIT 1), \
+                   klasse=(SELECT k.name FROM schueler_klassen sk JOIN klasse_stammdaten k ON k.id=sk.klasse_id \
+                     WHERE sk.schueler_id=schueler.id AND sk.klasse_id<>?1 AND sk.status='aktiv' ORDER BY sk.zugeordnet_am LIMIT 1) \
+                 WHERE schueler.klasse_id=?1 AND EXISTS (SELECT 1 FROM schueler_klassen sk \
+                   WHERE sk.schueler_id=schueler.id AND sk.klasse_id<>?1 AND sk.status='aktiv')",
+                rusqlite::params![id],
+            )?;
+            conn.execute("DELETE FROM schueler_klassen WHERE klasse_id=?1", rusqlite::params![id])?;
+            conn.execute(
+                "DELETE FROM schueler WHERE klasse=?1 COLLATE NOCASE AND NOT EXISTS \
+                   (SELECT 1 FROM schueler_klassen sk WHERE sk.schueler_id=schueler.id AND sk.status='aktiv')",
+                rusqlite::params![klasse],
+            )?;
+            conn.execute("DELETE FROM lernziel_fokus WHERE klasse_id=?1", rusqlite::params![id])?;
+            conn.execute("DELETE FROM abgabe WHERE klasse_id=?1 OR klasse=?2 COLLATE NOCASE", rusqlite::params![id, klasse])?;
+        } else {
+            conn.execute("DELETE FROM abgabe WHERE klasse=?1", rusqlite::params![klasse])?;
+            conn.execute("DELETE FROM schueler WHERE klasse=?1", rusqlite::params![klasse])?;
+        }
         conn.execute("DELETE FROM klassen_briefing WHERE klasse=?1", rusqlite::params![klasse])?;
         conn.execute("DELETE FROM aufgabe_quelltext WHERE klasse=?1", rusqlite::params![klasse])?;
         // Planung: Anlagen zuerst, dann die Stunden – der Fremdschlüssel
@@ -276,7 +340,13 @@ pub(crate) fn klasse_loeschen_impl(
             rusqlite::params![klasse],
         )?;
         conn.execute("DELETE FROM generated_materials WHERE klasse=?1", rusqlite::params![klasse])?;
-        conn.execute("DELETE FROM lua_klassen WHERE name=?1", rusqlite::params![klasse])?;
+        if let Some(ref id) = klasse_id {
+            conn.execute("DELETE FROM klasse_stammdaten WHERE id=?1", rusqlite::params![id])?;
+            conn.execute("DELETE FROM lua_klassen WHERE id=?1", rusqlite::params![id])?;
+        } else {
+            conn.execute("DELETE FROM lua_klassen WHERE name=?1", rusqlite::params![klasse])?;
+        }
+        conn.execute("DELETE FROM legacy_klasse_pruefung WHERE legacy_name=?1 COLLATE NOCASE", rusqlite::params![klasse])?;
         Ok(())
     })();
     if let Err(e) = result {
@@ -298,6 +368,7 @@ mod tests {
     fn setup() -> Connection {
         let conn = Connection::open_in_memory().unwrap();
         conn.execute_batch("PRAGMA foreign_keys=ON;").unwrap();
+        conn.execute_batch(crate::db::NATASCHA_SCHEMA_SQL).unwrap();
         conn.execute_batch(crate::db::LUA_SCHEMA_SQL).unwrap();
         conn
     }
@@ -322,20 +393,27 @@ mod tests {
             notizen: None,
             farbe: None,
             archiviert: false,
+            pruefung_noetig: false,
             created_at: String::new(),
         }
     }
 
     fn upsert(conn: &Connection, meta: &KlasseMeta) {
+        let id = meta.id.clone().or_else(|| conn.query_row(
+            "SELECT id FROM lua_klassen WHERE name=?1 COLLATE NOCASE AND COALESCE(fach,'')=COALESCE(?2,'') AND COALESCE(schuljahr,'')=COALESCE(?3,'')",
+            rusqlite::params![meta.name, meta.fach, meta.schuljahr], |r| r.get(0),
+        ).optional().ok().flatten()).unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
         conn.execute(
             "INSERT INTO lua_klassen (id, name, fach, land, stufe, schulstufe, schuljahr, notizen, archiviert, farbe) \
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10) \
-             ON CONFLICT(name) DO UPDATE SET \
+             ON CONFLICT(id) DO UPDATE SET \
                fach=excluded.fach, land=excluded.land, stufe=excluded.stufe, schulstufe=excluded.schulstufe, \
                schuljahr=excluded.schuljahr, notizen=excluded.notizen, archiviert=excluded.archiviert, \
                farbe=excluded.farbe",
-            rusqlite::params![uuid::Uuid::new_v4().to_string(), meta.name, meta.fach, meta.land, meta.stufe, meta.schulstufe, meta.schuljahr, meta.notizen, meta.archiviert as i64, meta.farbe],
+            rusqlite::params![id, meta.name, meta.fach, meta.land, meta.stufe, meta.schulstufe, meta.schuljahr, meta.notizen, meta.archiviert as i64, meta.farbe],
         ).unwrap();
+        conn.execute("INSERT INTO klasse_stammdaten (id,name,fach,schuljahr,archiviert) VALUES (?1,?2,?3,?4,?5) ON CONFLICT(id) DO UPDATE SET name=excluded.name,fach=excluded.fach,schuljahr=excluded.schuljahr,archiviert=excluded.archiviert",
+            rusqlite::params![id, meta.name, meta.fach, meta.schuljahr, meta.archiviert as i64]).unwrap();
     }
 
     #[test]
@@ -357,7 +435,7 @@ mod tests {
     }
 
     #[test]
-    fn upsert_ueberschreibt_statt_zu_duplizieren() {
+    fn gleicher_name_in_anderen_fachkontexten_bleibt_eigene_identitaet() {
         let conn = setup();
         upsert(&conn, &beispiel("7A"));
         let mut geaendert = beispiel("7A");
@@ -365,9 +443,9 @@ mod tests {
         geaendert.land = Some("DE".to_string());
         upsert(&conn, &geaendert);
         let liste = klassen_meta_list_impl(&conn).unwrap();
-        assert_eq!(liste.len(), 1);
-        assert_eq!(liste[0].fach.as_deref(), Some("englisch"));
-        assert_eq!(liste[0].land.as_deref(), Some("DE"));
+        assert_eq!(liste.len(), 2);
+        assert!(liste.iter().any(|k| k.fach.as_deref() == Some("deutsch")));
+        assert!(liste.iter().any(|k| k.fach.as_deref() == Some("englisch")));
     }
 
     #[test]
@@ -388,20 +466,23 @@ mod tests {
     fn delete_entfernt_klasse() {
         let conn = setup();
         upsert(&conn, &beispiel("7A"));
-        conn_delete(&conn, "7A").unwrap();
+        let id = klassen_meta_list_impl(&conn).unwrap()[0].id.clone().unwrap();
+        conn_delete(&conn, &id).unwrap();
         assert!(klassen_meta_list_impl(&conn).unwrap().is_empty());
     }
 
     #[test]
     fn archivieren_erzeugt_fehlende_metadaten_und_ist_reversibel() {
         let conn = setup();
-        klasse_archivieren_impl(&conn, "7A", true).unwrap();
+        upsert(&conn, &beispiel("7A"));
+        let id = klassen_meta_list_impl(&conn).unwrap()[0].id.clone().unwrap();
+        klasse_archivieren_impl(&conn, &id, true).unwrap();
         let archiviert = klassen_meta_list_impl(&conn).unwrap();
         assert_eq!(archiviert.len(), 1);
         assert!(archiviert[0].archiviert);
         assert!(archiviert[0].id.as_deref().map(|id| Uuid::parse_str(id).is_ok()).unwrap_or(false));
 
-        klasse_archivieren_impl(&conn, "7A", false).unwrap();
+        klasse_archivieren_impl(&conn, &id, false).unwrap();
         assert!(!klassen_meta_list_impl(&conn).unwrap()[0].archiviert);
     }
 
@@ -412,6 +493,11 @@ mod tests {
         upsert(&conn, &beispiel("8B"));
         conn.execute("INSERT INTO schueler (klasse, vorname) VALUES ('7A', 'Mia')", []).unwrap();
         let s1 = conn.last_insert_rowid();
+        let class_7a: String = conn.query_row("SELECT id FROM lua_klassen WHERE name='7A'", [], |r| r.get(0)).unwrap();
+        let class_8b: String = conn.query_row("SELECT id FROM lua_klassen WHERE name='8B'", [], |r| r.get(0)).unwrap();
+        conn.execute("UPDATE schueler SET klasse_id=?1 WHERE id=?2", rusqlite::params![class_7a, s1]).unwrap();
+        conn.execute("INSERT INTO schueler_klassen (schueler_id,klasse_id) VALUES (?1,?2),(?1,?3)",
+            rusqlite::params![s1, class_7a, class_8b]).unwrap();
         conn.execute(
             "INSERT INTO schueler (klasse, vorname) VALUES ('8B', 'Noah')", [],
         ).unwrap();
@@ -443,11 +529,13 @@ mod tests {
         let report = klasse_loeschen_impl(&conn, "7A").unwrap();
         assert_eq!(report.abgaben, 1);
         assert_eq!(conn.query_row::<i64, _, _>("SELECT COUNT(*) FROM schueler WHERE klasse='7A'", [], |r| r.get(0)).unwrap(), 0);
+        let verbleibende_klasse: String = conn.query_row("SELECT klasse_id FROM schueler WHERE id=?1", rusqlite::params![s1], |r| r.get(0)).unwrap();
+        assert_eq!(verbleibende_klasse, class_8b);
         assert_eq!(conn.query_row::<i64, _, _>("SELECT COUNT(*) FROM abgabe WHERE klasse='7A'", [], |r| r.get(0)).unwrap(), 0);
         assert_eq!(conn.query_row::<i64, _, _>("SELECT COUNT(*) FROM kriterium_historie", [], |r| r.get(0)).unwrap(), 0);
         assert_eq!(conn.query_row::<i64, _, _>("SELECT COUNT(*) FROM fehler_historie", [], |r| r.get(0)).unwrap(), 0);
         assert_eq!(conn.query_row::<i64, _, _>("SELECT COUNT(*) FROM lehrer_feedback", [], |r| r.get(0)).unwrap(), 0);
-        assert_eq!(conn.query_row::<i64, _, _>("SELECT COUNT(*) FROM schueler_profil", [], |r| r.get(0)).unwrap(), 0);
+        assert_eq!(conn.query_row::<i64, _, _>("SELECT COUNT(*) FROM schueler_profil", [], |r| r.get(0)).unwrap(), 1);
         assert_eq!(conn.query_row::<i64, _, _>("SELECT COUNT(*) FROM generated_materials WHERE klasse='7A'", [], |r| r.get(0)).unwrap(), 0);
         assert_eq!(conn.query_row::<i64, _, _>("SELECT COUNT(*) FROM generated_materials WHERE klasse='8B'", [], |r| r.get(0)).unwrap(), 1);
         assert_eq!(conn.query_row::<i64, _, _>("SELECT COUNT(*) FROM unterrichtseinsatz", [], |r| r.get(0)).unwrap(), 0);

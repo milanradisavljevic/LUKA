@@ -40,6 +40,7 @@ interface AbgabeDetail {
     unterrichtseinsatzId: string | null;
     materialId: string | null;
     klasse: string;
+    klasseId: string | null;
     aufgabe: string;
     dateiname: string;
     vorname: string | null;
@@ -67,6 +68,8 @@ interface AbgabeDetail {
 interface KlasseInfo { klasse: string; anzahlAbgaben: number; }
 
 interface AnalyseKlasseOption {
+  key: string;
+  id?: string;
   name: string;
   label: string;
   fach: string;
@@ -222,6 +225,7 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }:
   const [analyzeOpen, setAnalyzeOpen] = useState(false);
   const [analyzeStep, setAnalyzeStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [analyzeKlasse, setAnalyzeKlasse] = useLocalDraft('analyzeKlasse', '');
+  const [analyzeKlasseId, setAnalyzeKlasseId] = useLocalDraft('analyzeKlasseId', '');
   const [analyzeAufgabe, setAnalyzeAufgabe] = useLocalDraft('analyzeAufgabe', '');
   const [analyzeAufgaben, setAnalyzeAufgaben] = useState<string[]>([]);
   const [analyzeFile, setAnalyzeFile] = useLocalDraft('analyzeFile', '');
@@ -306,7 +310,7 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }:
   );
   const verstaendnisGewaehlt = istVerstaendnisRubrik(gewaehltesRubrik);
   const hatAusgangstext = Boolean(analyzeAusgangstext.trim() || analyzeAusgangstextDatei.trim());
-  const contextKey=JSON.stringify([analyzeKlasse,analyzeAufgabe,selectedRubrik,analyzeAusgangstext,analyzeAusgangstextDatei,selectedEinsatzId,effectiveRuntime.provider,effectiveRuntime.model,pseudoAktiv,assignments,revisionOfAbgabeId]);
+  const contextKey=JSON.stringify([analyzeKlasse,analyzeKlasseId,analyzeAufgabe,selectedRubrik,analyzeAusgangstext,analyzeAusgangstextDatei,selectedEinsatzId,effectiveRuntime.provider,effectiveRuntime.model,pseudoAktiv,assignments,revisionOfAbgabeId]);
   const [fileChecks,setFileChecks]=useState<Record<string,PersonenVorschau | null>>({});
   const [checkingFiles,setCheckingFiles]=useState(false);
   const closeAnalyze = useCallback(() => {
@@ -469,14 +473,17 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }:
     if (!id) return;
     const einsatz = einsatzOptions.find((e) => e.id === id);
     if (!einsatz) return;
-    if (einsatz.klasseNameSnapshot) setAnalyzeKlasse(normalizeKlasse(einsatz.klasseNameSnapshot));
+    if (einsatz.klasseNameSnapshot) {
+      setAnalyzeKlasse(normalizeKlasse(einsatz.klasseNameSnapshot));
+      setAnalyzeKlasseId(einsatz.klasseId ?? '');
+    }
     let source = '';
     if (einsatz.materialId) {
       const doc = loadDocuments().find((d) => d.id === einsatz.materialId);
       source = doc?.snapshot.quelltexte?.map((q) => q.inhalt).filter(Boolean).join('\n\n') ?? '';
     }
     setAnalyzeAusgangstext(source);
-  }, [einsatzOptions]);
+  }, [einsatzOptions, setAnalyzeKlasse, setAnalyzeKlasseId]);
 
   useEffect(() => {
     listKlassen().then(setKlassen);
@@ -486,7 +493,10 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }:
     const result = new Map<string, AnalyseKlasseOption>();
     for (const klasse of klassen) {
       const name = normalizeKlasse(klasse.klasse);
-      if (name) result.set(name, { name, label: klasse.klasse, fach: '', schulstufe: '' });
+      if (name && !klassenMeta.some((meta) => normalizeKlasse(meta.name) === name)) {
+        const key = `legacy:${name}`;
+        result.set(key, { key, name, label: klasse.klasse, fach: '', schulstufe: '' });
+      }
     }
     for (const meta of klassenMeta) {
       if (meta.archiviert) continue;
@@ -495,20 +505,26 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }:
       const schulstufe = meta.stufe?.trim() || (meta.schulstufe != null
         ? (meta.schulstufe >= 9 ? 'oberstufe' : 'unterstufe')
         : '');
-      result.set(name, {
+      const key = meta.id || `legacy:${name}`;
+      result.set(key, {
+        key,
+        id: meta.id ?? undefined,
         name,
-        label: meta.name,
+        label: [meta.name, meta.fach, meta.schuljahr].filter(Boolean).join(' · '),
         fach: meta.fach?.trim() ?? '',
         schulstufe,
       });
     }
-    return [...result.values()].sort((a, b) => a.label.localeCompare(b.label, 'de'));
+    return [...result.values()].sort((a, b) => a.label.localeCompare(b.label, 'de') || a.key.localeCompare(b.key));
   }, [klassen, klassenMeta]);
 
   const analyseKlasseMeta = useMemo(
-    () => analyseKlassen.find((klasse) => klasse.name === analyzeKlasse),
-    [analyseKlassen, analyzeKlasse],
+    () => analyseKlassen.find((klasse) => klasse.id === analyzeKlasseId)
+      ?? (analyseKlassen.filter((klasse) => klasse.name === analyzeKlasse).length === 1
+        ? analyseKlassen.find((klasse) => klasse.name === analyzeKlasse) : undefined),
+    [analyseKlassen, analyzeKlasse, analyzeKlasseId],
   );
+  const analyseKlasseKey = analyseKlasseMeta?.key ?? `legacy:${analyzeKlasse}`;
 
   useEffect(() => {
     if (!analyzeOpen || !analyzeKlasse || !isTauri()) {
@@ -782,6 +798,10 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }:
     // Prüfgrundlage wiederverwenden. So muss die Lehrkraft Quelle und Raster
     // nicht bei jeder weiteren Abgabe erneut zusammensuchen.
     if (selectedKlasse) setAnalyzeKlasse(selectedKlasse);
+    if (selectedKlasse) {
+      const matching = klassenMeta.filter((meta) => normalizeKlasse(meta.name) === normalizeKlasse(selectedKlasse));
+      setAnalyzeKlasseId(matching.length === 1 ? matching[0]?.id ?? '' : '');
+    }
     if (selectedAufgabe) setAnalyzeAufgabe(selectedAufgabe);
     setSelectedRubrik(korrekturKontext?.rubrik ?? '');
     setAnalyzeAusgangstext(korrekturKontext?.ausgangstext ?? '');
@@ -790,7 +810,7 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }:
     setVorbelegtFuer('');
     setAnalyzeStep(1);
     setAnalyzeOpen(true);
-  }, [korrekturStatus, korrekturKontext, selectedAufgabe, selectedKlasse, analyzeKlasse, analyzeFile, batchFiles.length, profilLand, korrekturLand]);
+  }, [korrekturStatus, korrekturKontext, selectedAufgabe, selectedKlasse, analyzeKlasse, analyzeFile, batchFiles.length, profilLand, korrekturLand, klassenMeta, setAnalyzeKlasse, setAnalyzeKlasseId]);
 
   const handleReanalyze = useCallback(() => {
     if (!selectedAbgabe) return;
@@ -799,6 +819,7 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }:
     setAnalyzeSuccess(null);
     setRevisionOfAbgabeId(selectedAbgabe.abgabe.id);
     setAnalyzeKlasse(selectedAbgabe.abgabe.klasse);
+    setAnalyzeKlasseId(selectedAbgabe.abgabe.klasseId ?? '');
     setAnalyzeAufgabe(selectedAbgabe.abgabe.aufgabe);
     setAnalyzeFile('');
     setBatchFiles([]);
@@ -930,7 +951,7 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }:
         materialId: einsatz?.materialId ?? null,
       },
     });
-    try { result = await analyze(analyzeFile, analyzeKlasse, analyzeAufgabe, { runtime: { provider: correctionRun.provider, model: correctionRun.model }, fach: analyseKlasseMeta?.fach || undefined, schulstufe: analyseKlasseMeta?.schulstufe || undefined, textsorte: analyzeTextsorte || undefined, land: korrekturLand ?? 'at', ausgangstext: analyzeAusgangstextDatei ? undefined : (analyzeAusgangstext.trim() || undefined), ausgangstextDatei: analyzeAusgangstextDatei || undefined, rubric: correctionRun.basis.rubrik || undefined, pseudonymisierung: correctionRun.privacyMode === 'pseudonymisiert', schuelerId: assignments[analyzeFile] || (zuordnungId === '' ? undefined : zuordnungId), einsatzId: correctionRun.basis.unterrichtseinsatzId ?? undefined, materialId: correctionRun.basis.materialId ?? undefined, revisionOfAbgabeId: revisionOfAbgabeId ?? undefined });
+    try { result = await analyze(analyzeFile, analyzeKlasse, analyzeAufgabe, { runtime: { provider: correctionRun.provider, model: correctionRun.model }, fach: analyseKlasseMeta?.fach || undefined, schulstufe: analyseKlasseMeta?.schulstufe || undefined, textsorte: analyzeTextsorte || undefined, land: korrekturLand ?? 'at', ausgangstext: analyzeAusgangstextDatei ? undefined : (analyzeAusgangstext.trim() || undefined), ausgangstextDatei: analyzeAusgangstextDatei || undefined, rubric: correctionRun.basis.rubrik || undefined, pseudonymisierung: correctionRun.privacyMode === 'pseudonymisiert', schuelerId: assignments[analyzeFile] || (zuordnungId === '' ? undefined : zuordnungId), einsatzId: correctionRun.basis.unterrichtseinsatzId ?? undefined, materialId: correctionRun.basis.materialId ?? undefined, revisionOfAbgabeId: revisionOfAbgabeId ?? undefined, klasseId: analyseKlasseMeta?.id });
     } catch(e) { setAnalysisFailure(e instanceof Error ? e.message : String(e)); setAnalyzeStep(5); return; }
     const resultErrors = analyseHinweise(result);
     const duplicate = resultErrors.some((entry) => /duplikat|bereits analysiert/i.test(entry));
@@ -954,7 +975,7 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }:
     } else {
       setAnalysisFailure('Analyse fehlgeschlagen. Bitte Anbieter und Modell prüfen und manuell erneut versuchen.');
     }
-  }, [effectiveRuntime.provider, effectiveRuntime.model, revisionOfAbgabeId, contextKey, rubrikListe.defaultRubric, assignments, analyze, analyzeFile, analyzeKlasse, analyzeAufgabe, analyseKlasseMeta, analyzeAusgangstext, analyzeAusgangstextDatei, listKlassen, loadAufgaben, pseudoVorschau, pseudoVorschauBusy, pseudoAktiv, selectedRubrik, zuordnungId, einsatzOptions, selectedEinsatzId]);
+  }, [effectiveRuntime.provider, effectiveRuntime.model, revisionOfAbgabeId, contextKey, rubrikListe.defaultRubric, assignments, analyze, analyzeFile, analyzeKlasse, analyzeKlasseId, analyzeAufgabe, analyseKlasseMeta, analyzeAusgangstext, analyzeAusgangstextDatei, listKlassen, loadAufgaben, pseudoVorschau, pseudoVorschauBusy, pseudoAktiv, selectedRubrik, zuordnungId, einsatzOptions, selectedEinsatzId]);
 
   /** Aktuelle Lehrkraftentscheidung: lokaler Overlay schlägt die gespeicherte Aktion. */
   const aktionVon = useCallback((id: number): FehlerAktion => {
@@ -1114,7 +1135,7 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }:
       setBatchCurrent(i + 1);
       try {
         const einsatz = einsatzOptions.find((e) => e.id === selectedEinsatzId);
-        const result = await analyze(file, analyzeKlasse, analyzeAufgabe, { runtime: { provider: correctionRun.provider, model: correctionRun.model }, fach: analyseKlasseMeta?.fach || undefined, schulstufe: analyseKlasseMeta?.schulstufe || undefined, textsorte: analyzeTextsorte || undefined, land: korrekturLand ?? 'at', ausgangstext: analyzeAusgangstextDatei ? undefined : (analyzeAusgangstext.trim() || undefined), ausgangstextDatei: analyzeAusgangstextDatei || undefined, rubric: correctionRun.basis.rubrik || undefined, pseudonymisierung: correctionRun.privacyMode === 'pseudonymisiert', schuelerId: assignments[file] || undefined, einsatzId: correctionRun.basis.unterrichtseinsatzId ?? undefined, materialId: correctionRun.basis.materialId ?? undefined });
+        const result = await analyze(file, analyzeKlasse, analyzeAufgabe, { runtime: { provider: correctionRun.provider, model: correctionRun.model }, fach: analyseKlasseMeta?.fach || undefined, schulstufe: analyseKlasseMeta?.schulstufe || undefined, textsorte: analyzeTextsorte || undefined, land: korrekturLand ?? 'at', ausgangstext: analyzeAusgangstextDatei ? undefined : (analyzeAusgangstext.trim() || undefined), ausgangstextDatei: analyzeAusgangstextDatei || undefined, rubric: correctionRun.basis.rubrik || undefined, pseudonymisierung: correctionRun.privacyMode === 'pseudonymisiert', schuelerId: assignments[file] || undefined, einsatzId: correctionRun.basis.unterrichtseinsatzId ?? undefined, materialId: correctionRun.basis.materialId ?? undefined, klasseId: analyseKlasseMeta?.id });
         if (result) {
           const note = result?.analysis?.notenempfehlung?.note;
           const resultErrors = analyseHinweise(result);
@@ -1878,9 +1899,16 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }:
               <div style={{ marginBottom: '0.75rem' }}>
                 <label>Klasse</label>
                 <select
-                  value={analyzeKlasse}
+                  value={analyseKlasseKey}
                   onChange={(e) => {
-                    setAnalyzeKlasse(normalizeKlasse(e.target.value));
+                    const selected = analyseKlassen.find((klasse) => klasse.key === e.target.value);
+                    if (selected) {
+                      setAnalyzeKlasse(selected.name);
+                      setAnalyzeKlasseId(selected.id ?? '');
+                    } else {
+                      setAnalyzeKlasse(normalizeKlasse(e.target.value));
+                      setAnalyzeKlasseId('');
+                    }
                     setAnalyzeAufgabe('');setAssignments({});setSelectedRubrik('');setAnalyzeTextsorte('');setBatchResults([]);
                     // Der Ausgangstext gehört zu EINER Aufgabe. Ohne ihn
                     // mitzuleeren, stuende nach dem Wechsel der Text der
@@ -1892,7 +1920,7 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }:
                 >
                   <option value="">Klasse auswählen</option>
                   {analyseKlassen.map((klasse) => (
-                    <option key={klasse.name} value={klasse.name}>{klasse.label}</option>
+                    <option key={klasse.key} value={klasse.key}>{klasse.label}</option>
                   ))}
                 </select>
               </div>

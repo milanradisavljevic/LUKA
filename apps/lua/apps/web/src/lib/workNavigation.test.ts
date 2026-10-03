@@ -68,11 +68,9 @@ describe('workNavigation — Zuordnung der Ansichten', () => {
 describe('workNavigation — die gewählte Aufteilung', () => {
   const label = (view: ActiveView) => workArea(view)?.label;
 
-  it('stellt Klassen und Schüler zu den Korrekturen', () => {
-    // Dort wird klassenbezogen gearbeitet; als eigener Bereich wirkten sie wie
-    // ein drittes, eigenständiges Werkzeug.
-    expect(label('klassen')).toBe('Korrekturen');
-    expect(label('schueler')).toBe('Korrekturen');
+  it('stellt Klassen und Schüler als eigenen Unterrichtskontext bereit', () => {
+    expect(label('klassen')).toBe('Klassen');
+    expect(label('schueler')).toBe('Klassen');
     expect(label('korrektur')).toBe('Korrekturen');
     expect(label('erwartungshorizont')).toBe('Korrekturen');
   });
@@ -86,9 +84,8 @@ describe('workNavigation — die gewählte Aufteilung', () => {
     expect(workArea('ib')?.views).toEqual(['wizard', 'planung', 'kompetenz', 'quick', 'ib']);
   });
 
-  it('zeigt genau vier Bereichen – nicht fünf', () => {
-    // Der fünfte war „Klassen" und ist in „Korrekturen" aufgegangen.
-    expect(WORK_AREAS.map((a) => a.label)).toEqual(['Start', 'Unterricht', 'Korrekturen', 'Bibliothek']);
+  it('stellt Klassen neben Unterricht und Korrekturen als eigenen Bereich dar', () => {
+    expect(WORK_AREAS.map((a) => a.label)).toEqual(['Start', 'Unterricht', 'Klassen', 'Korrekturen', 'Bibliothek']);
   });
 });
 

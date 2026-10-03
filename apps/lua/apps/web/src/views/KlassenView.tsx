@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { GraduationCap, Users, BarChart3, AlertTriangle, TrendingUp, TrendingDown, Download, Wand2, Sparkles, Loader2, School, Plus, Archive, ArchiveRestore, Pencil, Trash2, X, User, ExternalLink } from 'lucide-react';
+import { GraduationCap, Users, BarChart3, AlertTriangle, TrendingUp, TrendingDown, Download, Wand2, Sparkles, Loader2, School, Plus, Archive, ArchiveRestore, Pencil, Trash2, X, User, ExternalLink, CheckCircle2 } from 'lucide-react';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { EmptyState } from './_EmptyState';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from 'recharts';
@@ -21,6 +21,7 @@ import { useEinsatz, type EinsatzRecord } from '../hooks/useEinsatz';
 import { einsatzAnzeigeDatum, formatEinsatzDatum, labelEinsatzArt, labelRueckblickStatus, sortEinsaetze } from '../lib/einsatz';
 import { ermittleNiveaugruppen, neuesteBestaetigteNoten, type Niveaugruppe } from '../lib/niveauGruppen';
 import { aggregiereFehlerCluster, baueFehlerClusterTrend, type FehlerClusterSummary } from '../lib/fehlerCluster';
+import { LernzielKompassPanel } from './LernzielKompassPanel';
 
 interface Props {
   /** Closed Loop: aus der Heatmap ein Übungsblatt im LUA-Generator starten. */
@@ -31,6 +32,9 @@ interface Props {
   onOpenSchueler?: (klasse: string, schuelerId: number) => void;
   /** Cross-Nav (L1): Folgeübung im Loop-Wirkung-Panel → Unterlage öffnen. */
   onOpenUnterlage?: (documentId: string) => void;
+  /** Stundenplan → passenden Check im Lernziel-Kompass öffnen. */
+  openAbrufcheck?: { klasseId: string; abrufcheckId: string } | null;
+  onConsumeAbrufcheck?: () => void;
 }
 
 interface AbgabeInfo {
@@ -107,7 +111,7 @@ const HEATMAP_LABELS: Record<string, string> = { R: 'Rechtschreibung', G: 'Gramm
 const FEHLER_LABELS = HEATMAP_LABELS;
 const FEHLER_COLORS: Record<string, string> = { R: '#e74c3c', G: '#27ae60', Z: '#3498db', A: '#f39c12' };
 
-type Tab = 'uebersicht' | 'statistik';
+type Tab = 'uebersicht' | 'statistik' | 'lernziele';
 
 const WIRKSAMKEIT_TYPEN = ['R', 'G', 'Z', 'A'] as const;
 const CLUSTER_TREND_FARBEN = ['#6c5ce7', '#00a8a8', '#d35400', '#8e44ad', '#2c3e50', '#16a085'];
@@ -150,12 +154,11 @@ function buildWirksamkeit(punkte: FehlerTrendPunkt[]) {
   return { relevant, chartData, deltas };
 }
 
-export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler, onOpenUnterlage }: Props) {
+export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler, onOpenUnterlage, openAbrufcheck, onConsumeAbrufcheck }: Props) {
   const { listKlassen, listAufgaben, getAbgaben, getHeatmap, getKlassenStatistik, getKlassenTrend, getFehlerTrend, getLoopUebungen, getKlassenKalibrierung, getFehlerDetail, exportNotenCsv, generateKlassenBriefing, getKlassenBriefing, quelltextGet } = useNatascha();
   const {
     klassen: klassenMeta,
     upsert: upsertKlasseMeta,
-    remove: removeKlasseMeta,
     archive: archiveKlasse,
     deletePreview: getKlassenLoeschvorschau,
     deleteKlasse,
@@ -165,6 +168,8 @@ export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler,
   const [tab, setTab] = useState<Tab>('uebersicht');
   const [klassen, setKlassen] = useState<KlasseInfo[]>([]);
   const [selectedKlasse, setSelectedKlasse] = useState<string | null>(null);
+  const [selectedKlasseId, setSelectedKlasseId] = useState<string | null>(null);
+  const [abrufcheckPreselect, setAbrufcheckPreselect] = useState<string | null>(null);
   const [aufgaben, setAufgaben] = useState<string[]>([]);
   const [selectedAufgabe, setSelectedAufgabe] = useState<string | null>(null);
   const [abgaben, setAbgaben] = useState<AbgabeInfo[]>([]);
@@ -189,6 +194,7 @@ export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler,
   // zusätzlich zum reinen Klasse-String, den NATASCHA verwendet.
   const [zeigeKlasseForm, setZeigeKlasseForm] = useState(false);
   const [formName, setFormName] = useState('');
+  const [formKlasseId, setFormKlasseId] = useState<string | null>(null);
   const [formFach, setFormFach] = useState('');
   const [formLand, setFormLand] = useState<Land | ''>('');
   const [formSchulstufe, setFormSchulstufe] = useState<number | undefined>(undefined);
@@ -203,10 +209,23 @@ export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler,
   const [klasseLoeschBusy, setKlasseLoeschBusy] = useState(false);
   const [land, setLand] = useState<Land | undefined>();
   const selectedKlasseMeta = useMemo(
-    () => klassenMeta.find((meta) => meta.name === selectedKlasse),
-    [klassenMeta, selectedKlasse],
+    () => klassenMeta.find((meta) => meta.id === selectedKlasseId)
+      ?? (klassenMeta.filter((meta) => meta.name === selectedKlasse).length === 1
+        ? klassenMeta.find((meta) => meta.name === selectedKlasse) : undefined),
+    [klassenMeta, selectedKlasse, selectedKlasseId],
   );
   const niveaugruppenLand = selectedKlasseMeta?.land ?? land;
+
+  useEffect(() => {
+    if (!openAbrufcheck) return;
+    const meta = klassenMeta.find((item) => item.id === openAbrufcheck.klasseId);
+    if (!meta) return;
+    setSelectedKlasse(meta.name);
+    setSelectedKlasseId(meta.id ?? null);
+    setTab('lernziele');
+    setAbrufcheckPreselect(openAbrufcheck.abrufcheckId);
+    onConsumeAbrufcheck?.();
+  }, [openAbrufcheck?.klasseId, openAbrufcheck?.abrufcheckId, klassenMeta, onConsumeAbrufcheck]);
   /** Farbzuordnung der Klassenliste – identisch zur Planung. */
   const farbListe = useMemo(() => farbListeAusKlassen(klassenMeta), [klassenMeta]);
   const niveauNoten = useMemo(
@@ -270,26 +289,32 @@ export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler,
   // Merge: NATASCHA-Klassen (haben Abgaben) ∪ LUA-Metadaten (auch ganz neue,
   // noch abgabenlose Klassen sollen im Wizard bereits nutzbar sein).
   const klassenListe = useMemo(() => {
-    const metaByName = new Map(klassenMeta.map((m) => [m.name, m]));
-    const namen = new Set<string>([...klassen.map((k) => k.klasse), ...klassenMeta.map((m) => m.name)]);
-    const liste = [...namen].map((name) => ({
-      name,
-      anzahlAbgaben: klassen.find((k) => k.klasse === name)?.anzahlAbgaben ?? 0,
-      meta: metaByName.get(name),
-    }));
+    const namenMitMeta = new Set(klassenMeta.map((meta) => meta.name.toLocaleLowerCase('de')));
+    const liste = [
+      ...klassenMeta.map((meta) => ({
+        name: meta.name,
+        anzahlAbgaben: klassenMeta.filter((item) => item.name.toLocaleLowerCase('de') === meta.name.toLocaleLowerCase('de')).length > 1
+          ? null : (klassen.find((k) => k.klasse === meta.name)?.anzahlAbgaben ?? 0),
+        meta,
+      })),
+      ...klassen.filter((k) => !namenMitMeta.has(k.klasse.toLocaleLowerCase('de')))
+        .map((k) => ({ name: k.klasse, anzahlAbgaben: k.anzahlAbgaben, meta: undefined })),
+    ];
     liste.sort((a, b) => {
       const aArch = a.meta?.archiviert ?? false;
       const bArch = b.meta?.archiviert ?? false;
       if (aArch !== bArch) return aArch ? 1 : -1;
-      return a.name.localeCompare(b.name);
+      return a.name.localeCompare(b.name) || (a.meta?.schuljahr ?? '').localeCompare(b.meta?.schuljahr ?? '') || (a.meta?.fach ?? '').localeCompare(b.meta?.fach ?? '');
     });
     return zeigeArchivierte ? liste : liste.filter((k) => !(k.meta?.archiviert ?? false));
   }, [klassen, klassenMeta, zeigeArchivierte]);
 
   const archivierteAnzahl = klassenMeta.filter((m) => m.archiviert).length;
+  const selectedClassNameAmbiguous = !!selectedKlasse && klassenMeta.filter((meta) => meta.name.toLocaleLowerCase('de') === selectedKlasse.toLocaleLowerCase('de')).length > 1;
 
   const oeffneKlasseForm = useCallback((vorhandene?: KlasseMeta, nameFest?: boolean) => {
     setFormError(null);
+    setFormKlasseId(vorhandene?.id ?? null);
     setFormName(vorhandene?.name ?? '');
     setFormFach(vorhandene?.fach ?? '');
     setFormLand(vorhandene?.land ?? '');
@@ -305,8 +330,11 @@ export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler,
     if (!name) { setFormError('Bitte einen Klassennamen eingeben.'); return; }
     setFormBusy(true);
     setFormError(null);
-    const bestehende = klassenMeta.find((m) => m.name === name);
+    const bestehende = (formKlasseId ? klassenMeta.find((m) => m.id === formKlasseId) : undefined)
+      ?? klassenMeta.find((m) => m.name.toLocaleLowerCase('de') === name.toLocaleLowerCase('de')
+        && (m.fach ?? '') === (formFach || '') && (m.schuljahr ?? '') === (formSchuljahr.trim() || ''));
     const ok = await upsertKlasseMeta({
+      id: formKlasseId ?? bestehende?.id ?? null,
       name,
       fach: formFach || null,
       stufe: formSchulstufe
@@ -322,19 +350,18 @@ export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler,
     });
     setFormBusy(false);
     if (ok) { setZeigeKlasseForm(false); } else { setFormError('Speichern fehlgeschlagen.'); }
-  }, [formName, formFach, formLand, formSchulstufe, formSchuljahr, formFarbe, klassenMeta, upsertKlasseMeta, land]);
+  }, [formName, formKlasseId, formFach, formLand, formSchulstufe, formSchuljahr, formFarbe, klassenMeta, upsertKlasseMeta, land]);
 
   /** Farbe direkt auf der Karte ändern, ohne das Formular zu öffnen. */
-  const handleFarbeSetzen = useCallback(async (name: string, slot: number) => {
-    const bestehende = klassenMeta.find((m) => m.name === name);
+  const handleFarbeSetzen = useCallback(async (meta: KlasseMeta | undefined, slot: number) => {
+    const bestehende = meta?.id ? klassenMeta.find((m) => m.id === meta.id) : undefined;
     if (!bestehende) return;
     await upsertKlasseMeta({ ...bestehende, farbe: String(slot), createdAt: bestehende.createdAt ?? '' });
   }, [klassenMeta, upsertKlasseMeta]);
 
   const handleToggleArchiv = useCallback(async (name: string, meta?: KlasseMeta) => {
-    const ok = meta
-      ? await archiveKlasse(name, !meta.archiviert)
-      : await archiveKlasse(name, true);
+    if (!meta?.id) return;
+    const ok = await archiveKlasse(meta.id, name, !meta.archiviert);
     if (ok) await listKlassen().then(setKlassen);
   }, [archiveKlasse, listKlassen]);
 
@@ -382,8 +409,11 @@ export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler,
     setKlasseLoeschBusy(false);
   }, [klasseLoeschvorschau, deleteKlasse, listKlassen, selectedKlasse]);
 
-  const loadKlasse = useCallback(async (klasse: string) => {
+  const loadKlasse = useCallback(async (klasse: string, klasseId?: string) => {
     setSelectedKlasse(klasse);
+    const sameName = klassenMeta.filter((meta) => meta.name.toLocaleLowerCase('de') === klasse.toLocaleLowerCase('de'));
+    const identityId = klasseId ?? (sameName.length === 1 ? sameName[0]?.id ?? undefined : undefined);
+    setSelectedKlasseId(identityId ?? null);
     setSelectedAufgabe(null);
     setNiveauVorschauGruppeId(null);
     setNiveauZuweisung({});
@@ -393,49 +423,55 @@ export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler,
     setBriefingError(null);
     setLoading(true);
     setError(null);
-    getKlassenBriefing(klasse).then(setBriefing);
+    const isAmbiguous = sameName.length > 1;
+    if (!isAmbiguous) getKlassenBriefing(klasse).then(setBriefing);
     try {
-      const af = await listAufgaben(klasse);
+      const af = await listAufgaben(klasse, identityId);
       setAufgaben(af);
       if (af.length > 0) {
         const first: string | null = af[0] ?? null;
         setSelectedAufgabe(first);
-        if (first) await loadData(klasse, first);
+        if (first) await loadData(klasse, first, identityId);
       } else {
       setAbgaben([]); setHeatmap([]); setClusterSummary([]); setStatistik(null);
       }
-      const [t, ft, k, lu] = await Promise.all([getKlassenTrend(klasse), getFehlerTrend(klasse), getKlassenKalibrierung(klasse), getLoopUebungen(klasse)]);
-      setTrend(t as TrendPoint[]);
-      setFehlerTrend(ft);
-      setKalibrierung(k as KalibrierungResult | null);
-      setLoopUebungen(lu);
+      if (isAmbiguous) {
+        setTrend([]); setFehlerTrend([]); setKalibrierung(null); setLoopUebungen([]);
+      } else {
+        const [t, ft, k, lu] = await Promise.all([getKlassenTrend(klasse), getFehlerTrend(klasse), getKlassenKalibrierung(klasse), getLoopUebungen(klasse)]);
+        setTrend(t as TrendPoint[]); setFehlerTrend(ft); setKalibrierung(k as KalibrierungResult | null); setLoopUebungen(lu);
+      }
     } catch (e) { setError(String(e)); }
     finally { setLoading(false); }
-  }, [listAufgaben, getKlassenTrend, getFehlerTrend, getKlassenKalibrierung, getLoopUebungen]);
+  }, [klassenMeta, listAufgaben, getKlassenTrend, getFehlerTrend, getKlassenKalibrierung, getLoopUebungen, getKlassenBriefing]);
 
-  const loadData = useCallback(async (klasse: string, aufgabe: string) => {
+  const loadData = useCallback(async (klasse: string, aufgabe: string, klasseId?: string) => {
     setLoading(true);
     try {
-      const [abs, hm, stat, clusterRows] = await Promise.all([
-        getAbgaben(klasse, aufgabe) as Promise<AbgabeInfo[]>,
+      const abs = await getAbgaben(klasse, aufgabe, klasseId) as AbgabeInfo[];
+      setAbgaben(abs);
+      if (klassenMeta.filter((meta) => meta.name.toLocaleLowerCase('de') === klasse.toLocaleLowerCase('de')).length > 1) {
+        setHeatmap([]); setClusterSummary([]); setStatistik(null); setFehlerDetail(null);
+        return;
+      }
+      const [hm, stat, clusterRows] = await Promise.all([
         getHeatmap(klasse, aufgabe),
         getKlassenStatistik(klasse, aufgabe),
         Promise.all(['R', 'G', 'Z', 'A'].map((typ) => getFehlerDetail(klasse, typ, aufgabe, 500)
           .then((rows) => rows.map((row) => ({ ...row, typ }))))).then((groups) => groups.flat()),
       ]);
-      setAbgaben(abs);
       setHeatmap(hm as HeatmapEntry[]);
       setStatistik(stat as KlassenStatistik);
       setClusterSummary(aggregiereFehlerCluster(clusterRows));
     } catch (e) { setError(String(e)); }
     finally { setLoading(false); }
-  }, [getAbgaben, getHeatmap, getKlassenStatistik, getFehlerDetail]);
+  }, [klassenMeta, getAbgaben, getHeatmap, getKlassenStatistik, getFehlerDetail]);
 
   useEffect(() => {
     if (selectedKlasse && selectedAufgabe) {
-      loadData(selectedKlasse, selectedAufgabe);
+      loadData(selectedKlasse, selectedAufgabe, selectedKlasseId ?? undefined);
     }
-  }, [selectedAufgabe]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedAufgabe, selectedKlasse, selectedKlasseId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleHeatmapClick = useCallback(async (typ: string) => {
     if (!selectedKlasse) return;
@@ -564,13 +600,16 @@ export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler,
   const noteLabel = (n: number | null) => n === null ? '—' : n.toFixed(1);
 
   return (
-    <ViewShell title="Meine Klassen" description="Klassen, Abgaben und Statistiken.">
+    <ViewShell title="Klassen" description="Klassen, Schüler, Lernverläufe und Unterrichtskontext.">
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
         <button className={tab === 'uebersicht' ? 'btn-primary' : 'btn-secondary'} onClick={() => setTab('uebersicht')} style={{ fontSize: '0.8125rem', padding: '0.375rem 0.75rem' }}>
           Übersicht
         </button>
         <button className={tab === 'statistik' ? 'btn-primary' : 'btn-secondary'} onClick={() => setTab('statistik')} style={{ fontSize: '0.8125rem', padding: '0.375rem 0.75rem' }}>
           <BarChart3 size={14} style={{ verticalAlign: -2, marginRight: 4 }} /> Statistik
+        </button>
+        <button className={tab === 'lernziele' ? 'btn-primary' : 'btn-secondary'} onClick={() => setTab('lernziele')} style={{ fontSize: '0.8125rem', padding: '0.375rem 0.75rem' }}>
+          <CheckCircle2 size={14} style={{ verticalAlign: -2, marginRight: 4 }} /> Lernziele & Checks
         </button>
         {selectedKlasse && (
           <button className="btn-secondary" onClick={handleExportCsv} style={{ fontSize: '0.8125rem', padding: '0.375rem 0.75rem', marginLeft: 'auto' }}>
@@ -719,18 +758,21 @@ export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler,
               bordered={false}
             />
           )}
-          {klassenListe.map((k) => (
-            <div key={k.name} style={{ marginBottom: '0.25rem' }}>
-              <button onClick={() => loadKlasse(k.name)} style={{
+          {klassenListe.map((k) => {
+            const key = k.meta?.id ?? `legacy:${k.name.toLocaleLowerCase('de')}`;
+            const selected = selectedKlasse === k.name && (selectedKlasseId ?? `legacy:${k.name.toLocaleLowerCase('de')}`) === key;
+            const duplicateName = klassenMeta.filter((meta) => meta.name.toLocaleLowerCase('de') === k.name.toLocaleLowerCase('de')).length > 1;
+            return <div key={key} style={{ marginBottom: '0.25rem' }}>
+              <button onClick={() => loadKlasse(k.name, k.meta?.id ?? undefined)} style={{
                 display: 'block', width: '100%', textAlign: 'left', padding: '0.5rem 0.75rem',
-                background: selectedKlasse === k.name ? 'var(--color-highlight-bg)' : 'none',
-                border: selectedKlasse === k.name ? '2px solid var(--color-accent)' : '1px solid transparent',
+                background: selected ? 'var(--color-highlight-bg)' : 'none',
+                border: selected ? '2px solid var(--color-accent)' : '1px solid transparent',
                 borderLeft: '3px solid var(--klasse-farbe, var(--color-border))',
                 borderRadius: 'var(--radius)', cursor: 'pointer', fontSize: '0.8125rem',
                 opacity: k.meta?.archiviert ? 0.55 : 1,
-                ...klasseFarbStil(k.meta?.farbe, k.name, farbListe),
+                  ...klasseFarbStil(k.meta?.farbe, key, farbListe),
               }}>
-                {k.name} <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.75rem' }}>({k.anzahlAbgaben})</span>
+                {k.name} <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.75rem' }}>{k.anzahlAbgaben == null ? '(Altdaten prüfen)' : '(' + k.anzahlAbgaben + ')'}</span>
                 {k.meta && (
                   <span style={{ display: 'block', fontSize: '0.6875rem', color: 'var(--color-text-secondary)' }}>
                     {[FACH_META[k.meta.fach as keyof typeof FACH_META]?.label ?? k.meta.fach, k.meta.schulstufe ? `${k.meta.schulstufe}. Klasse` : null, k.meta.schuljahr]
@@ -748,31 +790,23 @@ export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler,
                 </button>
                 <button
                   onClick={() => handleToggleArchiv(k.name, k.meta)}
+                  disabled={!k.meta?.id}
                   title={k.meta?.archiviert ? 'Aus Archiv holen' : 'Archivieren'}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-secondary)', padding: 2 }}
                 >
                   {k.meta?.archiviert ? <ArchiveRestore size={12} /> : <Archive size={12} />}
                 </button>
-                {k.meta && (
-                  <button
-                    onClick={() => { if (window.confirm(`Metadaten zu „${k.name}" entfernen? (Nur Fach/Stufe/Schuljahr — Abgaben/Schüler bleiben unberührt.)`)) removeKlasseMeta(k.name); }}
-                    title="Metadaten entfernen"
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-secondary)', padding: 2 }}
-                  >
-                    <X size={12} />
-                  </button>
-                )}
                 <button
                   onClick={() => handleKlasseLoeschvorschau(k.name)}
-                  title="Klasse endgültig löschen"
-                  disabled={klasseLoeschBusy}
-                  style={{ background: 'none', border: 'none', cursor: klasseLoeschBusy ? 'default' : 'pointer', color: 'var(--color-danger, #c0392b)', padding: 2 }}
+                  title={duplicateName ? 'Löschen ist bei gleichnamigen Klassen gesperrt, da Altdaten nur den Namen kennen.' : 'Klasse endgültig löschen'}
+                  disabled={klasseLoeschBusy || duplicateName}
+                  style={{ background: 'none', border: 'none', cursor: klasseLoeschBusy || duplicateName ? 'default' : 'pointer', color: 'var(--color-danger, #c0392b)', padding: 2, opacity: duplicateName ? 0.4 : 1 }}
                 >
                   <Trash2 size={12} />
                 </button>
               </div>
-            </div>
-          ))}
+            </div>;
+          })}
 
           {archivierteAnzahl > 0 && (
             <button
@@ -1319,6 +1353,10 @@ export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler,
             </>
             );
           })()}
+
+          {tab === 'lernziele' && (
+            <LernzielKompassPanel klasse={selectedKlasseMeta ?? undefined} klasseName={selectedKlasse} aufgabe={selectedAufgabe} abrufcheckId={abrufcheckPreselect} />
+          )}
 
           {!selectedKlasse && !error && tab === 'uebersicht' && (
             <div style={cardStyle}>
