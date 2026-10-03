@@ -4,6 +4,7 @@ import type { KlasseMeta } from '../hooks/useKlassenMeta';
 import { useNatascha, type SchuelerInfo } from '../hooks/useNatascha';
 import { useEinsatz, type EinsatzRecord } from '../hooks/useEinsatz';
 import { useLernzielKompass, type AbrufCheck, type AbrufCheckErgebnisAenderung, type AbrufCheckTeilnahme, type LernzielEvidenz, type LernzielFokus } from '../hooks/useLernzielKompass';
+import { vorbereiteteAbrufcheckAntworten } from '../lib/abrufcheckBatch';
 import { ausgangsstundenOptions, isoDatum, spaetereCheckStunden, vorgeschlageneCheckStunde } from '../lib/lernzielKompassTermine';
 import { heuteIso } from '../lib/lokalDatum';
 
@@ -62,7 +63,7 @@ function optionen(check: AbrufCheck): string[] {
 export function LernzielKompassPanel({ klasse, klasseName, aufgabe, abrufcheckId }: Props & { abrufcheckId?: string | null }) {
   const { listSchueler } = useNatascha();
   const { list: listEinsaetze } = useEinsatz();
-  const { evidenz, listFokus, bestaetigen, ausgangsstundeVerbinden, listChecks, listTeilnahme, listErgebnisAenderungen, teilnahmeSpeichern, erstellen, ergebnisSpeichern } = useLernzielKompass();
+  const { evidenz, listFokus, bestaetigen, ausgangsstundeVerbinden, listChecks, listTeilnahme, listErgebnisAenderungen, teilnahmeSpeichern, erstellen, ergebnisSpeichern, ergebnisseBatchSpeichern } = useLernzielKompass();
   const [evidenzZeilen, setEvidenzZeilen] = useState<LernzielEvidenz[]>([]);
   const [fokus, setFokus] = useState<LernzielFokus[]>([]);
   const [checks, setChecks] = useState<AbrufCheck[]>([]);
@@ -206,12 +207,14 @@ export function LernzielKompassPanel({ klasse, klasseName, aufgabe, abrufcheckId
     } finally { setBusy(false); }
   };
 
-  const saveAnswer = async (targetStudentId: number, answerText: string) => {
+  const saveAnswer = async (targetStudentId: number, answerText: string, savedRating: 'richtig' | 'teilweise' | 'noch_nicht' | null) => {
     if (!selectedCheck || !answerText.trim()) { setError('Bitte eine Antwort eintragen.'); return; }
+    const rating = auswertungen[targetStudentId] ?? savedRating;
+    if (selectedCheck.antwortmodus === 'offen' && !rating) { setError('Bitte zuerst die Lehrkraftauswertung auswählen.'); return; }
     setBusy(true); setError(null); setMessage(null);
     try {
       const result = await ergebnisSpeichern({ abrufcheckId: selectedCheck.id, schuelerId: targetStudentId,
-        antwort: answerText, ergebnis: selectedCheck.antwortmodus === 'offen' ? (auswertungen[targetStudentId] ?? 'noch_nicht') : null });
+        antwort: answerText, ergebnis: selectedCheck.antwortmodus === 'offen' ? rating! : null });
       await reload();
       setTeilnahmen(await listTeilnahme(selectedCheck.id));
       setErgebnisAenderungen((current) => {
@@ -270,6 +273,23 @@ export function LernzielKompassPanel({ klasse, klasseName, aufgabe, abrufcheckId
     }));
     return [...currentRoster, ...teilnahmen.filter((row) => !currentIds.has(row.schuelerId))];
   }, [selectedCheck, students, teilnahmen]);
+  const vorbereiteteAntworten = useMemo(() => selectedCheck
+    ? vorbereiteteAbrufcheckAntworten(selectedCheck.antwortmodus, visibleParticipation, antwortEntwuerfe, auswertungen)
+    : [], [selectedCheck, visibleParticipation, antwortEntwuerfe, auswertungen]);
+
+  const savePreparedAnswers = async () => {
+    if (!selectedCheck || !klasse?.id || vorbereiteteAntworten.length === 0) return;
+    setBusy(true); setError(null); setMessage(null);
+    try {
+      const savedCount = await ergebnisseBatchSpeichern({ abrufcheckId: selectedCheck.id, eintraege: vorbereiteteAntworten });
+      const [rows, refreshedChecks] = await Promise.all([listTeilnahme(selectedCheck.id), listChecks(klasse.id)]);
+      setTeilnahmen(rows); setChecks(refreshedChecks);
+      setMessage(`${savedCount} vorbereitete Antworten wurden gespeichert.`);
+    } catch (cause) {
+      const detail = cause instanceof Error ? cause.message : String(cause);
+      setError(`Keine der vorbereiteten Antworten wurde gespeichert: ${detail}`);
+    } finally { setBusy(false); }
+  };
 
   if (!klasse?.id) {
     return <div style={CARD}><strong>Lernziel-Kompass</strong><p style={{ marginBottom: 0, color: 'var(--color-text-secondary)' }}>
@@ -416,6 +436,16 @@ export function LernzielKompassPanel({ klasse, klasseName, aufgabe, abrufcheckId
           Für diesen älteren Check wurde keine damalige Klassenliste gespeichert. Die heutige Liste hilft beim Erfassen; Abwesenheit oder fehlende Antworten aus der Vergangenheit werden daraus nicht abgeleitet.
         </p>}
         {visibleParticipation.length === 0 ? <p style={{ color: 'var(--color-text-secondary)' }}>Dieser Check hat keine gespeicherte Schülerliste. Prüfe die Klassenzuordnung oder lege einen neuen Check an.</p> : <div style={{ display: 'grid', gap: 8, marginTop: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+            <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.82rem' }}>
+              {vorbereiteteAntworten.length > 0
+                ? `${vorbereiteteAntworten.length} vollständige Antwort${vorbereiteteAntworten.length === 1 ? '' : 'en'} bereit`
+                : 'Keine vollständigen, neuen Antworten bereit'}
+            </span>
+            <button className="btn-primary" disabled={busy || !selectedCheck.terminGueltig || vorbereiteteAntworten.length === 0} onClick={() => void savePreparedAnswers()}>
+              <Save size={14} style={{ verticalAlign: -2, marginRight: 4 }} />Alle vorbereiteten Antworten speichern
+            </button>
+          </div>
           {visibleParticipation.map((student) => {
             const answerDraft = antwortEntwuerfe[student.schuelerId] ?? student.antwort ?? '';
             const hasSavedAnswer = student.ergebnis !== null;
@@ -434,22 +464,23 @@ export function LernzielKompassPanel({ klasse, klasseName, aufgabe, abrufcheckId
               </label>
               {student.status === 'abwesend' ? <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.78rem' }}>Keine Antwort erwartet.</span> : <div style={{ display: 'grid', gridTemplateColumns: selectedCheck.antwortmodus === 'offen' ? 'minmax(160px,1fr) minmax(128px,.7fr)' : '1fr', gap: 6 }}>
                 {selectedCheck.antwortmodus === 'auswahl' ? <label style={{ fontSize: '0.78rem' }}>Antwort
-                  <select value={answerDraft} onChange={(event) => setAntwortEntwuerfe((current) => ({ ...current, [student.schuelerId]: event.target.value }))} style={{ display: 'block', width: '100%', marginTop: 3 }}>
+                  <select value={answerDraft} disabled={busy} onChange={(event) => setAntwortEntwuerfe((current) => ({ ...current, [student.schuelerId]: event.target.value }))} style={{ display: 'block', width: '100%', marginTop: 3 }}>
                     <option value="">Antwort eintragen</option>{responseOptions.map((item, index) => <option key={`${index}-${item}`} value={item}>{item}</option>)}
                   </select>
                 </label> : <>
                   <label style={{ fontSize: '0.78rem' }}>Antwort
-                    <input value={answerDraft} onChange={(event) => setAntwortEntwuerfe((current) => ({ ...current, [student.schuelerId]: event.target.value }))} style={{ display: 'block', width: '100%', marginTop: 3 }} />
+                    <input value={answerDraft} disabled={busy} onChange={(event) => setAntwortEntwuerfe((current) => ({ ...current, [student.schuelerId]: event.target.value }))} style={{ display: 'block', width: '100%', marginTop: 3 }} />
                   </label>
                   <label style={{ fontSize: '0.78rem' }}>Lehrkraftauswertung
-                    <select value={auswertungen[student.schuelerId] ?? student.ergebnis ?? 'noch_nicht'} onChange={(event) => setAuswertungen((current) => ({ ...current, [student.schuelerId]: event.target.value as 'richtig' | 'teilweise' | 'noch_nicht' }))} style={{ display: 'block', width: '100%', marginTop: 3 }}>
+                    <select value={auswertungen[student.schuelerId] ?? student.ergebnis ?? ''} disabled={busy} onChange={(event) => setAuswertungen((current) => ({ ...current, [student.schuelerId]: event.target.value as 'richtig' | 'teilweise' | 'noch_nicht' }))} style={{ display: 'block', width: '100%', marginTop: 3 }}>
+                      <option value="">Auswertung auswählen …</option>
                       <option value="richtig">Ziel erreicht</option><option value="teilweise">Teilweise gezeigt</option><option value="noch_nicht">Noch nicht gezeigt</option>
                     </select>
                   </label>
                 </>}
               </div>}
               <div style={{ display: 'flex', gap: 5, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                {student.status !== 'abwesend' && <button className="btn-secondary" disabled={busy || !selectedCheck.terminGueltig || !answerDraft.trim()} onClick={() => void saveAnswer(student.schuelerId, answerDraft)}>
+                {student.status !== 'abwesend' && <button className="btn-secondary" disabled={busy || !selectedCheck.terminGueltig || !answerDraft.trim() || (selectedCheck.antwortmodus === 'offen' && !auswertungen[student.schuelerId] && !student.ergebnis)} onClick={() => void saveAnswer(student.schuelerId, answerDraft, student.ergebnis)}>
                   <Save size={14} style={{ verticalAlign: -2, marginRight: 4 }} />{hasSavedAnswer ? 'Antwort aktualisieren' : 'Antwort speichern'}
                 </button>}
                 {student.aenderungAnzahl > 0 && <button className="btn-secondary" aria-expanded={historyOpen} onClick={() => void toggleErgebnisVerlauf(student)}>

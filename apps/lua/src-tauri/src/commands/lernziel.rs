@@ -125,6 +125,21 @@ pub struct AbrufCheckErgebnisNeu {
     pub ergebnis: Option<String>,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AbrufCheckErgebnisBatchNeu {
+    pub abrufcheck_id: String,
+    pub eintraege: Vec<AbrufCheckErgebnisBatchEintrag>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AbrufCheckErgebnisBatchEintrag {
+    pub schueler_id: i64,
+    pub antwort: String,
+    pub ergebnis: Option<String>,
+}
+
 #[tauri::command]
 pub async fn lernziel_evidenz_list(
     state: tauri::State<'_, DbState>,
@@ -838,6 +853,56 @@ pub(crate) fn abrufcheck_ergebnis_speichern_impl(
     Ok(result.to_string())
 }
 
+#[tauri::command]
+pub async fn abrufcheck_ergebnisse_batch_speichern(
+    state: tauri::State<'_, DbState>,
+    meta: AbrufCheckErgebnisBatchNeu,
+) -> Result<usize, String> {
+    let conn = state.conn()?;
+    abrufcheck_ergebnisse_batch_speichern_impl(&conn, meta)
+}
+
+pub(crate) fn abrufcheck_ergebnisse_batch_speichern_impl(
+    conn: &Connection,
+    meta: AbrufCheckErgebnisBatchNeu,
+) -> Result<usize, String> {
+    if meta.eintraege.is_empty() {
+        return Err("Es gibt keine vorbereiteten Antworten zum Speichern.".to_string());
+    }
+    let mut seen = std::collections::HashSet::new();
+    for entry in &meta.eintraege {
+        if !seen.insert(entry.schueler_id) {
+            return Err(format!("Schüler-ID {} ist mehrfach in der Sammelliste enthalten.", entry.schueler_id));
+        }
+    }
+
+    conn.execute_batch("SAVEPOINT save_abrufcheck_batch")
+        .map_err(|e| format!("Sammelspeicherung vorbereiten: {e}"))?;
+    for entry in meta.eintraege {
+        let student_id = entry.schueler_id;
+        let result = abrufcheck_ergebnis_speichern_impl(
+            conn,
+            AbrufCheckErgebnisNeu {
+                abrufcheck_id: meta.abrufcheck_id.clone(),
+                schueler_id: student_id,
+                antwort: entry.antwort,
+                ergebnis: entry.ergebnis,
+            },
+        );
+        if let Err(error) = result {
+            let _ = conn.execute_batch(
+                "ROLLBACK TO save_abrufcheck_batch; RELEASE save_abrufcheck_batch;",
+            );
+            return Err(format!(
+                "Sammelspeicherung abgebrochen; es wurde nichts übernommen (Schüler-ID {student_id}): {error}"
+            ));
+        }
+    }
+    conn.execute_batch("RELEASE save_abrufcheck_batch")
+        .map_err(|e| format!("Sammelspeicherung abschließen: {e}"))?;
+    Ok(seen.len())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1117,6 +1182,128 @@ mod tests {
             }
         )
         .is_err());
+    }
+
+    #[test]
+    fn sammelspeicherung_erfasst_mehrere_schueler_und_wertet_antworten_lehrkraftseitig() {
+        let conn = setup();
+        conn.execute(
+            "INSERT INTO schueler (id,klasse,klasse_id,vorname) VALUES (2,'7A','k1','Jonas')",
+            [],
+        ).unwrap();
+        conn.execute(
+            "INSERT INTO schueler_klassen (schueler_id,klasse_id) VALUES (2,'k1')",
+            [],
+        ).unwrap();
+        let focus = lernziel_fokus_bestaetigen_impl(
+            &conn,
+            LernzielFokusNeu {
+                klasse_id: "k1".into(), klasse_name_snapshot: "7A".into(),
+                lernziel: "Nebensätze korrekt setzen".into(), fehler_typ: "G".into(),
+                aufgabe_snapshot: "Aufsatz".into(), ausgangseinsatz_id: "e0".into(),
+            },
+        ).unwrap();
+        let check = abrufcheck_erstellen_impl(
+            &conn,
+            AbrufCheckNeu {
+                fokus_id: focus.id, einsatz_id: "e1".into(), antwortmodus: "offen".into(),
+                frage: "Formuliere einen Nebensatz.".into(), optionen: vec![], loesung: None,
+                vergleichsgrundlage_bestaetigt: true,
+            },
+        ).unwrap();
+
+        let saved = abrufcheck_ergebnisse_batch_speichern_impl(
+            &conn,
+            AbrufCheckErgebnisBatchNeu {
+                abrufcheck_id: check.id.clone(),
+                eintraege: vec![
+                    AbrufCheckErgebnisBatchEintrag { schueler_id: 1, antwort: "weil es regnet".into(), ergebnis: Some("teilweise".into()) },
+                    AbrufCheckErgebnisBatchEintrag { schueler_id: 2, antwort: "Ich bleibe drinnen, weil es regnet.".into(), ergebnis: Some("richtig".into()) },
+                ],
+            },
+        ).unwrap();
+
+        assert_eq!(saved, 2);
+        let summary = abrufcheck_list_impl(&conn, "k1").unwrap().remove(0);
+        assert_eq!((summary.antwort_anzahl, summary.teilweise_anzahl, summary.richtig_anzahl), (2, 1, 1));
+        let roster = abrufcheck_teilnahme_list_impl(&conn, &check.id).unwrap();
+        assert!(roster.iter().all(|row| row.status == "anwesend" && row.antwort.is_some()));
+    }
+
+    #[test]
+    fn fehlgeschlagene_sammelspeicherung_rollt_alle_antworten_zurueck() {
+        let conn = setup();
+        let focus = lernziel_fokus_bestaetigen_impl(
+            &conn,
+            LernzielFokusNeu {
+                klasse_id: "k1".into(), klasse_name_snapshot: "7A".into(),
+                lernziel: "Nebensätze korrekt setzen".into(), fehler_typ: "G".into(),
+                aufgabe_snapshot: "Aufsatz".into(), ausgangseinsatz_id: "e0".into(),
+            },
+        ).unwrap();
+        let check = abrufcheck_erstellen_impl(
+            &conn,
+            AbrufCheckNeu {
+                fokus_id: focus.id, einsatz_id: "e1".into(), antwortmodus: "offen".into(),
+                frage: "Formuliere einen Nebensatz.".into(), optionen: vec![], loesung: None,
+                vergleichsgrundlage_bestaetigt: true,
+            },
+        ).unwrap();
+        let error = abrufcheck_ergebnisse_batch_speichern_impl(
+            &conn,
+            AbrufCheckErgebnisBatchNeu {
+                abrufcheck_id: check.id.clone(),
+                eintraege: vec![
+                    AbrufCheckErgebnisBatchEintrag { schueler_id: 1, antwort: "Ein Nebensatz.".into(), ergebnis: Some("richtig".into()) },
+                    AbrufCheckErgebnisBatchEintrag { schueler_id: 999, antwort: "Nicht im Kurs.".into(), ergebnis: Some("noch_nicht".into()) },
+                ],
+            },
+        ).unwrap_err();
+
+        assert!(error.contains("es wurde nichts übernommen"));
+        let summary = abrufcheck_list_impl(&conn, "k1").unwrap().remove(0);
+        assert_eq!(summary.antwort_anzahl, 0);
+        let student = abrufcheck_teilnahme_list_impl(&conn, &check.id).unwrap().remove(0);
+        assert_eq!(student.status, "offen");
+        assert!(student.antwort.is_none());
+    }
+
+    #[test]
+    fn sammelspeicherung_prueft_auswahlantworten_lokal_und_ignoriert_eingesandte_wertung() {
+        let conn = setup();
+        let focus = lernziel_fokus_bestaetigen_impl(
+            &conn,
+            LernzielFokusNeu {
+                klasse_id: "k1".into(), klasse_name_snapshot: "7A".into(),
+                lernziel: "Verbformen unterscheiden".into(), fehler_typ: "G".into(),
+                aufgabe_snapshot: "Aufsatz".into(), ausgangseinsatz_id: "e0".into(),
+            },
+        ).unwrap();
+        let check = abrufcheck_erstellen_impl(
+            &conn,
+            AbrufCheckNeu {
+                fokus_id: focus.id, einsatz_id: "e1".into(), antwortmodus: "auswahl".into(),
+                frage: "Welche Form ist korrekt?".into(),
+                optionen: vec!["war gegangen".into(), "gingen war".into()],
+                loesung: Some("war gegangen".into()), vergleichsgrundlage_bestaetigt: true,
+            },
+        ).unwrap();
+
+        abrufcheck_ergebnisse_batch_speichern_impl(
+            &conn,
+            AbrufCheckErgebnisBatchNeu {
+                abrufcheck_id: check.id.clone(),
+                eintraege: vec![AbrufCheckErgebnisBatchEintrag {
+                    schueler_id: 1, antwort: "gingen war".into(), ergebnis: Some("richtig".into()),
+                }],
+            },
+        ).unwrap();
+
+        let answer: (String, String) = conn.query_row(
+            "SELECT ergebnis,ausgewertet_von FROM abrufcheck_ergebnis WHERE abrufcheck_id=?1 AND schueler_id=1",
+            [&check.id], |row| Ok((row.get(0)?, row.get(1)?)),
+        ).unwrap();
+        assert_eq!(answer, ("noch_nicht".to_string(), "lokal".to_string()));
     }
 
     #[test]

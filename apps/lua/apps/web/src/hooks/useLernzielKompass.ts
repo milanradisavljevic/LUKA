@@ -97,6 +97,11 @@ export interface AbrufCheckErgebnisNeu {
   ergebnis: 'richtig' | 'teilweise' | 'noch_nicht' | null;
 }
 
+export interface AbrufCheckErgebnisBatchNeu {
+  abrufcheckId: string;
+  eintraege: Array<Pick<AbrufCheckErgebnisNeu, 'schuelerId' | 'antwort' | 'ergebnis'>>;
+}
+
 export interface AbrufCheckTeilnahmeNeu {
   abrufcheckId: string;
   schuelerId: number;
@@ -129,5 +134,7 @@ export function useLernzielKompass() {
     invoke<AbrufCheck>('abrufcheck_erstellen', { meta }), []);
   const ergebnisSpeichern = useCallback((meta: AbrufCheckErgebnisNeu) =>
     invoke<string>('abrufcheck_ergebnis_speichern', { meta }), []);
-  return { evidenz, listFokus, bestaetigen, ausgangsstundeVerbinden, listChecks, listTeilnahme, listErgebnisAenderungen, teilnahmeSpeichern, erstellen, ergebnisSpeichern };
+  const ergebnisseBatchSpeichern = useCallback((meta: AbrufCheckErgebnisBatchNeu) =>
+    invoke<number>('abrufcheck_ergebnisse_batch_speichern', { meta }), []);
+  return { evidenz, listFokus, bestaetigen, ausgangsstundeVerbinden, listChecks, listTeilnahme, listErgebnisAenderungen, teilnahmeSpeichern, erstellen, ergebnisSpeichern, ergebnisseBatchSpeichern };
 }
