@@ -32,6 +32,7 @@ export interface DbLoadAllResult {
 }
 
 export interface KlasseInfo {
+  id?: string | null;
   klasse: string;
   anzahlAbgaben: number;
 }

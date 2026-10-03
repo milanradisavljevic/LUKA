@@ -251,16 +251,16 @@ export function useNatascha() {
     return invoke<AbgabeInfo[]>('db_get_abgaben', { klasse, aufgabe: aufgabe ?? null, klasseId: klasseId ?? null });
   }, []);
 
-  const getHeatmap = useCallback(async (klasse: string, aufgabe?: string): Promise<HeatmapEntry[]> => {
-    return invoke<HeatmapEntry[]>('db_get_fehler_heatmap', { klasse, aufgabe: aufgabe ?? null });
+  const getHeatmap = useCallback(async (klasse: string, aufgabe?: string, klasseId?: string | null): Promise<HeatmapEntry[]> => {
+    return invoke<HeatmapEntry[]>('db_get_fehler_heatmap', { klasse, aufgabe: aufgabe ?? null, klasseId: klasseId ?? null });
   }, []);
 
-  const getNotenverteilung = useCallback(async (klasse: string, aufgabe?: string): Promise<Notenverteilung> => {
-    return invoke<Notenverteilung>('db_get_notenverteilung', { klasse, aufgabe: aufgabe ?? null });
+  const getNotenverteilung = useCallback(async (klasse: string, aufgabe?: string, klasseId?: string | null): Promise<Notenverteilung> => {
+    return invoke<Notenverteilung>('db_get_notenverteilung', { klasse, aufgabe: aufgabe ?? null, klasseId: klasseId ?? null });
   }, []);
 
-  const getKlassenStatistik = useCallback(async (klasse: string, aufgabe?: string): Promise<KlassenStatistik> => {
-    return invoke<KlassenStatistik>('db_get_klassen_statistik', { klasse, aufgabe: aufgabe ?? null });
+  const getKlassenStatistik = useCallback(async (klasse: string, aufgabe?: string, klasseId?: string | null): Promise<KlassenStatistik> => {
+    return invoke<KlassenStatistik>('db_get_klassen_statistik', { klasse, aufgabe: aufgabe ?? null, klasseId: klasseId ?? null });
   }, []);
 
   const generateFeedbackDocx = useCallback(async (abgabeId: number, output?: string): Promise<{ path: string; abgabe_id: number } | null> => {
@@ -499,17 +499,17 @@ export function useNatascha() {
     }
   }, []);
 
-  const getKlassenTrend = useCallback(async (klasse: string): Promise<TrendPoint[]> => {
+  const getKlassenTrend = useCallback(async (klasse: string, klasseId?: string | null): Promise<TrendPoint[]> => {
     try {
-      return await invoke<TrendPoint[]>('db_get_klassen_trend', { klasse });
+      return await invoke<TrendPoint[]>('db_get_klassen_trend', { klasse, klasseId: klasseId ?? null });
     } catch {
       return [];
     }
   }, []);
 
-  const getFehlerTrend = useCallback(async (klasse: string): Promise<FehlerTrendPunkt[]> => {
+  const getFehlerTrend = useCallback(async (klasse: string, klasseId?: string | null): Promise<FehlerTrendPunkt[]> => {
     try {
-      return await invoke<FehlerTrendPunkt[]>('db_get_fehler_trend', { klasse });
+      return await invoke<FehlerTrendPunkt[]>('db_get_fehler_trend', { klasse, klasseId: klasseId ?? null });
     } catch {
       return [];
     }
@@ -523,25 +523,25 @@ export function useNatascha() {
     }
   }, []);
 
-  const getKlassenKalibrierung = useCallback(async (klasse: string, aufgabe?: string): Promise<KalibrierungResult | null> => {
+  const getKlassenKalibrierung = useCallback(async (klasse: string, aufgabe?: string, klasseId?: string | null): Promise<KalibrierungResult | null> => {
     try {
-      return await invoke<KalibrierungResult>('db_get_klassen_kalibrierung', { klasse, aufgabe: aufgabe ?? null });
+      return await invoke<KalibrierungResult>('db_get_klassen_kalibrierung', { klasse, aufgabe: aufgabe ?? null, klasseId: klasseId ?? null });
     } catch {
       return null;
     }
   }, []);
 
-  const getFehlerDetail = useCallback(async (klasse: string, typ: string, aufgabe?: string, limit?: number): Promise<FehlerDetailRow[]> => {
+  const getFehlerDetail = useCallback(async (klasse: string, typ: string, aufgabe?: string, limit?: number, klasseId?: string | null): Promise<FehlerDetailRow[]> => {
     try {
-      return await invoke<FehlerDetailRow[]>('db_get_fehler_detail', { klasse, typ, aufgabe: aufgabe ?? null, limit: limit ?? null });
+      return await invoke<FehlerDetailRow[]>('db_get_fehler_detail', { klasse, typ, aufgabe: aufgabe ?? null, limit: limit ?? null, klasseId: klasseId ?? null });
     } catch {
       return [];
     }
   }, []);
 
-  const exportNotenCsv = useCallback(async (klasse: string, aufgabe?: string): Promise<string | null> => {
+  const exportNotenCsv = useCallback(async (klasse: string, aufgabe?: string, klasseId?: string | null): Promise<string | null> => {
     try {
-      return await invoke<string>('db_export_noten_csv', { klasse, aufgabe: aufgabe ?? null });
+      return await invoke<string>('db_export_noten_csv', { klasse, aufgabe: aufgabe ?? null, klasseId: klasseId ?? null });
     } catch {
       return null;
     }

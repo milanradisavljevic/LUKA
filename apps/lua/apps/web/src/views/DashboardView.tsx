@@ -43,6 +43,8 @@ interface DashboardViewProps {
 
 interface KlasseStat {
   klasse: string;
+  klasseId: string | null;
+  schuljahr: string | null;
   anzahlAbgaben: number;
   durchschnitt: number | null;
   letztesDatum: string | null;
@@ -59,6 +61,7 @@ interface DashboardHeatmapEntry {
 
 interface EmpfehlungDesTages {
   klasse: string;
+  schuljahr: string | null;
   aufgabe: string;
   heatmap: DashboardHeatmapEntry[];
   topLabel: string;
@@ -154,14 +157,16 @@ export function DashboardView({ resumeTitle, onResume, onOpenDocument, onNavigat
       const ks = await listKlassen();
       const stats = await Promise.all(ks.map(async (k) => {
         const [nv, trend] = await Promise.all([
-          getNotenverteilung(k.klasse),
-          getKlassenTrend(k.klasse),
+          getNotenverteilung(k.klasse, undefined, k.id),
+          getKlassenTrend(k.klasse, k.id),
         ]);
         const last = trend.length ? trend[trend.length - 1] : null;
         const abgaben = trend.reduce((s, t) => s + t.n, 0);
         const mitFeedback = trend.reduce((s, t) => s + t.nMitFeedback, 0);
         return {
           klasse: k.klasse,
+          klasseId: k.id ?? null,
+          schuljahr: klassenMeta.find((meta) => meta.id === k.id)?.schuljahr ?? null,
           anzahlAbgaben: k.anzahlAbgaben,
           durchschnitt: nv.durchschnitt,
           letztesDatum: last?.datum ?? null,
@@ -178,13 +183,14 @@ export function DashboardView({ resumeTitle, onResume, onOpenDocument, onNavigat
       let nextEmpfehlung: EmpfehlungDesTages | null = null;
       if (newest?.letzteAufgabe) {
         try {
-          const heatmap = await getHeatmap(newest.klasse, newest.letzteAufgabe);
+          const heatmap = await getHeatmap(newest.klasse, newest.letzteAufgabe, newest.klasseId);
           const top = [...heatmap]
             .filter((h) => h.anzahl > 0)
             .sort((a, b) => b.anzahl - a.anzahl)[0];
           if (top) {
             nextEmpfehlung = {
               klasse: newest.klasse,
+              schuljahr: newest.schuljahr,
               aufgabe: newest.letzteAufgabe,
               heatmap,
               topLabel: KATEGORIE_LABEL[top.typ] ?? top.typ,
@@ -199,7 +205,7 @@ export function DashboardView({ resumeTitle, onResume, onOpenDocument, onNavigat
       if (!cancelled) { setRows(stats); setEmpfehlung(nextEmpfehlung); setLoading(false); }
     })();
     return () => { cancelled = true; };
-  }, [listKlassen, getNotenverteilung, getKlassenTrend, getHeatmap]);
+  }, [listKlassen, klassenMeta, getNotenverteilung, getKlassenTrend, getHeatmap]);
 
   const lastDocument = useMemo(() => {
     const docs = loadDocuments().filter((d) => !d.isDeleted);
@@ -471,7 +477,7 @@ export function DashboardView({ resumeTitle, onResume, onOpenDocument, onNavigat
                     Empfehlung des Tages
                   </p>
                   <h2 style={{ fontSize: '1rem', marginBottom: '0.25rem' }}>
-                    {empfehlung.klasse}: häufigster Fehler in {empfehlung.aufgabe} war {empfehlung.topLabel} ({empfehlung.topAnzahl}×).
+                    {empfehlung.klasse}{empfehlung.schuljahr ? ` · ${empfehlung.schuljahr}` : ''}: häufigster Fehler in {empfehlung.aufgabe} war {empfehlung.topLabel} ({empfehlung.topAnzahl}×).
                   </h2>
                   <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem', margin: 0 }}>
                     Ein Klick, und LUKA baut dir ein passendes Übungsblatt.
@@ -533,7 +539,7 @@ export function DashboardView({ resumeTitle, onResume, onOpenDocument, onNavigat
                   const akut = (r.durchschnitt ?? 0) >= 4.0;
                   return (
                     <button
-                      key={r.klasse}
+                      key={r.klasseId ?? `legacy:${r.klasse.toLocaleLowerCase('de')}`}
                       onClick={() => onNavigate?.('klassen')}
                       aria-label={`Klasse ${r.klasse} ansehen — Ø ${r.durchschnitt?.toFixed(2)}`}
                       style={{
@@ -547,6 +553,7 @@ export function DashboardView({ resumeTitle, onResume, onOpenDocument, onNavigat
                         background: akut ? 'var(--color-error)' : 'var(--color-warning)',
                       }} />
                       <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>{r.klasse}</span>
+                      {r.schuljahr && <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>{r.schuljahr}</span>}
                       <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', flex: 1 }}>
                         Ø {r.durchschnitt?.toFixed(2)} · {r.anzahlAbgaben} Abgaben
                       </span>
@@ -564,7 +571,7 @@ export function DashboardView({ resumeTitle, onResume, onOpenDocument, onNavigat
               const feedbackQuote = r.abgaben > 0 ? Math.round((r.mitFeedback / r.abgaben) * 100) : null;
               return (
                 <button
-                  key={r.klasse}
+                  key={r.klasseId ?? `legacy:${r.klasse.toLocaleLowerCase('de')}`}
                   className="card card-clickable"
                   onClick={() => onNavigate?.('klassen')}
                   style={{
@@ -575,7 +582,7 @@ export function DashboardView({ resumeTitle, onResume, onOpenDocument, onNavigat
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '1rem', fontWeight: 700 }}>{r.klasse}</span>
+                    <span style={{ fontSize: '1rem', fontWeight: 700 }}>{r.klasse}{r.schuljahr ? <span style={{ marginLeft: 8, fontSize: '0.75rem', fontWeight: 400, color: 'var(--color-text-secondary)' }}>{r.schuljahr}</span> : null}</span>
                     <ChevronRight size={14} style={{ color: 'var(--color-text-secondary)' }} />
                   </div>
                   <div style={{ display: 'flex', gap: '1.25rem' }}>

@@ -3,6 +3,11 @@ use serde::Serialize;
 
 use crate::commands::db::DbState;
 
+// Mit Klassen-ID werden identitätsgebundene Abgaben sowie eindeutig zuordenbare
+// alte Datensätze berücksichtigt. Ungebundene Altzeilen mit mehrdeutigem Namen
+// bleiben bewusst außen vor.
+const ABGABE_KLASSEN_FILTER: &str = "((?2 IS NULL AND a.klasse=?1) OR a.klasse_id=?2 OR (a.klasse_id IS NULL AND a.klasse=?1 COLLATE NOCASE AND (SELECT COUNT(*) FROM klasse_stammdaten WHERE name=?1 COLLATE NOCASE)=1))";
+
 // Nur Leerraum kanonisieren — Groß-/Kleinschreibung bleibt erhalten, sonst
 // entstehen neue Zeilen ("7a") neben Bestandsdaten ("7A") und Auswertungen
 // spalten sich. Lookup-Toleranz macht COLLATE NOCASE auf der Python-Seite.
@@ -151,35 +156,29 @@ pub async fn db_get_abgaben(state: tauri::State<'_, DbState>, klasse: String, au
 }
 
 #[tauri::command]
-pub async fn db_get_fehler_heatmap(state: tauri::State<'_, DbState>, klasse: String, aufgabe: Option<String>) -> Result<Vec<HeatmapEntry>, String> {
+pub async fn db_get_fehler_heatmap(state: tauri::State<'_, DbState>, klasse: String, aufgabe: Option<String>, klasse_id: Option<String>) -> Result<Vec<HeatmapEntry>, String> {
     let guard = state.conn()?;
-    fehler_heatmap_impl(&guard, klasse, aufgabe)
+    fehler_heatmap_by_class_id_impl(&guard, &klasse, klasse_id.as_deref(), aufgabe.as_deref())
 }
 
 pub(crate) fn fehler_heatmap_impl(conn: &rusqlite::Connection, klasse: String, aufgabe: Option<String>) -> Result<Vec<HeatmapEntry>, String> {
-    let data_sql = if aufgabe.is_some() {
-        "SELECT f.typ, COUNT(*) as cnt FROM fehler_historie f JOIN abgabe a ON f.abgabe_id=a.id WHERE a.klasse=?1 AND a.aufgabe=?2 GROUP BY f.typ ORDER BY cnt DESC"
-    } else {
-        "SELECT f.typ, COUNT(*) as cnt FROM fehler_historie f JOIN abgabe a ON f.abgabe_id=a.id WHERE a.klasse=?1 GROUP BY f.typ ORDER BY cnt DESC"
-    };
+    fehler_heatmap_by_class_id_impl(conn, &klasse, None, aufgabe.as_deref())
+}
 
-    let total_sql = if aufgabe.is_some() {
-        "SELECT COUNT(*) FROM fehler_historie f JOIN abgabe a ON f.abgabe_id=a.id WHERE a.klasse=?1 AND a.aufgabe=?2"
-    } else {
-        "SELECT COUNT(*) FROM fehler_historie f JOIN abgabe a ON f.abgabe_id=a.id WHERE a.klasse=?1"
-    };
+pub(crate) fn fehler_heatmap_by_class_id_impl(conn: &rusqlite::Connection, klasse: &str, klasse_id: Option<&str>, aufgabe: Option<&str>) -> Result<Vec<HeatmapEntry>, String> {
+    let data_sql = format!(
+        "SELECT f.typ, COUNT(*) as cnt FROM fehler_historie f JOIN abgabe a ON f.abgabe_id=a.id WHERE {} AND (?3 IS NULL OR a.aufgabe=?3) GROUP BY f.typ ORDER BY cnt DESC",
+        ABGABE_KLASSEN_FILTER,
+    );
+    let total_sql = format!(
+        "SELECT COUNT(*) FROM fehler_historie f JOIN abgabe a ON f.abgabe_id=a.id WHERE {} AND (?3 IS NULL OR a.aufgabe=?3)",
+        ABGABE_KLASSEN_FILTER,
+    );
+    let params = rusqlite::params![klasse, klasse_id, aufgabe];
+    let total: f64 = conn.query_row(&total_sql, params, |row| row.get::<_, i64>(0)).unwrap_or(0) as f64;
 
-    let params: Vec<Box<dyn rusqlite::types::ToSql>> = if let Some(ref af) = aufgabe {
-        vec![Box::new(klasse.clone()), Box::new(af.clone())]
-    } else {
-        vec![Box::new(klasse)]
-    };
-    let param_refs: Vec<&dyn rusqlite::types::ToSql> = params.iter().map(|p| p.as_ref()).collect();
-
-    let total: f64 = conn.query_row(total_sql, param_refs.as_slice(), |row| row.get::<_, i64>(0)).unwrap_or(0) as f64;
-
-    let mut stmt = conn.prepare(data_sql).map_err(|e| format!("prepare heatmap: {}", e))?;
-    let rows = stmt.query_map(param_refs.as_slice(), |row| {
+    let mut stmt = conn.prepare(&data_sql).map_err(|e| format!("prepare heatmap: {}", e))?;
+    let rows = stmt.query_map(params, |row| {
         let typ: String = row.get(0)?;
         let anzahl: i64 = row.get(1)?;
         let prozent = if total > 0.0 { (anzahl as f64 / total) * 100.0 } else { 0.0 };
@@ -189,59 +188,36 @@ pub(crate) fn fehler_heatmap_impl(conn: &rusqlite::Connection, klasse: String, a
 }
 
 #[tauri::command]
-pub async fn db_get_notenverteilung(state: tauri::State<'_, DbState>, klasse: String, aufgabe: Option<String>) -> Result<Notenverteilung, String> {
+pub async fn db_get_notenverteilung(state: tauri::State<'_, DbState>, klasse: String, aufgabe: Option<String>, klasse_id: Option<String>) -> Result<Notenverteilung, String> {
     let guard = state.conn()?;
     let conn = &*guard;
-    query_notenverteilung(conn, &klasse, aufgabe.as_deref())
+    query_notenverteilung_by_class_id(conn, &klasse, klasse_id.as_deref(), aufgabe.as_deref())
 }
 
 #[tauri::command]
-pub async fn db_get_klassen_statistik(state: tauri::State<'_, DbState>, klasse: String, aufgabe: Option<String>) -> Result<KlassenStatistik, String> {
+pub async fn db_get_klassen_statistik(state: tauri::State<'_, DbState>, klasse: String, aufgabe: Option<String>, klasse_id: Option<String>) -> Result<KlassenStatistik, String> {
     let guard = state.conn()?;
-    let conn = &*guard;
+    klassen_statistik_impl(&guard, &klasse, klasse_id.as_deref(), aufgabe.as_deref())
+}
 
-    let count_sql = if aufgabe.is_some() {
-        "SELECT COUNT(*) FROM abgabe WHERE klasse=?1 AND aufgabe=?2"
-    } else {
-        "SELECT COUNT(*) FROM abgabe WHERE klasse=?1"
-    };
-    let count_params: Vec<Box<dyn rusqlite::types::ToSql>> = if let Some(ref af) = aufgabe {
-        vec![Box::new(klasse.clone()), Box::new(af.clone())]
-    } else {
-        vec![Box::new(klasse.clone())]
-    };
-    let count_refs: Vec<&dyn rusqlite::types::ToSql> = count_params.iter().map(|p| p.as_ref()).collect();
-    let anzahl_abgaben: i64 = conn.query_row(count_sql, count_refs.as_slice(), |row| row.get(0)).unwrap_or(0);
+fn klassen_statistik_impl(conn: &rusqlite::Connection, klasse: &str, klasse_id: Option<&str>, aufgabe: Option<&str>) -> Result<KlassenStatistik, String> {
+    let count_sql = format!("SELECT COUNT(*) FROM abgabe a WHERE {} AND (?3 IS NULL OR a.aufgabe=?3)", ABGABE_KLASSEN_FILTER);
+    let anzahl_abgaben: i64 = conn.query_row(&count_sql, rusqlite::params![klasse, klasse_id, aufgabe], |row| row.get(0)).unwrap_or(0);
 
-    let notenverteilung = query_notenverteilung(conn, &klasse, aufgabe.as_deref())?;
-    let kriterien = query_kriterien_durchschnitt(conn, &klasse, aufgabe.as_deref())?;
+    let notenverteilung = query_notenverteilung_by_class_id(conn, &klasse, klasse_id.as_deref(), aufgabe.as_deref())?;
+    let kriterien = query_kriterien_durchschnitt_by_class_id(conn, &klasse, klasse_id.as_deref(), aufgabe.as_deref())?;
     Ok(KlassenStatistik { anzahl_abgaben, notenverteilung, kriterien })
 }
 
-fn query_notenverteilung(conn: &rusqlite::Connection, klasse: &str, aufgabe: Option<&str>) -> Result<Notenverteilung, String> {
-    let dist_sql = if aufgabe.is_some() {
-        "SELECT ROUND(COALESCE(lf.note_final, a.note)) as n, COUNT(*) as cnt FROM abgabe a LEFT JOIN lehrer_feedback lf ON a.id=lf.abgabe_id WHERE a.klasse=?1 AND a.aufgabe=?2 AND COALESCE(lf.note_final, a.note) IS NOT NULL GROUP BY n ORDER BY n"
-    } else {
-        "SELECT ROUND(COALESCE(lf.note_final, a.note)) as n, COUNT(*) as cnt FROM abgabe a LEFT JOIN lehrer_feedback lf ON a.id=lf.abgabe_id WHERE a.klasse=?1 AND COALESCE(lf.note_final, a.note) IS NOT NULL GROUP BY n ORDER BY n"
-    };
+fn query_notenverteilung_by_class_id(conn: &rusqlite::Connection, klasse: &str, klasse_id: Option<&str>, aufgabe: Option<&str>) -> Result<Notenverteilung, String> {
+    let dist_sql = format!("SELECT ROUND(COALESCE(lf.note_final, a.note)) as n, COUNT(*) as cnt FROM abgabe a LEFT JOIN lehrer_feedback lf ON a.id=lf.abgabe_id WHERE {} AND (?3 IS NULL OR a.aufgabe=?3) AND COALESCE(lf.note_final, a.note) IS NOT NULL GROUP BY n ORDER BY n", ABGABE_KLASSEN_FILTER);
+    let avg_sql = format!("SELECT AVG(COALESCE(lf.note_final, a.note)) FROM abgabe a LEFT JOIN lehrer_feedback lf ON a.id=lf.abgabe_id WHERE {} AND (?3 IS NULL OR a.aufgabe=?3) AND COALESCE(lf.note_final, a.note) IS NOT NULL", ABGABE_KLASSEN_FILTER);
+    let params = rusqlite::params![klasse, klasse_id, aufgabe];
 
-    let avg_sql = if aufgabe.is_some() {
-        "SELECT AVG(COALESCE(lf.note_final, a.note)) FROM abgabe a LEFT JOIN lehrer_feedback lf ON a.id=lf.abgabe_id WHERE a.klasse=?1 AND a.aufgabe=?2 AND COALESCE(lf.note_final, a.note) IS NOT NULL"
-    } else {
-        "SELECT AVG(COALESCE(lf.note_final, a.note)) FROM abgabe a LEFT JOIN lehrer_feedback lf ON a.id=lf.abgabe_id WHERE a.klasse=?1 AND COALESCE(lf.note_final, a.note) IS NOT NULL"
-    };
-
-    let params: Vec<Box<dyn rusqlite::types::ToSql>> = if let Some(af) = aufgabe {
-        vec![Box::new(klasse.to_string()), Box::new(af.to_string())]
-    } else {
-        vec![Box::new(klasse.to_string())]
-    };
-    let param_refs: Vec<&dyn rusqlite::types::ToSql> = params.iter().map(|p| p.as_ref()).collect();
-
-    let durchschnitt = conn.query_row(avg_sql, param_refs.as_slice(), |row| row.get::<_, Option<f64>>(0)).unwrap_or(None);
+    let durchschnitt = conn.query_row(&avg_sql, params, |row| row.get::<_, Option<f64>>(0)).unwrap_or(None);
     let mut noten = std::collections::BTreeMap::new();
-    let mut stmt = conn.prepare(dist_sql).map_err(|e| format!("prepare noten: {}", e))?;
-    let rows = stmt.query_map(param_refs.as_slice(), |row| {
+    let mut stmt = conn.prepare(&dist_sql).map_err(|e| format!("prepare noten: {}", e))?;
+    let rows = stmt.query_map(params, |row| {
         let n: f64 = row.get(0)?;
         let cnt: i64 = row.get(1)?;
         Ok((n, cnt))
@@ -254,22 +230,11 @@ fn query_notenverteilung(conn: &rusqlite::Connection, klasse: &str, aufgabe: Opt
     Ok(Notenverteilung { noten, durchschnitt })
 }
 
-fn query_kriterien_durchschnitt(conn: &rusqlite::Connection, klasse: &str, aufgabe: Option<&str>) -> Result<Vec<KriteriumDurchschnitt>, String> {
-    let sql = if aufgabe.is_some() {
-        "SELECT k.kriterium_name, AVG(k.stufe) as avg_stufe, COUNT(*) as cnt FROM kriterium_historie k JOIN abgabe a ON k.abgabe_id=a.id WHERE a.klasse=?1 AND a.aufgabe=?2 GROUP BY k.kriterium_name ORDER BY avg_stufe"
-    } else {
-        "SELECT k.kriterium_name, AVG(k.stufe) as avg_stufe, COUNT(*) as cnt FROM kriterium_historie k JOIN abgabe a ON k.abgabe_id=a.id WHERE a.klasse=?1 GROUP BY k.kriterium_name ORDER BY avg_stufe"
-    };
+fn query_kriterien_durchschnitt_by_class_id(conn: &rusqlite::Connection, klasse: &str, klasse_id: Option<&str>, aufgabe: Option<&str>) -> Result<Vec<KriteriumDurchschnitt>, String> {
+    let sql = format!("SELECT k.kriterium_name, AVG(k.stufe) as avg_stufe, COUNT(*) as cnt FROM kriterium_historie k JOIN abgabe a ON k.abgabe_id=a.id WHERE {} AND (?3 IS NULL OR a.aufgabe=?3) GROUP BY k.kriterium_name ORDER BY avg_stufe", ABGABE_KLASSEN_FILTER);
 
-    let params: Vec<Box<dyn rusqlite::types::ToSql>> = if let Some(af) = aufgabe {
-        vec![Box::new(klasse.to_string()), Box::new(af.to_string())]
-    } else {
-        vec![Box::new(klasse.to_string())]
-    };
-    let param_refs: Vec<&dyn rusqlite::types::ToSql> = params.iter().map(|p| p.as_ref()).collect();
-
-    let mut stmt = conn.prepare(sql).map_err(|e| format!("prepare kriterien: {}", e))?;
-    let rows = stmt.query_map(param_refs.as_slice(), |row| {
+    let mut stmt = conn.prepare(&sql).map_err(|e| format!("prepare kriterien: {}", e))?;
+    let rows = stmt.query_map(rusqlite::params![klasse, klasse_id, aufgabe], |row| {
         Ok(KriteriumDurchschnitt { name: row.get(0)?, durchschnitt: row.get(1)?, anzahl: row.get(2)? })
     }).map_err(|e| format!("query kriterien: {}", e))?;
     Ok(rows.filter_map(|r| r.ok()).collect())
@@ -1189,14 +1154,18 @@ pub struct TrendPoint {
 }
 
 #[tauri::command]
-pub async fn db_get_klassen_trend(state: tauri::State<'_, DbState>, klasse: String) -> Result<Vec<TrendPoint>, String> {
+pub async fn db_get_klassen_trend(state: tauri::State<'_, DbState>, klasse: String, klasse_id: Option<String>) -> Result<Vec<TrendPoint>, String> {
     let guard = state.conn()?;
     let conn = &*guard;
 
-    let mut app_stmt = conn.prepare(
-        "SELECT a.aufgabe, a.datum, COUNT(*) as n, AVG(a.note) as avg_note FROM abgabe a WHERE a.klasse=?1 GROUP BY a.aufgabe, a.datum ORDER BY a.datum, a.id"
-    ).map_err(|e| format!("prepare trend app: {}", e))?;
-    let app_rows = app_stmt.query_map(rusqlite::params![klasse], |row| {
+    klassen_trend_impl(conn, &klasse, klasse_id.as_deref())
+}
+
+fn klassen_trend_impl(conn: &rusqlite::Connection, klasse: &str, klasse_id: Option<&str>) -> Result<Vec<TrendPoint>, String> {
+    let app_sql = format!("SELECT a.aufgabe, a.datum, COUNT(*) as n, AVG(a.note) as avg_note FROM abgabe a WHERE {} GROUP BY a.aufgabe, a.datum ORDER BY a.datum, MIN(a.id)", ABGABE_KLASSEN_FILTER);
+    let params = rusqlite::params![klasse, klasse_id];
+    let mut app_stmt = conn.prepare(&app_sql).map_err(|e| format!("prepare trend app: {}", e))?;
+    let app_rows = app_stmt.query_map(params, |row| {
         Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?, row.get::<_, i64>(2)?, row.get::<_, Option<f64>>(3)?))
     }).map_err(|e| format!("query trend app: {}", e))?;
 
@@ -1207,15 +1176,9 @@ pub async fn db_get_klassen_trend(state: tauri::State<'_, DbState>, klasse: Stri
         }
     }
 
-    let _lehrer_rows = conn.query_row(
-        "SELECT a.aufgabe, AVG(lf.note_final), COUNT(*) FROM lehrer_feedback lf JOIN abgabe a ON a.id=lf.abgabe_id WHERE a.klasse=?1 AND lf.note_final IS NOT NULL GROUP BY a.aufgabe",
-        rusqlite::params![klasse],
-        |row| { let _ = row; Ok(()) }
-    );
-    let mut lehrer_stmt = conn.prepare(
-        "SELECT a.aufgabe, AVG(lf.note_final) as avg_lehrer, COUNT(*) as n_fb FROM lehrer_feedback lf JOIN abgabe a ON a.id=lf.abgabe_id WHERE a.klasse=?1 AND lf.note_final IS NOT NULL GROUP BY a.aufgabe"
-    ).map_err(|e| format!("prepare trend lehrer: {}", e))?;
-    let l_rows = lehrer_stmt.query_map(rusqlite::params![klasse], |row| {
+    let lehrer_sql = format!("SELECT a.aufgabe, AVG(lf.note_final) as avg_lehrer, COUNT(*) as n_fb FROM lehrer_feedback lf JOIN abgabe a ON a.id=lf.abgabe_id WHERE {} AND lf.note_final IS NOT NULL GROUP BY a.aufgabe", ABGABE_KLASSEN_FILTER);
+    let mut lehrer_stmt = conn.prepare(&lehrer_sql).map_err(|e| format!("prepare trend lehrer: {}", e))?;
+    let l_rows = lehrer_stmt.query_map(params, |row| {
         Ok((row.get::<_, String>(0)?, row.get::<_, Option<f64>>(1)?, row.get::<_, i64>(2)?))
     }).map_err(|e| format!("query trend lehrer: {}", e))?;
     for row in l_rows {
@@ -1254,18 +1217,22 @@ pub struct FehlerTrendPunkt {
 }
 
 #[tauri::command]
-pub async fn db_get_fehler_trend(state: tauri::State<'_, DbState>, klasse: String) -> Result<Vec<FehlerTrendPunkt>, String> {
+pub async fn db_get_fehler_trend(state: tauri::State<'_, DbState>, klasse: String, klasse_id: Option<String>) -> Result<Vec<FehlerTrendPunkt>, String> {
     let guard = state.conn()?;
-    fehler_trend_impl(&guard, &klasse)
+    fehler_trend_by_class_id_impl(&guard, &klasse, klasse_id.as_deref())
 }
 
 pub(crate) fn fehler_trend_impl(conn: &rusqlite::Connection, klasse: &str) -> Result<Vec<FehlerTrendPunkt>, String> {
+    fehler_trend_by_class_id_impl(conn, klasse, None)
+}
+
+pub(crate) fn fehler_trend_by_class_id_impl(conn: &rusqlite::Connection, klasse: &str, klasse_id: Option<&str>) -> Result<Vec<FehlerTrendPunkt>, String> {
     // datum ist der Import-Zeitpunkt, nicht das Prüfungsdatum — gleiche
     // Chronologie-Annahme wie db_get_klassen_trend.
-    let mut basis_stmt = conn.prepare(
-        "SELECT aufgabe, MIN(datum), COUNT(*) FROM abgabe WHERE klasse=?1 GROUP BY aufgabe"
-    ).map_err(|e| format!("prepare fehlertrend basis: {}", e))?;
-    let basis_rows = basis_stmt.query_map(rusqlite::params![klasse], |row| {
+    let params = rusqlite::params![klasse, klasse_id];
+    let basis_sql = format!("SELECT a.aufgabe, MIN(a.datum), COUNT(*) FROM abgabe a WHERE {} GROUP BY a.aufgabe", ABGABE_KLASSEN_FILTER);
+    let mut basis_stmt = conn.prepare(&basis_sql).map_err(|e| format!("prepare fehlertrend basis: {}", e))?;
+    let basis_rows = basis_stmt.query_map(params, |row| {
         Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?, row.get::<_, i64>(2)?))
     }).map_err(|e| format!("query fehlertrend basis: {}", e))?;
 
@@ -1285,10 +1252,9 @@ pub(crate) fn fehler_trend_impl(conn: &rusqlite::Connection, klasse: &str) -> Re
         });
     }
 
-    let mut fehler_stmt = conn.prepare(
-        "SELECT a.aufgabe, f.typ, COUNT(*) FROM fehler_historie f JOIN abgabe a ON a.id=f.abgabe_id WHERE a.klasse=?1 GROUP BY a.aufgabe, f.typ"
-    ).map_err(|e| format!("prepare fehlertrend typen: {}", e))?;
-    let fehler_rows = fehler_stmt.query_map(rusqlite::params![klasse], |row| {
+    let fehler_sql = format!("SELECT a.aufgabe, f.typ, COUNT(*) FROM fehler_historie f JOIN abgabe a ON a.id=f.abgabe_id WHERE {} GROUP BY a.aufgabe, f.typ", ABGABE_KLASSEN_FILTER);
+    let mut fehler_stmt = conn.prepare(&fehler_sql).map_err(|e| format!("prepare fehlertrend typen: {}", e))?;
+    let fehler_rows = fehler_stmt.query_map(params, |row| {
         Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?, row.get::<_, i64>(2)?))
     }).map_err(|e| format!("query fehlertrend typen: {}", e))?;
 
@@ -1303,15 +1269,17 @@ pub(crate) fn fehler_trend_impl(conn: &rusqlite::Connection, klasse: &str) -> Re
         }
     }
 
-    let mut cluster_stmt = conn.prepare(
+    let cluster_sql = format!(
         "SELECT a.aufgabe, fh.cluster_id, \
                 MIN(NULLIF(TRIM(fh.regel_muster), '')), COUNT(*) \
          FROM fehler_historie fh \
          JOIN abgabe a ON a.id=fh.abgabe_id \
-         WHERE a.klasse=?1 AND fh.cluster_id IS NOT NULL AND TRIM(fh.cluster_id) <> '' \
+         WHERE {} AND fh.cluster_id IS NOT NULL AND TRIM(fh.cluster_id) <> '' \
          GROUP BY a.aufgabe, fh.cluster_id",
-    ).map_err(|e| format!("prepare fehlertrend cluster: {}", e))?;
-    let cluster_rows = cluster_stmt.query_map(rusqlite::params![klasse], |row| {
+        ABGABE_KLASSEN_FILTER,
+    );
+    let mut cluster_stmt = conn.prepare(&cluster_sql).map_err(|e| format!("prepare fehlertrend cluster: {}", e))?;
+    let cluster_rows = cluster_stmt.query_map(params, |row| {
         Ok((
             row.get::<_, String>(0)?,
             row.get::<_, String>(1)?,
@@ -1364,28 +1332,26 @@ pub struct KalibrierungResult {
 }
 
 #[tauri::command]
-pub async fn db_get_klassen_kalibrierung(state: tauri::State<'_, DbState>, klasse: String, aufgabe: Option<String>) -> Result<KalibrierungResult, String> {
+pub async fn db_get_klassen_kalibrierung(state: tauri::State<'_, DbState>, klasse: String, aufgabe: Option<String>, klasse_id: Option<String>) -> Result<KalibrierungResult, String> {
     let guard = state.conn()?;
-    kalibrierung_impl(&guard, &klasse, aufgabe.as_deref())
+    kalibrierung_by_class_id_impl(&guard, &klasse, klasse_id.as_deref(), aufgabe.as_deref())
 }
 
 pub(crate) fn kalibrierung_impl(conn: &rusqlite::Connection, klasse: &str, aufgabe: Option<&str>) -> Result<KalibrierungResult, String> {
-    let where_clause = if aufgabe.is_some() { "a.klasse=?1 AND a.aufgabe=?2 AND lf.note_final IS NOT NULL" } else { "a.klasse=?1 AND lf.note_final IS NOT NULL" };
-    let sql = format!("SELECT COUNT(*) as n_fb, AVG(lf.note_app_snapshot) as app_avg, AVG(lf.note_final) as lehrer_avg FROM lehrer_feedback lf JOIN abgabe a ON a.id=lf.abgabe_id WHERE {}", where_clause);
-    let params: Vec<Box<dyn rusqlite::types::ToSql>> = if let Some(af) = aufgabe {
-        vec![Box::new(klasse.to_string()), Box::new(af.to_string())]
-    } else {
-        vec![Box::new(klasse.to_string())]
-    };
-    let param_refs: Vec<&dyn rusqlite::types::ToSql> = params.iter().map(|p| p.as_ref()).collect();
+    kalibrierung_by_class_id_impl(conn, klasse, None, aufgabe)
+}
 
-    let (n_fb, app_avg, lehrer_avg): (i64, Option<f64>, Option<f64>) = conn.query_row(&sql, param_refs.as_slice(), |row| {
+pub(crate) fn kalibrierung_by_class_id_impl(conn: &rusqlite::Connection, klasse: &str, klasse_id: Option<&str>, aufgabe: Option<&str>) -> Result<KalibrierungResult, String> {
+    let where_clause = format!("{} AND (?3 IS NULL OR a.aufgabe=?3) AND lf.note_final IS NOT NULL", ABGABE_KLASSEN_FILTER);
+    let sql = format!("SELECT COUNT(*) as n_fb, AVG(lf.note_app_snapshot) as app_avg, AVG(lf.note_final) as lehrer_avg FROM lehrer_feedback lf JOIN abgabe a ON a.id=lf.abgabe_id WHERE {}", where_clause);
+    let params = rusqlite::params![klasse, klasse_id, aufgabe];
+
+    let (n_fb, app_avg, lehrer_avg): (i64, Option<f64>, Option<f64>) = conn.query_row(&sql, params, |row| {
         Ok((row.get(0)?, row.get(1)?, row.get(2)?))
     }).map_err(|e| format!("query kalibrierung: {}", e))?;
 
-    let count_where = if aufgabe.is_some() { "klasse=?1 AND aufgabe=?2" } else { "klasse=?1" };
-    let count_sql = format!("SELECT COUNT(*) FROM abgabe WHERE {}", count_where);
-    let n_gesamt: i64 = conn.query_row(&count_sql, param_refs.as_slice(), |row| row.get(0)).unwrap_or(0);
+    let count_sql = format!("SELECT COUNT(*) FROM abgabe a WHERE {} AND (?3 IS NULL OR a.aufgabe=?3)", ABGABE_KLASSEN_FILTER);
+    let n_gesamt: i64 = conn.query_row(&count_sql, params, |row| row.get(0)).unwrap_or(0);
 
     let diff = match (app_avg, lehrer_avg) {
         (Some(a), Some(l)) => Some((l - a).round() / 100.0 * 100.0),
@@ -1405,12 +1371,12 @@ pub(crate) fn kalibrierung_impl(conn: &rusqlite::Connection, klasse: &str, aufga
          AVG(ABS(lf.note_final - lf.note_app_snapshot)) AS mittl_abw, \
          AVG(lf.note_final - lf.note_app_snapshot) AS gerichtet \
          FROM lehrer_feedback lf JOIN abgabe a ON a.id=lf.abgabe_id WHERE {} GROUP BY ts HAVING paare >= 2 ORDER BY paare DESC",
-        where_clause
+        where_clause,
     );
     let mut nach_textsorte: Vec<KalibrierungTextsorte> = Vec::new();
     let ts_stmt = conn.prepare(&ts_sql);
     if let Ok(mut stmt) = ts_stmt {
-        if let Ok(rows) = stmt.query_map(param_refs.as_slice(), |row| {
+        if let Ok(rows) = stmt.query_map(params, |row| {
             let paare: i64 = row.get(1)?;
             let mittl: Option<f64> = row.get(2)?;
             let gerichtet: Option<f64> = row.get(3)?;
@@ -1478,36 +1444,37 @@ fn query_fehler_detail(
     aufgabe: Option<&str>,
     limit: i64,
 ) -> Result<Vec<FehlerDetailRow>, String> {
-    let sql = if aufgabe.is_some() {
+    query_fehler_detail_by_class_id(conn, klasse, None, typ, aufgabe, limit)
+}
+
+fn query_fehler_detail_by_class_id(
+    conn: &rusqlite::Connection,
+    klasse: &str,
+    klasse_id: Option<&str>,
+    typ: &str,
+    aufgabe: Option<&str>,
+    limit: i64,
+) -> Result<Vec<FehlerDetailRow>, String> {
+    let sql = format!(
         "SELECT fh.zitat, fh.korrektur, fh.erklaerung, fh.cluster_id, fh.regel_muster, s.vorname, a.dateiname, \
          COUNT(*) OVER (PARTITION BY fh.zitat, fh.korrektur, fh.cluster_id, fh.regel_muster) \
          FROM fehler_historie fh JOIN abgabe a ON fh.abgabe_id=a.id \
          LEFT JOIN schueler s ON a.schueler_id=s.id \
-         WHERE a.klasse=?1 AND fh.typ=?2 AND a.aufgabe=?3 ORDER BY fh.zitat LIMIT ?4"
-    } else {
-        "SELECT fh.zitat, fh.korrektur, fh.erklaerung, fh.cluster_id, fh.regel_muster, s.vorname, a.dateiname, \
-         COUNT(*) OVER (PARTITION BY fh.zitat, fh.korrektur, fh.cluster_id, fh.regel_muster) \
-         FROM fehler_historie fh JOIN abgabe a ON fh.abgabe_id=a.id \
-         LEFT JOIN schueler s ON a.schueler_id=s.id \
-         WHERE a.klasse=?1 AND fh.typ=?2 ORDER BY fh.zitat LIMIT ?3"
-    };
-    let mut stmt = conn.prepare(sql).map_err(|e| format!("prepare fehler_detail: {e}"))?;
-    let rows = if let Some(aufgabe) = aufgabe {
-        stmt.query_map(rusqlite::params![klasse, typ, aufgabe, limit], fehler_detail_aus_row)
-            .map_err(|e| format!("query fehler_detail: {e}"))?
-            .collect::<rusqlite::Result<Vec<_>>>()
-    } else {
-        stmt.query_map(rusqlite::params![klasse, typ, limit], fehler_detail_aus_row)
-            .map_err(|e| format!("query fehler_detail: {e}"))?
-            .collect::<rusqlite::Result<Vec<_>>>()
-    };
-    rows.map_err(|e| format!("read fehler_detail: {e}"))
+         WHERE {} AND fh.typ=?3 AND (?4 IS NULL OR a.aufgabe=?4) ORDER BY fh.zitat LIMIT ?5",
+        ABGABE_KLASSEN_FILTER,
+    );
+    let mut stmt = conn.prepare(&sql).map_err(|e| format!("prepare fehler_detail: {e}"))?;
+    let rows = stmt.query_map(rusqlite::params![klasse, klasse_id, typ, aufgabe, limit], fehler_detail_aus_row)
+        .map_err(|e| format!("query fehler_detail: {e}"))?
+        .collect::<rusqlite::Result<Vec<_>>>()
+        .map_err(|e| format!("read fehler_detail: {e}"));
+    rows
 }
 
 #[tauri::command]
-pub async fn db_get_fehler_detail(state: tauri::State<'_, DbState>, klasse: String, typ: String, aufgabe: Option<String>, limit: Option<i64>) -> Result<Vec<FehlerDetailRow>, String> {
+pub async fn db_get_fehler_detail(state: tauri::State<'_, DbState>, klasse: String, typ: String, aufgabe: Option<String>, limit: Option<i64>, klasse_id: Option<String>) -> Result<Vec<FehlerDetailRow>, String> {
     let guard = state.conn()?;
-    query_fehler_detail(&guard, &klasse, &typ, aufgabe.as_deref(), limit.unwrap_or(50))
+    query_fehler_detail_by_class_id(&guard, &klasse, klasse_id.as_deref(), &typ, aufgabe.as_deref(), limit.unwrap_or(50))
 }
 
 #[derive(Serialize)]
@@ -1525,25 +1492,16 @@ pub struct NotenCsvRow {
 }
 
 #[tauri::command]
-pub async fn db_export_noten_csv(state: tauri::State<'_, DbState>, klasse: String, aufgabe: Option<String>) -> Result<String, String> {
+pub async fn db_export_noten_csv(state: tauri::State<'_, DbState>, klasse: String, aufgabe: Option<String>, klasse_id: Option<String>) -> Result<String, String> {
     let guard = state.conn()?;
-    let conn = &*guard;
+    export_noten_csv_impl(&guard, &klasse, klasse_id.as_deref(), aufgabe.as_deref())
+}
 
-    let sql = if aufgabe.is_some() {
-        "SELECT s.nachname, s.vorname, a.aufgabe, a.note, a.gesamtstufe, a.wortanzahl, a.datum, a.fach, a.textsorte FROM abgabe a LEFT JOIN schueler s ON a.schueler_id=s.id WHERE a.klasse=?1 AND a.aufgabe=?2 ORDER BY s.nachname, s.vorname, a.datum"
-    } else {
-        "SELECT s.nachname, s.vorname, a.aufgabe, a.note, a.gesamtstufe, a.wortanzahl, a.datum, a.fach, a.textsorte FROM abgabe a LEFT JOIN schueler s ON a.schueler_id=s.id WHERE a.klasse=?1 ORDER BY a.aufgabe, s.nachname, s.vorname, a.datum"
-    };
+fn export_noten_csv_impl(conn: &rusqlite::Connection, klasse: &str, klasse_id: Option<&str>, aufgabe: Option<&str>) -> Result<String, String> {
+    let sql = format!("SELECT s.nachname, s.vorname, a.aufgabe, a.note, a.gesamtstufe, a.wortanzahl, a.datum, a.fach, a.textsorte FROM abgabe a LEFT JOIN schueler s ON a.schueler_id=s.id WHERE {} AND (?3 IS NULL OR a.aufgabe=?3) ORDER BY a.aufgabe, s.nachname, s.vorname, a.datum", ABGABE_KLASSEN_FILTER);
 
-    let params: Vec<Box<dyn rusqlite::types::ToSql>> = if let Some(ref af) = aufgabe {
-        vec![Box::new(klasse), Box::new(af.clone())]
-    } else {
-        vec![Box::new(klasse)]
-    };
-    let param_refs: Vec<&dyn rusqlite::types::ToSql> = params.iter().map(|p| p.as_ref()).collect();
-
-    let mut stmt = conn.prepare(sql).map_err(|e| format!("prepare noten_csv: {}", e))?;
-    let rows = stmt.query_map(param_refs.as_slice(), |row| {
+    let mut stmt = conn.prepare(&sql).map_err(|e| format!("prepare noten_csv: {}", e))?;
+    let rows = stmt.query_map(rusqlite::params![klasse, klasse_id, aufgabe], |row| {
         Ok(NotenCsvRow {
             nachname: row.get(0)?, vorname: row.get(1)?, aufgabe: row.get(2)?,
             note: row.get(3)?, gesamtstufe: row.get(4)?, wortanzahl: row.get(5)?,
@@ -1789,6 +1747,101 @@ mod tests {
         assert!((hm[1].prozent - 25.0).abs() < 0.001);
         // leere Klasse → keine Einträge
         assert!(fehler_heatmap_impl(&conn, "9z".to_string(), None).unwrap().is_empty());
+    }
+
+    #[test]
+    fn klassen_analysen_trennen_gleichnamige_jahrgaenge_und_sichere_altzeilen() {
+        let conn = setup();
+        conn.execute_batch(
+            "INSERT INTO klasse_stammdaten (id,name,schuljahr,pruefung_noetig) VALUES \
+             ('class-2025','7A','2025/26',0),('class-2026','7A','2026/27',0),('class-unique','7B','2026/27',0);",
+        ).unwrap();
+
+        let insert_abgabe = |id: Option<&str>, klasse: &str, hash: &str, note: f64| -> i64 {
+            conn.execute(
+                "INSERT INTO abgabe (klasse_id, klasse, aufgabe, dateiname, datei_hash, note, datum, fach) \
+                 VALUES (?1, ?2, 'SA1', ?3, ?4, ?5, '2026-02-01', 'Deutsch')",
+                rusqlite::params![id, klasse, format!("{hash}.docx"), hash, note],
+            ).unwrap();
+            conn.last_insert_rowid()
+        };
+        let add_error = |abgabe_id: i64, typ: &str| {
+            conn.execute(
+                "INSERT INTO fehler_historie (abgabe_id, typ, zitat, korrektur, cluster_id, regel_muster) \
+                 VALUES (?1, ?2, 'Beispiel', 'Beispiel.', ?2, ?2)",
+                rusqlite::params![abgabe_id, typ],
+            ).unwrap();
+        };
+        let add_feedback = |abgabe_id: i64, note: f64| {
+            conn.execute(
+                "INSERT INTO lehrer_feedback (abgabe_id, klasse, aufgabe, note_app_snapshot, note_final) \
+                 VALUES (?1, '7A', 'SA1', ?2, ?2)",
+                rusqlite::params![abgabe_id, note],
+            ).unwrap();
+        };
+
+        let a = insert_abgabe(Some("class-2025"), "7A", "class-a", 2.0);
+        let b = insert_abgabe(Some("class-2026"), "7A", "class-b", 5.0);
+        let ambiguous_legacy = insert_abgabe(None, "7A", "class-legacy", 3.0);
+        let unique_legacy = insert_abgabe(None, "7B", "unique-legacy", 4.0);
+        add_error(a, "Z");
+        add_error(b, "G");
+        add_error(ambiguous_legacy, "R");
+        add_error(unique_legacy, "A");
+        add_feedback(a, 2.0);
+        add_feedback(b, 5.0);
+
+        let heatmap_a = fehler_heatmap_by_class_id_impl(&conn, "7A", Some("class-2025"), Some("SA1")).unwrap();
+        let heatmap_b = fehler_heatmap_by_class_id_impl(&conn, "7A", Some("class-2026"), Some("SA1")).unwrap();
+        assert_eq!(heatmap_a.iter().map(|entry| entry.typ.as_str()).collect::<Vec<_>>(), vec!["Z"]);
+        assert_eq!(heatmap_b.iter().map(|entry| entry.typ.as_str()).collect::<Vec<_>>(), vec!["G"]);
+
+        let stats_a = klassen_statistik_impl(&conn, "7A", Some("class-2025"), Some("SA1")).unwrap();
+        let stats_b = klassen_statistik_impl(&conn, "7A", Some("class-2026"), Some("SA1")).unwrap();
+        assert_eq!(stats_a.anzahl_abgaben, 1);
+        assert_eq!(stats_a.notenverteilung.durchschnitt, Some(2.0));
+        assert_eq!(stats_b.anzahl_abgaben, 1);
+        assert_eq!(stats_b.notenverteilung.durchschnitt, Some(5.0));
+
+        let app_trend_a = klassen_trend_impl(&conn, "7A", Some("class-2025")).unwrap();
+        let app_trend_b = klassen_trend_impl(&conn, "7A", Some("class-2026")).unwrap();
+        assert_eq!(app_trend_a.len(), 1);
+        assert_eq!(app_trend_a[0].n, 1);
+        assert_eq!(app_trend_a[0].avg_note_lehrer, Some(2.0));
+        assert_eq!(app_trend_b.len(), 1);
+        assert_eq!(app_trend_b[0].avg_note_app, Some(5.0));
+
+        let detail_a = query_fehler_detail_by_class_id(&conn, "7A", Some("class-2025"), "Z", Some("SA1"), 10).unwrap();
+        let detail_b = query_fehler_detail_by_class_id(&conn, "7A", Some("class-2026"), "G", Some("SA1"), 10).unwrap();
+        assert_eq!(detail_a.len(), 1);
+        assert_eq!(detail_b.len(), 1);
+        assert!(query_fehler_detail_by_class_id(&conn, "7A", Some("class-2025"), "R", Some("SA1"), 10).unwrap().is_empty());
+
+        let trend_a = fehler_trend_by_class_id_impl(&conn, "7A", Some("class-2025")).unwrap();
+        let trend_b = fehler_trend_by_class_id_impl(&conn, "7A", Some("class-2026")).unwrap();
+        assert_eq!(trend_a[0].n_abgaben, 1);
+        assert_eq!(trend_a[0].fehler.get("Z"), Some(&1));
+        assert!(!trend_a[0].fehler.contains_key("R"));
+        assert_eq!(trend_b[0].fehler.get("G"), Some(&1));
+
+        let calibration_a = kalibrierung_by_class_id_impl(&conn, "7A", Some("class-2025"), None).unwrap();
+        let calibration_b = kalibrierung_by_class_id_impl(&conn, "7A", Some("class-2026"), None).unwrap();
+        assert_eq!(calibration_a.n_gesamt, 1);
+        assert_eq!(calibration_a.app_avg, Some(2.0));
+        assert_eq!(calibration_b.n_gesamt, 1);
+        assert_eq!(calibration_b.app_avg, Some(5.0));
+
+        let csv_a = export_noten_csv_impl(&conn, "7A", Some("class-2025"), Some("SA1")).unwrap();
+        let csv_b = export_noten_csv_impl(&conn, "7A", Some("class-2026"), Some("SA1")).unwrap();
+        assert_eq!(csv_a.lines().count(), 2);
+        assert!(csv_a.contains(";2.0;"));
+        assert!(!csv_a.contains(";5.0;"));
+        assert!(csv_b.contains(";5.0;"));
+        assert!(!csv_b.contains(";2.0;"));
+
+        let unique_stats = klassen_statistik_impl(&conn, "7B", Some("class-unique"), Some("SA1")).unwrap();
+        assert_eq!(unique_stats.anzahl_abgaben, 1, "eindeutig zuordenbare Altzeilen bleiben nutzbar");
+        assert_eq!(unique_stats.notenverteilung.durchschnitt, Some(4.0));
     }
 
     /// Seedet zwei Schularbeiten: SA1 (2 Abgaben, Fehler Z,Z,Z,Z,G),

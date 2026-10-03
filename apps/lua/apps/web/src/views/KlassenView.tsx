@@ -217,6 +217,10 @@ export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler,
         ? klassenMeta.find((meta) => meta.name === selectedKlasse) : undefined),
     [klassenMeta, selectedKlasse, selectedKlasseId],
   );
+  const selectedKlasseAmbiguous = useMemo(
+    () => !!selectedKlasse && klassenMeta.filter((meta) => meta.name.toLocaleLowerCase('de') === selectedKlasse.toLocaleLowerCase('de')).length > 1,
+    [klassenMeta, selectedKlasse],
+  );
   const niveaugruppenLand = selectedKlasseMeta?.land ?? land;
 
   useEffect(() => {
@@ -445,11 +449,17 @@ export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler,
       } else {
       setAbgaben([]); setHeatmap([]); setClusterSummary([]); setStatistik(null);
       }
-      if (isAmbiguous) {
+      if (isAmbiguous && !identityId) {
+        // Ohne Identität wären gleichnamige Jahrgänge nicht trennbar.
         setTrend([]); setFehlerTrend([]); setKalibrierung(null); setLoopUebungen([]);
       } else {
-        const [t, ft, k, lu] = await Promise.all([getKlassenTrend(klasse), getFehlerTrend(klasse), getKlassenKalibrierung(klasse), getLoopUebungen(klasse)]);
-        setTrend(t as TrendPoint[]); setFehlerTrend(ft); setKalibrierung(k as KalibrierungResult | null); setLoopUebungen(lu);
+        const [t, ft, k] = await Promise.all([
+          getKlassenTrend(klasse, identityId),
+          getFehlerTrend(klasse, identityId),
+          getKlassenKalibrierung(klasse, undefined, identityId),
+        ]);
+        setTrend(t as TrendPoint[]); setFehlerTrend(ft); setKalibrierung(k as KalibrierungResult | null);
+        setLoopUebungen(isAmbiguous ? [] : await getLoopUebungen(klasse));
       }
     } catch (e) { setError(String(e)); }
     finally { setLoading(false); }
@@ -460,14 +470,14 @@ export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler,
     try {
       const abs = await getAbgaben(klasse, aufgabe, klasseId) as AbgabeInfo[];
       setAbgaben(abs);
-      if (klassenMeta.filter((meta) => meta.name.toLocaleLowerCase('de') === klasse.toLocaleLowerCase('de')).length > 1) {
+      if (klassenMeta.filter((meta) => meta.name.toLocaleLowerCase('de') === klasse.toLocaleLowerCase('de')).length > 1 && !klasseId) {
         setHeatmap([]); setClusterSummary([]); setStatistik(null); setFehlerDetail(null);
         return;
       }
       const [hm, stat, clusterRows] = await Promise.all([
-        getHeatmap(klasse, aufgabe),
-        getKlassenStatistik(klasse, aufgabe),
-        Promise.all(['R', 'G', 'Z', 'A'].map((typ) => getFehlerDetail(klasse, typ, aufgabe, 500)
+        getHeatmap(klasse, aufgabe, klasseId),
+        getKlassenStatistik(klasse, aufgabe, klasseId),
+        Promise.all(['R', 'G', 'Z', 'A'].map((typ) => getFehlerDetail(klasse, typ, aufgabe, 500, klasseId)
           .then((rows) => rows.map((row) => ({ ...row, typ }))))).then((groups) => groups.flat()),
       ]);
       setHeatmap(hm as HeatmapEntry[]);
@@ -485,9 +495,9 @@ export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler,
 
   const handleHeatmapClick = useCallback(async (typ: string) => {
     if (!selectedKlasse) return;
-    const rows = await getFehlerDetail(selectedKlasse, typ, selectedAufgabe ?? undefined, 30);
+    const rows = await getFehlerDetail(selectedKlasse, typ, selectedAufgabe ?? undefined, 30, selectedKlasseId);
     setFehlerDetail({ typ, rows: rows as FehlerDetailRow[] });
-  }, [selectedKlasse, selectedAufgabe, getFehlerDetail]);
+  }, [selectedKlasse, selectedKlasseId, selectedAufgabe, getFehlerDetail]);
 
   const handleGenerateUebung = useCallback(async (niveaugruppe?: Niveaugruppe) => {
     if (!selectedKlasse || heatmap.length === 0) return;
@@ -512,7 +522,7 @@ export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler,
     const fehler: NataschaPrefill['fehler'] = [];
     const gesehene = new Set<string>();
     for (const h of top) {
-      const rows = await getFehlerDetail(selectedKlasse, h.typ, selectedAufgabe ?? undefined, 8);
+      const rows = await getFehlerDetail(selectedKlasse, h.typ, selectedAufgabe ?? undefined, 8, selectedKlasseId);
       for (const r of rows) {
         const zitat = (r.zitat ?? '').trim();
         const korrektur = (r.korrektur ?? '').trim();
@@ -555,7 +565,7 @@ export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler,
       loopQuelle: { klasse: selectedKlasse, aufgabe: selectedAufgabe ?? undefined },
     };
     onGenerateUebung?.(prefill);
-  }, [selectedKlasse, selectedAufgabe, heatmap, abgaben, klassenMeta, land, onGenerateUebung, quelltextGet, getFehlerDetail]);
+  }, [selectedKlasse, selectedKlasseId, selectedAufgabe, heatmap, abgaben, klassenMeta, land, onGenerateUebung, quelltextGet, getFehlerDetail]);
 
   const oeffneNiveauVorschau = (gruppe: Niveaugruppe) => {
     const zuordnung: Record<number, Niveaugruppe['id'] | ''> = {};
@@ -573,7 +583,7 @@ export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler,
   };
 
   const handleGenerateBriefing = useCallback(async () => {
-    if (!selectedKlasse) return;
+    if (!selectedKlasse || selectedKlasseAmbiguous) return;
     setBriefingBusy(true);
     setBriefingError(null);
     try {
@@ -584,11 +594,11 @@ export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler,
     } finally {
       setBriefingBusy(false);
     }
-  }, [selectedKlasse, selectedAufgabe, generateKlassenBriefing]);
+  }, [selectedKlasse, selectedKlasseAmbiguous, selectedAufgabe, generateKlassenBriefing]);
 
   const handleExportCsv = useCallback(async () => {
     if (!selectedKlasse) return;
-    const csv = await exportNotenCsv(selectedKlasse, selectedAufgabe ?? undefined);
+    const csv = await exportNotenCsv(selectedKlasse, selectedAufgabe ?? undefined, selectedKlasseId);
     if (csv) {
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
@@ -598,7 +608,7 @@ export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler,
       a.click();
       URL.revokeObjectURL(url);
     }
-  }, [selectedKlasse, selectedAufgabe, exportNotenCsv]);
+  }, [selectedKlasse, selectedKlasseId, selectedAufgabe, exportNotenCsv]);
 
   const cardStyle = {
     padding: '1.25rem',
@@ -1339,13 +1349,16 @@ export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler,
                   <button
                     className="btn-primary"
                     onClick={handleGenerateBriefing}
-                    disabled={briefingBusy}
+                    disabled={briefingBusy || selectedKlasseAmbiguous}
                     style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', padding: '0.3rem 0.7rem' }}
-                    title="Generiert ein KI-Briefing zur aktuellen Klassensituation (Fehlerschwerpunkte, Notenverteilung, Trend)"
+                    title={selectedKlasseAmbiguous
+                      ? 'Das Briefing wartet auf eine getrennte Auswertung nach Schuljahr.'
+                      : 'Generiert ein KI-Briefing zur aktuellen Klassensituation (Fehlerschwerpunkte, Notenverteilung, Trend)'}
                   >
                     {briefingBusy ? <><Loader2 size={13} className="spin" /> Generiere …</> : <><Sparkles size={13} /> Briefing generieren</>}
                   </button>
                 </div>
+                {selectedKlasseAmbiguous && <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: '0.25rem 0 0' }}>Für gleichnamige Klassen wird das Briefing erst angeboten, wenn es nach Schuljahr getrennt ist.</p>}
                 {briefingError && <p style={{ fontSize: '0.8125rem', color: 'var(--color-danger, #c0392b)', margin: '0.25rem 0' }}>{briefingError}</p>}
                 {briefing ? (
                   <>
