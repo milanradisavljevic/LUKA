@@ -245,7 +245,7 @@ export default function App() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const [toast, setToast] = useState<ToastMessage | null>(null);
   // Cross-Nav: aus der Korrektur zu einem bestimmten Schüler springen.
-  const [pendingSchueler, setPendingSchueler] = useState<{ klasse: string; id: number } | null>(null);
+  const [pendingSchueler, setPendingSchueler] = useState<{ klasse: string; klasseId?: string | null; id: number } | null>(null);
   const [pendingAbrufcheck, setPendingAbrufcheck] = useState<{ klasseId: string; abrufcheckId: string } | null>(null);
   // Cross-Nav (L1): aus der Klassenansicht direkt in eine konkrete Korrektur springen.
   const [pendingKorrektur, setPendingKorrektur] = useState<{ abgabeId: number; klasse: string; aufgabe: string } | null>(null);
@@ -650,8 +650,8 @@ export default function App() {
   }, [state, dispatch, bestaetigeVerwerfen]);
 
   // Cross-Nav: Klick auf einen Schülernamen in der Korrektur → Schüler-Ansicht.
-  const handleOpenSchueler = useCallback((klasse: string, id: number) => {
-    setPendingSchueler({ klasse, id });
+  const handleOpenSchueler = useCallback((klasse: string, id: number, klasseId?: string | null) => {
+    setPendingSchueler({ klasse, klasseId, id });
     setActiveView('schueler');
   }, []);
 

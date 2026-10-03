@@ -42,16 +42,18 @@ export function useKlassenMeta() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (): Promise<KlasseMeta[] | null> => {
     setLoading(true);
     setError(null);
     try {
       const result = await invoke<KlasseMeta[]>('klassen_meta_list');
       setKlassen(result);
+      return result;
     } catch (e) {
       // Browser-Dev-Modus ohne Tauri: leere Liste statt Fehleranzeige.
       setKlassen([]);
       setError(e instanceof Error ? e.message : String(e));
+      return null;
     } finally {
       setLoading(false);
     }

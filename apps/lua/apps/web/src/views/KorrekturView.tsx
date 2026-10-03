@@ -181,7 +181,7 @@ function renderMarkierungen(
 
 interface KorrekturViewProps {
   /** Cross-Nav: Klick auf einen Schülernamen → Schüler-Ansicht. */
-  onOpenSchueler?: (klasse: string, schuelerId: number) => void;
+  onOpenSchueler?: (klasse: string, schuelerId: number, klasseId?: string | null) => void;
   /** Cross-Nav (L1): aus der Klassenansicht direkt in eine konkrete Korrektur springen. */
   preselect?: { abgabeId: number; klasse: string; aufgabe: string } | null;
   onConsumePreselect?: () => void;
@@ -1408,7 +1408,7 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }:
                   <h4 style={{ fontSize: '0.9375rem', margin: 0 }}>
                     {onOpenSchueler && selectedAbgabe.abgabe.schuelerId ? (
                       <button
-                        onClick={() => onOpenSchueler(selectedAbgabe.abgabe.klasse, selectedAbgabe.abgabe.schuelerId!)}
+                        onClick={() => onOpenSchueler(selectedAbgabe.abgabe.klasse, selectedAbgabe.abgabe.schuelerId!, selectedAbgabe.abgabe.klasseId)}
                         title="Zum Schülerprofil (Längsschnitt)"
                         style={{ border: 'none', background: 'none', padding: 0, font: 'inherit', color: 'var(--color-accent)', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 2 }}
                       >

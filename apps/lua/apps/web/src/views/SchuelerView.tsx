@@ -45,7 +45,7 @@ type KlasseInfoMitIdentitaet = KlasseInfo & { id?: string | null };
 
 interface SchuelerViewProps {
   /** Cross-Nav-Vorauswahl (aus der Korrektur). */
-  preselect?: { klasse: string; id: number } | null;
+  preselect?: { klasse: string; klasseId?: string | null; id: number } | null;
   /** Wird aufgerufen, sobald die Vorauswahl konsumiert wurde. */
   onConsumePreselect?: () => void;
   /** Closed Loop pro Schüler: Übungsblatt zu seinen Schwächen im Generator starten. */
@@ -54,7 +54,7 @@ interface SchuelerViewProps {
 
 export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }: SchuelerViewProps = {}) {
   const { listKlassen, listSchueler, insertSchueler, deleteSchueler, assignSchuelerToKlasse, removeSchuelerFromKlasse, addKlasse, addAufgabe, listRubrics, getSchuelerLaengsschnitt, generateSchuelerProfil, getSchuelerProfil, quelltextGet } = useNatascha();
-  const { klassen: bekannteKlassen } = useKlassenMeta();
+  const { klassen: bekannteKlassen, refresh: refreshKlassenMeta } = useKlassenMeta();
 
   const [klassen, setKlassen] = useState<KlasseInfoMitIdentitaet[]>([]);
   const [selectedKlasse, setSelectedKlasse] = useState<string | null>(null);
@@ -86,6 +86,7 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
   const [zeigeArchivierte, setZeigeArchivierte] = useState(false);
   const [land, setLand] = useState<Land | undefined>();
   const csvInputRef = useRef<HTMLInputElement>(null);
+  const preselectMetaRefreshStarted = useRef<string | null>(null);
 
   useEffect(() => { listKlassen().then(setKlassen); }, [listKlassen]);
 
@@ -147,14 +148,43 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
     if (!preselect) return;
     let cancelled = false;
     (async () => {
-      const matching = bekannteKlassen.filter((item) => item.name.toLocaleLowerCase('de') === preselect.klasse.toLocaleLowerCase('de'));
-      await loadSchueler(preselect.klasse, matching.length === 1 ? matching[0]?.id : undefined);
+      let meta = bekannteKlassen;
+      const preselectKey = `${preselect.id}:${preselect.klasse}:${preselect.klasseId ?? ''}`;
+      if (!preselect.klasseId && meta.length === 0 && preselectMetaRefreshStarted.current !== preselectKey) {
+        preselectMetaRefreshStarted.current = preselectKey;
+        const refreshed = await refreshKlassenMeta();
+        if (cancelled) return;
+        if (!refreshed) {
+          setSchueler([]);
+          setSelectedKlasse(null);
+          setSelectedKlasseId(null);
+          setSelectedSchuelerId(null);
+          setLaengsschnitt(null);
+          setError('Klassen konnten nicht geladen werden. Bitte wähle die Klasse nach erneutem Laden aus.');
+          onConsumePreselect?.();
+          return;
+        }
+        meta = refreshed;
+      }
+      const matching = meta.filter((item) => item.name.toLocaleLowerCase('de') === preselect.klasse.toLocaleLowerCase('de'));
+      const klasseId = preselect.klasseId ?? (matching.length === 1 ? matching[0]?.id : undefined);
+      if (!klasseId && matching.length > 1) {
+        setSchueler([]);
+        setSelectedKlasse(null);
+        setSelectedKlasseId(null);
+        setSelectedSchuelerId(null);
+        setLaengsschnitt(null);
+        setError('Dieser Klassenname kommt in mehreren Schuljahren oder Kursen vor. Bitte wähle die passende Klasse in der Liste aus.');
+        onConsumePreselect?.();
+        return;
+      }
+      await loadSchueler(preselect.klasse, klasseId);
       if (cancelled) return;
       await loadLaengsschnitt(preselect.id);
       onConsumePreselect?.();
     })();
     return () => { cancelled = true; };
-  }, [preselect, bekannteKlassen, loadSchueler, loadLaengsschnitt, onConsumePreselect]);
+  }, [preselect, bekannteKlassen, refreshKlassenMeta, loadSchueler, loadLaengsschnitt, onConsumePreselect]);
 
   // Closed Loop pro Schüler: aus den Fehlerschwerpunkten ein Übungsblatt erzeugen.
   const handleGenerateUebung = useCallback(async () => {
@@ -173,7 +203,10 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
     }
     const s = laengsschnitt.schueler;
     const name = [s.vorname, s.nachname].filter(Boolean).join(' ') || 'Schüler';
-    const klassenKontext = bekannteKlassen.find((k) => k.name === s.klasse);
+    const gleichnamigeKlassen = bekannteKlassen.filter((k) => k.name.toLocaleLowerCase('de') === s.klasse.toLocaleLowerCase('de'));
+    const klassenKontext = (selectedKlasseId
+      ? bekannteKlassen.find((k) => k.id === selectedKlasseId)
+      : undefined) ?? (gleichnamigeKlassen.length === 1 ? gleichnamigeKlassen[0] : undefined);
     // Echte Schülerfehler (zitat/korrektur) der Schwerpunkte mitgeben → kuratierbar in Step0.
     const fehler: BridgeBeispiel[] = [];
     for (const f of top) {
@@ -219,7 +252,7 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
       loopQuelle: { klasse: s.klasse, aufgabe: juengste?.aufgabe || undefined },
     };
     onGenerateUebung(prefill);
-  }, [bekannteKlassen, land, laengsschnitt, onGenerateUebung, quelltextGet]);
+  }, [bekannteKlassen, land, laengsschnitt, onGenerateUebung, quelltextGet, selectedKlasseId]);
 
   const handleGenerateProfil = useCallback(async () => {
     if (!selectedSchuelerId) return;
@@ -333,11 +366,11 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
     try {
       await deleteSchueler(id);
       if (selectedSchuelerId === id) { setSelectedSchuelerId(null); setLaengsschnitt(null); }
-      if (selectedKlasse) await loadSchueler(selectedKlasse);
+      if (selectedKlasse) await loadSchueler(selectedKlasse, selectedKlasseId);
     } catch (e) {
       setError(typeof e === 'string' ? e : 'Löschen fehlgeschlagen.');
     }
-  }, [deleteSchueler, selectedKlasse, selectedSchuelerId, loadSchueler]);
+  }, [deleteSchueler, selectedKlasse, selectedKlasseId, selectedSchuelerId, loadSchueler]);
 
   const cardStyle = {
     padding: '1.25rem', border: '1px solid var(--color-border)',

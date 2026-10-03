@@ -29,7 +29,7 @@ interface Props {
   /** Cross-Nav (L1): Klick auf eine Abgabe → Korrektur dieser Arbeit öffnen. */
   onOpenKorrektur?: (ziel: { abgabeId: number; klasse: string; aufgabe: string }) => void;
   /** Cross-Nav: Klick auf das Profil-Icon → Schüler-Ansicht (Längsschnitt). */
-  onOpenSchueler?: (klasse: string, schuelerId: number) => void;
+  onOpenSchueler?: (klasse: string, schuelerId: number, klasseId?: string | null) => void;
   /** Cross-Nav (L1): Folgeübung im Loop-Wirkung-Panel → Unterlage öffnen. */
   onOpenUnterlage?: (documentId: string) => void;
   /** Stundenplan → passenden Check im Lernziel-Kompass öffnen. */
@@ -43,6 +43,7 @@ interface AbgabeInfo {
   unterrichtseinsatzId: string | null;
   materialId: string | null;
   klasse: string;
+  klasseId?: string | null;
   aufgabe: string;
   dateiname: string;
   datum: string | null;
@@ -1072,7 +1073,7 @@ export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler,
                                 <button
                                   type="button"
                                   aria-label={`Schüler-Ansicht von ${anzeigeName(a)} öffnen`}
-                                  onClick={() => onOpenSchueler(a.klasse, a.schuelerId!)}
+                                  onClick={() => onOpenSchueler(a.klasse, a.schuelerId!, a.klasseId)}
                                   style={{ background: 'none', border: 'none', padding: '0 0 0 0.375rem', cursor: 'pointer', color: 'var(--color-text-secondary)', verticalAlign: '-2px' }}
                                   title="Schüler-Ansicht (Längsschnitt) öffnen"
                                 >

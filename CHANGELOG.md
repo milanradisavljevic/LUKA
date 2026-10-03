@@ -12,6 +12,7 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 - Klassen sind ein eigener Arbeitsbereich. Schüler/innen können Kursen in verschiedenen Schuljahren zugeordnet werden; unsichere Altdaten bleiben zur Prüfung markiert.
 - Die Klassenliste berücksichtigt aktive Mehrfachzuordnungen. Gleichnamige Klassen verschiedener Schuljahre bleiben getrennt; historische Abgaben behalten ihre Klassenbezeichnung.
 - Die Schüleransicht unterscheidet gleichnamige Klassen nach Fach und Schuljahr. Abgabezahlen folgen der Klassenidentität und werden bei mehrdeutigen Altzuordnungen nicht doppelt gezählt.
+- Querverweise aus Korrekturen und Klassenliste öffnen den Schüler-Längsschnitt mit stabiler Klassen-ID. Bei mehrdeutigen Altklassen fragt LUKA nach einer Auswahl, statt Schülerlisten zu vermischen.
 - Geplante Stunden zeigen bestätigte Lernziele und ihre Korrekturquelle. Spätere Abrufchecks sind mit einer künftigen Stunde verknüpft und lassen sich von dort öffnen; verschobene Termine werden konsistent angezeigt.
 - Für neue Abrufchecks hält LUKA den Klassenstand fest und unterscheidet Teilnahme, Nichtteilnahme, offene Teilnahme und Antworten je Schüler/in. Alte Checks erhalten keine rückwirkend erfundene Anwesenheitsliste.
 - Spätere Änderungen an Check-Ergebnissen bleiben mit Zeitpunkt, alter und neuer Einstufung nachvollziehbar. Frühere Antworttexte werden dafür nicht erneut gespeichert.
