@@ -17,6 +17,7 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 - Der lokale Pilot-Build kommt ohne Release-Signaturschlüssel aus.
 - Deutsch- und Englisch-Benchmarks zählen für die technische Flash-Schwelle nur vollständige synthetische Läufe mit dokumentierter Promptversion.
 - Der amtliche Ferienkalender für Deutschland 2027/28 ist für alle Bundesländer hinterlegt; bewegliche Ferientage ohne festes Datum bleiben offen.
+- Der KMK-Ferienkalender 2028/29 ist für alle deutschen Bundesländer ergänzt; Sondertage bleiben einzeln und nachvollziehbar erfasst.
 
 ## In Arbeit — 2026-10-03
 
