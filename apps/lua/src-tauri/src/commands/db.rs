@@ -1,7 +1,10 @@
+use std::io::Read;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
-use rusqlite::Connection;
+use rusqlite::{Connection, OpenFlags};
 use serde::Serialize;
+use uuid::Uuid;
 
 use crate::db;
 
@@ -413,22 +416,26 @@ pub async fn db_set_path(state: tauri::State<'_, DbState>, custom_path: String) 
     Ok(())
 }
 
-/// Schreibt eine konsistente Sicherungskopie der DB an `target_path`.
-/// Nutzt `VACUUM INTO` → kompakter, transaktions-sicherer Snapshot ohne WAL-Reste.
-/// `target_path` darf noch nicht existieren (SQLite-Vorgabe).
+/// Schreibt eine konsistente, geprüfte Sicherungskopie an `target_path`.
 #[tauri::command]
 pub async fn db_backup(state: tauri::State<'_, DbState>, target_path: String) -> Result<(), String> {
-    let target = target_path.trim();
-    if target.is_empty() {
+    let target = PathBuf::from(target_path.trim());
+    if target.as_os_str().is_empty() {
         return Err("Kein Zielpfad angegeben.".into());
     }
-    if std::path::Path::new(target).exists() {
+    let current_db = db::resolve_db_path();
+    if same_path(&target, &current_db) {
+        return Err("Die aktive Datenbank kann nicht als eigene Sicherung verwendet werden.".into());
+    }
+    if target.exists() {
         return Err("Zieldatei existiert bereits — bitte einen neuen Dateinamen wählen.".into());
     }
+    let parent = usable_parent(&target);
+    if !parent.exists() || !parent.is_dir() {
+        return Err("Der gewählte Sicherungsordner existiert nicht.".into());
+    }
     let conn = state.conn()?;
-    conn.execute("VACUUM INTO ?1", rusqlite::params![target])
-        .map_err(|e| format!("Backup fehlgeschlagen: {}", e))?;
-    Ok(())
+    backup_database(&conn, &target, &current_db)
 }
 
 fn chrono_now() -> String {
@@ -437,123 +444,291 @@ fn chrono_now() -> String {
     format!("{:.0}", dur.as_secs())
 }
 
-/// Stellt eine Datenbank aus einer Sicherungsdatei wieder her.
-///
-/// Ablauf:
-/// 1. Validierung: SQLite-Header + LUKA-Schema-Check
-/// 2. Aktuelle DB wird als `.pre-restore-vacuum.db` gesichert (VACUUM INTO)
-/// 3. Aktuelle DB wird als `.pre-restore-archive.db` archiviert (Rename)
-/// 4. Sicherung wird in den Arbeitspfad kopiert
-/// 5. Verbindung wird neu geöffnet
-/// 6. Bei jedem Fehler bleibt die vorherige Datenbank verwendbar.
+/// Stellt eine vorher validierte Datenbank wieder her. Vor dem Austausch wird
+/// die Quelle in den Arbeitsordner kopiert; so kann ein fehlgeschlagener
+/// Austausch jederzeit auf den lokalen Snapshot zurückrollen.
 #[tauri::command]
 pub async fn db_restore_from_backup(
     state: tauri::State<'_, DbState>,
     backup_path: String,
 ) -> Result<String, String> {
-    let src = std::path::PathBuf::from(backup_path.trim());
+    let src = PathBuf::from(backup_path.trim());
+    restore_database(&state.0, &db::resolve_db_path(), &src)
+}
+
+fn validate_luka_database(path: &Path) -> Result<(), String> {
+    let mut file = std::fs::File::open(path)
+        .map_err(|e| format!("Sicherungsdatei konnte nicht gelesen werden: {}", e))?;
+    let mut header = [0u8; 16];
+    file.read_exact(&mut header)
+        .map_err(|_| "Die Datei ist keine gültige SQLite-Datenbank.".to_string())?;
+    if &header != b"SQLite format 3\0" {
+        return Err("Die Datei ist keine gültige SQLite-Datenbank.".into());
+    }
+
+    let conn = Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY)
+        .map_err(|e| format!("Sicherungsdatei konnte nicht geöffnet werden: {}", e))?;
+    let integrity: String = conn.query_row("PRAGMA quick_check(1)", [], |row| row.get(0))
+        .map_err(|e| format!("SQLite-Prüfung der Sicherung fehlgeschlagen: {}", e))?;
+    if integrity != "ok" {
+        return Err(format!("Die Datenbankprüfung meldet einen Fehler: {}", integrity));
+    }
+    let has_luka_tables: bool = conn.query_row(
+        "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name IN ('aufgabe_pool','generated_materials'))",
+        [],
+        |row| row.get(0),
+    ).map_err(|e| format!("LUKA-Schema der Sicherung konnte nicht gelesen werden: {}", e))?;
+    if !has_luka_tables {
+        return Err("Die Datei enthält keine LUKA-Datenbank (Tabelle 'aufgabe_pool' oder 'generated_materials' fehlt).".into());
+    }
+    Ok(())
+}
+
+fn backup_database(conn: &Connection, target: &Path, current_db: &Path) -> Result<(), String> {
+    if same_path(target, current_db) {
+        return Err("Die aktive Datenbank kann nicht als eigene Sicherung verwendet werden.".into());
+    }
+    if target.exists() {
+        return Err("Zieldatei existiert bereits — bitte einen neuen Dateinamen wählen.".into());
+    }
+    let parent = usable_parent(target);
+    if !parent.exists() || !parent.is_dir() {
+        return Err("Der gewählte Sicherungsordner existiert nicht.".into());
+    }
+    let staging = sibling_temp_path(target, "backup")?;
+    let result = (|| {
+        conn.execute("VACUUM INTO ?1", rusqlite::params![staging.to_string_lossy()])
+            .map_err(|e| format!("Backup fehlgeschlagen: {}", e))?;
+        validate_luka_database(&staging)
+            .map_err(|e| format!("Die erzeugte Sicherung ist nicht gültig: {}", e))?;
+        sync_file(&staging)?;
+        std::fs::rename(&staging, target)
+            .map_err(|e| format!("Sicherung konnte nicht am gewählten Ort gespeichert werden: {}", e))?;
+        Ok(())
+    })();
+    if result.is_err() {
+        let _ = std::fs::remove_file(&staging);
+    }
+    result
+}
+
+fn usable_parent(path: &Path) -> &Path {
+    path.parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."))
+}
+
+fn normalized_for_comparison(path: &Path) -> Option<PathBuf> {
+    if path.exists() {
+        return std::fs::canonicalize(path).ok();
+    }
+    let name = path.file_name()?;
+    let parent = usable_parent(path);
+    let canonical_parent = std::fs::canonicalize(parent).ok()?;
+    Some(canonical_parent.join(name))
+}
+
+fn same_path(left: &Path, right: &Path) -> bool {
+    match (normalized_for_comparison(left), normalized_for_comparison(right)) {
+        (Some(left), Some(right)) => left == right,
+        _ => left == right,
+    }
+}
+
+fn sibling_temp_path(target: &Path, kind: &str) -> Result<PathBuf, String> {
+    let name = target.file_name().ok_or_else(|| "Ungültiger Dateipfad.".to_string())?;
+    Ok(usable_parent(target).join(format!(".{}.{}.{}.tmp", name.to_string_lossy(), kind, Uuid::new_v4())))
+}
+
+fn sync_file(path: &Path) -> Result<(), String> {
+    std::fs::OpenOptions::new()
+        .write(true)
+        .open(path)
+        .and_then(|file| file.sync_all())
+        .map_err(|e| format!("Datei konnte nicht dauerhaft gespeichert werden: {}", e))
+}
+
+fn sqlite_sidecar(db_path: &Path, suffix: &str) -> PathBuf {
+    PathBuf::from(format!("{}-{}", db_path.to_string_lossy(), suffix))
+}
+
+fn validate_and_stage_backup(src: &Path, current_db: &Path) -> Result<PathBuf, String> {
     if !src.exists() {
         return Err("Sicherungsdatei nicht gefunden.".into());
     }
     if !src.is_file() {
         return Err("Der angegebene Pfad ist keine Datei.".into());
     }
-
-    // 1. Validierung: SQLite-Header prüfen
-    let header_bytes = std::fs::read(&src)
-        .map_err(|e| format!("Sicherungsdatei konnte nicht gelesen werden: {}", e))?;
-    if header_bytes.len() < 16 || &header_bytes[..16] != b"SQLite format 3\0" {
-        return Err("Die Datei ist keine gültige SQLite-Datenbank.".into());
+    if same_path(src, current_db) {
+        return Err("Die ausgewählte Datei ist die aktuell verwendete Datenbank; wähle eine separate Sicherung.".into());
     }
-
-    // 1b. LUKA-Schema prüfen — Verbindung öffnen und Tabellen prüfen
-    let test_conn = rusqlite::Connection::open(&src)
-        .map_err(|e| format!("Sicherungsdatei konnte nicht geöffnet werden: {}", e))?;
-    let has_pool: bool = test_conn
-        .query_row(
-            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='aufgabe_pool'",
-            [],
-            |row| row.get(0),
-        )
-        .unwrap_or(0)
-        > 0;
-    let has_materials: bool = test_conn
-        .query_row(
-            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='generated_materials'",
-            [],
-            |row| row.get(0),
-        )
-        .unwrap_or(0)
-        > 0;
-    if !has_pool && !has_materials {
-        return Err("Die Datei enthält keine LUKA-Datenbank (Tabellen 'aufgabe_pool' und 'generated_materials' fehlen).".into());
+    validate_luka_database(src)?;
+    let staged = sibling_temp_path(current_db, "restore")?;
+    let stage_result = (|| {
+        // Copy through SQLite instead of copying the main file: a valid source
+        // may still have committed changes in a sibling WAL file.
+        let source = Connection::open_with_flags(src, OpenFlags::SQLITE_OPEN_READ_ONLY)
+            .map_err(|e| format!("Sicherungsdatei konnte nicht geöffnet werden: {}", e))?;
+        source.execute("VACUUM INTO ?1", rusqlite::params![staged.to_string_lossy()])
+            .map_err(|e| format!("Sicherungsdatei konnte nicht konsistent kopiert werden: {}", e))?;
+        validate_luka_database(&staged)?;
+        sync_file(&staged)
+    })();
+    if let Err(error) = stage_result {
+        let _ = std::fs::remove_file(&staged);
+        return Err(error);
     }
-    drop(test_conn);
+    Ok(staged)
+}
 
-    let work_dir = db::resolve_db_path()
-        .parent()
-        .map(|p| p.to_path_buf())
-        .unwrap_or_else(|| std::path::PathBuf::from("."));
-    let current_db = db::resolve_db_path();
+fn restore_database(
+    conn_mutex: &Mutex<Connection>,
+    current_db: &Path,
+    src: &Path,
+) -> Result<String, String> {
+    let staged = validate_and_stage_backup(src, current_db)?;
+    let result = restore_staged_database(conn_mutex, current_db, &staged);
+    if result.is_err() {
+        let _ = std::fs::remove_file(&staged);
+    }
+    result
+}
 
-    // Einzelner Timestamp für alle Sicherungsdateien dieses Vorgangs
-    let restore_stamp = chrono_now();
-
-    // 2. VACUUM INTO — konsistente Sicherung der aktuellen DB
-    if current_db.exists() && src != current_db {
-        let vacuum_path = work_dir.join(format!("lehr-suite.pre-restore-{}-vacuum.db", restore_stamp));
-        {
-            let conn = state.conn()?;
-            conn.execute(
-                "VACUUM INTO ?1",
-                rusqlite::params![vacuum_path.to_string_lossy()],
-            )
-            .map_err(|e| format!("Sicherung der aktuellen DB fehlgeschlagen: {}", e))?;
+fn restore_staged_database(
+    conn_mutex: &Mutex<Connection>,
+    current_db: &Path,
+    staged: &Path,
+) -> Result<String, String> {
+    let mut conn = conn_mutex.lock().map_err(|e| format!("DB-Lock: {}", e))?;
+    let snapshot = if current_db.exists() {
+        let snapshot = sibling_temp_path(current_db, "pre-restore")?;
+        if let Err(error) = conn.execute(
+            "VACUUM INTO ?1",
+            rusqlite::params![snapshot.to_string_lossy()],
+        ) {
+            let _ = std::fs::remove_file(&snapshot);
+            return Err(format!("Sicherung der aktuellen DB fehlgeschlagen: {}", error));
         }
-    }
+        if let Err(error) = validate_luka_database(&snapshot) {
+            let _ = std::fs::remove_file(&snapshot);
+            return Err(format!("Die automatische Rückfallsicherung ist ungültig: {}", error));
+        }
+        Some(snapshot)
+    } else {
+        None
+    };
 
-    // 3. Aktuelle DB-Verbindung schließen (in-memory ersetzen)
-    //    Dadurch werden OS-Datei-Handles freigegeben — Rename auf Windows sicher.
-    {
-        let mut guard = state.0.lock().map_err(|e| format!("DB-Lock: {}", e))?;
-        *guard = rusqlite::Connection::open_in_memory()
-            .map_err(|e| format!("Temp-Verbindung konnte nicht erstellt werden: {}", e))?;
-    }
+    // Keep the mutex locked while the on-disk database is replaced so commands
+    // cannot write into the old connection during the brief swap.
+    *conn = Connection::open_in_memory()
+        .map_err(|e| format!("Temporäre DB-Verbindung konnte nicht erstellt werden: {}", e))?;
 
-    // 4. Alte DB umbenennen (Archiv)
     if current_db.exists() {
-        let archived = work_dir.join(format!("lehr-suite.pre-restore-{}-archive.db", restore_stamp));
-        std::fs::rename(&current_db, &archived)
-            .map_err(|e| format!(
-                "Aktuelle Datenbank konnte nicht archiviert werden: {}. Die Originaldatenbank bleibt unverändert.",
-                e
-            ))?;
-        // WAL/SHM begleitdateien — optional, nur warnen bei Fehler
-        let wal = current_db.with_extension("db-wal");
-        let shm = current_db.with_extension("db-shm");
-        if wal.exists() {
-            let _ = std::fs::rename(&wal, archived.with_extension("db-wal"));
+        let archive = current_db.with_file_name(format!(
+            "{}.pre-restore-{}.db",
+            current_db.file_stem().unwrap_or_default().to_string_lossy(),
+            Uuid::new_v4()
+        ));
+        if let Err(error) = std::fs::rename(current_db, &archive) {
+            return rollback_restore(
+                &mut conn,
+                current_db,
+                snapshot.as_deref(),
+                format!("Aktuelle Datenbank konnte nicht archiviert werden: {}", error),
+            );
         }
-        if shm.exists() {
-            let _ = std::fs::rename(&shm, archived.with_extension("db-shm"));
+        for suffix in ["wal", "shm"] {
+            let live_sidecar = sqlite_sidecar(current_db, suffix);
+            if live_sidecar.exists() {
+                let archived_sidecar = sqlite_sidecar(&archive, suffix);
+                if let Err(error) = std::fs::rename(&live_sidecar, &archived_sidecar) {
+                    return rollback_restore(
+                        &mut conn,
+                        current_db,
+                        snapshot.as_deref(),
+                        format!("SQLite-Begleitdatei konnte nicht archiviert werden: {}", error),
+                    );
+                }
+            }
         }
     }
 
-    // 5. Sicherung in den Arbeitspfad kopieren
-    std::fs::copy(&src, &current_db)
-        .map_err(|e| format!(
-            "Sicherung konnte nicht kopiert werden: {}. Das Archiv der vorherigen DB bleibt erhalten.",
-            e
-        ))?;
-
-    // 6. Verbindung neu öffnen
-    let new_conn = db::open_db()?;
-    {
-        let mut guard = state.0.lock().map_err(|e| format!("DB-Lock: {}", e))?;
-        *guard = new_conn;
+    if let Err(error) = std::fs::rename(staged, current_db) {
+        return rollback_restore(
+            &mut conn,
+            current_db,
+            snapshot.as_deref(),
+            format!("Sicherung konnte nicht aktiviert werden: {}", error),
+        );
     }
 
-    Ok(current_db.to_string_lossy().to_string())
+    match db::open_db_at(current_db) {
+        Ok(restored) => {
+            *conn = restored;
+            if let Some(snapshot) = snapshot {
+                let _ = std::fs::remove_file(snapshot);
+            }
+            Ok(current_db.to_string_lossy().to_string())
+        }
+        Err(error) => rollback_restore(
+            &mut conn,
+            current_db,
+            snapshot.as_deref(),
+            format!("Wiederhergestellte Datenbank konnte nicht geöffnet werden: {}", error),
+        ),
+    }
+}
+
+fn rollback_restore(
+    conn: &mut Connection,
+    current_db: &Path,
+    snapshot: Option<&Path>,
+    cause: String,
+) -> Result<String, String> {
+    let recovery = if let Some(snapshot) = snapshot {
+        restore_snapshot_file(snapshot, current_db)
+    } else {
+        remove_db_file_and_sidecars(current_db)
+    }
+    .and_then(|_| db::open_db_at(current_db));
+
+    match recovery {
+        Ok(previous) => {
+            *conn = previous;
+            Err(format!("{}. Die vorherige Datenbank wurde wiederhergestellt.", cause))
+        }
+        Err(recovery_error) => Err(format!(
+            "{}. Die automatische Wiederherstellung der vorherigen Datenbank schlug ebenfalls fehl: {}. Die Sicherungskopie bleibt im Arbeitsordner erhalten.",
+            cause, recovery_error
+        )),
+    }
+}
+
+fn remove_db_file_and_sidecars(db_path: &Path) -> Result<(), String> {
+    for path in [db_path.to_path_buf(), sqlite_sidecar(db_path, "wal"), sqlite_sidecar(db_path, "shm")] {
+        if path.exists() {
+            std::fs::remove_file(&path)
+                .map_err(|e| format!("Temporäre Datenbankdatei konnte nicht entfernt werden: {}", e))?;
+        }
+    }
+    Ok(())
+}
+
+fn restore_snapshot_file(snapshot: &Path, current_db: &Path) -> Result<(), String> {
+    validate_luka_database(snapshot)?;
+    let staged = sibling_temp_path(current_db, "rollback")?;
+    let result = (|| {
+        std::fs::copy(snapshot, &staged)
+            .map_err(|e| format!("Vorherige Datenbank konnte nicht zurückkopiert werden: {}", e))?;
+        sync_file(&staged)?;
+        remove_db_file_and_sidecars(current_db)?;
+        std::fs::rename(&staged, current_db)
+            .map_err(|e| format!("Vorherige Datenbank konnte nicht aktiviert werden: {}", e))
+    })();
+    if result.is_err() {
+        let _ = std::fs::remove_file(staged);
+    }
+    result
 }
 
 #[cfg(test)]
@@ -609,5 +784,131 @@ mod tests {
         assert!(!klassen.iter().any(|klasse| {
             klasse.id.is_none() && klasse.klasse.eq_ignore_ascii_case("7A")
         }));
+    }
+}
+
+#[cfg(test)]
+mod backup_restore_tests {
+    use super::*;
+
+    struct TestDirectory(PathBuf);
+
+    impl TestDirectory {
+        fn new() -> Self {
+            let path = std::env::temp_dir().join(format!("luka-db-safety-{}", Uuid::new_v4()));
+            std::fs::create_dir_all(&path).unwrap();
+            Self(path)
+        }
+
+        fn file(&self, name: &str) -> PathBuf {
+            self.0.join(name)
+        }
+    }
+
+    impl Drop for TestDirectory {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+
+    fn db_with_marker(path: &Path, marker: &str) -> Connection {
+        let conn = db::open_db_at(path).unwrap();
+        conn.execute_batch("CREATE TABLE IF NOT EXISTS safety_probe (value TEXT NOT NULL);").unwrap();
+        conn.execute("DELETE FROM safety_probe", []).unwrap();
+        conn.execute("INSERT INTO safety_probe(value) VALUES (?1)", [marker]).unwrap();
+        conn
+    }
+
+    fn read_marker(conn: &Connection) -> String {
+        conn.query_row("SELECT value FROM safety_probe LIMIT 1", [], |row| row.get(0)).unwrap()
+    }
+
+    #[test]
+    fn backup_is_valid_and_does_not_overwrite_existing_file() {
+        let dir = TestDirectory::new();
+        let current = dir.file("lehr-suite.db");
+        let target = dir.file("lehr-suite-backup.db");
+        let conn = db_with_marker(&current, "live");
+
+        backup_database(&conn, &target, &current).unwrap();
+        validate_luka_database(&target).unwrap();
+        let copy = db::open_db_at(&target).unwrap();
+        assert_eq!(read_marker(&copy), "live");
+
+        let error = backup_database(&conn, &target, &current).unwrap_err();
+        assert!(error.contains("existiert bereits"));
+        assert_eq!(read_marker(&conn), "live");
+    }
+
+    #[test]
+    fn restore_rejects_the_active_database_without_closing_it() {
+        let dir = TestDirectory::new();
+        let current = dir.file("lehr-suite.db");
+        let conn = db_with_marker(&current, "live");
+        let state = Mutex::new(conn);
+
+        let error = restore_database(&state, &current, &current).unwrap_err();
+        assert!(error.contains("aktuell verwendete Datenbank"));
+        assert!(current.exists());
+        assert_eq!(read_marker(&state.lock().unwrap()), "live");
+    }
+
+    #[test]
+    fn restore_replaces_data_and_keeps_a_reopenable_database() {
+        let dir = TestDirectory::new();
+        let current = dir.file("lehr-suite.db");
+        let backup = dir.file("separate-backup.db");
+        drop(db_with_marker(&current, "old"));
+        let backup_conn = db_with_marker(&backup, "restored");
+        let state = Mutex::new(db::open_db_at(&current).unwrap());
+
+        let opened_path = restore_database(&state, &current, &backup).unwrap();
+        assert_eq!(PathBuf::from(opened_path), current);
+        assert_eq!(read_marker(&state.lock().unwrap()), "restored");
+        drop(backup_conn);
+        drop(state);
+
+        let reopened = db::open_db_at(&current).unwrap();
+        assert_eq!(read_marker(&reopened), "restored");
+        assert!(std::fs::read_dir(&dir.0).unwrap().any(|entry| {
+            entry.unwrap().file_name().to_string_lossy().contains("pre-restore")
+        }));
+    }
+
+    #[test]
+    fn invalid_backup_leaves_current_database_and_connection_untouched() {
+        let dir = TestDirectory::new();
+        let current = dir.file("lehr-suite.db");
+        let invalid = dir.file("not-a-database.db");
+        std::fs::write(&invalid, b"not an SQLite database").unwrap();
+        let state = Mutex::new(db_with_marker(&current, "live"));
+
+        let error = restore_database(&state, &current, &invalid).unwrap_err();
+        assert!(error.contains("gültige SQLite-Datenbank"));
+        assert!(current.exists());
+        assert_eq!(read_marker(&state.lock().unwrap()), "live");
+        assert!(!std::fs::read_dir(&dir.0).unwrap().any(|entry| {
+            entry.unwrap().file_name().to_string_lossy().contains("pre-restore")
+        }));
+    }
+
+    #[test]
+    fn rollback_reinstalls_the_previous_database_after_a_failed_swap() {
+        let dir = TestDirectory::new();
+        let current = dir.file("lehr-suite.db");
+        let snapshot = dir.file("pre-restore.db");
+        drop(db_with_marker(&snapshot, "previous"));
+        std::fs::write(&current, b"incomplete restored database").unwrap();
+        let mut connection = Connection::open_in_memory().unwrap();
+
+        let error = rollback_restore(
+            &mut connection,
+            &current,
+            Some(&snapshot),
+            "Simulierter Austauschfehler".into(),
+        ).unwrap_err();
+        assert!(error.contains("vorherige Datenbank wurde wiederhergestellt"));
+        assert_eq!(read_marker(&connection), "previous");
+        validate_luka_database(&current).unwrap();
     }
 }

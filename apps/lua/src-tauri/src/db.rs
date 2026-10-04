@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
 use once_cell::sync::Lazy;
@@ -32,10 +32,16 @@ pub fn resolve_db_path() -> PathBuf {
 
 pub fn open_db() -> Result<Connection, String> {
     let path = resolve_db_path();
-    if let Some(parent) = path.parent() {
+    open_db_at(&path)
+}
+
+/// Opens and initializes a database at an explicit path. Restore and isolated
+/// filesystem tests use this without changing the process-wide DB override.
+pub fn open_db_at(path: &Path) -> Result<Connection, String> {
+    if let Some(parent) = path.parent().filter(|parent| !parent.as_os_str().is_empty()) {
         std::fs::create_dir_all(parent).map_err(|e| format!("DB-Verzeichnis konnte nicht erstellt werden: {}", e))?;
     }
-    let conn = Connection::open(&path).map_err(|e| format!("DB konnte nicht geöffnet werden ({}): {}", path.display(), e))?;
+    let conn = Connection::open(path).map_err(|e| format!("DB konnte nicht geöffnet werden ({}): {}", path.display(), e))?;
     conn.execute_batch("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;").map_err(|e| format!("PRAGMA fehlgeschlagen: {}", e))?;
     init_schema(&conn)?;
     Ok(conn)
