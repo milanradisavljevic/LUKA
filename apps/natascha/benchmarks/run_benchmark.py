@@ -12,6 +12,7 @@ Prüfung; vollständige Schülertexte, Namen, Pfade und CLI-Ausgaben werden nie
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import subprocess
@@ -50,6 +51,37 @@ DEFAULT_CONFIG = {
     "rubric": "kommentar_unterstufe.md",
     "bewertungsmodus": "benotet",
 }
+
+# Alles, was die erzeugte Korrekturaufforderung oder ihre Struktur prägen kann.
+# Der Fingerabdruck enthält Inhalte nur als Hash; vollständige Prompts werden
+# weiterhin nicht in das Benchmark-Protokoll geschrieben.
+PROMPT_VERSION_FILES = (
+    "natascha_cli.py",
+    "natascha_core.py",
+    "natascha_db.py",
+    "natascha_config.toml",
+    "feedback_schema.json",
+    "tests/fixtures/beispiel_deutsch_kommentar.json",
+)
+PROMPT_VERSION_DIRS = ("prompts", "rubrics")
+
+
+def prompt_version() -> str:
+    files = [NATASCHA_ROOT / relative for relative in PROMPT_VERSION_FILES]
+    for directory in PROMPT_VERSION_DIRS:
+        files.extend(path for path in (NATASCHA_ROOT / directory).rglob("*") if path.is_file())
+    if any(not path.is_file() for path in files):
+        raise ValueError("Prompt-Bestand für Versionsfingerabdruck unvollständig.")
+
+    digest = hashlib.sha256()
+    for path in sorted(set(files), key=lambda item: item.relative_to(NATASCHA_ROOT).as_posix()):
+        relative = path.relative_to(NATASCHA_ROOT).as_posix().encode("utf-8")
+        content = path.read_bytes()
+        digest.update(len(relative).to_bytes(4, "big"))
+        digest.update(relative)
+        digest.update(len(content).to_bytes(8, "big"))
+        digest.update(content)
+    return f"sha256:{digest.hexdigest()}"
 
 
 def load_case_manifest(manifest_path: Path = MANIFEST_FILE) -> tuple[str, list[dict[str, object]]]:
@@ -201,6 +233,8 @@ def resolve_protocol_output(raw_path: str | Path) -> Path:
 def classify_cli_error(stderr: str) -> str:
     """Ordnet lokale CLI-Fehler zu, ohne ihren Inhalt ins Protokoll zu uebernehmen."""
     text = stderr.lower()
+    if "[network]" in text or "keine verbindung" in text:
+        return "network_error"
     if "429" in text or "rate limit" in text or "rate_limited" in text:
         return "rate_limited"
     if "api-fehler" in text or "anbieter" in text:
@@ -264,6 +298,8 @@ def run_single_case(
                 args,
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 timeout=300,
                 cwd=str(NATASCHA_ROOT),
             )
@@ -325,8 +361,8 @@ def run_single_case(
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="LUKA Benchmark-Runner")
-    parser.add_argument("--provider", default="mistral")
-    parser.add_argument("--model", default="mistral-medium-3-5")
+    parser.add_argument("--provider", default="deepseek")
+    parser.add_argument("--model", default="deepseek-flash")
     parser.add_argument("--max-retries", type=int, default=3)
     parser.add_argument(
         "--dry-run", action="store_true", help="Manifest und Ablauf ohne API-Aufruf pruefen"
@@ -392,6 +428,8 @@ def main() -> int:
             "provider": args.provider,
             "model": args.model,
             "dataClass": data_class,
+            "caseIds": [case["id"] for case in cases],
+            "promptVersion": prompt_version(),
             "densityPromptVariant": args.prompt_variant,
             "containsReviewExcerpts": args.include_review_data,
             "runLabel": args.run_label or f"run-{uuid.uuid4().hex[:12]}",

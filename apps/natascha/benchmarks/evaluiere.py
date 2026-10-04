@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 import unicodedata
 from pathlib import Path
@@ -32,6 +33,7 @@ KRITERIEN = [
 ]
 
 ANTWORTEN = {"j": "ja", "n": "nein", "t": "teilweise"}
+PROMPT_VERSION_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
 
 
 def _normalisiere_vergleichstext(value: object) -> str:
@@ -298,7 +300,7 @@ def berechne_gate(runs: list[dict], vollstaendige_laeufe: int) -> dict:
         "notePlausibelProzent": note_prozent,
         "verwendbarProzent": verwendbar_prozent,
         "entscheidung": (
-            "Medium 3.5 als Standard freigeben"
+            "DeepSeek Flash erfüllt die technische Benchmark-Schwelle"
             if gate_erfuellt
             else (
                 "Zweiter vollständiger, separat freigegebener Lauf erforderlich"
@@ -318,8 +320,8 @@ def _bewertung_vollstaendig(bewertung: object) -> bool:
 
 def ist_vollstaendiger_lauf(
     evaluation: dict,
-    erwarteter_provider: str = "mistral",
-    erwartetes_modell: str = "mistral-medium-3-5",
+    erwarteter_provider: str = "deepseek",
+    erwartetes_modell: str = "deepseek-flash",
     erwartete_promptvariante: str | None = "neutral",
 ) -> bool:
     """Nur vollständige Läufe des festgelegten Anbieters/Modells zählen."""
@@ -331,7 +333,9 @@ def ist_vollstaendiger_lauf(
     if (
         metadata.get("provider") != erwarteter_provider
         or metadata.get("model") != erwartetes_modell
-        or metadata.get("dataClass") not in {"synthetic", "pseudonymized"}
+        or metadata.get("dataClass") != "synthetic"
+        or not isinstance(metadata.get("promptVersion"), str)
+        or not PROMPT_VERSION_PATTERN.fullmatch(metadata["promptVersion"])
         or metadata.get("densityPromptVariant") not in {"neutral", "legacy"}
         or (
             erwartete_promptvariante is not None
@@ -344,7 +348,17 @@ def ist_vollstaendiger_lauf(
     ):
         return False
     runs = evaluation.get("runs", [])
-    return bool(runs) and all(
+    case_ids = metadata.get("caseIds")
+    if (
+        not isinstance(case_ids, list)
+        or not case_ids
+        or any(not isinstance(case_id, str) or not case_id for case_id in case_ids)
+        or len(set(case_ids)) != len(case_ids)
+        or not isinstance(runs, list)
+        or [run.get("caseId") if isinstance(run, dict) else None for run in runs] != case_ids
+    ):
+        return False
+    return all(
         isinstance(run, dict)
         and isinstance(run.get("caseId"), str)
         and run.get("status") == "erfolg"
@@ -367,7 +381,7 @@ def sind_kompatible_laeufe(erster: dict, zweiter: dict) -> bool:
         or first_metadata["runLabel"] == second_metadata["runLabel"]
         or any(
             first_metadata[key] != second_metadata[key]
-            for key in ("provider", "model", "dataClass", "densityPromptVariant")
+            for key in ("provider", "model", "dataClass", "densityPromptVariant", "promptVersion", "caseIds")
         )
     ):
         return False
@@ -387,7 +401,7 @@ def vergleiche_fehlerdichte_ab(erster: dict, zweiter: dict) -> dict:
         raise ValueError("A/B-Läufe müssen unterschiedliche Promptvarianten verwenden.")
     if {meta_a["densityPromptVariant"], meta_b["densityPromptVariant"]} != {"legacy", "neutral"}:
         raise ValueError("A/B-Vergleich ist nur für legacy und neutral definiert.")
-    if any(meta_a[key] != meta_b[key] for key in ("provider", "model", "dataClass")):
+    if any(meta_a[key] != meta_b[key] for key in ("provider", "model", "dataClass", "promptVersion")):
         raise ValueError("A/B-Läufe müssen Anbieter, Modell und Datenklasse teilen.")
     if meta_a["runId"] == meta_b["runId"]:
         raise ValueError("A/B-Läufe müssen getrennte Ausführungen sein.")

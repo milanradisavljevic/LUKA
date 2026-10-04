@@ -29,22 +29,23 @@ Lokaler Benchmark-Ordner für die qualitative Evaluation der KI-Korrekturen.
 # dataClass "synthetic" oder "pseudonymized" ausweisen; der Runner akzeptiert
 # keine anderen Datenklassen.
 
-# Erst Ablauf und Manifest ohne Cloud-Aufruf prüfen.
-python benchmarks/run_benchmark.py --dry-run
+# Das formale Gate zählt nur synthetische DeepSeek-Flash-Läufe. V4-Pro- und
+# pseudonymisierte Läufe sind dafür ungültig. Erst Ablauf ohne API-Aufruf prüfen.
+python benchmarks/run_benchmark.py --provider deepseek --model deepseek-flash --dry-run
 
 # Englisch-Satz (Per-Case-Config greift pro Fall):
-python benchmarks/run_benchmark.py --manifest benchmarks/cases_en/manifest.json --dry-run
+python benchmarks/run_benchmark.py --provider deepseek --model deepseek-flash --manifest benchmarks/cases_en/manifest.json --dry-run
 
 # Die sechs deutschen synthetischen DOCX-Fixtures bei Bedarf ergänzen:
 python benchmarks/build_synthetic_de_cases.py
 
-# Ein Live-Lauf erfordert eine separate Freigabe für den verwendeten Anbieter.
-# Für die spätere Lehrkraftprüfung den lokalen Prüfauszug ausdrücklich aktivieren.
-python benchmarks/run_benchmark.py --include-review-data --output evaluation.json
+# Nur freigegebene synthetische Fälle an DeepSeek senden. Für die spätere
+# Lehrkraftprüfung den lokalen Prüfauszug ausdrücklich aktivieren.
+python benchmarks/run_benchmark.py --provider deepseek --model deepseek-flash --include-review-data --output evaluation.json
 # Für eine Modellfreigabe zwei vollständige, separat protokollierte Läufe und
 # anschließend die Lehrkraftbewertung durchführen. Der zweite Lauf wird nur
 # beim Gate genannt, nicht in das erste Protokoll kopiert:
-python benchmarks/run_benchmark.py --include-review-data --output zweiter-lauf.json
+python benchmarks/run_benchmark.py --provider deepseek --model deepseek-flash --include-review-data --output zweiter-lauf.json
 python benchmarks/evaluiere.py --input evaluation.json
 python benchmarks/evaluiere.py --zweiter-lauf zweiter-lauf.json --gate-only
 
@@ -56,8 +57,8 @@ python benchmarks/evaluiere.py --input evaluation.json \
 # A/B der Fehlerdichte-Regel: identisches Manifest/Modell, getrennte Protokolle.
 # Die Legacy-Variante ist nur für diesen expliziten Promptvergleich verfügbar;
 # der normale Korrekturpfad und Benchmark-Default bleiben neutral.
-python benchmarks/run_benchmark.py --prompt-variant legacy --run-label ab-legacy --include-review-data --output ab-legacy.json
-python benchmarks/run_benchmark.py --prompt-variant neutral --run-label ab-neutral --include-review-data --output ab-neutral.json
+python benchmarks/run_benchmark.py --provider deepseek --model deepseek-flash --prompt-variant legacy --run-label ab-legacy --include-review-data --output ab-legacy.json
+python benchmarks/run_benchmark.py --provider deepseek --model deepseek-flash --prompt-variant neutral --run-label ab-neutral --include-review-data --output ab-neutral.json
 
 # Beide Protokolle separat und ohne die Variantenbezeichnung im Bewertungsdialog
 # beurteilen. Je Fall zusätzlich tatsächliche Eingriffe einstufen: keine,

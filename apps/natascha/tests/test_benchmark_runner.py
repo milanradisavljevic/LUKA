@@ -5,7 +5,9 @@ from __future__ import annotations
 import builtins
 import importlib.util
 import json
+import locale
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -21,6 +23,20 @@ EVALUATOR_SPEC = importlib.util.spec_from_file_location("benchmark_evaluator", E
 assert EVALUATOR_SPEC is not None and EVALUATOR_SPEC.loader is not None
 benchmark_evaluator = importlib.util.module_from_spec(EVALUATOR_SPEC)
 EVALUATOR_SPEC.loader.exec_module(benchmark_evaluator)
+
+
+def test_prompt_version_is_a_stable_content_fingerprint() -> None:
+    version = benchmark_runner.prompt_version()
+
+    assert version.startswith("sha256:")
+    assert len(version) == len("sha256:") + 64
+    assert benchmark_runner.prompt_version() == version
+
+
+def test_netzausfall_wird_nicht_als_anbieterfehler_verwechselt() -> None:
+    assert benchmark_runner.classify_cli_error(
+        "FEHLER: [network] Keine Verbindung zum ausgewählten KI-Anbieter."
+    ) == "network_error"
 
 
 def test_manifest_erfordert_neutrale_id_und_zulaessige_datenklasse(
@@ -139,6 +155,27 @@ def test_protokoll_enthaelt_weder_dateiname_noch_rohe_fehler(tmp_path: Path, mon
     assert "private detail" not in protocol
 
 
+def test_runner_bewahrt_utf8_zitate_bei_windows_standardencoding(tmp_path: Path, monkeypatch) -> None:
+    source = tmp_path / "case-001.docx"
+    source.write_bytes(b"synthetic")
+    payload = json.dumps({"analysis": {
+        "fehler": [{"zitat": "Die Schülervertretung sollten", "korrektur": "Die Schülervertretung sollte", "typ": "G"}],
+        "notenempfehlung": {"note": 2},
+    }}, ensure_ascii=False)
+    code = f"import sys; sys.stdout.buffer.write({payload.encode('utf-8')!r})"
+    monkeypatch.setattr(benchmark_runner, "build_cli_args", lambda *args: [sys.executable, "-c", code])
+    monkeypatch.setattr(benchmark_runner, "validate_analysis_schema", lambda _: (True, None))
+    monkeypatch.setattr(locale, "getencoding", lambda: "cp1252")
+
+    entry = benchmark_runner.run_single_case(
+        {"id": "case-001", "path": source}, "deepseek", "deepseek-v4-pro",
+        benchmark_runner.DEFAULT_CONFIG, 1, include_review_data=True,
+    )
+
+    assert entry["status"] == "erfolg"
+    assert entry["reviewData"]["fehler"][0]["zitat"] == "Die Schülervertretung sollten"
+
+
 def test_timeout_wird_ohne_rohfehler_kategorisiert(tmp_path: Path, monkeypatch) -> None:
     source = tmp_path / "case-001.docx"
     source.write_bytes(b"synthetic")
@@ -207,7 +244,7 @@ def test_freigabe_gate_erfordert_zwei_vollstaendige_laeufe() -> None:
     second_gate = benchmark_evaluator.berechne_gate(runs, vollstaendige_laeufe=2)
 
     assert "Zweiter" in first_gate["entscheidung"]
-    assert second_gate["entscheidung"] == "Medium 3.5 als Standard freigeben"
+    assert second_gate["entscheidung"] == "DeepSeek Flash erfüllt die technische Benchmark-Schwelle"
     assert second_gate["fehlererkennungProzent"] == 100.0
     assert second_gate["notePlausibelProzent"] == 100.0
 
@@ -239,9 +276,11 @@ def _vollstaendiger_lauf(
 ) -> dict:
     return {
         "metadata": {
-            "provider": "mistral",
-            "model": "mistral-medium-3-5",
+            "provider": "deepseek",
+            "model": "deepseek-flash",
             "dataClass": "synthetic",
+            "caseIds": list(cases),
+            "promptVersion": "sha256:" + ("a" * 64),
             "densityPromptVariant": "neutral",
             "runId": run_id,
             "runLabel": label,
@@ -277,6 +316,26 @@ def test_zweiter_lauf_muss_eigenstaendig_gleiches_modell_und_faelle_abdecken() -
 def test_unvollstaendige_oder_strukturell_ungueltige_protokolle_zaehlen_nicht() -> None:
     assert not benchmark_evaluator.ist_vollstaendiger_lauf([])
     assert not benchmark_evaluator.ist_vollstaendiger_lauf({"runs": []})
+
+    old_model = _vollstaendiger_lauf("run-old", "mistral-run")
+    old_model["metadata"].update(provider="mistral", model="mistral-medium-3-5")
+    assert not benchmark_evaluator.ist_vollstaendiger_lauf(old_model)
+
+    pro_model = _vollstaendiger_lauf("run-pro", "pro-run")
+    pro_model["metadata"]["model"] = "deepseek-v4-pro"
+    assert not benchmark_evaluator.ist_vollstaendiger_lauf(pro_model)
+
+    pseudonymized = _vollstaendiger_lauf("run-pseudonymized", "pseudonymized-run")
+    pseudonymized["metadata"]["dataClass"] = "pseudonymized"
+    assert not benchmark_evaluator.ist_vollstaendiger_lauf(pseudonymized)
+
+    missing_prompt_version = _vollstaendiger_lauf("run-prompt", "prompt-run")
+    missing_prompt_version["metadata"].pop("promptVersion")
+    assert not benchmark_evaluator.ist_vollstaendiger_lauf(missing_prompt_version)
+
+    mismatched_cases = _vollstaendiger_lauf("run-cases", "case-run")
+    mismatched_cases["metadata"]["caseIds"] = ["case-de-1"]
+    assert not benchmark_evaluator.ist_vollstaendiger_lauf(mismatched_cases)
 
     failed_case = _vollstaendiger_lauf("run-id-5", "run-5")
     failed_case["runs"][0]["status"] = "rate_limited"
