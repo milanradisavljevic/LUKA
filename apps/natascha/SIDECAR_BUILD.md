@@ -36,19 +36,23 @@ Dabei werden ARM- und Intel-Binaries gebaut, mit `lipo` zu einem universellen
 Sidecar verbunden und unter
 `dist/natascha-cli/natascha-cli-universal-apple-darwin` abgelegt.
 
-## Optionale Tauri-Integration
+## Tauri-Pilotbuild mit Korrektur-Modul
 
-Der normale Generator-only-Build referenziert das Sidecar nicht und bleibt ohne Binary baubar. Fuer einen spaeteren NATASCHA-Build kann die Zusatzkonfiguration verwendet werden:
+Der allgemeine Generator-Build referenziert das Sidecar nicht und bleibt ohne Binary baubar. Ein installierter Pilot mit Korrekturen braucht dagegen beide Schritte: zuerst das Sidecar bauen, dann LUA mit der Sidecar-Konfiguration paketieren.
 
 ```powershell
-cd apps/lua
-pnpm tauri build --config src-tauri/tauri.natascha-sidecar.conf.json
+cd apps\natascha
+.\build_sidecar.ps1
+cd ..\lua
+pnpm tauri:build:sidecar
 ```
 
-Diese Datei setzt `bundle.externalBin` auf
-`../../natascha/dist/natascha-cli/natascha-cli`. Tauri ergänzt je Plattform den
-Target-Suffix. Der Release-Workflow baut das Sidecar vor `tauri-action` und
-verwendet diese Konfiguration automatisch.
+Der Befehl `tauri:build:sidecar` setzt `bundle.externalBin` auf
+`../../natascha/dist/natascha-cli/natascha-cli`. Tauri ergänzt beim Einbinden
+den Target-Suffix und legt das Sidecar für die Laufzeit neben der Anwendung ab.
+Fehlt das vorgebaute Sidecar, schlägt der Paketbau fehl, statt eine Installation
+ohne Korrektur-Modul zu erzeugen. Der Release-Workflow baut das Sidecar vor
+`tauri-action` und verwendet dieselbe Konfiguration automatisch.
 
 ## Smoke-Test
 

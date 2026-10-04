@@ -13,6 +13,7 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 - Kriteriennamen in der Einzelkorrektur sind verständlich formatiert. Fehlerstellen erscheinen als dezente Flächenmarkierungen statt farbiger Unterstreichungen.
 - Datensicherungen werden vor dem Einspielen geprüft. Scheitert die Wiederherstellung, stellt LUKA die vorherige Datenbank wieder her.
 - Windows-Installationen prüfen jetzt auch, ob das Korrektur-Modul am richtigen Ort installiert ist und startet.
+- Ein eigener Pilot-Build-Befehl bindet das zuvor gebaute Korrektur-Modul in den Windows-Installer ein.
 
 ## In Arbeit — 2026-10-03
 
