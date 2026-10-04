@@ -704,14 +704,27 @@ function buildDocumentChildren(
 
   const hidePunkte = doc.meta.punkteAusblenden === true;
   const hideQuelltexte = doc.meta.quelltextAusblenden === true;
+  const ibAssessment = doc.meta.ibAssessment?.programme === 'ib-dp'
+    && doc.meta.ibAssessment.course === 'german-a-literature'
+    ? doc.meta.ibAssessment
+    : undefined;
+  const blocksWithIndex = doc.bloecke.map((block, i) => ({ block, i }));
   return [
     ...buildDocumentHeader(doc, mode, template),
     buildSchuelerkopf(doc.meta, template),
     ...(hidePunkte ? [] : buildPunkteUebersicht(doc.bloecke, template, doc.meta.fach)),
     ...buildMerkkasten(doc.didaktik?.merkkasten, template),
     ...(hideQuelltexte ? [] : buildQuelltexte(doc.quelltexte, template)),
-    ...doc.bloecke.flatMap((block, i) =>
-      buildBlock(block, { template, modus: mode, index: i + 1, quelltextMap, fach: doc.meta.fach, hidePunkte, layout }),
+    ...blocksWithIndex.flatMap(({ block, i }) =>
+      buildBlock(block, {
+        template, modus: mode, index: i + 1, quelltextMap, fach: doc.meta.fach, hidePunkte, layout,
+        ...(ibAssessment?.assessmentCriteria ? {
+          ibCriteria: ibAssessment.assessmentCriteria.filter((criterion) => (
+            ibAssessment.assessmentComponent !== 'paper1' || ibAssessment.level !== 'hl'
+            || criterion.id.startsWith(`Text ${i + 1} ·`)
+          )),
+        } : {}),
+      }),
     ),
     ...(doc.didaktik?.transferaufgabe?.trim()
       ? buildTransferaufgabe(doc.didaktik.transferaufgabe.trim(), mode, template, doc.meta.fach)
@@ -1038,7 +1051,16 @@ function buildPunkteUebersicht(bloecke: Block[], template: RenderTemplate, fach:
   const cellBorder = {
     top: thinBorder(template), bottom: thinBorder(template), left: thinBorder(template), right: thinBorder(template),
   };
-  const gesamt = bloecke.reduce((sum, b) => sum + b.punkte, 0);
+  const choiceGroups = new Set<string>();
+  const gesamt = bloecke.reduce((sum, block) => {
+    if (block.typ === 'offeneSchreibaufgabe' && block.config.ibChoiceGroup) {
+      const group = block.config.ibChoiceGroup;
+      if (choiceGroups.has(group.id)) return sum;
+      choiceGroups.add(group.id);
+      return sum + group.totalMaxMarks;
+    }
+    return sum + block.punkte;
+  }, 0);
 
   const headerCell = (text: string, width: number, align?: typeof AlignmentType[keyof typeof AlignmentType]) =>
     new TableCell({
@@ -1074,7 +1096,12 @@ function buildPunkteUebersicht(bloecke: Block[], template: RenderTemplate, fach:
       new TableRow({
         children: [
           cell([run(String(i + 1), { font: template.font, size: template.fontSize.body })], 10),
-          cell([run(blockLabels(fach)[b.typ], { font: template.font, size: template.fontSize.body })], 65),
+          cell([run(
+            b.typ === 'offeneSchreibaufgabe' && b.config.ibChoiceGroup
+              ? `${blockLabels(fach)[b.typ]} · Wahloption ${b.config.ibChoiceGroup.option} (eine wählen)`
+              : blockLabels(fach)[b.typ],
+            { font: template.font, size: template.fontSize.body },
+          )], 65),
           cell([blankLine(6, template), run(` / ${b.punkte}`, { font: template.font, size: template.fontSize.body })], 25, AlignmentType.RIGHT),
         ],
       }),
@@ -1326,6 +1353,7 @@ export interface RenderBlockCtx {
   index: number;
   quelltextMap: Map<string, QuellText>;
   fach: DocumentV1['meta']['fach'];
+  ibCriteria?: NonNullable<DocumentV1['meta']['ibAssessment']>['assessmentCriteria'];
   hidePunkte?: boolean;
   /** Layout-Achse (Dichte/Schreibraum/Rahmen) — orthogonal zur Formatvorlage. */
   layout: RenderLayout;
@@ -1343,7 +1371,7 @@ export function renderBlockChildren(block: Block, ctx: RenderBlockCtx): (Paragra
     case 'matching': return buildMatching(block, mode, template, fach);
     case 'multipleChoice': return buildMultipleChoice(block, mode, template, fach);
     case 'offeneVerstaendnisfrage': return buildOffeneVerstaendnisfrage(block, mode, template, ctx.layout);
-    case 'offeneSchreibaufgabe': return buildOffeneSchreibaufgabe(block, mode, template, fach, ctx.layout);
+    case 'offeneSchreibaufgabe': return buildOffeneSchreibaufgabe(block, mode, template, fach, ctx.layout, ctx.ibCriteria);
     case 'markieraufgabe': return buildMarkieraufgabe(block, mode, quelltextMap, template);
     case 'wordScramble': return buildWordScramble(block, mode, template, fach);
     case 'kategorisierung': return buildKategorisierung(block, mode, template, fach);
@@ -1394,6 +1422,9 @@ export function buildBlock(block: Block, ctx: RenderBlockCtx): (Paragraph | Tabl
         run(`${taskLabel} ${index}  –  ${label}`, {
           font: template.font, size: template.fontSize.h2, ...headingProps(template),
         }),
+        ...(block.typ === 'offeneSchreibaufgabe' && block.config.ibChoiceGroup
+          ? [run(` · Option ${block.config.ibChoiceGroup.option}`, { font: template.font, size: template.fontSize.h2, bold: true })]
+          : []),
         ...punkteRun,
       ],
     }),
@@ -2154,9 +2185,20 @@ function buildOffeneSchreibaufgabe(
   template: RenderTemplate,
   fach: DocumentV1['meta']['fach'] = 'deutsch',
   layout: RenderLayout = getDefaultLayout(),
+  ibCriteria?: NonNullable<DocumentV1['meta']['ibAssessment']>['assessmentCriteria'],
 ): (Paragraph | Table)[] {
   const result: (Paragraph | Table)[] = [];
   const cfg = block.config;
+
+  if (cfg.ibChoiceGroup) {
+    result.push(new Paragraph({
+      keepNext: true,
+      children: [run(`Wahloption ${cfg.ibChoiceGroup.option} von ${cfg.ibChoiceGroup.totalOptions} — genau eine Option bearbeiten; maximal ${cfg.ibChoiceGroup.totalMaxMarks} Rohpunkte insgesamt.`, {
+        font: template.font, size: template.fontSize.body, bold: true,
+      })],
+      spacing: { after: 100 },
+    }));
+  }
 
   result.push(
     new Paragraph({
@@ -2183,14 +2225,24 @@ function buildOffeneSchreibaufgabe(
       ],
       spacing: { after: 60 },
     }),
-    new Paragraph({
+  );
+
+  const paper2Questions = cfg.ibPaper2Questions;
+  if (paper2Questions) {
+    result.push(new Paragraph({
+      keepNext: true,
+      children: [run('Essayfragen — genau eine auswählen:', { font: template.font, size: template.fontSize.body, bold: true })],
+      spacing: { after: 40 },
+    }));
+  } else {
+    result.push(new Paragraph({
       keepNext: true,
       children: [run('Aspekte:', { font: template.font, size: template.fontSize.body, bold: true })],
       spacing: { after: 40 },
-    }),
-  );
+    }));
+  }
 
-  for (const [i, aspekt] of cfg.aspekte.entries()) {
+  for (const [i, aspekt] of (paper2Questions ?? cfg.aspekte).entries()) {
     result.push(
       new Paragraph({
         keepNext: true,
@@ -2223,10 +2275,10 @@ function buildOffeneSchreibaufgabe(
     result.push(
       new Paragraph({
         keepNext: true,
-        children: [run(isEnglish ? 'Marking criteria:' : 'Erwartungshorizont:', { font: template.font, size: template.fontSize.body, bold: true })],
+        children: [run(ibCriteria?.length ? 'IB-Rohpunktkriterien:' : isEnglish ? 'Marking criteria:' : 'Erwartungshorizont:', { font: template.font, size: template.fontSize.body, bold: true })],
         spacing: { before: 120, after: 60 },
       }),
-      buildEH(eh, template, isEnglish),
+      ibCriteria?.length ? buildIbCriteria(ibCriteria, template) : buildEH(eh, template, isEnglish),
     );
   }
 
@@ -2286,6 +2338,32 @@ function buildEH(
 
   return new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
+    rows,
+  });
+}
+
+function buildIbCriteria(
+  criteria: NonNullable<DocumentV1['meta']['ibAssessment']>['assessmentCriteria'],
+  template: RenderTemplate,
+): Table {
+  const rows = (criteria ?? []).map((criterion) => new TableRow({
+    children: [
+      new TableCell({
+        width: { size: 82, type: WidthType.PERCENTAGE },
+        margins: { top: 40, bottom: 40, left: 100, right: 100 },
+        children: [new Paragraph({ children: [run(`${criterion.id} · ${criterion.label}`, { font: template.font, size: template.fontSize.body })] })],
+      }),
+      new TableCell({
+        width: { size: 18, type: WidthType.PERCENTAGE },
+        margins: { top: 40, bottom: 40, left: 100, right: 100 },
+        children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [run(`max. ${criterion.maxMarks}`, { font: template.font, size: template.fontSize.body, bold: true })] })],
+      }),
+    ],
+  }));
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    layout: TableLayoutType.FIXED,
+    borders: { top: thinBorder(template), bottom: thinBorder(template), left: thinBorder(template), right: thinBorder(template), insideHorizontal: thinBorder(template), insideVertical: thinBorder(template) },
     rows,
   });
 }

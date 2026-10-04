@@ -127,6 +127,124 @@ function validateAbiturDeutschTraining(document: DocumentV1): string | undefined
   return undefined;
 }
 
+function validateIbGermanLiterature(document: DocumentV1): string | undefined {
+  const assessment = document.meta.ibAssessment;
+  if (assessment?.programme !== 'ib-dp' || assessment.course !== 'german-a-literature') return undefined;
+
+  const tasks = document.bloecke;
+  const writingTasks = tasks.filter((block) => block.typ === 'offeneSchreibaufgabe');
+  if (writingTasks.length !== tasks.length) return 'IB German A: Literature erwartet ausschließlich Schreibaufgaben.';
+  const expectedTotalMarks = assessment.assessmentComponent === 'paper1'
+    ? assessment.level === 'sl' ? 20 : 40
+    : assessment.assessmentComponent === 'paper2' ? 25
+      : assessment.assessmentComponent === 'individual-oral' ? 40 : 20;
+  const criteria = assessment.assessmentCriteria ?? [];
+  if (criteria.length === 0
+    || new Set(criteria.map((criterion) => criterion.id)).size !== criteria.length
+    || criteria.reduce((sum, criterion) => sum + criterion.maxMarks, 0) !== expectedTotalMarks) {
+    return `${assessment.assessmentComponent}: IB-Kriterien müssen eindeutige IDs haben und zusammen genau ${expectedTotalMarks} Rohpunkte ergeben.`;
+  }
+
+  const requireTasks = (count: number, component: string): string | undefined => tasks.length === count
+    ? undefined
+    : `${component}: erwartet genau ${count} Schreibaufgabe(n), erhalten: ${tasks.length}.`;
+  const allSourcesMatch = writingTasks.every((block, index) => (
+    block.typ === 'offeneSchreibaufgabe'
+    && block.quelleId === document.quelltexte[index]?.id
+  ));
+  const correctMarks = (marks: number) => writingTasks.every((block) => block.punkte === marks);
+
+  if (assessment.assessmentComponent === 'paper1') {
+    const countError = requireTasks(2, 'Paper 1');
+    if (countError) return countError;
+    if (document.quelltexte.length !== 2 || !allSourcesMatch) {
+      return 'Paper 1: Beide Analysen müssen eindeutig auf je einen der zwei bereitgestellten Texte verweisen.';
+    }
+    if (assessment.paper1LiteraryForms?.length !== 2 || assessment.paper1LiteraryForms[0] === assessment.paper1LiteraryForms[1]) {
+      return 'Paper 1: Die beiden Textoptionen müssen unterschiedliche literarische Formen abbilden.';
+    }
+    if (assessment.level === 'sl') {
+      if (!correctMarks(20)) return 'Paper 1 SL: Jede Wahloption muss mit 20 Rohpunkten bewertet werden.';
+      const options = writingTasks.map((block) => block.typ === 'offeneSchreibaufgabe' ? block.config.ibChoiceGroup : undefined);
+      if (options.some((option) => !option || option.id !== 'paper1-sl-choice' || option.totalOptions !== 2 || option.totalMaxMarks !== 20)
+        || options[0]?.option !== 'A' || options[1]?.option !== 'B') {
+        return 'Paper 1 SL: Beide Texte müssen als Wahloption A/B derselben Auswahlgruppe gekennzeichnet sein; insgesamt gilt maximal 20 Rohpunkte.';
+      }
+    } else if (!correctMarks(20) || writingTasks.some((block) => block.typ === 'offeneSchreibaufgabe' && block.config.ibChoiceGroup)) {
+      return 'Paper 1 HL: Beide verpflichtenden Analysen müssen je 20 Rohpunkte haben und dürfen nicht als Wahloption markiert sein.';
+    }
+    return undefined;
+  }
+
+  if (assessment.assessmentComponent === 'paper2') {
+    const countError = requireTasks(1, 'Paper 2');
+    if (countError) return countError;
+    const task = writingTasks[0];
+    if (!task || task.typ !== 'offeneSchreibaufgabe' || task.punkte !== 25) return 'Paper 2: Die einzelne Schreibaufgabe muss 25 Rohpunkte haben.';
+    const questions = task.config.ibPaper2Questions;
+    if (!questions || questions.length !== 4 || new Set(questions.map((question) => question.trim().toLocaleLowerCase())).size !== 4) {
+      return 'Paper 2: Es müssen genau vier unterschiedliche Essayfragen strukturiert enthalten sein.';
+    }
+    const works = assessment.selectedWorks ?? [];
+    if (works.length !== 2 || new Set(works.map((work) => work.author.trim().toLocaleLowerCase())).size !== 2) {
+      return 'Paper 2: Die Aufgabe muss genau zwei Werke unterschiedlicher Autor:innen verwenden.';
+    }
+    const taskText = [task.arbeitsanweisung, task.config.situation, ...questions].join(' ').toLocaleLowerCase();
+    if (!/(vergleich|kontrast|gegenueberstell|gegenüberstell)/.test(taskText)) {
+      return 'Paper 2: Die Aufgabenanweisung muss den Vergleich oder Kontrast der beiden Werke ausdrücklich verlangen.';
+    }
+    if (works.some((work) => !taskText.includes(work.title.trim().toLocaleLowerCase()))) {
+      return 'Paper 2: Beide ausgewählten Werktitel müssen in der Aufgabenanweisung oder den vier Essayfragen vorkommen.';
+    }
+    return undefined;
+  }
+
+  if (assessment.assessmentComponent === 'individual-oral') {
+    const countError = requireTasks(1, 'Individual Oral');
+    if (countError) return countError;
+    const works = assessment.selectedWorks ?? [];
+    if (!correctMarks(40) || document.quelltexte.length !== 2 || !assessment.globalIssue?.trim()
+      || works.length !== 2
+      || !works.some((work) => ['de', 'deu', 'ger', 'german', 'deutsch'].includes(work.originalLanguage.trim().toLowerCase()))
+      || !works.some((work) => !['de', 'deu', 'ger', 'german', 'deutsch'].includes(work.originalLanguage.trim().toLowerCase()))) {
+      return 'Individual Oral: erwartet eine Aufgabe mit 40 Rohpunkten, einem Global Issue und zwei Auszügen.';
+    }
+    const oralTask = writingTasks[0];
+    const oralText = oralTask?.typ === 'offeneSchreibaufgabe'
+      ? [oralTask.arbeitsanweisung, oralTask.config.situation, ...oralTask.config.aspekte].join(' ').toLocaleLowerCase()
+      : '';
+    if (works.some((work) => !oralText.includes(work.title.trim().toLocaleLowerCase()))
+      || !oralText.includes(assessment.globalIssue.trim().toLocaleLowerCase())) {
+      return 'Individual Oral: Global Issue und beide Werke müssen in der Aufgabenstellung eindeutig benannt sein.';
+    }
+    if (/\b(vergleiche|vergleich|kontrast|gegenueberstell|gegenüberstell)\b/i.test(oralText)) {
+      return 'Individual Oral: Die beiden Werke dürfen nicht als Vergleichsaufgabe formuliert werden.';
+    }
+    return undefined;
+  }
+
+  const countError = requireTasks(1, 'HL Essay');
+  if (countError) return countError;
+  const essay = writingTasks[0];
+  if (assessment.level !== 'hl' || !essay || essay.typ !== 'offeneSchreibaufgabe' || essay.punkte !== 20) {
+    return 'HL Essay: nur für HL und mit genau einer Aufgabe zu 20 Rohpunkten.';
+  }
+  const works = assessment.selectedWorks ?? [];
+  if (essay.config.umfangWorte.min !== 1200 || essay.config.umfangWorte.max !== 1500 || !assessment.lineOfInquiry?.trim()
+    || works.length !== 1) {
+    return 'HL Essay: Umfang muss exakt 1.200–1.500 Wörter betragen und eine Line of Inquiry voraussetzen.';
+  }
+  const coachingText = `${essay.arbeitsanweisung} ${essay.config.situation} ${essay.config.aspekte.join(' ')}`.toLocaleLowerCase();
+  if (!coachingText.includes(works[0]!.title.trim().toLocaleLowerCase())) {
+    return 'HL Essay: Das ausgewählte Werk muss in der Aufgabenstellung genannt sein.';
+  }
+  const coachingWords = essay.loesung.musterloesung.trim().split(/\s+/).filter(Boolean).length;
+  if (!/(coaching|planung|gliederung|ueberarbeit|überarbeit|line of inquiry)/.test(coachingText) || coachingWords > 900) {
+    return 'HL Essay: Ausgabe muss ein kurzes Coaching-Gerüst sein, kein ausformulierter oder einreichbarer Essay.';
+  }
+  return undefined;
+}
+
 // Holt das JSON-Objekt aus der Modellantwort heraus, auch wenn versehentlich
 // Markdown-Zaeune oder Begleittext mitgeliefert wurden.
 export function extractJson(raw: string): string {
@@ -221,6 +339,9 @@ export async function parseAndValidate(
   }
 
   const document = result.data;
+
+  const ibFehler = validateIbGermanLiterature(document);
+  if (ibFehler) return { ok: false, fehler: ibFehler };
 
   // Quelltext-Aufbereitung (meta.quelltextFormatieren): Uebernommen wird AUSSCHLIESSLICH
   // das Feld "ausgabeText" der Modellantwort, geprueft gegen den Originalinhalt

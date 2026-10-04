@@ -69,6 +69,21 @@ export function ibComponentRawMarks(level: IbLiteratureLevel, component: IbLiter
   return 20;
 }
 
+/** Summiert Rohpunkte korrekt, ohne IB SL Paper-1-Wahloptionen doppelt zu zählen. */
+export function ibEffectiveTotalRawMarks(meta: Meta, blocks: Block[]): number {
+  if (meta.ibAssessment?.programme === 'ib-dp'
+    && meta.ibAssessment.course === 'german-a-literature'
+    && meta.ibAssessment.assessmentComponent === 'paper1'
+    && meta.ibAssessment.level === 'sl') {
+    const total = blocks.reduce((sum, block) => sum + block.punkte, 0);
+    const alternativeMarks = blocks
+      .filter((block) => block.typ === 'offeneSchreibaufgabe' && block.config.ibChoiceGroup)
+      .reduce((max, block) => Math.max(max, block.typ === 'offeneSchreibaufgabe' ? block.config.ibChoiceGroup?.totalMaxMarks ?? 0 : 0), 0);
+    return total - blocks.filter((block) => block.typ === 'offeneSchreibaufgabe' && block.config.ibChoiceGroup).reduce((sum, block) => sum + block.punkte, 0) + alternativeMarks;
+  }
+  return blocks.reduce((sum, block) => sum + block.punkte, 0);
+}
+
 export function ibAssessmentCriteria(level: IbLiteratureLevel, component: IbLiteratureComponent) {
   if (component === 'paper1') {
     const perText = [
@@ -138,9 +153,15 @@ export function createIbLiteratureDraft(config: IbLiteratureDraftConfig): IbLite
   }
   const bloecke: Block[] = Array.from({ length: writingTaskCount }, (_, index) => ({
     ...skeleton,
-    ...(config.assessmentComponent === 'hl-essay'
-      ? { config: { ...skeleton.config, umfangWorte: { min: 1200, max: 1500 } } }
-      : {}),
+    config: {
+      ...skeleton.config,
+      ...(config.assessmentComponent === 'hl-essay'
+        ? { umfangWorte: { min: 1200, max: 1500 } }
+        : {}),
+      ...(config.assessmentComponent === 'paper1' && config.level === 'sl'
+        ? { ibChoiceGroup: { id: 'paper1-sl-choice', option: index === 0 ? 'A' as const : 'B' as const, totalOptions: 2 as const, totalMaxMarks: 20 } }
+        : {}),
+    },
     id: `ib-${config.assessmentComponent}-${index + 1}`,
     punkte: pointsPerTask,
     quelleId: config.assessmentComponent === 'paper1' ? `q${index + 1}` : undefined,

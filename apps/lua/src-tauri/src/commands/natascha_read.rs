@@ -1,5 +1,5 @@
 use rusqlite::OptionalExtension;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::commands::db::DbState;
 
@@ -76,6 +76,18 @@ pub struct KriteriumDurchschnitt {
     pub name: String,
     pub durchschnitt: f64,
     pub anzahl: i64,
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PunkteBewertungRecord {
+    pub abgabe_id: i64,
+    pub dokument_id: String,
+    pub dokument_titel: String,
+    pub antworten_json: String,
+    pub ergebnisse_json: String,
+    pub bestaetigt: bool,
+    pub geaendert_am: Option<String>,
 }
 
 #[tauri::command]
@@ -261,6 +273,80 @@ pub async fn db_upsert_lehrer_feedback(
         rusqlite::params![abgabe_id, klasse, aufgabe, note_final, lehrer_kommentar, schueler_id],
     ).map_err(|e| format!("upsert lehrer_feedback: {}", e))?;
     Ok(())
+}
+
+#[tauri::command]
+pub async fn db_get_punktebewertung(
+    state: tauri::State<'_, DbState>,
+    abgabe_id: i64,
+) -> Result<Option<PunkteBewertungRecord>, String> {
+    let guard = state.conn()?;
+    get_punktebewertung_impl(&guard, abgabe_id)
+}
+
+pub(crate) fn get_punktebewertung_impl(
+    conn: &rusqlite::Connection,
+    abgabe_id: i64,
+) -> Result<Option<PunkteBewertungRecord>, String> {
+    conn.query_row(
+        "SELECT abgabe_id, dokument_id, dokument_titel, antworten_json, ergebnisse_json, bestaetigt, geaendert_am FROM abgabe_punktebewertung WHERE abgabe_id=?1",
+        [abgabe_id],
+        |row| Ok(PunkteBewertungRecord {
+            abgabe_id: row.get(0)?,
+            dokument_id: row.get(1)?,
+            dokument_titel: row.get(2)?,
+            antworten_json: row.get(3)?,
+            ergebnisse_json: row.get(4)?,
+            bestaetigt: row.get::<_, i64>(5)? != 0,
+            geaendert_am: row.get(6)?,
+        }),
+    ).optional().map_err(|e| format!("query punktebewertung: {e}"))
+}
+
+#[tauri::command]
+pub async fn db_save_punktebewertung(
+    state: tauri::State<'_, DbState>,
+    abgabe_id: i64,
+    dokument_id: String,
+    dokument_titel: String,
+    antworten_json: String,
+    ergebnisse_json: String,
+    bestaetigt: bool,
+) -> Result<PunkteBewertungRecord, String> {
+    let guard = state.conn()?;
+    save_punktebewertung_impl(
+        &guard,
+        abgabe_id,
+        dokument_id,
+        dokument_titel,
+        antworten_json,
+        ergebnisse_json,
+        bestaetigt,
+    )
+}
+
+pub(crate) fn save_punktebewertung_impl(
+    conn: &rusqlite::Connection,
+    abgabe_id: i64,
+    dokument_id: String,
+    dokument_titel: String,
+    antworten_json: String,
+    ergebnisse_json: String,
+    bestaetigt: bool,
+) -> Result<PunkteBewertungRecord, String> {
+    serde_json::from_str::<serde_json::Value>(&antworten_json)
+        .map_err(|e| format!("Ungültige Antwortdaten: {e}"))?;
+    serde_json::from_str::<serde_json::Value>(&ergebnisse_json)
+        .map_err(|e| format!("Ungültige Auswertungsdaten: {e}"))?;
+    let changed = conn.execute(
+        "INSERT INTO abgabe_punktebewertung (abgabe_id, dokument_id, dokument_titel, antworten_json, ergebnisse_json, bestaetigt, geaendert_am) SELECT ?1, ?2, ?3, ?4, ?5, ?6, CURRENT_TIMESTAMP WHERE EXISTS (SELECT 1 FROM abgabe WHERE id=?1) ON CONFLICT(abgabe_id) DO UPDATE SET dokument_id=excluded.dokument_id, dokument_titel=excluded.dokument_titel, antworten_json=excluded.antworten_json, ergebnisse_json=excluded.ergebnisse_json, bestaetigt=excluded.bestaetigt, geaendert_am=CURRENT_TIMESTAMP",
+        rusqlite::params![abgabe_id, dokument_id, dokument_titel, antworten_json, ergebnisse_json, if bestaetigt { 1 } else { 0 }],
+    ).map_err(|e| format!("save punktebewertung: {e}"))?;
+    if changed == 0 {
+        return Err("Die zugehörige Abgabe wurde nicht gefunden.".to_string());
+    }
+    get_punktebewertung_impl(conn, abgabe_id)?
+        .ok_or_else(|| "Punktebewertung konnte nach dem Speichern nicht gelesen werden.".to_string())
 }
 
 #[tauri::command]
@@ -2300,5 +2386,46 @@ mod tests {
         assert_eq!(abgabe_count, 0);
         let student_count: i64 = conn.query_row("SELECT COUNT(*) FROM schueler WHERE id=?1", [student_id], |row| row.get(0)).unwrap();
         assert_eq!(student_count, 1);
+    }
+
+    #[test]
+    fn punktebewertung_wird_je_abgabe_gespeichert_und_aktualisiert() {
+        let conn = setup();
+        conn.execute(
+            "INSERT INTO abgabe (klasse, aufgabe, dateiname, datei_hash) VALUES ('7a','SA1','a.docx','punkte-h1')",
+            [],
+        ).unwrap();
+        let abgabe_id = conn.last_insert_rowid();
+
+        let first = save_punktebewertung_impl(
+            &conn, abgabe_id, "doc-1".into(), "Arbeitsblatt".into(),
+            r#"{"b1":{"1":"A"}}"#.into(), r#"[{"blockId":"b1","erreicht":2}]"#.into(), false,
+        ).unwrap();
+        assert!(!first.bestaetigt);
+        assert_eq!(get_punktebewertung_impl(&conn, abgabe_id).unwrap().unwrap().dokument_id, "doc-1");
+
+        let updated = save_punktebewertung_impl(
+            &conn, abgabe_id, "doc-1".into(), "Arbeitsblatt".into(),
+            r#"{"b1":{"1":"B"}}"#.into(), r#"[{"blockId":"b1","erreicht":0}]"#.into(), true,
+        ).unwrap();
+        assert!(updated.bestaetigt);
+        assert!(updated.antworten_json.contains("B"));
+        assert_eq!(get_punktebewertung_impl(&conn, abgabe_id).unwrap().unwrap().ergebnisse_json, r#"[{"blockId":"b1","erreicht":0}]"#);
+    }
+
+    #[test]
+    fn punktebewertung_lehnt_unbekannte_abgabe_und_ungueltiges_json_ab() {
+        let conn = setup();
+        assert!(save_punktebewertung_impl(
+            &conn, 999, "doc-1".into(), "Arbeitsblatt".into(), "{}".into(), "[]".into(), true,
+        ).is_err());
+        conn.execute(
+            "INSERT INTO abgabe (klasse, aufgabe, dateiname, datei_hash) VALUES ('7a','SA1','a.docx','punkte-h2')",
+            [],
+        ).unwrap();
+        let abgabe_id = conn.last_insert_rowid();
+        assert!(save_punktebewertung_impl(
+            &conn, abgabe_id, "doc-1".into(), "Arbeitsblatt".into(), "{oops".into(), "[]".into(), true,
+        ).is_err());
     }
 }

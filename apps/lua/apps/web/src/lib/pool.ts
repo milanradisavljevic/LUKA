@@ -1,4 +1,4 @@
-import type { Block, Fach, Stufe, BlockTyp, DocumentV1 } from '@lehrunterlagen/schema';
+import type { Block, Fach, Stufe, BlockTyp, DocumentV1, QuellText } from '@lehrunterlagen/schema';
 import { heuteIso } from './lokalDatum';
 
 export interface PoolEntry {
@@ -10,6 +10,8 @@ export interface PoolEntry {
   aufgabentyp: string;
   tags: string | null;
   blockJson: string;
+  /** Optional for compatibility with older pool entries and packages. */
+  quelltexte?: QuellText[];
   quelleHinweis: string | null;
   createdAt: string;
 }
@@ -40,6 +42,7 @@ export interface PoolEntryInput {
   aufgabentyp: BlockTyp;
   tags: string | null;
   block: Block;
+  quelltexte?: QuellText[];
   quelleHinweis: string | null;
 }
 
@@ -80,9 +83,38 @@ export function poolEntryToDocument(entry: PoolEntry): DocumentV1 | null {
       notizen: entry.quelleHinweis ?? '',
       schulstufe: entry.schulstufe ?? undefined,
     },
-    quelltexte: [],
+    quelltexte: entry.quelltexte ?? [],
     bloecke: [block],
   };
+}
+
+/** Remaps source IDs that already exist in the current document and keeps every quelleId reference aligned. */
+export function remapPoolContentForInsert(
+  block: Block,
+  sources: QuellText[] = [],
+  existingSources: QuellText[] = [],
+): { block: Block; quelltexte: QuellText[] } {
+  const usedIds = new Set(existingSources.map((source) => source.id));
+  const idMap = new Map<string, string>();
+  const remappedSources = sources.map((source) => {
+    let id = source.id;
+    let suffix = 2;
+    while (usedIds.has(id)) id = `${source.id}-${suffix++}`;
+    usedIds.add(id);
+    idMap.set(source.id, id);
+    return id === source.id ? source : { ...source, id };
+  });
+
+  const remapReferences = (value: unknown): unknown => {
+    if (Array.isArray(value)) return value.map(remapReferences);
+    if (value === null || typeof value !== 'object') return value;
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [
+      key,
+      key === 'quelleId' && typeof item === 'string' ? idMap.get(item) ?? item : remapReferences(item),
+    ]));
+  };
+
+  return { block: remapReferences(block) as Block, quelltexte: remappedSources };
 }
 
 export function parsePoolTags(tags: string | null): string[] {

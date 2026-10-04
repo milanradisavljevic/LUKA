@@ -145,6 +145,16 @@ CREATE TABLE IF NOT EXISTS lehrer_feedback (
     UNIQUE(abgabe_id)
 );
 
+CREATE TABLE IF NOT EXISTS abgabe_punktebewertung (
+    abgabe_id INTEGER PRIMARY KEY REFERENCES abgabe(id) ON DELETE CASCADE,
+    dokument_id TEXT NOT NULL,
+    dokument_titel TEXT NOT NULL,
+    antworten_json TEXT NOT NULL,
+    ergebnisse_json TEXT NOT NULL,
+    bestaetigt INTEGER NOT NULL DEFAULT 0,
+    geaendert_am TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS korrektur_revision (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     abgabe_id INTEGER NOT NULL REFERENCES abgabe(id) ON DELETE CASCADE,

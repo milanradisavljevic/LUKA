@@ -254,7 +254,7 @@ describe('MetaSchema', () => {
   });
 
   it('rejects invalid fach', () => {
-    const result = MetaSchema.safeParse({ stufe: 'oberstufe', fach: 'mathematik', thema: 'x', datum: '2026-01-01', klasse: '5A', notizen: '' });
+    const result = MetaSchema.safeParse({ stufe: 'oberstufe', fach: 'chemie', thema: 'x', datum: '2026-01-01', klasse: '5A', notizen: '' });
     expect(result.success).toBe(false);
   });
 
@@ -834,6 +834,33 @@ describe('OffeneSchreibaufgabeBlockSchema', () => {
       },
     };
     expect(OffeneSchreibaufgabeBlockSchema.safeParse(block).success).toBe(true);
+  });
+
+  it('supports additive IB choice metadata and four structured Paper 2 questions', () => {
+    const parsed = OffeneSchreibaufgabeBlockSchema.safeParse({
+      id: 'ib-p2', typ: 'offeneSchreibaufgabe', punkte: 25,
+      arbeitsanweisung: 'Wähle genau eine Frage.',
+      config: {
+        situation: 'Vergleiche zwei Werke.', textsorte: 'Comparative essay',
+        umfangWorte: { min: 800, max: 1000 }, aspekte: ['Textbelege verwenden.'],
+        ibPaper2Questions: ['Frage 1', 'Frage 2', 'Frage 3', 'Frage 4'],
+      },
+      loesung: { musterloesung: 'Planungshinweis.', erwartungshorizont: { inhalt: 'i', struktur: 's', ausdruck: 'a', sprachrichtigkeit: 'r' } },
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it('rejects incomplete structured IB Paper 2 question sets', () => {
+    const parsed = OffeneSchreibaufgabeBlockSchema.safeParse({
+      id: 'ib-p2', typ: 'offeneSchreibaufgabe', punkte: 25,
+      arbeitsanweisung: 'Wähle eine Frage.',
+      config: {
+        situation: 'Vergleiche zwei Werke.', textsorte: 'Essay',
+        umfangWorte: { min: 800, max: 1000 }, aspekte: ['Textbelege verwenden.'], ibPaper2Questions: ['Nur eine Frage'],
+      },
+      loesung: { musterloesung: 'Planungshinweis.', erwartungshorizont: { inhalt: 'i', struktur: 's', ausdruck: 'a', sprachrichtigkeit: 'r' } },
+    });
+    expect(parsed.success).toBe(false);
   });
 
   it('rejects when min > max in umfangWorte', () => {
@@ -2036,9 +2063,9 @@ describe('Diagramm-/Datenanalyse-Block', () => {
 });
 
 describe('Fächer-Modell (FachSchema / FACH_META)', () => {
-  it('akzeptiert alle textbasierten Fächer', () => {
+  it('akzeptiert alle Fächer', () => {
     for (const f of ['deutsch', 'englisch', 'franzoesisch', 'spanisch', 'italienisch', 'latein',
-      'geschichte', 'geographie', 'religion', 'ethik', 'psychologie', 'philosophie']) {
+      'geschichte', 'geographie', 'religion', 'ethik', 'psychologie', 'philosophie', 'mathematik', 'biologie']) {
       expect(FachSchema.safeParse(f).success).toBe(true);
     }
   });
@@ -2066,6 +2093,8 @@ describe('Fächer-Modell (FachSchema / FACH_META)', () => {
   it('fachLabel liefert Anzeigenamen mit Umlauten', () => {
     expect(fachLabel('franzoesisch')).toBe('Französisch');
     expect(fachLabel('geschichte')).toBe('Geschichte');
+    expect(fachLabel('mathematik')).toBe('Mathematik');
+    expect(fachLabel('biologie')).toBe('Biologie und Umweltbildung');
   });
 
   it('führt für weitere Sprachfächer getrennte Unter- und Oberstufenfamilien', () => {

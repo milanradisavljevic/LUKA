@@ -698,6 +698,10 @@ fn migrate_pool_local_metadata(conn: &Connection) -> Result<(), String> {
         conn.execute_batch("ALTER TABLE aufgabe_pool ADD COLUMN last_used_at TEXT;")
             .map_err(|e| format!("Pool-Migration Nutzung fehlgeschlagen: {}", e))?;
     }
+    if !columns.contains("quelltexte_json") {
+        conn.execute_batch("ALTER TABLE aufgabe_pool ADD COLUMN quelltexte_json TEXT NOT NULL DEFAULT '[]';")
+            .map_err(|e| format!("Pool-Migration Quelltexte fehlgeschlagen: {}", e))?;
+    }
     conn.execute_batch(
         "CREATE INDEX IF NOT EXISTS idx_pool_quality_status ON aufgabe_pool(quality_status);
          CREATE INDEX IF NOT EXISTS idx_pool_last_used ON aufgabe_pool(last_used_at);",
@@ -969,7 +973,9 @@ mod tests {
                 schulstufe INTEGER, thema TEXT, aufgabentyp TEXT NOT NULL,
                 tags TEXT, block_json TEXT NOT NULL, quelle_hinweis TEXT,
                 created_at TEXT NOT NULL
-            );",
+            );
+            INSERT INTO aufgabe_pool (id, fach, stufe, aufgabentyp, block_json, created_at)
+            VALUES ('legacy', 'geschichte', 'unterstufe', 'quellenanalyse', '{}', '2026-01-01T00:00:00Z');",
         ).unwrap();
 
         init_schema(&conn).unwrap();
@@ -984,6 +990,11 @@ mod tests {
         assert!(columns.contains("is_favorite"));
         assert!(columns.contains("quality_status"));
         assert!(columns.contains("last_used_at"));
+        assert!(columns.contains("quelltexte_json"));
+        let default_sources: String = conn
+            .query_row("SELECT quelltexte_json FROM aufgabe_pool WHERE id='legacy'", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(default_sources, "[]");
     }
 
     #[test]

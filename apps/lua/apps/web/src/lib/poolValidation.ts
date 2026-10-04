@@ -1,4 +1,4 @@
-import { BlockSchema } from '@lehrunterlagen/schema';
+import { BlockSchema, QuellTextSchema } from '@lehrunterlagen/schema';
 import type { PoolEntry } from './pool';
 
 export interface PoolValidationIssue {
@@ -136,6 +136,47 @@ export function validatePoolEntries(input: unknown): PoolValidationResult {
       if (!parsed.success) {
         addIssue(issues, index, id, zodMessage(parsed.error));
         valid = false;
+      }
+
+      if (hasOwn(value, 'quelltexte')) {
+        if (!Array.isArray(value.quelltexte)) {
+          addIssue(issues, index, id, '„quelltexte" muss ein Array sein.');
+          valid = false;
+        } else {
+          const sourceIds = new Set<string>();
+          for (const [sourceIndex, source] of value.quelltexte.entries()) {
+            const sourceResult = QuellTextSchema.safeParse(source);
+            if (!sourceResult.success) {
+              addIssue(issues, index, id, '„quelltexte[' + sourceIndex + ']" ist kein gültiger Quelltext.');
+              valid = false;
+              continue;
+            }
+            if (sourceIds.has(sourceResult.data.id)) {
+              addIssue(issues, index, id, 'Eine Quellen-ID kommt im Eintrag doppelt vor.');
+              valid = false;
+            }
+            sourceIds.add(sourceResult.data.id);
+          }
+
+          const referencedIds = new Set<string>();
+          const collectReferences = (valueToInspect: unknown) => {
+            if (Array.isArray(valueToInspect)) {
+              valueToInspect.forEach(collectReferences);
+            } else if (valueToInspect !== null && typeof valueToInspect === 'object') {
+              for (const [key, nested] of Object.entries(valueToInspect)) {
+                if (key === 'quelleId' && typeof nested === 'string') referencedIds.add(nested);
+                else collectReferences(nested);
+              }
+            }
+          };
+          collectReferences(block);
+          for (const sourceId of referencedIds) {
+            if (!sourceIds.has(sourceId)) {
+              addIssue(issues, index, id, 'Quellenverweis „' + sourceId + '" hat keinen mitgeführten Quelltext.');
+              valid = false;
+            }
+          }
+        }
       }
     }
 

@@ -11,9 +11,11 @@ import { useDialogFocus } from '../hooks/useDialogFocus';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { GraduationCap, Save, AlertTriangle, Loader2, Upload, FolderOpen, FileDown, ChevronRight, Eye, EyeOff, Files, XCircle, CheckCircle2, ShieldCheck, RefreshCw, Check, X, Pencil, Undo2, Trash2, Unlink } from 'lucide-react';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { PunkteKorrekturPanel } from '../components/PunkteKorrekturPanel';
 import { loadDocuments, loadSettings, subscribeSettings } from '../lib/storage';
 import { useNatascha, type PersonenVorschau, type RubrikListe, type SchuelerInfo, type KorrekturKontext } from '../hooks/useNatascha';
 import { useEinsatz, type EinsatzRecord } from '../hooks/useEinsatz';
+import { fuegeAnlageHinzuDirekt } from '../hooks/usePlanung';
 import { useKlassenMeta } from '../hooks/useKlassenMeta';
 import { einsatzAnzeigeDatum, formatEinsatzDatum } from '../lib/einsatz';
 import { ViewShell } from './_ViewShell';
@@ -189,7 +191,7 @@ interface KorrekturViewProps {
 }
 
 export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }: KorrekturViewProps = {}) {
-  const { analyze, activeJobId, cancel, analyzing, progressStage, progressMessage, listKlassen, listAufgaben, getAbgaben, getAbgabeDetail, getKorrekturKontext, upsertLehrerFeedback, updateFehlerStatus, activateKorrekturRevision, deleteKorrekturRevision, generateFeedbackDocx, retroImport, personenVorschau, listSchueler, listRubrics, quelltextGet } = useNatascha();
+  const { analyze, activeJobId, cancel, analyzing, progressStage, progressMessage, listKlassen, listAufgaben, getAbgaben, getAbgabeDetail, getKorrekturKontext, upsertLehrerFeedback, getPunktebewertung, savePunktebewertung, updateFehlerStatus, activateKorrekturRevision, deleteKorrekturRevision, generateFeedbackDocx, retroImport, personenVorschau, listSchueler, listRubrics, quelltextGet } = useNatascha();
   const { list: listEinsaetze } = useEinsatz();
   const { klassen: klassenMeta, refresh: refreshKlassenMeta } = useKlassenMeta();
 
@@ -721,6 +723,7 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }:
   }, [selectedKlasse, selectedAufgabe, retroImport, listKlassen, loadAbgaben]);
 
   const [docxErfolg, setDocxErfolg] = useState<string | null>(null);
+  const [feedbackAmTermin, setFeedbackAmTermin] = useState(false);
 
   const handleGenerateDocx = useCallback(async () => {
     if (!selectedAbgabe || exportLock.current) return;
@@ -746,6 +749,7 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }:
     if (!await handleSaveFeedback()) return;
     setError(null);
     setDocxErfolg(null);
+    setFeedbackAmTermin(false);
     const result = await generateFeedbackDocx(selectedAbgabe.abgabe.id);
     if (result) {
       setDocxErfolg(result.path);
@@ -765,9 +769,21 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }:
     }
   }, [docxErfolg]);
 
+  const handleFeedbackAmTermin = useCallback(async () => {
+    const einsatzId = selectedAbgabe?.abgabe.unterrichtseinsatzId;
+    if (!einsatzId || !docxErfolg || feedbackAmTermin) return;
+    const dateiname = docxErfolg.split(/[/\\]/).pop() || 'Feedback.docx';
+    const anlage = await fuegeAnlageHinzuDirekt(einsatzId, {
+      art: 'ablage', quellePfad: docxErfolg, label: `Feedback: ${dateiname}`,
+    });
+    if (anlage) setFeedbackAmTermin(true);
+    else setError('Feedback erstellt, aber die Ablage am Termin ist fehlgeschlagen. Bitte erneut versuchen.');
+  }, [selectedAbgabe, docxErfolg, feedbackAmTermin]);
+
   // Karte gehört zur jeweiligen Abgabe — beim Wechsel ausblenden.
   useEffect(() => {
     setDocxErfolg(null);
+    setFeedbackAmTermin(false);
     setFehlerAktionen({});
     setEditFehlerId(null);
     setNurUnsichere(false);
@@ -1432,11 +1448,24 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect }:
                     <button className="btn-secondary" onClick={handleShowDocx} style={{ fontSize: '0.75rem', padding: '0.25rem 0.625rem' }}>
                       Ordner öffnen
                     </button>
+                    {selectedAbgabe.abgabe.unterrichtseinsatzId && (
+                      <button className="btn-secondary" onClick={() => void handleFeedbackAmTermin()} disabled={feedbackAmTermin} style={{ fontSize: '0.75rem', padding: '0.25rem 0.625rem' }}>
+                        {feedbackAmTermin ? 'Am Termin abgelegt' : 'Am Termin ablegen'}
+                      </button>
+                    )}
                     <button className="btn-secondary" aria-label="Hinweis schließen" title="Schließen" onClick={() => setDocxErfolg(null)} style={{ padding: '0.2rem 0.45rem' }}>
                       ×
                     </button>
                   </div>
                 )}
+
+                <PunkteKorrekturPanel
+                  abgabeId={selectedAbgabe.abgabe.id}
+                  materialId={selectedAbgabe.abgabe.materialId}
+                  aufgabe={selectedAbgabe.abgabe.aufgabe}
+                  getPunktebewertung={getPunktebewertung}
+                  savePunktebewertung={savePunktebewertung}
+                />
 
                 <div className="korrektur-detail-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(340px, 440px) 1fr', gap: '1.25rem', alignItems: 'start' }}>
                   {/* Linke Spalte: Analyse-Rail */}

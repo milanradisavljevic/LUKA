@@ -50,6 +50,8 @@ const FACH_CODE = {
   philosophie: 'ph',
   mediendemokratie: 'md',
   informatikki: 'ik',
+  mathematik: 'ma',
+  biologie: 'bi',
 };
 
 const STUFE_ABBR = { unterstufe: 'un', oberstufe: 'ob' };
@@ -94,6 +96,18 @@ const DEFAULT_AUFGABENTYPEN = {
   'Fachwissen': ['multipleChoice', 'offeneVerstaendnisfrage'],
   'Methoden- & Erkenntniskompetenz': ['offeneVerstaendnisfrage', 'multipleChoice'],
   'Reflexions- & Urteilskompetenz': ['offeneSchreibaufgabe', 'offeneVerstaendnisfrage'],
+  'Zahlen und Maße': ['multipleChoice', 'offeneVerstaendnisfrage'],
+  'Variablen und Funktionen': ['lueckentext', 'offeneVerstaendnisfrage'],
+  'Figuren und Körper': ['multipleChoice', 'offeneVerstaendnisfrage'],
+  'Daten und Zufall': ['multipleChoice', 'offeneVerstaendnisfrage'],
+  'Algebra und Geometrie': ['offeneVerstaendnisfrage', 'lueckentext'],
+  'Funktionale Abhängigkeiten': ['multipleChoice', 'offeneVerstaendnisfrage'],
+  'Analysis': ['offeneVerstaendnisfrage', 'lueckentext'],
+  'Wahrscheinlichkeit und Statistik': ['multipleChoice', 'offeneVerstaendnisfrage'],
+  'Wissen aneignen, anwenden und kommunizieren': ['offeneVerstaendnisfrage', 'multipleChoice'],
+  'Fachwissen aneignen und kommunizieren': ['offeneVerstaendnisfrage', 'multipleChoice'],
+  'Erkenntnisse gewinnen': ['offeneVerstaendnisfrage'],
+  'Standpunkte begründen und reflektiert handeln': ['offeneSchreibaufgabe', 'offeneVerstaendnisfrage'],
 };
 
 const args = process.argv.slice(2);
@@ -161,44 +175,137 @@ function validateFile(path, data) {
 function validateStufenFile(path, data) {
   const errors = [];
   if (!data.fach || !FACH_CODE[data.fach]) {
-    errors.push(`Unbekanntes Fach: ${data.fach}`);
+    errors.push('Unbekanntes Fach: ' + data.fach);
   }
   if (!Array.isArray(data.stufen) || data.stufen.length === 0) {
-    errors.push(`stufen muss ein nicht-leeres Array sein`);
+    errors.push('stufen muss ein nicht-leeres Array sein');
     return errors;
   }
+
+  const quellengestutzteFaecher = new Set(['mathematik', 'biologie']);
+  const istQuellengestutzt = quellengestutzteFaecher.has(data.fach);
+  if (istQuellengestutzt) {
+    if (typeof data.quelle !== 'string' || data.quelle.trim().length === 0) {
+      errors.push('quelle fehlt');
+    }
+    if (typeof data.quelleUrl !== 'string' || !data.quelleUrl.startsWith('https://')) {
+      errors.push('quelleUrl fehlt oder ist keine HTTPS-URL');
+    }
+  }
+
   const erlaubteBereiche = data.fach ? KOMPETENZBEREICHE[data.fach] ?? [] : [];
+  const schulstufen = new Set();
+  const bereicheGesamt = new Set();
+  const deskriptorIds = new Set();
+  const stoffItemIds = new Set();
   for (const st of data.stufen) {
     if (!Number.isInteger(st.schulstufe) || st.schulstufe < 5 || st.schulstufe > 12) {
-      errors.push(`Ungültige schulstufe: ${st.schulstufe}`);
+      errors.push('Ungültige schulstufe: ' + st.schulstufe);
       continue;
     }
+    if (schulstufen.has(st.schulstufe)) errors.push('schulstufe ' + st.schulstufe + ': doppelt vorhanden');
+    schulstufen.add(st.schulstufe);
     if (!Array.isArray(st.bereiche) || st.bereiche.length === 0) {
-      errors.push(`schulstufe ${st.schulstufe}: bereiche fehlt`);
+      errors.push('schulstufe ' + st.schulstufe + ': bereiche fehlt');
       continue;
     }
+    const bereicheDerStufe = new Set();
     for (const b of st.bereiche) {
       if (!b.bereich) {
-        errors.push(`Ein Bereich hat keinen Namen`);
+        errors.push('schulstufe ' + st.schulstufe + ': ein Bereich hat keinen Namen');
         continue;
       }
+      if (bereicheDerStufe.has(b.bereich)) errors.push('schulstufe ' + st.schulstufe + ': Bereich "' + b.bereich + '" doppelt vorhanden');
+      bereicheDerStufe.add(b.bereich);
+      bereicheGesamt.add(b.bereich);
       if (!erlaubteBereiche.includes(b.bereich)) {
-        errors.push(`Bereich "${b.bereich}" ist nicht in KOMPETENZBEREICHE[${data.fach}]`);
+        errors.push('Bereich "' + b.bereich + '" ist nicht in KOMPETENZBEREICHE[' + data.fach + ']');
       }
       if (!Array.isArray(b.deskriptoren) || b.deskriptoren.length === 0) {
-        errors.push(`Bereich "${b.bereich}": keine Deskriptoren`);
+        errors.push('Bereich "' + b.bereich + '": keine Deskriptoren');
         continue;
       }
+      const idsDiesesBereichs = new Set();
       for (const d of b.deskriptoren) {
         if (typeof d.text !== 'string' || d.text.trim().length === 0) {
-          errors.push(`Bereich "${b.bereich}": Deskriptor ohne text`);
+          errors.push('Bereich "' + b.bereich + '": Deskriptor ohne text');
+        }
+        if (istQuellengestutzt && (typeof d.id !== 'string' || d.id.trim().length === 0)) {
+          errors.push('Bereich "' + b.bereich + '": Deskriptor ohne stabile id');
+        }
+        if (istQuellengestutzt && (typeof d.quelle !== 'string' || d.quelle.trim().length === 0)) {
+          errors.push('Bereich "' + b.bereich + '": Deskriptor ohne konkrete Quellenstelle');
+        } else if (istQuellengestutzt && (!d.quelle.includes('Anlage 1') || !d.quelle.includes('gültig ab 01.09.2026') || !d.quelle.includes(data.quelleUrl))) {
+          errors.push('Bereich "' + b.bereich + '": Deskriptor-Quelle braucht Titel, Fassung und direkte RIS-URL');
+        }
+        const id = d.id?.trim();
+        if (id) {
+          if (deskriptorIds.has(id)) errors.push('Doppelte Deskriptor-ID: ' + id);
+          deskriptorIds.add(id);
+          idsDiesesBereichs.add(id);
+        }
+      }
+
+      if (istQuellengestutzt) {
+        if (!Array.isArray(b.stoffItems) || b.stoffItems.length === 0) {
+          errors.push('schulstufe ' + st.schulstufe + ', Bereich "' + b.bereich + '": konkrete stoffItems fehlen');
+          continue;
+        }
+        for (const item of b.stoffItems) {
+          if (typeof item.id !== 'string' || !item.id.trim()) errors.push('Bereich "' + b.bereich + '": StoffItem ohne id');
+          else {
+            if (stoffItemIds.has(item.id)) errors.push('Doppelte StoffItem-ID: ' + item.id);
+            stoffItemIds.add(item.id);
+          }
+          if (typeof item.titel !== 'string' || !item.titel.trim()) errors.push('Bereich "' + b.bereich + '": StoffItem ohne titel');
+          if (!Array.isArray(item.deskriptorIds) || item.deskriptorIds.length === 0) {
+            errors.push('Bereich "' + b.bereich + '", StoffItem "' + item.id + '": deskriptorIds fehlt');
+            continue;
+          }
+          for (const id of item.deskriptorIds) {
+            if (!idsDiesesBereichs.has(id)) {
+              errors.push('schulstufe ' + st.schulstufe + ', Bereich "' + b.bereich + '", StoffItem "' + item.id + '": Deskriptor "' + id + '" fehlt in diesem Bereich');
+            }
+          }
+        }
+      }
+    }
+
+    if (istQuellengestutzt) {
+      let erforderlicheBereiche = erlaubteBereiche;
+      if (data.fach === 'mathematik') {
+        erforderlicheBereiche = st.schulstufe <= 8
+          ? erlaubteBereiche.slice(0, 4)
+          : st.schulstufe === 9
+            ? erlaubteBereiche.slice(4, 6)
+            : erlaubteBereiche.slice(4);
+      }
+      if (data.fach === 'biologie') {
+        erforderlicheBereiche = st.schulstufe <= 8
+          ? [erlaubteBereiche[0], erlaubteBereiche[2], erlaubteBereiche[3]]
+          : [erlaubteBereiche[1], erlaubteBereiche[2], erlaubteBereiche[3]];
+      }
+      for (const bereich of erforderlicheBereiche) {
+        if (!bereicheDerStufe.has(bereich)) {
+          errors.push('schulstufe ' + st.schulstufe + ': Kompetenzbereich "' + bereich + '" fehlt');
         }
       }
     }
   }
+
+  if (istQuellengestutzt) {
+    for (let schulstufe = 5; schulstufe <= 12; schulstufe++) {
+      if (!schulstufen.has(schulstufe)) errors.push('schulstufe ' + schulstufe + ': Abdeckung fehlt');
+    }
+    if (typeof data.redaktionellerHinweis !== 'string' || !/LUKA/i.test(data.redaktionellerHinweis)) {
+      errors.push('redaktionellerHinweis muss die didaktische LUKA-Aufbereitung kennzeichnen');
+    }
+    for (const bereich of erlaubteBereiche) {
+      if (!bereicheGesamt.has(bereich)) errors.push('Kompetenzbereich "' + bereich + '" ist in keiner Schulstufe abgedeckt');
+    }
+  }
   return errors;
 }
-
 function loadInputs() {
   const files = readdirSync(inputDir);
   const byFach = {};
@@ -328,72 +435,95 @@ function generateFachTsFromStufen(fach, data) {
   const fachCode = FACH_CODE[fach];
   const label = FACH_META[fach]?.label ?? fach;
   const defaultQuelle = data.quelle ?? data.quelleUrl ?? '';
+  const hatStufenItems = data.stufen.some((st) => st.bereiche.some((b) => Array.isArray(b.stoffItems) && b.stoffItems.length > 0));
   const lines = [
-    `import type { StoffItem, Deskriptor } from '@lehrunterlagen/schema';`,
-    ``,
-    `// ${label} — generiert aus Lehrplan-Recherche (_stufen.json).`,
-    `// Deskriptoren sind gesourct und mit konkreter Schulstufe (5–12) hinterlegt;`,
-    `// StoffItems bleiben grob (Unter-/Oberstufe) und verlinken passende Deskriptoren.`,
-    ``,
-    `export const ${fach}Deskriptoren: Deskriptor[] = [`,
+    "import type { StoffItem, Deskriptor } from '@lehrunterlagen/schema';",
+    '',
+    '// ' + label + ' — generiert aus Lehrplan-Recherche (_stufen.json).',
+    '// Deskriptoren sind gesourct und mit konkreter Schulstufe (5–12) hinterlegt;',
+    hatStufenItems
+      ? '// StoffItem-Titel sind redaktionelle LUKA-Lerninhalte, keine offiziellen Lehrplantitel.'
+      : '// StoffItems bleiben grob (Unter-/Oberstufe) und verlinken passende Deskriptoren.',
+    '',
+    'export const ' + fach + 'Deskriptoren: Deskriptor[] = [',
   ];
 
-  const stoffItemMap = new Map(); // key: `${stufe}|${bereich}`
+  const stoffItemMap = new Map(); // Bestehende Quellen gruppieren weiterhin nach Stufe/Bereich
+  const stufenStoffItems = [];
   const seenIds = new Set();
+  const tsString = (value) => String(value).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r?\n/g, ' ');
 
   for (const st of data.stufen) {
     const schulstufe = st.schulstufe;
     const stufe = stufeFromSchulstufe(schulstufe);
     for (const bereichObj of st.bereiche) {
       const bereich = bereichObj.bereich;
-      const key = `${stufe}|${bereich}`;
-      if (!stoffItemMap.has(key)) {
-        const stufeAbbr = STUFE_ABBR[stufe];
-        const bereichSlug = slugify(bereich);
-        stoffItemMap.set(key, {
-          id: stoffItemId(fachCode, stufeAbbr, bereichSlug),
-          titel: bereich,
-          stufe,
-          bereich,
-          deskriptorIds: [],
-        });
+      const expliziteItems = Array.isArray(bereichObj.stoffItems) && bereichObj.stoffItems.length > 0;
+      let item;
+      if (!expliziteItems) {
+        const key = stufe + '|' + bereich;
+        if (!stoffItemMap.has(key)) {
+          const stufeAbbr = STUFE_ABBR[stufe];
+          const bereichSlug = slugify(bereich);
+          stoffItemMap.set(key, {
+            id: stoffItemId(fachCode, stufeAbbr, bereichSlug),
+            titel: bereich,
+            stufe,
+            bereich,
+            deskriptorIds: [],
+          });
+        }
+        item = stoffItemMap.get(key);
       }
-      const item = stoffItemMap.get(key);
 
       for (let i = 0; i < bereichObj.deskriptoren.length; i++) {
         const d = bereichObj.deskriptoren[i];
-        const id = d.id?.trim() || `${fachCode}-${slugify(bereich)}-s${schulstufe}-${i + 1}`;
-        if (seenIds.has(id)) throw new Error(`Doppelte Deskriptor-ID: ${id}`);
+        const id = d.id?.trim() || fachCode + '-' + slugify(bereich) + '-s' + schulstufe + '-' + (i + 1);
+        if (seenIds.has(id)) throw new Error('Doppelte Deskriptor-ID: ' + id);
         seenIds.add(id);
-        item.deskriptorIds.push(id);
+        if (item) item.deskriptorIds.push(id);
         const quelle = d.quelle?.trim() || defaultQuelle || '';
         lines.push(
-          `  { id: '${id}', rahmenwerk: 'at-lehrplan', fach: '${fach}', stufe: '${stufe}', schulstufe: ${schulstufe}, bereich: '${bereich.replace(/'/g, "\\'")}', code: '${(d.code ?? '').replace(/'/g, "\\'")}', text: '${d.text.replace(/'/g, "\\'")}', quelle: '${quelle.replace(/'/g, "\\'")}' },`,
+          "  { id: '" + tsString(id) + "', rahmenwerk: 'at-lehrplan', fach: '" + fach + "', stufe: '" + stufe + "', schulstufe: " + schulstufe + ", bereich: '" + tsString(bereich) + "', code: '" + tsString(d.code ?? '') + "', text: '" + tsString(d.text) + "', quelle: '" + tsString(quelle) + "' },"
         );
+      }
+
+      if (expliziteItems) {
+        for (const stoffItem of bereichObj.stoffItems) {
+          stufenStoffItems.push({
+            id: stoffItem.id,
+            titel: stoffItem.titel,
+            stufe,
+            schulstufe,
+            bereich,
+            deskriptorIds: stoffItem.deskriptorIds,
+          });
+        }
       }
     }
   }
 
-  lines.push(`];`, ``, `export const ${fach}StoffItems: StoffItem[] = [`);
-  // Sortiere StoffItems nach kanonischer Bereichsreihenfolge und Stufe
+  lines.push('];', '', 'export const ' + fach + 'StoffItems: StoffItem[] = [');
   const bereichOrder = KOMPETENZBEREICHE[fach] ?? [];
-  const stoffItems = Array.from(stoffItemMap.values()).sort((a, b) => {
+  const stoffItems = [...stoffItemMap.values(), ...stufenStoffItems].sort((a, b) => {
     const idxA = bereichOrder.indexOf(a.bereich);
     const idxB = bereichOrder.indexOf(b.bereich);
     if (idxA !== idxB) return idxA - idxB;
+    if (a.schulstufe !== undefined && b.schulstufe !== undefined) return a.schulstufe - b.schulstufe;
     return a.stufe === 'unterstufe' ? -1 : 1;
   });
 
   for (const item of stoffItems) {
+    const types = DEFAULT_AUFGABENTYPEN[item.titel] ?? DEFAULT_AUFGABENTYPEN[item.bereich] ?? ['offeneVerstaendnisfrage'];
+    const schulstufe = item.schulstufe === undefined ? '' : 'schulstufe: ' + item.schulstufe + ', ';
     lines.push(
-      `  { id: '${item.id}', rahmenwerk: 'at-lehrplan', titel: '${item.titel.replace(/'/g, "\\'")}', fach: '${fach}', stufe: '${item.stufe}', kategorie: '${item.bereich.replace(/'/g, "\\'")}', deskriptorIds: [${item.deskriptorIds.map((id) => `'${id}'`).join(', ')}], defaultAufgabentypen: [${(DEFAULT_AUFGABENTYPEN[item.titel] ?? DEFAULT_AUFGABENTYPEN[item.bereich] ?? ['offeneVerstaendnisfrage']).map((t) => `'${t}'`).join(', ')}] },`,
+      "  { id: '" + tsString(item.id) + "', rahmenwerk: 'at-lehrplan', titel: '" + tsString(item.titel) + "', fach: '" + fach + "', stufe: '" + item.stufe + "', " + schulstufe + "kategorie: '" + tsString(item.bereich) + "', deskriptorIds: [" + item.deskriptorIds.map((id) => "'" + tsString(id) + "'").join(', ') + "], defaultAufgabentypen: [" + types.map((type) => "'" + tsString(type) + "'").join(', ') + "] },"
     );
   }
-  lines.push(`];`, ``);
+  lines.push('];', '');
 
   return lines.join('\n');
 }
-
 function main() {
   const byFach = loadInputs();
   const faecher = Object.keys(byFach).sort();

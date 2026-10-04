@@ -34,6 +34,39 @@ describe('Stoffkatalog-Integrität', () => {
     expect(new Set(stoffItems.map((s) => s.id)).size).toBe(stoffItems.length);
   });
 
+  it('deckt Mathematik und Biologie in den vorgesehenen österreichischen Schulstufen ab', () => {
+    const unterstufeMathe = ['Zahlen und Maße', 'Variablen und Funktionen', 'Figuren und Körper', 'Daten und Zufall'];
+    const oberstufeMathe = ['Algebra und Geometrie', 'Funktionale Abhängigkeiten', 'Analysis', 'Wahrscheinlichkeit und Statistik'];
+    const bioUnterstufe = ['Wissen aneignen, anwenden und kommunizieren', 'Erkenntnisse gewinnen', 'Standpunkte begründen und reflektiert handeln'];
+    const bioOberstufe = ['Fachwissen aneignen und kommunizieren', 'Erkenntnisse gewinnen', 'Standpunkte begründen und reflektiert handeln'];
+    for (const fach of ['mathematik', 'biologie'] as const) {
+      const fachDeskriptoren = deskriptoren.filter((d) => d.fach === fach && d.rahmenwerk === 'at-lehrplan');
+      const fachItems = stoffItems.filter((item) => item.fach === fach && item.rahmenwerk === 'at-lehrplan');
+      expect(fachDeskriptoren.length, fach + ': Deskriptoren vorhanden').toBeGreaterThan(0);
+      expect(fachItems.length, fach + ': StoffItems vorhanden').toBeGreaterThan(0);
+      for (let schulstufe = 5; schulstufe <= 12; schulstufe++) {
+        const stufenDeskriptoren = fachDeskriptoren.filter((d) => d.schulstufe === schulstufe);
+        const stufenItems = fachItems.filter((item) => item.schulstufe === schulstufe);
+        expect(stufenDeskriptoren.length, fach + ' Schulstufe ' + schulstufe + ': Deskriptoren').toBeGreaterThan(0);
+        expect(stufenItems.length, fach + ' Schulstufe ' + schulstufe + ': StoffItems').toBeGreaterThan(0);
+        const erlaubteBereiche = fach === 'mathematik'
+          ? schulstufe <= 8 ? unterstufeMathe : schulstufe === 9 ? oberstufeMathe.slice(0, 2) : oberstufeMathe
+          : schulstufe <= 8 ? bioUnterstufe : bioOberstufe;
+        expect(new Set(stufenDeskriptoren.map((d) => d.bereich))).toEqual(new Set(erlaubteBereiche));
+        for (const descriptor of stufenDeskriptoren) {
+          expect(descriptor.quelle, descriptor.id + ': RIS-Stelle, Fassung und Direktlink').toContain('Anlage 1');
+          expect(descriptor.quelle).toContain('gültig ab 01.09.2026');
+          expect(descriptor.quelle).toContain('https://www.ris.bka.gv.at/NormDokument.wxe?');
+        }
+        for (const item of stufenItems) {
+          expect(item.deskriptorIds.length, item.id + ': Deskriptorverweis').toBeGreaterThan(0);
+          for (const id of item.deskriptorIds) {
+            expect(stufenDeskriptoren.some((d) => d.id === id && d.bereich === item.kategorie), item.id + ' → ' + id + ' muss derselben Stufe und demselben Kompetenzbereich angehören').toBe(true);
+          }
+        }
+      }
+    }
+  });
   it('registriert vollständige deutsche Kernkataloge', () => {
     for (const fach of ['deutsch', 'englisch', 'geschichte', 'geographie', 'ethik'] as const) {
       const fachDeskriptoren = deskriptoren.filter((d) => d.fach === fach && d.rahmenwerk === 'de-lehrplan');
@@ -89,7 +122,8 @@ describe('Entwurfs-Vermerk-Steuerung', () => {
 
   it('deutsche Kataloge sind ehrlich als Entwurf gekennzeichnet — nur für de-lehrplan', () => {
     // Seit Runde 2 haben ALLE Fächer einen DE-Katalog; alle sind kuratierte Entwürfe.
-    for (const fach of Object.keys(KOMPETENZBEREICHE) as (keyof typeof KOMPETENZBEREICHE)[]) {
+    const deutscheFaecher = ['deutsch', 'englisch', 'franzoesisch', 'spanisch', 'italienisch', 'latein', 'geschichte', 'geographie', 'religion', 'ethik', 'psychologie', 'philosophie', 'mediendemokratie', 'informatikki'] as const;
+    for (const fach of deutscheFaecher) {
       expect(fachHatEntwurf(fach, undefined, 'de-lehrplan'), `${fach} (DE) sollte Entwurfs-Vermerk zeigen`).toBe(true);
     }
   });

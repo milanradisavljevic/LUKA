@@ -64,6 +64,33 @@ describe('blockToRequest — fehlerkorrektur anzahlSaetze', () => {
   });
 });
 
+describe('blockToRequest — IB Literature-Struktur', () => {
+  it('preserves Paper 1 choice metadata and its exact selected source', () => {
+    const block = {
+      ...base, typ: 'offeneSchreibaufgabe',
+      config: {
+        situation: 'Analyse.', textsorte: 'Analyse', umfangWorte: { min: 250, max: 350 }, aspekte: ['Belege.'],
+        ibChoiceGroup: { id: 'paper1-sl-choice', option: 'B', totalOptions: 2, totalMaxMarks: 20 },
+      },
+    } as unknown as Block;
+    expect(blockToRequest(block)).toMatchObject({
+      typ: 'offeneSchreibaufgabe', quelleId: 'q1',
+      ibChoiceGroup: { id: 'paper1-sl-choice', option: 'B', totalOptions: 2, totalMaxMarks: 20 },
+    });
+  });
+
+  it('does not send an empty Paper 2 question list as a teacher constraint', () => {
+    const block = {
+      ...base, typ: 'offeneSchreibaufgabe',
+      config: {
+        situation: 'Essay.', textsorte: 'Essay', umfangWorte: { min: 800, max: 1000 }, aspekte: ['Vergleiche.'],
+        ibPaper2Questions: [],
+      },
+    } as unknown as Block;
+    expect(blockToRequest(block)).not.toHaveProperty('ibPaper2Questions');
+  });
+});
+
 describe('blockToRequest — unvollstaendige configs crashen nicht', () => {
   it('matching ohne config.items liefert Default anzahlItems', () => {
     const block = {

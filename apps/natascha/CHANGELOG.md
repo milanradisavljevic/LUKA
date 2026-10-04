@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## Version 1.5.6 — 2026-10-04
+- Die gemeinsame Datenbank unterstützt stabile Klassen-IDs und mehrere Kurszuordnungen pro Schüler/in; unsichere Altzuordnungen bleiben zur Prüfung offen.
+- Die gemeinsame Datenbank speichert bestätigte Punktebewertungen je Abgabe; LUA berechnet geschlossene Aufgaben lokal aus dem gespeicherten Lösungsschlüssel.
+- DeepSeek V4 Pro ist der Standard für neue Korrekturen und den lokalen Qualitätslauf. Die Textauswahl der TUI verwendet die aktuellen DeepSeek-Modellnamen.
+- Zwei vollständige DeepSeek-V4-Pro-Läufe mit synthetischen Fällen liegen je für Deutsch (6) und Englisch (4) vor. Der deutsche Referenzabgleich schwankte zwischen 1/2 und 2/2 Treffern; Lehrkraftbewertung und Freigabe bleiben offen.
+- Der Benchmark liest Unicode-Ausgaben unter Windows ausdrücklich als UTF-8, damit Fehlerzitate und Referenzabgleich unverfälscht bleiben.
+
 ## Unveröffentlicht – Closed-Loop-Revision (2026-09-24)
 - `feedback_schema.json` erlaubt die post-hoc ergänzten `fehler`-Felder
   `vertrauensstufe` (enum hoch/mittel/niedrig) und `korrektur_lokal_ambig`

@@ -1,0 +1,372 @@
+[
+  {
+    "id": "luka-geschichte-ahs-v1-s6-fund-und-deutung",
+    "fach": "geschichte",
+    "stufe": "unterstufe",
+    "schulstufe": 6,
+    "thema": "Was belegt ein Fund?",
+    "aufgabentyp": "quellenanalyse",
+    "tags": "[\"redaktionell-kuratiert\",\"geschichte-ahs-v1\",\"Historische Fragekompetenz\",\"Historische Methodenkompetenz\",\"Historische und politische Sachkompetenz\",\"2. Klasse\"]",
+    "blockJson": "{\"id\":\"b1\",\"punkte\":12,\"arbeitsanweisung\":\"Lies beide Lesekarten. Trenne Angaben, die am erhaltenen Brief oder an seiner Erschließung festgemacht sind, von späteren Deutungen. Belege deine Antworten mit Textstellen und nenne eine offene Frage.\",\"typ\":\"quellenanalyse\",\"config\":{\"quelleId\":\"q1\",\"quellentyp\":\"text\",\"auftraege\":[{\"nr\":1,\"operator\":\"beschreiben\",\"frage\":\"Welche Angaben über die Einladung und die erhaltene Tafel nennt Lesekarte 1? Schreibe nur auf, was dort belegt wird.\",\"zeilen\":4},{\"nr\":2,\"operator\":\"analysieren\",\"frage\":\"Welche weitergehende Aussage macht Lesekarte 2 über Frauen im römischen Alltag? Welche Teile davon lassen sich durch Lesekarte 1 stützen, welche nicht?\",\"zeilen\":5},{\"nr\":3,\"operator\":\"beurteilen\",\"frage\":\"Formuliere eine noch offene historische Frage, die mit dieser einzelnen Einladung nicht beantwortet werden kann, und begründe die Grenze.\",\"zeilen\":4}]},\"loesung\":{\"antworten\":[{\"nr\":1,\"erwartung\":\"Die Tafel ist eine Einladung von Claudia Severa an Sulpicia Lepidina zu einem Geburtstag am 11. September; die Schlusszeilen sind in einer zweiten Handschrift ergänzt. Die Datierung ist spät-1. oder früh-2. Jahrhundert n. Chr.\",\"belege\":[\"Die Einladung nennt den 11. September.\",\"Der Schluss ist laut Karte in einer zweiten Handschrift geschrieben.\",\"Die Datierung wird als spätes 1. oder frühes 2. Jahrhundert angegeben.\"]},{\"nr\":2,\"erwartung\":\"Die Einladung belegt Kontakt zwischen den beiden Frauen und eine zusätzliche Handschrift, die dem Museum zufolge Severa zugeordnet wird. Sie beweist weder allgemeine Lesefähigkeit aller Frauen noch typische Lebensbedingungen aller sozialen Gruppen.\",\"belege\":[\"Die Karte nennt zwei Frauen aus dem Umfeld der Kommandantenfamilien.\",\"Die zweite Handschrift wird Severa zugeordnet.\",\"Der Beleg betrifft diese Tafel und nicht alle Frauen im Römischen Reich.\"]},{\"nr\":3,\"erwartung\":\"Eine Frage nach Häufigkeit oder sozialer Verbreitung ist offen, weil eine erhaltene Einladung keine repräsentative Erhebung ist; zusätzliche Briefe, Fundkontexte oder Vergleichsquellen wären nötig.\",\"belege\":[\"Die Lesekarte beschreibt ein einzelnes erhaltenes Schriftstück.\",\"Eine einzelne Einladung liefert keine Häufigkeitsdaten.\"]}]}}",
+    "quelltexte": [
+      {
+        "id": "q1",
+        "titel": "Auszug: Vindolanda-Tafel 291, mit LUKA-Kurzübertragung",
+        "inhalt": "Normalisierte Kurzabschrift aus dem Brief, mit Auslassungen: „iii Idus Septembres, soror, ad diem sollemnem natalem meum rogo libenter facias ut venias ad nos.“ LUKA-Kurzübertragung: „Am 11. September, Schwester, zu meinem Geburtstag bitte ich dich herzlich, zu uns zu kommen.“ Einzelne beschädigte Zeichen sind in der Edition ergänzt; die deutsche Kurzübertragung ist redaktionell und keine amtliche Übersetzung. Die Edition ordnet den Brief Claudia Severa an Sulpicia Lepidina zu und datiert ihn auf 97–105 n. Chr.",
+        "herkunft": {
+          "typ": "url",
+          "ref": "https://romaninscriptionsofbritain.org/inscriptions/TabVindol291"
+        }
+      },
+      {
+        "id": "q2",
+        "titel": "Lesekarte 2: Deutung einer Museumsdarstellung (LUKA-Paraphrase)",
+        "inhalt": "Eine moderne Museumserklärung hebt hervor, dass die Einladung auf persönliche Kontakte und eine Schreiberin aus der römischen Oberschicht verweist. Diese Lesart lenkt den Blick auf weibliche Schriftpraxis, bleibt aber an einen besonderen Fund und ein militärisches Führungshaushalt gebunden. LUKA fasst die Erklärung zusammen; es ist kein zusätzlicher antiker Text.",
+        "herkunft": {
+          "typ": "url",
+          "ref": "https://www.britishmuseum.org/collection/galleries/roman-britain/vindolanda-tablets"
+        }
+      }
+    ],
+    "quelleHinweis": "AMTLICHER LEHRPLAN: Lehrplan der allgemeinbildenden höheren Schule, Anlage 1, Anlage A, Pflichtgegenstand Geschichte und Politische Bildung. Fundstelle: 2. Klasse: historische Methodenkompetenz (Quellen und Darstellungen unterscheiden, beschreiben, analysieren und interpretieren; Belegbarkeit von Darstellungen prüfen), historische Fragekompetenz und historische und politische Sachkompetenz; Anwendungsbereiche von Urgeschichte bis Früher Neuzeit; Schulstufe 6. Fassung gültig ab 01.09.2026, zuletzt geändert durch BGBl. II Nr. 204/2024. RIS: https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Anlage=1&Artikel=&Gesetzesnummer=10008568&Paragraf=&Uebergangsrecht=\nLUKA-AUFBEREITUNG: Historische Fragekompetenz, Historische Methodenkompetenz, Historische und politische Sachkompetenz werden hier in einer redaktionell erstellten Aufgabe mit Material und Erwartungskriterien geübt. Die Aufgabenbezeichnungen und Lesekarten sind keine amtlichen Kompetenzbezeichnungen oder Originaltexte.\nMATERIALGRUNDLAGE: British Museum, „The Vindolanda tablets“; Roman Inscriptions of Britain, Tab. Vindol. 291, Textabschnitt (online, geprüft 2026-10-04).\nStand der Quellenprüfung: 2026-10-04. Keine personenbezogenen Schülerdaten; synthetische Daten sind ausdrücklich als solche gekennzeichnet.",
+    "createdAt": "2026-10-04T00:00:00.000Z"
+  },
+  {
+    "id": "luka-geschichte-ahs-v1-s7-epochen-erzaehlung",
+    "fach": "geschichte",
+    "stufe": "unterstufe",
+    "schulstufe": 7,
+    "thema": "Wie wird eine Epoche erzählt?",
+    "aufgabentyp": "quellenanalyse",
+    "tags": "[\"redaktionell-kuratiert\",\"geschichte-ahs-v1\",\"Historische Methodenkompetenz\",\"Historische Orientierungskompetenz\",\"Historische und politische Sachkompetenz\",\"Politikbezogene Methodenkompetenz\",\"3. Klasse\"]",
+    "blockJson": "{\"id\":\"b1\",\"punkte\":12,\"arbeitsanweisung\":\"Vergleiche die beiden LUKA-Lesekarten zur Entwicklung des Frauenwahlrechts. Untersuche Auswahl, Perspektive und Erzählziel. Belege deine Aussagen und nenne einen Punkt, den du zusätzlich prüfen würdest.\",\"typ\":\"quellenanalyse\",\"config\":{\"quelleId\":\"q1\",\"quellentyp\":\"text\",\"auftraege\":[{\"nr\":1,\"operator\":\"beschreiben\",\"frage\":\"Welche Stationen und Akteure hebt Lesekarte 1 hervor?\",\"zeilen\":4},{\"nr\":2,\"operator\":\"analysieren\",\"frage\":\"Was wird in Lesekarte 2 stärker gewichtet? Vergleiche Auswahl und Erzählperspektive beider Karten.\",\"zeilen\":5},{\"nr\":3,\"operator\":\"beurteilen\",\"frage\":\"Welche Karte beantwortet besser die Frage, wie politische Mitbestimmung erkämpft wurde? Begründe und nenne eine nötige Quellenprüfung.\",\"zeilen\":5}]},\"loesung\":{\"antworten\":[{\"nr\":1,\"erwartung\":\"Karte 1 ordnet rechtliche Wegmarken von 1848 über 1907 bis zur Einführung 1918 und Wahl 1919 chronologisch ein.\",\"belege\":[\"Karte 1 nennt 1848, 1907, 1918 und 1919.\",\"Sie beschreibt vor allem Änderungen des Wahlrechts.\"]},{\"nr\":2,\"erwartung\":\"Karte 2 rückt Petitionen, Zeitschriften und Demonstrationen sowie politische Aktivität in den Vordergrund. Beide Karten sind LUKA-Zusammenfassungen offizieller Parlamentstexte und keine zeitgenössischen Quellen.\",\"belege\":[\"Karte 2 nennt die Bewegung von 1889 sowie Demonstrationen 1911 und 1913.\",\"Karte 1 erzählt stärker über rechtliche Reformen.\",\"Die Karten tragen den Hinweis auf redaktionelle Zusammenfassung.\"]},{\"nr\":3,\"erwartung\":\"Eine begründete Auswahl ist möglich; für die Frage nach dem Erkämpfen ist die Bewegungskarte aussagekräftiger, zur rechtlichen Veränderung die chronologische Karte. Ein vollständiges Bild braucht beide und die Prüfung der zugrunde liegenden Dokumente.\",\"belege\":[\"Karte 2 nennt konkrete Formen kollektiven Handelns.\",\"Karte 1 beschreibt die gesetzlichen Stationen.\",\"Beide Karten verweisen auf dieselben amtlichen Darstellungsseiten.\"]}]}}",
+    "quelltexte": [
+      {
+        "id": "q1",
+        "titel": "Lesekarte 1: Wahlrechtsreformen als Chronologie (LUKA-Zusammenfassung)",
+        "inhalt": "Die Karte ordnet einige rechtliche Stationen: 1848 entstand eine gewählte Vertretung mit eingeschränktem Wahlrecht; 1907 wurde das allgemeine Männerwahlrecht eingeführt; 1918 wurde das Wahlrecht auf Frauen ausgeweitet; 1919 nahmen Frauen erstmals an der Wahl zur Konstituierenden Nationalversammlung teil. Die Karte fasst aktuelle Informationen des österreichischen Parlaments zusammen und ist kein zeitgenössischer Bericht.",
+        "herkunft": {
+          "typ": "url",
+          "ref": "https://www.parlament.gv.at/verstehen/historisches/wahlen/geschichte-des-wahlrechts/index.html"
+        }
+      },
+      {
+        "id": "q2",
+        "titel": "Lesekarte 2: Politische Bewegung und Öffentlichkeit (LUKA-Zusammenfassung)",
+        "inhalt": "Diese Karte rückt Initiativen von Frauen in den Vordergrund: Petitionen und Zeitschriften seit der Frauenstimmrechtsbewegung 1889, Demonstrationen 1911 und 1913 sowie veränderte öffentliche Rollen im Ersten Weltkrieg. Sie stellt diese Aktivitäten neben die rechtliche Verankerung des Wahlrechts 1918 und die Wahl 1919. LUKA fasst eine aktuelle Parlamentserklärung zusammen, kein historisches Flugblatt.",
+        "herkunft": {
+          "typ": "url",
+          "ref": "https://www.parlament.gv.at/verstehen/demokratie-wahlen/frauen-im-parlament/wahlrecht/index.html"
+        }
+      }
+    ],
+    "quelleHinweis": "AMTLICHER LEHRPLAN: Lehrplan der allgemeinbildenden höheren Schule, Anlage 1, Anlage A, Pflichtgegenstand Geschichte und Politische Bildung. Fundstelle: 3. Klasse: historische Methodenkompetenz (Erzählstrukturen, Zielgruppenausrichtung und inhaltliche Schwerpunktsetzung von Darstellungen analysieren; Quellen vergleichen) sowie historische Orientierungskompetenz, historische und politische Sachkompetenz und politikbezogene Methodenkompetenz; Anwendungsbereiche vom Beginn der Neuzeit bis zum Ende des Ersten Weltkriegs; Schulstufe 7. Fassung gültig ab 01.09.2026, zuletzt geändert durch BGBl. II Nr. 204/2024. RIS: https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Anlage=1&Artikel=&Gesetzesnummer=10008568&Paragraf=&Uebergangsrecht=\nLUKA-AUFBEREITUNG: Historische Methodenkompetenz, Historische Orientierungskompetenz, Historische und politische Sachkompetenz, Politikbezogene Methodenkompetenz werden hier in einer redaktionell erstellten Aufgabe mit Material und Erwartungskriterien geübt. Die Aufgabenbezeichnungen und Lesekarten sind keine amtlichen Kompetenzbezeichnungen oder Originaltexte.\nMATERIALGRUNDLAGE: Parlament Österreich, „Geschichte des Wahlrechts“ und „Die Einführung des Frauenwahlrechts“ (online, geprüft 2026-10-04).\nStand der Quellenprüfung: 2026-10-04. Keine personenbezogenen Schülerdaten; synthetische Daten sind ausdrücklich als solche gekennzeichnet.",
+    "createdAt": "2026-10-04T00:00:00.000Z"
+  },
+  {
+    "id": "luka-geschichte-ahs-v1-s8-politische-kommunikation",
+    "fach": "geschichte",
+    "stufe": "unterstufe",
+    "schulstufe": 8,
+    "thema": "Politische Kommunikation in der Zeitgeschichte",
+    "aufgabentyp": "offeneSchreibaufgabe",
+    "tags": "[\"redaktionell-kuratiert\",\"geschichte-ahs-v1\",\"Historische Methodenkompetenz\",\"Historische und politische Sachkompetenz\",\"Politikbezogene Methodenkompetenz\",\"Politische Urteilskompetenz\",\"4. Klasse\"]",
+    "blockJson": "{\"id\":\"b1\",\"punkte\":18,\"arbeitsanweisung\":\"Verfasse eine kurze, belegte historische Einordnung der politischen Aussage. Unterscheide Wortlaut, rechtliche Wirkung und Grenzen der damaligen Regelung.\",\"quelleId\":\"q1\",\"typ\":\"offeneSchreibaufgabe\",\"config\":{\"situation\":\"Material 1 enthält einen kurzen Wortlaut-Ausschnitt aus einer Debatte der Provisorischen Nationalversammlung am 18. Dezember 1918. Material 2 ist eine spätere Darstellung des Parlaments, die Wahlalter, Wahlbeteiligung und damalige Ausschlüsse erläutert. Schreibe für eine schulische Geschichtsmappe.\",\"textsorte\":\"Historische Kurznotiz\",\"umfangWorte\":{\"min\":180,\"max\":230},\"aspekte\":[\"die politische Aussage in den Kontext der neuen Republik einordnen\",\"mindestens zwei konkrete Angaben aus den Materialien belegen\",\"zwischen rechtlicher Neuerung und fortbestehenden Ausschlüssen unterscheiden\"]},\"loesung\":{\"musterloesung\":\"Am 18. Dezember 1918 wurde in der Provisorischen Nationalversammlung ein Wahlrecht „ohne Unterschied des Geschlechtes“ beschlossen. Der kurze Wortlaut markiert einen grundlegenden Schritt: Frauen und Männer sollten grundsätzlich an der Wahl der Konstituierenden Nationalversammlung teilnehmen können. Die spätere Darstellung des Parlaments zeigt zugleich, dass die Regelung nicht alle Menschen einschloss. Das Wahlalter lag bei 20 Jahren; außerdem waren bestimmte Personen vom Wahlrecht ausgeschlossen. Die Aussage steht daher für eine erhebliche Erweiterung politischer Teilhabe, aber nicht für eine bereits vollständig gleiche Beteiligung aller. Für eine genauere Einordnung müssten der vollständige Gesetzestext und die Debatte über Wahlalter und Ausschlüsse herangezogen werden.\",\"erwartungshorizont\":{\"inhalt\":\"Die Notiz stützt sich auf den dokumentierten Wortlaut und die spätere Einordnung; sie ordnet die Reform in die Entstehung der Republik ein, ohne Gleichheit mit vollständiger Inklusion gleichzusetzen.\",\"struktur\":\"Der Text ordnet Anlass, Belege, Deutung und Schluss klar und nachvollziehbar.\",\"ausdruck\":\"Die Formulierungen sind sachlich, knapp und auf die Zielgruppe abgestimmt.\",\"sprachrichtigkeit\":\"Rechtschreibung, Grammatik und Zeichensetzung sind sicher genug, um die Argumentation klar zu vermitteln.\"}}}",
+    "quelltexte": [
+      {
+        "id": "q1",
+        "titel": "Lesekarte 1: Debatte zur Wahlordnung, 18. Dezember 1918 (kurzer Originalauszug)",
+        "inhalt": "Im stenographischen Protokoll der Provisorischen Nationalversammlung wird das beschlossene Wahlrecht als „allgemeines, gleiches, direktes Wahlrecht aller Staatsbürger, ohne Unterschied des Geschlechtes“ zusammengefasst. Der Ausschnitt ist ein kurzer Wortlaut aus der historischen Parlamentsdebatte; er ersetzt nicht die gesamte Wahlordnung.",
+        "herkunft": {
+          "typ": "url",
+          "ref": "https://www.parlament.gv.at/dokument/PN/PNSITZ/10/imfname_617293.pdf"
+        }
+      },
+      {
+        "id": "q2",
+        "titel": "Lesekarte 2: Spätere Einordnung durch das Parlament (LUKA-Paraphrase)",
+        "inhalt": "Die Konstituierende Nationalversammlung wurde 1919 gewählt. Die spätere Darstellung des österreichischen Parlaments erläutert, dass das Wahlalter 20 Jahre betrug und unter anderem bestimmte Verurteilte, Entmündigte und Prostituierte vom Wahlrecht ausgeschlossen waren. LUKA paraphrasiert eine moderne historische Darstellung.",
+        "herkunft": {
+          "typ": "url",
+          "ref": "https://www.parlament.gv.at/verstehen/historisches/1918-1945/parlament-im-zentrum"
+        }
+      }
+    ],
+    "quelleHinweis": "AMTLICHER LEHRPLAN: Lehrplan der allgemeinbildenden höheren Schule, Anlage 1, Anlage A, Pflichtgegenstand Geschichte und Politische Bildung. Fundstelle: 4. Klasse: historische Methodenkompetenz (schriftliche Quellen analysieren und interpretieren; eigene Darstellungen auf Grundlage von Quellen erstellen und belegen; Perspektivität und Einseitigkeiten untersuchen), historische und politische Sachkompetenz, politikbezogene Methodenkompetenz und politische Urteilskompetenz; Anwendungsbereiche vom Ende des Ersten Weltkriegs bis zur Gegenwart; Schulstufe 8. Fassung gültig ab 01.09.2026, zuletzt geändert durch BGBl. II Nr. 204/2024. RIS: https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Anlage=1&Artikel=&Gesetzesnummer=10008568&Paragraf=&Uebergangsrecht=\nLUKA-AUFBEREITUNG: Historische Methodenkompetenz, Historische und politische Sachkompetenz, Politikbezogene Methodenkompetenz, Politische Urteilskompetenz werden hier in einer redaktionell erstellten Aufgabe mit Material und Erwartungskriterien geübt. Die Aufgabenbezeichnungen und Lesekarten sind keine amtlichen Kompetenzbezeichnungen oder Originaltexte.\nMATERIALGRUNDLAGE: Parlament Österreich, 10. Sitzung der Provisorischen Nationalversammlung (18.12.1918), S. 321 des Protokolls; Parlament Österreich, „Parlament im Zentrum“.\nStand der Quellenprüfung: 2026-10-04. Keine personenbezogenen Schülerdaten; synthetische Daten sind ausdrücklich als solche gekennzeichnet.",
+    "createdAt": "2026-10-04T00:00:00.000Z"
+  },
+  {
+    "id": "luka-geschichte-ahs-v1-s9-sem1-frage-antike-mittelalter",
+    "fach": "geschichte",
+    "stufe": "oberstufe",
+    "schulstufe": 9,
+    "thema": "Eine historische Frage an Antike und Mittelalter",
+    "aufgabentyp": "quellenanalyse",
+    "tags": "[\"redaktionell-kuratiert\",\"geschichte-ahs-v1\",\"Historische Fragekompetenz\",\"Historische Methodenkompetenz\",\"Historische Sachkompetenz\",\"semester-1\"]",
+    "blockJson": "{\"id\":\"b1\",\"punkte\":12,\"arbeitsanweisung\":\"Entwickle eine untersuchbare historische Frage zur Einladung. Prüfe dann, welche Aussagen das Material trägt und welche zusätzliche Evidenz bräuchten.\",\"typ\":\"quellenanalyse\",\"config\":{\"quelleId\":\"q1\",\"quellentyp\":\"text\",\"auftraege\":[{\"nr\":1,\"operator\":\"beschreiben\",\"frage\":\"Welche Informationen zu Absenderin, Empfängerin, Anlass und Überlieferung enthält die Lesekarte?\",\"zeilen\":4},{\"nr\":2,\"operator\":\"analysieren\",\"frage\":\"Formuliere eine offene, anhand weiterer Funde untersuchbare historische Frage. Erkläre, warum sie nicht allein aus dieser Einladung beantwortet werden kann.\",\"zeilen\":5},{\"nr\":3,\"operator\":\"beurteilen\",\"frage\":\"Beurteile die Aussage „Römische Frauen konnten lesen und schreiben“. Begrenze dein Urteil auf das, was dieser Fund tatsächlich stützt.\",\"zeilen\":5}]},\"loesung\":{\"antworten\":[{\"nr\":1,\"erwartung\":\"Der Fund wird als Einladung von Claudia Severa an Sulpicia Lepidina zum Geburtstag beschrieben; der Brief stammt aus dem späten 1. oder frühen 2. Jahrhundert. Die Museumsdeutung ordnet den Schluss einer zweiten Handschrift Severa zu.\",\"belege\":[\"Die Karte nennt beide Frauen und den Geburtstag.\",\"Die Karte nennt eine zweite Handschrift am Schluss.\",\"Die Datierung ist als ungefähr angegeben.\"]},{\"nr\":2,\"erwartung\":\"Eine passende Frage betrifft Häufigkeit, soziale Reichweite oder konkrete Schreibpraxis; eine einzelne Einladung kann weder Verbreitung noch typische Erfahrung aller Frauen zeigen.\",\"belege\":[\"Eine Tafel ist ein Einzelfund.\",\"Der Brief betrifft das Umfeld eines römischen Forts und besondere Haushalte.\"]},{\"nr\":3,\"erwartung\":\"Der Fund stützt eine begrenzte Aussage über die Schreiberin, die das Museum Claudia Severa zuordnet. Er trägt keine Verallgemeinerung über alle Frauen im Reich.\",\"belege\":[\"Die zweite Handschrift wird Claudia Severa zugeordnet.\",\"Die Lesekarte nennt keine repräsentative Stichprobe.\"]}]}}",
+    "quelltexte": [
+      {
+        "id": "q1",
+        "titel": "Auszug: Vindolanda-Tafel 291, mit LUKA-Kurzübertragung",
+        "inhalt": "Normalisierte Kurzabschrift aus dem Brief, mit Auslassungen: „iii Idus Septembres, soror, ad diem sollemnem natalem meum rogo libenter facias ut venias ad nos.“ LUKA-Kurzübertragung: „Am 11. September, Schwester, zu meinem Geburtstag bitte ich dich herzlich, zu uns zu kommen.“ Einzelne beschädigte Zeichen sind in der Edition ergänzt; die deutsche Kurzübertragung ist redaktionell und keine amtliche Übersetzung. Die Edition ordnet den Brief Claudia Severa an Sulpicia Lepidina zu und datiert ihn auf 97–105 n. Chr.",
+        "herkunft": {
+          "typ": "url",
+          "ref": "https://romaninscriptionsofbritain.org/inscriptions/TabVindol291"
+        }
+      },
+      {
+        "id": "q2",
+        "titel": "Lesekarte 2: Einordnung der Vindolanda-Tafeln (LUKA-Paraphrase)",
+        "inhalt": "Das British Museum beschreibt die Tafel als Einladung zwischen den Frauen zweier römischer Kommandantenfamilien und hebt die zweite Handschrift hervor. Die heutige Museumsseite ist eine nachträgliche Einordnung des Fundes und nicht Teil des antiken Briefwechsels.",
+        "herkunft": {
+          "typ": "url",
+          "ref": "https://www.britishmuseum.org/collection/galleries/roman-britain/vindolanda-tablets"
+        }
+      }
+    ],
+    "quelleHinweis": "AMTLICHER LEHRPLAN: Lehrplan der allgemeinbildenden höheren Schule, Anlage 1, Anlage A, Pflichtgegenstand Geschichte und Politische Bildung. Fundstelle: 5. Klasse (Kompetenzen im RIS gemeinsam für das 1. und 2. Semester ausgewiesen): historische Fragekompetenz, historische Methodenkompetenz (schriftliche Quellen analysieren und interpretieren) und historische Sachkompetenz; Themenbereich von der griechisch-römischen Antike bis zum Ende des Mittelalters; Schulstufe 9, 1. Semester. Fassung gültig ab 01.09.2026, zuletzt geändert durch BGBl. II Nr. 204/2024. RIS: https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Anlage=1&Artikel=&Gesetzesnummer=10008568&Paragraf=&Uebergangsrecht=\nLUKA-AUFBEREITUNG: Historische Fragekompetenz, Historische Methodenkompetenz, Historische Sachkompetenz werden hier in einer redaktionell erstellten Aufgabe mit Material und Erwartungskriterien geübt. Die Aufgabenbezeichnungen und Lesekarten sind keine amtlichen Kompetenzbezeichnungen oder Originaltexte.\nMATERIALGRUNDLAGE: Roman Inscriptions of Britain, Tab. Vindol. 291, Text und Einleitung; British Museum, Vindolanda-Sammlung (online, geprüft 2026-10-04).\nStand der Quellenprüfung: 2026-10-04. Keine personenbezogenen Schülerdaten; synthetische Daten sind ausdrücklich als solche gekennzeichnet.",
+    "createdAt": "2026-10-04T00:00:00.000Z"
+  },
+  {
+    "id": "luka-geschichte-ahs-v1-s9-sem2-zeitlicher-wandel",
+    "fach": "geschichte",
+    "stufe": "oberstufe",
+    "schulstufe": 9,
+    "thema": "Zeitliche Einordnung und Wandel",
+    "aufgabentyp": "timeline",
+    "tags": "[\"redaktionell-kuratiert\",\"geschichte-ahs-v1\",\"Historische Sachkompetenz\",\"Historische Orientierungskompetenz\",\"semester-2\"]",
+    "blockJson": "{\"id\":\"b1\",\"punkte\":10,\"typ\":\"timeline\",\"quelleId\":\"q1\",\"zeitraum\":\"Griechisch-römische Antike bis zum Ende des Mittelalters\",\"arbeitsanweisung\":\"Ordne die Ereigniskarten zeitlich. Trage nur die Datierungen ein, die in der Begleitkarte belegt sind; erkläre an einem Beispiel, warum „Ende des Mittelalters“ keine weltweit einheitliche Zäsur bezeichnet.\",\"config\":{\"quelleId\":\"q1\",\"zeitraum\":\"Griechisch-römische Antike bis zum Ende des Mittelalters\",\"ereignisse\":[{\"nr\":1,\"titel\":\"Magna Carta\",\"beschreibung\":\"König Johann von England stellt nach einem Konflikt mit Baronen eine Urkunde aus.\"},{\"nr\":2,\"titel\":\"Edikt von Mailand\",\"beschreibung\":\"Die Kaiser Konstantin und Licinius vereinbaren eine neue Regelung zur religiösen Praxis im Imperium.\"},{\"nr\":3,\"titel\":\"Krönung Karls des Großen\",\"beschreibung\":\"Karl wird in Rom zum Kaiser gekrönt.\"},{\"nr\":4,\"titel\":\"Ende der weströmischen Kaiserherrschaft\",\"beschreibung\":\"Romulus Augustulus wird abgesetzt; die übliche Periodisierung setzt hier eine Zäsur.\"},{\"nr\":5,\"titel\":\"Eroberung Konstantinopels\",\"beschreibung\":\"Osmanische Truppen nehmen die Stadt ein; das Byzantinische Reich endet.\"}]},\"loesung\":{\"reihenfolge\":[2,4,3,1,5],\"datierungen\":[{\"nr\":1,\"datum\":\"1215\"},{\"nr\":2,\"datum\":\"313\"},{\"nr\":3,\"datum\":\"800\"},{\"nr\":4,\"datum\":\"476\"},{\"nr\":5,\"datum\":\"1453\"}]}}",
+    "quelltexte": [
+      {
+        "id": "q1",
+        "titel": "Begleitkarte: datierte Eckpunkte (LUKA-Zusammenstellung)",
+        "inhalt": "Die Datierungen dieser Aufgabe sind Arbeitsanker, keine universellen Epochengrenzen: Das Edikt von Mailand wird auf 313 datiert; Romulus Augustulus wurde 476 abgesetzt; Karl der Große wurde 800 zum Kaiser gekrönt; die Magna Carta wurde 1215 ausgestellt; Konstantinopel wurde 1453 erobert. Die in der Geschichtswissenschaft verwendeten Epochengrenzen sind Deutungsangebote und variieren nach Region und Fragestellung. Die zugehörigen Quellen stehen in den Quellenkarten 2–5.",
+        "herkunft": {
+          "typ": "url",
+          "ref": "https://www.parliament.uk/magnacarta/"
+        }
+      },
+      {
+        "id": "q2",
+        "titel": "Quellenkarte: Edikt von Mailand (313)",
+        "inhalt": "LUKA verwendet 313 als gebräuchliche Datierung der Vereinbarung zur religiösen Praxis unter Konstantin und Licinius. Diese Karte belegt den Datierungsanker, nicht eine weltweit gültige Epochengrenze.",
+        "herkunft": {
+          "typ": "url",
+          "ref": "https://www.britannica.com/event/Edict-of-Milan"
+        }
+      },
+      {
+        "id": "q3",
+        "titel": "Quellenkarte: Ende der weströmischen Kaiserherrschaft (476)",
+        "inhalt": "LUKA verwendet 476 als Datierung der Absetzung Romulus Augustulus’ und damit einer konventionellen Zäsur in der Geschichte des Weströmischen Reichs.",
+        "herkunft": {
+          "typ": "url",
+          "ref": "https://www.britannica.com/biography/Romulus-Augustulus"
+        }
+      },
+      {
+        "id": "q4",
+        "titel": "Quellenkarte: Kaiserkrönung Karls des Großen (800)",
+        "inhalt": "LUKA verwendet 800 als Datierung der Kaiserkrönung Karls des Großen in Rom.",
+        "herkunft": {
+          "typ": "url",
+          "ref": "https://www.britannica.com/biography/Charlemagne"
+        }
+      },
+      {
+        "id": "q5",
+        "titel": "Quellenkarte: Eroberung Konstantinopels (1453)",
+        "inhalt": "LUKA verwendet 1453 als Datierung der Eroberung Konstantinopels durch osmanische Truppen.",
+        "herkunft": {
+          "typ": "url",
+          "ref": "https://www.britannica.com/event/Fall-of-Constantinople-1453"
+        }
+      }
+    ],
+    "quelleHinweis": "AMTLICHER LEHRPLAN: Lehrplan der allgemeinbildenden höheren Schule, Anlage 1, Anlage A, Pflichtgegenstand Geschichte und Politische Bildung. Fundstelle: 5. Klasse (Kompetenzen im RIS gemeinsam für das 1. und 2. Semester ausgewiesen): historische Sachkompetenz und historische Orientierungskompetenz; Themenbereich von der griechisch-römischen Antike bis zum Ende des Mittelalters. Der Zeitstrahl ist eine redaktionelle Übungsform zur zeitlichen Einordnung, keine im RIS benannte Kompetenzformulierung.; Schulstufe 9, 2. Semester. Fassung gültig ab 01.09.2026, zuletzt geändert durch BGBl. II Nr. 204/2024. RIS: https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Anlage=1&Artikel=&Gesetzesnummer=10008568&Paragraf=&Uebergangsrecht=\nLUKA-AUFBEREITUNG: Historische Sachkompetenz, Historische Orientierungskompetenz werden hier in einer redaktionell erstellten Aufgabe mit Material und Erwartungskriterien geübt. Die Aufgabenbezeichnungen und Lesekarten sind keine amtlichen Kompetenzbezeichnungen oder Originaltexte.\nMATERIALGRUNDLAGE: LUKA-Datierungskarten mit einzelnen Referenzlinks zu Parlament des Vereinigten Königreichs und Encyclopaedia Britannica. Die Zeitangaben sind ausdrücklich Arbeitsanker; eine weitergehende Primärquellenrecherche bleibt Aufgabe der Lehrkraft.\nStand der Quellenprüfung: 2026-10-04. Keine personenbezogenen Schülerdaten; synthetische Daten sind ausdrücklich als solche gekennzeichnet.",
+    "createdAt": "2026-10-04T00:00:00.000Z"
+  },
+  {
+    "id": "luka-geschichte-ahs-v1-s10-sem3-herrschaft-lebenswelt",
+    "fach": "geschichte",
+    "stufe": "oberstufe",
+    "schulstufe": 10,
+    "thema": "Herrschaft und Lebenswelt in der frühen Neuzeit",
+    "aufgabentyp": "quellenanalyse",
+    "tags": "[\"redaktionell-kuratiert\",\"geschichte-ahs-v1\",\"Historische Methodenkompetenz\",\"Historische Sachkompetenz\",\"Historische Orientierungskompetenz\",\"semester-3\"]",
+    "blockJson": "{\"id\":\"b1\",\"punkte\":12,\"arbeitsanweisung\":\"Vergleiche die beiden Lesekarten aus dem Bauernkrieg 1525. Untersuche, welche Anliegen und Interessen sichtbar werden, welche Perspektive jede Karte einnimmt und was offenbleibt.\",\"typ\":\"quellenanalyse\",\"config\":{\"quelleId\":\"q1\",\"quellentyp\":\"text\",\"auftraege\":[{\"nr\":1,\"operator\":\"beschreiben\",\"frage\":\"Welche Forderungen der Bauern nennt Lesekarte 1? Belege zwei konkrete Anliegen.\",\"zeilen\":4},{\"nr\":2,\"operator\":\"analysieren\",\"frage\":\"Welche Interessen und Handlungsspielräume zeigt Lesekarte 2 aus der Sicht der städtischen Räte?\",\"zeilen\":5},{\"nr\":3,\"operator\":\"beurteilen\",\"frage\":\"Warum reichen die beiden kurzen Lesekarten nicht für ein vollständiges Urteil über die Konfliktparteien? Nenne nötige weitere Quellen.\",\"zeilen\":5}]},\"loesung\":{\"antworten\":[{\"nr\":1,\"erwartung\":\"Die Zwölf Artikel enthalten Forderungen nach Wahl des Pfarrers, Begrenzung von Abgaben und Frondiensten sowie Aufhebung der Leibeigenschaft.\",\"belege\":[\"Die Lesekarte nennt die Wahl des Pfarrers.\",\"Sie nennt Abgaben, Frondienste und Leibeigenschaft.\"]},{\"nr\":2,\"erwartung\":\"Die Ratsdarstellung betont Sicherheits- und Handelsinteressen und schlägt Vermittlung als unparteiische Richter vor; sie zeigt zugleich die Sorge vor Eskalation und den begrenzten städtischen Handlungsspielraum.\",\"belege\":[\"Die Karte nennt die Furcht vor Schäden für Märkte und Handel.\",\"Sie nennt den Vorschlag, unparteiisch zu vermitteln.\"]},{\"nr\":3,\"erwartung\":\"Beide Karten sind knapp paraphrasiert; eine Bauernforderung und ein städtischer Ratsbericht bilden keine vollständige Stimmenauswahl und geben nicht alle Betroffenen wieder.\",\"belege\":[\"Die erste Karte fasst eine Flugschrift der Bauern zusammen.\",\"Die zweite bezieht sich auf einen Ratsabschied der Städte.\",\"Beide Karten benennen ihre Überlieferungs- und Perspektivgrenzen.\"]}]}}",
+    "quelltexte": [
+      {
+        "id": "q1",
+        "titel": "Lesekarte 1: Forderungen der Bauern (LUKA-Paraphrase nach dem Augsburger Erstdruck 1525)",
+        "inhalt": "Die Zwölf Artikel der Bauernschaft von 1525 verlangten unter anderem, dass Gemeinden ihre Pfarrer wählen können, Abgaben und Frondienste begrenzt werden und Leibeigenschaft aufgehoben wird. Die Flugschrift bündelte Beschwerden und Forderungen von Bauern; diese Karte paraphrasiert die Kurzbeschreibung des Stadtarchivs Memmingen und zitiert nicht den frühneuhochdeutschen Originaldruck.",
+        "herkunft": {
+          "typ": "url",
+          "ref": "https://stadtarchiv.memmingen.de/quellen/reformation-und-bauernaufstand/zwoelf-artikel-der-bauernschaft-augsburger-erstdruck.html"
+        }
+      },
+      {
+        "id": "q2",
+        "titel": "Lesekarte 2: Beratung oberschwäbischer Städte, 27. März 1525 (LUKA-Paraphrase)",
+        "inhalt": "Ein Bericht über die Beratung oberschwäbischer Städte hält fest, dass die Vertreter die Gefahr für Märkte und Handel fürchteten. Sie erwogen, den Konflikt nicht militärisch zu verschärfen, sondern als unparteiische Richter zu vermitteln. Die Karte paraphrasiert den vom Stadtarchiv Memmingen wiedergegebenen Ratsabschied.",
+        "herkunft": {
+          "typ": "url",
+          "ref": "https://stadtarchiv.memmingen.de/publikationen/memmingen-und-das-aufbegehren-von-bauern-und-buergern-1525.html"
+        }
+      }
+    ],
+    "quelleHinweis": "AMTLICHER LEHRPLAN: Lehrplan der allgemeinbildenden höheren Schule, Anlage 1, Anlage A, Pflichtgegenstand Geschichte und Politische Bildung. Fundstelle: 6. Klasse, 3. Semester – Kompetenzmodul 3; Methodenkompetenz (Quellen und Darstellungen unterscheiden), Sachkompetenz und politische Urteilskompetenz; Beginn der Neuzeit bis Erster Weltkrieg; Schulstufe 10, 3. Semester. Fassung gültig ab 01.09.2026, zuletzt geändert durch BGBl. II Nr. 204/2024. RIS: https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Anlage=1&Artikel=&Gesetzesnummer=10008568&Paragraf=&Uebergangsrecht=\nLUKA-AUFBEREITUNG: Historische Methodenkompetenz, Historische Sachkompetenz, Historische Orientierungskompetenz werden hier in einer redaktionell erstellten Aufgabe mit Material und Erwartungskriterien geübt. Die Aufgabenbezeichnungen und Lesekarten sind keine amtlichen Kompetenzbezeichnungen oder Originaltexte.\nMATERIALGRUNDLAGE: Stadtarchiv Memmingen, „Zwölf Artikel der Bauernschaft (Augsburger Erstdruck)“ sowie Bericht zum oberschwäbischen Städtetag am 27.03.1525 (online, geprüft 2026-10-04).\nStand der Quellenprüfung: 2026-10-04. Keine personenbezogenen Schülerdaten; synthetische Daten sind ausdrücklich als solche gekennzeichnet.",
+    "createdAt": "2026-10-04T00:00:00.000Z"
+  },
+  {
+    "id": "luka-geschichte-ahs-v1-s10-sem4-industrialisierung-daten",
+    "fach": "geschichte",
+    "stufe": "oberstufe",
+    "schulstufe": 10,
+    "thema": "Industrialisierung anhand historischer Daten",
+    "aufgabentyp": "diagrammanalyse",
+    "tags": "[\"redaktionell-kuratiert\",\"geschichte-ahs-v1\",\"Historische Methodenkompetenz\",\"Historische Sachkompetenz\",\"semester-4\"]",
+    "blockJson": "{\"id\":\"b1\",\"punkte\":12,\"typ\":\"diagrammanalyse\",\"quelleId\":\"q1\",\"diagrammtyp\":\"linie\",\"titel\":\"Bevölkerung im heutigen Österreich 1869–1910\",\"einheit\":\"Einwohner\",\"arbeitsanweisung\":\"Werte die Datenreihe aus. Beschreibe den Wandel, berechne die ungefähre prozentuale Zunahme von 1869 bis 1910 und unterscheide belegte Beobachtung von möglicher, durch diese Reihe allein nicht belegter Ursache.\",\"config\":{\"quelleId\":\"q1\",\"diagrammtyp\":\"linie\",\"titel\":\"Bevölkerung im heutigen Österreich 1869–1910\",\"einheit\":\"Einwohner\",\"daten\":[{\"label\":\"1869\",\"wert\":\"4 497 880\"},{\"label\":\"1880\",\"wert\":\"4 963 528\"},{\"label\":\"1890\",\"wert\":\"5 417 360\"},{\"label\":\"1900\",\"wert\":\"6 003 845\"},{\"label\":\"1910\",\"wert\":\"6 648 310\"}],\"auftraege\":[{\"nr\":1,\"operator\":\"beschreiben\",\"frage\":\"Beschreibe die Veränderung zwischen 1869 und 1910 und belege sie mit zwei Werten.\",\"zeilen\":4},{\"nr\":2,\"operator\":\"auswerten\",\"frage\":\"Berechne ungefähr, um wie viel Prozent der Bevölkerungsstand 1910 über jenem von 1869 lag.\",\"zeilen\":3},{\"nr\":3,\"operator\":\"beurteilen\",\"frage\":\"Kann diese Bevölkerungsreihe allein belegen, dass Industrialisierung die Zunahme verursacht hat? Begründe und nenne eine passende zusätzliche Quelle.\",\"zeilen\":4}]},\"loesung\":{\"antworten\":[{\"nr\":1,\"erwartung\":\"Die Reihe steigt bei jedem ausgewiesenen Zählungsjahr von 4 497 880 im Jahr 1869 auf 6 648 310 im Jahr 1910.\",\"belege\":[\"1869: 4 497 880 Einwohner.\",\"1910: 6 648 310 Einwohner.\"]},{\"nr\":2,\"erwartung\":\"Die Zunahme beträgt rund 2 150 430 Personen, also etwa 47,8 % gegenüber 1869 (gerundet ca. 48 %).\",\"belege\":[\"Differenz 6 648 310 − 4 497 880 = 2 150 430.\",\"2 150 430 geteilt durch 4 497 880 ergibt ungefähr 0,478.\"]},{\"nr\":3,\"erwartung\":\"Nein. Die Reihe belegt Bevölkerungswachstum, aber keine Ursache. Für die Verbindung zur Industrialisierung wären zusätzliche Daten etwa zu Erwerbsstruktur, Urbanisierung, Migration und regionaler Entwicklung nötig.\",\"belege\":[\"Die Tabellenvariable ist Bevölkerung, nicht Industriebeschäftigung.\",\"Aus zeitlichem Gleichlauf allein folgt keine Ursache.\"]}]}}",
+    "quelltexte": [
+      {
+        "id": "q1",
+        "titel": "Quellenkarte: Historische Volkszählungen Österreichs",
+        "inhalt": "STATISTIK AUSTRIA weist für den Bevölkerungsstand im heutigen Bundesgebiet 4 497 880 Personen am 31.12.1869, 4 963 528 am 31.12.1880, 5 417 360 am 31.12.1890, 6 003 845 am 31.12.1900 und 6 648 310 am 31.12.1910 aus. Die Zeitreihe misst Bevölkerungsstände und nicht direkt den Anteil industriell Beschäftigter.",
+        "herkunft": {
+          "typ": "url",
+          "ref": "https://www.statistik.at/statistiken/bevoelkerung-und-soziales/bevoelkerung/bevoelkerungsstand/historische-volkszaehlungen"
+        }
+      }
+    ],
+    "quelleHinweis": "AMTLICHER LEHRPLAN: Lehrplan der allgemeinbildenden höheren Schule, Anlage 1, Anlage A, Pflichtgegenstand Geschichte und Politische Bildung. Fundstelle: 6. Klasse, 4. Semester – Kompetenzmodul 4; historische Recherche und eigene Darstellung entlang einer Fragestellung; frühe Neuzeit bis Erster Weltkrieg, soziale und wirtschaftliche Dynamik; Schulstufe 10, 4. Semester. Fassung gültig ab 01.09.2026, zuletzt geändert durch BGBl. II Nr. 204/2024. RIS: https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Anlage=1&Artikel=&Gesetzesnummer=10008568&Paragraf=&Uebergangsrecht=\nLUKA-AUFBEREITUNG: Historische Methodenkompetenz, Historische Sachkompetenz werden hier in einer redaktionell erstellten Aufgabe mit Material und Erwartungskriterien geübt. Die Aufgabenbezeichnungen und Lesekarten sind keine amtlichen Kompetenzbezeichnungen oder Originaltexte.\nMATERIALGRUNDLAGE: STATISTIK AUSTRIA, „Historische Volkszählungen“, Zählungen 1869–1910 (online, Werte und Quelle geprüft 2026-10-04).\nStand der Quellenprüfung: 2026-10-04. Keine personenbezogenen Schülerdaten; synthetische Daten sind ausdrücklich als solche gekennzeichnet.",
+    "createdAt": "2026-10-04T00:00:00.000Z"
+  },
+  {
+    "id": "luka-geschichte-ahs-v1-s11-sem5-umfrage-pruefen",
+    "fach": "geschichte",
+    "stufe": "oberstufe",
+    "schulstufe": 11,
+    "thema": "Politische Erhebungen prüfen",
+    "aufgabentyp": "diagrammanalyse",
+    "tags": "[\"redaktionell-kuratiert\",\"geschichte-ahs-v1\",\"Politikbezogene Methodenkompetenz\",\"Politische Urteilskompetenz\",\"semester-5\"]",
+    "blockJson": "{\"id\":\"b1\",\"punkte\":12,\"typ\":\"diagrammanalyse\",\"quelleId\":\"q1\",\"diagrammtyp\":\"balken\",\"titel\":\"Fiktive Online-Umfrage: Soll die Gemeinde einen Jugendbeirat einrichten?\",\"einheit\":\"Antworten\",\"arbeitsanweisung\":\"Die Daten sind vollständig fiktiv. Werte die Erhebung aus und untersuche, wie Frageformulierung und Auswahl der Befragten die Reichweite einer politischen Aussage begrenzen.\",\"config\":{\"quelleId\":\"q1\",\"diagrammtyp\":\"balken\",\"titel\":\"Fiktive Online-Umfrage: Soll die Gemeinde einen Jugendbeirat einrichten?\",\"einheit\":\"Antworten\",\"daten\":[{\"label\":\"Ja\",\"wert\":\"54\"},{\"label\":\"Nein\",\"wert\":\"42\"},{\"label\":\"Unentschieden\",\"wert\":\"24\"}],\"auftraege\":[{\"nr\":1,\"operator\":\"beschreiben\",\"frage\":\"Beschreibe die Verteilung und berechne den Anteil der Ja-Antworten an allen 120 Antworten.\",\"zeilen\":4},{\"nr\":2,\"operator\":\"erklaeren\",\"frage\":\"Welche möglichen Verzerrungen entstehen durch die freiwillige Teilnahme an einem Online-Aufruf in zwei Oberstufenklassen?\",\"zeilen\":5},{\"nr\":3,\"operator\":\"beurteilen\",\"frage\":\"Ist die Aussage „Die Jugendlichen der Gemeinde wollen einen Jugendbeirat“ durch diese Daten gedeckt? Formuliere eine genauere Aussage.\",\"zeilen\":4}]},\"loesung\":{\"antworten\":[{\"nr\":1,\"erwartung\":\"54 von 120 Antworten lauten Ja; das sind 45 %. Nein: 35 %, unentschieden: 20 %.\",\"belege\":[\"Ja: 54 von 120.\",\"54 ÷ 120 = 0,45 beziehungsweise 45 %.\"]},{\"nr\":2,\"erwartung\":\"Die Teilnahme war freiwillig und auf zwei Oberstufenklassen begrenzt. Besonders interessierte, stark zustimmende oder ablehnende Personen könnten überrepräsentiert sein; jüngere Jugendliche und Nichtteilnehmende fehlen.\",\"belege\":[\"Die Quellenkarte nennt einen Online-Aufruf in zwei Oberstufenklassen.\",\"Die Teilnahme war nicht zufällig ausgewählt.\"]},{\"nr\":3,\"erwartung\":\"Nein. Gedeckt ist nur: Unter den 120 freiwillig Antwortenden stimmten 54 zu. Die Antworten sind keine repräsentative Erhebung der gesamten Gemeindejugend.\",\"belege\":[\"Die Grundgesamtheit der Befragten sind 120 freiwillige Antworten.\",\"Es gibt keine Zufallsstichprobe aus allen Jugendlichen der Gemeinde.\"]}]}}",
+    "quelltexte": [
+      {
+        "id": "q1",
+        "titel": "Quellenkarte: synthetisches Erhebungsdesign",
+        "inhalt": "Fiktives Übungsbeispiel, keine echte Erhebung und keine Schülerdaten: Ein Online-Aufruf wurde freiwillig in zwei Oberstufenklassen geteilt. 120 Personen antworteten auf die Frage „Soll die Gemeinde einen Jugendbeirat einrichten?“ Die Aufgabenwerte sind 54 Ja, 42 Nein und 24 Unentschieden. Die Erhebung ist nicht zufällig gezogen und bildet keine Gemeindejugend repräsentativ ab.",
+        "herkunft": {
+          "typ": "eingabe",
+          "ref": ""
+        }
+      }
+    ],
+    "quelleHinweis": "AMTLICHER LEHRPLAN: Lehrplan der allgemeinbildenden höheren Schule, Anlage 1, Anlage A, Pflichtgegenstand Geschichte und Politische Bildung. Fundstelle: 7. Klasse, 5. Semester – Kompetenzmodul 5; politikbezogene Methodenkompetenz: politische Erhebungen und Daten, Art der Erhebung und Fragestellung nachvollziehen; politische und soziale Entwicklungen vom Ersten Weltkrieg bis zur Gegenwart; Schulstufe 11, 5. Semester. Fassung gültig ab 01.09.2026, zuletzt geändert durch BGBl. II Nr. 204/2024. RIS: https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Anlage=1&Artikel=&Gesetzesnummer=10008568&Paragraf=&Uebergangsrecht=\nLUKA-AUFBEREITUNG: Politikbezogene Methodenkompetenz, Politische Urteilskompetenz werden hier in einer redaktionell erstellten Aufgabe mit Material und Erwartungskriterien geübt. Die Aufgabenbezeichnungen und Lesekarten sind keine amtlichen Kompetenzbezeichnungen oder Originaltexte.\nMATERIALGRUNDLAGE: Synthetisches Unterrichtsbeispiel, erstellt ausschließlich für diesen Aufgabenpool; keine realen Personen- oder Schülerdaten.\nStand der Quellenprüfung: 2026-10-04. Keine personenbezogenen Schülerdaten; synthetische Daten sind ausdrücklich als solche gekennzeichnet.",
+    "createdAt": "2026-10-04T00:00:00.000Z"
+  },
+  {
+    "id": "luka-geschichte-ahs-v1-s11-sem6-erinnerung-darstellung",
+    "fach": "geschichte",
+    "stufe": "oberstufe",
+    "schulstufe": 11,
+    "thema": "Erinnerung und Darstellung: Mauthausen",
+    "aufgabentyp": "quellenanalyse",
+    "tags": "[\"redaktionell-kuratiert\",\"geschichte-ahs-v1\",\"Historische Methodenkompetenz\",\"Historische Sachkompetenz\",\"Historische Orientierungskompetenz\",\"semester-6\"]",
+    "blockJson": "{\"id\":\"b1\",\"punkte\":12,\"arbeitsanweisung\":\"Vergleiche die Lesekarten zu überlieferten Dokumenten und einer heutigen Ausstellung. Untersuche, welche Art von Evidenz jeweils sichtbar wird und welche Auswahlentscheidungen getroffen werden. Behandle die historische Verantwortung und die Verbrechen des NS-Regimes nicht als offene Pro-und-Contra-Frage.\",\"typ\":\"quellenanalyse\",\"config\":{\"quelleId\":\"q1\",\"quellentyp\":\"text\",\"auftraege\":[{\"nr\":1,\"operator\":\"beschreiben\",\"frage\":\"Welche Quellengruppen nennt Lesekarte 1 für die Erforschung des Lagers Mauthausen?\",\"zeilen\":4},{\"nr\":2,\"operator\":\"analysieren\",\"frage\":\"Welche Funktion haben archäologische Funde in der heutigen Ausstellung laut Lesekarte 2, und womit werden sie ergänzt?\",\"zeilen\":5},{\"nr\":3,\"operator\":\"beurteilen\",\"frage\":\"Nenne eine Frage zu Täterschaft, Verfolgung oder Häftlingserfahrung, die sich mit den Kurzbeschreibungen allein nicht beantworten lässt. Welche zusätzliche Quelle wäre nötig?\",\"zeilen\":5}]},\"loesung\":{\"antworten\":[{\"nr\":1,\"erwartung\":\"Genannt werden unter anderem Dokumente der Lagerverwaltung und NS-Behörden, Nachkriegs- und Gerichtsakten, schriftliche Zeugnisse von Überlebenden, Interviews, Fotografien und Objekte.\",\"belege\":[\"Die Sammlungskarte unterscheidet Verwaltungsdokumente und Nachkriegsquellen.\",\"Sie nennt schriftliche Zeugnisse, Interviews, Fotografien und Artefakte.\"]},{\"nr\":2,\"erwartung\":\"Die Ausstellung stellt archäologische Funde als materielle Zeugnisse vor, die Erkenntnisse zu Leben, Tod, Täterschaft und Zwangsarbeit vertiefen; sie ergänzt sie mit Zeugenaussagen, Fotografien und schriftlichen Quellen.\",\"belege\":[\"Die Lesekarte 2 beschreibt die Rolle der archäologischen Funde.\",\"Sie nennt Zeugenaussagen, Fotografien und schriftliche Quellen als Ergänzungen.\"]},{\"nr\":3,\"erwartung\":\"Eine konkrete Frage ist möglich, aber die Kurzbeschreibungen geben keine einzelne Akten- oder Zeugnisquelle wieder. Für eine Antwort wären genau zugeordnete Dokumente oder ein geprüftes Zeugnis mit Entstehungskontext und Überlieferungsangaben nötig.\",\"belege\":[\"Beide Lesekarten beschreiben Sammlungen beziehungsweise eine Ausstellung.\",\"Keiner der Texte ist selbst ein konkretes Lagerdokument oder vollständiges Zeugnis.\"]}]}}",
+    "quelltexte": [
+      {
+        "id": "q1",
+        "titel": "Lesekarte 1: Sammlungen der KZ-Gedenkstätte Mauthausen (LUKA-Paraphrase)",
+        "inhalt": "Die Sammlung umfasst erhaltene Schriftstücke aus der Lagerverwaltung und NS-Behörden, Nachkriegs- und Gerichtsakten, schriftliche Zeugnisse von Überlebenden, Interviews, Fotografien und Objekte. Die heutige Sammlungsbeschreibung erklärt Provenienz und Bestand; sie ist kein Dokument aus dem Lageralltag.",
+        "herkunft": {
+          "typ": "url",
+          "ref": "https://www.mauthausen-memorial.org/en/History/Collections-and-Specialist-Library"
+        }
+      },
+      {
+        "id": "q2",
+        "titel": "Lesekarte 2: Ausstellung zu archäologischen Funden (LUKA-Paraphrase)",
+        "inhalt": "Eine vom Mauthausen Memorial mit Universitätsinstituten kuratierte Sonderausstellung (23.04.2026–30.06.2027) zeigt archäologische Funde aus dem Mauthausen-Gusen-Lagersystem. Die Ausstellung beschreibt ihre Ergänzung durch Augenzeugenberichte, Fotografien und schriftliche Quellen. Diese Lesekarte fasst die heutige institutionelle Darstellung knapp zusammen.",
+        "herkunft": {
+          "typ": "url",
+          "ref": "https://www.mauthausen-memorial.org/en/Visit/Exhibitions-and-Room-of-Names/Things-Tell-Stories-Archaeology-of-the-Mauthausen-Gusen-Concentration-Camp-System"
+        }
+      }
+    ],
+    "quelleHinweis": "AMTLICHER LEHRPLAN: Lehrplan der allgemeinbildenden höheren Schule, Anlage 1, Anlage A, Pflichtgegenstand Geschichte und Politische Bildung. Fundstelle: 7. Klasse, 6. Semester – Kompetenzmodul 6; Darstellung der Vergangenheit de-konstruieren, Perspektivität und Auswahl erkennen; Themenbereiche 1918 bis Gegenwart, NS-System, Holocaust und Erinnerungskulturen; Schulstufe 11, 6. Semester. Fassung gültig ab 01.09.2026, zuletzt geändert durch BGBl. II Nr. 204/2024. RIS: https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Anlage=1&Artikel=&Gesetzesnummer=10008568&Paragraf=&Uebergangsrecht=\nLUKA-AUFBEREITUNG: Historische Methodenkompetenz, Historische Sachkompetenz, Historische Orientierungskompetenz werden hier in einer redaktionell erstellten Aufgabe mit Material und Erwartungskriterien geübt. Die Aufgabenbezeichnungen und Lesekarten sind keine amtlichen Kompetenzbezeichnungen oder Originaltexte.\nMATERIALGRUNDLAGE: KZ-Gedenkstätte Mauthausen, „Collections and Specialist Library“ sowie Sonderausstellung „Things Tell Stories“ (Fassung 2026–2027, geprüft 2026-10-04).\nStand der Quellenprüfung: 2026-10-04. Keine personenbezogenen Schülerdaten; synthetische Daten sind ausdrücklich als solche gekennzeichnet.",
+    "createdAt": "2026-10-04T00:00:00.000Z"
+  },
+  {
+    "id": "luka-geschichte-ahs-v1-s12-sem7-oeffentlichkeiten",
+    "fach": "geschichte",
+    "stufe": "oberstufe",
+    "schulstufe": 12,
+    "thema": "Geschichte für unterschiedliche Öffentlichkeiten darstellen",
+    "aufgabentyp": "offeneSchreibaufgabe",
+    "tags": "[\"redaktionell-kuratiert\",\"geschichte-ahs-v1\",\"Historische Methodenkompetenz\",\"Historische Orientierungskompetenz\",\"semester-7\"]",
+    "blockJson": "{\"id\":\"b1\",\"punkte\":18,\"arbeitsanweisung\":\"Gestalte aus derselben Quellenkarte zwei kurze Texte für unterschiedliche Öffentlichkeiten. Halte die belegten Informationen stabil, passe Auswahl und Sprache an und erkläre anschließend deine Entscheidungen.\",\"quelleId\":\"q1\",\"typ\":\"offeneSchreibaufgabe\",\"config\":{\"situation\":\"Materialgrundlage ist die heutige Ausstellungserklärung zu archäologischen Funden in Mauthausen-Gusen. Verfasse einen sachlichen Text für eine schulische Ausstellung und einen kurzen Beitrag für die öffentliche Website einer Gedenkstätte. Erfinde keine Einzelschicksale oder Fundgeschichten.\",\"textsorte\":\"Zwei Vermittlungstexte mit Reflexion\",\"umfangWorte\":{\"min\":180,\"max\":240},\"aspekte\":[\"beide Texte bleiben an der Quellenkarte belegbar\",\"Auswahl und Umfang passen zur Zielgruppe\",\"Grenzen der knappen Materialkarte werden kenntlich\",\"Reflexion erklärt Unterschiede ohne den Sachverhalt zu verändern\"]},\"loesung\":{\"musterloesung\":\"Ein Text für eine Schulausstellung kann erläutern, dass archäologische Funde aus dem Mauthausen-Gusen-Lagersystem gemeinsam mit schriftlichen Quellen, Fotografien und Zeugenaussagen gezeigt werden. Er sollte erklären, dass materielle Spuren wichtige Erkenntnisse ermöglichen, aber für sich allein keine vollständige Geschichte erzählen. Ein kurzer Webbeitrag kann dieselben belegten Angaben knapper vermitteln und den Zusammenhang der Quellengruppen hervorheben. In der Reflexion ist zu erklären, dass der längere Text die Quellengattungen genauer erläutert und der kürzere weniger Details auswählt. Beide Texte müssen den historischen Zusammenhang sachlich wiedergeben und dürfen aus der knappen Karte keine Einzelschicksale ableiten.\",\"erwartungshorizont\":{\"inhalt\":\"Beide Texte stützen sich auf dieselben Angaben. Sie unterscheiden sich in Umfang, Aufbau und Ansprache. Die Reflexion benennt Auswahl und Zielgruppe sowie die Grenze des Materials.\",\"struktur\":\"Der Text ordnet Anlass, Belege, Deutung und Schluss klar und nachvollziehbar.\",\"ausdruck\":\"Die Formulierungen sind sachlich, knapp und auf die Zielgruppe abgestimmt.\",\"sprachrichtigkeit\":\"Rechtschreibung, Grammatik und Zeichensetzung sind sicher genug, um die Argumentation klar zu vermitteln.\"}}}",
+    "quelltexte": [
+      {
+        "id": "q1",
+        "titel": "Lesekarte: Ausstellung zu archäologischen Funden (LUKA-Paraphrase)",
+        "inhalt": "Eine vom Mauthausen Memorial mit Universitätsinstituten kuratierte Sonderausstellung (23.04.2026–30.06.2027) zeigt archäologische Funde aus dem Mauthausen-Gusen-Lagersystem. Die Ausstellung beschreibt, wie materielle Spuren durch Augenzeugenberichte, Fotografien und schriftliche Quellen ergänzt werden. LUKA fasst diese heutige institutionelle Darstellung knapp zusammen; die Karte ist kein Zeugnis aus dem Lager.",
+        "herkunft": {
+          "typ": "url",
+          "ref": "https://www.mauthausen-memorial.org/en/Visit/Exhibitions-and-Room-of-Names/Things-Tell-Stories-Archaeology-of-the-Mauthausen-Gusen-Concentration-Camp-System"
+        }
+      }
+    ],
+    "quelleHinweis": "AMTLICHER LEHRPLAN: Lehrplan der allgemeinbildenden höheren Schule, Anlage 1, Anlage A, Pflichtgegenstand Geschichte und Politische Bildung. Fundstelle: 8. Klasse, 7. Semester – Kompetenzmodul 7; historische Darstellungen aus einer Materialgrundlage in unterschiedlichen Medienformen erstellen und Perspektive, Auswahl sowie Intention reflektieren; Themenbereiche 20. und 21. Jahrhundert; Schulstufe 12, 7. Semester. Fassung gültig ab 01.09.2026, zuletzt geändert durch BGBl. II Nr. 204/2024. RIS: https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Anlage=1&Artikel=&Gesetzesnummer=10008568&Paragraf=&Uebergangsrecht=\nLUKA-AUFBEREITUNG: Historische Methodenkompetenz, Historische Orientierungskompetenz werden hier in einer redaktionell erstellten Aufgabe mit Material und Erwartungskriterien geübt. Die Aufgabenbezeichnungen und Lesekarten sind keine amtlichen Kompetenzbezeichnungen oder Originaltexte.\nMATERIALGRUNDLAGE: KZ-Gedenkstätte Mauthausen, Sonderausstellung „Things Tell Stories“ (Fassung 2026–2027, geprüft 2026-10-04).\nStand der Quellenprüfung: 2026-10-04. Keine personenbezogenen Schülerdaten; synthetische Daten sind ausdrücklich als solche gekennzeichnet.",
+    "createdAt": "2026-10-04T00:00:00.000Z"
+  },
+  {
+    "id": "luka-geschichte-ahs-v1-s12-sem8-urteil-pruefen",
+    "fach": "geschichte",
+    "stufe": "oberstufe",
+    "schulstufe": 12,
+    "thema": "Ein historisches Urteil überprüfen",
+    "aufgabentyp": "offeneSchreibaufgabe",
+    "tags": "[\"redaktionell-kuratiert\",\"geschichte-ahs-v1\",\"Historische Fragekompetenz\",\"Historische Methodenkompetenz\",\"Historische Orientierungskompetenz\",\"Politische Urteilskompetenz\",\"semester-8\"]",
+    "blockJson": "{\"id\":\"b1\",\"punkte\":20,\"arbeitsanweisung\":\"Prüfe die öffentliche Aussage anhand der Materialien. Vergleiche die historische Darstellung des Parlaments mit dem geschichtswissenschaftlichen Fachtext. Verfasse ein begründetes Urteil zur politischen Gleichstellung nach 1918 und beziehe Artikel 7 B-VG ausdrücklich als heutige Gleichheitsnorm ein. Kennzeichne klar, dass dieser Artikel nicht der Wortlaut der Wahlordnung von 1918 ist.\",\"quelleId\":\"q1\",\"typ\":\"offeneSchreibaufgabe\",\"config\":{\"situation\":\"Material 1 ist eine ausdrücklich fiktive öffentliche Behauptung. Material 2 ist eine heutige historische Darstellung des österreichischen Parlaments. Material 3 fasst Ergebnisse eines geschichtswissenschaftlichen Fachartikels zusammen. Material 4 gibt Artikel 7 B-VG in der geltenden Fassung wieder. Schreibe eine historische Kurzkolumne und unterscheide historische Beschreibung, fachwissenschaftliche Deutung, heutige Rechtsnorm und eigenes Urteil.\",\"textsorte\":\"Historische Kurzkolumne\",\"umfangWorte\":{\"min\":220,\"max\":280},\"aspekte\":[\"die Behauptung am historischen Material prüfen\",\"Ausweitung des Wahlrechts und damalige Grenzen konkret benennen\",\"institutionelle Darstellung mit einer geschichtswissenschaftlichen Deutung vergleichen\",\"heutige Gleichheitsnorm von der Rechtslage 1918 trennen\",\"mögliche Folgen einer verkürzten Darstellung beurteilen\"]},\"loesung\":{\"musterloesung\":\"Die Aussage, mit dem Frauenwahlrecht sei 1918 bereits volle politische Gleichstellung erreicht worden, ist zu weit gefasst. Die historische Darstellung des Parlaments nennt das Wahlalter von 20 Jahren und damalige Ausschlüsse bestimmter Personengruppen. Der geschichtswissenschaftliche Fachartikel betrachtet darüber hinaus die politische Beteiligung von Frauen nach der Einführung des Wahlrechts und beschreibt Herausforderungen, unterschiedliche Strategien und spätere politische Entwicklungen. Damit wird sichtbar, dass formale Wahlberechtigung und umfassende politische Gleichstellung nicht dasselbe sind. Artikel 7 B-VG formuliert heute die Gleichheit der Staatsbürgerinnen und Staatsbürger vor dem Gesetz und schließt geschlechtsbezogene Vorrechte aus. Er ist eine heutige Verfassungsnorm und kein Wortlaut oder vollständiger Maßstab für die Wahlordnung von 1918. Eine öffentliche Darstellung, die einen wichtigen demokratischen Fortschritt mit bereits erreichter Gleichstellung gleichsetzt, kann damalige Ausschlüsse und spätere Auseinandersetzungen unsichtbar machen.\",\"erwartungshorizont\":{\"inhalt\":\"Das Urteil benennt eine historische Grenze, vergleicht die institutionelle Darstellung mit einer geschichtswissenschaftlichen Deutung und unterscheidet Artikel 7 B-VG ausdrücklich als heutige Norm. Die Folgenbeurteilung erklärt, was die verkürzte Behauptung sichtbar macht oder auslässt.\",\"struktur\":\"Der Text ordnet Anlass, Belege, Deutung und Schluss klar und nachvollziehbar.\",\"ausdruck\":\"Die Formulierungen sind sachlich, knapp und auf die Zielgruppe abgestimmt.\",\"sprachrichtigkeit\":\"Rechtschreibung, Grammatik und Zeichensetzung sind sicher genug, um die Argumentation klar zu vermitteln.\"}}}",
+    "quelltexte": [
+      {
+        "id": "q1",
+        "titel": "Fiktive öffentliche Aussage (LUKA-Übungsmaterial)",
+        "inhalt": "„Mit der Einführung des Frauenwahlrechts 1918 war die politische Gleichstellung in Österreich erreicht.“ Diese Aussage wurde ausschließlich für die Übung erfunden. Sie ist keine historische Äußerung und enthält eine zu prüfende Verallgemeinerung.",
+        "herkunft": {
+          "typ": "eingabe",
+          "ref": ""
+        }
+      },
+      {
+        "id": "q2",
+        "titel": "Lesekarte: Parlamentarische Einordnung des Wahlrechts 1918 (LUKA-Paraphrase)",
+        "inhalt": "Die heutige Darstellung des österreichischen Parlaments ordnet das Frauenwahlrecht in die Entstehung der Republik ein. Sie nennt ein Wahlalter von 20 Jahren und damalige Ausschlüsse bestimmter Personengruppen. LUKA fasst die institutionelle historische Darstellung zusammen; für eine detaillierte Rekonstruktion wären Wahlordnung und zeitgenössische Debatten heranzuziehen.",
+        "herkunft": {
+          "typ": "url",
+          "ref": "https://www.parlament.gv.at/verstehen/historisches/1918-1945/parlament-im-zentrum"
+        }
+      },
+      {
+        "id": "q3",
+        "titel": "Lesekarte: geschichtswissenschaftliche Forschung zur politischen Beteiligung von Frauen (LUKA-Paraphrase)",
+        "inhalt": "Die Historikerin Birgitta Bader-Zaar untersucht in einem peer-reviewten Fachartikel die politische Beteiligung der bürgerlich-liberalen Frauenbewegung in Österreich von 1918 bis 1934. Der Beitrag beschreibt die politische Zersplitterung und die Konzentration der liberalen Bewegung auf Wien, die Gründung einer Frauenpartei in den späten 1920er-Jahren und die spätere Unterstützung des autoritären Dollfuß-Regimes 1933/34. Diese Karte fasst Titel, Abstract und Einordnung des Fachartikels knapp zusammen; sie ist keine Primärquelle.",
+        "herkunft": {
+          "typ": "url",
+          "ref": "https://journals.univie.ac.at/index.php/oezg/article/view/3581"
+        }
+      },
+      {
+        "id": "q4",
+        "titel": "Lesekarte: Artikel 7 Bundes-Verfassungsgesetz (heutige Rechtsnorm)",
+        "inhalt": "Artikel 7 B-VG gewährleistet die Gleichheit aller Staatsbürgerinnen und Staatsbürger vor dem Gesetz und schließt unter anderem Vorrechte nach Geschlecht aus. Diese Fassung gilt seit 01.08.2013 und wurde zuletzt durch BGBl. I Nr. 114/2013 geändert. Sie dient als heutiger Vergleichspunkt; sie ist nicht der Wortlaut der Wahlordnung von 1918. Stand der RIS-Prüfung: 04.10.2026.",
+        "herkunft": {
+          "typ": "url",
+          "ref": "https://ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Anlage=&Artikel=7&Gesetzesnummer=10000138&Paragraf=&Uebergangsrecht="
+        }
+      }
+    ],
+    "quelleHinweis": "AMTLICHER LEHRPLAN: Lehrplan der allgemeinbildenden höheren Schule, Anlage 1, Anlage A, Pflichtgegenstand Geschichte und Politische Bildung. Fundstelle: 8. Klasse, 8. Semester: historische Fragekompetenz (Einfluss der Fragestellung auf die Darstellung erkennen), historische Methodenkompetenz (Darstellungen mit Erkenntnissen der Geschichtswissenschaft/Fachtexten vergleichen), historische Orientierungskompetenz und politische Urteilskompetenz (Kontext, Grund- und Freiheitsrechte, Folgen); Themenbereiche 20. und 21. Jahrhundert. Das RIS nennt für dieses Semester keine eigene Kompetenzmodulnummer.; Schulstufe 12, 8. Semester. Fassung gültig ab 01.09.2026, zuletzt geändert durch BGBl. II Nr. 204/2024. RIS: https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Anlage=1&Artikel=&Gesetzesnummer=10008568&Paragraf=&Uebergangsrecht=\nLUKA-AUFBEREITUNG: Historische Fragekompetenz, Historische Methodenkompetenz, Historische Orientierungskompetenz, Politische Urteilskompetenz werden hier in einer redaktionell erstellten Aufgabe mit Material und Erwartungskriterien geübt. Die Aufgabenbezeichnungen und Lesekarten sind keine amtlichen Kompetenzbezeichnungen oder Originaltexte.\nMATERIALGRUNDLAGE: Parlament Österreich, „Parlament im Zentrum“ (historische Einordnung); Birgitta Bader-Zaar, geschichtswissenschaftlicher Artikel in der Österreichischen Zeitschrift für Geschichtswissenschaften, 26(2), 2015, DOI 10.25365/oezg-2015-26-2-5; RIS, Bundes-Verfassungsgesetz, Art. 7 (geltende Fassung, nur als heutiger Vergleichspunkt).\nStand der Quellenprüfung: 2026-10-04. Keine personenbezogenen Schülerdaten; synthetische Daten sind ausdrücklich als solche gekennzeichnet.",
+    "createdAt": "2026-10-04T00:00:00.000Z"
+  }
+]

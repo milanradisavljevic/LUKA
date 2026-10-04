@@ -59,9 +59,9 @@ describe('providerSetup', () => {
     expect(result).toEqual({ providerId: 'claude', key: 'sk-ant-legacy' });
   });
 
-  it('markiert genau Mistral als empfohlenen Pilot-Provider', () => {
+  it('markiert genau DeepSeek als empfohlenen Pilot-Provider', () => {
     const recommended = LLM_PROVIDERS.filter((provider) => PROVIDER_ONBOARDING[provider.id].recommended);
-    expect(recommended.map((provider) => provider.id)).toEqual(['mistral']);
+    expect(recommended.map((provider) => provider.id)).toEqual(['deepseek']);
   });
 
   it('hat vollstaendige Onboarding-Metadaten fuer jeden Provider', () => {

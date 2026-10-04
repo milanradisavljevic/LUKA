@@ -20,6 +20,7 @@ import { transformiereLeicht, transformiereSchwer, findeOffeneBlockIds, metaFuer
 import { DEFAULT_LEHRER_PROFIL, loadTeacherProfile } from '../lib/profile';
 import { effektiverQuelltextSchalter, metaSchalterUpdate } from '../lib/quelltextSchalter';
 import { DigitaleSelbstkontrolle } from './DigitaleSelbstkontrolle';
+import { ibEffectiveTotalRawMarks } from '../lib/ibPilot';
 
 
 function isTauri(): boolean {
@@ -101,7 +102,7 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
   const error = generateError ?? exportError ?? pdfExport.error;
   const exportButtonLabel = exportOptions.loesung ? 'Beide Dokumente exportieren' : 'Schülerfassung exportieren';
 
-  const totalPunkte = state.bloecke.reduce((s, b) => s + b.punkte, 0);
+  const totalPunkte = ibEffectiveTotalRawMarks(state.meta, state.bloecke);
   const previewBloecke = state.generiertesDokument?.bloecke ?? state.bloecke;
   const qualityPassRunning = generating && stage === 'qualitaet';
   const studentDocxPath = lastSavedPaths?.find((path) => /Schuelerfassung\.docx$/i.test(path))

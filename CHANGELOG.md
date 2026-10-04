@@ -5,39 +5,20 @@ Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 (auch andere Coding-Agents) — siehe `AGENTS.md`.
 
-## In Arbeit — 2026-10-04
+## Version 1.5.6 — 2026-10-04
 
-### Änderungen
+### Das ist neu
 
-- Vor dem Datenbank-Backup weist LUKA darauf hin, dass die Datei unverschlüsselt ist und einen geschützten Speicherort braucht.
-- Aufgaben und Bewertungsraster werden im Korrekturauftrag festgelegt; der Schülerbereich bleibt auf Klassen und Schüler konzentriert.
-- Kriteriennamen in der Einzelkorrektur sind verständlich formatiert. Fehlerstellen erscheinen als dezente Flächenmarkierungen statt farbiger Unterstreichungen.
-- Datensicherungen werden vor dem Einspielen geprüft. Scheitert die Wiederherstellung, stellt LUKA die vorherige Datenbank wieder her.
-- Nach erfolgreicher Wiederherstellung bleibt die vorherige Datenbank als unverschlüsselte Rückfallkopie im selben Ordner erhalten.
-- Windows-Installationen prüfen jetzt auch, ob das Korrektur-Modul am richtigen Ort installiert ist und startet.
-- Vor einem Release wird geprüft, ob sich das Korrektur-Modul auch aus dem installierten Windows-Build starten lässt.
-- Ein eigener Pilot-Build-Befehl bindet das zuvor gebaute Korrektur-Modul in den Windows-Installer ein.
-- Der lokale Pilot-Build kommt ohne Release-Signaturschlüssel aus.
-- Deutsch- und Englisch-Benchmarks zählen für die technische Flash-Schwelle nur vollständige synthetische Läufe mit dokumentierter Promptversion.
-- Der amtliche Ferienkalender für Deutschland 2027/28 ist für alle Bundesländer hinterlegt; bewegliche Ferientage ohne festes Datum bleiben offen.
-- Der KMK-Ferienkalender 2028/29 ist für alle deutschen Bundesländer ergänzt; Sondertage bleiben einzeln und nachvollziehbar erfasst.
-
-## In Arbeit — 2026-10-03
-
-### Änderungen
-
-- Klassen sind ein eigener Arbeitsbereich. Schüler/innen können Kursen in verschiedenen Schuljahren zugeordnet werden; unsichere Altdaten bleiben zur Prüfung markiert.
-- Die Klassenliste berücksichtigt aktive Mehrfachzuordnungen. Gleichnamige Klassen verschiedener Schuljahre bleiben getrennt; historische Abgaben behalten ihre Klassenbezeichnung.
-- Die Schüleransicht unterscheidet gleichnamige Klassen nach Fach und Schuljahr. Abgabezahlen folgen der Klassenidentität und werden bei mehrdeutigen Altzuordnungen nicht doppelt gezählt.
-- Querverweise aus Korrekturen und Klassenliste öffnen den Schüler-Längsschnitt mit stabiler Klassen-ID. Bei mehrdeutigen Altklassen fragt LUKA nach einer Auswahl, statt Schülerlisten zu vermischen.
-- Der Klassenbereich zeigt Abgabezahlen auch für gleichnamige Klassen getrennt nach Klassen-ID; unsichere Altdaten ohne eindeutige Zuordnung bleiben als prüfbedürftig markiert.
-- Gleichnamige Klassen aus verschiedenen Schuljahren bleiben in der Übersicht und den Korrekturauswertungen getrennt. Unsichere Altdaten werden keiner Klasse zugerechnet.
-- Bewusst entfernte Kurszuordnungen bleiben nach erneutem Start entfernt und lassen sich später gezielt wieder aktivieren.
-- Geplante Stunden zeigen bestätigte Lernziele und ihre Korrekturquelle. Spätere Abrufchecks sind mit einer künftigen Stunde verknüpft und lassen sich von dort öffnen; verschobene Termine werden konsistent angezeigt.
-- Für neue Abrufchecks hält LUKA den Klassenstand fest und unterscheidet Teilnahme, Nichtteilnahme, offene Teilnahme und Antworten je Schüler/in. Alte Checks erhalten keine rückwirkend erfundene Anwesenheitsliste.
-- Spätere Änderungen an Check-Ergebnissen bleiben mit Zeitpunkt, alter und neuer Einstufung nachvollziehbar. Frühere Antworttexte werden dafür nicht erneut gespeichert.
-- Antworten ganzer Klassenchecks lassen sich gemeinsam speichern; offene Antworten brauchen ausdrücklich eine Lehrkraftauswertung.
-- Ausgangskorrekturen und spätere Check-Antworten erscheinen mit Quelle, Zeitraum und Antwortzahlen getrennt. LUKA verrechnet unterschiedliche Erhebungen nicht zu einer Fortschrittszahl.
+- Klassen und Kurszuordnungen bleiben über Schuljahre hinweg unterscheidbar. Mehrdeutige Altdaten werden zur Prüfung markiert, statt Schüler/innen oder Abgaben falsch zusammenzuführen.
+- Geplante Stunden, bestätigte Lernziele und spätere Abrufchecks lassen sich miteinander verbinden. Teilnahme und Änderungen bleiben nachvollziehbar; offene Antworten wertet die Lehrkraft aus.
+- Geschlossene Aufgaben lassen sich lokal anhand des gespeicherten Lösungsschlüssels bepunkten. Die Lehrkraft prüft und bestätigt die Punktesumme; offene Aufgaben bleiben außerhalb der automatischen Wertung.
+- Folgeübungen und Korrektur-Feedback lassen sich an geplanten Stunden derselben Klasse ablegen und von dort wieder öffnen.
+- Der Korrekturbereich hält Klassen und Schüler/innen getrennt. Kriteriennamen und Fehlerhinweise sind in der Einzelkorrektur leichter zu erfassen.
+- Datensicherungen werden vor dem Wiederherstellen geprüft. Bei einem Fehler stellt LUKA die vorherige Datenbank wieder her; Sicherungen sind unverschlüsselt und werden entsprechend gekennzeichnet.
+- Neue Korrekturaufträge verwenden DeepSeek V4 Pro als Standard. Die technischen Vergleichsläufe sind dokumentiert; fachliche Bewertung und Freigabe durch Lehrkräfte bleiben Teil des Pilottests.
+- IB-Aufgaben für German A und English A prüfen Struktur, Werke, Quellen und Punkte klarer; die allgemeinen Aufgaben für Abitur und Matura bleiben davon getrennt.
+- Für Geschichte und Politische Bildung gibt es 11 materialgestützte AHS-Aufgaben. Mathematik und Biologie enthalten nun konkrete Lerninhalte für österreichische AHS-Schulstufen 5 bis 12.
+- Die deutschen Ferienkalender 2027/28 und 2028/29 sind ergänzt; bewegliche und besondere Ferientage bleiben gesondert gekennzeichnet.
 
 ## Version 1.5.5 — 2026-10-02
 

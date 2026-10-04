@@ -3,7 +3,7 @@
  *
  * Die Hilfe nennt Fächer, Aufgabentypen und Tastenkürzel. Vorher standen diese
  * Listen als Prosa in `HelpView.tsx` — und die App lief ihnen hinterher: zwei
- * der 14 Fächer, einer der 20 Aufgabentypen und 16 von 19 Tastenkürzeln waren
+ * Fächer, einer der 20 Aufgabentypen und 16 von 19 Tastenkürzeln waren
  * nicht genannt, ohne dass irgendwo ein Test angesagt hätte.
  *
  * Diese Tests schlagen an, sobald in einer der Quelllisten etwas hinzukommt und
@@ -198,6 +198,7 @@ const PLANUNGS_BEGRIFFE: Array<{ begriff: string; warum: string }> = [
   { begriff: 'Stunde hinzufügen', warum: 'Vertretung ohne Rasterzeile' },
   { begriff: 'Entfallen', warum: 'Vertretungsstunden markieren' },
   { begriff: 'Unterlage vorbereiten', warum: 'der Weg aus der Stunde in den Assistenten' },
+  { begriff: 'Folgeübung anhängen', warum: 'der Weg von bestätigten Fehlerschwerpunkten zum Termin' },
   { begriff: 'Verknüpfung abbrechen', warum: 'sonst hängt die Unterlage am falschen Termin' },
   { begriff: 'Unterlagen', warum: 'wo der Materialbedarf der Stunde liegt' },
   { begriff: 'Quelle', warum: 'Ferienvorschläge müssen prüfbar bleiben' },

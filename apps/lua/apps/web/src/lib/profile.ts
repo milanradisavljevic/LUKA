@@ -33,8 +33,8 @@ export const DEFAULT_LEHRER_PROFIL: LehrerProfil = {
   faecher: [],
   schulstufen: [],
   aufgabenformate: [],
-  standardProvider: 'mistral',
-  standardModel: 'Mistral Medium 3.5',
+  standardProvider: 'deepseek',
+  standardModel: 'DeepSeek V4 Pro',
   standardKreativitaet: 0.4,
   exportDocx: true,
   exportPdf: false,
@@ -58,6 +58,10 @@ export async function loadTeacherProfile(force = false): Promise<LehrerProfil | 
   if (!isTauri()) return null;
   if (!force && cachedProfile !== undefined) return cachedProfile;
   cachedProfile = await invoke<LehrerProfil | null>('profil_get');
+  if (cachedProfile?.standardProvider === 'mistral'
+    && cachedProfile.standardModel === 'Mistral Medium 3.5') {
+    cachedProfile = { ...cachedProfile, standardProvider: 'deepseek', standardModel: 'DeepSeek V4 Pro' };
+  }
   return cachedProfile;
 }
 

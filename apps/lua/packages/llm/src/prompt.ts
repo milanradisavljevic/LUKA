@@ -802,6 +802,22 @@ Inhaltliche Regeln:
 const SYSTEM = SYSTEM_HEAD_TEXT + '\n\n' + BLOCK_REGELN;
 const SYSTEM_KOMPETENZ = SYSTEM_HEAD_KOMPETENZ + '\n\n' + BLOCK_REGELN;
 
+// Redaktionelle LUKA-Aufbereitung, angelehnt an den aktuellen AHS-Lehrplan
+// Geschichte und Politische Bildung (RIS, Anlage 1, Historische Methodenkompetenz).
+// Die Formulierungen sind keine amtlichen Kompetenzbezeichnungen.
+const GESCHICHTE_DIDAKTIK = [
+  '',
+  'GESCHICHTSBEZOGENE LUKA-DIDAKTIK (redaktionelle Aufbereitung, kein amtlicher Lehrplanwortlaut):',
+  '- Unterscheide Quelle und Darstellung anhand von Entstehungssituation, Herkunft und Funktion. Eine spätere Darstellung kann selbst eine Quelle für ihre Entstehungszeit sein, belegt aber nicht ohne Weiteres das historische Ereignis, das sie schildert.',
+  '- Bei Quellenarbeit: Trenne sichtbare bzw. zitierte Aussagen von deiner Deutung. Belege Deutungen mit einer konkreten Stelle oder einem sichtbaren Merkmal des Materials.',
+  '- Erfinde keine Angaben zu Urheber/in, Entstehungszeit, Adressat/innen, Absicht oder historischem Kontext. Nutze sie nur, wenn Quelle, Metadaten oder vorgegebener Lerninhalt sie stützen; sonst benenne die Information als unbekannt oder formuliere eine prüfbare Frage dazu.',
+  '- Untersuche bei Darstellungen, welche Ereignisse und Perspektiven ausgewählt, gewichtet oder ausgelassen werden. Nenne die Darstellung nicht selbst eine Augenzeug/innenquelle.',
+  '- Wenn mehrere Perspektiven verglichen werden, stütze jede auf das tatsächlich bereitgestellte Material. Ergänze keine Perspektive, die dort nicht belegt ist.',
+  '- Bei politischen Fragen unterscheide Tatsachenbehauptungen, Interessen und Werturteile. Verlange eine begründete Beurteilung anhand offengelegter Kriterien; gib keine parteipolitische Position als einzig richtige Lösung vor.',
+  '- Ordne Ereignisse nur mit den gelieferten Zeitangaben ein. Passe Begriffe, Hilfen und erwartete Selbstständigkeit an Schulstufe, Lernziele und bereitgestellte Kompetenzen an.',
+  '',
+].join('\n');
+
 // Zusatzhinweis für IB (International Baccalaureate), angehaengt bei rahmenwerk === 'ib-dp'.
 const IB_HINWEIS = `
 
@@ -964,6 +980,7 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
   const modus = input.meta.modus ?? 'text';
   const land = input.meta.land ?? 'AT';
   const landHinweis = land === 'DE' ? DE_HINWEIS : '';
+  const fachDidaktikHinweis = input.meta.fach === 'geschichte' ? GESCHICHTE_DIDAKTIK : '';
   const schwierigkeit = input.meta.schwierigkeit ?? 'mittel';
   const niveauHinweisGemeinsam = niveauKopplungHinweis(schwierigkeit, input.meta.kompetenzNiveau);
   const lernziele = input.meta.lernziele ?? [];
@@ -1096,11 +1113,11 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
     const commonRules = `IB LANGUAGE A: LITERATURE, GERMAN A, ERSTPRÜFUNG 2026. Schreibe Aufgaben und Hinweise auf Deutsch. Verwende ausschließlich literarische Texte und untersuche, wie Form, Sprache, Struktur und Autorentscheidungen Bedeutung erzeugen. Behandle Interpretation und Belege, nicht bloß das Benennen rhetorischer Mittel. Erzeuge keine IB-Gesamtnote von 1–7 und behaupte keine offizielle IB-Prüfung. ${practiceModeInstruction} `;
     const componentRules: Record<typeof ibAssessment.assessmentComponent, string> = {
       paper1: ibAssessment.level === 'sl'
-        ? `PAPER 1 SL: Es liegen zwei unveröffentlichte literarische Texte vor: Text 1 in der Form ${ibAssessment.paper1LiteraryForms?.[0] ?? 'literarische Form 1'}, Text 2 in der Form ${ibAssessment.paper1LiteraryForms?.[1] ?? 'literarische Form 2'}. Erstelle genau ZWEI getrennte Schreibaufgaben als Wahloptionen, je eine geführte Analyse pro Text. Jede Aufgabe muss mit dem passenden Quelltext (q1 bzw. q2) verknüpft sein und eine eigene präzise Leitfrage enthalten. Weise klar an, genau EINE der beiden Optionen zu bearbeiten; verlange keine Analyse beider. Jede Option hat maximal 20 Rohpunkte.`
+        ? `PAPER 1 SL: Es liegen zwei unveröffentlichte literarische Texte vor: Text 1 in der Form ${ibAssessment.paper1LiteraryForms?.[0] ?? 'literarische Form 1'}, Text 2 in der Form ${ibAssessment.paper1LiteraryForms?.[1] ?? 'literarische Form 2'}. Erstelle genau ZWEI getrennte Schreibaufgaben als Wahloptionen A und B, je eine geführte Analyse pro Text. Jede Aufgabe muss mit dem passenden Quelltext (q1 bzw. q2) verknüpft sein und eine eigene präzise Leitfrage enthalten. Kopiere die vorgegebenen Werte aus ibChoiceGroup der jeweiligen angeforderten Aufgabe unverändert in config.ibChoiceGroup der Ausgabe und ordne A dem ersten, B dem zweiten Text zu. Weise deutlich an, genau EINE Option zu bearbeiten; die beiden Optionen ergeben zusammen maximal 20 Rohpunkte, nicht 40.`
         : `PAPER 1 HL: Erstelle genau ZWEI voneinander unabhängige geführte Analysen, je eine pro unveröffentlichtem literarischem Text (Formen: ${JSON.stringify(ibAssessment.paper1LiteraryForms ?? [])}). Verknüpfe Aufgabe 1 mit q1 und Aufgabe 2 mit q2. Jede Analyse erhält eine eigene Leitfrage und wird separat mit maximal 20 Rohpunkten geführt.`,
-      paper2: `PAPER 2: Erstelle vier allgemeine literarische Essayfragen und weise an, genau eine zu wählen. Der Aufsatz muss die zwei ausgewählten Werke explizit vergleichen und/oder kontrastieren; balanciere beide Werke, verlange Textbelege und bespreche, wie Form und Autorentscheidungen Bedeutung gestalten. Nur eine Schreibaufgabe, maximal 25 Rohpunkte. Keine Quellenbeilage; die Werkangaben sind Kurskontext.`,
-      'individual-oral': `INDIVIDUAL ORAL: Die erste gelieferte Passage gehört zum ursprünglich deutschsprachigen Werk, die zweite zum Werk in Übersetzung. Erstelle eine Probe für einen 10-minütigen vorbereiteten Vortrag zum Global Issue "${ibAssessment.globalIssue ?? ''}" sowie passende, offene Lehrkraftfragen für die anschließenden 5 Minuten. Der Vortrag untersucht die Darstellung des Global Issue in Inhalt und Form beider Werke; er ist KEIN Vergleich der Werke und darf nicht als ausformulierter, auswendig lernbarer Vortrag erscheinen. Die erforderliche Musterlösung ist nur ein nicht einreichbares Bewertungs-/Planungsgerüst, kein ausformulierter Vortrag. Eine Aufgabe, maximal 40 Rohpunkte.`,
-      'hl-essay': `HL ESSAY: Erstelle ausschließlich ein Coachingblatt für einen eigenständigen Essay von 1.200–1.500 Wörtern zu einem behandelten Werk und zur Line of Inquiry "${ibAssessment.lineOfInquiry ?? ''}". Halte auch umfangWorte im Aufgabenblock exakt auf 1.200–1.500. Liefere Planungsfragen, eine Gliederungsstruktur, Kriterien für eine werkweite literarische Argumentation und eine Überarbeitungscheckliste. Schreibe KEINEN Musteressay, keine fertigen Absätze und keine einreichbare Schülerantwort. Falls ein Schülerentwurf als Quelle vorliegt, gib dazu kriterienorientierte Rückmeldung und nenne eine nachvollziehbare Wortzahl; schreibe den Entwurf nicht um, ergänze keine fertigen Absätze und ersetze nicht die eigene Überarbeitung. Die erforderliche Musterlösung ist nur ein nicht einreichbares Coaching-/Prüfgerüst, niemals Beispielprosa. Eine Aufgabe, maximal 20 Rohpunkte.`,
+      paper2: `PAPER 2: Erstelle genau vier unterschiedliche, vollständig ausformulierte literarische Essayfragen im config-Feld ibPaper2Questions (genau vier Strings; keine Frage nur in aspekte oder arbeitsanweisung verstecken). Nenne in der Arbeitsanweisung beide ausgewählten Werktitel und ihre unterschiedlichen Autor:innen ausdrücklich. Jede der vier Fragen muss einen tatsächlichen Vergleich oder Kontrast dieser beiden Werke verlangen; bloße Einzelanalysen oder lose Themenfragen genügen nicht. Die Arbeitsanweisung muss klar sagen, genau eine der vier Fragen zu wählen. Balanciere beide Werke, verlange Textbelege und bespreche, wie Form und Autorentscheidungen Bedeutung gestalten. Nur eine Schreibaufgabe, maximal 25 Rohpunkte. Keine Quellenbeilage; die Werkangaben sind Kurskontext.`,
+      'individual-oral': `INDIVIDUAL ORAL: Die erste gelieferte Passage gehört zum ursprünglich deutschsprachigen Werk, die zweite zum Werk in Übersetzung. Nenne beide ausgewählten Werktitel ausdrücklich und ordne den ersten der deutschen Originalsprache, den zweiten der Übersetzung zu. Erstelle eine Probe für einen 10-minütigen vorbereiteten Vortrag zum Global Issue "${ibAssessment.globalIssue ?? ''}" sowie passende, offene Lehrkraftfragen für die anschließenden 5 Minuten. Der Vortrag untersucht die Darstellung des Global Issue in Inhalt und Form beider Werke; er ist KEIN Vergleich der Werke und darf nicht als ausformulierter, auswendig lernbarer Vortrag erscheinen. Die erforderliche Musterlösung ist nur ein nicht einreichbares Bewertungs-/Planungsgerüst, kein ausformulierter Vortrag. Eine Aufgabe, maximal 40 Rohpunkte.`,
+      'hl-essay': `HL ESSAY: Erstelle ausschließlich ein Coachingblatt für einen eigenständigen Essay von 1.200–1.500 Wörtern zum ausgewählten behandelten Werk ${selectedWorks[0]?.title ?? ''} und zur Line of Inquiry "${ibAssessment.lineOfInquiry ?? ''}". Nenne den Werktitel in der Arbeitsanweisung. Halte auch umfangWorte im Aufgabenblock exakt auf 1.200–1.500. Liefere Planungsfragen, eine Gliederungsstruktur, Kriterien für eine werkweite literarische Argumentation und eine Überarbeitungscheckliste. Schreibe KEINEN Musteressay, keine fertigen Absätze und keine einreichbare Schülerantwort. Falls ein Schülerentwurf als Quelle vorliegt, gib dazu kriterienorientierte Rückmeldung und nenne eine nachvollziehbare Wortzahl; schreibe den Entwurf nicht um, ergänze keine fertigen Absätze und ersetze nicht die eigene Überarbeitung. Die erforderliche Musterlösung ist nur ein nicht einreichbares Coaching-/Prüfgerüst, niemals Beispielprosa. Eine Aufgabe, maximal 20 Rohpunkte.`,
     };
     const component = ibAssessment.assessmentComponent;
     const sourceRequirement = component === 'paper1' || component === 'individual-oral'
@@ -1113,7 +1130,7 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
         role: 'system',
         content: SYSTEM + `\n\n${commonRules} ${componentRules[component]} `
           + `Nutze die angegebenen Aufgabenblöcke und gib exakt ein JSON-Array vollständig schema-konformer Blöcke zurück. `
-          + `Bewertungsorientierung mit Kriterien und maximalen Rohpunkten: ${JSON.stringify(criteria)}. Formuliere kriterienspezifische Feedback-Hinweise, aber vergib keine automatische Punktzahl und keine Gesamtnote. `
+          + `Die verbindlichen Rohpunkt-Kriterien kommen aus dem Kurskontext und werden von LUKA separat angezeigt: ${JSON.stringify(criteria)}. Wiederhole keine Kriterien-IDs oder Rohpunkt-Maxima im generischen Erwartungshorizont; er darf nur beschreibende Hinweise enthalten. Vergib keine automatische Punktzahl und keine Gesamtnote. `
           + sourceRequirement,
       },
       {
@@ -1172,7 +1189,7 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
     const niveauHinweis = niveau
       ? `Niveau: "${niveau}" — passe Satzkomplexitaet, Scaffolding und Item-Anzahl entsprechend an (siehe NIVEAU-STEUERUNG im System-Prompt). `
       : '';
-    const systemContent = SYSTEM_KOMPETENZ + (input.meta.rahmenwerk === 'ib-dp' ? IB_HINWEIS : '') + landHinweis;
+    const systemContent = SYSTEM_KOMPETENZ + (input.meta.rahmenwerk === 'ib-dp' ? IB_HINWEIS : '') + landHinweis + fachDidaktikHinweis;
     const inhaltsModulHinweis = input.inhaltsModul
       ? `Inhaltlicher Rahmen: "${input.inhaltsModul.titel}" — ${input.inhaltsModul.beschreibung}. Alle Beispiele/Szenarien muessen inhaltlich zu diesem Thema passen. `
       : '';
@@ -1275,7 +1292,8 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
             + '"bloecke": [...]}. Die "bloecke" entsprechen wie gewohnt dem angeforderten Block-Array; '
             + 'die aufbereiteten Quelltexte gehoeren in "quelltexte", je Eintrag NUR "id" und "ausgabeText".'
           : '')
-        + landHinweis,
+        + landHinweis
+        + fachDidaktikHinweis,
     },
     {
       role: 'user',

@@ -252,10 +252,10 @@ describe('buildMessages — German A: Literature SL/HL', () => {
       quelltexte: sources,
       bloecke: assessmentComponent === 'paper1'
         ? [
-            { typ: 'offeneSchreibaufgabe' as const, punkte: 20, quelleId: 'q1', textsorte: 'analysis', situation: 'practice', umfangWorte: { min: 250, max: 350 }, aspekte: ['Belege'] },
-            { typ: 'offeneSchreibaufgabe' as const, punkte: 20, quelleId: 'q2', textsorte: 'analysis', situation: 'practice', umfangWorte: { min: 250, max: 350 }, aspekte: ['Belege'] },
+            { typ: 'offeneSchreibaufgabe' as const, punkte: 20, quelleId: 'q1', textsorte: 'analysis', situation: 'practice', umfangWorte: { min: 250, max: 350 }, aspekte: ['Belege'], ...(level === 'sl' ? { ibChoiceGroup: { id: 'paper1-sl-choice', option: 'A' as const, totalOptions: 2 as const, totalMaxMarks: 20 } } : {}) },
+            { typ: 'offeneSchreibaufgabe' as const, punkte: 20, quelleId: 'q2', textsorte: 'analysis', situation: 'practice', umfangWorte: { min: 250, max: 350 }, aspekte: ['Belege'], ...(level === 'sl' ? { ibChoiceGroup: { id: 'paper1-sl-choice', option: 'B' as const, totalOptions: 2 as const, totalMaxMarks: 20 } } : {}) },
           ]
-        : [{ typ: 'offeneSchreibaufgabe' as const, punkte: 20, textsorte: 'analysis', situation: 'practice', umfangWorte: assessmentComponent === 'hl-essay' ? { min: 1200, max: 1500 } : { min: 250, max: 350 }, aspekte: ['Belege'] }],
+        : [{ typ: 'offeneSchreibaufgabe' as const, punkte: assessmentComponent === 'paper2' ? 25 : assessmentComponent === 'individual-oral' ? 40 : 20, textsorte: 'analysis', situation: 'practice', umfangWorte: assessmentComponent === 'hl-essay' ? { min: 1200, max: 1500 } : { min: 250, max: 350 }, aspekte: ['Belege'] }],
     };
   };
 
@@ -263,6 +263,8 @@ describe('buildMessages — German A: Literature SL/HL', () => {
     const sl = buildMessages(germanInput('sl', 'paper1'));
     expect(sl[0]?.content).toContain('PAPER 1 SL');
     expect(sl[0]?.content).toContain('genau ZWEI getrennte Schreibaufgaben als Wahloptionen');
+    expect(sl[0]?.content).toContain('maximal 20 Rohpunkte, nicht 40');
+    expect(sl[0]?.content).toContain('config.ibChoiceGroup');
     expect(sl[0]?.content).toContain('Text 1 in der Form');
     expect(sl[1]?.content).toContain('"quelleId":"source-b"');
     const hl = buildMessages(germanInput('hl', 'paper1'));
@@ -274,9 +276,12 @@ describe('buildMessages — German A: Literature SL/HL', () => {
 
   it('verlangt bei Paper 2 einen vergleichenden Essay zu genau zwei Kurswerken', () => {
     const messages = buildMessages(germanInput('sl', 'paper2'));
-    expect(messages[0]?.content).toContain('vier allgemeine literarische Essayfragen');
-    expect(messages[0]?.content).toContain('genau eine zu wählen');
-    expect(messages[0]?.content).toContain('explizit vergleichen');
+    expect(messages[0]?.content).toContain('genau vier unterschiedliche, vollständig ausformulierte literarische Essayfragen');
+    expect(messages[0]?.content).toContain('genau eine der vier Fragen zu wählen');
+    expect(messages[0]?.content).toContain('config-Feld ibPaper2Questions');
+    expect(messages[0]?.content).toContain('Nenne in der Arbeitsanweisung beide ausgewählten Werktitel');
+    expect(messages[0]?.content).toContain('keine Kriterien-IDs oder Rohpunkt-Maxima im generischen Erwartungshorizont');
+    expect(messages[0]?.content).toContain('tatsächlichen Vergleich oder Kontrast');
     expect(messages[1]?.content).toContain('Werk auf Deutsch');
   });
 
@@ -311,6 +316,25 @@ describe('buildMessages — Quellenanalyse', () => {
     });
     expect(messages[0]?.content).toContain('quellenanalyse');
     expect(messages[0]?.content).toContain('mindestens einen konkreten Quellenbezug');
+    expect(messages[0]?.content).toContain('GESCHICHTSBEZOGENE LUKA-DIDAKTIK');
+    expect(messages[0]?.content).toContain('Unterscheide Quelle und Darstellung anhand von Entstehungssituation, Herkunft und Funktion');
+    expect(messages[0]?.content).toContain('Erfinde keine Angaben zu Urheber/in');
+  });
+});
+
+describe('buildMessages — Geschichte im Kompetenzmodus', () => {
+  it('gibt die Quellen- und Darstellungsregeln auch ohne Quelltext mit', () => {
+    const messages = buildMessages({
+      ...input({ fach: 'geschichte', modus: 'kompetenz', schulstufe: 7 }),
+      quelltexte: [],
+    });
+    expect(messages[0]?.content).toContain('GESCHICHTSBEZOGENE LUKA-DIDAKTIK');
+    expect(messages[0]?.content).toContain('Tatsachenbehauptungen, Interessen und Werturteile');
+  });
+
+  it('mischt die Geschichtsregeln nicht in Geographie-Aufträge', () => {
+    const messages = buildMessages(input({ fach: 'geographie' }));
+    expect(messages[0]?.content).not.toContain('GESCHICHTSBEZOGENE LUKA-DIDAKTIK');
   });
 });
 

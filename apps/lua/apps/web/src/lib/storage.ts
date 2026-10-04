@@ -7,8 +7,8 @@ const TEMPLATES_KEY = 'lehrunterlagen-templates';
 const MIGRATED_KEY = 'lehrunterlagen-migrated';
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  defaultProvider: 'mistral',
-  defaultModel: 'Mistral Medium 3.5',
+  defaultProvider: 'deepseek',
+  defaultModel: 'DeepSeek V4 Pro',
   defaultKreativitaet: 0.4,
   defaultAusgabeSprache: 'de',
   judgeEnabled: true,
@@ -224,7 +224,12 @@ export function clearHistory(): void {
 // --- Standard-Vorgaben (sync reads, async writes) ---
 
 export function loadSettings(): AppSettings {
-  return cache?.settings ?? loadSettingsFromLS();
+  const settings = cache?.settings ?? loadSettingsFromLS();
+  // Die bisherige Werksvorgabe wird für bestehende Installationen mitgezogen.
+  // Andere bewusst gewählte Anbieter/Modelle bleiben erhalten.
+  return settings.defaultProvider === 'mistral' && settings.defaultModel === 'Mistral Medium 3.5'
+    ? { ...settings, defaultProvider: 'deepseek', defaultModel: 'DeepSeek V4 Pro' }
+    : settings;
 }
 
 const settingsListeners = new Set<(settings: AppSettings) => void>();

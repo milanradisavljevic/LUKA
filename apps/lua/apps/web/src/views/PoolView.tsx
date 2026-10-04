@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { X, Search, Database, Upload, Download, Star, BadgeCheck, Sparkles, Loader2 } from 'lucide-react';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { fachLabel, FACH_META } from '@lehrunterlagen/schema';
-import type { Block, Fach, Stufe, BlockTyp } from '@lehrunterlagen/schema';
+import type { Block, Fach, Stufe, BlockTyp, QuellText } from '@lehrunterlagen/schema';
 import { useAufgabenPool } from '../hooks/useAufgabenPool';
 import { parsePoolBlock, parsePoolTags, isKuratiert, poolEntryToDocument } from '../lib/pool';
 import type { PoolQualityStatus } from '../lib/pool';
@@ -17,7 +17,7 @@ import { BLOCK_TYPE_DEFS } from '../lib/constants';
 const STUFE_LABEL: Record<string, string> = { oberstufe: 'Oberstufe', unterstufe: 'Unterstufe' };
 
 interface Props {
-  onInsertBlock?: (block: Block) => void;
+  onInsertBlock?: (block: Block, quelltexte?: QuellText[]) => void;
 }
 
 export function PoolView({ onInsertBlock }: Props) {
@@ -134,7 +134,7 @@ export function PoolView({ onInsertBlock }: Props) {
     const block = parsePoolBlock(entry);
     if (block && onInsertBlock) {
       void markUsed(entry.id);
-      onInsertBlock(block);
+      onInsertBlock(block, entry.quelltexte ?? []);
     }
   };
 
@@ -321,11 +321,11 @@ export function PoolView({ onInsertBlock }: Props) {
           <Sparkles size={28} style={{ color: 'var(--color-accent)' }} />
           <strong style={{ fontSize: '0.9375rem' }}>
             {profilLand === 'DE'
-              ? '37 geprüfte Aufgaben zum Start (inkl. Startpaket Deutschland)'
-              : '29 geprüfte Aufgaben zum Start'}
+              ? '48 kuratierte Aufgaben zum Start (inkl. Startpaket Deutschland)'
+              : '40 kuratierte Aufgaben zum Start'}
           </strong>
           <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: 0, maxWidth: 460 }}>
-            Kuratierte Fachpakete für Medien und Demokratie, Informatik und Künstliche Intelligenz sowie Deutsch
+            Kuratierte Fachpakete für Medien und Demokratie, Informatik und Künstliche Intelligenz, Geschichte und Politische Bildung sowie Deutsch
             (Oberstufe){profilLand === 'DE' ? ' sowie das Startpaket Deutschland' : ''}. In deinen Pool übernehmen?
           </p>
           <button

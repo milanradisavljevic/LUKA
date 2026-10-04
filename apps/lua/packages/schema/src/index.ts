@@ -47,7 +47,7 @@ export const FachSchema = z.enum([
   'geschichte', 'geographie', 'religion', 'ethik', 'psychologie', 'philosophie',
   // Neue AHS-Pflichtfächer ab 2026/27 (Nationalratsbeschluss 07.07.2026) — Lehrplan-
   // Verordnung stand bei Anlage noch aus, siehe Entwurfs-Vermerk in den Deskriptor-Quellen.
-  'mediendemokratie', 'informatikki',
+  'mediendemokratie', 'informatikki', 'mathematik', 'biologie',
 ]);
 export type Fach = z.infer<typeof FachSchema>;
 
@@ -67,6 +67,8 @@ export const FACH_META: Record<Fach, { label: string; sprachfach: boolean; ziels
   philosophie: { label: 'Philosophie', sprachfach: false, zielsprache: 'Deutsch' },
   mediendemokratie: { label: 'Medien und Demokratie',              sprachfach: false, zielsprache: 'Deutsch' },
   informatikki:     { label: 'Informatik und Künstliche Intelligenz', sprachfach: false, zielsprache: 'Deutsch' },
+  mathematik:       { label: 'Mathematik', sprachfach: false, zielsprache: 'Deutsch' },
+  biologie:         { label: 'Biologie und Umweltbildung', sprachfach: false, zielsprache: 'Deutsch' },
 };
 
 /** Sprachfach = Inhalt soll in der Zielsprache stehen (Englisch, Französisch, …). */
@@ -222,6 +224,7 @@ export const IBAssessmentCriterionSchema = z.object({
   label: z.string().min(1),
   maxMarks: z.number().int().positive(),
 });
+export type IBAssessmentCriterion = z.infer<typeof IBAssessmentCriterionSchema>;
 
 export const IBExamSessionSchema = z.object({
   session: z.enum(['may', 'november']),
@@ -332,6 +335,8 @@ export const KOMPETENZBEREICHE: Record<Fach, string[]> = {
   // diese Strings sind bindend fuer Deskriptor.bereich/StoffItem.kategorie, siehe docs/PLAN-neue-faecher-2026-07.md.
   mediendemokratie: ['Medienkompetenz & Quellenkritik', 'Politische Bildung & Demokratieverständnis', 'Kommunikation & Meinungsbildung'],
   informatikki: ['Algorithmisches Denken', 'KI-Grundlagen & Ethik', 'Datenschutz & Cybersecurity'],
+  mathematik: ['Zahlen und Maße', 'Variablen und Funktionen', 'Figuren und Körper', 'Daten und Zufall', 'Algebra und Geometrie', 'Funktionale Abhängigkeiten', 'Analysis', 'Wahrscheinlichkeit und Statistik'],
+  biologie: ['Wissen aneignen, anwenden und kommunizieren', 'Fachwissen aneignen und kommunizieren', 'Erkenntnisse gewinnen', 'Standpunkte begründen und reflektiert handeln'],
 };
 
 export const MetaSchema = z.object({
@@ -564,6 +569,15 @@ export const OffeneSchreibaufgabeBlockSchema = BlockBaseSchema.extend({
       textsorte: z.string().min(1),
       umfangWorte: z.object({ min: z.number().int().positive(), max: z.number().int().positive() }),
       aspekte: z.array(z.string().min(1)).min(1),
+      // IB German A: Literature task structure. Optional so existing documents
+      // and non-IB writing tasks keep their established shape.
+      ibChoiceGroup: z.object({
+        id: z.string().min(1),
+        option: z.enum(['A', 'B']),
+        totalOptions: z.literal(2),
+        totalMaxMarks: z.number().int().positive(),
+      }).optional(),
+      ibPaper2Questions: z.array(z.string().trim().min(1)).length(4).optional(),
     })
     .refine(
       (c) => c.umfangWorte.min <= c.umfangWorte.max,

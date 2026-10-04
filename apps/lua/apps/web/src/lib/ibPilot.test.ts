@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   createIbLiteratureDraft,
+  ibEffectiveTotalRawMarks,
   IB_LITERATURE_REQUIREMENTS,
   ibAssessmentCriteria,
   ibComponentRawMarks,
@@ -30,7 +31,12 @@ describe('IB German A: Literature', () => {
     expect(draft.meta.bewertungsschema).toBeUndefined();
     expect(draft.bloecke).toHaveLength(2);
     expect(draft.bloecke.map((block) => [block.quelleId, block.punkte])).toEqual([['q1', 20], ['q2', 20]]);
+    expect(draft.bloecke.map((block) => block.typ === 'offeneSchreibaufgabe' ? block.config.ibChoiceGroup : undefined)).toEqual([
+      { id: 'paper1-sl-choice', option: 'A', totalOptions: 2, totalMaxMarks: 20 },
+      { id: 'paper1-sl-choice', option: 'B', totalOptions: 2, totalMaxMarks: 20 },
+    ]);
     expect(draft.auftrag.gesamtpunkteZiel).toBe(20);
+    expect(ibEffectiveTotalRawMarks(draft.meta, draft.bloecke)).toBe(20);
   });
 
   it('erzeugt HL Paper 1 mit zwei getrennten Analysen zu je 20 Rohpunkten', () => {
@@ -38,6 +44,7 @@ describe('IB German A: Literature', () => {
     expect(draft.bloecke).toHaveLength(2);
     expect(draft.bloecke.map((block) => [block.quelleId, block.punkte])).toEqual([['q1', 20], ['q2', 20]]);
     expect(draft.auftrag.gesamtpunkteZiel).toBe(40);
+    expect(ibEffectiveTotalRawMarks(draft.meta, draft.bloecke)).toBe(40);
   });
 
   it.each([
@@ -51,6 +58,8 @@ describe('IB German A: Literature', () => {
 
   it('hinterlegt beim Paper 2 die Vergleichs- und Kontrastdimension als eigene Rohpunktkriterien', () => {
     expect(ibAssessmentCriteria('sl', 'paper2')).toContainEqual({ id: 'B2', label: 'Vergleich und Kontrast', maxMarks: 5 });
+    const draft = createIbLiteratureDraft({ ...base, assessmentComponent: 'paper2' });
+    expect(draft.bloecke[0]?.typ).toBe('offeneSchreibaufgabe');
   });
 
   it('führt einen HL Essay als Coaching-Entwurf, nicht als 1-7-Notenraster', () => {

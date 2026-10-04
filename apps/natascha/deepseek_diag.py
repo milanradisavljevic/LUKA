@@ -21,9 +21,9 @@ def model_from_config():
     try:
         import tomllib
         cfg = tomllib.loads((ROOT / "natascha_config.toml").read_text(encoding="utf-8"))
-        return cfg.get("api", {}).get("model", "deepseek-chat")
+        return cfg.get("api", {}).get("model", "deepseek-v4-pro")
     except Exception as e:
-        print("[WARN] Config nicht lesbar:", e); return "deepseek-chat"
+        print("[WARN] Config nicht lesbar:", e); return "deepseek-v4-pro"
 
 def balance(text):
     s = text.find("{")

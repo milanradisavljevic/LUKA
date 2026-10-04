@@ -77,7 +77,10 @@ export function blockToRequest(block: Block): BlockRequest {
     case 'offeneSchreibaufgabe':
       return { ...base, typ: 'offeneSchreibaufgabe',
         textsorte: block.config.textsorte, situation: block.config.situation,
-        umfangWorte: block.config.umfangWorte, aspekte: block.config.aspekte };
+        umfangWorte: block.config.umfangWorte, aspekte: block.config.aspekte,
+        ...(block.config.ibChoiceGroup ? { ibChoiceGroup: block.config.ibChoiceGroup } : {}),
+        ...(block.config.ibPaper2Questions?.length ? { ibPaper2Questions: block.config.ibPaper2Questions } : {}),
+      };
     case 'markieraufgabe':
       return { ...base, typ: 'markieraufgabe', quelleId: block.config.quelleId,
         anweisung: block.config.anweisung };
@@ -392,7 +395,7 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
   };
 
   const resolveProvider = (state: AppState) => {
-    const uiProvider = state.llmProvider ?? 'mistral';
+    const uiProvider = state.llmProvider ?? 'deepseek';
     const providerId = PROVIDER_MAP[uiProvider as keyof typeof PROVIDER_MAP];
     if (!providerId) throw new Error(`Unbekannter Anbieter: ${uiProvider}`);
     return { providerId, apiModel: MODEL_MAP[state.modelName] ?? state.modelName };
@@ -482,15 +485,20 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
       const modus = generierungsMeta.modus ?? 'text';
       const blockHinweis = ziel.hinweis?.trim();
       const mergedHinweis = [hinweis, blockHinweis].filter(Boolean).join(' | ') || undefined;
+      const germanLiteraturePaper1 = generierungsMeta.ibAssessment?.programme === 'ib-dp'
+        && generierungsMeta.ibAssessment.course === 'german-a-literature'
+        && generierungsMeta.ibAssessment.assessmentComponent === 'paper1';
+      const generationBlocks = germanLiteraturePaper1 ? doc.bloecke : [ziel];
+      const targetGenerationIndex = generationBlocks.findIndex((block) => block.id === blockId);
       const input: GenerateInput = {
         meta: generierungsMeta,
         quelltexte: modus === 'kompetenz' ? [] : doc.quelltexte,
-        bloecke: [blockToRequest(ziel)],
+        bloecke: generationBlocks.map(blockToRequest),
         stoffItems: buildStoffItems(generierungsMeta),
         inhaltsModul: buildInhaltsModul(generierungsMeta),
       };
       const ergebnis = await runAttempts(providerId, apiModel, input, { ...state, meta: generierungsMeta, quelltexte: modus === 'kompetenz' ? [] : doc.quelltexte }, mergedHinweis);
-      const neu = ergebnis.bloecke[0];
+      const neu = ergebnis.bloecke[targetGenerationIndex >= 0 ? targetGenerationIndex : 0];
       if (!neu) throw new Error('Kein Block in der Antwort.');
       // id des Originalblocks beibehalten, restliche Felder ersetzen.
       // Einstellungen werden bewusst UEBERNOMMEN und nicht neu erzeugt: Punkte,

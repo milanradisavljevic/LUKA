@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  AlertTriangle, CalendarCheck, CalendarPlus, Check, ChevronLeft, ChevronRight, Download, FileText, FileUp,
+  AlertTriangle, CalendarCheck, CalendarPlus, Check, ChevronLeft, ChevronRight, Download, ExternalLink, FileText, FileUp,
   FolderOpen, Info, Link2, Package, Paperclip, Pencil, Plus, Repeat, Sparkles, Trash2, Unlink, X,
 } from 'lucide-react';
 import { ViewShell } from './_ViewShell';
@@ -11,6 +11,7 @@ import {
 } from '../hooks/usePlanung';
 import { useKlassenMeta } from '../hooks/useKlassenMeta';
 import { loadTeacherProfile, type ProfileLand } from '../lib/profile';
+import { loadDocuments } from '../lib/storage';
 import {
   fachPruefen, fehlendeAngaben, kontextAusStunde, type TerminKontext,
 } from '../lib/unterlageBauen';
@@ -113,6 +114,7 @@ export function PlanungView({
   const rasterCsvVorschau = useRef<HTMLElement>(null);
   const rasterCsvScrollPending = useRef(false);
   const [verweis, setVerweis] = useState('');
+  const [folgeuebungId, setFolgeuebungId] = useState('');
   const [ferienOffen, setFerienOffen] = useState(false);
   const [jahresplanungOffen, setJahresplanungOffen] = useState(false);
   const [freiUeberspringen, setFreiUeberspringen] = useState(true);
@@ -297,6 +299,17 @@ export function PlanungView({
   }, [stunden, gewaehltId, anker]);
 
   const gewaehlt = useMemo(() => stunden.find(s => s.id === gewaehltId) ?? null, [stunden, gewaehltId]);
+  useEffect(() => setFolgeuebungId(''), [gewaehltId]);
+  const folgeuebungen = useMemo(() => {
+    if (!gewaehlt) return [];
+    const verknuepft = new Set(anlagen.filter(a => a.art === 'material').map(a => a.materialId));
+    return loadDocuments()
+      .filter(doc => !doc.isDeleted
+        && doc.snapshot.meta.loopQuelle?.klasse
+        && gleicheKlasse(doc.snapshot.meta.loopQuelle.klasse, gewaehlt.klasseName)
+        && !verknuepft.has(doc.id))
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  }, [gewaehlt, anlagen]);
 
   /** Sprung von der Startseite: zeigt die Woche des angeklickten Tages.
    *
@@ -507,6 +520,25 @@ export function PlanungView({
     const neu = await planung.fuegeAnlageHinzu({ einsatzId: gewaehlt.id, art: 'ablage', quellePfad: pfad });
     if (neu) setMeldung(`„${neu.label}" liegt jetzt in der Ablage von LUA.`);
   }, [gewaehlt, planung]);
+
+  const folgeuebungAnhaengen = useCallback(async () => {
+    if (!gewaehlt || !folgeuebungId) return;
+    const uebung = folgeuebungen.find(doc => doc.id === folgeuebungId);
+    if (!uebung) return;
+    const neu = await planung.fuegeAnlageHinzu({
+      einsatzId: gewaehlt.id,
+      art: 'material',
+      materialId: uebung.id,
+      label: `Folgeübung: ${uebung.title}`,
+      notiz: uebung.snapshot.meta.loopQuelle?.aufgabe
+        ? `Aus Korrektur ${uebung.snapshot.meta.loopQuelle.aufgabe}` : '',
+    });
+    if (neu) {
+      setAnlagen(await planung.materialien(gewaehlt.id));
+      setFolgeuebungId('');
+      setMeldung('Folgeübung mit dieser Stunde verknüpft.');
+    }
+  }, [gewaehlt, folgeuebungId, folgeuebungen, planung]);
 
   /** Aus der Stunde eine volle Unterlage bauen. Ersetzt die frühere Auswahl
    *  „bestehende Unterlage aus LUA" + „Anlegen": dort musste man erst eine
@@ -1108,6 +1140,11 @@ export function PlanungView({
                         <div className="anlage-fehlt"><Unlink size={12} /> Datei nicht gefunden – bitte neu ablegen.</div>
                       )}
                     </div>
+                    {anlage.art === 'material' && onOpenUnterlage && anlage.materialId && (
+                      <button className="btn-secondary" onClick={() => onOpenUnterlage(anlage.materialId!)} title="Unterlage in LUA öffnen" aria-label={`${anlage.label} in LUA öffnen`} style={{ padding: '.3rem .4rem' }}>
+                        <ExternalLink size={13} />
+                      </button>
+                    )}
                     {anlage.art !== 'material' && (
                       <button className="btn-secondary" onClick={() => void anlageOeffnen(anlage)} title="Im Ordner anzeigen" aria-label={`${anlage.label} im Ordner anzeigen`} style={{ padding: '.3rem .4rem' }}>
                         <FolderOpen size={13} />
@@ -1146,6 +1183,20 @@ export function PlanungView({
                     <FolderOpen size={12} /> Datei ablegen
                   </button>
                 </div>
+                {folgeuebungen.length > 0 && (
+                  <div className="planung-feld" style={{ marginTop: '.75rem' }}>
+                    <label htmlFor="stunde-folgeuebung">Gespeicherte Folgeübung dieser Klasse</label>
+                    <div style={{ display: 'flex', gap: '.375rem', flexWrap: 'wrap' }}>
+                      <select id="stunde-folgeuebung" value={folgeuebungId} onChange={e => setFolgeuebungId(e.target.value)} style={{ flex: 1, minWidth: 180 }}>
+                        <option value="">Folgeübung auswählen …</option>
+                        {folgeuebungen.map(doc => <option key={doc.id} value={doc.id}>{doc.title}</option>)}
+                      </select>
+                      <button className="btn-secondary" disabled={!folgeuebungId} onClick={() => void folgeuebungAnhaengen()} style={{ fontSize: '.6875rem' }}>
+                        Folgeübung anhängen
+                      </button>
+                    </div>
+                  </div>
+                )}
                 <div style={{ display: 'flex', gap: '.375rem', marginTop: '.5rem' }}>
                   <input
                     aria-label="Pfad oder Adresse für den Verweis" value={verweis}

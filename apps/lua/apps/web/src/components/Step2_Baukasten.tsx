@@ -19,6 +19,7 @@ import { createDefaultBlock } from '../lib/blockDefaults';
 import { useBlocks } from '../hooks/useBlocks';
 import { BlockCard } from './BlockCard';
 import { PointSummary } from './PointSummary';
+import { ibEffectiveTotalRawMarks } from '../lib/ibPilot';
 
 interface Props {
   state: AppState;
@@ -62,7 +63,7 @@ export function Step2_Baukasten({ state, dispatch, onNavigateToPool }: Props) {
     reorderBlocks(reordered);
   };
 
-  const totalPoints = state.bloecke.reduce((sum, b) => sum + b.punkte, 0);
+  const totalPoints = ibEffectiveTotalRawMarks(state.meta, state.bloecke);
 
   // Minuten-Spanne aus Blocktyp-Schätzwerten
   const totalMinutes: [number, number] = state.bloecke.reduce(

@@ -98,7 +98,7 @@ export const MODELS: ModelInfo[] = [
   },
 
   // --- DeepSeek ---
-  // Quelle: https://api-docs.deepseek.com/, Stand 2026-09-15
+  // Quelle: https://api-docs.deepseek.com/quick_start/pricing/ (Stoßzeiten, Stand 2026-10-03).
   // V4-Flash ist abgeschaltet,umbenannt in deepseek-flash (V4.1-Flash).
   // Legacy-Name deepseek-v4-flash wird noch unterstützt.
   {
@@ -106,20 +106,20 @@ export const MODELS: ModelInfo[] = [
     apiName: 'deepseek-flash',
     provider: 'deepseek',
     staerken: ['Schnell', 'Sehr günstig', 'Allrounder', 'Nativ multimodal'],
-    kostenInputProMioToken: 0.14,
-    kostenOutputProMioToken: 0.28,
+    kostenInputProMioToken: 0.3,
+    kostenOutputProMioToken: 1.2,
     region: 'China (DeepSeek)',
-    datenschutz: 'Chinesischer Anbieter — nur für selbst verfasste Inhalte',
+    datenschutz: 'Texte werden an DeepSeek übertragen',
   },
   {
     label: 'DeepSeek V4 Pro',
     apiName: 'deepseek-v4-pro',
     provider: 'deepseek',
     staerken: ['Starkes Reasoning', 'Lange Kontexte', 'Günstig'],
-    kostenInputProMioToken: 0.435,
-    kostenOutputProMioToken: 0.87,
+    kostenInputProMioToken: 1.32,
+    kostenOutputProMioToken: 3.96,
     region: 'China (DeepSeek)',
-    datenschutz: 'Chinesischer Anbieter — nur für selbst verfasste Inhalte',
+    datenschutz: 'Texte werden an DeepSeek übertragen',
   },
 
   // --- Mistral ---

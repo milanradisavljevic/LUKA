@@ -4,6 +4,25 @@ use super::db::DbState;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
+pub struct PoolQuellText {
+    pub id: String,
+    pub titel: String,
+    pub inhalt: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ausgabe_text: Option<String>,
+    pub herkunft: PoolQuellTextHerkunft,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct PoolQuellTextHerkunft {
+    pub typ: String,
+    #[serde(rename = "ref")]
+    pub ref_value: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct PoolEntry {
     pub id: String,
     pub fach: String,
@@ -13,6 +32,8 @@ pub struct PoolEntry {
     pub aufgabentyp: String,
     pub tags: Option<String>,
     pub block_json: String,
+    #[serde(default)]
+    pub quelltexte: Vec<PoolQuellText>,
     pub quelle_hinweis: Option<String>,
     pub created_at: String,
 }
@@ -28,6 +49,7 @@ pub struct PoolRecord {
     pub aufgabentyp: String,
     pub tags: Option<String>,
     pub block_json: String,
+    pub quelltexte: Vec<PoolQuellText>,
     pub quelle_hinweis: Option<String>,
     pub created_at: String,
     pub is_favorite: bool,
@@ -44,6 +66,16 @@ pub struct PoolFilter {
     pub search: Option<String>,
 }
 
+fn parse_pool_quelltexte(raw: String) -> rusqlite::Result<Vec<PoolQuellText>> {
+    serde_json::from_str(&raw).map_err(|error| {
+        rusqlite::Error::FromSqlConversionFailure(
+            0,
+            rusqlite::types::Type::Text,
+            Box::new(error),
+        )
+    })
+}
+
 #[tauri::command]
 pub async fn pool_add(
     state: tauri::State<'_, DbState>,
@@ -53,8 +85,8 @@ pub async fn pool_add(
     let conn = &*guard;
 
     conn.execute(
-        "INSERT INTO aufgabe_pool (id, fach, stufe, schulstufe, thema, aufgabentyp, tags, block_json, quelle_hinweis, created_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+        "INSERT INTO aufgabe_pool (id, fach, stufe, schulstufe, thema, aufgabentyp, tags, block_json, quelltexte_json, quelle_hinweis, created_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
         rusqlite::params![
             entry.id,
             entry.fach,
@@ -64,6 +96,7 @@ pub async fn pool_add(
             entry.aufgabentyp,
             entry.tags,
             entry.block_json,
+            serde_json::to_string(&entry.quelltexte).map_err(|e| format!("pool_add Quellen serialisieren: {}", e))?,
             entry.quelle_hinweis,
             entry.created_at,
         ],
@@ -84,7 +117,7 @@ pub async fn pool_list(
     let filter = filter.unwrap_or_default();
 
     let mut sql = String::from(
-        "SELECT id, fach, stufe, schulstufe, thema, aufgabentyp, tags, block_json, quelle_hinweis, created_at, is_favorite, quality_status, last_used_at
+        "SELECT id, fach, stufe, schulstufe, thema, aufgabentyp, tags, block_json, quelle_hinweis, created_at, is_favorite, quality_status, last_used_at, quelltexte_json
          FROM aufgabe_pool WHERE 1=1",
     );
     let mut params: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
@@ -127,6 +160,7 @@ pub async fn pool_list(
                 block_json: row.get(7)?,
                 quelle_hinweis: row.get(8)?,
                 created_at: row.get(9)?,
+                quelltexte: parse_pool_quelltexte(row.get(13)?)?,
                 is_favorite: row.get::<_, i64>(10)? != 0,
                 quality_status: row.get(11)?,
                 last_used_at: row.get(12)?,
@@ -152,7 +186,7 @@ pub async fn pool_get(
 
     let mut stmt = conn
         .prepare(
-            "SELECT id, fach, stufe, schulstufe, thema, aufgabentyp, tags, block_json, quelle_hinweis, created_at, is_favorite, quality_status, last_used_at
+            "SELECT id, fach, stufe, schulstufe, thema, aufgabentyp, tags, block_json, quelle_hinweis, created_at, is_favorite, quality_status, last_used_at, quelltexte_json
              FROM aufgabe_pool WHERE id = ?1",
         )
         .map_err(|e| format!("pool_get prepare: {}", e))?;
@@ -170,6 +204,7 @@ pub async fn pool_get(
                 block_json: row.get(7)?,
                 quelle_hinweis: row.get(8)?,
                 created_at: row.get(9)?,
+                quelltexte: parse_pool_quelltexte(row.get(13)?)?,
                 is_favorite: row.get::<_, i64>(10)? != 0,
                 quality_status: row.get(11)?,
                 last_used_at: row.get(12)?,
@@ -279,7 +314,7 @@ fn lese_pool_datei(path: &str) -> Result<Vec<PoolEntry>, String> {
         .map_err(|e| format!("Kein gültiges Pool-Paket (erwartet JSON-Array von Aufgaben): {}", e))
 }
 
-/// Die vier kuratierten Fachpakete ("Startpaket") werden zur Compile-Zeit
+/// Die fünf kuratierten Fachpakete ("Startpaket") werden zur Compile-Zeit
 /// eingebettet (`include_str!`), nicht als Tauri-`bundle.resources` ausgeliefert:
 /// `samples/fachpakete/` liegt außerhalb von `src-tauri/`, und ein Resource-Pfad
 /// über mehrere Verzeichnisgrenzen hinweg müsste zur Laufzeit über
@@ -288,22 +323,23 @@ fn lese_pool_datei(path: &str) -> Result<Vec<PoolEntry>, String> {
 /// bekannte, nie zur Laufzeit wechselnde Dateien unnötige Fragilität wäre.
 /// `include_str!` ist zur Build-Zeit geprüft (fehlt eine Datei, schlägt der
 /// Build fehl statt erst zur Laufzeit), verhält sich in Dev und Release
-/// identisch und kostet nur ~100 KB Binary-Größe für 29 Aufgaben. Einzige
+/// identisch und kostet nur wenig Binary-Größe für 40 Aufgaben. Einzige
 /// Quelle der Wahrheit bleiben die Dateien in `samples/fachpakete/` — hier wird
 /// nichts dupliziert, nur eingelesen.
-const STARTPAKET_DATEIEN: [&str; 4] = [
+const STARTPAKET_DATEIEN: [&str; 5] = [
     include_str!("../../../../../samples/fachpakete/luka-fachpaket-deutsch-textsorten-v1.json"),
     include_str!("../../../../../samples/fachpakete/luka-fachpaket-informatik-ki-v2.json"),
     include_str!("../../../../../samples/fachpakete/luka-fachpaket-medien-demokratie-v2.json"),
     include_str!(
         "../../../../../samples/fachpakete/luka-startpaket-medien-demokratie-informatik-ki-v1.json"
     ),
+    include_str!("../../../../../samples/fachpakete/luka-fachpaket-geschichte-ahs-v1.json"),
 ];
 
 /// Zusätzliches, länderspezifisches Fachpaket ("Startpaket Deutschland"): wird
 /// nur mit importiert, wenn das Lehrkraft-Profil `land = "DE"` gesetzt hat.
 /// Bewusst NICHT Teil von `STARTPAKET_DATEIEN`, damit sich das AT/CH-Verhalten
-/// (29 Aufgaben, vier Basis-Pakete) durch diese Erweiterung nicht ändert.
+/// (40 Aufgaben, fünf Basis-Pakete) durch diese Erweiterung nicht ändert.
 const STARTPAKET_DATEI_DE: &str =
     include_str!("../../../../../samples/fachpakete/luka-startpaket-de-v1.json");
 
@@ -368,14 +404,14 @@ pub(crate) fn import_impl(
     ueberschreiben: bool,
 ) -> Result<PoolImportReport, String> {
     let sql = if ueberschreiben {
-        "INSERT INTO aufgabe_pool (id, fach, stufe, schulstufe, thema, aufgabentyp, tags, block_json, quelle_hinweis, created_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)
+        "INSERT INTO aufgabe_pool (id, fach, stufe, schulstufe, thema, aufgabentyp, tags, block_json, quelltexte_json, quelle_hinweis, created_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
          ON CONFLICT(id) DO UPDATE SET fach=excluded.fach, stufe=excluded.stufe, schulstufe=excluded.schulstufe,
          thema=excluded.thema, aufgabentyp=excluded.aufgabentyp, tags=excluded.tags, block_json=excluded.block_json,
-         quelle_hinweis=excluded.quelle_hinweis, created_at=excluded.created_at"
+         quelltexte_json=excluded.quelltexte_json, quelle_hinweis=excluded.quelle_hinweis, created_at=excluded.created_at"
     } else {
-        "INSERT OR IGNORE INTO aufgabe_pool (id, fach, stufe, schulstufe, thema, aufgabentyp, tags, block_json, quelle_hinweis, created_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)"
+        "INSERT OR IGNORE INTO aufgabe_pool (id, fach, stufe, schulstufe, thema, aufgabentyp, tags, block_json, quelltexte_json, quelle_hinweis, created_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)"
     };
 
     let mut check = conn
@@ -394,7 +430,9 @@ pub(crate) fn import_impl(
         let affected = insert
             .execute(rusqlite::params![
                 e.id, e.fach, e.stufe, e.schulstufe, e.thema, e.aufgabentyp,
-                e.tags, e.block_json, e.quelle_hinweis, e.created_at,
+                e.tags, e.block_json, serde_json::to_string(&e.quelltexte)
+                    .map_err(|err| format!("pool_import Quellen serialisieren ({}): {}", e.id, err))?,
+                e.quelle_hinweis, e.created_at,
             ])
             .map_err(|err| format!("pool_import insert ({}): {}", e.id, err))?;
         match (existierte, affected > 0) {
@@ -460,7 +498,7 @@ pub(crate) fn import_startpaket_impl(conn: &rusqlite::Connection, include_de: bo
 /// lokalen Pool. Nutzt dieselbe Validierungs-/Import-Logik wie der Datei-Import
 /// (`import_impl`); es gibt keinen separaten Parser. Immer explizit per Klick
 /// ausgelöst, nie automatisch. Bei `land = "DE"` wird zusätzlich das Startpaket
-/// Deutschland eingespielt (37 statt 29 Aufgaben).
+/// Deutschland eingespielt (48 statt 40 Aufgaben).
 #[tauri::command]
 pub async fn pool_import_startpaket(
     state: tauri::State<'_, DbState>,
@@ -483,7 +521,7 @@ pub async fn pool_export(
 
     let mut stmt = conn
         .prepare(
-            "SELECT id, fach, stufe, schulstufe, thema, aufgabentyp, tags, block_json, quelle_hinweis, created_at
+            "SELECT id, fach, stufe, schulstufe, thema, aufgabentyp, tags, block_json, quelle_hinweis, created_at, quelltexte_json
              FROM aufgabe_pool ORDER BY created_at DESC",
         )
         .map_err(|e| format!("pool_export prepare: {}", e))?;
@@ -500,6 +538,7 @@ pub async fn pool_export(
                 block_json: row.get(7)?,
                 quelle_hinweis: row.get(8)?,
                 created_at: row.get(9)?,
+                quelltexte: parse_pool_quelltexte(row.get(10)?)?,
             })
         })
         .map_err(|e| format!("pool_export query: {}", e))?;
@@ -540,6 +579,7 @@ mod tests {
             tags: None,
             block_json: "{}".into(),
             quelle_hinweis: Some("LLM-Entwurf, ungeprüft".into()),
+            quelltexte: Vec::new(),
             created_at: "2026-07-09T00:00:00Z".into(),
         }
     }
@@ -616,19 +656,19 @@ mod tests {
     }
 
     #[test]
-    fn eingebettete_startpaket_dateien_ergeben_29_eindeutige_eintraege() {
+    fn eingebettete_startpaket_dateien_ergeben_40_eindeutige_eintraege() {
         let entries = lese_startpaket_eintraege(false).unwrap();
-        assert_eq!(entries.len(), 29);
+        assert_eq!(entries.len(), 40);
         let ids: std::collections::HashSet<&str> = entries.iter().map(|e| e.id.as_str()).collect();
-        assert_eq!(ids.len(), 29, "IDs der Startpaket-Dateien müssen eindeutig sein");
+        assert_eq!(ids.len(), 40, "IDs der Startpaket-Dateien müssen eindeutig sein");
     }
 
     #[test]
-    fn eingebettete_startpaket_dateien_mit_de_ergeben_37_eindeutige_eintraege() {
+    fn eingebettete_startpaket_dateien_mit_de_ergeben_48_eindeutige_eintraege() {
         let entries = lese_startpaket_eintraege(true).unwrap();
-        assert_eq!(entries.len(), 37);
+        assert_eq!(entries.len(), 48);
         let ids: std::collections::HashSet<&str> = entries.iter().map(|e| e.id.as_str()).collect();
-        assert_eq!(ids.len(), 37, "IDs der Startpaket-Dateien (inkl. DE) müssen eindeutig sein");
+        assert_eq!(ids.len(), 48, "IDs der Startpaket-Dateien (inkl. DE) müssen eindeutig sein");
     }
 
     #[test]
@@ -636,35 +676,35 @@ mod tests {
         let conn = setup();
 
         let erster = import_startpaket_impl(&conn, false).unwrap();
-        assert_eq!(erster.eingefuegt, 29);
+        assert_eq!(erster.eingefuegt, 40);
         assert_eq!(erster.ersetzt, 0);
         assert_eq!(erster.uebersprungen, 0);
 
         let zweiter = import_startpaket_impl(&conn, false).unwrap();
         assert_eq!(zweiter.eingefuegt, 0);
         assert_eq!(zweiter.ersetzt, 0);
-        assert_eq!(zweiter.uebersprungen, 29, "zweiter Lauf darf nichts überschreiben (INSERT OR IGNORE)");
+        assert_eq!(zweiter.uebersprungen, 40, "zweiter Lauf darf nichts überschreiben (INSERT OR IGNORE)");
 
         let gesamt: i64 = conn.query_row("SELECT COUNT(*) FROM aufgabe_pool", [], |r| r.get(0)).unwrap();
-        assert_eq!(gesamt, 29);
+        assert_eq!(gesamt, 40);
     }
 
     #[test]
-    fn startpaket_import_mit_land_de_importiert_37_eintraege_und_ist_idempotent() {
+    fn startpaket_import_mit_land_de_importiert_48_eintraege_und_ist_idempotent() {
         let conn = setup();
 
         let erster = import_startpaket_impl(&conn, true).unwrap();
-        assert_eq!(erster.eingefuegt, 37);
+        assert_eq!(erster.eingefuegt, 48);
         assert_eq!(erster.ersetzt, 0);
         assert_eq!(erster.uebersprungen, 0);
 
         let zweiter = import_startpaket_impl(&conn, true).unwrap();
         assert_eq!(zweiter.eingefuegt, 0);
         assert_eq!(zweiter.ersetzt, 0);
-        assert_eq!(zweiter.uebersprungen, 37, "zweiter Lauf darf nichts überschreiben (INSERT OR IGNORE)");
+        assert_eq!(zweiter.uebersprungen, 48, "zweiter Lauf darf nichts überschreiben (INSERT OR IGNORE)");
 
         let gesamt: i64 = conn.query_row("SELECT COUNT(*) FROM aufgabe_pool", [], |r| r.get(0)).unwrap();
-        assert_eq!(gesamt, 37);
+        assert_eq!(gesamt, 48);
     }
 
     #[test]
@@ -677,7 +717,7 @@ mod tests {
         import_impl(&conn, &[entry(&erste_id, "eigenes-fach")], false).unwrap();
 
         let report = import_startpaket_impl(&conn, false).unwrap();
-        assert_eq!(report.eingefuegt, 28);
+        assert_eq!(report.eingefuegt, 39);
         assert_eq!(report.uebersprungen, 1);
 
         let fach: String = conn
@@ -689,11 +729,19 @@ mod tests {
     #[test]
     fn export_import_roundtrip_ueber_datei() {
         let conn = setup();
-        import_impl(&conn, &[entry("a", "deutsch"), entry("b", "informatikki")], false).unwrap();
+        let mut mit_quellen = entry("a", "geschichte");
+        mit_quellen.quelltexte = vec![PoolQuellText {
+            id: "q1".into(),
+            titel: "Lesekarte".into(),
+            inhalt: "Eine knappe Quellenparaphrase.".into(),
+            ausgabe_text: None,
+            herkunft: PoolQuellTextHerkunft { typ: "url".into(), ref_value: "https://example.org/source".into() },
+        }];
+        import_impl(&conn, &[mit_quellen, entry("b", "informatikki")], false).unwrap();
 
         // Export in Temp-Datei (Serialisierung wie im Command)
         let mut stmt = conn
-            .prepare("SELECT id, fach, stufe, schulstufe, thema, aufgabentyp, tags, block_json, quelle_hinweis, created_at FROM aufgabe_pool")
+            .prepare("SELECT id, fach, stufe, schulstufe, thema, aufgabentyp, tags, block_json, quelle_hinweis, created_at, quelltexte_json FROM aufgabe_pool")
             .unwrap();
         let entries: Vec<PoolEntry> = stmt
             .query_map([], |row| {
@@ -701,6 +749,7 @@ mod tests {
                     id: row.get(0)?, fach: row.get(1)?, stufe: row.get(2)?,
                     schulstufe: row.get(3)?, thema: row.get(4)?, aufgabentyp: row.get(5)?,
                     tags: row.get(6)?, block_json: row.get(7)?, quelle_hinweis: row.get(8)?,
+                    quelltexte: parse_pool_quelltexte(row.get(10)?)?,
                     created_at: row.get(9)?,
                 })
             })
@@ -721,7 +770,26 @@ mod tests {
         let gelesen = lese_pool_datei(pfad.to_str().unwrap()).unwrap();
         let r = import_impl(&conn2, &gelesen, false).unwrap();
         assert_eq!(r.eingefuegt, 2);
+        let roundtrip: PoolEntry = gelesen.iter().find(|e| e.id == "a").unwrap().clone();
+        assert_eq!(roundtrip.quelltexte.len(), 1);
+        assert_eq!(roundtrip.quelltexte[0].id, "q1");
+        assert_eq!(roundtrip.quelltexte[0].herkunft.ref_value, "https://example.org/source");
+        let stored_sources: String = conn2
+            .query_row("SELECT quelltexte_json FROM aufgabe_pool WHERE id='a'", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(parse_pool_quelltexte(stored_sources).unwrap().len(), 1);
         std::fs::remove_file(&pfad).ok();
+    }
+
+    #[test]
+    fn pool_entry_ohne_quelltexte_bleibt_lesbar() {
+        let legacy = r#"{
+            "id":"legacy","fach":"geschichte","stufe":"unterstufe","schulstufe":6,
+            "thema":"Test","aufgabentyp":"quellenanalyse","tags":null,"blockJson":"{}",
+            "quelleHinweis":null,"createdAt":"2026-01-01T00:00:00Z"
+        }"#;
+        let entry: PoolEntry = serde_json::from_str(legacy).unwrap();
+        assert!(entry.quelltexte.is_empty());
     }
 
     #[test]

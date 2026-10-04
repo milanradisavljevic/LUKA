@@ -410,6 +410,46 @@ describe('blocks — offene Typen + Modus', () => {
     expect(flattenText(loesung).includes('Musterkommentar.')).toBe(true);
     expect(stext.includes('Musterkommentar.')).toBe(false);
   });
+  it('IB Paper 1 SL labels alternatives and states the single-choice maximum', () => {
+    const block: Block = {
+      ...offeneSchreibaufgabe,
+      punkte: 20,
+      quelleId: 'q1',
+      config: {
+        ...offeneSchreibaufgabe.config,
+        ibChoiceGroup: { id: 'paper1-sl-choice', option: 'A', totalOptions: 2, totalMaxMarks: 20 },
+      },
+    };
+    const rendered = buildBlock(block, ctx());
+    const text = flattenText(rendered);
+    expect(text).toContain('Option A');
+    expect(text).toContain('genau eine Option bearbeiten');
+    expect(text).toContain('20 Rohpunkte insgesamt');
+  });
+  it('IB Paper 2 renders four selectable questions and authoritative rubric marks', () => {
+    const block: Block = {
+      ...offeneSchreibaufgabe,
+      punkte: 25,
+      config: {
+        ...offeneSchreibaufgabe.config,
+        ibPaper2Questions: ['Frage eins', 'Frage zwei', 'Frage drei', 'Frage vier'],
+      },
+      loesung: {
+        ...offeneSchreibaufgabe.loesung,
+        erwartungshorizont: { inhalt: 'Kriterium D max. 5', struktur: 'Kriterium D max. 5', ausdruck: 'x', sprachrichtigkeit: 'x' },
+      },
+    };
+    const rendered = renderBlockChildren(block, ctx({ modus: 'loesung', ibCriteria: [
+      { id: 'D', label: 'Sprache', maxMarks: 5 },
+    ] }));
+    const text = flattenText(rendered);
+    expect(text).toContain('Essayfragen — genau eine auswählen');
+    expect(text).toContain('Frage eins');
+    expect(text).toContain('Frage vier');
+    expect(text).toContain('D · Sprache');
+    expect(text).toContain('max. 5');
+    expect(text).not.toContain('Kriterium D');
+  });
   it('markieraufgabe: Quelltext im Schülermodus, Lösungsstellen nur im Lösungsmodus', () => {
     const schueler = renderBlockChildren(markieraufgabe, ctx({ modus: 'schueler' }));
     const loesung = renderBlockChildren(markieraufgabe, ctx({ modus: 'loesung' }));

@@ -227,3 +227,113 @@ describe('parseAndValidate — Abitur-Deutsch-Training (land = DE)', () => {
     expect(res.fehler).toContain('Abitur-Deutsch-Training');
   });
 });
+
+describe('parseAndValidate — German A: Literature', () => {
+  const sources = [
+    { id: 'q1', titel: 'Text 1', inhalt: 'Literarischer Text eins.', herkunft: { typ: 'eingabe', ref: '' } },
+    { id: 'q2', titel: 'Text 2', inhalt: 'Literarischer Text zwei.', herkunft: { typ: 'eingabe', ref: '' } },
+  ];
+  const meta = (assessmentComponent: string, level: 'sl' | 'hl' = 'sl', extra: Record<string, unknown> = {}) => ({
+    ...validDoc.meta,
+    rahmenwerk: 'ib-dp',
+    land: 'AT',
+    ibAssessment: {
+      programme: 'ib-dp', course: 'german-a-literature', language: 'de', level,
+      programmeYear: 'dp1', assessmentComponent, syllabusVersion: 'first-assessment-2026',
+      paper1LiteraryForms: ['drama', 'poetry'],
+      assessmentCriteria: assessmentComponent === 'paper1' && level === 'hl'
+        ? ['A', 'B', 'C', 'D'].flatMap((id) => [
+            { id: `Text 1 · ${id}`, label: id, maxMarks: 5 },
+            { id: `Text 2 · ${id}`, label: id, maxMarks: 5 },
+          ])
+        : assessmentComponent === 'paper2'
+          ? ['A', 'B1', 'B2', 'C', 'D'].map((id) => ({ id, label: id, maxMarks: 5 }))
+          : assessmentComponent === 'individual-oral'
+            ? ['A', 'B', 'C', 'D'].map((id) => ({ id, label: id, maxMarks: 10 }))
+            : ['A', 'B', 'C', 'D'].map((id) => ({ id, label: id, maxMarks: 5 })),
+      ...extra,
+    },
+  });
+  const task = (overrides: Record<string, unknown> = {}) => ({
+    id: 'ib-task', typ: 'offeneSchreibaufgabe', punkte: 20, quelleId: 'q1',
+    arbeitsanweisung: 'Analysiere die literarischen Entscheidungen.',
+    config: { situation: 'Analysiere den Text.', textsorte: 'Literarische Analyse', umfangWorte: { min: 250, max: 350 }, aspekte: ['Stütze deine Deutung auf Belege.'] },
+    loesung: { musterloesung: 'Planungshinweis.', erwartungshorizont: { inhalt: 'i', struktur: 's', ausdruck: 'a', sprachrichtigkeit: 'r' } },
+    ...overrides,
+  });
+
+  it('accepts SL Paper 1 as two linked, clearly grouped alternatives worth 20 overall', async () => {
+    const options = ['A', 'B'].map((option, index) => task({
+      id: `paper1-${option}`, quelleId: sources[index]!.id,
+      config: {
+        ...task().config,
+        ibChoiceGroup: { id: 'paper1-sl-choice', option, totalOptions: 2, totalMaxMarks: 20 },
+      },
+    }));
+    const res = await parseAndValidate(JSON.stringify(options), meta('paper1'), sources);
+    expect(res.ok).toBe(true);
+  });
+
+  it('rejects Paper 1 SL without explicit choice metadata', async () => {
+    const options = ['A', 'B'].map((option, index) => task({ id: option, quelleId: sources[index]!.id }));
+    const res = await parseAndValidate(JSON.stringify(options), meta('paper1'), sources);
+    expect(res.ok).toBe(false);
+    expect(res.fehler).toContain('Wahloption A/B');
+  });
+
+  it('accepts HL Paper 1 as two required analyses at 20 each', async () => {
+    const options = [task({ id: 'hl-1', quelleId: 'q1' }), task({ id: 'hl-2', quelleId: 'q2' })];
+    const res = await parseAndValidate(JSON.stringify(options), meta('paper1', 'hl'), sources);
+    expect(res.ok).toBe(true);
+  });
+
+  it('requires four distinct, comparative Paper 2 questions and both selected works', async () => {
+    const selectedWorks = [
+      { id: 'w1', title: 'Werk Alpha', author: 'Autor A', literaryForm: 'drama', originalLanguage: 'de', selectionCategory: 'original-prl' },
+      { id: 'w2', title: 'Werk Beta', author: 'Autor B', literaryForm: 'prose-fiction', originalLanguage: 'en', selectionCategory: 'translated-prl' },
+    ];
+    const paper2Task = task({
+      punkte: 25, quelleId: undefined,
+      arbeitsanweisung: 'Wähle genau eine Frage und vergleiche Werk Alpha von Autor A mit Werk Beta von Autor B.',
+      config: { ...task().config, ibPaper2Questions: ['Frage 1', 'Frage 2', 'Frage 3', 'Frage 4'] },
+    });
+    const valid = await parseAndValidate(JSON.stringify([paper2Task]), meta('paper2', 'sl', { selectedWorks }), []);
+    expect(valid.ok).toBe(true);
+    const invalidTask = { ...paper2Task, config: { ...paper2Task.config, ibPaper2Questions: ['Nur eine Frage'] } };
+    const invalid = await parseAndValidate(JSON.stringify([invalidTask]), meta('paper2', 'sl', { selectedWorks }), []);
+    expect(invalid.ok).toBe(false);
+    expect(invalid.fehler).toContain('ibPaper2Questions');
+  });
+
+  it('rejects Individual Oral task language that turns it into a comparison', async () => {
+    const oral = task({ punkte: 40, arbeitsanweisung: 'Vergleiche Werk Alpha und Werk Beta zum Global Issue Macht und Freiheit.' });
+    const works = [
+      { id: 'w1', title: 'Werk Alpha', author: 'Autor A', literaryForm: 'drama', originalLanguage: 'de', selectionCategory: 'original-prl' },
+      { id: 'w2', title: 'Werk Beta', author: 'Autor B', literaryForm: 'prose-fiction', originalLanguage: 'en', selectionCategory: 'translated-prl' },
+    ];
+    const res = await parseAndValidate(JSON.stringify([oral]), meta('individual-oral', 'sl', { globalIssue: 'Macht und Freiheit', selectedWorks: works }), sources);
+    expect(res.ok).toBe(false);
+    expect(res.fehler).toContain('nicht als Vergleichsaufgabe');
+  });
+
+  it('rejects an HL Essay that is a long sample essay rather than short coaching', async () => {
+    const hlMeta = meta('hl-essay', 'hl', {
+      lineOfInquiry: 'Wie prägt die Perspektive die Wirkung?',
+      selectedWorks: [{ id: 'w1', title: 'Werk Alpha', author: 'Autor A', literaryForm: 'drama', originalLanguage: 'de', selectionCategory: 'original-prl' }],
+    });
+    const essay = task({
+      quelleId: undefined, punkte: 20,
+      arbeitsanweisung: 'Plane dein Essay zu Werk Alpha mithilfe der folgenden Coachingfragen.',
+      config: { ...task().config, umfangWorte: { min: 1200, max: 1500 }, aspekte: ['Gliederung planen.', 'Überarbeiten.'] },
+      loesung: { ...task().loesung, musterloesung: Array.from({ length: 901 }, () => 'Wort').join(' ') },
+    });
+    const validCoaching = await parseAndValidate(JSON.stringify([{
+      ...essay,
+      loesung: { ...essay.loesung, musterloesung: 'Coaching-Gerüst: Plane die Gliederung und überarbeite die Argumentation.' },
+    }]), hlMeta, []);
+    expect(validCoaching.ok).toBe(true);
+    const res = await parseAndValidate(JSON.stringify([essay]), hlMeta, []);
+    expect(res.ok).toBe(false);
+    expect(res.fehler).toContain('kurzes Coaching-Gerüst');
+  });
+});

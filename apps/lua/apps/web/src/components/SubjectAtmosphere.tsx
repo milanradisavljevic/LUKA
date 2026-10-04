@@ -342,6 +342,8 @@ const SUBJECT_ATMOSPHERES: Record<Fach, SubjectAtmosphereSpec> = {
       },
     ],
   },
+  mathematik: { field: 'text', motifs: [] },
+  biologie: { field: 'text', motifs: [] },
 };
 
 const FALLBACK: SubjectAtmosphereSpec = {

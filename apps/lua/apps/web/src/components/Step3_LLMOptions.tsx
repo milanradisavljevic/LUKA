@@ -190,9 +190,9 @@ export function Step3_LLMOptions({ state, dispatch, onNavigateToSettings }: Prop
                  {(modelInfo.kostenInputProMioToken > 0 || modelInfo.kostenOutputProMioToken > 0) && (
                    <div>
                      <strong>Kosten (ca.):</strong>{' '}
-                     Input ${modelInfo.kostenInputProMioToken}/Mio Token · Output ${modelInfo.kostenOutputProMioToken}/Mio Token
+                     {modelInfo.provider === 'deepseek' ? 'Bis zu ' : ''}Input ${modelInfo.kostenInputProMioToken}/Mio Token · Output ${modelInfo.kostenOutputProMioToken}/Mio Token
                      <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)', marginLeft: '0.5rem' }}>
-                       (Stand 2026-06-01)
+                       (Stand {modelInfo.provider === 'deepseek' ? '2026-10-03; Stoßzeit, ohne Cache-Rabatt' : '2026-06-01'})
                      </span>
                    </div>
                  )}

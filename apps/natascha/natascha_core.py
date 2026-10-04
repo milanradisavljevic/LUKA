@@ -1224,6 +1224,7 @@ def run_llm_analysis(
     rubrik_titel: str = "",
     erwartungshorizont: str = "",
     revision_of_abgabe_id: int | None = None,
+    klasse_id: str | None = None,
     correction_basis: dict[str, Any] | None = None,
     land: str = "at",
     dichte_prompt_variante: FehlerdichtePromptVariante = "neutral",
@@ -1365,7 +1366,7 @@ def run_llm_analysis(
                 # sonst würde das Roster aus der Config-DB gelesen.
                 _db_path = db_path_override or ndb.get_db_path(config)
                 ndb.init_db(_db_path)
-                _roster = ndb.get_schueler_by_klasse(_db_path, klasse)
+                _roster = ndb.get_schueler_by_klasse(_db_path, klasse, klasse_id)
                 pseudo_funde = pseu.erkenne_personenangaben(
                     docx_text, file_path.name if file_path else "", schueler, _roster
                 )
@@ -1735,6 +1736,7 @@ def run_llm_analysis(
                     revision_of_abgabe_id=revision_of_abgabe_id,
                     correction_basis=json.loads(correction_run.basis_json),
                     started_at=correction_run.started_at,
+                    klasse_id=klasse_id,
                 )
                 if abgabe_id and abgabe_id > 0:
                     data["_abgabe_id"] = abgabe_id

@@ -60,7 +60,7 @@ import type { SearchIndex, SearchResult, SearchCommandSource } from './lib/searc
 import { visibleNavTargets, NATASCHA_VIEWS } from './lib/navigation';
 import { COMMANDS } from './lib/commands';
 import { parsePoolBlock } from './lib/pool';
-import type { PoolEntry } from './lib/pool';
+import { remapPoolContentForInsert, type PoolEntry } from './lib/pool';
 import { Toast, type ToastMessage } from './components/Toast';
 import { UpdateDialog } from './components/UpdateDialog';
 import { SettingsPanel } from './components/SettingsPanel';
@@ -801,8 +801,10 @@ if (hydrating) {
       case 'templates':
         return <TemplatesView meta={state.meta} bloecke={state.bloecke} onLoad={handleLoadTemplate} />;
       case 'pool':
-        return <PoolView onInsertBlock={(block) => {
-          dispatch({ type: 'ADD_BLOCK', block });
+        return <PoolView onInsertBlock={(block, quelltexte = []) => {
+          const remapped = remapPoolContentForInsert(block, quelltexte, state.quelltexte);
+          for (const quelltext of remapped.quelltexte) dispatch({ type: 'ADD_QUELLTEXT', quelltext });
+          dispatch({ type: 'ADD_BLOCK', block: remapped.block });
           setActiveView('wizard');
           goToStep('baukasten');
         }} />;

@@ -1,4 +1,4 @@
-import type { Block, Fach } from '@lehrunterlagen/schema';
+import type { Block, Fach, IBAssessmentCriterion } from '@lehrunterlagen/schema';
 import { getBlockLabel } from '../lib/blockDefaults';
 import { BlockPreviewLueckentext } from './BlockPreviewLueckentext';
 import { BlockPreviewMatching } from './BlockPreviewMatching';
@@ -30,9 +30,10 @@ interface Props {
   layout?: RenderLayout;
   /** Fach des Dokuments — steuert englische Renderer-Labels (z. B. Kreuzwort). */
   fach?: Fach;
+  ibCriteria?: IBAssessmentCriterion[];
 }
 
-export function BlockPreview({ block, showSolution, solutionStep, onUpdate, template, layout, fach }: Props) {
+export function BlockPreview({ block, showSolution, solutionStep, onUpdate, template, layout, fach, ibCriteria }: Props) {
   const extraProps = {
     ...(onUpdate ? { onUpdate } : {}),
     ...(solutionStep !== undefined ? { solutionStep } : {}),
@@ -55,7 +56,7 @@ export function BlockPreview({ block, showSolution, solutionStep, onUpdate, temp
     case 'offeneVerstaendnisfrage':
       return pass(BlockPreviewVerstaendnisfrage);
     case 'offeneSchreibaufgabe':
-      return pass(BlockPreviewSchreibaufgabe);
+      return <BlockPreviewSchreibaufgabe block={block} showSolution={showSolution} ibCriteria={ibCriteria} />;
     case 'markieraufgabe':
       return pass(BlockPreviewMarkieraufgabe);
     case 'wordScramble':

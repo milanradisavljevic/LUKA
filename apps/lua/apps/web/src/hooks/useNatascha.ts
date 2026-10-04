@@ -4,6 +4,27 @@ import { useState, useCallback, useRef } from 'react';
 import { loadSettings } from '../lib/storage';
 import type { KlasseInfo } from '../lib/storage';
 import type { RubrikOption } from '../lib/rubrikAuswahl';
+import type { DigitaleAntworten, PunkteBlockErgebnis } from '../lib/selbstkontrolle';
+
+export interface PunkteBewertung {
+  abgabeId: number;
+  dokumentId: string;
+  dokumentTitel: string;
+  antworten: Record<string, DigitaleAntworten>;
+  ergebnisse: PunkteBlockErgebnis[];
+  bestaetigt: boolean;
+  geaendertAm: string | null;
+}
+
+interface PunkteBewertungRow {
+  abgabeId: number;
+  dokumentId: string;
+  dokumentTitel: string;
+  antwortenJson: string;
+  ergebnisseJson: string;
+  bestaetigt: boolean;
+  geaendertAm: string | null;
+}
 
 interface AbgabeInfo {
   id: number;
@@ -317,6 +338,40 @@ export function useNatascha() {
     }
   }, []);
 
+  const getPunktebewertung = useCallback(async (abgabeId: number): Promise<PunkteBewertung | null> => {
+    const row = await invoke<PunkteBewertungRow | null>('db_get_punktebewertung', { abgabeId });
+    if (!row) return null;
+    return {
+      abgabeId: row.abgabeId,
+      dokumentId: row.dokumentId,
+      dokumentTitel: row.dokumentTitel,
+      antworten: JSON.parse(row.antwortenJson) as Record<string, DigitaleAntworten>,
+      ergebnisse: JSON.parse(row.ergebnisseJson) as PunkteBlockErgebnis[],
+      bestaetigt: row.bestaetigt,
+      geaendertAm: row.geaendertAm,
+    };
+  }, []);
+
+  const savePunktebewertung = useCallback(async (record: Omit<PunkteBewertung, 'geaendertAm'>): Promise<PunkteBewertung> => {
+    const row = await invoke<PunkteBewertungRow>('db_save_punktebewertung', {
+      abgabeId: record.abgabeId,
+      dokumentId: record.dokumentId,
+      dokumentTitel: record.dokumentTitel,
+      antwortenJson: JSON.stringify(record.antworten),
+      ergebnisseJson: JSON.stringify(record.ergebnisse),
+      bestaetigt: record.bestaetigt,
+    });
+    return {
+      abgabeId: row.abgabeId,
+      dokumentId: row.dokumentId,
+      dokumentTitel: row.dokumentTitel,
+      antworten: JSON.parse(row.antwortenJson) as Record<string, DigitaleAntworten>,
+      ergebnisse: JSON.parse(row.ergebnisseJson) as PunkteBlockErgebnis[],
+      bestaetigt: row.bestaetigt,
+      geaendertAm: row.geaendertAm,
+    };
+  }, []);
+
   const activateKorrekturRevision = useCallback(async (abgabeId: number, revisionId: number): Promise<void> => {
     await invoke('db_activate_korrektur_revision', { abgabeId, revisionId });
   }, []);
@@ -600,6 +655,8 @@ export function useNatascha() {
     generateErwartungshorizont,
     saveErwartungshorizont,
     getAbgabeDetail,
+    getPunktebewertung,
+    savePunktebewertung,
     activateKorrekturRevision,
     deleteKorrekturRevision,
     getKorrekturKontext,

@@ -22,8 +22,9 @@ const schemaDistIndex = path.resolve(
 );
 
 let BlockSchema;
+let QuellTextSchema;
 try {
-  ({ BlockSchema } = await import(pathToFileURL(schemaDistIndex)));
+  ({ BlockSchema, QuellTextSchema } = await import(pathToFileURL(schemaDistIndex)));
 } catch (err) {
   console.error(
     `Konnte packages/schema nicht laden (${schemaDistIndex}).\n` +
@@ -95,6 +96,49 @@ function checkMatchingSequentialPattern(block) {
     return `Zuordnung folgt exakt der Reihenfolge der Optionen (1→${optionen[0]?.key}, 2→${optionen[1]?.key}, …) — leicht erratbar, Zuordnung mischen.`;
   }
   return null;
+}
+
+function validateAttachedSources(entry, block) {
+  if (!Object.prototype.hasOwnProperty.call(entry, 'quelltexte')) return 0;
+  let fail = 0;
+  const sourceIds = new Set();
+  if (!Array.isArray(entry.quelltexte)) {
+    console.log(`FAIL ${entry.id}: quelltexte muss ein Array sein.`);
+    return 1;
+  }
+  for (const [index, source] of entry.quelltexte.entries()) {
+    const parsed = QuellTextSchema.safeParse(source);
+    if (!parsed.success) {
+      console.log(`FAIL ${entry.id}: quelltexte[${index}] ist kein gültiger Quelltext.`);
+      fail++;
+      continue;
+    }
+    if (sourceIds.has(parsed.data.id)) {
+      console.log(`FAIL ${entry.id}: Quellen-ID "${parsed.data.id}" kommt doppelt vor.`);
+      fail++;
+    }
+    sourceIds.add(parsed.data.id);
+  }
+
+  const referencedIds = new Set();
+  const collectReferences = (value) => {
+    if (Array.isArray(value)) {
+      value.forEach(collectReferences);
+    } else if (value !== null && typeof value === 'object') {
+      for (const [key, nested] of Object.entries(value)) {
+        if (key === 'quelleId' && typeof nested === 'string') referencedIds.add(nested);
+        else collectReferences(nested);
+      }
+    }
+  };
+  collectReferences(block);
+  for (const sourceId of referencedIds) {
+    if (!sourceIds.has(sourceId)) {
+      console.log(`FAIL ${entry.id}: Quellenverweis "${sourceId}" hat keinen mitgeführten Quelltext.`);
+      fail++;
+    }
+  }
+  return fail;
 }
 
 function validateFile(file) {
@@ -180,6 +224,8 @@ function validateFile(file) {
       fail++;
       continue;
     }
+
+    fail += validateAttachedSources(e, block);
 
     if (block.typ !== e.aufgabentyp) {
       console.log(

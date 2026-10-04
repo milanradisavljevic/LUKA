@@ -7,7 +7,7 @@
  *   - Tastenkürzel aus `SHORTCUTS` (lib/shortcuts).
  *
  * Vorher standen diese Listen als Prosa in `HelpView.tsx` — und liefen der
- * App hinterher: zwei der 14 Fächer und einer der 20 Aufgabentypen fehlten,
+ * App hinterher: zwei Fächer und einer der 20 Aufgabentypen fehlten,
  * von 19 existierenden Tastenkürzeln waren 3 genannt. `helpSections.test.tsx`
  * wacht jetzt darüber, dass das nicht wieder passiert.
  */
@@ -227,7 +227,7 @@ export const HELP_SECTIONS: HelpSection[] = [
         <P>Damit die KI-Generierung und die Korrektur laufen, brauchst du einen API-Schlüssel deines KI-Anbieters.</P>
         <Steps items={[
           <>Öffne <strong>Einstellungen</strong> und trage deinen API-Schlüssel ein (z. B. Anthropic, OpenAI, Mistral, DeepSeek). Schlüssel werden im Schlüsselspeicher des Betriebssystems abgelegt — nicht im Klartext.</>,
-          <>Wähle Standard-Anbieter und -Modell (standardmäßig <strong>Mistral Medium 3.5</strong>). Für günstige Tests eignet sich ein kleines Modell.</>,
+          <>Wähle Standard-Anbieter und -Modell (standardmäßig <strong>DeepSeek V4 Pro</strong>). Für günstige Tests eignet sich ein kleines Modell.</>,
           <>Starte über <strong>Neue Unterlage</strong> (oben in der Seitenleiste), <strong>Kompetenz-Übung</strong>, <strong>Schnell-Übung</strong> oder den getrennten Bereich <strong>IB Diploma</strong> und exportiere eine erste Schüler- und Lösungsfassung.</>,
         ]} />
         <P><strong>Kein-Key-Hinweis:</strong> Wählst du in Schritt „KI-Modell" einen Anbieter, für den noch kein Schlüssel hinterlegt ist, zeigt die App dort einen Hinweis mit Direkt-Link zu den Einstellungen — so scheiterst du nicht erst beim Generieren.</P>
@@ -381,6 +381,7 @@ export const HELP_SECTIONS: HelpSection[] = [
         <Steps items={[
           <><strong>Unterlage vorbereiten:</strong> LUKA übernimmt aus dem Kalendereintrag das Gerüst — Klasse, Fach, Thema und Datum — und öffnet den Assistenten. <strong>Quelltext und Aufgaben arbeitest du selbst aus.</strong> LUKA erfindet keinen Quelltext nur deshalb, weil im Kalender keine Datei danebenliegt. Beim Speichern hängt es die fertige Unterlage automatisch an den Termin; mit „Verknüpfung abbrechen" nimmst du den Termin wieder heraus.</>,
           <><strong>Datei ablegen</strong> kopiert eine Datei in den Ablage-Ordner von LUKA. Dein Original bleibt, wo es ist — du kannst es also gefahrlos verschieben. Fehlt eine abgelegte Datei, weist LUKA dich darauf hin.</>,
+          <><strong>Folgeübung anhängen</strong> zeigt gespeicherte Übungen aus Korrekturen derselben Klasse. Die Übung erscheint danach an dieser Stunde und lässt sich dort direkt in LUKA öffnen.</>,
           <><strong>Verweis</strong> merkt sich einen Pfad oder eine Adresse für Material, das woanders liegt.</>,
         ]} />
         <P>
@@ -639,6 +640,7 @@ export const HELP_SECTIONS: HelpSection[] = [
           <>Nach der Analyse zeigt die Detailansicht links die Bewertung (Note, Kriterien, Fehlerliste) und rechts den <strong>markierten Schülertext</strong> als A4-Vorschau.</>,
           <>Eigene <strong>Lehrernote</strong> und einen Kommentar erfassen und speichern — die App vergleicht deine Note später mit der KI-Note (Kalibrierung).</>,
           <>Mit „Feedback-DOCX" ein Rückmelde-Dokument für die Schülerin/den Schüler erzeugen.</>,
+          <>Ist die Korrektur einer geplanten Stunde zugeordnet, kannst du das fertige Feedback mit „Am Termin ablegen" als Kopie an diese Stunde hängen.</>,
         ]} />
         <P><strong>Fehlerliste und Schülertext sind verzahnt:</strong> Ein Klick auf einen Vorschlag holt die Stelle im Schülertext in den Blick — die Markierung bekommt einen kräftigen Rahmen, die übrigen treten zurück. Ein Klick auf eine Markierung hebt umgekehrt die zugehörige Karte hervor. Jeder Vorschlag trägt eine Nummer, die auf Karte und Text steht; bei 40 Markierungen sieht man so auf einen Blick, welcher Vorschlag zu welcher Stelle gehört. Mit „Nr. im Text" blendest du die Ziffern aus.</P>
         <P><strong>Sortieren statt Springen:</strong> Die Fehlerliste lässt sich nach „Reihenfolge im Text" ordnen — so gehst du den Aufsatz von oben nach unten durch, statt zwischen den Fehlerarten hin und zu springen. Weitere Reihenfolgen: nach Fehlerart, nach Unsicherheit zuerst und nach offenen Vorschlägen zuerst.</P>
@@ -829,11 +831,12 @@ export const HELP_SECTIONS: HelpSection[] = [
         <P>Mit <strong>„Importieren"</strong> wählst du eine JSON-Datei aus. Die App validiert sie vollständig, bevor sie den Pool verändert. In der Vorschau siehst du Anzahl, Fächer, Herkunftsvermerke und Duplikate; bei vorhandenen IDs entscheidest du zwischen <strong>„Ersetzen"</strong> und <strong>„Behalten"</strong>. Ungültige Dateien werden abgelehnt und verändern den Pool nicht.</P>
         <P>
           <strong>Startpaket:</strong> Ist der Pool leer, bietet dir LUKA per Klick
-          <strong>29 geprüfte Aufgaben</strong> an — aus vier Paketen: <strong>Deutsch Oberstufe</strong>{' '}
-          (Textsorten), <strong>Englisch Oberstufe</strong> (CEFR B1–B2), <strong>Medien und Demokratie</strong> und
-          <strong>Informatik und Künstliche Intelligenz</strong>. Steht in deinem Profil
+          <strong>40 kuratierte Aufgaben</strong> an — aus fünf Paketen: <strong>Deutsch Oberstufe</strong>{' '}
+          (Textsorten), <strong>Englisch Oberstufe</strong> (CEFR B1–B2), <strong>Medien und Demokratie</strong>,{' '}
+          <strong>Informatik und Künstliche Intelligenz</strong> sowie <strong>Geschichte und Politische Bildung</strong>{' '}
+          für die AHS-Schulstufen 6 bis 12. Steht in deinem Profil
           <strong> Deutschland</strong>, kommen acht Aufgaben für das deutsche Schulsystem dazu
-          (<strong>37 insgesamt</strong>). Nichts wird überschrieben; bereits vorhandene Aufgaben
+          (<strong>48 insgesamt</strong>). Nichts wird überschrieben; bereits vorhandene Aufgaben
           werden übersprungen. Zusätzlich liegt <strong>Englisch Oberstufe (CEFR B1–B2)</strong>
           als eigene JSON-Datei unter <code>samples/fachpakete/</code> bereit, die du über
           <strong> Importieren</strong> nachladen kannst.

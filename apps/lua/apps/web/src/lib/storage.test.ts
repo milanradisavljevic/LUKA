@@ -149,6 +149,23 @@ describe('storage — Standard-Vorgaben', () => {
     expect(s.defaultProvider).toBe(DEFAULT_SETTINGS.defaultProvider);
   });
 
+  it('zieht nur die frühere Mistral-Werksvorgabe auf DeepSeek um', () => {
+    localStorage.setItem('lehrunterlagen-settings', JSON.stringify({
+      defaultProvider: 'mistral', defaultModel: 'Mistral Medium 3.5',
+    }));
+    hydrateCache();
+    expect(loadSettings().defaultProvider).toBe('deepseek');
+    expect(loadSettings().defaultModel).toBe('DeepSeek V4 Pro');
+  });
+
+  it('belässt eine ausdrücklich andere Mistral-Modellwahl', () => {
+    localStorage.setItem('lehrunterlagen-settings', JSON.stringify({
+      defaultProvider: 'mistral', defaultModel: 'Mistral Small 4',
+    }));
+    hydrateCache();
+    expect(loadSettings().defaultModel).toBe('Mistral Small 4');
+  });
+
   it('saveSettings + loadSettings sind roundtrip-fähig', () => {
     saveSettings({
       defaultProvider: 'deepseek',

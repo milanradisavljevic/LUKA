@@ -15,7 +15,7 @@ qwen = "qwen -p"
 enabled = true
 # Provider: anthropic | deepseek | kimi | mistral | openai | ollama
 provider = "deepseek"
-model = "deepseek-chat"
+model = "deepseek-v4-pro"
 
 [paths]
 input = "input"

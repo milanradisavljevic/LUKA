@@ -26,6 +26,23 @@ export interface SelbstkontrolleErgebnis {
   hinweis: string;
 }
 
+export interface PunkteItem {
+  key: string;
+  status: Exclude<SelbstkontrolleStatus, 'nicht_automatisch'>;
+  erreicht: number;
+  maxPunkte: number;
+}
+
+export interface PunkteBlockErgebnis {
+  blockId: string;
+  blockTyp: Block['typ'];
+  automatisch: boolean;
+  erreicht: number;
+  maxPunkte: number;
+  items: PunkteItem[];
+  hinweis: string;
+}
+
 interface ErwarteteAntwort {
   key: string;
   expected: string | string[];
@@ -227,5 +244,49 @@ export function pruefeDigitaleAntworten(
     gesamt: items.length,
     items,
     hinweis: 'Lokal gegen den gespeicherten Antwortschlüssel geprüft; kein KI-Aufruf.',
+  };
+}
+
+function rundePunkte(value: number): number {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
+/** Prüft einen Block lokal und verteilt seine Punkte gleichmäßig auf prüfbare Items. */
+export function bewerteDigitaleAntwortenMitPunkten(
+  block: Block,
+  antworten: DigitaleAntworten,
+): PunkteBlockErgebnis {
+  const result = pruefeDigitaleAntworten(block, antworten);
+  if (!result.automatisch || result.items.length === 0) {
+    return {
+      blockId: block.id,
+      blockTyp: block.typ,
+      automatisch: false,
+      erreicht: 0,
+      maxPunkte: 0,
+      items: [],
+      hinweis: result.hinweis,
+    };
+  }
+
+  const maxPunkte = Math.max(0, block.punkte);
+  const anteile = result.items.map((_, index) => index === result.items.length - 1
+    ? rundePunkte(maxPunkte - result.items.slice(0, index).reduce((sum, _item) => sum + rundePunkte(maxPunkte / result.items.length), 0))
+    : rundePunkte(maxPunkte / result.items.length));
+  const items = result.items.map((item, index) => ({
+    key: item.key,
+    status: item.status,
+    maxPunkte: anteile[index] ?? 0,
+    erreicht: item.status === 'richtig' ? anteile[index] ?? 0 : 0,
+  }));
+
+  return {
+    blockId: block.id,
+    blockTyp: block.typ,
+    automatisch: true,
+    erreicht: rundePunkte(items.reduce((sum, item) => sum + item.erreicht, 0)),
+    maxPunkte,
+    items,
+    hinweis: 'Lokal gegen den gespeicherten Antwortschlüssel geprüft; Punkte je Teilaufgabe gleich gewichtet.',
   };
 }

@@ -29,6 +29,8 @@ export type BlockRequest =
       situation?: string;
       umfangWorte: { min: number; max: number };
       aspekte: string[];
+      ibChoiceGroup?: { id: string; option: 'A' | 'B'; totalOptions: 2; totalMaxMarks: number };
+      ibPaper2Questions?: string[];
     }
   | { typ: 'markieraufgabe'; punkte: number; quelleId: string; hinweis?: string; anweisung: string }
   // saetze/eintraege/woerter/vokabeln: optionale, von der Lehrkraft VORGEGEBENE Inhalte

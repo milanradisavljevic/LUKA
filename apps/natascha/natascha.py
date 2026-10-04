@@ -380,8 +380,8 @@ class SettingsScreen(ModalScreen[None]):
     ]
     _MODELS_BY_PROVIDER: dict[str, list[tuple[str, str]]] = {
         "deepseek": [
-            ("deepseek-chat / V3 (kein Vision, stabil, günstig)", "deepseek-chat"),
-            ("deepseek-reasoner / R1 (kein Vision, Reasoning)", "deepseek-reasoner"),
+            ("DeepSeek V4 Pro (Textkorrektur)", "deepseek-v4-pro"),
+            ("DeepSeek V4.1 Flash (günstiger, auch Vision)", "deepseek-flash"),
         ],
         "mistral": [
             ("mistral-small-latest (empfohlen, Text)", "mistral-small-latest"),

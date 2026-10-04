@@ -144,6 +144,14 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
   const meta = doc ? doc.meta : state.meta;
   const renderTemplate = RENDER_TEMPLATES[state.renderTemplate];
   const renderLayout = RENDER_LAYOUTS[state.renderLayout];
+  const ibCriteriaForBlock = (index: number) => {
+    const assessment = meta.ibAssessment;
+    if (assessment?.programme !== 'ib-dp' || assessment.course !== 'german-a-literature' || !assessment.assessmentCriteria) return undefined;
+    if (assessment.assessmentComponent === 'paper1' && assessment.level === 'hl') {
+      return assessment.assessmentCriteria.filter((criterion) => criterion.id.startsWith(`Text ${index + 1} ·`));
+    }
+    return assessment.assessmentCriteria;
+  };
   // Aufgabe, deren Einstellungs-Panel offen ist. Faellt weg, wenn der Block verschwindet
   // (z. B. durch eine Aktion in einem anderen Schritt), damit kein Panel ohne Inhalt steht.
   const settingsBlock = einstellungenId ? bloecke.find((b) => b.id === einstellungenId) : undefined;
@@ -449,7 +457,7 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
       {renderKopf()}
       {renderQuelltexte()}
       {renderMerkkasten()}
-      {bloecke.map((block) => (
+      {bloecke.map((block, index) => (
         <React.Fragment key={block.id}>
           {pageBreakBlocks.has(block.id) && (
             <div style={{
@@ -484,7 +492,7 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
               <strong>Beispiel:</strong> {block.beispiel.trim()}
             </p>
           )}
-          <BlockPreview block={block} showSolution={false} template={renderTemplate} layout={renderLayout} fach={meta.fach}
+          <BlockPreview block={block} showSolution={false} template={renderTemplate} layout={renderLayout} fach={meta.fach} ibCriteria={ibCriteriaForBlock(index)}
             onUpdate={editingId === block.id ? handleUpdate : undefined} />
           {/* Block-Regenerieren — nur bei generiertem Dokument */}
           {doc && (
@@ -653,7 +661,7 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
       {renderKopf()}
       {renderQuelltexte()}
       {renderMerkkasten()}
-      {bloecke.map((block) => (
+      {bloecke.map((block, index) => (
         <div key={block.id}
           style={{ marginBottom: '1.25rem', paddingBottom: '1rem', borderBottom: '1px solid #cccccc' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.375rem', fontSize: '9pt', color: PAPER_SECONDARY }}>
@@ -666,7 +674,7 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
               <strong>Beispiel:</strong> {block.beispiel.trim()}
             </p>
           )}
-          <BlockPreview block={block} showSolution={true} template={renderTemplate} layout={renderLayout} fach={meta.fach} />
+          <BlockPreview block={block} showSolution={true} template={renderTemplate} layout={renderLayout} fach={meta.fach} ibCriteria={ibCriteriaForBlock(index)} />
         </div>
       ))}
       {renderTransferaufgabe()}

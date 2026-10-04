@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Block } from '@lehrunterlagen/schema';
-import { istDeterministischPruefbar, pruefeDigitaleAntworten } from './selbstkontrolle';
+import { bewerteDigitaleAntwortenMitPunkten, istDeterministischPruefbar, pruefeDigitaleAntworten } from './selbstkontrolle';
 
 const mcBlock: Block = {
   id: 'mc-1', typ: 'multipleChoice', punkte: 4, arbeitsanweisung: 'Kreuze an.',
@@ -127,5 +127,32 @@ describe('pruefeDigitaleAntworten', () => {
     const result = pruefeDigitaleAntworten(block, { '1': 'Weil …' });
     expect(result).toMatchObject({ automatisch: false, status: 'nicht_automatisch', gesamt: 0 });
     expect(istDeterministischPruefbar(block)).toBe(false);
+  });
+});
+
+describe('bewerteDigitaleAntwortenMitPunkten', () => {
+  it('verteilt Blockpunkte gleichmäßig und erhält die Summe bei Rundung', () => {
+    const block = { ...mcBlock, punkte: 5 };
+    const result = bewerteDigitaleAntwortenMitPunkten(block, { '1': 'B', '2': ['A'] });
+    expect(result).toMatchObject({ automatisch: true, erreicht: 2.5, maxPunkte: 5 });
+    expect(result.items.map((item) => item.maxPunkte)).toEqual([2.5, 2.5]);
+    expect(result.items.map((item) => item.erreicht)).toEqual([2.5, 0]);
+  });
+
+  it('weist bei unvollständigem Schlüssel keine Punkte aus', () => {
+    const block = { ...mcBlock, loesung: { antworten: { '1': ['B'] } } } as Block;
+    expect(bewerteDigitaleAntwortenMitPunkten(block, { '1': 'B' })).toMatchObject({
+      automatisch: false, erreicht: 0, maxPunkte: 0, items: [],
+    });
+  });
+
+  it('rundet Teilpunkte auf zwei Stellen und verteilt den Rundungsrest', () => {
+    const block = {
+      id: 'three', typ: 'wordScramble' as const, punkte: 1,
+      arbeitsanweisung: 'Ordne.', config: { saetze: [{ wort: 'a' }, { wort: 'b' }, { wort: 'c' }] },
+    } as Block;
+    const result = bewerteDigitaleAntwortenMitPunkten(block, { '1': 'a', '2': 'b', '3': 'c' });
+    expect(result.items.map((item) => item.maxPunkte)).toEqual([0.33, 0.33, 0.34]);
+    expect(result.erreicht).toBe(1);
   });
 });

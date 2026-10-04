@@ -36,12 +36,34 @@ const entry = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
+const source = {
+  id: 'q1',
+  titel: 'Lesekarte',
+  inhalt: 'Eine kurze, belegte Materialkarte.',
+  herkunft: { typ: 'url', ref: 'https://example.org/source' },
+};
+
 describe('Pool-Paket-Validierung', () => {
   it('akzeptiert einen gültigen Eintrag', () => {
     const result = validatePoolEntries([entry()]);
     expect(result.valid).toBe(true);
     expect(result.entries).toHaveLength(1);
     expect(result.issues).toHaveLength(0);
+  });
+
+  it('bleibt mit älteren Einträgen ohne Quellenfeld kompatibel', () => {
+    expect(validatePoolEntries([entry()]).valid).toBe(true);
+  });
+
+  it('validiert mitgeführte Quelltexte und Quellenverweise', () => {
+    const blockWithSourceRef = JSON.stringify({ ...JSON.parse(block), quelleId: 'q1' });
+    expect(validatePoolEntries([entry({ blockJson: blockWithSourceRef, quelltexte: [source] })]).valid).toBe(true);
+
+    const missing = validatePoolEntries([entry({ blockJson: blockWithSourceRef, quelltexte: [] })]);
+    expect(missing.issues.some((item) => item.message.includes('keinen mitgeführten Quelltext'))).toBe(true);
+
+    const duplicate = validatePoolEntries([entry({ quelltexte: [source, source] })]);
+    expect(duplicate.issues.some((item) => item.message.includes('Quellen-ID') && item.message.includes('doppelt'))).toBe(true);
   });
 
   it('lehnt kein Array, ungültige Tags und kaputtes blockJson ab', () => {

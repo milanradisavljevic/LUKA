@@ -1,0 +1,535 @@
+{
+  "fach": "biologie",
+  "quelle": "RIS, Lehrpläne – allgemeinbildende höhere Schulen, Anlage 1; Fassung gültig ab 01.09.2026, zuletzt geändert durch BGBl. II Nr. 204/2024; geprüft am 04.10.2026",
+  "quelleUrl": "https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Anlage=1&Artikel=&Gesetzesnummer=10008568&Paragraf=&Uebergangsrecht=",
+  "bmbReferenz": {
+    "titel": "Lehrpläne der Allgemeinbildenden höheren Schulen",
+    "stelle": "Verweis auf die tagesaktuelle RIS-Fassung; Einführungsstand der AHS-Unterstufe",
+    "fassung": "abgerufen am 04.10.2026",
+    "url": "https://www.bmb.gv.at/Themen/schule/schulpraxis/lp/lp_ahs.html"
+  },
+  "redaktionellerHinweis": "Deskriptoren sind knappe Paraphrasen der offiziellen Kompetenzbeschreibungen. Die StoffItem-Titel sind konkrete didaktische LUKA-Aufbereitung und keine amtlichen Lehrplantitel.",
+  "abdeckungsHinweis": "Österreichischer AHS-Lehrplan; Schulstufen 5–8: 1.–4. Klasse, Schulstufen 9–12: 5.–8. Klasse. Die RIS-Lerninhalte der 7. Klasse sind ausdrücklich als schulformabhängig gekennzeichnet.",
+  "stufen": [
+    {
+      "schulstufe": 5,
+      "bereiche": [
+        {
+          "bereich": "Wissen aneignen, anwenden und kommunizieren",
+          "deskriptoren": [
+            {
+              "id": "at-bi-s5-w",
+              "code": "W",
+              "text": "Fachwissen zu Lebensräume, Blütenpflanzen und Bestäubung, Wirbeltieranpassungen, Skelett und Bewegung, Verdauung und Ernährung sowie menschliche Fortpflanzung erschließen, ordnen und verständlich kommunizieren.",
+              "quelle": "RIS, Lehrpläne – allgemeinbildende höhere Schulen, Anlage 1, Fachlehrplan Biologie und Umweltbildung, Kompetenzbeschreibungen und Anwendungsbereiche der 1. Klasse, Kompetenzbereich Wissen aneignen, anwenden und kommunizieren (W); Anwendungsbereiche, 1. Klasse; Lerninhalte: Lebensräume, Blütenpflanzen und Bestäubung, Wirbeltieranpassungen, Skelett und Bewegung, Verdauung und Ernährung sowie menschliche Fortpflanzung.; Fassung gültig ab 01.09.2026, zuletzt geändert durch BGBl. II Nr. 204/2024; geprüft am 04.10.2026; direkte Quelle: https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Anlage=1&Artikel=&Gesetzesnummer=10008568&Paragraf=&Uebergangsrecht="
+            }
+          ],
+          "stoffItems": [
+            {
+              "id": "at-bi-s5-w-item",
+              "titel": "Blütenpflanzen, Bestäubung und Wirbeltieranpassungen mit Modellen erklären",
+              "deskriptorIds": [
+                "at-bi-s5-w"
+              ]
+            }
+          ]
+        },
+        {
+          "bereich": "Erkenntnisse gewinnen",
+          "deskriptoren": [
+            {
+              "id": "at-bi-s5-e",
+              "code": "E",
+              "text": "Biologische Phänomene zu Lebensräume, Blütenpflanzen und Bestäubung, Wirbeltieranpassungen, Skelett und Bewegung, Verdauung und Ernährung sowie menschliche Fortpflanzung beobachten oder untersuchen, vergleichen und Ergebnisse auswerten.",
+              "quelle": "RIS, Lehrpläne – allgemeinbildende höhere Schulen, Anlage 1, Fachlehrplan Biologie und Umweltbildung, Kompetenzbeschreibungen und Anwendungsbereiche der 1. Klasse, Kompetenzbereich Erkenntnisse gewinnen (E); Anwendungsbereiche, 1. Klasse; Lerninhalte: Lebensräume, Blütenpflanzen und Bestäubung, Wirbeltieranpassungen, Skelett und Bewegung, Verdauung und Ernährung sowie menschliche Fortpflanzung.; Fassung gültig ab 01.09.2026, zuletzt geändert durch BGBl. II Nr. 204/2024; geprüft am 04.10.2026; direkte Quelle: https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Anlage=1&Artikel=&Gesetzesnummer=10008568&Paragraf=&Uebergangsrecht="
+            }
+          ],
+          "stoffItems": [
+            {
+              "id": "at-bi-s5-e-item",
+              "titel": "Blütenpflanzen und Wirbeltiermerkmale beobachten und vergleichen",
+              "deskriptorIds": [
+                "at-bi-s5-e"
+              ]
+            }
+          ]
+        },
+        {
+          "bereich": "Standpunkte begründen und reflektiert handeln",
+          "deskriptoren": [
+            {
+              "id": "at-bi-s5-s",
+              "code": "S",
+              "text": "Aussagen und Handlungsoptionen zu Lebensräume, Blütenpflanzen und Bestäubung, Wirbeltieranpassungen, Skelett und Bewegung, Verdauung und Ernährung sowie menschliche Fortpflanzung anhand biologischer Erkenntnisse beurteilen und begründen.",
+              "quelle": "RIS, Lehrpläne – allgemeinbildende höhere Schulen, Anlage 1, Fachlehrplan Biologie und Umweltbildung, Kompetenzbeschreibungen und Anwendungsbereiche der 1. Klasse, Kompetenzbereich Standpunkte begründen und reflektiert handeln (S); Anwendungsbereiche, 1. Klasse; Lerninhalte: Lebensräume, Blütenpflanzen und Bestäubung, Wirbeltieranpassungen, Skelett und Bewegung, Verdauung und Ernährung sowie menschliche Fortpflanzung.; Fassung gültig ab 01.09.2026, zuletzt geändert durch BGBl. II Nr. 204/2024; geprüft am 04.10.2026; direkte Quelle: https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Anlage=1&Artikel=&Gesetzesnummer=10008568&Paragraf=&Uebergangsrecht="
+            }
+          ],
+          "stoffItems": [
+            {
+              "id": "at-bi-s5-s-item",
+              "titel": "Ernährung und Fortpflanzung anhand biologischer Informationen beurteilen",
+              "deskriptorIds": [
+                "at-bi-s5-s"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 6,
+      "bereiche": [
+        {
+          "bereich": "Wissen aneignen, anwenden und kommunizieren",
+          "deskriptoren": [
+            {
+              "id": "at-bi-s6-w",
+              "code": "W",
+              "text": "Fachwissen zu Waldökologie und Biodiversität, Pflanzenorgane und Fotosynthese, Zellen, Pilze und Symbiosen, Mikroorganismen und Gesundheit sowie Sinne und Bewegung erschließen, ordnen und verständlich kommunizieren.",
+              "quelle": "RIS, Lehrpläne – allgemeinbildende höhere Schulen, Anlage 1, Fachlehrplan Biologie und Umweltbildung, Kompetenzbeschreibungen und Anwendungsbereiche der 2. Klasse, Kompetenzbereich Wissen aneignen, anwenden und kommunizieren (W); Anwendungsbereiche, 2. Klasse; Lerninhalte: Waldökologie und Biodiversität, Pflanzenorgane und Fotosynthese, Zellen, Pilze und Symbiosen, Mikroorganismen und Gesundheit sowie Sinne und Bewegung.; Fassung gültig ab 01.09.2026, zuletzt geändert durch BGBl. II Nr. 204/2024; geprüft am 04.10.2026; direkte Quelle: https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Anlage=1&Artikel=&Gesetzesnummer=10008568&Paragraf=&Uebergangsrecht="
+            }
+          ],
+          "stoffItems": [
+            {
+              "id": "at-bi-s6-w-item",
+              "titel": "Fotosynthese und Zellen in Waldökosystemen erklären",
+              "deskriptorIds": [
+                "at-bi-s6-w"
+              ]
+            }
+          ]
+        },
+        {
+          "bereich": "Erkenntnisse gewinnen",
+          "deskriptoren": [
+            {
+              "id": "at-bi-s6-e",
+              "code": "E",
+              "text": "Biologische Phänomene zu Waldökologie und Biodiversität, Pflanzenorgane und Fotosynthese, Zellen, Pilze und Symbiosen, Mikroorganismen und Gesundheit sowie Sinne und Bewegung beobachten oder untersuchen, vergleichen und Ergebnisse auswerten.",
+              "quelle": "RIS, Lehrpläne – allgemeinbildende höhere Schulen, Anlage 1, Fachlehrplan Biologie und Umweltbildung, Kompetenzbeschreibungen und Anwendungsbereiche der 2. Klasse, Kompetenzbereich Erkenntnisse gewinnen (E); Anwendungsbereiche, 2. Klasse; Lerninhalte: Waldökologie und Biodiversität, Pflanzenorgane und Fotosynthese, Zellen, Pilze und Symbiosen, Mikroorganismen und Gesundheit sowie Sinne und Bewegung.; Fassung gültig ab 01.09.2026, zuletzt geändert durch BGBl. II Nr. 204/2024; geprüft am 04.10.2026; direkte Quelle: https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Anlage=1&Artikel=&Gesetzesnummer=10008568&Paragraf=&Uebergangsrecht="
+            }
+          ],
+          "stoffItems": [
+            {
+              "id": "at-bi-s6-e-item",
+              "titel": "Pflanzenzellen und Mikroorganismen mikroskopisch untersuchen",
+              "deskriptorIds": [
+                "at-bi-s6-e"
+              ]
+            }
+          ]
+        },
+        {
+          "bereich": "Standpunkte begründen und reflektiert handeln",
+          "deskriptoren": [
+            {
+              "id": "at-bi-s6-s",
+              "code": "S",
+              "text": "Aussagen und Handlungsoptionen zu Waldökologie und Biodiversität, Pflanzenorgane und Fotosynthese, Zellen, Pilze und Symbiosen, Mikroorganismen und Gesundheit sowie Sinne und Bewegung anhand biologischer Erkenntnisse beurteilen und begründen.",
+              "quelle": "RIS, Lehrpläne – allgemeinbildende höhere Schulen, Anlage 1, Fachlehrplan Biologie und Umweltbildung, Kompetenzbeschreibungen und Anwendungsbereiche der 2. Klasse, Kompetenzbereich Standpunkte begründen und reflektiert handeln (S); Anwendungsbereiche, 2. Klasse; Lerninhalte: Waldökologie und Biodiversität, Pflanzenorgane und Fotosynthese, Zellen, Pilze und Symbiosen, Mikroorganismen und Gesundheit sowie Sinne und Bewegung.; Fassung gültig ab 01.09.2026, zuletzt geändert durch BGBl. II Nr. 204/2024; geprüft am 04.10.2026; direkte Quelle: https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Anlage=1&Artikel=&Gesetzesnummer=10008568&Paragraf=&Uebergangsrecht="
+            }
+          ],
+          "stoffItems": [
+            {
+              "id": "at-bi-s6-s-item",
+              "titel": "Symbiosen und Gesundheitsfragen fachlich beurteilen",
+              "deskriptorIds": [
+                "at-bi-s6-s"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 7,
+      "bereiche": [
+        {
+          "bereich": "Wissen aneignen, anwenden und kommunizieren",
+          "deskriptoren": [
+            {
+              "id": "at-bi-s7-w",
+              "code": "W",
+              "text": "Fachwissen zu Süßwasser- und Meeresökosysteme, Atmung und Kreislauf, Gesundheit, Plattentektonik, Fossilien und Evolution erschließen, ordnen und verständlich kommunizieren.",
+              "quelle": "RIS, Lehrpläne – allgemeinbildende höhere Schulen, Anlage 1, Fachlehrplan Biologie und Umweltbildung, Kompetenzbeschreibungen und Anwendungsbereiche der 3. Klasse, Kompetenzbereich Wissen aneignen, anwenden und kommunizieren (W); Anwendungsbereiche, 3. Klasse; Lerninhalte: Süßwasser- und Meeresökosysteme, Atmung und Kreislauf, Gesundheit, Plattentektonik, Fossilien und Evolution.; Fassung gültig ab 01.09.2026, zuletzt geändert durch BGBl. II Nr. 204/2024; geprüft am 04.10.2026; direkte Quelle: https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Anlage=1&Artikel=&Gesetzesnummer=10008568&Paragraf=&Uebergangsrecht="
+            }
+          ],
+          "stoffItems": [
+            {
+              "id": "at-bi-s7-w-item",
+              "titel": "Wasserökosysteme und Stofftransport im Körper erklären",
+              "deskriptorIds": [
+                "at-bi-s7-w"
+              ]
+            }
+          ]
+        },
+        {
+          "bereich": "Erkenntnisse gewinnen",
+          "deskriptoren": [
+            {
+              "id": "at-bi-s7-e",
+              "code": "E",
+              "text": "Biologische Phänomene zu Süßwasser- und Meeresökosysteme, Atmung und Kreislauf, Gesundheit, Plattentektonik, Fossilien und Evolution beobachten oder untersuchen, vergleichen und Ergebnisse auswerten.",
+              "quelle": "RIS, Lehrpläne – allgemeinbildende höhere Schulen, Anlage 1, Fachlehrplan Biologie und Umweltbildung, Kompetenzbeschreibungen und Anwendungsbereiche der 3. Klasse, Kompetenzbereich Erkenntnisse gewinnen (E); Anwendungsbereiche, 3. Klasse; Lerninhalte: Süßwasser- und Meeresökosysteme, Atmung und Kreislauf, Gesundheit, Plattentektonik, Fossilien und Evolution.; Fassung gültig ab 01.09.2026, zuletzt geändert durch BGBl. II Nr. 204/2024; geprüft am 04.10.2026; direkte Quelle: https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Anlage=1&Artikel=&Gesetzesnummer=10008568&Paragraf=&Uebergangsrecht="
+            }
+          ],
+          "stoffItems": [
+            {
+              "id": "at-bi-s7-e-item",
+              "titel": "Organismen in Wasserlebensräumen vergleichen und Beobachtungsdaten auswerten",
+              "deskriptorIds": [
+                "at-bi-s7-e"
+              ]
+            }
+          ]
+        },
+        {
+          "bereich": "Standpunkte begründen und reflektiert handeln",
+          "deskriptoren": [
+            {
+              "id": "at-bi-s7-s",
+              "code": "S",
+              "text": "Aussagen und Handlungsoptionen zu Süßwasser- und Meeresökosysteme, Atmung und Kreislauf, Gesundheit, Plattentektonik, Fossilien und Evolution anhand biologischer Erkenntnisse beurteilen und begründen.",
+              "quelle": "RIS, Lehrpläne – allgemeinbildende höhere Schulen, Anlage 1, Fachlehrplan Biologie und Umweltbildung, Kompetenzbeschreibungen und Anwendungsbereiche der 3. Klasse, Kompetenzbereich Standpunkte begründen und reflektiert handeln (S); Anwendungsbereiche, 3. Klasse; Lerninhalte: Süßwasser- und Meeresökosysteme, Atmung und Kreislauf, Gesundheit, Plattentektonik, Fossilien und Evolution.; Fassung gültig ab 01.09.2026, zuletzt geändert durch BGBl. II Nr. 204/2024; geprüft am 04.10.2026; direkte Quelle: https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Anlage=1&Artikel=&Gesetzesnummer=10008568&Paragraf=&Uebergangsrecht="
+            }
+          ],
+          "stoffItems": [
+            {
+              "id": "at-bi-s7-s-item",
+              "titel": "Gesundheits- und Umweltschutz an einem Gewässer begründen",
+              "deskriptorIds": [
+                "at-bi-s7-s"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 8,
+      "bereiche": [
+        {
+          "bereich": "Wissen aneignen, anwenden und kommunizieren",
+          "deskriptoren": [
+            {
+              "id": "at-bi-s8-w",
+              "code": "W",
+              "text": "Fachwissen zu Landwirtschaft und Klima, DNA und Vererbung, Immunität, Nervensystem, Sexualität und Evolution des Menschen erschließen, ordnen und verständlich kommunizieren.",
+              "quelle": "RIS, Lehrpläne – allgemeinbildende höhere Schulen, Anlage 1, Fachlehrplan Biologie und Umweltbildung, Kompetenzbeschreibungen und Anwendungsbereiche der 4. Klasse, Kompetenzbereich Wissen aneignen, anwenden und kommunizieren (W); Anwendungsbereiche, 4. Klasse; Lerninhalte: Landwirtschaft und Klima, DNA und Vererbung, Immunität, Nervensystem, Sexualität und Evolution des Menschen.; Fassung gültig ab 01.09.2026, zuletzt geändert durch BGBl. II Nr. 204/2024; geprüft am 04.10.2026; direkte Quelle: https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Anlage=1&Artikel=&Gesetzesnummer=10008568&Paragraf=&Uebergangsrecht="
+            }
+          ],
+          "stoffItems": [
+            {
+              "id": "at-bi-s8-w-item",
+              "titel": "DNA, Vererbung und Immunität biologisch erklären",
+              "deskriptorIds": [
+                "at-bi-s8-w"
+              ]
+            }
+          ]
+        },
+        {
+          "bereich": "Erkenntnisse gewinnen",
+          "deskriptoren": [
+            {
+              "id": "at-bi-s8-e",
+              "code": "E",
+              "text": "Biologische Phänomene zu Landwirtschaft und Klima, DNA und Vererbung, Immunität, Nervensystem, Sexualität und Evolution des Menschen beobachten oder untersuchen, vergleichen und Ergebnisse auswerten.",
+              "quelle": "RIS, Lehrpläne – allgemeinbildende höhere Schulen, Anlage 1, Fachlehrplan Biologie und Umweltbildung, Kompetenzbeschreibungen und Anwendungsbereiche der 4. Klasse, Kompetenzbereich Erkenntnisse gewinnen (E); Anwendungsbereiche, 4. Klasse; Lerninhalte: Landwirtschaft und Klima, DNA und Vererbung, Immunität, Nervensystem, Sexualität und Evolution des Menschen.; Fassung gültig ab 01.09.2026, zuletzt geändert durch BGBl. II Nr. 204/2024; geprüft am 04.10.2026; direkte Quelle: https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Anlage=1&Artikel=&Gesetzesnummer=10008568&Paragraf=&Uebergangsrecht="
+            }
+          ],
+          "stoffItems": [
+            {
+              "id": "at-bi-s8-e-item",
+              "titel": "Vererbungsmerkmale und Immunreaktionen anhand von Modellen untersuchen",
+              "deskriptorIds": [
+                "at-bi-s8-e"
+              ]
+            }
+          ]
+        },
+        {
+          "bereich": "Standpunkte begründen und reflektiert handeln",
+          "deskriptoren": [
+            {
+              "id": "at-bi-s8-s",
+              "code": "S",
+              "text": "Aussagen und Handlungsoptionen zu Landwirtschaft und Klima, DNA und Vererbung, Immunität, Nervensystem, Sexualität und Evolution des Menschen anhand biologischer Erkenntnisse beurteilen und begründen.",
+              "quelle": "RIS, Lehrpläne – allgemeinbildende höhere Schulen, Anlage 1, Fachlehrplan Biologie und Umweltbildung, Kompetenzbeschreibungen und Anwendungsbereiche der 4. Klasse, Kompetenzbereich Standpunkte begründen und reflektiert handeln (S); Anwendungsbereiche, 4. Klasse; Lerninhalte: Landwirtschaft und Klima, DNA und Vererbung, Immunität, Nervensystem, Sexualität und Evolution des Menschen.; Fassung gültig ab 01.09.2026, zuletzt geändert durch BGBl. II Nr. 204/2024; geprüft am 04.10.2026; direkte Quelle: https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Anlage=1&Artikel=&Gesetzesnummer=10008568&Paragraf=&Uebergangsrecht="
+            }
+          ],
+          "stoffItems": [
+            {
+              "id": "at-bi-s8-s-item",
+              "titel": "Fragen zu Sexualität und Gesundheit faktenbasiert beurteilen",
+              "deskriptorIds": [
+                "at-bi-s8-s"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 9,
+      "bereiche": [
+        {
+          "bereich": "Fachwissen aneignen und kommunizieren",
+          "deskriptoren": [
+            {
+              "id": "at-bi-s9-w",
+              "code": "W4",
+              "text": "Biologische Zusammenhänge zu Zellen und Mitose, Mikroorganismen und Biotechnologie, Pflanzen und Stoffwechsel, Ernährung sowie menschliche Organsysteme mithilfe von Fachwissen und geeigneten Modellen erklären.",
+              "quelle": "RIS, Lehrpläne – allgemeinbildende höhere Schulen, Anlage 1, Fachlehrplan Biologie und Umweltbildung, Kompetenzbeschreibungen der Oberstufe, Kompetenzbereich Fachwissen aneignen und kommunizieren, Deskriptor W4; Lehrstoff, 5. Klasse (1. und 2. Semester); Lerninhalte: Zellen und Mitose, Mikroorganismen und Biotechnologie, Pflanzen und Stoffwechsel, Ernährung sowie menschliche Organsysteme.; Fassung gültig ab 01.09.2026, zuletzt geändert durch BGBl. II Nr. 204/2024; geprüft am 04.10.2026; direkte Quelle: https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Anlage=1&Artikel=&Gesetzesnummer=10008568&Paragraf=&Uebergangsrecht="
+            }
+          ],
+          "stoffItems": [
+            {
+              "id": "at-bi-s9-w-item",
+              "titel": "Zellaufbau, Mitose und Stoffwechsel mit biologischen Modellen erklären",
+              "deskriptorIds": [
+                "at-bi-s9-w"
+              ]
+            }
+          ]
+        },
+        {
+          "bereich": "Erkenntnisse gewinnen",
+          "deskriptoren": [
+            {
+              "id": "at-bi-s9-e",
+              "code": "E4",
+              "text": "Zu Zellen und Mitose, Mikroorganismen und Biotechnologie, Pflanzen und Stoffwechsel, Ernährung sowie menschliche Organsysteme passende biologische Untersuchungen oder Experimente planen, durchführen und protokollieren.",
+              "quelle": "RIS, Lehrpläne – allgemeinbildende höhere Schulen, Anlage 1, Fachlehrplan Biologie und Umweltbildung, Kompetenzbeschreibungen der Oberstufe, Kompetenzbereich Erkenntnisse gewinnen, Deskriptor E4; Lehrstoff, 5. Klasse (1. und 2. Semester); Lerninhalte: Zellen und Mitose, Mikroorganismen und Biotechnologie, Pflanzen und Stoffwechsel, Ernährung sowie menschliche Organsysteme.; Fassung gültig ab 01.09.2026, zuletzt geändert durch BGBl. II Nr. 204/2024; geprüft am 04.10.2026; direkte Quelle: https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Anlage=1&Artikel=&Gesetzesnummer=10008568&Paragraf=&Uebergangsrecht="
+            }
+          ],
+          "stoffItems": [
+            {
+              "id": "at-bi-s9-e-item",
+              "titel": "Zellen und Gärung mikroskopisch und experimentell untersuchen",
+              "deskriptorIds": [
+                "at-bi-s9-e"
+              ]
+            }
+          ]
+        },
+        {
+          "bereich": "Standpunkte begründen und reflektiert handeln",
+          "deskriptoren": [
+            {
+              "id": "at-bi-s9-s",
+              "code": "S2",
+              "text": "Biologische Fragen zu Zellen und Mitose, Mikroorganismen und Biotechnologie, Pflanzen und Stoffwechsel, Ernährung sowie menschliche Organsysteme mit Blick auf verschiedene Standpunkte erörtern und fachlich begründet bewerten.",
+              "quelle": "RIS, Lehrpläne – allgemeinbildende höhere Schulen, Anlage 1, Fachlehrplan Biologie und Umweltbildung, Kompetenzbeschreibungen der Oberstufe, Kompetenzbereich Standpunkte begründen und reflektiert handeln, Deskriptor S2; Lehrstoff, 5. Klasse (1. und 2. Semester); Lerninhalte: Zellen und Mitose, Mikroorganismen und Biotechnologie, Pflanzen und Stoffwechsel, Ernährung sowie menschliche Organsysteme.; Fassung gültig ab 01.09.2026, zuletzt geändert durch BGBl. II Nr. 204/2024; geprüft am 04.10.2026; direkte Quelle: https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Anlage=1&Artikel=&Gesetzesnummer=10008568&Paragraf=&Uebergangsrecht="
+            }
+          ],
+          "stoffItems": [
+            {
+              "id": "at-bi-s9-s-item",
+              "titel": "Ernährung und Biotechnologie unter Gesundheits- und Umweltaspekten bewerten",
+              "deskriptorIds": [
+                "at-bi-s9-s"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 10,
+      "bereiche": [
+        {
+          "bereich": "Fachwissen aneignen und kommunizieren",
+          "deskriptoren": [
+            {
+              "id": "at-bi-s10-w",
+              "code": "W4",
+              "text": "Biologische Zusammenhänge zu Nerven- und Hormonsystem, Meiose und Entwicklung, Ökosysteme und Nachhaltigkeit, Immunsystem, Verhalten und Geodynamik mithilfe von Fachwissen und geeigneten Modellen erklären.",
+              "quelle": "RIS, Lehrpläne – allgemeinbildende höhere Schulen, Anlage 1, Fachlehrplan Biologie und Umweltbildung, Kompetenzbeschreibungen der Oberstufe, Kompetenzbereich Fachwissen aneignen und kommunizieren, Deskriptor W4; Lehrstoff, 6. Klasse (3. und 4. Semester); Lerninhalte: Nerven- und Hormonsystem, Meiose und Entwicklung, Ökosysteme und Nachhaltigkeit, Immunsystem, Verhalten und Geodynamik.; Fassung gültig ab 01.09.2026, zuletzt geändert durch BGBl. II Nr. 204/2024; geprüft am 04.10.2026; direkte Quelle: https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Anlage=1&Artikel=&Gesetzesnummer=10008568&Paragraf=&Uebergangsrecht="
+            }
+          ],
+          "stoffItems": [
+            {
+              "id": "at-bi-s10-w-item",
+              "titel": "Nerven- und Hormonsystem sowie Ökosysteme modellgestützt erklären",
+              "deskriptorIds": [
+                "at-bi-s10-w"
+              ]
+            }
+          ]
+        },
+        {
+          "bereich": "Erkenntnisse gewinnen",
+          "deskriptoren": [
+            {
+              "id": "at-bi-s10-e",
+              "code": "E4",
+              "text": "Zu Nerven- und Hormonsystem, Meiose und Entwicklung, Ökosysteme und Nachhaltigkeit, Immunsystem, Verhalten und Geodynamik passende biologische Untersuchungen oder Experimente planen, durchführen und protokollieren.",
+              "quelle": "RIS, Lehrpläne – allgemeinbildende höhere Schulen, Anlage 1, Fachlehrplan Biologie und Umweltbildung, Kompetenzbeschreibungen der Oberstufe, Kompetenzbereich Erkenntnisse gewinnen, Deskriptor E4; Lehrstoff, 6. Klasse (3. und 4. Semester); Lerninhalte: Nerven- und Hormonsystem, Meiose und Entwicklung, Ökosysteme und Nachhaltigkeit, Immunsystem, Verhalten und Geodynamik.; Fassung gültig ab 01.09.2026, zuletzt geändert durch BGBl. II Nr. 204/2024; geprüft am 04.10.2026; direkte Quelle: https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Anlage=1&Artikel=&Gesetzesnummer=10008568&Paragraf=&Uebergangsrecht="
+            }
+          ],
+          "stoffItems": [
+            {
+              "id": "at-bi-s10-e-item",
+              "titel": "Reizleitung und ökologische Beziehungen anhand von Daten untersuchen",
+              "deskriptorIds": [
+                "at-bi-s10-e"
+              ]
+            }
+          ]
+        },
+        {
+          "bereich": "Standpunkte begründen und reflektiert handeln",
+          "deskriptoren": [
+            {
+              "id": "at-bi-s10-s",
+              "code": "S2",
+              "text": "Biologische Fragen zu Nerven- und Hormonsystem, Meiose und Entwicklung, Ökosysteme und Nachhaltigkeit, Immunsystem, Verhalten und Geodynamik mit Blick auf verschiedene Standpunkte erörtern und fachlich begründet bewerten.",
+              "quelle": "RIS, Lehrpläne – allgemeinbildende höhere Schulen, Anlage 1, Fachlehrplan Biologie und Umweltbildung, Kompetenzbeschreibungen der Oberstufe, Kompetenzbereich Standpunkte begründen und reflektiert handeln, Deskriptor S2; Lehrstoff, 6. Klasse (3. und 4. Semester); Lerninhalte: Nerven- und Hormonsystem, Meiose und Entwicklung, Ökosysteme und Nachhaltigkeit, Immunsystem, Verhalten und Geodynamik.; Fassung gültig ab 01.09.2026, zuletzt geändert durch BGBl. II Nr. 204/2024; geprüft am 04.10.2026; direkte Quelle: https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Anlage=1&Artikel=&Gesetzesnummer=10008568&Paragraf=&Uebergangsrecht="
+            }
+          ],
+          "stoffItems": [
+            {
+              "id": "at-bi-s10-s-item",
+              "titel": "Meiose und Nachhaltigkeit unter gesellschaftlichen Aspekten bewerten",
+              "deskriptorIds": [
+                "at-bi-s10-s"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 11,
+      "bereiche": [
+        {
+          "bereich": "Fachwissen aneignen und kommunizieren",
+          "deskriptoren": [
+            {
+              "id": "at-bi-s11-w",
+              "code": "W4",
+              "text": "Biologische Zusammenhänge zu Parasitismus und Symbiose, Krankheitserreger und Prophylaxe, Gesundheitsförderung, Bewegungssysteme, biologische Vielfalt und Taxonomie mithilfe von Fachwissen und geeigneten Modellen erklären.",
+              "quelle": "RIS, Lehrpläne – allgemeinbildende höhere Schulen, Anlage 1, Fachlehrplan Biologie und Umweltbildung, Kompetenzbeschreibungen der Oberstufe, Kompetenzbereich Fachwissen aneignen und kommunizieren, Deskriptor W4; Lehrstoff, 7. Klasse (5. und 6. Semester; unter dem im RIS genannten Vorbehalt); Lerninhalte: Parasitismus und Symbiose, Krankheitserreger und Prophylaxe, Gesundheitsförderung, Bewegungssysteme, biologische Vielfalt und Taxonomie. (für die 7. Klasse: falls Biologie und Umweltbildung dort unterrichtet wird); Fassung gültig ab 01.09.2026, zuletzt geändert durch BGBl. II Nr. 204/2024; geprüft am 04.10.2026; direkte Quelle: https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Anlage=1&Artikel=&Gesetzesnummer=10008568&Paragraf=&Uebergangsrecht="
+            }
+          ],
+          "stoffItems": [
+            {
+              "id": "at-bi-s11-w-item",
+              "titel": "Krankheitserreger, Prävention und biologische Vielfalt erklären",
+              "deskriptorIds": [
+                "at-bi-s11-w"
+              ]
+            }
+          ]
+        },
+        {
+          "bereich": "Erkenntnisse gewinnen",
+          "deskriptoren": [
+            {
+              "id": "at-bi-s11-e",
+              "code": "E4",
+              "text": "Zu Parasitismus und Symbiose, Krankheitserreger und Prophylaxe, Gesundheitsförderung, Bewegungssysteme, biologische Vielfalt und Taxonomie passende biologische Untersuchungen oder Experimente planen, durchführen und protokollieren.",
+              "quelle": "RIS, Lehrpläne – allgemeinbildende höhere Schulen, Anlage 1, Fachlehrplan Biologie und Umweltbildung, Kompetenzbeschreibungen der Oberstufe, Kompetenzbereich Erkenntnisse gewinnen, Deskriptor E4; Lehrstoff, 7. Klasse (5. und 6. Semester; unter dem im RIS genannten Vorbehalt); Lerninhalte: Parasitismus und Symbiose, Krankheitserreger und Prophylaxe, Gesundheitsförderung, Bewegungssysteme, biologische Vielfalt und Taxonomie. (für die 7. Klasse: falls Biologie und Umweltbildung dort unterrichtet wird); Fassung gültig ab 01.09.2026, zuletzt geändert durch BGBl. II Nr. 204/2024; geprüft am 04.10.2026; direkte Quelle: https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Anlage=1&Artikel=&Gesetzesnummer=10008568&Paragraf=&Uebergangsrecht="
+            }
+          ],
+          "stoffItems": [
+            {
+              "id": "at-bi-s11-e-item",
+              "titel": "Krankheitserreger und Bewegungssysteme untersuchen und Beobachtungen auswerten",
+              "deskriptorIds": [
+                "at-bi-s11-e"
+              ]
+            }
+          ]
+        },
+        {
+          "bereich": "Standpunkte begründen und reflektiert handeln",
+          "deskriptoren": [
+            {
+              "id": "at-bi-s11-s",
+              "code": "S2",
+              "text": "Biologische Fragen zu Parasitismus und Symbiose, Krankheitserreger und Prophylaxe, Gesundheitsförderung, Bewegungssysteme, biologische Vielfalt und Taxonomie mit Blick auf verschiedene Standpunkte erörtern und fachlich begründet bewerten.",
+              "quelle": "RIS, Lehrpläne – allgemeinbildende höhere Schulen, Anlage 1, Fachlehrplan Biologie und Umweltbildung, Kompetenzbeschreibungen der Oberstufe, Kompetenzbereich Standpunkte begründen und reflektiert handeln, Deskriptor S2; Lehrstoff, 7. Klasse (5. und 6. Semester; unter dem im RIS genannten Vorbehalt); Lerninhalte: Parasitismus und Symbiose, Krankheitserreger und Prophylaxe, Gesundheitsförderung, Bewegungssysteme, biologische Vielfalt und Taxonomie. (für die 7. Klasse: falls Biologie und Umweltbildung dort unterrichtet wird); Fassung gültig ab 01.09.2026, zuletzt geändert durch BGBl. II Nr. 204/2024; geprüft am 04.10.2026; direkte Quelle: https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Anlage=1&Artikel=&Gesetzesnummer=10008568&Paragraf=&Uebergangsrecht="
+            }
+          ],
+          "stoffItems": [
+            {
+              "id": "at-bi-s11-s-item",
+              "titel": "Prophylaxe und Gesundheitsförderung fachlich begründen",
+              "deskriptorIds": [
+                "at-bi-s11-s"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "schulstufe": 12,
+      "bereiche": [
+        {
+          "bereich": "Fachwissen aneignen und kommunizieren",
+          "deskriptoren": [
+            {
+              "id": "at-bi-s12-w",
+              "code": "W4",
+              "text": "Biologische Zusammenhänge zu molekulare Grundlagen der Vererbung, Proteinsynthese und Epigenetik, Evolutionsmechanismen sowie Biotechnologie und Bioethik mithilfe von Fachwissen und geeigneten Modellen erklären.",
+              "quelle": "RIS, Lehrpläne – allgemeinbildende höhere Schulen, Anlage 1, Fachlehrplan Biologie und Umweltbildung, Kompetenzbeschreibungen der Oberstufe, Kompetenzbereich Fachwissen aneignen und kommunizieren, Deskriptor W4; Lehrstoff, 8. Klasse (7. und 8. Semester); Lerninhalte: Molekulare Grundlagen der Vererbung, Proteinsynthese und Epigenetik, Evolutionsmechanismen sowie Biotechnologie und Bioethik.; Fassung gültig ab 01.09.2026, zuletzt geändert durch BGBl. II Nr. 204/2024; geprüft am 04.10.2026; direkte Quelle: https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Anlage=1&Artikel=&Gesetzesnummer=10008568&Paragraf=&Uebergangsrecht="
+            }
+          ],
+          "stoffItems": [
+            {
+              "id": "at-bi-s12-w-item",
+              "titel": "Vererbung, Proteinsynthese und Evolution vernetzt erklären",
+              "deskriptorIds": [
+                "at-bi-s12-w"
+              ]
+            }
+          ]
+        },
+        {
+          "bereich": "Erkenntnisse gewinnen",
+          "deskriptoren": [
+            {
+              "id": "at-bi-s12-e",
+              "code": "E4",
+              "text": "Zu molekulare Grundlagen der Vererbung, Proteinsynthese und Epigenetik, Evolutionsmechanismen sowie Biotechnologie und Bioethik passende biologische Untersuchungen oder Experimente planen, durchführen und protokollieren.",
+              "quelle": "RIS, Lehrpläne – allgemeinbildende höhere Schulen, Anlage 1, Fachlehrplan Biologie und Umweltbildung, Kompetenzbeschreibungen der Oberstufe, Kompetenzbereich Erkenntnisse gewinnen, Deskriptor E4; Lehrstoff, 8. Klasse (7. und 8. Semester); Lerninhalte: Molekulare Grundlagen der Vererbung, Proteinsynthese und Epigenetik, Evolutionsmechanismen sowie Biotechnologie und Bioethik.; Fassung gültig ab 01.09.2026, zuletzt geändert durch BGBl. II Nr. 204/2024; geprüft am 04.10.2026; direkte Quelle: https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Anlage=1&Artikel=&Gesetzesnummer=10008568&Paragraf=&Uebergangsrecht="
+            }
+          ],
+          "stoffItems": [
+            {
+              "id": "at-bi-s12-e-item",
+              "titel": "Daten zu Vererbung und Evolution analysieren",
+              "deskriptorIds": [
+                "at-bi-s12-e"
+              ]
+            }
+          ]
+        },
+        {
+          "bereich": "Standpunkte begründen und reflektiert handeln",
+          "deskriptoren": [
+            {
+              "id": "at-bi-s12-s",
+              "code": "S2",
+              "text": "Biologische Fragen zu molekulare Grundlagen der Vererbung, Proteinsynthese und Epigenetik, Evolutionsmechanismen sowie Biotechnologie und Bioethik mit Blick auf verschiedene Standpunkte erörtern und fachlich begründet bewerten.",
+              "quelle": "RIS, Lehrpläne – allgemeinbildende höhere Schulen, Anlage 1, Fachlehrplan Biologie und Umweltbildung, Kompetenzbeschreibungen der Oberstufe, Kompetenzbereich Standpunkte begründen und reflektiert handeln, Deskriptor S2; Lehrstoff, 8. Klasse (7. und 8. Semester); Lerninhalte: Molekulare Grundlagen der Vererbung, Proteinsynthese und Epigenetik, Evolutionsmechanismen sowie Biotechnologie und Bioethik.; Fassung gültig ab 01.09.2026, zuletzt geändert durch BGBl. II Nr. 204/2024; geprüft am 04.10.2026; direkte Quelle: https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Anlage=1&Artikel=&Gesetzesnummer=10008568&Paragraf=&Uebergangsrecht="
+            }
+          ],
+          "stoffItems": [
+            {
+              "id": "at-bi-s12-s-item",
+              "titel": "Chancen und Risiken der Biotechnologie bioethisch abwägen",
+              "deskriptorIds": [
+                "at-bi-s12-s"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

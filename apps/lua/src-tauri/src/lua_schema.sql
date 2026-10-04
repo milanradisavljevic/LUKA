@@ -57,6 +57,7 @@ CREATE TABLE IF NOT EXISTS aufgabe_pool (
     aufgabentyp TEXT NOT NULL,
     tags TEXT,
     block_json TEXT NOT NULL,
+    quelltexte_json TEXT NOT NULL DEFAULT '[]',
     quelle_hinweis TEXT,
     created_at TEXT NOT NULL,
     is_favorite INTEGER NOT NULL DEFAULT 0,

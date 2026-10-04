@@ -1,4 +1,5 @@
 import type { Block } from '@lehrunterlagen/schema';
+import type { IBAssessmentCriterion } from '@lehrunterlagen/schema';
 
 interface Props {
   block: Block;
@@ -6,7 +7,7 @@ interface Props {
   onUpdate?: (id: string, field: string, value: unknown) => void;
 }
 
-export function BlockPreviewSchreibaufgabe({ block, showSolution }: Props) {
+export function BlockPreviewSchreibaufgabe({ block, showSolution, ibCriteria }: Props & { ibCriteria?: IBAssessmentCriterion[] }) {
   if (block.typ !== 'offeneSchreibaufgabe') return null;
   const config = block.config;
   const loesung = block.loesung;
@@ -20,6 +21,12 @@ export function BlockPreviewSchreibaufgabe({ block, showSolution }: Props) {
         <strong>Arbeitsanweisung:</strong> {block.arbeitsanweisung}
       </p>
 
+      {config.ibChoiceGroup && (
+        <p style={{ marginBottom: '0.75rem', fontWeight: 700 }}>
+          Wahloption {config.ibChoiceGroup.option} von {config.ibChoiceGroup.totalOptions} — genau eine Option bearbeiten; maximal {config.ibChoiceGroup.totalMaxMarks} Rohpunkte insgesamt.
+        </p>
+      )}
+
       <div style={{ marginBottom: '0.75rem', fontSize: '10.5pt' }}>
         <p style={{ marginBottom: '0.25rem' }}>
           <strong>Situation:</strong> {config.situation}
@@ -32,7 +39,14 @@ export function BlockPreviewSchreibaufgabe({ block, showSolution }: Props) {
         </p>
       </div>
 
-      {aspekte.length > 0 && (
+      {config.ibPaper2Questions ? (
+        <div style={{ marginBottom: '0.75rem', fontSize: '10.5pt' }}>
+          <strong>Essayfragen — genau eine auswählen:</strong>
+          <ol style={{ margin: '0.25rem 0 0 1.25rem' }}>
+            {config.ibPaper2Questions.map((question, i) => <li key={i}>{question}</li>)}
+          </ol>
+        </div>
+      ) : aspekte.length > 0 && (
         <div style={{ marginBottom: '0.75rem', fontSize: '10.5pt' }}>
           <strong>Aspekte:</strong>
           <ul style={{ margin: '0.25rem 0 0 1.25rem' }}>
@@ -52,7 +66,21 @@ export function BlockPreviewSchreibaufgabe({ block, showSolution }: Props) {
           }}>
             {loesung.musterloesung}
           </div>
-          {'erwartungshorizont' in loesung && loesung.erwartungshorizont && (
+          {ibCriteria?.length ? (
+            <div style={{ marginTop: '0.75rem', fontSize: '10pt' }}>
+              <strong>IB-Rohpunktkriterien:</strong>
+              <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '0.25rem' }}>
+                <tbody>
+                  {ibCriteria.map((criterion) => (
+                    <tr key={criterion.id}>
+                      <td style={{ padding: '0.25rem 0.5rem', border: '1px solid var(--color-border)' }}>{criterion.id} · {criterion.label}</td>
+                      <td style={{ padding: '0.25rem 0.5rem', border: '1px solid var(--color-border)', textAlign: 'right' }}>max. {criterion.maxMarks}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : 'erwartungshorizont' in loesung && loesung.erwartungshorizont && (
             <div style={{ marginTop: '0.75rem', fontSize: '10pt' }}>
               <strong>Erwartungshorizont:</strong>
               <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '0.25rem' }}>

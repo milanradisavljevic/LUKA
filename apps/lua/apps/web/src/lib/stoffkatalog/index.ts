@@ -13,6 +13,8 @@ import { ethikDeskriptoren, ethikStoffItems } from './ethik';
 import { mediendemokratieDeskriptoren, mediendemokratieStoffItems } from './mediendemokratie';
 import { psychologieDeskriptoren, psychologieStoffItems } from './psychologie';
 import { philosophieDeskriptoren, philosophieStoffItems } from './philosophie';
+import { mathematikDeskriptoren, mathematikStoffItems } from './mathematik';
+import { biologieDeskriptoren, biologieStoffItems } from './biologie';
 import { deutschDeDeskriptoren, deutschDeStoffItems } from './de/deutsch';
 import { englischDeDeskriptoren, englischDeStoffItems } from './de/englisch';
 import { geschichteDeDeskriptoren, geschichteDeStoffItems } from './de/geschichte';
@@ -49,6 +51,8 @@ const DESKRIPTOREN: Deskriptor[] = [
   ...mediendemokratieDeskriptoren,
   ...psychologieDeskriptoren,
   ...philosophieDeskriptoren,
+  ...mathematikDeskriptoren,
+  ...biologieDeskriptoren,
   ...deutschDeDeskriptoren,
   ...englischDeDeskriptoren,
   ...geschichteDeDeskriptoren,
@@ -80,6 +84,8 @@ const STOFF_ITEMS: StoffItem[] = [
   ...mediendemokratieStoffItems,
   ...psychologieStoffItems,
   ...philosophieStoffItems,
+  ...mathematikStoffItems,
+  ...biologieStoffItems,
   ...deutschDeStoffItems,
   ...englischDeStoffItems,
   ...geschichteDeStoffItems,

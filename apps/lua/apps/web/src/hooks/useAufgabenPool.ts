@@ -39,6 +39,7 @@ export function useAufgabenPool() {
         aufgabentyp: input.aufgabentyp,
         tags: input.tags,
         blockJson: JSON.stringify(input.block),
+        quelltexte: input.quelltexte ?? [],
         quelleHinweis: input.quelleHinweis,
         createdAt: new Date().toISOString(),
       };
