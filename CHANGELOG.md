@@ -15,6 +15,7 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 - Datensicherungen werden vor dem Einspielen geprüft. Scheitert die Wiederherstellung, stellt LUKA die vorherige Datenbank wieder her.
 - Nach erfolgreicher Wiederherstellung bleibt die vorherige Datenbank als unverschlüsselte Rückfallkopie im selben Ordner erhalten.
 - Windows-Installationen prüfen jetzt auch, ob das Korrektur-Modul am richtigen Ort installiert ist und startet.
+- Vor einem Release wird geprüft, ob sich das Korrektur-Modul auch aus dem installierten Windows-Build starten lässt.
 - Ein eigener Pilot-Build-Befehl bindet das zuvor gebaute Korrektur-Modul in den Windows-Installer ein.
 - Der lokale Pilot-Build kommt ohne Release-Signaturschlüssel aus.
 - Deutsch- und Englisch-Benchmarks zählen für die technische Flash-Schwelle nur vollständige synthetische Läufe mit dokumentierter Promptversion.

@@ -12,6 +12,7 @@ jobs:
     outputs:
       natascha: ${{ steps.filter.outputs.natascha }}
       fachpakete: ${{ steps.filter.outputs.fachpakete }}
+      installer: ${{ steps.filter.outputs.installer }}
     steps:
       - uses: actions/checkout@v4
       - id: filter
@@ -24,6 +25,15 @@ jobs:
               - 'samples/fachpakete/**'
               - 'apps/lua/packages/schema/src/**'
               - 'scripts/validate-fachpakete.mjs'
+            installer:
+              - 'apps/lua/src-tauri/**'
+              - 'apps/lua/package.json'
+              - 'apps/lua/pnpm-lock.yaml'
+              - 'apps/lua/pnpm-workspace.yaml'
+              - 'apps/natascha/**'
+              - 'scripts/verify-sidecar-installer.ps1'
+              - '.github/workflows/ci.yml'
+              - '.github/workflows/release.yml'
 
   web:
     name: LUA — typecheck & test
@@ -49,6 +59,58 @@ jobs:
       - run: pnpm -r test
       - name: pnpm audit (report only)
         run: pnpm audit --prod || true
+
+  windows-installer:
+    needs: changes
+    if: needs.changes.outputs.installer == 'true'
+    name: Windows — installierter Korrektur-Sidecar
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: apps/lua/pnpm-lock.yaml
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Lua-Workspace installieren und Pakete bauen
+        working-directory: apps/lua
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --filter "./packages/*" build
+
+      - name: NATASCHA-Paket vor Sidecar isoliert bauen
+        working-directory: apps/natascha
+        shell: pwsh
+        run: python -m pip wheel . --no-deps --wheel-dir "$env:RUNNER_TEMP\natascha-wheel"
+
+      - name: NATASCHA-Sidecar für Windows bauen
+        working-directory: apps/natascha
+        shell: pwsh
+        run: .\build_sidecar.ps1
+
+      - name: NSIS-Installer bauen und in isoliertem Ordner prüfen
+        working-directory: apps/lua
+        shell: pwsh
+        run: |
+          pnpm tauri build --bundles nsis --config src-tauri/tauri.natascha-smoke.conf.json
+          $installer = Get-ChildItem -LiteralPath 'src-tauri/target/release/bundle/nsis' -Filter '*.exe' |
+            Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $installer) { throw 'Kein NSIS-Installer für den Sidecar-Smoke gefunden.' }
+          $installDir = Join-Path $env:RUNNER_TEMP "luka-sidecar-smoke-$env:GITHUB_RUN_ID"
+          pwsh -File '../../scripts/verify-sidecar-installer.ps1' -InstallerPath $installer.FullName -InstallDirectory $installDir
 
   rust:
     name: LUA Tauri — cargo check & test
