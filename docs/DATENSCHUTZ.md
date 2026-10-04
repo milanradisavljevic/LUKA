@@ -18,6 +18,10 @@ Gerät; eine Sicherung in einen synchronisierten Ordner ist die Ausnahme, siehe 
 - **Datensicherung:** Der Export erstellt eine unverschlüsselte Kopie der gesamten
   SQLite-Datenbank. Wenn du einen synchronisierten Ordner auswählst, kann dessen
   Cloud-Dienst die Sicherung übertragen; LUKA selbst synchronisiert sie nicht.
+  Nach einer erfolgreichen Wiederherstellung bleibt zusätzlich die vorherige
+  Datenbank als unverschlüsselte Rückfallkopie im selben Ordner wie die aktive DB
+  erhalten. Sie kann Schülerdaten enthalten. Lösche sie erst, wenn du geprüft hast,
+  dass die Wiederherstellung funktioniert.
 - **Exporte** (generierte Arbeitsblätter, Feedback-DOCX) im Ausgabeordner.
 - **API-Schlüssel**: im **Schlüsselspeicher des Betriebssystems** (Keyring/Credential Store).
   Auf Systemen ohne Keyring (z. B. einige Linux-Server oder WSL-Umgebungen) werden die

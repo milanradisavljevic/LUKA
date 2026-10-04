@@ -738,6 +738,11 @@ export function SettingsView() {
               zuvor automatisch gesichert. Nach der Wiederherstellung sind die Daten aus der
               Sicherung verfügbar — auch nach einem Neustart.
             </p>
+            <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: '0 0 1rem', lineHeight: 1.5 }}>
+              Die bisherige Datenbank bleibt nach erfolgreicher Wiederherstellung als
+              unverschlüsselte Rückfallkopie im selben Ordner erhalten. Lösche sie erst,
+              wenn du geprüft hast, dass die Wiederherstellung funktioniert.
+            </p>
             <p style={{ fontSize: '0.75rem', margin: '0 0 1rem', padding: '0.5rem', background: 'var(--color-bg-base)', borderRadius: 'var(--radius)', wordBreak: 'break-all' }}>
               {restoreConfirm}
             </p>

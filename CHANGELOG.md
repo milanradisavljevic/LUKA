@@ -13,6 +13,7 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 - Aufgaben und Bewertungsraster werden im Korrekturauftrag festgelegt; der Schülerbereich bleibt auf Klassen und Schüler konzentriert.
 - Kriteriennamen in der Einzelkorrektur sind verständlich formatiert. Fehlerstellen erscheinen als dezente Flächenmarkierungen statt farbiger Unterstreichungen.
 - Datensicherungen werden vor dem Einspielen geprüft. Scheitert die Wiederherstellung, stellt LUKA die vorherige Datenbank wieder her.
+- Nach erfolgreicher Wiederherstellung bleibt die vorherige Datenbank als unverschlüsselte Rückfallkopie im selben Ordner erhalten.
 - Windows-Installationen prüfen jetzt auch, ob das Korrektur-Modul am richtigen Ort installiert ist und startet.
 - Ein eigener Pilot-Build-Befehl bindet das zuvor gebaute Korrektur-Modul in den Windows-Installer ein.
 - Der lokale Pilot-Build kommt ohne Release-Signaturschlüssel aus.
