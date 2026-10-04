@@ -12,6 +12,7 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 - Aufgaben und Bewertungsraster werden im Korrekturauftrag festgelegt; der Schülerbereich bleibt auf Klassen und Schüler konzentriert.
 - Kriteriennamen in der Einzelkorrektur sind verständlich formatiert. Fehlerstellen erscheinen als dezente Flächenmarkierungen statt farbiger Unterstreichungen.
 - Datensicherungen werden vor dem Einspielen geprüft. Scheitert die Wiederherstellung, stellt LUKA die vorherige Datenbank wieder her.
+- Windows-Installationen prüfen jetzt auch, ob das Korrektur-Modul am richtigen Ort installiert ist und startet.
 
 ## In Arbeit — 2026-10-03
 
