@@ -112,6 +112,11 @@ jobs:
           $installDir = Join-Path $env:RUNNER_TEMP "luka-sidecar-smoke-$env:GITHUB_RUN_ID"
           pwsh -File '../../scripts/verify-sidecar-installer.ps1' -InstallerPath $installer.FullName -InstallDirectory $installDir
 
+      - name: LUKAs Sidecar-Pfadauflösung unter Windows testen
+        working-directory: apps/lua/src-tauri
+        shell: pwsh
+        run: cargo test --locked --release bundled_cli_ -- --test-threads=1
+
   rust:
     name: LUA Tauri — cargo check & test
     runs-on: ubuntu-latest
