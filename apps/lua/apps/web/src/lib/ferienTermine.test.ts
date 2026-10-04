@@ -246,10 +246,61 @@ describe('Ferientermine – Deutschland 2026/27', () => {
   });
 });
 
+describe('Ferientermine – Deutschland 2027/28 laut KMK', () => {
+  it('liefert amtliche Termine für alle 16 Bundesländer im Schuljahreszeitraum', () => {
+    const sommer: Record<string, [string, string]> = {
+      'Baden-Württemberg': ['2028-07-27', '2028-09-09'],
+      Bayern: ['2028-07-31', '2028-09-11'],
+      Berlin: ['2028-07-01', '2028-08-12'],
+      Brandenburg: ['2028-06-29', '2028-08-12'],
+      Bremen: ['2028-07-20', '2028-08-30'],
+      Hamburg: ['2028-07-03', '2028-08-11'],
+      Hessen: ['2028-07-03', '2028-08-11'],
+      'Mecklenburg-Vorpommern': ['2028-06-26', '2028-08-05'],
+      Niedersachsen: ['2028-07-20', '2028-08-30'],
+      'Nordrhein-Westfalen': ['2028-07-10', '2028-08-22'],
+      'Rheinland-Pfalz': ['2028-07-03', '2028-08-11'],
+      Saarland: ['2028-07-03', '2028-08-11'],
+      Sachsen: ['2028-07-22', '2028-09-01'],
+      'Sachsen-Anhalt': ['2028-07-22', '2028-09-01'],
+      'Schleswig-Holstein': ['2028-06-24', '2028-08-04'],
+      Thüringen: ['2028-07-22', '2028-09-01'],
+    };
+    expect(Object.keys(sommer).sort()).toEqual([...DE_BUNDESLAENDER].sort());
+    for (const [bl, erwarteteSommerferien] of Object.entries(sommer)) {
+      const termine = ferientermine(2027, 'DE', bl);
+      expect(termine, bl).not.toBeNull();
+      expect(termine!.some(f => f.von >= '2027-09-01' && f.bis <= '2028-09-30'), bl).toBe(true);
+      const sommerBlock = termine!.find(f => f.bezeichnung === 'Sommerferien');
+      expect([sommerBlock?.von, sommerBlock?.bis], bl).toEqual(erwarteteSommerferien);
+      for (const f of termine!) {
+        expect(f.von <= f.bis, bl + ' ' + f.bezeichnung).toBe(true);
+      }
+    }
+  });
+
+  it('erhält getrennte Ferienblöcke und den Schalttag im Saarland', () => {
+    expect(ferienTerminQuelle(2027, 'DE')).toMatchObject({
+      land: 'DE',
+      quelle: 'KMK-Ferienkalender, Schuljahr 2027/2028 (Stand 09.10.2025)',
+      abgerufen: '2026-10-04',
+    });
+    expect(ferientermine(2027, 'DE', 'Baden-Württemberg')!
+      .filter(f => f.bezeichnung === 'Oster-/Frühjahrsferien'))
+      .toHaveLength(2);
+    expect(ferientermine(2027, 'DE', 'Saarland')!
+      .find(f => f.bezeichnung === 'Winterferien'))
+      .toMatchObject({ von: '2028-02-21', bis: '2028-02-29' });
+    expect(ferienBestandVorschlag('Bayern', 2027, 'DE'))
+      .toEqual(ferientermine(2027, 'DE', 'Bayern'));
+  });
+});
+
 describe('Lückenhafte Daten werden gemeldet, nicht geraten', () => {
   it('liefert null für ein Schuljahr ohne Termine', () => {
     expect(ferientermine(2029, 'AT', 'Wien')).toBeNull();
     expect(ferientermine(2026, 'DE', 'Bayern') && ferientermine(2029, 'DE', 'Bayern')).toBeNull();
+    expect(ferientermine(2027, 'AT', 'Salzburg')).toBeNull();
   });
 
   it('liefert null ohne Region', () => {
@@ -296,8 +347,8 @@ describe('ferienBestandVorschlag liest die Tabelle statt zu rechnen', () => {
 
 describe('Quelle ist ausgewiesen', () => {
   it('nennt für jedes belegte Jahr eine Quelle mit Abrufdatum', () => {
-    // Österreich ist für zwei Jahre erhoben, Deutschland bisher für eines.
-    const belegt: Array<[number, string]> = [[2025, 'AT'], [2026, 'AT'], [2026, 'DE']];
+    // Österreich ist für zwei Jahre erhoben, Deutschland für 2026/27 und 2027/28.
+    const belegt: Array<[number, string]> = [[2025, 'AT'], [2026, 'AT'], [2026, 'DE'], [2027, 'DE']];
     for (const [jahr, land] of belegt) {
       const q = ferienTerminQuelle(jahr, land);
       expect(q, `${jahr}/${land}`).not.toBeNull();
@@ -309,5 +360,6 @@ describe('Quelle ist ausgewiesen', () => {
   it('gibt für ein unbelegtes Jahr nichts zurück', () => {
     expect(ferienTerminQuelle(2031, 'AT')).toBeNull();
     expect(ferienTerminQuelle(2025, 'DE')).toBeNull();
+    expect(ferienTerminQuelle(2027, 'AT')).toBeNull();
   });
 });

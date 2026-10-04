@@ -16,6 +16,7 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 - Ein eigener Pilot-Build-Befehl bindet das zuvor gebaute Korrektur-Modul in den Windows-Installer ein.
 - Der lokale Pilot-Build kommt ohne Release-Signaturschlüssel aus.
 - Deutsch- und Englisch-Benchmarks zählen für die technische Flash-Schwelle nur vollständige synthetische Läufe mit dokumentierter Promptversion.
+- Der amtliche Ferienkalender für Deutschland 2027/28 ist für alle Bundesländer hinterlegt; bewegliche Ferientage ohne festes Datum bleiben offen.
 
 ## In Arbeit — 2026-10-03
 

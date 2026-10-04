@@ -9,9 +9,10 @@ import type { IsoDatum } from './lokalDatum';
  *  Sommer, Weihnachten – ist ein Beschluss, und der ändert sich. Wer hier
  *  rechnet, plant irgendwann in die falschen Ferien.
  *
- *  **Stand.** Befüllt für die Schuljahre 2025/26 und 2026/27. Fehlt ein Jahr,
- *  liefert `ferientermine()` `null` und die Oberfläche **meldet** das. Sie rät
- *  nicht – das war genau der Fehler, den diese Datei ersetzt.
+ *  **Stand.** Österreich: 2025/26 und 2026/27. Deutschland: 2026/27 und
+ *  2027/28. Fehlt ein Jahr, liefert `ferientermine()` `null` und die
+ *  Oberfläche **meldet** das. Sie rät nicht – das war genau der Fehler, den
+ *  diese Datei ersetzt.
  *
  *  **Jahrgang.** Der Schlüssel nennt den Beginn des Schuljahres: `2026` heißt
  *  2026/27. Der Zeitraum reicht also von Herbst 2026 bis Sommer 2027.
@@ -52,6 +53,11 @@ export const QUELLEN: Record<string, FerienTerminQuelle> = {
   '2025/AT': { land: 'AT', quelle: `${AT_QUELLE} 2025/2026`, abgerufen: ABGERUFEN },
   '2026/AT': { land: 'AT', quelle: `${AT_QUELLE} 2026/2027`, abgerufen: ABGERUFEN },
   '2026/DE': { land: 'DE', quelle: DE_QUELLE, abgerufen: ABGERUFEN },
+  '2027/DE': {
+    land: 'DE',
+    quelle: 'KMK-Ferienkalender, Schuljahr 2027/2028 (Stand 09.10.2025)',
+    abgerufen: '2026-10-04',
+  },
 };
 
 // ── Österreich ───────────────────────────────────────────────────────────────
@@ -314,6 +320,137 @@ const DE_2026: Record<string, Ferienblock[]> = {
   ],
 };
 
+// Schuljahr 2027/28 nach dem KMK-Ferienkalender (Stand 09.10.2025).
+// Bewegliche Ferientage ohne konkretes Datum und regionale Sonderfälle sind
+// nicht ergänzt. Schleswig-Holstein weist ausdrücklich auf abweichende
+// Sommer- und Herbstferien für Inseln und Halligen hin.
+const DE_2027: Record<string, Ferienblock[]> = {
+  'Baden-Württemberg': [
+    { bezeichnung: 'Herbstferien', von: '2027-11-02', bis: '2027-11-06' },
+    { bezeichnung: 'Weihnachtsferien', von: '2027-12-23', bis: '2028-01-08' },
+    { bezeichnung: 'Oster-/Frühjahrsferien', von: '2028-04-13', bis: '2028-04-13' },
+    { bezeichnung: 'Oster-/Frühjahrsferien', von: '2028-04-18', bis: '2028-04-22' },
+    { bezeichnung: 'Pfingstferien', von: '2028-06-06', bis: '2028-06-17' },
+    { bezeichnung: 'Sommerferien', von: '2028-07-27', bis: '2028-09-09' },
+  ],
+  'Bayern': [
+    { bezeichnung: 'Herbstferien', von: '2027-11-02', bis: '2027-11-05' },
+    { bezeichnung: 'Weihnachtsferien', von: '2027-12-24', bis: '2028-01-07' },
+    { bezeichnung: 'Frühjahrsferien', von: '2028-02-28', bis: '2028-03-03' },
+    { bezeichnung: 'Osterferien', von: '2028-04-10', bis: '2028-04-21' },
+    { bezeichnung: 'Pfingstferien', von: '2028-06-06', bis: '2028-06-16' },
+    { bezeichnung: 'Sommerferien', von: '2028-07-31', bis: '2028-09-11' },
+  ],
+  'Berlin': [
+    { bezeichnung: 'Herbstferien', von: '2027-10-11', bis: '2027-10-23' },
+    { bezeichnung: 'Weihnachtsferien', von: '2027-12-22', bis: '2027-12-31' },
+    { bezeichnung: 'Winterferien', von: '2028-01-31', bis: '2028-02-05' },
+    { bezeichnung: 'Osterferien', von: '2028-04-10', bis: '2028-04-22' },
+    { bezeichnung: 'Pfingstferien', von: '2028-05-26', bis: '2028-05-26' },
+    { bezeichnung: 'Pfingstferien', von: '2028-06-01', bis: '2028-06-02' },
+    { bezeichnung: 'Sommerferien', von: '2028-07-01', bis: '2028-08-12' },
+  ],
+  'Brandenburg': [
+    { bezeichnung: 'Herbstferien', von: '2027-10-11', bis: '2027-10-23' },
+    { bezeichnung: 'Weihnachtsferien', von: '2027-12-23', bis: '2027-12-31' },
+    { bezeichnung: 'Winterferien', von: '2028-01-31', bis: '2028-02-05' },
+    { bezeichnung: 'Osterferien', von: '2028-04-10', bis: '2028-04-22' },
+    { bezeichnung: 'Sommerferien', von: '2028-06-29', bis: '2028-08-12' },
+  ],
+  'Bremen': [
+    { bezeichnung: 'Herbstferien', von: '2027-10-18', bis: '2027-10-30' },
+    { bezeichnung: 'Weihnachtsferien', von: '2027-12-23', bis: '2028-01-08' },
+    { bezeichnung: 'Halbjahresferien', von: '2028-01-31', bis: '2028-02-01' },
+    { bezeichnung: 'Osterferien', von: '2028-04-10', bis: '2028-04-22' },
+    { bezeichnung: 'Pfingstferien', von: '2028-05-26', bis: '2028-05-26' },
+    { bezeichnung: 'Pfingstferien', von: '2028-06-06', bis: '2028-06-06' },
+    { bezeichnung: 'Sommerferien', von: '2028-07-20', bis: '2028-08-30' },
+  ],
+  'Hamburg': [
+    { bezeichnung: 'Herbstferien', von: '2027-10-11', bis: '2027-10-22' },
+    { bezeichnung: 'Weihnachtsferien', von: '2027-12-20', bis: '2027-12-31' },
+    { bezeichnung: 'Winterferien', von: '2028-01-28', bis: '2028-01-28' },
+    { bezeichnung: 'Frühjahrsferien', von: '2028-03-06', bis: '2028-03-17' },
+    { bezeichnung: 'Pfingstferien', von: '2028-05-22', bis: '2028-05-26' },
+    { bezeichnung: 'Sommerferien', von: '2028-07-03', bis: '2028-08-11' },
+  ],
+  'Hessen': [
+    { bezeichnung: 'Herbstferien', von: '2027-10-04', bis: '2027-10-16' },
+    { bezeichnung: 'Weihnachtsferien', von: '2027-12-23', bis: '2028-01-11' },
+    { bezeichnung: 'Osterferien', von: '2028-04-03', bis: '2028-04-14' },
+    { bezeichnung: 'Sommerferien', von: '2028-07-03', bis: '2028-08-11' },
+  ],
+  'Mecklenburg-Vorpommern': [
+    { bezeichnung: 'Herbstferien', von: '2027-10-14', bis: '2027-10-23' },
+    { bezeichnung: 'Weihnachtsferien', von: '2027-12-22', bis: '2028-01-04' },
+    { bezeichnung: 'Winterferien', von: '2028-02-05', bis: '2028-02-17' },
+    { bezeichnung: 'Unterrichtsfrei', von: '2028-02-18', bis: '2028-02-18' },
+    { bezeichnung: 'Osterferien', von: '2028-04-12', bis: '2028-04-21' },
+    { bezeichnung: 'Pfingstferien', von: '2028-05-26', bis: '2028-05-26' },
+    { bezeichnung: 'Pfingstferien', von: '2028-06-02', bis: '2028-06-06' },
+    { bezeichnung: 'Sommerferien', von: '2028-06-26', bis: '2028-08-05' },
+  ],
+  'Niedersachsen': [
+    { bezeichnung: 'Herbstferien', von: '2027-10-16', bis: '2027-10-30' },
+    { bezeichnung: 'Weihnachtsferien', von: '2027-12-23', bis: '2028-01-08' },
+    { bezeichnung: 'Halbjahresferien', von: '2028-01-31', bis: '2028-02-01' },
+    { bezeichnung: 'Osterferien', von: '2028-04-10', bis: '2028-04-22' },
+    { bezeichnung: 'Pfingstferien', von: '2028-05-26', bis: '2028-05-26' },
+    { bezeichnung: 'Pfingstferien', von: '2028-06-06', bis: '2028-06-06' },
+    { bezeichnung: 'Sommerferien', von: '2028-07-20', bis: '2028-08-30' },
+  ],
+  'Nordrhein-Westfalen': [
+    { bezeichnung: 'Herbstferien', von: '2027-10-23', bis: '2027-11-06' },
+    { bezeichnung: 'Weihnachtsferien', von: '2027-12-24', bis: '2028-01-08' },
+    { bezeichnung: 'Osterferien', von: '2028-04-10', bis: '2028-04-22' },
+    { bezeichnung: 'Sommerferien', von: '2028-07-10', bis: '2028-08-22' },
+  ],
+  'Rheinland-Pfalz': [
+    { bezeichnung: 'Herbstferien', von: '2027-10-04', bis: '2027-10-15' },
+    { bezeichnung: 'Weihnachtsferien', von: '2027-12-23', bis: '2028-01-07' },
+    { bezeichnung: 'Osterferien', von: '2028-04-10', bis: '2028-04-21' },
+    { bezeichnung: 'Sommerferien', von: '2028-07-03', bis: '2028-08-11' },
+  ],
+  'Saarland': [
+    { bezeichnung: 'Herbstferien', von: '2027-10-04', bis: '2027-10-15' },
+    { bezeichnung: 'Weihnachtsferien', von: '2027-12-20', bis: '2027-12-31' },
+    { bezeichnung: 'Winterferien', von: '2028-02-21', bis: '2028-02-29' },
+    { bezeichnung: 'Osterferien', von: '2028-04-12', bis: '2028-04-21' },
+    { bezeichnung: 'Sommerferien', von: '2028-07-03', bis: '2028-08-11' },
+  ],
+  'Sachsen': [
+    { bezeichnung: 'Herbstferien', von: '2027-10-11', bis: '2027-10-23' },
+    { bezeichnung: 'Weihnachtsferien', von: '2027-12-23', bis: '2028-01-01' },
+    { bezeichnung: 'Winterferien', von: '2028-02-14', bis: '2028-02-26' },
+    { bezeichnung: 'Osterferien', von: '2028-04-14', bis: '2028-04-22' },
+    { bezeichnung: 'Pfingstferien', von: '2028-05-26', bis: '2028-05-26' },
+    { bezeichnung: 'Sommerferien', von: '2028-07-22', bis: '2028-09-01' },
+  ],
+  'Sachsen-Anhalt': [
+    { bezeichnung: 'Herbstferien', von: '2027-10-18', bis: '2027-10-23' },
+    { bezeichnung: 'Weihnachtsferien', von: '2027-12-20', bis: '2027-12-31' },
+    { bezeichnung: 'Winterferien', von: '2028-02-07', bis: '2028-02-12' },
+    { bezeichnung: 'Osterferien', von: '2028-04-10', bis: '2028-04-22' },
+    { bezeichnung: 'Pfingstferien', von: '2028-06-03', bis: '2028-06-10' },
+    { bezeichnung: 'Sommerferien', von: '2028-07-22', bis: '2028-09-01' },
+  ],
+  'Schleswig-Holstein': [
+    { bezeichnung: 'Herbstferien', von: '2027-10-11', bis: '2027-10-23' },
+    { bezeichnung: 'Weihnachtsferien', von: '2027-12-23', bis: '2028-01-08' },
+    { bezeichnung: 'Osterferien', von: '2028-04-03', bis: '2028-04-15' },
+    { bezeichnung: 'Pfingstferien', von: '2028-05-26', bis: '2028-05-26' },
+    { bezeichnung: 'Sommerferien', von: '2028-06-24', bis: '2028-08-04' },
+  ],
+  'Thüringen': [
+    { bezeichnung: 'Herbstferien', von: '2027-10-09', bis: '2027-10-23' },
+    { bezeichnung: 'Weihnachtsferien', von: '2027-12-23', bis: '2027-12-31' },
+    { bezeichnung: 'Winterferien', von: '2028-02-07', bis: '2028-02-12' },
+    { bezeichnung: 'Osterferien', von: '2028-04-03', bis: '2028-04-15' },
+    { bezeichnung: 'Pfingstferien', von: '2028-05-26', bis: '2028-05-26' },
+    { bezeichnung: 'Sommerferien', von: '2028-07-22', bis: '2028-09-01' },
+  ],
+};
+
 /** Die Bundesländer, für die Termine vorliegen. Für Einstellungen und Tests. */
 export const DE_BUNDESLAENDER = Object.keys(DE_2026);
 
@@ -338,6 +475,7 @@ export function ferientermine(
   if (l === 'DE') {
     const reg = (region ?? '').toString().trim();
     if (!reg) return null;
+    if (schuljahr === 2027) return DE_2027[reg] ?? null;
     return schuljahr === 2026 ? (DE_2026[reg] ?? null) : null;
   }
   // Die Schweiz bleibt außen vor: die Schulferien sind kantonal, und im Profil
