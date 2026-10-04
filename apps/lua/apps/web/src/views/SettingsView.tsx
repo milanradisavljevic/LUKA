@@ -673,6 +673,18 @@ export function SettingsView() {
             <RefreshCw size={14} /> Datensicherung wiederherstellen
           </button>
         </div>
+        <p
+          role="note"
+          style={{
+            fontSize: '0.75rem', color: 'var(--color-text-secondary)', margin: '0.6rem 0 0',
+            padding: '0.55rem 0.65rem', background: 'var(--color-bg-base)', borderRadius: 'var(--radius)',
+          }}
+        >
+          <strong>Datenschutz:</strong> Die Sicherung enthält die vollständige lokale Datenbank.
+          Darin können Klassen-, Schüler-, Abgabe- und Bewertungsdaten liegen. Die Datei ist
+          unverschlüsselt. Wähle einen geschützten Speicherort; ein synchronisierter Ordner kann
+          sie an einen Cloud-Dienst übertragen.
+        </p>
         <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', margin: '0.5rem 0 0' }}>
           {restoreMsg ? (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>

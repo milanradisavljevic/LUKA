@@ -9,6 +9,7 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ### Änderungen
 
+- Vor dem Datenbank-Backup weist LUKA darauf hin, dass die Datei unverschlüsselt ist und einen geschützten Speicherort braucht.
 - Aufgaben und Bewertungsraster werden im Korrekturauftrag festgelegt; der Schülerbereich bleibt auf Klassen und Schüler konzentriert.
 - Kriteriennamen in der Einzelkorrektur sind verständlich formatiert. Fehlerstellen erscheinen als dezente Flächenmarkierungen statt farbiger Unterstreichungen.
 - Datensicherungen werden vor dem Einspielen geprüft. Scheitert die Wiederherstellung, stellt LUKA die vorherige Datenbank wieder her.

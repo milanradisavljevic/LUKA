@@ -8,12 +8,16 @@ Datenflusses, damit du informiert entscheiden kannst.
 
 **Bei Korrektur, Erwartungshorizont-Generierung und Schüler-Profil wird der
 jeweilige Text an den von dir gewählten KI-Anbieter übertragen** (z. B. Anthropic,
-OpenAI, Mistral, DeepSeek). Alles andere bleibt lokal auf deinem Rechner.
+OpenAI, Mistral, DeepSeek). Die übrigen Daten bleiben grundsätzlich auf deinem
+Gerät; eine Sicherung in einen synchronisierten Ordner ist die Ausnahme, siehe unten.
 
 ## Was lokal bleibt
 
 - **Datenbank** (`~/lehr-suite-bridge/lehr-suite.db`): Klassen, Abgaben, Noten,
   Fehler, Längsschnitte. Liegt nur auf deinem Gerät.
+- **Datensicherung:** Der Export erstellt eine unverschlüsselte Kopie der gesamten
+  SQLite-Datenbank. Wenn du einen synchronisierten Ordner auswählst, kann dessen
+  Cloud-Dienst die Sicherung übertragen; LUKA selbst synchronisiert sie nicht.
 - **Exporte** (generierte Arbeitsblätter, Feedback-DOCX) im Ausgabeordner.
 - **API-Schlüssel**: im **Schlüsselspeicher des Betriebssystems** (Keyring/Credential Store).
   Auf Systemen ohne Keyring (z. B. einige Linux-Server oder WSL-Umgebungen) werden die
@@ -47,8 +51,9 @@ OpenAI, Mistral, DeepSeek). Alles andere bleibt lokal auf deinem Rechner.
 2. **Anbieter bewusst wählen:** Prüfe die Datenschutz-/Auftragsverarbeitungs­bedingungen
    des KI-Anbieters (Serverstandort, Speicherung, Training auf Eingaben).
 3. **Sparsam:** Nur die Texte hochladen, die wirklich korrigiert werden sollen.
-4. **Gerät absichern:** Da alle Daten lokal liegen, schützt ein gesperrtes/verschlüsseltes
-   Gerät die Daten am wirksamsten.
+4. **Gerät und Sicherungen absichern:** Ein gesperrtes/verschlüsseltes Gerät schützt die
+   lokalen Daten. Bewahre unverschlüsselte Sicherungen nur an einem geschützten Ort auf;
+   prüfe besonders, ob der gewählte Ordner mit einem Cloud-Dienst synchronisiert wird.
 
 ## DSGVO-Einordnung (vereinfacht)
 
