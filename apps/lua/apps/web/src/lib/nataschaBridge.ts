@@ -93,6 +93,18 @@ export const KATEGORIE_LABEL: Record<string, string> = {
   A: 'Ausdruck',
 };
 
+/**
+ * Thema und Notizen der Einzelförderung aus dem Schüler-Längsschnitt.
+ * Beide Felder gehen unverändert in den LLM-Prompt (prompt.ts, `notizen`) —
+ * deshalb bewusst ohne Schülername und Klassenbezeichnung.
+ */
+export function buildSchuelerUebungTexte(fokusThemen: string[]): { thema: string; notizen: string } {
+  return {
+    thema: 'Übung zu Schwächen – Einzelförderung',
+    notizen: `Automatisch aus dem Längsschnitt einer einzelnen Schülerin bzw. eines einzelnen Schülers erzeugt. Schwerpunkte: ${fokusThemen.join(', ')}.`,
+  };
+}
+
 /** Stellt fehlerkorrektur nach vorn, wenn echte Klassenfehler vorliegen —
  *  „Findet die Fehler, die EURE Klasse gemacht hat" schlägt erfundene Beispiele. */
 export function fehlerkorrekturZuerst(arten: BlockTyp[]): BlockTyp[] {

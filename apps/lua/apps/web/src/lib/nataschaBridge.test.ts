@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   buildPrefillFromHeatmap,
+  buildSchuelerUebungTexte,
   parseBridgeExport,
   mapBridgeToPrefill,
   type BridgeExport,
@@ -172,5 +173,17 @@ describe('buildPrefillFromHeatmap', () => {
     expect(p).not.toBeNull();
     expect(p?.thema).toBe('Übung zu Fehlerschwerpunkten – 7a');
     expect(p?.ausgangstext).toBeUndefined();
+  });
+});
+
+describe('buildSchuelerUebungTexte', () => {
+  it('enthält Schwerpunkte, aber keinen Namen und keine Klassenbezeichnung', () => {
+    const t = buildSchuelerUebungTexte(['Rechtschreibung', 'Zeichensetzung']);
+    expect(t.notizen).toContain('Rechtschreibung, Zeichensetzung');
+    const alles = `${t.thema} ${t.notizen}`;
+    // Die Funktion bekommt weder Name noch Klasse – diese Garantie darf nicht
+    // durch eine spätere Signaturänderung unbemerkt aufgeweicht werden.
+    expect(buildSchuelerUebungTexte.length).toBe(1);
+    expect(alles).not.toMatch(/\b\d+[a-z]\b/i);
   });
 });

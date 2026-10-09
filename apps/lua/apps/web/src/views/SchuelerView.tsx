@@ -6,7 +6,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, L
 import { useNatascha, type SchuelerInfo } from '../hooks/useNatascha';
 import type { KlasseInfo } from '../lib/storage';
 import type { SchuelerProfilRow } from '../hooks/useNatascha';
-import { KATEGORIE_TO_BLOCKTYPEN, fehlerkorrekturZuerst, type NataschaPrefill, type BridgeBeispiel } from '../lib/nataschaBridge';
+import { KATEGORIE_TO_BLOCKTYPEN, buildSchuelerUebungTexte, fehlerkorrekturZuerst, type NataschaPrefill, type BridgeBeispiel } from '../lib/nataschaBridge';
 import { stufeFromSchulstufe } from '@lehrunterlagen/schema';
 import type { BlockTyp, Fach, Land, Stufe } from '@lehrunterlagen/schema';
 import { loadTeacherProfile } from '../lib/profile';
@@ -175,7 +175,7 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
       }
     }
     const s = laengsschnitt.schueler;
-    const name = [s.vorname, s.nachname].filter(Boolean).join(' ') || 'Schüler';
+    const texte = buildSchuelerUebungTexte(fokusThemen);
     const gleichnamigeKlassen = bekannteKlassen.filter((k) => k.name.toLocaleLowerCase('de') === s.klasse.toLocaleLowerCase('de'));
     const klassenKontext = (selectedKlasseId
       ? bekannteKlassen.find((k) => k.id === selectedKlasseId)
@@ -209,7 +209,7 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
       if (text) ausgangstext = text;
     }
     const prefill: NataschaPrefill = {
-      thema: `Übung zu Schwächen – ${name}`,
+      thema: texte.thema,
       // Die Schüleransicht kennt den Kontext über die Klassenmetadaten. Bei
       // älteren Klassen ohne Metadaten übernimmt Step 0 seine Profilwerte.
       land: klassenKontext?.land ?? land,
@@ -219,7 +219,7 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
       textsorte: juengste?.textsorte ?? undefined,
       fokusThemen,
       gewuenschteAufgabenarten: fehlerkorrekturZuerst(arten),
-      notizen: `Automatisch aus dem Längsschnitt von ${name} (${s.klasse}) erzeugt. Schwerpunkte: ${fokusThemen.join(', ')}.`,
+      notizen: texte.notizen,
       fehler: fehler.length > 0 ? fehler.slice(0, 12) : undefined,
       ausgangstext,
       loopQuelle: { klasse: s.klasse, aufgabe: juengste?.aufgabe || undefined },

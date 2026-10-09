@@ -892,3 +892,33 @@ describe('Quelltext-Aufbereitung (meta.quelltextFormatieren)', () => {
     expect(content).toContain('Ein langer Quelltext ueber Medienkonsum bei Jugendlichen.');
   });
 });
+
+describe('buildMessages — lokale Herkunftsangaben bleiben aus dem Prompt (Datenschutz)', () => {
+  const alsText = (meta: Partial<Meta>) =>
+    buildMessages(input(meta)).map((m) => m.content).join('\n');
+
+  it('sendet weder loopQuelle noch die Klassenbezeichnung', () => {
+    const text = alsText({
+      klasse: '6i',
+      loopQuelle: { klasse: '6i', aufgabe: 'SA2 Erörterung' },
+      thema: 'Übung zu Fehlerschwerpunkten – 6i · SA2 Erörterung',
+      notizen: 'Automatisch aus der Korrektur-Heatmap der Klasse 6i erzeugt. Schwerpunkte: Rechtschreibung.',
+    });
+    expect(text).not.toContain('loopQuelle');
+    expect(text).not.toMatch(/\b6i\b/);
+    expect(text).toContain('Schwerpunkte: Rechtschreibung');
+    expect(text).toContain('Übung zu Fehlerschwerpunkten');
+  });
+
+  it('nennt im Zielgruppen-Hinweis nur Stufe/Schulstufe, nie die Klasse', () => {
+    const text = alsText({ klasse: '7A', schulstufe: 11 });
+    expect(text).not.toContain('7A');
+    expect(text).toContain('Schulstufe');
+  });
+
+  it('schwärzt Klassenbezeichnungen mit Sonderzeichen ohne Fehler', () => {
+    const text = alsText({ klasse: '5.b (Z)', notizen: 'Für 5.b (Z) heute.' });
+    expect(text).not.toContain('5.b (Z)');
+    expect(text).toContain('Für der Klasse heute');
+  });
+});

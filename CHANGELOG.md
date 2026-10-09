@@ -5,6 +5,13 @@ Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 (auch andere Coding-Agents) — siehe `AGENTS.md`.
 
+## Version 1.5.7 — 2026-10-09
+
+### Das ist neu
+
+- Datenschutz bei Folgeübungen: Schülernamen, Klassenbezeichnungen und die Herkunftsangabe der Korrektur werden nicht mehr an den KI-Anbieter übermittelt. Übungstexte und Fehlerzitate aus der Korrektur gehen weiterhin an den Anbieter, weil die Übung darauf aufbaut; verwenden Sie dafür weiterhin keine echten Namen in Schülertexten.
+- Die Einzelförderung aus dem Schülerprofil trägt keinen Schülernamen mehr im Titel der Übung.
+
 ## Version 1.5.6 — 2026-10-04
 
 ### Das ist neu

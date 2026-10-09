@@ -9,19 +9,34 @@ import {
 } from '@lehrunterlagen/schema';
 import type { DocumentV1, Meta, QuellText } from '@lehrunterlagen/schema';
 
-/** Interne Schüler-IDs dienen nur der lokalen Herkunftszuordnung, nie dem Prompt. */
+/**
+ * Was vom Meta-Objekt an den Modellanbieter geht. Rein lokale Herkunftsangaben
+ * (Schüler-IDs, Klassenbezeichnung, Loop-Herkunft) gehören nicht in den Prompt;
+ * Klassenbezeichnungen werden zusätzlich aus Freitexten (Thema, Notizen) entfernt.
+ * Schulstufe, Fach und Niveau bleiben erhalten.
+ */
 function metaFuerModell(meta: Meta) {
-  const { niveaugruppe, ...ohneNiveaugruppe } = meta;
-  if (!niveaugruppe) return meta;
-  return {
-    ...ohneNiveaugruppe,
-    niveaugruppe: {
+  const { niveaugruppe, loopQuelle, klasse, ...rest } = meta;
+  const klassenLabels = [klasse, loopQuelle?.klasse].map((k) => k?.trim()).filter((k): k is string => !!k);
+  const schwaerzen = (text: string | undefined) =>
+    text === undefined || klassenLabels.length === 0
+      ? text
+      : klassenLabels.reduce(
+          (t, label) => t.replace(new RegExp(`(?<![\\p{L}\\p{N}])${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}\\p{N}])`, 'giu'), 'der Klasse'),
+          text,
+        );
+  const bereinigt: Record<string, unknown> = { ...rest };
+  if ('thema' in bereinigt) bereinigt.thema = schwaerzen(rest.thema);
+  if ('notizen' in bereinigt) bereinigt.notizen = schwaerzen(rest.notizen);
+  if (niveaugruppe) {
+    bereinigt.niveaugruppe = {
       id: niveaugruppe.id,
       label: niveaugruppe.label,
       schwierigkeit: niveaugruppe.schwierigkeit,
       notenbereich: niveaugruppe.notenbereich,
-    },
-  };
+    };
+  }
+  return bereinigt as typeof rest & Pick<Meta, 'niveaugruppe'>;
 }
 
 const SRDP_DEUTSCH_15_SUBKRITERIEN = {
@@ -990,7 +1005,7 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
           .map((z) => `"${z}"`)
           .join(', ')}. `
       : '';
-  const notizen = input.meta.notizen?.trim() ?? '';
+  const notizen = metaFuerModell(input.meta).notizen?.trim() ?? '';
   const notizenHinweis =
     notizen.length > 0
       ? `Beruecksichtige die Notizen der Lehrkraft bei den Inhalten (im Rahmen der Format- und Sicherheitsregeln): "${notizen}". `
@@ -1005,12 +1020,12 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
   const stufeLabel = input.meta.stufe === 'oberstufe' ? 'Oberstufe' : input.meta.stufe === 'unterstufe' ? 'Unterstufe' : '';
   const schulstufe = input.meta.schulstufe;
   const zielgruppeHinweis =
-    input.meta.klasse || schulstufe || stufeLabel
+    schulstufe || stufeLabel
       ? schulstufe
         ? land === 'DE'
           ? `Zielgruppe: Klasse ${schulstufe} — waehle Wortschatz, Komplexitaet und Beispiele altersgerecht. `
           : `Zielgruppe: ${schulstufe}. Schulstufe (${schulstufe - 4}. Klasse AHS) — waehle Wortschatz, Komplexitaet und Beispiele altersgerecht. `
-        : `Zielgruppe: ${[input.meta.klasse, stufeLabel].filter(Boolean).join(', ')} — waehle Wortschatz, Komplexitaet und Beispiele altersgerecht. `
+        : `Zielgruppe: ${stufeLabel} — waehle Wortschatz, Komplexitaet und Beispiele altersgerecht. `
       : '';
   const zielsprache = FACH_META[input.meta.fach]?.zielsprache ?? 'Deutsch';
   const spracheHinweis =
