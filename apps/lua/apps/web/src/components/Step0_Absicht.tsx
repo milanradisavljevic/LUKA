@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { ArrowRight, Clock, FolderOpen, BookOpen, ClipboardCheck, Target, Grid3X3, Languages, Pencil, AlertTriangle, GraduationCap, X, Layers } from 'lucide-react';
 import type { AppState, AppAction } from '../lib/types';
+import { MusterImportKarte } from './MusterImportKarte';
 import { BLOCK_TYPE_DEFS, SCHWIERIGKEIT_RULES, UNTERLAGENTYP_MINUTEN } from '../lib/constants';
 import { buildSkelett, FACH_META, fachLabel, istSprachfach, schulstufenFuerLand, stufeFromSchulstufe, stufeLabelFuerLand, type Auftrag, type Fach } from '@lehrunterlagen/schema';
 import { EXAMPLE_ABSICHTEN } from '../lib/exampleAbsichten';
@@ -967,6 +968,18 @@ export function Step0_Absicht({
           </p>
         )}
       </section>
+
+      <MusterImportKarte
+        state={state}
+        dispatch={dispatch}
+        basisMeta={{
+          ...state.meta,
+          fach, stufe, schulstufe, land, typ, schwierigkeit, datum,
+          klasse: klasse.trim(),
+          punkteAusblenden: !punkteVergeben,
+          rahmenwerk: undefined, bewertungsschema: undefined, ibAssessment: undefined,
+        }}
+      />
 
       {/* Typ */}
       <section style={{ marginBottom: '1.25rem' }}>

@@ -10,7 +10,7 @@ import type { ChatMessage } from './types.js';
 import { getProvider } from './provider-registry.js';
 
 export * from './types.js';
-export { buildMessages, buildRefinementMessages, buildSrdpDeutschTrainingHint, buildAusgabeTextNachforderung } from './prompt.js';
+export { buildMessages, buildRefinementMessages, buildSrdpDeutschTrainingHint, buildAusgabeTextNachforderung, buildMusterImportMessages, PARALLEL_MARKER } from './prompt.js';
 export { parseAndValidate, extractJson } from './validate.js';
 export { refineDocument, type RefineComplete } from './refine.js';
 export { normalizeDocument } from './normalize.js';

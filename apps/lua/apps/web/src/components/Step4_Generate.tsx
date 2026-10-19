@@ -21,6 +21,7 @@ import { DEFAULT_LEHRER_PROFIL, loadTeacherProfile } from '../lib/profile';
 import { effektiverQuelltextSchalter, metaSchalterUpdate } from '../lib/quelltextSchalter';
 import { DigitaleSelbstkontrolle } from './DigitaleSelbstkontrolle';
 import { ibEffectiveTotalRawMarks } from '../lib/ibPilot';
+import { ParallelversionPanel, WiederverwendungsHinweis } from './ParallelversionPanel';
 
 
 function isTauri(): boolean {
@@ -428,6 +429,8 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
         </div>
       )}
 
+      <WiederverwendungsHinweis state={state} />
+
       {/* Export-Transparenz */}
       <div className="card" style={{ padding: '0.875rem 1rem', marginBottom: '1.5rem' }}>
         <p style={{ fontSize: '0.8125rem', margin: 0, color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
@@ -649,6 +652,9 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
               )}
             </div>
           )}
+
+          {/* — Neue Version mit anderem Inhalt (Akkordeon) — */}
+          {canExport && <ParallelversionPanel state={state} dispatch={dispatch} />}
 
           {/* — Weitere Exporte & Werkzeuge (Akkordeon) — */}
           {canExport && (

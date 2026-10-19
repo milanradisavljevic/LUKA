@@ -991,6 +991,63 @@ export function buildRefinementMessages(document: DocumentV1): ChatMessage[] {
   ];
 }
 
+/**
+ * Marker im Block-Hinweis fuer "dieselbe Aufgabe mit neuem Inhalt"
+ * (Parallelversion, Gruppe B, Muster-Upload). Die Web-App setzt ihn, der Prompt
+ * ergaenzt dann die gemeinsame Regel unten.
+ */
+export const PARALLEL_MARKER = 'PARALLELVERSION';
+
+const PARALLEL_HINWEIS =
+  'PARALLELVERSION (Lehrkraft-Vorgabe): Die Lehrkraft will eine neue Fassung einer vorhandenen Unterlage, '
+  + 'etwa fuer Gruppe B oder einen Nachschreibtermin. Fuer jeden Block mit dem Hinweis "PARALLELVERSION" gilt: '
+  + 'gleicher Blocktyp, gleiche Anzahl an Items, gleiche Punkte, gleiches sprachliches Phaenomen bzw. gleiche Kompetenz '
+  + 'und gleiche Schwierigkeit wie im Original. Die dort aufgelisteten Originalinhalte dienen NUR zur Orientierung: '
+  + 'Uebernimm keinen Satz, keine Wortgruppe, kein Loesungswort und kein Szenario daraus. Ausgenommen sind nur die '
+  + 'trainierten grammatischen Zielelemente selbst (z. B. Relativpronomen, Zeitformen). Waehle ein anderes Szenario '
+  + 'mit anderen Namen und Orten. Bloecke OHNE diesen Hinweis sind Zusatzaufgaben der Lehrkraft: Sie trainieren '
+  + 'dasselbe Lernziel und passen zum neuen Szenario. Uebt das Original Funktionswoerter (Artikel, Pronomen, '
+  + 'Praepositionen), darfst du genau diese wieder als Luecken setzen; das gleiche Phaenomen hat hier Vorrang. ';
+
+/**
+ * Muster-Import: ein hochgeladenes Arbeitsblatt (Text aus DOCX/PDF) wird
+ * moeglichst wortgetreu in LUKA-Bloecke uebertragen. Das Ergebnis ist nur die
+ * Vorlage fuer eine Parallelversion; die Inhalte dienen spaeter als
+ * Vermeidungsliste.
+ */
+export function buildMusterImportMessages(text: string, meta: Meta): ChatMessage[] {
+  const system = `Du uebertraegst ein vorhandenes Arbeitsblatt oder eine Schularbeit einer Lehrkraft in das Block-JSON von LUKA.
+Du lieferst AUSSCHLIESSLICH ein JSON-Objekt der Form { "erkannt": { ... }, "bloecke": [ ... ] }. Kein Markdown, keine Erklaerung.
+
+"erkannt" = {
+  "thema": kurzer Titel der Unterlage (z. B. "Relativsaetze"),
+  "kompetenz": was geuebt wird, moeglichst konkret (z. B. "Relativsaetze mit der/die/das im Nominativ und Akkusativ"),
+  "lesetext": der vollstaendige Lese- oder Ausgangstext, falls das Blatt einen enthaelt, sonst null
+}
+
+REGELN:
+- Jede Aufgabe des Blatts wird genau EIN Block, in derselben Reihenfolge. Waehle je Aufgabe den passenden Blocktyp aus den Regeln unten.
+- Uebernimm Arbeitsanweisungen, Saetze, Woerter, Antwortoptionen und Punkte so wortgetreu wie moeglich. Fehlen Punkte, schaetze sie (1 Punkt je Item).
+- Enthaelt das Blatt keine Loesungen, ergaenze korrekte Loesungen.
+- Ignoriere Kopfzeilen wie Name, Klasse, Datum, Note, Unterschrift und Seitenzahlen.
+- Gibt es einen Lesetext, beziehen sich Bloecke mit Textbezug ueber "quelleId": "q1" darauf.
+- Blocktyp "umformung" ist nur erlaubt, wenn ein Lesetext vorliegt. Sonst bilde Umformungsaufgaben als "lueckentext" (Ausgangssatz plus Luecke fuer die umgeformte Form) oder als "fehlerkorrektur" ab.
+- Erfinde keine Aufgaben, die nicht auf dem Blatt stehen.
+
+${BLOCK_REGELN}`;
+  return [
+    { role: 'system', content: system },
+    {
+      role: 'user',
+      content:
+        `Fach: ${FACH_META[meta.fach]?.label ?? meta.fach}. Stufe: ${meta.stufe}. `
+        + 'Uebertrage das folgende Arbeitsblatt. Antworte nur mit dem JSON-Objekt.\n\n'
+        + '--- ARBEITSBLATT ---\n'
+        + sanitizeQuelltext(text),
+    },
+  ];
+}
+
 export function buildMessages(input: GenerateInput): ChatMessage[] {
   const modus = input.meta.modus ?? 'text';
   const land = input.meta.land ?? 'AT';
@@ -1016,6 +1073,9 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
     block.hinweis?.includes('Vokabel-Masterblatt Englisch (Vorlage)'));
   const vocabPoolHinweis = vokabelMasterblattAktiv
     ? 'VOKABEL-MASTERSHEET (ausdruecklich ausgewaehlte Vorlage): Wenn eine Quelle eine klar erkennbare Vokabelliste enthaelt oder konkrete Vokabeleintraege in manuell ausgefuellten vokabeluebung-Bloecken stehen, behandle diese als EINEN gemeinsamen Wortpool fuer alle angeforderten vokabeluebung-, matching-, lueckentext-, kreuzwortraetsel- und wortgitter-Bloecke. Erhalte die Schreibweise der Quellwoerter und ihre zugehoerigen Uebersetzungen/Bedeutungen; lasse keinen Listeneintrag aus und erfinde keine Ersatzwoerter. Uebernimm manuell vorgegebene Vokabeleintraege wortgleich und verwende sie nicht nochmals in einem anderen Block. Verteile die uebrigen Eintraege ohne Ueberschneidung; bevor ein Begriff wiederholt wird, muss jeder passende Listeneintrag mindestens einmal als Zielwort/-antwort vorkommen. Fuer Kreuzwortraetsel und Wortgitter verwende nur geeignete Einzelwoerter; wenn weniger geeignete Woerter vorliegen als die vorgefuellte Masterblatt-Anzahl, senke die jeweilige anzahlWoerter auf die tatsaechliche Anzahl und verschiebe unpassende Eintraege in eine passende Vokabeluebung. Nutze nur angeforderte Aufgabentypen; wenn danach Listeneintraege uebrig sind, ergaenze weitere vokabeluebung-Bloecke mit fortlaufenden IDs und hoechstens 20 Eintraegen je Block. Wiederhole Begriffe nur, wenn die angeforderten Gesamtplaetze groesser als der Wortpool sind, und erst nachdem alle Eintraege einmal vorkamen. Gewoehnlichen Fliesstext nicht als Vokabelliste behandeln. '
+    : '';
+  const parallelHinweis = input.bloecke.some((block) => block.hinweis?.includes(PARALLEL_MARKER))
+    ? PARALLEL_HINWEIS
     : '';
   const stufeLabel = input.meta.stufe === 'oberstufe' ? 'Oberstufe' : input.meta.stufe === 'unterstufe' ? 'Unterstufe' : '';
   const schulstufe = input.meta.schulstufe;
@@ -1233,6 +1293,7 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
           inhaltsModulHinweis +
           notizenHinweis +
           vocabPoolHinweis +
+          parallelHinweis +
           fokusThemenHinweis +
           bridgeFehlerHinweis +
           'Jeder Block muss ein vollstaendiges Objekt mit id, typ, punkte, arbeitsanweisung und config sein (quelleId entfaellt im Kompetenz-Modus). ' +
@@ -1325,6 +1386,7 @@ export function buildMessages(input: GenerateInput): ChatMessage[] {
         zielgruppeHinweis +
         notizenHinweis +
         vocabPoolHinweis +
+        parallelHinweis +
         fokusThemenHinweis +
         bridgeFehlerHinweis +
         quelltextHinweis +
