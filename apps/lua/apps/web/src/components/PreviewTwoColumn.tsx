@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AlertTriangle, CheckCircle2, Check, Circle, Pencil, RefreshCw, Settings2, FileText, KeyRound, Database, Lightbulb } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Check, Circle, CopyPlus, Pencil, RefreshCw, Settings2, FileText, KeyRound, Database, Lightbulb } from 'lucide-react';
 import { istSprachfach, fachLabel } from '@lehrunterlagen/schema';
 import { RENDER_LAYOUTS, RENDER_TEMPLATES, anzeigeQuelltext, getDefaultLayout, getDefaultTemplate, pruefeRaetselA4 } from '@lehrunterlagen/renderer';
 import type { RenderLayout, RenderTemplate } from '@lehrunterlagen/renderer';
@@ -11,6 +11,7 @@ import { useGenerate } from '../hooks/useGenerate';
 import { useAufgabenPool } from '../hooks/useAufgabenPool';
 import { spiegeleBlockEinstellungen, type SpiegelbareWerte } from '../lib/einstellungenSpiegeln';
 import { EinstellungsPanel } from './EinstellungsPanel';
+import { fuegeNachEin, mehrDavonBlock } from '../lib/parallelversion';
 
 interface Props {
   state: AppState;
@@ -193,6 +194,25 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
       next.delete(block.id);
       return next;
     });
+  };
+
+  // „Mehr davon“: weitere Aufgabe gleicher Art direkt darunter, auch im Baukasten,
+  // damit sie eine spätere Neuerstellung übersteht. Scheitert die KI, verschwindet
+  // die Kopie wieder; es bleibt kein Duplikat des Vorbilds stehen.
+  const mehrDavon = async (block: Block) => {
+    if (!doc) return;
+    const neu = mehrDavonBlock(block, `${block.id}-mehr-${Date.now().toString(36)}`);
+    const mitKopie = { ...doc, bloecke: fuegeNachEin(doc.bloecke, block.id, neu) };
+    const bloeckeVorher = state.bloecke;
+    dispatch({ type: 'SET_GENERIERTES_DOKUMENT', dokument: mitKopie });
+    dispatch({ type: 'SET_BLOECKE', bloecke: fuegeNachEin(state.bloecke, block.id, neu) });
+    setRegenId(neu.id);
+    const ergebnis = await regenerateBlock({ ...state, generiertesDokument: mitKopie }, neu.id);
+    setRegenId(null);
+    if (!ergebnis) {
+      dispatch({ type: 'SET_GENERIERTES_DOKUMENT', dokument: doc });
+      dispatch({ type: 'SET_BLOECKE', bloecke: bloeckeVorher });
+    }
   };
 
   const starteRegenerierung = (block: Block, hinweis?: string) => {
@@ -557,6 +577,23 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
                     title="In Aufgaben-Pool speichern"
                   >
                     <Database size={13} /> In Pool
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); void mehrDavon(block); }}
+                    disabled={generating}
+                    style={{
+                      fontSize: '0.75rem',
+                      padding: '0.2rem 0.5rem',
+                      borderRadius: 'var(--radius)',
+                      border: '1px solid #cccccc',
+                      background: '#ffffff',
+                      cursor: generating ? 'default' : 'pointer',
+                      color: PAPER_SECONDARY,
+                      display: 'inline-flex', alignItems: 'center', gap: '0.375rem',
+                    }}
+                    title="Weitere Aufgabe dieser Art mit neuem Inhalt darunter einfügen"
+                  >
+                    <CopyPlus size={13} /> Mehr davon
                   </button>
                   {regenId === block.id && (
                     <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>

@@ -10,6 +10,7 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 ### Das ist neu
 
 - **Neue Version mit anderem Inhalt:** Aus einer fertigen Unterlage entsteht mit einem Klick eine neue Fassung mit denselben Aufgabenarten und Punkten, aber neuen Sätzen und Inhalten, zum Beispiel als Gruppe B oder für einen Nachschreibtermin. Im Baukasten lassen sich vorher Aufgaben ergänzen oder streichen. Wiederholt die KI Inhalte des Originals, zeigt LUKA einen Hinweis.
+- **Mehr davon:** Jede Aufgabe in der Vorschau hat einen Knopf „Mehr davon“. Er fügt direkt darunter eine weitere Aufgabe derselben Art mit neuem Inhalt ein, etwa als Zusatzblatt für Schnelle.
 - **Aus vorhandener Unterlage:** Arbeitsblätter und Schularbeiten lassen sich als Word- oder PDF-Datei hochladen. LUKA überträgt die Aufgaben in den Baukasten; daraus entsteht eine neue Übung derselben Art, auch mit zusätzlichen Aufgabentypen. Gescannte PDFs ohne Textebene werden noch nicht erkannt.
 - Neue KI-Modelle zur Auswahl: Claude Opus 5.5, Sonnet 5.5 und Haiku 5.5, GPT-6.1 Sol und GPT-6 Luna, Mistral Large 4 (Vorschau) sowie Qwen 3.8 Max und Qwen 3.7 Plus. Preise und Hinweise in der Modellauswahl sind auf dem Stand vom Oktober 2026.
 - Claude Opus 4.7 und 4.8 sowie die Kimi-Modelle lehnten Anfragen aus LUKA ab, weil ein Einstellungswert mitgeschickt wurde, den diese Modelle nicht mehr annehmen. Das ist behoben. Bei diesen Modellen und bei den neuen OpenAI-Modellen wirkt der Regler „Kreativität“ nicht mehr, das Modell verwendet seinen eigenen Standard.

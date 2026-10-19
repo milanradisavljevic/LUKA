@@ -182,3 +182,18 @@ export function findeWiederverwendung(angefordert: Block[], erzeugt: DocumentV1)
   }
   return treffer;
 }
+
+/**
+ * „Mehr davon“: eine weitere Aufgabe derselben Art direkt nach dem Vorbild.
+ * Sie trägt denselben Parallel-Hinweis, damit Inhalte des Vorbilds nicht
+ * wiederkommen, und eine eigene ID.
+ */
+export function mehrDavonBlock(block: Block, id: string): Block {
+  return { ...bereiteParallelBlockVor(block), id };
+}
+
+/** Fügt `neu` direkt nach dem Element mit `nachId` ein, sonst am Ende. */
+export function fuegeNachEin<T extends { id: string }>(liste: T[], nachId: string, neu: T): T[] {
+  const index = liste.findIndex((item) => item.id === nachId);
+  return index < 0 ? [...liste, neu] : [...liste.slice(0, index + 1), neu, ...liste.slice(index + 1)];
+}

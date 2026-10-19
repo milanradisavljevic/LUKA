@@ -5,6 +5,8 @@ import {
   bereiteParallelBlockVor,
   bereiteParallelversionVor,
   findeWiederverwendung,
+  fuegeNachEin,
+  mehrDavonBlock,
   istParallelBlock,
   originalInhalteAusHinweis,
   parallelThema,
@@ -107,5 +109,13 @@ describe('parallelversion', () => {
     const user = (m: typeof mit) => m.find((x) => x.role === 'user')!.content;
     expect(user(mit)).toContain('PARALLELVERSION (Lehrkraft-Vorgabe)');
     expect(user(ohne)).not.toContain('PARALLELVERSION (Lehrkraft-Vorgabe)');
+  });
+
+  it('fügt „Mehr davon“ direkt nach dem Vorbild ein, mit eigener ID und Parallel-Hinweis', () => {
+    const neu = mehrDavonBlock(kreuzwort, 'b2-mehr');
+    expect(neu.id).toBe('b2-mehr');
+    expect(istParallelBlock(neu)).toBe(true);
+    expect(fuegeNachEin([lueckentext, kreuzwort], 'b1', neu).map((b) => b.id)).toEqual(['b1', 'b2-mehr', 'b2']);
+    expect(fuegeNachEin([lueckentext], 'fehlt', neu).map((b) => b.id)).toEqual(['b1', 'b2-mehr']);
   });
 });
