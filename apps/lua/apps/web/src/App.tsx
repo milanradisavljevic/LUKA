@@ -48,7 +48,7 @@ const PlanungView = lazy(() => import('./views/PlanungView').then((m) => ({ defa
 import { setPendingPlanung, setPendingUebung } from './lib/korrekturBridge';
 import { fuegeAnlageHinzuDirekt } from './hooks/usePlanung';
 import {
-  TERMIN_BLOCKTYPEN, unterlageAusTermin, type TerminKontext,
+  TERMIN_BLOCKTYPEN, unterlageAusTermin, variantenVorbefuellung, type TerminKontext, type TerminVariante,
 } from './lib/unterlageBauen';
 import { createDefaultBlock } from './lib/blockDefaults';
 import { createVokabelMasterblattBlocks } from './lib/vokabelMasterblatt';
@@ -606,15 +606,24 @@ export default function App() {
     kontext: TerminKontext,
     einsatzId: string,
     onFertig?: (meldung: string) => void,
+    variante: TerminVariante = { art: 'unterlage' },
   ) => {
     const bau = unterlageAusTermin(kontext, state);
     const thema = bau.ok ? bau.auftrag.meta.thema : (kontext.thema ?? '');
+    const sonderform = variante.art === 'unterlage' ? null : variantenVorbefuellung(kontext, variante);
 
     if (!bestaetigeVerwerfen(
       'Aktuellen Stand verwerfen und die Unterlage für diese Stunde vorbereiten?'
     )) return;
 
-    setPendingPlanung({
+    setPendingPlanung(sonderform ? {
+      ...sonderform,
+      klasse: kontext.klasse,
+      fach: kontext.fach,
+      land: kontext.land,
+      schulstufe: kontext.schulstufe,
+      fokusThemen: [],
+    } : {
       thema,
       klasse: kontext.klasse,
       fach: kontext.fach,
@@ -636,16 +645,18 @@ export default function App() {
       einsatzId,
       datum: kontext.datum ?? '',
       klasse: kontext.klasse ?? '',
-      thema,
+      thema: sonderform?.thema ?? thema,
     });
     setDraftAtmosphereFach(null);
     setFreshStart(false);
     dispatch({ type: 'RESET_STATE' });
     setActiveView('wizard');
     onFertig?.(
-      bau.ok
-        ? 'Assistent geöffnet. Ergänze den Quelltext – danach hängt LUA die Unterlage an den Termin.'
-        : 'Assistent geöffnet. Es fehlt noch eine Angabe zum Termin.',
+      sonderform
+        ? 'Assistent geöffnet. Prüfe die Angaben und erstelle die Unterlage – danach hängt LUA sie an den Termin.'
+        : bau.ok
+          ? 'Assistent geöffnet. Ergänze den Quelltext – danach hängt LUA die Unterlage an den Termin.'
+          : 'Assistent geöffnet. Es fehlt noch eine Angabe zum Termin.',
     );
   }, [state, dispatch, bestaetigeVerwerfen]);
 

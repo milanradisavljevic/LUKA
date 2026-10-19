@@ -133,6 +133,10 @@ export interface NataschaPrefill {
   fehler?: BridgeBeispiel[];
   /** L1: Herkunft der Folgeübung → Loop-Wirkung-Panel (Buchhaltung, nicht gerendert). */
   loopQuelle?: { klasse: string; aufgabe?: string; exportDatum?: string };
+  /** Planung: Exit-Ticket und Wiederholung brauchen keinen Quelltext. */
+  modus?: 'kompetenz';
+  freieKompetenz?: string;
+  dauerMinuten?: number;
 }
 
 interface HeatmapPrefillEntry {

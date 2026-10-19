@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle, CalendarCheck, CalendarPlus, Check, ChevronLeft, ChevronRight, Download, ExternalLink, FileText, FileUp,
-  FolderOpen, Info, Link2, Package, Paperclip, Pencil, Plus, Repeat, Sparkles, Trash2, Unlink, X,
+  FolderOpen, History, Info, Link2, Package, Paperclip, Pencil, Plus, Repeat, Sparkles, TicketCheck, Trash2, Unlink, X,
 } from 'lucide-react';
 import { ViewShell } from './_ViewShell';
 import { LoadingSpinner } from '../components/LoadingSpinner';
@@ -13,7 +13,7 @@ import { useKlassenMeta } from '../hooks/useKlassenMeta';
 import { loadTeacherProfile, type ProfileLand } from '../lib/profile';
 import { loadDocuments } from '../lib/storage';
 import {
-  fachPruefen, fehlendeAngaben, kontextAusStunde, type TerminKontext,
+  fachPruefen, fehlendeAngaben, kontextAusStunde, wiederholungsThemen, type TerminKontext, type TerminVariante,
 } from '../lib/unterlageBauen';
 import {
   bundeslandName, ferienBestandVorschlag, ferienWarnung, schuljahrFuer, schuljahrLabel,
@@ -88,7 +88,7 @@ export function PlanungView({
   /** Baut aus der gewählten Stunde eine Unterlage, speichert sie und hängt sie
    *  an den Termin. Fehlt dem Termin das Thema oder das Fach der Klasse, öffnet
    *  `App.tsx` stattdessen den Assistenten mit Vorbefüllung. */
-  onGenerateUnterlage?: (kontext: TerminKontext, einsatzId: string, onFertig?: (meldung: string) => void) => Promise<void>;
+  onGenerateUnterlage?: (kontext: TerminKontext, einsatzId: string, onFertig?: (meldung: string) => void, variante?: TerminVariante) => Promise<void>;
   onOpenUnterlage?: (materialId: string) => void;
   onOpenAbrufcheck?: (klasseId: string, abrufcheckId: string) => void;
   /** Tag, auf den beim Öffnen gesprungen werden soll – von der Startseite aus
@@ -545,8 +545,18 @@ export function PlanungView({
    *  Unterlage suchen, die dann verknüpft wurde - jetzt entsteht sie aus dem
    *  Termin heraus. Fehlt dem Termin das Thema oder das Fach der Klasse, öffnet
    *  `App.tsx` den Assistenten mit Vorbefüllung. */
-  const unterlageErzeugen = useCallback(async () => {
+  const unterlageErzeugen = useCallback(async (art: TerminVariante['art'] = 'unterlage') => {
     if (!gewaehlt || !onGenerateUnterlage) return;
+    let variante: TerminVariante = { art: 'unterlage' };
+    if (art === 'exit-ticket') variante = { art };
+    if (art === 'wiederholung') {
+      const themen = wiederholungsThemen(stunden, gewaehlt);
+      if (themen.length === 0) {
+        setMeldung('Für diese Klasse sind in den sechs Wochen davor keine Stunden mit Thema eingetragen.');
+        return;
+      }
+      variante = { art, themen };
+    }
     const klasse = klassen.find(k => k.name === gewaehlt.klasseName);
     const kontext = kontextAusStunde(gewaehlt, {
       schulstufe: klasse?.schulstufe ?? undefined,
@@ -557,7 +567,8 @@ export function PlanungView({
       // Grenze auf den österreichischen Wert zurück.
       land,
     });
-    const fehlt = fehlendeAngaben(kontext);
+    // Das Wiederholungsblatt nimmt seine Themen aus den Stunden davor.
+    const fehlt = fehlendeAngaben(kontext).filter(f => !(f === 'thema' && art === 'wiederholung'));
     if (fehlt.length > 0) {
       const was = fehlt.map(f => f === 'thema' ? 'ein Thema' : 'das Fach der Klasse').join(' und ');
       if (!window.confirm(
@@ -566,8 +577,8 @@ export function PlanungView({
       )) return;
     }
     setMeldung('Unterlage wird erstellt … das kann einen Moment dauern.');
-    await onGenerateUnterlage(kontext, gewaehlt.id, setMeldung);
-  }, [gewaehlt, klassen, land, onGenerateUnterlage]);
+    await onGenerateUnterlage(kontext, gewaehlt.id, setMeldung, variante);
+  }, [gewaehlt, klassen, land, onGenerateUnterlage, stunden]);
 
   const verweisAnlegen = useCallback(async () => {
     if (!gewaehlt || !verweis.trim()) return;
@@ -1178,6 +1189,24 @@ export function PlanungView({
                     style={{ fontSize: '.6875rem', display: 'inline-flex', alignItems: 'center', gap: 3 }}
                   >
                     <Sparkles size={12} /> Unterlage vorbereiten
+                  </button>
+                  <button
+                    className="btn-secondary"
+                    onClick={() => void unterlageErzeugen('exit-ticket')}
+                    disabled={!onGenerateUnterlage}
+                    title="3 bis 5 kurze Fragen zum Thema dieser Stunde, ohne Quelltext"
+                    style={{ fontSize: '.6875rem', display: 'inline-flex', alignItems: 'center', gap: 3 }}
+                  >
+                    <TicketCheck size={12} /> Exit-Ticket
+                  </button>
+                  <button
+                    className="btn-secondary"
+                    onClick={() => void unterlageErzeugen('wiederholung')}
+                    disabled={!onGenerateUnterlage}
+                    title="Wiederholungsblatt zu den Themen dieser Klasse aus den sechs Wochen davor"
+                    style={{ fontSize: '.6875rem', display: 'inline-flex', alignItems: 'center', gap: 3 }}
+                  >
+                    <History size={12} /> Wiederholungsblatt
                   </button>
                   <button className="btn-secondary" onClick={() => void dateiAblegen()} style={{ fontSize: '.6875rem', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
                     <FolderOpen size={12} /> Datei ablegen

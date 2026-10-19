@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { ArrowRight, Clock, FolderOpen, BookOpen, ClipboardCheck, Target, Grid3X3, Languages, Pencil, AlertTriangle, GraduationCap, X, Layers } from 'lucide-react';
 import type { AppState, AppAction } from '../lib/types';
 import { MusterImportKarte } from './MusterImportKarte';
+import { spiralNotiz, spiralThemen } from '../lib/spiralwiederholung';
 import { BLOCK_TYPE_DEFS, SCHWIERIGKEIT_RULES, UNTERLAGENTYP_MINUTEN } from '../lib/constants';
 import { buildSkelett, FACH_META, fachLabel, istSprachfach, schulstufenFuerLand, stufeFromSchulstufe, stufeLabelFuerLand, type Auftrag, type Fach } from '@lehrunterlagen/schema';
 import { EXAMPLE_ABSICHTEN } from '../lib/exampleAbsichten';
@@ -98,6 +99,8 @@ export function Step0_Absicht({
   const [fehler, setFehler] = useState<string | null>(null);
   const [schnellOhneQuelltext, setSchnellOhneQuelltext] = useState(false);
   const [vokabelMasterblattAktiv, setVokabelMasterblattAktiv] = useState(false);
+  const [spiralAktiv, setSpiralAktiv] = useState(false);
+  const spiralKandidaten = useMemo(() => spiralThemen(loadDocuments(), klasse, thema, new Date()), [klasse, thema]);
   // Punkte vergeben? Schulübung standardmäßig ohne Punkte, sonst mit.
   const [punkteVergeben, setPunkteVergeben] = useState<boolean>((lastMeta?.typ ?? 'schularbeit') !== 'schuluebung');
   const setFachManuell = useCallback((neuesFach: Fach) => {
@@ -297,8 +300,9 @@ export function Step0_Absicht({
     // Feature-Flag hängen bleiben.
     if (!FEATURES.natascha && q !== 'planung') return;
     setTyp('schuluebung');
-    setModus(undefined);
-    setFreieKompetenz('');
+    setModus(p.modus);
+    setFreieKompetenz(p.freieKompetenz ?? '');
+    if (p.dauerMinuten !== undefined) setDauerMinuten(p.dauerMinuten);
     if (p.fach) setFach(p.fach);
     if (p.klasse) setKlasse(p.klasse);
     if (p.land) {
@@ -437,7 +441,11 @@ export function Step0_Absicht({
     }
 
     // Kuratierte Korrektur-Fehler in die Notizen einweben (steuert den Prompt).
-    const notizenFinal = [notizen.trim(), fehlerNotiz(nataschaFehler)].filter(Boolean).join(' ');
+    const notizenFinal = [
+      notizen.trim(),
+      fehlerNotiz(nataschaFehler),
+      spiralAktiv ? spiralNotiz(spiralKandidaten) : '',
+    ].filter(Boolean).join(' ');
     // Aktive, kuratierte Fehler strukturiert für den fehlerkorrektur-Block (L1).
     const aktiveFehler = nataschaFehler
       .filter((f) => f.aktiv && f.zitat.trim() && f.korrektur.trim())
@@ -530,7 +538,8 @@ export function Step0_Absicht({
         },
       });
       onDismissFirstRunHint?.();
-      dispatch({ type: 'SET_STEP', step: schnellOhneQuelltext ? 'baukasten' : 'input' });
+      // Im Kompetenz-Modus werden Quelltexte nicht verwendet, der Schritt entfällt.
+      dispatch({ type: 'SET_STEP', step: schnellOhneQuelltext || modus === 'kompetenz' ? 'baukasten' : 'input' });
     } catch (err) {
       setFehler(err instanceof Error ? err.message : 'Fehler beim Erstellen des Skeletts.');
     }
@@ -1085,6 +1094,18 @@ export function Step0_Absicht({
           </datalist>
           {klasseAutoHinweis && (
             <p style={{ fontSize: '0.75rem', color: 'var(--color-accent)', margin: '0.25rem 0 0' }}>{klasseAutoHinweis}</p>
+          )}
+          {spiralKandidaten.length > 0 && (
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.8125rem', margin: '0.5rem 0 0', cursor: 'pointer', lineHeight: 1.4 }}>
+              <input type="checkbox" checked={spiralAktiv} onChange={(e) => setSpiralAktiv(e.target.checked)}
+                style={{ width: 16, height: 16, flexShrink: 0, margin: '0.1rem 0 0', padding: 0, accentColor: 'var(--color-accent)' }} />
+              <span>
+                Frühere Themen kurz wiederholen
+                <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+                  Ein bis zwei kurze Aufgabenteile zu: {spiralKandidaten.join(', ')}
+                </span>
+              </span>
+            </label>
           )}
         </div>
       </section>

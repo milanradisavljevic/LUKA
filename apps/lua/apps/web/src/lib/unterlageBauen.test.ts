@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { AppState } from './types';
 import {
   TERMIN_BLOCKTYPEN, fehlendeAngaben, kontextAusStunde, themaAusTermin, unterlageAusTermin,
+  EXIT_TICKET_BLOCKTYPEN, variantenVorbefuellung, wiederholungsThemen,
 } from './unterlageBauen';
 import type { GeplanteStunde } from './stundenMappen';
 
@@ -201,5 +202,48 @@ describe('kontextAusStunde', () => {
       einsatzArt: '', rasterId: null, notiz: '', anzahlMaterialien: 0,
     } as GeplanteStunde;
     expect(kontextAusStunde(stunde, { land: 'AT' }).klasse).toBeUndefined();
+  });
+});
+
+function stunde(id: string, datum: string, titel: string, extra: Partial<GeplanteStunde> = {}): GeplanteStunde {
+  return {
+    id, klasseId: 'k1', klasseName: '6b', datum, startZeit: null, endeZeit: null, titel,
+    status: 'geplant', einsatzArt: '', rasterId: null, notiz: '', anzahlMaterialien: 0, ...extra,
+  } as GeplanteStunde;
+}
+
+describe('wiederholungsThemen', () => {
+  const ziel = stunde('z', '2026-10-20', 'Schularbeit');
+  it('nimmt Themen derselben Klasse aus den sechs Wochen davor, älteste zuerst, ohne Doppelte', () => {
+    const stunden = [
+      stunde('a', '2026-10-13', 'Relativsätze'),
+      stunde('b', '2026-09-15', 'Kommasetzung'),
+      stunde('c', '2026-10-06', 'Relativsätze'),
+      stunde('d', '2026-08-01', 'Zu alt'),
+      stunde('e', '2026-10-14', 'Andere Klasse', { klasseId: 'k2' }),
+      stunde('f', '2026-10-15', 'Fiel aus', { status: 'ausgefallen' }),
+      stunde('g', '2026-10-27', 'Danach'),
+      stunde('h', '2026-10-16', '  '),
+      ziel,
+    ];
+    expect(wiederholungsThemen(stunden, ziel)).toEqual(['Kommasetzung', 'Relativsätze']);
+  });
+});
+
+describe('variantenVorbefuellung', () => {
+  it('Exit-Ticket: kurze Fragen im Kompetenz-Modus zum Stundenthema', () => {
+    const v = variantenVorbefuellung(VOLL, { art: 'exit-ticket' });
+    expect(v.thema).toBe('Exit-Ticket: Der Sturm auf den Barrikaden');
+    expect(v.modus).toBe('kompetenz');
+    expect(v.freieKompetenz).toBe('Der Sturm auf den Barrikaden');
+    expect(v.gewuenschteAufgabenarten).toEqual(EXIT_TICKET_BLOCKTYPEN);
+    expect(v.dauerMinuten).toBe(5);
+  });
+
+  it('Wiederholung: alle Themen in Kompetenz und Notiz, die letzten drei im Titel', () => {
+    const v = variantenVorbefuellung(VOLL, { art: 'wiederholung', themen: ['A', 'B', 'C', 'D'] });
+    expect(v.thema).toBe('Wiederholung: B, C, D …');
+    expect(v.freieKompetenz).toBe('A; B; C; D');
+    expect(v.notizen).toContain('A; B; C; D');
   });
 });

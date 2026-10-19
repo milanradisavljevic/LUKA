@@ -168,3 +168,83 @@ export function kontextAusStunde(
     ...ergaenzung,
   };
 }
+
+/** Was aus einer Stunde heraus vorbereitet wird. */
+export type TerminVariante =
+  | { art: 'unterlage' }
+  | { art: 'exit-ticket' }
+  | { art: 'wiederholung'; themen: string[] };
+
+/** Exit-Ticket: wenige kurze Fragen, ohne Quelltext prüfbar. */
+export const EXIT_TICKET_BLOCKTYPEN: BlockTyp[] = ['multipleChoice', 'offeneVerstaendnisfrage'];
+
+/** Wiederholungsblatt: gemischte geschlossene Formen, damit viele Themen Platz haben. */
+export const WIEDERHOLUNG_BLOCKTYPEN: BlockTyp[] = ['lueckentext', 'multipleChoice', 'matching', 'fehlerkorrektur'];
+
+const MAX_WIEDERHOLUNGSTHEMEN = 8;
+
+function minusTage(datum: string, tage: number): string {
+  const d = new Date(`${datum}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - tage);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Themen der letzten Wochen derselben Klasse vor einer Stunde, älteste zuerst.
+ * Ausgefallene Stunden und leere Titel zählen nicht, doppelte Themen nur einmal.
+ */
+export function wiederholungsThemen(stunden: GeplanteStunde[], ziel: GeplanteStunde, wochen = 6): string[] {
+  const ab = minusTage(ziel.datum, wochen * 7);
+  const gleicheKlasse = (s: GeplanteStunde) => ziel.klasseId
+    ? s.klasseId === ziel.klasseId
+    : s.klasseName === ziel.klasseName;
+  const themen = stunden
+    .filter((s) => s.id !== ziel.id && gleicheKlasse(s) && s.status !== 'ausgefallen'
+      && s.datum >= ab && s.datum < ziel.datum && s.titel.trim())
+    .sort((a, b) => a.datum.localeCompare(b.datum))
+    .map((s) => s.titel.trim());
+  return [...new Set(themen)].slice(-MAX_WIEDERHOLUNGSTHEMEN);
+}
+
+export interface VariantenVorbefuellung {
+  thema: string;
+  gewuenschteAufgabenarten: BlockTyp[];
+  notizen: string;
+  modus: 'kompetenz';
+  freieKompetenz: string;
+  dauerMinuten: number;
+}
+
+/**
+ * Vorbefüllung für Exit-Ticket und Wiederholungsblatt. Beide laufen im
+ * Kompetenz-Modus: Die Inhalte entstehen aus Stundenthema bzw. Themenliste,
+ * ein Quelltext ist nicht nötig.
+ */
+export function variantenVorbefuellung(
+  kontext: TerminKontext,
+  variante: Exclude<TerminVariante, { art: 'unterlage' }>,
+): VariantenVorbefuellung {
+  const datum = kontext.datum ?? '—';
+  const stundenThema = kontext.thema?.trim() ?? '';
+  if (variante.art === 'exit-ticket') {
+    return {
+      thema: stundenThema ? `Exit-Ticket: ${stundenThema}` : 'Exit-Ticket',
+      gewuenschteAufgabenarten: [...EXIT_TICKET_BLOCKTYPEN],
+      notizen: `Exit-Ticket für das Ende der Stunde am ${datum}. Insgesamt 3 bis 5 kurze Fragen, `
+        + 'die zeigen, ob das Stundenziel erreicht wurde. In 5 Minuten lösbar, keine langen Texte.',
+      modus: 'kompetenz',
+      freieKompetenz: stundenThema || 'Stundenthema (bitte ergänzen)',
+      dauerMinuten: 5,
+    };
+  }
+  const themen = variante.themen;
+  return {
+    thema: `Wiederholung: ${themen.slice(-3).join(', ')}${themen.length > 3 ? ' …' : ''}`,
+    gewuenschteAufgabenarten: [...WIEDERHOLUNG_BLOCKTYPEN],
+    notizen: `Wiederholungsblatt vor der Stunde am ${datum}${stundenThema ? ` (${stundenThema})` : ''}. `
+      + `Decke jedes dieser Themen der letzten Wochen mit mindestens einer Aufgabe ab: ${themen.join('; ')}.`,
+    modus: 'kompetenz',
+    freieKompetenz: themen.join('; '),
+    dauerMinuten: 30,
+  };
+}
