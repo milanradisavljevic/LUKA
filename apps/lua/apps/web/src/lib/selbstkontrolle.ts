@@ -1,4 +1,5 @@
-import type { Block } from '@lehrunterlagen/schema';
+import type { Block, DocumentV1 } from '@lehrunterlagen/schema';
+import { getBlockLabel } from './blockDefaults';
 
 /** Antworten aus einer digitalen, lokalen Übungsmaske. Kein LLM und kein Upload. */
 export type DigitaleAntwort = string | readonly string[] | null | undefined;
@@ -187,6 +188,27 @@ function erwarteteAntworten(block: Block): ErwarteteAntwort[] | null {
     default:
       return null;
   }
+}
+
+function schluesselAnzeige(key: string): string {
+  // Tabellenlücken heißen intern "Zeile,Spaltenindex".
+  const [zeile, spalte] = key.split(',');
+  return spalte !== undefined ? `${zeile}.${Number(spalte) + 1}` : key;
+}
+
+/**
+ * Kurzschlüssel für den Lösungsstreifen: je geschlossener Aufgabe eine Zeile.
+ * Aufgaben ohne vollständigen lokalen Schlüssel (offene Aufgaben) fehlen.
+ */
+export function loesungsstreifen(doc: DocumentV1): { aufgabe: string; antworten: string }[] {
+  return doc.bloecke.flatMap((block, index) => {
+    const erwartet = erwarteteAntworten(block);
+    if (!erwartet) return [];
+    const antworten = erwartet
+      .map(({ key, expected }) => `${schluesselAnzeige(key)} ${Array.isArray(expected) ? expected.join(', ') : expected}`)
+      .join(' · ');
+    return [{ aufgabe: `Aufgabe ${index + 1} · ${getBlockLabel(block.typ)}`, antworten }];
+  });
 }
 
 /** Gibt nur Blöcke zurück, für die ein vollständiger lokaler Schlüssel vorliegt. */

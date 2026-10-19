@@ -3,6 +3,7 @@ import type { AppState } from '../lib/types';
 import { pruefeInformatikMultipleChoiceSchluessel, type DocumentV1 } from '@lehrunterlagen/schema';
 
 import { getBlockLabel } from '../lib/blockDefaults';
+import { loesungsstreifen } from '../lib/selbstkontrolle';
 import { appendHistoryEntry, loadSettings } from '../lib/storage';
 import { computeCoverage } from '../lib/coverage';
 import { istEntwurfsQuelle } from '../lib/stoffkatalog';
@@ -253,6 +254,39 @@ export function useExport() {
     }
   }, []);
 
+  // Lösungsstreifen zum Ausschneiden: Kurzschlüssel der geschlossenen Aufgaben.
+  const exportLoesungsstreifen = useCallback(async (state: AppState) => {
+    const dok = state.generiertesDokument;
+    if (!dok) {
+      setError('Bitte zuerst Inhalt generieren.');
+      return false;
+    }
+    const zeilen = loesungsstreifen(dok);
+    if (zeilen.length === 0) {
+      setError('Diese Unterlage hat keine geschlossenen Aufgaben mit vollständigem Lösungsschlüssel.');
+      return false;
+    }
+    setExporting(true);
+    setError(null);
+    setWarnung(null);
+    setLastSavedPaths(null);
+    try {
+      const { renderLoesungsstreifenToBlob } = await import('@lehrunterlagen/renderer');
+      const blob = await renderLoesungsstreifenToBlob(
+        { thema: dok.meta.thema, fach: dok.meta.fach }, zeilen, RENDER_TEMPLATES[state.renderTemplate],
+      );
+      const fileName = `${dok.meta.datum}_${sanitizeFilename(dok.meta.thema).slice(0, 40)}_Loesungsstreifen.docx`;
+      const gespeichert = await saveBlob(blob, fileName);
+      setLastSavedPaths(gespeichert ? [gespeichert] : null);
+      return true;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unbekannter Fehler beim Lösungsstreifen-Export');
+      return false;
+    } finally {
+      setExporting(false);
+    }
+  }, []);
+
   const exportSelbsteinschaetzung = useCallback(async (state: AppState) => {
     if (!state.generiertesDokument) {
       setError('Bitte zuerst Inhalt generieren.');
@@ -318,7 +352,7 @@ export function useExport() {
     }
   }, []);
 
-  return { exportDocx, exportDocxOverride, exportKorrekturraster, exportKompetenzraster, exportSelbstlern, exportSelbsteinschaetzung, exportGift, exporting, error, warnung, lastSavedPaths };
+  return { exportDocx, exportDocxOverride, exportKorrekturraster, exportKompetenzraster, exportSelbstlern, exportSelbsteinschaetzung, exportLoesungsstreifen, exportGift, exporting, error, warnung, lastSavedPaths };
 }
 
 function isTauri(): boolean {

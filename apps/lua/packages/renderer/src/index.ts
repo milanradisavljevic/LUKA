@@ -362,6 +362,66 @@ export async function renderSelbsteinschaetzungToBlob(
   return Packer.toBlob(buildSelbsteinschaetzungDoc(raster, lernziele, template));
 }
 
+export interface LoesungsstreifenZeile {
+  /** z. B. "Aufgabe 2 · Lückentext" */
+  aufgabe: string;
+  /** z. B. "1 der · 2 die · 3 das" */
+  antworten: string;
+}
+
+/**
+ * Lösungsstreifen: eine Seite mit dem Kurzschlüssel aller geschlossenen
+ * Aufgaben, je Aufgabe ein gestrichelt umrandeter Streifen zum Ausschneiden
+ * (Selbstkontrolle am Lehrertisch oder an der Pinnwand).
+ */
+export async function renderLoesungsstreifenToBlob(
+  meta: { thema: string; fach: string },
+  zeilen: LoesungsstreifenZeile[],
+  template: RenderTemplate = DEFAULT_TEMPLATE,
+): Promise<Blob> {
+  return Packer.toBlob(buildLoesungsstreifenDoc(meta, zeilen, template));
+}
+
+export function buildLoesungsstreifenDoc(
+  meta: { thema: string; fach: string },
+  zeilen: LoesungsstreifenZeile[],
+  template: RenderTemplate,
+): Document {
+  const isEnglish = meta.fach === 'englisch';
+  const titel = isEnglish ? 'Answer key to cut out' : 'Lösungen zum Ausschneiden';
+  const schnitt = { style: BorderStyle.DASHED, size: template.borderWidth, color: template.borderColor };
+  const streifen = zeilen.flatMap((zeile) => [
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [new TableRow({
+        children: [new TableCell({
+          borders: { top: schnitt, bottom: schnitt, left: schnitt, right: schnitt },
+          margins: { top: 80, bottom: 80, left: 120, right: 120 },
+          children: [new Paragraph({ children: [
+            run(`${zeile.aufgabe}: `, { font: template.font, size: template.fontSize.body, bold: true }),
+            run(zeile.antworten, { font: template.font, size: template.fontSize.body }),
+          ] })],
+        })],
+      })],
+    }),
+    new Paragraph({ children: [] }),
+  ]);
+  return new Document({
+    sections: [{
+      properties: { page: { margin: template.margin } },
+      headers: { default: buildPageHeader(template) },
+      footers: { default: buildPageFooter(template) },
+      children: [
+        new Paragraph({
+          heading: HeadingLevel.HEADING_1,
+          children: [run(`${titel} · ${meta.thema}`, { font: template.font, size: template.fontSize.h1, bold: true })],
+        }),
+        ...streifen,
+      ],
+    }],
+  });
+}
+
 function buildSelbsteinschaetzungDoc(
   raster: KorrekturrasterDokument,
   lernziele: string[],

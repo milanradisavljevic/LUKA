@@ -156,3 +156,17 @@ describe('bewerteDigitaleAntwortenMitPunkten', () => {
     expect(result.erreicht).toBe(1);
   });
 });
+
+describe('loesungsstreifen', () => {
+  it('liefert je geschlossener Aufgabe eine Zeile und lässt offene Aufgaben weg', async () => {
+    const { loesungsstreifen } = await import('./selbstkontrolle');
+    const offen = {
+      id: 'o-1', typ: 'offeneVerstaendnisfrage', punkte: 2, arbeitsanweisung: 'Beantworte.',
+      config: { fragen: [{ nr: 1, frage: 'Warum?', zeilen: 3, musterantwort: 'Darum.' }] },
+    } as unknown as Block;
+    const doc = { schemaVersion: '0.1.0', meta: { thema: 'T', fach: 'deutsch' }, quelltexte: [], bloecke: [offen, mcBlock] } as never;
+    expect(loesungsstreifen(doc)).toEqual([
+      { aufgabe: 'Aufgabe 2 · Multiple Choice', antworten: '1 B · 2 A, C' },
+    ]);
+  });
+});

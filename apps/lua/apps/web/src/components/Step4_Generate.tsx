@@ -36,7 +36,7 @@ interface Props {
 
 export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
   const { generate, regenerateBlock, refineQuality, pruefeLoesungen, cancel, generating, pruefend, stage, elapsedMs, aktiverProvider, error: generateError, verworfeneAusgabeTexte } = useGenerate(dispatch);
-  const { exportDocx, exportDocxOverride, exportKorrekturraster, exportKompetenzraster, exportSelbstlern, exportSelbsteinschaetzung, exportGift, exporting, error: exportError, warnung: exportWarnung, lastSavedPaths } = useExport();
+  const { exportDocx, exportDocxOverride, exportKorrekturraster, exportKompetenzraster, exportSelbstlern, exportSelbsteinschaetzung, exportLoesungsstreifen, exportGift, exporting, error: exportError, warnung: exportWarnung, lastSavedPaths } = useExport();
   const pdfExport = usePdfExport();
   const isKompetenz = state.meta.modus === 'kompetenz';
   const isSrdpDeutschTraining = state.meta.typ === 'matura' && state.meta.fach === 'deutsch' && state.meta.stufe === 'oberstufe';
@@ -763,6 +763,16 @@ export function Step4_Generate({ state, dispatch, onOpenTafel }: Props) {
                       display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
                   >
                     <FileDown size={15} /> Übung mit Lösungsteil
+                  </button>
+                  <button
+                    className="btn-secondary"
+                    onClick={() => exportLoesungsstreifen(state)}
+                    disabled={exporting || generating}
+                    title="Kurzschlüssel der geschlossenen Aufgaben, je Aufgabe ein Streifen zum Ausschneiden"
+                    style={{ padding: '0.5rem 1rem', fontSize: '0.8125rem', borderStyle: 'dashed',
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+                  >
+                    <FileDown size={15} /> Lösungsstreifen zum Ausschneiden
                   </button>
                   <button
                     className="btn-secondary"

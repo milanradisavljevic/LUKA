@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { RENDER_LAYOUTS, RENDER_TEMPLATES, pruefeRaetselA4, renderDocument, renderDocumentToBlobs, renderSelbstlernToBlob, renderSelbsteinschaetzungToBlob, type KorrekturrasterDokument } from './index.js';
+import { RENDER_LAYOUTS, RENDER_TEMPLATES, pruefeRaetselA4, renderDocument, renderDocumentToBlobs, renderSelbstlernToBlob, renderSelbsteinschaetzungToBlob, buildLoesungsstreifenDoc, type KorrekturrasterDokument } from './index.js';
 import type { DocumentV1 } from '@lehrunterlagen/schema';
 
 // ZIP magic bytes — every .docx starts with PK\x03\x04
@@ -702,3 +702,19 @@ describe('renderSelbsteinschaetzungToBlob', () => {
     expect(xml).toContain('Self-assessment');
   });
 });
+
+describe('Lösungsstreifen', () => {
+  it('druckt je Aufgabe einen gestrichelten Streifen mit Kurzschlüssel', async () => {
+    const { Packer } = await import('docx');
+    const doc = buildLoesungsstreifenDoc(
+      { thema: 'Relativsätze', fach: 'deutsch' },
+      [{ aufgabe: 'Aufgabe 1 · Lückentext', antworten: '1 der · 2 die' }],
+      RENDER_TEMPLATES.klassisch,
+    );
+    const xml = extractDocumentXml(await Packer.toBuffer(doc));
+    expect(xml).toContain('Lösungen zum Ausschneiden · Relativsätze');
+    expect(xml).toContain('1 der · 2 die');
+    expect(xml).toContain('w:val="dashed"');
+  });
+});
+
