@@ -931,14 +931,14 @@ mod tests {
             [],
         )
         .unwrap();
-        conn.execute("INSERT INTO abgabe (id,schueler_id,klasse,klasse_id,aufgabe,dateiname,datei_hash,datum) VALUES (1,1,'7A','k1','Aufsatz','a.docx','h1','2026-10-01')", []).unwrap();
+        conn.execute("INSERT INTO abgabe (id,schueler_id,klasse,klasse_id,aufgabe,dateiname,datei_hash,datum) VALUES (1,1,'7A','k1','Aufsatz','a.docx','h1','2099-10-01')", []).unwrap();
         conn.execute(
             "INSERT INTO fehler_historie (abgabe_id,typ) VALUES (1,'G')",
             [],
         )
         .unwrap();
-        conn.execute("INSERT INTO unterrichtseinsatz (id,klasse_id,klasse_name_snapshot,titel_snapshot,status,geplant_am,eingesetzt_am,created_at,updated_at) VALUES ('e0','k1','7A','Nebensatz-Einstieg','eingesetzt','2026-10-01','2026-10-01','now','now')", []).unwrap();
-        conn.execute("INSERT INTO unterrichtseinsatz (id,klasse_id,klasse_name_snapshot,titel_snapshot,status,geplant_am,created_at,updated_at) VALUES ('e1','k1','7A','Grammatik wiederholen','geplant','2026-10-15','now','now')", []).unwrap();
+        conn.execute("INSERT INTO unterrichtseinsatz (id,klasse_id,klasse_name_snapshot,titel_snapshot,status,geplant_am,eingesetzt_am,created_at,updated_at) VALUES ('e0','k1','7A','Nebensatz-Einstieg','eingesetzt','2099-10-01','2099-10-01','now','now')", []).unwrap();
+        conn.execute("INSERT INTO unterrichtseinsatz (id,klasse_id,klasse_name_snapshot,titel_snapshot,status,geplant_am,created_at,updated_at) VALUES ('e1','k1','7A','Grammatik wiederholen','geplant','2099-10-15','now','now')", []).unwrap();
         conn
     }
 
@@ -1392,7 +1392,7 @@ mod tests {
             fokus.ausgangsstunden_titel_snapshot.as_deref(),
             Some("Nebensatz-Einstieg")
         );
-        assert_eq!(fokus.ausgangsdatum_snapshot.as_deref(), Some("2026-10-01"));
+        assert_eq!(fokus.ausgangsdatum_snapshot.as_deref(), Some("2099-10-01"));
         let check = abrufcheck_erstellen_impl(
             &conn,
             AbrufCheckNeu {
@@ -1408,7 +1408,7 @@ mod tests {
         .unwrap();
 
         conn.execute(
-            "UPDATE unterrichtseinsatz SET geplant_am='2026-10-20' WHERE id='e1'",
+            "UPDATE unterrichtseinsatz SET geplant_am='2099-10-20' WHERE id='e1'",
             [],
         )
         .unwrap();
@@ -1417,11 +1417,11 @@ mod tests {
             .into_iter()
             .find(|item| item.id == check.id)
             .unwrap();
-        assert_eq!(moved.faellig_am, "2026-10-20");
+        assert_eq!(moved.faellig_am, "2099-10-20");
         assert!(moved.termin_gueltig);
 
         conn.execute(
-            "UPDATE unterrichtseinsatz SET geplant_am='2026-09-30' WHERE id='e1'",
+            "UPDATE unterrichtseinsatz SET geplant_am='2099-09-30' WHERE id='e1'",
             [],
         )
         .unwrap();
@@ -1458,7 +1458,7 @@ mod tests {
             },
         )
         .unwrap();
-        conn.execute("UPDATE abgabe SET datum='2026-10-18' WHERE id=1", [])
+        conn.execute("UPDATE abgabe SET datum='2099-10-18' WHERE id=1", [])
             .unwrap();
         let updated_focus = lernziel_fokus_bestaetigen_impl(
             &conn,
