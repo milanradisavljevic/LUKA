@@ -5,6 +5,21 @@ Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 (auch andere Coding-Agents) — siehe `AGENTS.md`.
 
+## Unveröffentlicht
+
+### Das ist neu
+
+- Neue KI-Modelle zur Auswahl: Claude Opus 5.5, Sonnet 5.5 und Haiku 5.5, GPT-6.1 Sol und GPT-6 Luna, Mistral Large 4 (Vorschau) sowie Qwen 3.8 Max und Qwen 3.7 Plus. Preise und Hinweise in der Modellauswahl sind auf dem Stand vom Oktober 2026.
+- Claude Opus 4.7 und 4.8 sowie die Kimi-Modelle lehnten Anfragen aus LUKA ab, weil ein Einstellungswert mitgeschickt wurde, den diese Modelle nicht mehr annehmen. Das ist behoben. Bei diesen Modellen und bei den neuen OpenAI-Modellen wirkt der Regler „Kreativität“ nicht mehr, das Modell verwendet seinen eigenen Standard.
+- Die Korrektur funktioniert jetzt auch mit Claude Opus 5.5 und Sonnet 5.5.
+- Ältere Modelle wie Haiku 4.5, Opus 4.7, GPT-5.4 nano oder die bisherigen Qwen-Modelle stehen nicht mehr in der Auswahl. Wer eines davon gespeichert hat, kann vorerst weiterarbeiten. Bitte bei Gelegenheit in den Einstellungen ein aktuelles Modell wählen.
+
+### Technisch
+
+- Abhängigkeiten aktualisiert: rusqlite 0.40, @tauri-apps/api 2.11.1 (passend zum Tauri-Crate), pdfjs-dist 6.4.
+- Lernziel-Tests nutzten feste Termine im Oktober 2026 als „zukünftig“ und sind seit Mitte Oktober rot. Die Testdaten sind jetzt datumsunabhängig.
+- NATASCHA: Bei Claude-Modellen, die einen erzwungenen Tool-Aufruf ablehnen, wird `tool_choice: auto` mit Anweisung im Prompt genutzt. Textantworten überspringen thinking-Blöcke. GPT-6 bekommt `max_completion_tokens`.
+
 ## Version 1.5.7 — 2026-10-09
 
 ### Das ist neu

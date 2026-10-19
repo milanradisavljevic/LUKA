@@ -76,8 +76,8 @@ describe('providerSetup', () => {
   });
 
   it('nutzt explizite Testmodelle je Provider', () => {
-    expect(getProviderTestModel('claude')).toBe('claude-haiku-4-5-20251001');
-    expect(getProviderTestModel('chatgpt')).toBe('gpt-5.4-nano');
+    expect(getProviderTestModel('claude')).toBe('claude-haiku-5-5');
+    expect(getProviderTestModel('chatgpt')).toBe('gpt-6-luna');
     expect(getProviderTestModel('mistral')).toBe('mistral-small-2603');
   });
 
@@ -86,7 +86,7 @@ describe('providerSetup', () => {
 
     expect(payload).toMatchObject({
       provider: 'anthropic',
-      model: 'claude-haiku-4-5-20251001',
+      model: 'claude-haiku-5-5',
       kreativitaet: 0,
     });
     expect(payload.messages).toEqual([

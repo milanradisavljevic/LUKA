@@ -18,6 +18,22 @@ impl OpenAiCompatAdapter {
     }
 }
 
+/// Manche Modelle legen `temperature` fest und antworten mit einem Fehler,
+/// wenn ein anderer Wert mitkommt: Kimi K2.6/K3 (fest 0.6 bzw. 1.0) und die
+/// Reasoning-Modelle von OpenAI (GPT-5.x, GPT-6.x, o-Serie). Dort bleibt der
+/// Parameter weg, das Modell nutzt seinen Standard.
+fn accepts_temperature(provider: &str, model: &str) -> bool {
+    match provider {
+        "kimi" => !model.starts_with("kimi-"),
+        "openai" => {
+            let reasoning_o = model.starts_with('o')
+                && model.chars().nth(1).map_or(false, |c| c.is_ascii_digit());
+            !(model.starts_with("gpt-5") || model.starts_with("gpt-6") || reasoning_o)
+        }
+        _ => true,
+    }
+}
+
 impl Adapter for OpenAiCompatAdapter {
     fn build_request(&self, req: &LlmRequest) -> Result<(String, Vec<(String, String)>, serde_json::Value), String> {
         let url = format!("{}/chat/completions", self.base_url);
@@ -51,7 +67,9 @@ impl Adapter for OpenAiCompatAdapter {
         let mut body_map = serde_json::Map::new();
         body_map.insert("model".to_string(), serde_json::Value::String(req.model.clone()));
         body_map.insert(token_field.to_string(), serde_json::Value::Number(16000.into()));
-        body_map.insert("temperature".to_string(), serde_json::Value::from(req.temperature));
+        if accepts_temperature(&req.provider, &req.model) {
+            body_map.insert("temperature".to_string(), serde_json::Value::from(req.temperature));
+        }
         body_map.insert("messages".to_string(), serde_json::Value::Array(messages));
 
         // JSON-Mode fuer Provider, die es unterstuetzen (OpenAI, Mistral, DeepSeek, Kimi, Qwen)
@@ -173,6 +191,32 @@ mod tests {
         let (url, _, body) = adapter.build_request(&req).unwrap();
         assert_eq!(url, "https://api.moonshot.ai/v1/chat/completions");
         assert!(body.get("response_format").is_some(), "Kimi sollte response_format haben");
+    }
+
+    #[test]
+    fn feste_temperature_modelle_ohne_temperature() {
+        for (provider, model, erwartet) in [
+            ("kimi", "kimi-k2.6", false),
+            ("kimi", "kimi-k3", false),
+            ("openai", "gpt-5.4", false),
+            ("openai", "gpt-6.1-sol", false),
+            ("openai", "o3", false),
+            ("openai", "gpt-4o", true),
+            ("mistral", "mistral-large-4", true),
+            ("deepseek", "deepseek-v4-pro", true),
+        ] {
+            let adapter = OpenAiCompatAdapter::new(provider);
+            let req = LlmRequest {
+                provider: provider.to_string(),
+                model: model.to_string(),
+                system: "System".to_string(),
+                messages: vec![],
+                temperature: 0.4,
+                api_key: "key".to_string(),
+            };
+            let (_, _, body) = adapter.build_request(&req).unwrap();
+            assert_eq!(body.get("temperature").is_some(), erwartet, "{provider}/{model}");
+        }
     }
 
     #[test]

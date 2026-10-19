@@ -3606,7 +3606,7 @@ def _call_openai_compat(
         "messages": [{"role": "user", "content": message_content}],
     }
     if base_url.rstrip("/") == "https://api.openai.com/v1" and (
-        model.startswith("gpt-5") or model.startswith("o")
+        model.startswith(("gpt-5", "gpt-6")) or model.startswith("o")
     ):
         body["max_completion_tokens"] = max_tokens
     else:
@@ -3665,7 +3665,11 @@ _MODEL_LIMITS: dict[str, dict[str, int]] = {
     "deepseek-chat": {"context": 128_000, "max_output": 16_000},
     "deepseek-v4-pro": {"context": 128_000, "max_output": 32_000},
     "deepseek-flash": {"context": 1_000_000, "max_output": 32_000},
+    "mistral-large-4": {"context": 1_000_000, "max_output": 32_000},
     # Claude
+    "claude-opus-5-5": {"context": 1_000_000, "max_output": 32_000},
+    "claude-sonnet-5-5": {"context": 1_000_000, "max_output": 32_000},
+    "claude-haiku-5-5": {"context": 1_000_000, "max_output": 32_000},
     "claude-sonnet-4-6": {"context": 200_000, "max_output": 32_000},
     "claude-opus-4-8": {"context": 200_000, "max_output": 32_000},
     "claude-haiku-4-5-20251001": {"context": 200_000, "max_output": 8_192},
@@ -3673,6 +3677,7 @@ _MODEL_LIMITS: dict[str, dict[str, int]] = {
     "gpt-5.4": {"context": 128_000, "max_output": 16_000},
     "gpt-5.4-mini": {"context": 128_000, "max_output": 16_000},
     "gpt-5.4-nano": {"context": 128_000, "max_output": 16_000},
+    "gpt-6.1-sol": {"context": 1_050_000, "max_output": 32_000},
 }
 
 # Fallback fuer unbekannte Modelle
@@ -3912,6 +3917,33 @@ def run_llm_api(
     )
 
 
+# Claude-Modelle, die tool_choice {"type": "tool"} nicht annehmen
+# (Quelle: platform.claude.com/docs/en/build-with-claude/thinking, Stand 2026-10-19).
+_CLAUDE_OHNE_ERZWUNGENEN_TOOL: tuple[str, ...] = (
+    "claude-opus-5-5",
+    "claude-sonnet-5-5",
+    "claude-fable-5-1",
+    "claude-mythos-5-1",
+)
+
+_TOOL_ANWEISUNG = (
+    "\n\nGib das Ergebnis ausschließlich über einen Aufruf des Werkzeugs "
+    "feedback_result zurück, nicht als Text."
+)
+
+
+def _mit_tool_anweisung(content: str | list) -> str | list:
+    """Hängt die Pflicht zum Tool-Aufruf an den letzten Textteil der Nachricht."""
+    if isinstance(content, str):
+        return content + _TOOL_ANWEISUNG
+    blocks = list(content)
+    if blocks and blocks[-1].get("type") == "text":
+        blocks[-1] = {**blocks[-1], "text": blocks[-1]["text"] + _TOOL_ANWEISUNG}
+    else:
+        blocks.append({"type": "text", "text": _TOOL_ANWEISUNG.strip()})
+    return blocks
+
+
 def run_anthropic_api(
     prompt: str,
     model: str,
@@ -3957,7 +3989,13 @@ def run_anthropic_api(
             "description": "Bewertungsergebnis der Schülerarbeit als strukturiertes JSON",
             "input_schema": tool_schema,
         }]
-        call_kwargs["tool_choice"] = {"type": "tool", "name": "feedback_result"}
+        if model.startswith(_CLAUDE_OHNE_ERZWUNGENEN_TOOL):
+            # Diese Modelle denken immer mit und lehnen einen erzwungenen
+            # Tool-Aufruf mit HTTP 400 ab; der Aufruf wird im Prompt verlangt.
+            call_kwargs["tool_choice"] = {"type": "auto"}
+            call_kwargs["messages"][0]["content"] = _mit_tool_anweisung(message_content)
+        else:
+            call_kwargs["tool_choice"] = {"type": "tool", "name": "feedback_result"}
 
     try:
         response = client.messages.create(**call_kwargs)
@@ -3977,8 +4015,12 @@ def run_anthropic_api(
                                 )
                     return json.dumps(result, ensure_ascii=False)
             return "FEHLER: Kein Tool-Use-Block in Antwort"
-        if response.content and len(response.content) > 0:
-            return response.content[0].text
+        # Neuere Claude-Modelle liefern vor dem Text eigene thinking-Blöcke.
+        text = "\n".join(
+            block.text for block in response.content if getattr(block, "type", None) == "text"
+        )
+        if text:
+            return text
         return "FEHLER: Leere Antwort"
     except Exception as e:
         if cancel_event is not None and cancel_event.is_set():

@@ -39,7 +39,7 @@ export const PROVIDER_ONBOARDING: Record<LlmProvider, ProviderOnboardingInfo> = 
     shortReason: 'Sehr gute Qualität für komplexe Aufgaben.',
     privacyHint: 'US-Anbieter, keine DSGVO-Garantie.',
     costHint: 'Teurer als Mistral/DeepSeek, stark bei anspruchsvollen Texten.',
-    testModel: 'claude-haiku-4-5-20251001',
+    testModel: 'claude-haiku-5-5',
   },
   chatgpt: {
     setupUrl: 'https://platform.openai.com/api-keys',
@@ -47,7 +47,7 @@ export const PROVIDER_ONBOARDING: Record<LlmProvider, ProviderOnboardingInfo> = 
     shortReason: 'Bekannter Allrounder mit guter Qualität.',
     privacyHint: 'US-Anbieter, keine DSGVO-Garantie.',
     costHint: 'Je nach Modell mittlere bis höhere Kosten.',
-    testModel: 'gpt-5.4-nano',
+    testModel: 'gpt-6-luna',
   },
   deepseek: {
     setupUrl: 'https://platform.deepseek.com/api_keys',
@@ -71,7 +71,7 @@ export const PROVIDER_ONBOARDING: Record<LlmProvider, ProviderOnboardingInfo> = 
     shortReason: 'Stark bei langen Kontexten und mehrsprachigen Aufgaben.',
     privacyHint: 'Chinesischer Anbieter, nur für selbst verfasste Inhalte.',
     costHint: 'Günstig bis mittel, abhängig vom Modell.',
-    testModel: 'qwen3.5-plus',
+    testModel: 'qwen3.7-plus',
   },
   kimi: {
     setupUrl: 'https://platform.moonshot.ai/console/api-keys',

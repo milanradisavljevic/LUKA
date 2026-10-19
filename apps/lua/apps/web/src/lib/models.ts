@@ -1,6 +1,6 @@
 /**
  * Modell-Metadaten fuer die LLM-Auswahl.
- * Preise sind verifizierte USD-Betraege pro 1 Mio Token (Stand 2026-06-01).
+ * Preise sind USD-Betraege pro 1 Mio Token (Stand 2026-10-19).
  * Quellen als Kommentar bei jedem Modell.
  */
 
@@ -21,20 +21,43 @@ export interface ModelInfo {
 
 export const MODELS: ModelInfo[] = [
   // --- Anthropic Claude ---
-  // Quelle: https://www.anthropic.com/pricing, Stand 2026-06-01
+  // Quelle: https://platform.claude.com/docs/en/about-claude/pricing, Stand 2026-10-19
+  // Claude 4.7 und neuer akzeptieren kein eigenes temperature; der Adapter
+  // lässt den Parameter dort weg.
   {
-    label: 'Opus 4.8',
-    apiName: 'claude-opus-4-8',
+    label: 'Opus 5.5',
+    apiName: 'claude-opus-5-5',
     provider: 'claude',
-    staerken: ['Höchste Qualität', 'Komplexe Aufgaben', 'Lange Kontexte'],
-    kostenInputProMioToken: 5,
-    kostenOutputProMioToken: 25,
+    staerken: ['Höchste Qualität', 'Komplexe Aufgaben', 'Lange Kontexte (1M)'],
+    kostenInputProMioToken: 4,
+    kostenOutputProMioToken: 20,
     region: 'USA (Anthropic)',
     datenschutz: 'US-Anbieter — keine DSGVO-Garantie',
   },
   {
-    label: 'Opus 4.7',
-    apiName: 'claude-opus-4-7',
+    label: 'Sonnet 5.5',
+    apiName: 'claude-sonnet-5-5',
+    provider: 'claude',
+    staerken: ['Gutes Preis-Leistungs-Verhältnis', 'Schnell', 'Vielseitig'],
+    kostenInputProMioToken: 2,
+    kostenOutputProMioToken: 10,
+    region: 'USA (Anthropic)',
+    datenschutz: 'US-Anbieter — keine DSGVO-Garantie',
+  },
+  {
+    // Preis gilt bis 100.000 Token Prompt; darüber 0,50 / 2,50 USD.
+    label: 'Haiku 5.5',
+    apiName: 'claude-haiku-5-5',
+    provider: 'claude',
+    staerken: ['Sehr schnell', 'Sehr günstig', 'Einfache Aufgaben'],
+    kostenInputProMioToken: 0.1,
+    kostenOutputProMioToken: 0.5,
+    region: 'USA (Anthropic)',
+    datenschutz: 'US-Anbieter — keine DSGVO-Garantie',
+  },
+  {
+    label: 'Opus 4.8',
+    apiName: 'claude-opus-4-8',
     provider: 'claude',
     staerken: ['Sehr hohe Qualität', 'Ausgefeiltes Reasoning'],
     kostenInputProMioToken: 5,
@@ -46,31 +69,41 @@ export const MODELS: ModelInfo[] = [
     label: 'Sonnet 4.6',
     apiName: 'claude-sonnet-4-6',
     provider: 'claude',
-    staerken: ['Gutes Preis-Leistungs-Verhältnis', 'Schnell', 'Vielseitig'],
+    staerken: ['Bewährt', 'Schnell', 'Vielseitig'],
     kostenInputProMioToken: 3,
     kostenOutputProMioToken: 15,
     region: 'USA (Anthropic)',
     datenschutz: 'US-Anbieter — keine DSGVO-Garantie',
   },
-  {
-    label: 'Haiku 4.5',
-    apiName: 'claude-haiku-4-5-20251001',
-    provider: 'claude',
-    staerken: ['Sehr schnell', 'Günstig', 'Einfache Aufgaben'],
-    kostenInputProMioToken: 1,
-    kostenOutputProMioToken: 5,
-    region: 'USA (Anthropic)',
-    datenschutz: 'US-Anbieter — keine DSGVO-Garantie',
-  },
 
   // --- OpenAI ---
-  // Quelle: https://platform.openai.com/docs/pricing, Stand 2026-06-01
-  // GPT-5.4 ist der Nachfolger von GPT-4o, Preisstruktur aktualisiert.
+  // Quelle: https://developers.openai.com/api/docs/pricing, Stand 2026-10-19
+  // GPT-5.4 nano ist abgekündigt (Abschaltung 2027-04-01, Nachfolger GPT-6 Luna).
+  {
+    label: 'GPT-6.1 Sol',
+    apiName: 'gpt-6.1-sol',
+    provider: 'chatgpt',
+    staerken: ['Multimodal', 'Starkes Reasoning', 'Lange Kontexte'],
+    kostenInputProMioToken: 2,
+    kostenOutputProMioToken: 10,
+    region: 'USA (OpenAI)',
+    datenschutz: 'US-Anbieter — keine DSGVO-Garantie',
+  },
+  {
+    label: 'GPT-6 Luna',
+    apiName: 'gpt-6-luna',
+    provider: 'chatgpt',
+    staerken: ['Sehr schnell', 'Sehr günstig', 'Bulk-Aufgaben'],
+    kostenInputProMioToken: 0.1,
+    kostenOutputProMioToken: 0.5,
+    region: 'USA (OpenAI)',
+    datenschutz: 'US-Anbieter — keine DSGVO-Garantie',
+  },
   {
     label: 'GPT-5.4',
     apiName: 'gpt-5.4',
     provider: 'chatgpt',
-    staerken: ['Multimodal', 'Schnell', 'Gute Allrounder-Qualität'],
+    staerken: ['Bewährt', 'Gute Allrounder-Qualität'],
     kostenInputProMioToken: 2.5,
     kostenOutputProMioToken: 15,
     region: 'USA (OpenAI)',
@@ -83,16 +116,6 @@ export const MODELS: ModelInfo[] = [
     staerken: ['Schnell', 'Günstig', 'Einfache Aufgaben'],
     kostenInputProMioToken: 0.75,
     kostenOutputProMioToken: 4.5,
-    region: 'USA (OpenAI)',
-    datenschutz: 'US-Anbieter — keine DSGVO-Garantie',
-  },
-  {
-    label: 'GPT-5.4 nano',
-    apiName: 'gpt-5.4-nano',
-    provider: 'chatgpt',
-    staerken: ['Sehr schnell', 'Sehr günstig', 'Bulk-Aufgaben'],
-    kostenInputProMioToken: 0.2,
-    kostenOutputProMioToken: 1.25,
     region: 'USA (OpenAI)',
     datenschutz: 'US-Anbieter — keine DSGVO-Garantie',
   },
@@ -123,7 +146,19 @@ export const MODELS: ModelInfo[] = [
   },
 
   // --- Mistral ---
-  // Quelle: https://docs.mistral.ai/models/model-cards/mistral-small-4-0-26-03, Stand 2026-07-10
+  // Quelle: https://docs.mistral.ai/inference/pricing, Stand 2026-10-19
+  // Mistral Large 4 (v26.10) ist seit 2026-10-06 als öffentliche Vorschau verfügbar.
+  // Listenpreis eingetragen; Mistral gewährt zum Start zeitlich begrenzt 50 % Rabatt.
+  {
+    label: 'Mistral Large 4',
+    apiName: 'mistral-large-4',
+    provider: 'mistral',
+    staerken: ['Neues Spitzenmodell (Vorschau)', 'Multimodal', 'Langer Kontext (1M)'],
+    kostenInputProMioToken: 1.36,
+    kostenOutputProMioToken: 4.18,
+    region: 'EU (Mistral, Frankreich)',
+    datenschutz: 'EU-Anbieter — Datenschutzbedingungen des Kontos prüfen',
+  },
   {
     label: 'Mistral Medium 3.5',
     apiName: 'mistral-medium-3-5',
@@ -146,26 +181,26 @@ export const MODELS: ModelInfo[] = [
   },
 
   // --- Qwen (Alibaba Cloud / DashScope) ---
-  // Quelle: https://www.alibabacloud.com/help/en/model-studio/getting-started/models, Stand 2026-06-01
-  // Preise: Global Deployment (Virginia/Frankfurt). Qwen 3.7 Max ist ein aktives Modell.
-  // Die API-Namen können von den offiziellen Doku-Namen abweichen.
+  // Quelle Modellnamen: https://www.alibabacloud.com/help/en/model-studio/getting-started/models,
+  // Stand 2026-10-19. Die Übersicht nennt qwen3.8-max und qwen3.7-plus als aktuelle Flaggschiffe.
+  // Preise (international) laut Drittquellen, offizielle Preisseite vor Freigabe prüfen.
   {
-    label: 'Qwen 3.7 Max',
-    apiName: 'qwen3-max',
+    label: 'Qwen 3.8 Max',
+    apiName: 'qwen3.8-max',
     provider: 'qwen',
-    staerken: ['Starke Qualität', 'Lange Kontexte', 'Chinesisch/Englisch'],
-    kostenInputProMioToken: 0.359,
-    kostenOutputProMioToken: 1.434,
+    staerken: ['Starke Qualität', 'Lange Kontexte (1M)', 'Chinesisch/Englisch'],
+    kostenInputProMioToken: 2,
+    kostenOutputProMioToken: 6,
     region: 'China (Alibaba Cloud)',
     datenschutz: 'Chinesischer Anbieter — nur für selbst verfasste Inhalte',
   },
   {
-    label: 'Qwen 3.5 Plus',
-    apiName: 'qwen3.5-plus',
+    label: 'Qwen 3.7 Plus',
+    apiName: 'qwen3.7-plus',
     provider: 'qwen',
     staerken: ['Gutes Preis-Leistungs-Verhältnis', 'Vielseitig'],
-    kostenInputProMioToken: 0.115,
-    kostenOutputProMioToken: 0.688,
+    kostenInputProMioToken: 0.4,
+    kostenOutputProMioToken: 1.6,
     region: 'China (Alibaba Cloud)',
     datenschutz: 'Chinesischer Anbieter — nur für selbst verfasste Inhalte',
   },

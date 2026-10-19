@@ -384,32 +384,30 @@ class SettingsScreen(ModalScreen[None]):
             ("DeepSeek V4.1 Flash (günstiger, auch Vision)", "deepseek-flash"),
         ],
         "mistral": [
-            ("mistral-small-latest (empfohlen, Text)", "mistral-small-latest"),
-            ("mistral-large-latest (stärker, Text)", "mistral-large-latest"),
+            ("Mistral Medium 3.5 (empfohlen)", "mistral-medium-3-5"),
+            ("Mistral Large 4 (Vorschau, stärker)", "mistral-large-4"),
+            ("Mistral Small 4 (günstig)", "mistral-small-2603"),
         ],
         "qwen": [
-            ("qwen-plus (stabil, empfohlen)", "qwen-plus"),
-            ("qwen3.6-plus (aktuell, wenn freigeschaltet)", "qwen3.6-plus"),
-            ("qwen3-max (hohe Qualität, wenn freigeschaltet)", "qwen3-max"),
-            ("qwen-turbo (schnell und günstig)", "qwen-turbo"),
+            ("qwen3.7-plus (empfohlen)", "qwen3.7-plus"),
+            ("qwen3.8-max (hohe Qualität)", "qwen3.8-max"),
+            ("qwen3.8-flash (schnell und günstig)", "qwen3.8-flash"),
         ],
         "kimi": [
-            ("moonshot-v1-8k (kein Vision)", "moonshot-v1-8k"),
-            ("moonshot-v1-32k (kein Vision)", "moonshot-v1-32k"),
+            ("kimi-k2.6 (empfohlen)", "kimi-k2.6"),
+            ("kimi-k3 (stärker, teurer)", "kimi-k3"),
         ],
         "openai": [
-            ("gpt-4o (Vision: Bilder, stabil)", "gpt-4o"),
-            ("gpt-4o-mini (Vision: Bilder, günstig)", "gpt-4o-mini"),
-            ("gpt-4.1 (Vision: Bilder, falls Account freigeschaltet)", "gpt-4.1"),
-            ("gpt-4.1-mini (Vision: Bilder, falls Account freigeschaltet)", "gpt-4.1-mini"),
-            ("gpt-5.2 (experimentell, Account abhängig)", "gpt-5.2"),
-            ("gpt-5.1 (experimentell, Account abhängig)", "gpt-5.1"),
-            ("gpt-5 (experimentell, Account abhängig)", "gpt-5"),
+            ("gpt-6.1-sol (aktuell, Text)", "gpt-6.1-sol"),
+            ("gpt-6-luna (günstig, Text)", "gpt-6-luna"),
+            ("gpt-5.4 (Text)", "gpt-5.4"),
+            ("gpt-4o (Vision: Bilder, abgekündigt bis 2027-01)", "gpt-4o"),
         ],
         "anthropic": [
+            ("claude-sonnet-5-5 (Vision: Bilder+PDF)", "claude-sonnet-5-5"),
+            ("claude-opus-5-5 (Vision: Bilder+PDF)", "claude-opus-5-5"),
+            ("claude-haiku-5-5 (Vision: Bilder+PDF, günstig)", "claude-haiku-5-5"),
             ("claude-sonnet-4-6 (Vision: Bilder+PDF)", "claude-sonnet-4-6"),
-            ("claude-opus-4-6 (Vision: Bilder+PDF)", "claude-opus-4-6"),
-            ("claude-haiku-4-5-20251001 (Vision: Bilder+PDF)", "claude-haiku-4-5-20251001"),
         ],
         "ollama": [
             ("qwen3.5:27b (27B, empfohlen, kein Vision)", "qwen3.5:27b"),
@@ -1591,7 +1589,7 @@ class ErwartungshorizontGeneratorScreen(ModalScreen[bool]):
             yield Label("LLM-Provider:")
             yield Select(options=self._PROVIDERS, value=safe_prov, id="eh-provider")
             yield Label("Modell (leer = Config-Default):")
-            yield Input(value=cur_model, placeholder="z. B. claude-opus-4-20250514", id="eh-model")
+            yield Input(value=cur_model, placeholder="z. B. claude-sonnet-5-5", id="eh-model")
             yield Label("Vorschau:")
             with VerticalScroll(id="eh-preview-scroll"):
                 yield Markdown("*(Noch nicht generiert)*", id="eh-preview")

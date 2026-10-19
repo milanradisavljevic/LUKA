@@ -117,11 +117,29 @@ cd apps/natascha && python3 seed_testdaten.py && python3 natascha_bridge.py TEST
   nutzt einen Hydrate-Cache mit SQLite-Persistenz und Browser/localStorage-
   Fallback. NATASCHA bleibt Schema-Eigentümer; LUA spiegelt das NATASCHA-Schema
   additiv und reicht für Headless-Sidecar-Aufrufe immer `--db-path` weiter.
-- **Phase 3 — Native Korrektur-UI: RELEASE-KANDIDAT.** Die Korrektur ist als
-  nativer React-Arbeitsbereich integriert; der Python-Core läuft als headless
-  Sidecar. Gemeinsame Datenbank, Korrekturgrundlage, Rubrik-Kontext,
-  Feedback-DOCX und Closed-Loop-Folgeübung sind implementiert. Die TUI bleibt
-  als technischer Fallback in den erweiterten Einstellungen.
-- **Nächster Gate:** v1.2.0 dokumentieren, lokal/CI verifizieren und den
-  installierten Windows-/macOS-Pfad mit synthetischen Daten abnehmen. Erst
-  danach folgen Pilotfeedback und weitere Fachpakete/Lehrpläne.
+- **Phase 3 — Native Korrektur-UI: DONE (Releases 1.2 bis 1.5.x).** Die
+  Korrektur ist als nativer React-Arbeitsbereich integriert; der Python-Core
+  läuft als headless Sidecar. Gemeinsame Datenbank, Korrekturgrundlage,
+  Rubrik-Kontext, Feedback-DOCX und Closed-Loop-Folgeübung sind implementiert.
+  Die TUI bleibt als technischer Fallback in den erweiterten Einstellungen.
+- **Aktueller Stand (2026-10):** Releases laufen über Tags `vX.Y.Z` und
+  `.github/workflows/release.yml`; der jeweils oberste CHANGELOG-Abschnitt ist
+  die Update-Notiz. Nächste Schritte: Pilotfeedback von Lehrkräften,
+  installierter Windows-/macOS-Pfad mit synthetischen Daten, weitere
+  Fachpakete/Lehrpläne.
+
+## KI-Modelle pflegen
+
+Modelle und Preise ändern sich mehrmals pro Jahr. Bei einer Aktualisierung
+alle Stellen gemeinsam anpassen:
+
+- `apps/lua/apps/web/src/lib/models.ts` (Metadaten, Preise, Quellen-Kommentar
+  mit Datum), `runtimeModel.ts` (`MODEL_MAP`, Altnamen für gespeicherte
+  Einstellungen behalten), `constants.ts` (`LLM_PROVIDERS`, Auswahl) und
+  `providerSetup.ts` (`testModel`, günstigstes Modell je Anbieter).
+- Parameter-Regeln in `apps/lua/src-tauri/src/adapters/*.rs`: Claude 4.7+,
+  Kimi K2.6/K3 und OpenAI-Reasoning-Modelle bekommen kein `temperature`.
+- NATASCHA: `_MODEL_LIMITS` und `_CLAUDE_OHNE_ERZWUNGENEN_TOOL` in
+  `natascha_core.py`, TUI-Listen in `natascha.py`.
+- `apps/lua/packages/llm/src/provider-*.ts` ist nur für Node-Skripte/Smoke-Tests
+  und nicht der Pfad der Desktop-App.

@@ -47,8 +47,9 @@ pub async fn test_provider_connection(
         return Err("Kein API-Schlüssel angegeben.".to_string());
     }
 
-    // Kimi K2.6 akzeptiert nur temperature=0.6.
-    let temperature = if provider == "kimi" { 0.6 } else { 0.0 };
+    // Modelle mit fester temperature (Kimi, OpenAI-Reasoning, Claude 4.7+)
+    // bekommen den Wert vom Adapter gar nicht erst mitgeschickt.
+    let temperature = 0.0;
     let req = LlmRequest {
         provider: provider.clone(),
         model,
