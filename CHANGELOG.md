@@ -20,6 +20,8 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 - Die Korrektur funktioniert jetzt auch mit Claude Opus 5.5 und Sonnet 5.5.
 - Ältere Modelle wie Haiku 4.5, Opus 4.7, GPT-5.4 nano oder die bisherigen Qwen-Modelle stehen nicht mehr in der Auswahl. Wer eines davon gespeichert hat, kann vorerst weiterarbeiten. Bitte bei Gelegenheit in den Einstellungen ein aktuelles Modell wählen.
 
+- Fächer ohne eigenes Hintergrundmotiv (auch Mathematik und Biologie) zeigen jetzt das Bleistift-Stillleben mit dem aufgeschlagenen Buch statt der gezeichneten Feder und des Kompasses.
+
 ### Technisch
 
 - Abhängigkeiten aktualisiert: rusqlite 0.40, @tauri-apps/api 2.11.1 (passend zum Tauri-Crate), pdfjs-dist 6.4.
