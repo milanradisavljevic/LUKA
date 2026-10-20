@@ -476,6 +476,8 @@ export const LueckentextBlockSchema = BlockBaseSchema.extend({
       wortbank: z.boolean(),
       distraktoren: z.number().int().min(0),
       distraktorWoerter: z.array(z.string().min(1)).optional(),
+      // Hilfe wie im Schulbuch: Anfangsbuchstabe je Wort vor der Lücke ("a______").
+      anfangsbuchstaben: z.boolean().optional(),
     })
     .refine(
       (c) => !(c.wortbank && c.distraktoren < 1),
@@ -489,6 +491,17 @@ export const LueckentextBlockSchema = BlockBaseSchema.extend({
 });
 
 export type LueckentextBlock = z.infer<typeof LueckentextBlockSchema>;
+
+/**
+ * Lücke mit Anfangsbuchstaben je Wort: "agree" → "a________",
+ * "take place" → "t______ p______". Leere Lösung → nur die Linie.
+ */
+export function lueckeMitAnfangsbuchstaben(wort: string | undefined): string {
+  const woerter = (wort ?? '').trim().split(/\s+/).filter(Boolean);
+  if (woerter.length === 0) return '__________';
+  const linie = woerter.length === 1 ? '__________' : '______';
+  return woerter.map((w) => `${[...w][0] ?? ''}${linie}`).join(' ');
+}
 
 // ---------------------------------------------------------------------------
 // Block: matching

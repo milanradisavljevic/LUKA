@@ -6,6 +6,7 @@ import { getBlockLabel } from '../lib/blockDefaults';
 import {
   bereiteParallelversionVor,
   findeWiederverwendung,
+  istWortschatzUnterlage,
   type ParallelBezeichnung,
 } from '../lib/parallelversion';
 
@@ -48,6 +49,9 @@ export function ParallelversionPanel({ state, dispatch }: Props) {
   );
   const [busy, setBusy] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
+  const [gleicherWortschatz, setGleicherWortschatz] = useState(
+    () => (state.generiertesDokument ? istWortschatzUnterlage(state.generiertesDokument) : false),
+  );
   const dokument = state.generiertesDokument;
   if (!dokument) return null;
 
@@ -56,7 +60,9 @@ export function ParallelversionPanel({ state, dispatch }: Props) {
     setFehler(null);
     try {
       await sichereOriginal(state);
-      const { snapshot, brauchtNeuenQuelltext } = bereiteParallelversionVor(state, dokument, bezeichnung);
+      const { snapshot, brauchtNeuenQuelltext } = bereiteParallelversionVor(
+        state, dokument, bezeichnung, gleicherWortschatz ? 'wortschatz' : 'standard',
+      );
       dispatch({ type: 'LOAD_SNAPSHOT', snapshot, documentId: null });
       if (brauchtNeuenQuelltext) dispatch({ type: 'SET_STEP', step: 'input' });
     } catch {
@@ -99,6 +105,17 @@ export function ParallelversionPanel({ state, dispatch }: Props) {
               </span>
             </label>
           ))}
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.55rem', fontSize: '0.8125rem', cursor: 'pointer', lineHeight: 1.4 }}>
+            <input type="checkbox" checked={gleicherWortschatz} onChange={(e) => setGleicherWortschatz(e.target.checked)}
+              style={{ width: 16, height: 16, flexShrink: 0, margin: '0.1rem 0 0', padding: 0, accentColor: 'var(--color-accent)' }} />
+            <span>
+              <strong>Gleicher Wortschatz</strong>
+              <span style={{ display: 'block', color: 'var(--color-text-secondary)', fontSize: '0.75rem' }}>
+                Für Vokabelübungen: dieselben Wörter und Wendungen in neuen Sätzen. Ohne Häkchen bleibt das Phänomen
+                (z. B. die Grammatik), die Wörter sind neu.
+              </span>
+            </span>
+          </label>
           {textModus && (
             <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', margin: 0, lineHeight: 1.45 }}>
               Diese Unterlage beruht auf einem Quelltext. Du landest zuerst bei den Quelltexten: Ersetze dort den
@@ -141,15 +158,23 @@ export function WiederverwendungsHinweis({ state }: { state: AppState }) {
         background: 'var(--color-bg-subtle, transparent)', lineHeight: 1.6,
       }}
     >
-      <strong>Inhalte aus dem Original wiederholt.</strong>{' '}
-      Erstelle diese Aufgaben in der Vorschau neu, wenn sie sich klar vom Original unterscheiden sollen:
+      <strong>Bitte prüfen.</strong>{' '}
+      Die neue Version weicht hier von der Vorgabe ab. Erstelle die Aufgabe in der Vorschau neu oder passe sie an:
       <ul style={{ margin: '0.25rem 0 0', paddingLeft: '1.1rem' }}>
         {treffer.map((t) => {
           const block = state.generiertesDokument!.bloecke.find((b) => b.id === t.blockId);
           return (
             <li key={t.blockId}>
-              {block ? getBlockLabel(block.typ) : t.blockId}: {t.inhalte.slice(0, 3).map((s) => `„${s}“`).join(', ')}
-              {t.inhalte.length > 3 ? ` und ${t.inhalte.length - 3} weitere` : ''}
+              {block ? getBlockLabel(block.typ) : t.blockId}:{' '}
+              {t.inhalte.length > 0 && (
+                <>wiederholt {t.inhalte.slice(0, 3).map((s) => `„${s}“`).join(', ')}
+                  {t.inhalte.length > 3 ? ` und ${t.inhalte.length - 3} weitere` : ''}</>
+              )}
+              {t.inhalte.length > 0 && t.fehlend && '; '}
+              {t.fehlend && (
+                <>es fehlen {t.fehlend.slice(0, 6).map((s) => `„${s}“`).join(', ')}
+                  {t.fehlend.length > 6 ? ` und ${t.fehlend.length - 6} weitere` : ''}</>
+              )}
             </li>
           );
         })}

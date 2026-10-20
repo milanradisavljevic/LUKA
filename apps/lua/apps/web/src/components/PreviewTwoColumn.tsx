@@ -171,6 +171,16 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
   // zurueckgespiegelt, damit sie nicht beim naechsten Erstellen verloren geht.
   const aendereEinstellung = (blockId: string, patch: Partial<Block>) => {
     dispatch({ type: 'UPDATE_GENERIERTER_BLOCK', id: blockId, block: patch });
+    // Druckoption des Lückentexts ebenfalls in den Baukasten spiegeln.
+    const config = (patch as { config?: Record<string, unknown> }).config;
+    if (config && 'anfangsbuchstaben' in config) {
+      dispatch({
+        type: 'SET_BLOECKE',
+        bloecke: state.bloecke.map((b) => (b.id === blockId && b.typ === 'lueckentext'
+          ? { ...b, config: { ...b.config, anfangsbuchstaben: config.anfangsbuchstaben as boolean | undefined } }
+          : b)),
+      });
+    }
     if (patch.punkte === undefined && patch.hinweis === undefined) return;
     const werte: SpiegelbareWerte = {};
     if (patch.punkte !== undefined) werte.punkte = patch.punkte;

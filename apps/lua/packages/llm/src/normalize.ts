@@ -47,6 +47,13 @@ function normalizeLueckentext(block: AnyObj): AnyObj {
     delete (config as AnyObj).fragen;
   }
 
+  // config.anfangsbuchstaben: "true"/"false" → Boolean, sonst weglassen
+  if (typeof config.anfangsbuchstaben === 'string') {
+    config.anfangsbuchstaben = config.anfangsbuchstaben.trim().toLowerCase() === 'true';
+  } else if (config.anfangsbuchstaben !== undefined && typeof config.anfangsbuchstaben !== 'boolean') {
+    delete (config as AnyObj).anfangsbuchstaben;
+  }
+
   // config.anzahlLuecken: String → Number
   if (typeof config.anzahlLuecken === 'string') {
     const n = parseInt(config.anzahlLuecken, 10);

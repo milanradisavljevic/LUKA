@@ -6,7 +6,7 @@
 
 import type { Block } from '@lehrunterlagen/schema';
 import { BLOCK_ARBEITSANWEISUNG_PLACEHOLDER } from '../lib/blockDefaults';
-import { istParallelBlock } from '../lib/parallelversion';
+import { istParallelBlock, istWortschatzBlock } from '../lib/parallelversion';
 
 interface Props {
   block: Block;
@@ -76,7 +76,9 @@ export function BlockTextfelder({ block, onChange, marginBottom }: Props) {
         )}
         <span style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)' }}>
           {istParallelBlock(block)
-            ? 'Neue Version: Die KI übernimmt die Aufgabenart und vermeidet die aufgelisteten Inhalte des Originals.'
+            ? (istWortschatzBlock(block)
+              ? 'Neue Version (Wortschatz): Die KI verwendet die aufgelisteten Zielwörter in neuen Sätzen.'
+              : 'Neue Version: Die KI übernimmt die Aufgabenart und vermeidet die aufgelisteten Inhalte des Originals.')
             : 'Individuelle Vorgabe für diesen Block (z.B. Kreuzwort-Quellen)'}
         </span>
       </div>

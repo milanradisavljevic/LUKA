@@ -130,3 +130,20 @@ describe('buildJudgeConfig', () => {
     });
   });
 });
+
+describe('uebernimmDruckoptionen', () => {
+  it('übernimmt die Anfangsbuchstaben-Hilfe aus dem Baukasten, auch wenn das Modell sie nicht zurückgibt', async () => {
+    const { uebernimmDruckoptionen } = await import('./useGenerate');
+    const vorgabe = {
+      id: 'b1', typ: 'lueckentext', punkte: 2, arbeitsanweisung: 'x',
+      config: { anzahlLuecken: 1, wortbank: false, distraktoren: 0, anfangsbuchstaben: true },
+      loesung: { luecken: [] },
+    } as never;
+    const erzeugt = {
+      schemaVersion: '0.1.0', meta: {}, quelltexte: [],
+      bloecke: [{ id: 'b1', typ: 'lueckentext', punkte: 2, arbeitsanweisung: 'x', config: { anzahlLuecken: 1, wortbank: false, distraktoren: 0 }, loesung: { luecken: [] } }],
+    } as never;
+    const ergebnis = uebernimmDruckoptionen([vorgabe], erzeugt) as { bloecke: { config: { anfangsbuchstaben?: boolean } }[] };
+    expect(ergebnis.bloecke[0]!.config.anfangsbuchstaben).toBe(true);
+  });
+});

@@ -97,11 +97,11 @@ describe('BlockConfigPanel — Ergebnisansicht blendet Anforderungsfelder aus', 
     expect(out).toContain('Baum');
   });
 
-  it('lueckentext: gar keine Zaehler, weil nur der erzeugte Text zaehlt', () => {
+  it('lueckentext: keine Zaehler, nur die Anfangsbuchstaben-Hilfe (wirkt auf den Druck)', () => {
     const out = html(lueckentext, 'ergebnis');
     expect(out).not.toContain('Anzahl Lücken');
     expect(out).not.toContain('Wortbank');
-    expect(out.trim()).toBe('');
+    expect(out).toContain('Anfangsbuchstaben vorgeben');
   });
 
   it('multipleChoice: die erzeugten Fragen und Optionen bleiben editierbar', () => {

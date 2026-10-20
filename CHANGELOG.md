@@ -9,6 +9,8 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ### Das ist neu
 
+- **Vokabelblätter als Vorlage:** Lädst du ein Vokabelblatt hoch, behält die neue Version jetzt die Wörter und Wendungen der Unit und baut nur neue Sätze. Bisher hat die KI einen eigenen Wortschatz erfunden. Einzelne Sätze bleiben einzelne Sätze, statt zu einer langen Geschichte zu werden. Fehlt in der neuen Version ein Wort, weist LUKA darauf hin. Für eigene Unterlagen gibt es dafür das Häkchen „Gleicher Wortschatz“.
+- **Anfangsbuchstaben im Lückentext:** Lücken können wie im Schulbuch mit dem ersten Buchstaben jedes Worts gedruckt werden (z. B. „a______“, „t______ p______“). Die Option steht im Baukasten und in den Einstellungen neben der Vorschau; beim Hochladen wird sie übernommen, wenn das Original Anfangsbuchstaben hat.
 - **Neues Fach: Deutsch als Fremdsprache (DaF).** Unterlagen entstehen vollständig auf Deutsch, die Arbeitsanweisungen sind eine Niveaustufe einfacher als die Aufgaben, und die Bewertungsraster folgen dem Fremdsprachen-Schema. Die Korrektur bewertet DaF-Arbeiten nach dem Sprachniveau der Lernenden statt nach muttersprachlichem Maßstab.
 - **Neue Version mit anderem Inhalt:** Aus einer fertigen Unterlage entsteht mit einem Klick eine neue Fassung mit denselben Aufgabenarten und Punkten, aber neuen Sätzen und Inhalten, zum Beispiel als Gruppe B oder für einen Nachschreibtermin. Im Baukasten lassen sich vorher Aufgaben ergänzen oder streichen. Wiederholt die KI Inhalte des Originals, zeigt LUKA einen Hinweis.
 - **Mehr davon:** Jede Aufgabe in der Vorschau hat einen Knopf „Mehr davon“. Er fügt direkt darunter eine weitere Aufgabe derselben Art mit neuem Inhalt ein, etwa als Zusatzblatt für Schnelle.

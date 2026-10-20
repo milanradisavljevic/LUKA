@@ -932,3 +932,15 @@ describe('Deutsch als Fremdsprache', () => {
     expect(user).toContain('ARBEITSANWEISUNGEN EINE NIVEAUSTUFE EINFACHER');
   });
 });
+
+describe('Parallelversion Wortschatz', () => {
+  it('hat Vorrang vor Kontext-Einbettung und verlangt die Zielwörter', () => {
+    const meta = { stufe: 'unterstufe', fach: 'englisch', thema: 'Unit 1', datum: '2026-10-20', klasse: '', notizen: '', modus: 'kompetenz', freieKompetenz: 'Unit 1' } as Meta;
+    const msgs = buildMessages({ meta, quelltexte: [], bloecke: [{ typ: 'lueckentext', punkte: 2, anzahlLuecken: 2, wortbank: false, distraktoren: 0, hinweis: 'PARALLELVERSION (WORTSCHATZ): …' }] });
+    const user = msgs.find((m) => m.role === 'user')!.content;
+    const system = msgs.find((m) => m.role === 'system')!.content;
+    expect(user).toContain('MUSS jedes unter "Zielwoerter" genannte Wort');
+    expect(user).toContain('Vorrang vor KONTEXT-EINBETTUNG');
+    expect(system).toContain('ausser eine PARALLELVERSION gibt die Form vor');
+  });
+});

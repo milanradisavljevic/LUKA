@@ -5,6 +5,8 @@ import {
   bereiteParallelBlockVor,
   bereiteParallelversionVor,
   findeWiederverwendung,
+  istWortschatzUnterlage,
+  zielwoerterAusHinweis,
   fuegeNachEin,
   mehrDavonBlock,
   istParallelBlock,
@@ -117,5 +119,29 @@ describe('parallelversion', () => {
     expect(istParallelBlock(neu)).toBe(true);
     expect(fuegeNachEin([lueckentext, kreuzwort], 'b1', neu).map((b) => b.id)).toEqual(['b1', 'b2-mehr', 'b2']);
     expect(fuegeNachEin([lueckentext], 'fehlt', neu).map((b) => b.id)).toEqual(['b1', 'b2-mehr']);
+  });
+
+  it('Wortschatz: Zielwörter dürfen wiederkommen, fehlende Zielwörter und kopierte Sätze werden gemeldet', () => {
+    const vokabel = {
+      ...lueckentext,
+      text: 'When does the concert (1)?\nI like all sports (2) golf.',
+      loesung: { luecken: [{ nr: 1, wort: 'take place' }, { nr: 2, wort: 'apart from' }] },
+    } as unknown as Block;
+    const angefordert = [bereiteParallelBlockVor(vokabel, 'wortschatz')];
+    expect(zielwoerterAusHinweis(angefordert[0]!.hinweis)).toEqual(['take place', 'apart from']);
+    const neu = dokument([{
+      ...vokabel,
+      text: 'The match will (1) on Sunday.\nI like all sports (2) golf.',
+      loesung: { luecken: [{ nr: 1, wort: 'take place' }, { nr: 2, wort: 'except' }] },
+    } as unknown as Block]);
+    expect(findeWiederverwendung(angefordert, neu)).toEqual([
+      { blockId: 'b1', inhalte: ['I like all sports (2) golf.'], fehlend: ['apart from'] },
+    ]);
+  });
+
+  it('erkennt Vokabelblätter am Titel oder an reinen Wort-Aufgaben', () => {
+    expect(istWortschatzUnterlage({ ...dokument([lueckentext]), meta: { ...getDefaultMeta(), thema: 'Vocabulary Unit 1' } } as DocumentV1)).toBe(true);
+    expect(istWortschatzUnterlage(dokument([kreuzwort]))).toBe(true);
+    expect(istWortschatzUnterlage({ ...dokument([lueckentext]), meta: { ...getDefaultMeta(), thema: 'Relativsätze' } } as DocumentV1)).toBe(false);
   });
 });

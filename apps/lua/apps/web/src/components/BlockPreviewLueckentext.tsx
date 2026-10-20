@@ -1,5 +1,5 @@
 import type { Block } from '@lehrunterlagen/schema';
-import { shuffle } from '@lehrunterlagen/schema';
+import { lueckeMitAnfangsbuchstaben, shuffle } from '@lehrunterlagen/schema';
 
 interface Props {
   block: Block;
@@ -44,6 +44,9 @@ export function BlockPreviewLueckentext({ block, showSolution, solutionStep, onU
     solutionStep !== undefined ? index < solutionStep : showSolution;
 
   const wortFuer = (nr: number) => luecken.find((l: { nr: number; wort: string }) => l.nr === nr)?.wort;
+  // Leere Lücke wie im Druck: mit Anfangsbuchstaben, wenn die Option gesetzt ist.
+  const leereLuecke = (nr: number) =>
+    config.anfangsbuchstaben ? lueckeMitAnfangsbuchstaben(wortFuer(nr)) : '______';
 
   // Wortbank wie im DOCX-Export: Lösungswörter (+ Distraktoren-Liste), seed-stabil
   // gemischt mit seed = block.id — vorher stand sie hier wie gedruckt in der
@@ -87,7 +90,7 @@ export function BlockPreviewLueckentext({ block, showSolution, solutionStep, onU
                 </span>
               ) : (
                 <span key={i} style={{ textDecoration: 'underline', paddingLeft: '0.25rem', paddingRight: '0.25rem', minWidth: 80, display: 'inline-block' }}>
-                  &nbsp;______&nbsp;
+                  &nbsp;{leereLuecke(seg.nr)}&nbsp;
                 </span>
               )
             ) : (
@@ -106,7 +109,7 @@ export function BlockPreviewLueckentext({ block, showSolution, solutionStep, onU
                 </span>
               ) : (
                 <span style={{ textDecoration: 'underline', paddingLeft: '0.25rem', minWidth: 80, display: 'inline-block' }}>
-                  &nbsp;{'______'}&nbsp;
+                  &nbsp;{leereLuecke(i + 1)}&nbsp;
                 </span>
               )}
             </span>

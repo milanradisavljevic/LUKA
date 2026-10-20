@@ -773,7 +773,7 @@ DIDAKTISCHER RAHMEN (Pflicht — macht aus Bloecken ein komponiertes Arbeitsblat
   "transferaufgabe": Eine kurze freie Produktionsaufgabe zum Abschluss, die die geuebte Struktur auf die eigene Lebenswelt der Schuelerin uebertraegt. Beginne mit "Your turn:". Gib 3-5 konkrete Bullet Points als Scaffolding vor. Forder explizit: mindestens einen Satz pro trainierter Zeitform/Struktur, je eine verneinte Form und mindestens einen Zeitmarker pro Zeitform.
 }
 
-ROTER FADEN (Pflicht): Erfinde EIN konkretes Szenario mit einer benannten Person (z. B. Emilys Londonreise) und ziehe es durch ALLE Bloecke: Block 1 = Emilys Postkarte, Block 2 = Saetze aus ihrem Reisetagebuch, Block 3 = ihre Freundin fragt nach, Block 4 = korrigiere die Nachricht ihres kleinen Bruders. Die Bloecke erzaehlen zusammen EINE Geschichte — keine beziehungslosen Beispielsammlungen. Der Szenariobezug steht jeweils in der "arbeitsanweisung".
+ROTER FADEN (Pflicht, ausser eine PARALLELVERSION gibt Einzelsaetze vor): Erfinde EIN konkretes Szenario mit einer benannten Person (z. B. Emilys Londonreise) und ziehe es durch ALLE Bloecke: Block 1 = Emilys Postkarte, Block 2 = Saetze aus ihrem Reisetagebuch, Block 3 = ihre Freundin fragt nach, Block 4 = korrigiere die Nachricht ihres kleinen Bruders. Die Bloecke erzaehlen zusammen EINE Geschichte — keine beziehungslosen Beispielsammlungen. Der Szenariobezug steht jeweils in der "arbeitsanweisung".
 
 BEISPIEL-ITEM: Gib bei geeigneten Bloecken (umformung, fehlerkorrektur, lueckentext sofern sinnvoll) im Feld "beispiel" (Block-Ebene, String) EIN vorgemachtes Item im Format "0. <Aufgabe>  →  <Loesung>", das die Aufgabenstellung demonstriert. Das Beispiel zaehlt NICHT zu den nummerierten Items.
 
@@ -787,7 +787,7 @@ PRINT-ANGEMESSENE KATEGORISIERUNG/MATCHING: Kategorisierung und Matching muessen
 
 UMFORMUNG VERBOTEN: Der Blocktyp "umformung" ist im Kompetenz-Modus nicht erlaubt. Verwende stattdessen "fehlerkorrektur", "lueckentext", "kategorisierung" oder "matching", um die Zielstruktur zu trainieren.
 
-KONTEXT-EINBETTUNG (nicht verhandelbar): Isolierte, zusammenhanglose Einzelsaetze sind UNERWUENSCHT — sie wirken wie aus dem Grammatik-Anhang. Bette JEDEN Block in einen zusammenhaengenden, lebensnahen Kontext ein:
+KONTEXT-EINBETTUNG (nicht verhandelbar, ausser eine PARALLELVERSION gibt die Form vor): Isolierte, zusammenhanglose Einzelsaetze sind UNERWUENSCHT — sie wirken wie aus dem Grammatik-Anhang. Bette JEDEN Block in einen zusammenhaengenden, lebensnahen Kontext ein:
 - Waehle eine zur Kompetenz und zum Niveau passende Textsorte: Dialog/Gespraech, Brief/E-Mail, Tagebucheintrag, kurze Erzaehlung, Chat-Verlauf, Bericht.
 - Wenn KEIN "thema" vorgegeben ist, ERFINDE selbst ein konkretes, alltagsnahes Szenario (z. B. Urlaubsbrief, Gespraech am Bahnhof, Tagesablauf) — die Lehrkraft muss das NICHT liefern.
 - Die einzelnen Saetze/Aufgaben eines Blocks gehoeren zu EINEM durchgehenden Szenario und ergeben zusammen einen sinnvollen Zusammenhang (eine kleine Geschichte, ein Dialog, ein Brief), NICHT 5 beziehungslose Saetze.
@@ -1007,7 +1007,13 @@ const PARALLEL_HINWEIS =
   + 'trainierten grammatischen Zielelemente selbst (z. B. Relativpronomen, Zeitformen). Waehle ein anderes Szenario '
   + 'mit anderen Namen und Orten. Bloecke OHNE diesen Hinweis sind Zusatzaufgaben der Lehrkraft: Sie trainieren '
   + 'dasselbe Lernziel und passen zum neuen Szenario. Uebt das Original Funktionswoerter (Artikel, Pronomen, '
-  + 'Praepositionen), darfst du genau diese wieder als Luecken setzen; das gleiche Phaenomen hat hier Vorrang. ';
+  + 'Praepositionen), darfst du genau diese wieder als Luecken setzen; das gleiche Phaenomen hat hier Vorrang. '
+  + 'WORTSCHATZ: Steht im Hinweis "PARALLELVERSION (WORTSCHATZ)", ist der Wortschatz das Lernziel. Dann MUSS jedes '
+  + 'unter "Zielwoerter" genannte Wort bzw. jede Wendung wieder als Loesung vorkommen, genau einmal und in derselben Form '
+  + '(Wendungen wie "take place" als eine Luecke). Neu sind nur die Saetze und Kontexte; uebernimm keinen Originalsatz. '
+  + 'FORM: Behalte die Form des Originals. Einzelne nummerierte Saetze bleiben einzelne Saetze (im "text" je Satz eine Zeile, '
+  + 'getrennt durch Zeilenumbruch), ein zusammenhaengender Text bleibt ein Text. Diese Regel hat Vorrang vor KONTEXT-EINBETTUNG '
+  + 'und ROTER FADEN. Halte den Merkkasten kurz (hoechstens zwei Items) und verwende keine Emojis. ';
 
 /**
  * Muster-Import: ein hochgeladenes Arbeitsblatt (Text aus DOCX/PDF) wird
@@ -1022,6 +1028,7 @@ Du lieferst AUSSCHLIESSLICH ein JSON-Objekt der Form { "erkannt": { ... }, "bloe
 "erkannt" = {
   "thema": kurzer Titel der Unterlage (z. B. "Relativsaetze"),
   "kompetenz": was geuebt wird, moeglichst konkret (z. B. "Relativsaetze mit der/die/das im Nominativ und Akkusativ"),
+  "art": "wortschatz" (Vokabel-/Wortschatzblatt: die Loesungswoerter sind das Lernziel), "grammatik", "lesen" oder "gemischt",
   "lesetext": der vollstaendige Lese- oder Ausgangstext, falls das Blatt einen enthaelt, sonst null
 }
 
@@ -1033,6 +1040,8 @@ REGELN:
 - Gibt es einen Lesetext, beziehen sich Bloecke mit Textbezug ueber "quelleId": "q1" darauf.
 - Blocktyp "umformung" ist nur erlaubt, wenn ein Lesetext vorliegt. Sonst bilde Umformungsaufgaben als "lueckentext" (Ausgangssatz plus Luecke fuer die umgeformte Form) oder als "fehlerkorrektur" ab.
 - Erfinde keine Aufgaben, die nicht auf dem Blatt stehen.
+- Besteht eine Aufgabe aus einzelnen nummerierten Saetzen, schreibe im "text" je Satz eine eigene Zeile (getrennt durch Zeilenumbruch), nicht einen Fliesstext.
+- Gibt das Blatt Anfangsbuchstaben vor (z. B. "a______" oder "t______ p______"), setze beim lueckentext "config.anfangsbuchstaben": true. Im "text" steht dann nur der Marker (n) ohne Buchstaben; die Loesung ist das ganze Wort bzw. die ganze Wendung (z. B. "take place" als EINE Luecke).
 
 ${BLOCK_REGELN}`;
   return [

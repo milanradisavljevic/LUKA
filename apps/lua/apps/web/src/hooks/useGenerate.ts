@@ -57,6 +57,24 @@ const PROVIDER_MAP = {
 // Modellnamen werden mit der Korrektur gemeinsam aufgelöst.
 
 
+/**
+ * Druckoptionen, die nur die Lehrkraft setzt (nicht das Modell), aus dem
+ * Baukasten in das erzeugte Dokument übernehmen. Sonst hinge z. B. die
+ * Anfangsbuchstaben-Hilfe davon ab, ob das Modell das Feld zurückspiegelt.
+ */
+export function uebernimmDruckoptionen(vorgaben: Block[], dokument: DocumentV1): DocumentV1 {
+  const mitBuchstaben = new Set(vorgaben
+    .filter((b) => b.typ === 'lueckentext' && b.config.anfangsbuchstaben === true)
+    .map((b) => b.id));
+  if (mitBuchstaben.size === 0) return dokument;
+  return {
+    ...dokument,
+    bloecke: dokument.bloecke.map((b) => (b.typ === 'lueckentext' && mitBuchstaben.has(b.id)
+      ? { ...b, config: { ...b.config, anfangsbuchstaben: true } }
+      : b)),
+  };
+}
+
 export function blockToRequest(block: Block): BlockRequest {
   const base = { punkte: block.punkte, quelleId: block.quelleId, hinweis: block.hinweis };
   switch (block.typ) {
@@ -430,7 +448,10 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
       // Immer der gewählte Anbieter — kein stiller Wechsel (auch nicht bei Transportfehlern).
       setAktiverProvider(providerId);
       try {
-        const document = await runAttempts(providerId, apiModel, input, state, undefined, judgeCfg);
+        const document = uebernimmDruckoptionen(
+          state.bloecke,
+          await runAttempts(providerId, apiModel, input, state, undefined, judgeCfg),
+        );
         dispatch({ type: 'SET_GENERIERTES_DOKUMENT', dokument: document });
         // Das Dokument landet im Wizard-Zustand. Wer es kopieren will - etwa um
         // es direkt zu speichern, ohne den Wizard zu öffnen - bekommt es hier.
@@ -508,7 +529,7 @@ export function useGenerate(dispatch: React.Dispatch<AppAction>) {
       // Aufgabe und ihre Arbeitsanweisung kommen dagegen neu vom Modell — genau
       // darum wird diese Funktion ja aufgerufen.
       const neuMitId = {
-        ...neu,
+        ...uebernimmDruckoptionen([ziel], { ...doc, bloecke: [{ ...neu, id: blockId }] }).bloecke[0]!,
         id: blockId,
         punkte: ziel.punkte,
         hinweis: ziel.hinweis,

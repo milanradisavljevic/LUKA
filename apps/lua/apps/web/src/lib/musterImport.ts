@@ -17,11 +17,17 @@ import { bereiteParallelversionVor, type ParallelVorbereitung } from './parallel
  * im Baukasten ergänzbar.
  */
 
+export type MusterArt = 'wortschatz' | 'grammatik' | 'lesen' | 'gemischt';
+
 export interface MusterErkennung {
   thema: string;
   kompetenz: string;
   lesetext: string | null;
+  /** Bei "wortschatz" bleiben die Zielwörter, nur die Sätze werden neu. */
+  art: MusterArt;
 }
+
+const MUSTER_ARTEN: readonly MusterArt[] = ['wortschatz', 'grammatik', 'lesen', 'gemischt'];
 
 export interface MusterImportErgebnis {
   dokument: DocumentV1;
@@ -42,9 +48,15 @@ export function leseErkennung(raw: string): MusterErkennung {
     const parsed = JSON.parse(extractJson(raw)) as { erkannt?: Record<string, unknown> };
     const erkannt = parsed?.erkannt ?? {};
     const lesetext = text(erkannt.lesetext);
-    return { thema: text(erkannt.thema), kompetenz: text(erkannt.kompetenz), lesetext: lesetext || null };
+    const art = text(erkannt.art).toLowerCase() as MusterArt;
+    return {
+      thema: text(erkannt.thema),
+      kompetenz: text(erkannt.kompetenz),
+      lesetext: lesetext || null,
+      art: MUSTER_ARTEN.includes(art) ? art : 'gemischt',
+    };
   } catch {
-    return { thema: '', kompetenz: '', lesetext: null };
+    return { thema: '', kompetenz: '', lesetext: null, art: 'gemischt' };
   }
 }
 
@@ -98,5 +110,6 @@ export function musterAlsParallelversion(
     { ...state, auftrag: null, meta: ergebnis.dokument.meta, quelltexte: ergebnis.dokument.quelltexte },
     ergebnis.dokument,
     'keine',
+    ergebnis.erkannt.art === 'wortschatz' ? 'wortschatz' : 'standard',
   );
 }

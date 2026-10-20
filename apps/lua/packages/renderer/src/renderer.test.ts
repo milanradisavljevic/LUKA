@@ -718,3 +718,31 @@ describe('Lösungsstreifen', () => {
   });
 });
 
+
+describe('Lückentext mit Anfangsbuchstaben', () => {
+  const doc = (anfangsbuchstaben?: boolean): DocumentV1 => ({
+    schemaVersion: '0.1.0',
+    meta: { stufe: 'unterstufe', fach: 'englisch', thema: 'Unit 1', datum: '2026-10-20', klasse: '', notizen: '' },
+    quelltexte: [],
+    bloecke: [{
+      id: 'b1', typ: 'lueckentext', punkte: 2, arbeitsanweisung: 'Complete the sentences.',
+      text: 'I couldn’t (1) more.\nWhen does the concert (2)?',
+      config: { anzahlLuecken: 2, wortbank: false, distraktoren: 0, ...(anfangsbuchstaben ? { anfangsbuchstaben } : {}) },
+      loesung: { luecken: [{ nr: 1, wort: 'agree' }, { nr: 2, wort: 'take place' }] },
+    }],
+  } as DocumentV1);
+
+  it('setzt den Anfangsbuchstaben jedes Worts vor die Linie', async () => {
+    const { schueler } = await renderDocument(doc(true));
+    const xml = extractDocumentXml(schueler);
+    expect(xml).toContain('(1) a__________');
+    expect(xml).toContain('(2) t______ p______');
+  });
+
+  it('zeigt ohne Option nur die Linie', async () => {
+    const { schueler } = await renderDocument(doc());
+    const xml = extractDocumentXml(schueler);
+    expect(xml).toContain('(1) __________');
+    expect(xml).not.toContain('a__________');
+  });
+});

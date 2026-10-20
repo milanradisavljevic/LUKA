@@ -28,7 +28,7 @@ import { RENDER_TEMPLATES, getDefaultTemplate } from './template.js';
 import type { RenderLayout, RenderLayoutId } from './layout.js';
 import { RENDER_LAYOUTS, getDefaultLayout } from './layout.js';
 import { pruefeRaetselA4 } from './puzzleLayout.js';
-import { baueWortbank, shuffle, baueKreuzwortgitter, baueWortgitter, bereinigeQuelltext, fachLabel as fachLabelOf } from '@lehrunterlagen/schema';
+import { baueWortbank, shuffle, baueKreuzwortgitter, baueWortgitter, bereinigeQuelltext, fachLabel as fachLabelOf, lueckeMitAnfangsbuchstaben } from '@lehrunterlagen/schema';
 
 const DEFAULT_TEMPLATE = RENDER_TEMPLATES.klassisch;
 
@@ -1003,7 +1003,7 @@ function buildMerkkasten(merkkasten: NonNullable<DocumentV1['didaktik']>['merkka
     }
     if (item.tip) {
       right.push(run(' ', { font: template.font, size: template.fontSize.body }));
-      right.push(run('💡 Tip: ', { font: template.font, size: template.fontSize.body, bold: true }));
+      right.push(run('Tip: ', { font: template.font, size: template.fontSize.body, bold: true }));
       right.push(...runWithItalics(item.tip, {}, template));
     }
 
@@ -1929,7 +1929,12 @@ function buildLueckentext(
     if (mode === 'schueler') {
       // Inline-Marker (1),(2)… in eine sichtbare Schreiblinie verwandeln, falls der
       // Text nicht ohnehin schon Unterstriche enthaelt.
-      const text = block.text!.replace(/\((\d+)\)(?!\s*_)/g, '($1) __________');
+      const mitBuchstaben = block.config.anfangsbuchstaben === true;
+      const text = block.text!.replace(/\((\d+)\)(?!\s*_)/g, (_m, nr: string) => {
+        if (!mitBuchstaben) return `(${nr}) __________`;
+        const wort = block.loesung.luecken.find((l) => l.nr === Number(nr))?.wort;
+        return `(${nr}) ${lueckeMitAnfangsbuchstaben(wort)}`;
+      });
       result.push(
         new Paragraph({
           children: [run(text, { font: template.font, size: template.fontSize.body })],

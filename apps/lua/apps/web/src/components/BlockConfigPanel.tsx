@@ -45,7 +45,8 @@ const NUR_ANFORDERUNG = new Set([
 ]);
 
 /** Ganz ohne Ergebnis-Einstellungen: der Renderer liest bei diesen Typen kein config. */
-const OHNE_ERGEBNIS_EINSTELLUNGEN = new Set(['lueckentext', 'offeneSchreibaufgabe']);
+// Lückentext zeigt im Ergebnis nur die Anfangsbuchstaben-Hilfe (wirkt auf den Druck).
+const OHNE_ERGEBNIS_EINSTELLUNGEN = new Set(['offeneSchreibaufgabe']);
 
 function ConfigField({ label, feld, error, hinweis, children }: {
   label: string; feld?: string; error?: string; hinweis?: string; children: React.ReactNode;
@@ -112,6 +113,21 @@ function BlockConfigPanelAnsicht({ block, stufe, onConfigChange }: Props) {
       if (wortbank && distraktoren < 1) e.distraktoren = 'Wenn Wortbank aktiv ist, muss es mindestens 1 Distraktor geben.';
       return e;
     }, [wortbank, distraktoren]);
+    const anfangsbuchstabenFeld = (
+      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8125rem', marginBottom: '0.75rem', cursor: 'pointer' }}>
+        <input type="checkbox" checked={config.anfangsbuchstaben === true}
+          onChange={(e) => set('anfangsbuchstaben', e.target.checked || undefined)}
+          style={{ width: 16, height: 16, margin: 0, padding: 0, accentColor: 'var(--color-accent)' }} />
+        Anfangsbuchstaben vorgeben (z. B. a______)
+      </label>
+    );
+    if (ansicht === 'ergebnis') {
+      return (
+        <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
+          {anfangsbuchstabenFeld}
+        </div>
+      );
+    }
 
     return (
       <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
@@ -120,6 +136,7 @@ function BlockConfigPanelAnsicht({ block, stufe, onConfigChange }: Props) {
           <input type="number" min={1} value={config.anzahlLuecken as number ?? 6}
             onChange={(e) => set('anzahlLuecken', parseInt(e.target.value) || 1)} />
         </ConfigField>
+        {anfangsbuchstabenFeld}
         <ConfigField feld="wortbank" label="Wortbank">
           <select value={wortbank ? 'true' : 'false'}
             disabled={!wortbankAllowed}
