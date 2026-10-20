@@ -1,9 +1,23 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import { execSync } from 'child_process';
+
+// Git-Kurz-Hash für die Versionsanzeige im Dev-Build: macht sichtbar, welcher
+// Stand gerade läuft (die Versionsnummer ändert sich nur bei Releases).
+function gitCommit(): string {
+  try {
+    return execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+  } catch {
+    return '';
+  }
+}
 
 export default defineConfig({
   plugins: [react()],
+  define: {
+    __GIT_COMMIT__: JSON.stringify(gitCommit()),
+  },
   server: {
     strictPort: true,
   },
