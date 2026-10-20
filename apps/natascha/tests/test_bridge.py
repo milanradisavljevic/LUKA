@@ -31,6 +31,8 @@ def test_fachnormalisierung_erhaelt_sprach_und_sachfaecher() -> None:
     assert nb._normalize_fach("Geschichte") == "geschichte"
     assert nb._normalize_fach("Französisch") == "franzoesisch"
     assert nb._normalize_fach("Informatik und Künstliche Intelligenz") == "informatikki"
+    assert nb._normalize_fach("DaF") == "daf"
+    assert nb._normalize_fach("Deutsch als Fremdsprache") == "daf"
     assert nb._normalize_fach("unbekannt") is None
 
 

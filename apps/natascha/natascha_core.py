@@ -839,6 +839,14 @@ def _sprachfach_prompt_hinweis(fach: str, textsorte: str) -> str:
     nicht stillschweigend auf Deutsch oder Englisch zurückfallen.
     """
     fach_key = (fach or "").strip().lower()
+    if fach_key in ("daf", "deutsch als fremdsprache"):
+        return (
+            "SPRACHFACH-HINWEIS: Dies ist Deutsch als Fremdsprache (DaF). Bewerte nach dem "
+            "GER-Niveau der Lernenden und nicht nach muttersprachlichem Maßstab. Prüfe insbesondere "
+            "Wortstellung (Verbzweitstellung, Satzklammer, Nebensatz), Kasus und Artikel, Verbformen, "
+            "Präpositionen und Wortschatz. Formuliere Erklärungen und Lehrerfeedback in einfachem, "
+            "klarem Deutsch.\n"
+        )
     if fach_key.startswith(("franz", "fran")):
         sprache = "Französisch"
         zusatz = "Akzente, Genus/Numerus, Verbformen und französische Textsortenmerkmale"
@@ -3258,6 +3266,8 @@ def kanonisches_fach(fach: str) -> str:
         return "Deutsch"
     if lower == "englisch":
         return "Englisch"
+    if lower in ("daf", "deutsch als fremdsprache"):
+        return "DaF"
     return f[0].upper() + f[1:]
 
 

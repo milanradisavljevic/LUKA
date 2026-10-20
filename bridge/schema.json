@@ -17,7 +17,7 @@
     "fach": {
       "type": "string",
       "enum": [
-        "deutsch", "englisch", "franzoesisch", "spanisch", "italienisch", "latein",
+        "deutsch", "englisch", "franzoesisch", "spanisch", "italienisch", "latein", "daf",
         "geschichte", "geographie", "religion", "ethik", "psychologie", "philosophie",
         "mediendemokratie", "informatikki"
       ]

@@ -43,6 +43,8 @@ export function schulstufeLabel(s: number, land?: Land): string {
 export const FachSchema = z.enum([
   // Sprachfächer (Inhalt in der Zielsprache; CEFR/Vokabel-Logik)
   'deutsch', 'englisch', 'franzoesisch', 'spanisch', 'italienisch', 'latein',
+  // Deutsch als Fremdsprache: Sprachfach mit Zielsprache Deutsch (CEFR-Logik, einfache Anweisungen).
+  'daf',
   // Sachfächer (deutschsprachig, textbasiert)
   'geschichte', 'geographie', 'religion', 'ethik', 'psychologie', 'philosophie',
   // Neue AHS-Pflichtfächer ab 2026/27 (Nationalratsbeschluss 07.07.2026) — Lehrplan-
@@ -59,6 +61,7 @@ export const FACH_META: Record<Fach, { label: string; sprachfach: boolean; ziels
   spanisch:    { label: 'Spanisch',    sprachfach: true,  zielsprache: 'Spanisch' },
   italienisch: { label: 'Italienisch', sprachfach: true,  zielsprache: 'Italienisch' },
   latein:      { label: 'Latein',      sprachfach: true,  zielsprache: 'Latein' },
+  daf:         { label: 'Deutsch als Fremdsprache', sprachfach: true, zielsprache: 'Deutsch' },
   geschichte:  { label: 'Geschichte',  sprachfach: false, zielsprache: 'Deutsch' },
   geographie:  { label: 'Geographie',  sprachfach: false, zielsprache: 'Deutsch' },
   religion:    { label: 'Religion',    sprachfach: false, zielsprache: 'Deutsch' },
@@ -325,6 +328,7 @@ export const KOMPETENZBEREICHE: Record<Fach, string[]> = {
   spanisch:    ['Hören', 'Lesen', 'An Gesprächen teilnehmen', 'Zusammenhängend sprechen', 'Schreiben', 'Sprachmittlung', 'Grammatik', 'Wortschatz'],
   italienisch: ['Hören', 'Lesen', 'An Gesprächen teilnehmen', 'Zusammenhängend sprechen', 'Schreiben', 'Sprachmittlung', 'Grammatik', 'Wortschatz'],
   latein:      ['Sprachkompetenz', 'Textkompetenz', 'Kulturkompetenz'],
+  daf:         ['Hören', 'Lesen', 'An Gesprächen teilnehmen', 'Zusammenhängend sprechen', 'Schreiben', 'Grammatik', 'Wortschatz'],
   geschichte:  ['Historische Fragekompetenz', 'Historische Methodenkompetenz', 'Historische Orientierungskompetenz', 'Historische Sachkompetenz', 'Politische Bildung'],
   geographie:  ['Wahrnehmungs- & Orientierungskompetenz', 'Methodenkompetenz', 'Synthesekompetenz', 'Wirtschaftliche Bildung'],
   religion:    ['Wahrnehmen & Verstehen', 'Deuten & Urteilen', 'Reflektieren & Kommunizieren', 'Gestalten & Handeln'],

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AlertTriangle, CheckCircle2, Check, Circle, CopyPlus, Pencil, RefreshCw, Settings2, FileText, KeyRound, Database, Lightbulb } from 'lucide-react';
-import { istSprachfach, fachLabel } from '@lehrunterlagen/schema';
+import { fachLabel } from '@lehrunterlagen/schema';
 import { RENDER_LAYOUTS, RENDER_TEMPLATES, anzeigeQuelltext, getDefaultLayout, getDefaultTemplate, pruefeRaetselA4 } from '@lehrunterlagen/renderer';
 import type { RenderLayout, RenderTemplate } from '@lehrunterlagen/renderer';
 import type { Block } from '@lehrunterlagen/schema';
@@ -238,8 +238,8 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
   const zeigePunkte = meta.punkteAusblenden !== true && gesamtPunkte > 0;
 
   // Schülerkopf (Name/Klasse/Datum) + Aufgabenübersicht — spiegelt das DOCX-Layout.
-  // Beschriftungen folgen der Fachsprache, damit Vorschau = fremdsprachiger Export ist.
-  const isEnglish = istSprachfach(meta.fach);
+  // Englische Beschriftungen nur bei Englisch, wie im DOCX-Renderer (Vorschau = Export).
+  const isEnglish = meta.fach === 'englisch';
   const L = isEnglish
     ? { klasse: 'Class:', datum: 'Date:', uebersicht: 'Overview', nr: 'No.', aufgabe: 'Exercise', punkte: 'Points', gesamt: 'TOTAL', note: 'Grade:', unterschrift: 'Signature:' }
     : { klasse: 'Klasse:', datum: 'Datum:', uebersicht: 'Aufgabenübersicht', nr: 'Nr.', aufgabe: 'Aufgabe', punkte: 'Punkte', gesamt: 'GESAMT', note: 'Note:', unterschrift: 'Unterschrift:' };
@@ -368,7 +368,7 @@ export function PreviewTwoColumn({ state, dispatch, judge }: Props) {
 
   const renderTransferaufgabe = () => {
     if (!didaktik?.transferaufgabe?.trim()) return null;
-    const isEnglish = istSprachfach(meta.fach);
+    const isEnglish = meta.fach === 'englisch';
     const title = isEnglish ? 'Your turn:' : 'Zum Schluss – jetzt du!';
     const text = didaktik.transferaufgabe.trim().replace(/^Your turn:\s*/i, '').replace(/^Zum Schluss – jetzt du!\s*/i, '');
     return (

@@ -296,6 +296,7 @@ const SUBJECT_ATMOSPHERES: Record<Fach, SubjectAtmosphereSpec> = {
       },
     ],
   },
+  daf: SCHREIBTISCH_ATMOSPHERE,
   mathematik: SCHREIBTISCH_ATMOSPHERE,
   biologie: SCHREIBTISCH_ATMOSPHERE,
 };

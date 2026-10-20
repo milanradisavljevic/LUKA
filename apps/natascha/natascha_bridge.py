@@ -60,6 +60,8 @@ def _normalize_fach(fach: str | None) -> str | None:
         "spanisch": "spanisch",
         "italienisch": "italienisch",
         "latein": "latein",
+        "daf": "daf",
+        "deutsch als fremdsprache": "daf",
         "geschichte": "geschichte",
         "geographie": "geographie",
         "geo": "geographie",
@@ -73,7 +75,7 @@ def _normalize_fach(fach: str | None) -> str | None:
         "informatikki": "informatikki",
     }
     erlaubte_faecher = {
-        "deutsch", "englisch", "franzoesisch", "spanisch", "italienisch", "latein",
+        "deutsch", "englisch", "franzoesisch", "spanisch", "italienisch", "latein", "daf",
         "geschichte", "geographie", "religion", "ethik", "psychologie", "philosophie",
         "mediendemokratie", "informatikki",
     }

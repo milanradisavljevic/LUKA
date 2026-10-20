@@ -9,6 +9,7 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 
 ### Das ist neu
 
+- **Neues Fach: Deutsch als Fremdsprache (DaF).** Unterlagen entstehen vollständig auf Deutsch, die Arbeitsanweisungen sind eine Niveaustufe einfacher als die Aufgaben, und die Bewertungsraster folgen dem Fremdsprachen-Schema. Die Korrektur bewertet DaF-Arbeiten nach dem Sprachniveau der Lernenden statt nach muttersprachlichem Maßstab.
 - **Neue Version mit anderem Inhalt:** Aus einer fertigen Unterlage entsteht mit einem Klick eine neue Fassung mit denselben Aufgabenarten und Punkten, aber neuen Sätzen und Inhalten, zum Beispiel als Gruppe B oder für einen Nachschreibtermin. Im Baukasten lassen sich vorher Aufgaben ergänzen oder streichen. Wiederholt die KI Inhalte des Originals, zeigt LUKA einen Hinweis.
 - **Mehr davon:** Jede Aufgabe in der Vorschau hat einen Knopf „Mehr davon“. Er fügt direkt darunter eine weitere Aufgabe derselben Art mit neuem Inhalt ein, etwa als Zusatzblatt für Schnelle.
 - **Exit-Ticket und Wiederholungsblatt aus der Planung:** An jeder geplanten Stunde gibt es zwei neue Knöpfe. „Exit-Ticket“ bereitet 3 bis 5 kurze Fragen zum Stundenthema vor. „Wiederholungsblatt“ sammelt die Themen derselben Klasse aus den sechs Wochen davor, etwa vor einer Schularbeit. Beide brauchen keinen Quelltext und hängen sich nach dem Speichern an die Stunde.
@@ -20,7 +21,7 @@ Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 - Die Korrektur funktioniert jetzt auch mit Claude Opus 5.5 und Sonnet 5.5.
 - Ältere Modelle wie Haiku 4.5, Opus 4.7, GPT-5.4 nano oder die bisherigen Qwen-Modelle stehen nicht mehr in der Auswahl. Wer eines davon gespeichert hat, kann vorerst weiterarbeiten. Bitte bei Gelegenheit in den Einstellungen ein aktuelles Modell wählen.
 
-- Fächer ohne eigenes Hintergrundmotiv (auch Mathematik und Biologie) zeigen jetzt das Bleistift-Stillleben mit dem aufgeschlagenen Buch statt der gezeichneten Feder und des Kompasses.
+- Fächer ohne eigenes Hintergrundmotiv (DaF, Mathematik, Biologie) zeigen jetzt das Bleistift-Stillleben mit dem aufgeschlagenen Buch statt der gezeichneten Feder und des Kompasses.
 
 ### Technisch
 

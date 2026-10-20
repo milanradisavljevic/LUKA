@@ -922,3 +922,13 @@ describe('buildMessages — lokale Herkunftsangaben bleiben aus dem Prompt (Date
     expect(text).toContain('Für der Klasse heute');
   });
 });
+
+describe('Deutsch als Fremdsprache', () => {
+  it('erzeugt deutschsprachige Inhalte mit vereinfachten Arbeitsanweisungen', () => {
+    const meta = { stufe: 'unterstufe', fach: 'daf', thema: 'Einkaufen', datum: '2026-10-20', klasse: '', notizen: '', modus: 'kompetenz', freieKompetenz: 'Akkusativ' } as Meta;
+    const user = buildMessages({ meta, quelltexte: [], bloecke: [] }).find((m) => m.role === 'user')!.content;
+    expect(user).toContain('Deutsch als Fremdsprache-Unterlage');
+    expect(user).toContain('MUSS auf Deutsch sein');
+    expect(user).toContain('ARBEITSANWEISUNGEN EINE NIVEAUSTUFE EINFACHER');
+  });
+});

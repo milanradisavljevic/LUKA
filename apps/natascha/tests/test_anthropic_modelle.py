@@ -65,3 +65,10 @@ def test_tool_anweisung_haengt_an_letzten_textblock():
     assert out[-1]["text"].startswith("Prompt")
     assert "feedback_result" in out[-1]["text"]
     assert blocks[-1]["text"] == "Prompt"
+
+
+def test_daf_ist_eigenes_sprachfach():
+    assert nc.kanonisches_fach("daf") == "DaF"
+    hinweis = nc._sprachfach_prompt_hinweis("DaF", "E-Mail")
+    assert "Deutsch als Fremdsprache" in hinweis
+    assert "GER-Niveau" in hinweis

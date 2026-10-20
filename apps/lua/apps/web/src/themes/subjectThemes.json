@@ -42,6 +42,12 @@
     "accentColor": "#6b6a3a"
   },
   {
+    "id": "daf",
+    "displayName": "Deutsch als Fremdsprache",
+    "palette": ["#f4efe6", "#ddd3c2", "#b0a690", "#5b5347"],
+    "accentColor": "#3f5a4c"
+  },
+  {
     "id": "geschichte",
     "displayName": "Geschichte",
     "palette": ["#f4efe4", "#d8cab2", "#b09471", "#6e5640"],
