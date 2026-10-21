@@ -23,6 +23,8 @@ pub struct KlasseMeta {
     /// vergibt die Oberfläche den naechsten freien Slot.
     pub farbe: Option<String>,
     pub archiviert: bool,
+    // Der Prüfstatus wird aus der DB gelesen; das Klassenformular sendet ihn nicht.
+    #[serde(default)]
     pub pruefung_noetig: bool,
     pub created_at: String,
 }
@@ -75,7 +77,13 @@ pub async fn klassen_meta_upsert(
     meta: KlasseMeta,
 ) -> Result<(), String> {
     let guard = state.conn()?;
-    let conn = &*guard;
+    klassen_meta_upsert_impl(&guard, meta)
+}
+
+pub(crate) fn klassen_meta_upsert_impl(
+    conn: &rusqlite::Connection,
+    meta: KlasseMeta,
+) -> Result<(), String> {
     let name = meta.name.trim();
     if name.is_empty() {
         return Err("Klassenname darf nicht leer sein.".to_string());
@@ -399,21 +407,46 @@ mod tests {
     }
 
     fn upsert(conn: &Connection, meta: &KlasseMeta) {
-        let id = meta.id.clone().or_else(|| conn.query_row(
-            "SELECT id FROM lua_klassen WHERE name=?1 COLLATE NOCASE AND COALESCE(fach,'')=COALESCE(?2,'') AND COALESCE(schuljahr,'')=COALESCE(?3,'')",
-            rusqlite::params![meta.name, meta.fach, meta.schuljahr], |r| r.get(0),
-        ).optional().ok().flatten()).unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
-        conn.execute(
-            "INSERT INTO lua_klassen (id, name, fach, land, stufe, schulstufe, schuljahr, notizen, archiviert, farbe) \
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10) \
-             ON CONFLICT(id) DO UPDATE SET \
-               name=excluded.name, fach=excluded.fach, land=excluded.land, stufe=excluded.stufe, schulstufe=excluded.schulstufe, \
-               schuljahr=excluded.schuljahr, notizen=excluded.notizen, archiviert=excluded.archiviert, \
-               farbe=excluded.farbe",
-            rusqlite::params![id, meta.name, meta.fach, meta.land, meta.stufe, meta.schulstufe, meta.schuljahr, meta.notizen, meta.archiviert as i64, meta.farbe],
-        ).unwrap();
-        conn.execute("INSERT INTO klasse_stammdaten (id,name,fach,schuljahr,archiviert) VALUES (?1,?2,?3,?4,?5) ON CONFLICT(id) DO UPDATE SET name=excluded.name,fach=excluded.fach,schuljahr=excluded.schuljahr,archiviert=excluded.archiviert",
-            rusqlite::params![id, meta.name, meta.fach, meta.schuljahr, meta.archiviert as i64]).unwrap();
+        klassen_meta_upsert_impl(conn, meta.clone()).unwrap();
+    }
+
+    #[test]
+    fn klassenformular_ohne_pruefungsflag_laesst_sich_speichern() {
+        // Payload des Klassenformulars: pruefungNoetig wird nicht gesendet.
+        let payload = serde_json::json!({
+            "id": null, "name": "4ab", "fach": "deutsch", "land": "AT",
+            "stufe": "unterstufe", "schulstufe": 8, "schuljahr": "2026/27",
+            "notizen": null, "farbe": "2", "archiviert": false, "createdAt": ""
+        });
+        let meta: KlasseMeta = serde_json::from_value(payload).unwrap();
+        assert!(!meta.pruefung_noetig);
+        let conn = setup();
+        klassen_meta_upsert_impl(&conn, meta).unwrap();
+        let liste = klassen_meta_list_impl(&conn).unwrap();
+        assert_eq!(liste.len(), 1);
+        assert_eq!(liste[0].name, "4ab");
+        assert_eq!(liste[0].schulstufe, Some(8));
+        assert_eq!(liste[0].schuljahr.as_deref(), Some("2026/27"));
+        assert_eq!(liste[0].farbe.as_deref(), Some("2"));
+        assert!(!liste[0].pruefung_noetig);
+
+        // Auch das Bearbeiten sendet das Flag nicht mit.
+        let mut update = serde_json::to_value(&liste[0]).unwrap();
+        update.as_object_mut().unwrap().remove("pruefungNoetig");
+        update["farbe"] = serde_json::json!("3");
+        klassen_meta_upsert_impl(&conn, serde_json::from_value(update).unwrap()).unwrap();
+        let liste = klassen_meta_list_impl(&conn).unwrap();
+        assert_eq!(liste.len(), 1);
+        assert_eq!(liste[0].farbe.as_deref(), Some("3"));
+    }
+
+    #[test]
+    fn explizites_pruefungsflag_bleibt_beim_deserialisieren_erhalten() {
+        let mut meta = beispiel("7A");
+        meta.pruefung_noetig = true;
+        let payload = serde_json::to_value(meta).unwrap();
+        let gelesen: KlasseMeta = serde_json::from_value(payload).unwrap();
+        assert!(gelesen.pruefung_noetig);
     }
 
     #[test]

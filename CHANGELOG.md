@@ -5,31 +5,25 @@ Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 (auch andere Coding-Agents) — siehe `AGENTS.md`.
 
-## Unveröffentlicht
+## Version 1.5.8 — 2026-10-21
 
 ### Das ist neu
 
-- **Vokabelblätter als Vorlage:** Lädst du ein Vokabelblatt hoch, behält die neue Version jetzt die Wörter und Wendungen der Unit und baut nur neue Sätze. Bisher hat die KI einen eigenen Wortschatz erfunden. Einzelne Sätze bleiben einzelne Sätze, statt zu einer langen Geschichte zu werden. Fehlt in der neuen Version ein Wort, weist LUKA darauf hin. Für eigene Unterlagen gibt es dafür das Häkchen „Gleicher Wortschatz“.
-- **Anfangsbuchstaben im Lückentext:** Lücken können wie im Schulbuch mit dem ersten Buchstaben jedes Worts gedruckt werden (z. B. „a______“, „t______ p______“). Die Option steht im Baukasten und in den Einstellungen neben der Vorschau; beim Hochladen wird sie übernommen, wenn das Original Anfangsbuchstaben hat.
-- **Neues Fach: Deutsch als Fremdsprache (DaF).** Unterlagen entstehen vollständig auf Deutsch, die Arbeitsanweisungen sind eine Niveaustufe einfacher als die Aufgaben, und die Bewertungsraster folgen dem Fremdsprachen-Schema. Die Korrektur bewertet DaF-Arbeiten nach dem Sprachniveau der Lernenden statt nach muttersprachlichem Maßstab.
-- **Neue Version mit anderem Inhalt:** Aus einer fertigen Unterlage entsteht mit einem Klick eine neue Fassung mit denselben Aufgabenarten und Punkten, aber neuen Sätzen und Inhalten, zum Beispiel als Gruppe B oder für einen Nachschreibtermin. Im Baukasten lassen sich vorher Aufgaben ergänzen oder streichen. Wiederholt die KI Inhalte des Originals, zeigt LUKA einen Hinweis.
-- **Mehr davon:** Jede Aufgabe in der Vorschau hat einen Knopf „Mehr davon“. Er fügt direkt darunter eine weitere Aufgabe derselben Art mit neuem Inhalt ein, etwa als Zusatzblatt für Schnelle.
-- **Exit-Ticket und Wiederholungsblatt aus der Planung:** An jeder geplanten Stunde gibt es zwei neue Knöpfe. „Exit-Ticket“ bereitet 3 bis 5 kurze Fragen zum Stundenthema vor. „Wiederholungsblatt“ sammelt die Themen derselben Klasse aus den sechs Wochen davor, etwa vor einer Schularbeit. Beide brauchen keinen Quelltext und hängen sich nach dem Speichern an die Stunde.
-- **Frühere Themen kurz wiederholen:** Gibt es für die Klasse ältere gespeicherte Unterlagen, bietet Schritt „Absicht“ an, ein bis zwei kurze Aufgabenteile zu früheren Themen in die neue Übung einzustreuen.
-- **Lösungsstreifen zum Ausschneiden:** Unter „Weitere Exporte“ entsteht eine Seite mit dem Kurzschlüssel aller geschlossenen Aufgaben, je Aufgabe ein gestrichelter Streifen. So können Schüler/innen sich am Lehrertisch oder an der Pinnwand selbst kontrollieren.
-- **Aus vorhandener Unterlage:** Arbeitsblätter und Schularbeiten lassen sich als Word- oder PDF-Datei hochladen. LUKA überträgt die Aufgaben in den Baukasten; daraus entsteht eine neue Übung derselben Art, auch mit zusätzlichen Aufgabentypen. Gescannte PDFs ohne Textebene werden noch nicht erkannt.
-- Neue KI-Modelle zur Auswahl: Claude Opus 5.5, Sonnet 5.5 und Haiku 5.5, GPT-6.1 Sol und GPT-6 Luna, Mistral Large 4 (Vorschau) sowie Qwen 3.8 Max und Qwen 3.7 Plus. Preise und Hinweise in der Modellauswahl sind auf dem Stand vom Oktober 2026.
-- Claude Opus 4.7 und 4.8 sowie die Kimi-Modelle lehnten Anfragen aus LUKA ab, weil ein Einstellungswert mitgeschickt wurde, den diese Modelle nicht mehr annehmen. Das ist behoben. Bei diesen Modellen und bei den neuen OpenAI-Modellen wirkt der Regler „Kreativität“ nicht mehr, das Modell verwendet seinen eigenen Standard.
-- Die Korrektur funktioniert jetzt auch mit Claude Opus 5.5 und Sonnet 5.5.
-- Ältere Modelle wie Haiku 4.5, Opus 4.7, GPT-5.4 nano oder die bisherigen Qwen-Modelle stehen nicht mehr in der Auswahl. Wer eines davon gespeichert hat, kann vorerst weiterarbeiten. Bitte bei Gelegenheit in den Einstellungen ein aktuelles Modell wählen.
-
-- Fächer ohne eigenes Hintergrundmotiv (DaF, Mathematik, Biologie) zeigen jetzt das Bleistift-Stillleben mit dem aufgeschlagenen Buch statt der gezeichneten Feder und des Kompasses.
+- **Eigene Arbeitsblätter weiterverwenden:** Word-Dateien und PDFs mit Textebene lassen sich als Vorlage in den Baukasten übernehmen. Aufgaben können danach ergänzt, gestrichen und mit neuen Inhalten erstellt werden. Gescannte PDFs werden noch nicht erkannt; der ausgelesene Text wird an den gewählten KI-Anbieter übertragen.
+- **Gruppe B und Nachschreibtermin:** Aus einer fertigen Unterlage entsteht eine neue Fassung mit denselben Aufgabenarten und Punkten. Das Original wird vorher gespeichert. Bitte vergleichen Sie Inhalte und Schwierigkeit vor dem Einsatz.
+- **Gleicher Wortschatz, neue Sätze:** Bei Vokabelübungen bleiben auf Wunsch die Wörter und Wendungen der Vorlage erhalten. Fehlt ein Zielwort, zeigt LUKA einen Hinweis. Lückentexte können zusätzlich Anfangsbuchstaben als Hilfe anzeigen.
+- **Mehr davon:** Direkt an einer Aufgabe in der Vorschau lässt sich eine weitere Aufgabe derselben Art mit neuen Inhalten ergänzen.
+- **Aus der Unterrichtsplanung:** Exit-Tickets bereiten 3 bis 5 kurze Abschlussfragen vor. Wiederholungsblätter greifen Themen derselben Klasse aus den vorherigen sechs Wochen auf. Frühere Themen lassen sich auch kurz in neue Übungen einstreuen.
+- **Lösungsstreifen zum Ausschneiden:** Unter „Weitere Exporte“ gibt es kompakte Lösungsstreifen für geschlossene Aufgaben.
+- **Deutsch als Fremdsprache:** DaF ist als eigenes Fach verfügbar, mit deutschsprachigen Aufgaben und Arbeitsanweisungen sowie Rückmeldungen aus der Perspektive des Fremdsprachenlernens. Bitte prüfen Sie Niveau und fachliche Eignung im Praxistest.
+- **Klassen speichern:** Ein Fehler beim Anlegen und Bearbeiten von Klassen ist behoben.
+- Die Modellauswahl wurde aktualisiert. Verbindungsprobleme durch nicht unterstützte Einstellungswerte bei einzelnen Claude- und Kimi-Modellen sind behoben.
 
 ### Technisch
 
-- Abhängigkeiten aktualisiert: rusqlite 0.40, @tauri-apps/api 2.11.1 (passend zum Tauri-Crate), pdfjs-dist 6.4.
-- Lernziel-Tests nutzten feste Termine im Oktober 2026 als „zukünftig“ und sind seit Mitte Oktober rot. Die Testdaten sind jetzt datumsunabhängig.
-- NATASCHA: Bei Claude-Modellen, die einen erzwungenen Tool-Aufruf ablehnen, wird `tool_choice: auto` mit Anweisung im Prompt genutzt. Textantworten überspringen thinking-Blöcke. GPT-6 bekommt `max_completion_tokens`.
+- Abhängigkeiten aktualisiert und datumsabhängige Lernziel-Tests stabilisiert.
+- Klassenformulare akzeptieren einen fehlenden Prüfstatus; Regressionstests prüfen Anlegen und Bearbeiten über den tatsächlichen Speicherpfad.
+- Der Entwicklungsbuild zeigt den Git-Stand neben der Version. Fächer ohne eigenes Hintergrundmotiv verwenden das Buch-Stillleben.
 
 ## Version 1.5.7 — 2026-10-09
 

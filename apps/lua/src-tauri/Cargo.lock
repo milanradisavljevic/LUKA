@@ -1979,7 +1979,7 @@ dependencies = [
 
 [[package]]
 name = "lehrunterlagen-tool"
-version = "1.5.7"
+version = "1.5.8"
 dependencies = [
  "futures",
  "keyring",
