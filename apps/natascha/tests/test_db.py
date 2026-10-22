@@ -43,6 +43,34 @@ def db_path(tmp_path: Path) -> Path:
     return p
 
 
+def _bestaetigter_fehler(db_path, *args):
+    db.insert_fehler(db_path, *args)
+    with sqlite3.connect(db_path) as conn:
+        fehler_id = conn.execute("SELECT MAX(id) FROM fehler_historie").fetchone()[0]
+    assert db.update_fehler_status(db_path, fehler_id, "uebernommen")
+    return fehler_id
+
+
+def test_bestaetigte_befunde_folgen_aendern_verwerfen_und_zuruecksetzen(db_path):
+    aid = db.insert_abgabe(db_path, None, "PILOT", "A1", "synthetisch.txt", "entscheidungen")
+    db.insert_fehler(db_path, aid, "Satz", "KI-Vorschlag", "Z")
+    with sqlite3.connect(db_path) as conn:
+        fid = conn.execute("SELECT MAX(id) FROM fehler_historie").fetchone()[0]
+    assert db.get_fehler_heatmap(db_path, "PILOT") == []
+    assert db.get_fehler_heatmap_detail(db_path, "PILOT", "Z") == []
+    assert db.update_fehler_status(db_path, fid, "uebernommen")
+    assert db.get_fehler_heatmap(db_path, "PILOT")[0]["anzahl"] == 1
+    assert db.update_fehler_status(db_path, fid, "geaendert", "Geprüfte Lehrkraftfassung")
+    assert db.get_fehler_heatmap_detail(db_path, "PILOT", "Z")[0]["korrektur"] == "Geprüfte Lehrkraftfassung"
+    assert db.get_klassen_feedback(db_path, "PILOT", "A1")["beispiele"][0]["korrektur"] == "Geprüfte Lehrkraftfassung"
+    assert db.update_fehler_status(db_path, fid, "verworfen")
+    assert db.get_fehler_heatmap(db_path, "PILOT") == []
+    assert db.update_fehler_status(db_path, fid, None)
+    assert db.get_fehler_heatmap(db_path, "PILOT") == []
+    with sqlite3.connect(db_path) as conn:
+        assert conn.execute("SELECT COUNT(*) FROM fehler_historie WHERE id=?", (fid,)).fetchone()[0] == 1
+
+
 # ── Schueler CRUD ──────────────────────────────────────────────────────────
 
 
@@ -121,7 +149,7 @@ def test_get_abgaben_by_schueler_and_klasse_aufgabe(db_path: Path) -> None:
 def test_fehler_heatmap_aggregation(db_path: Path) -> None:
     aid = db.insert_abgabe(db_path, None, "6A", "SA1", "x.docx", "hh")
     for typ in ["Z", "Z", "Z", "R", "G"]:
-        db.insert_fehler(db_path, aid, "zitat", "korr", typ)
+        _bestaetigter_fehler(db_path, aid, "zitat", "korr", typ)
     heat = db.get_fehler_heatmap(db_path, "6A")
     assert heat[0]["typ"] == "Z"  # haeufigster zuerst
     assert heat[0]["anzahl"] == 3
@@ -131,12 +159,31 @@ def test_fehler_heatmap_aggregation(db_path: Path) -> None:
     assert [h["typ"] for h in only_frequent] == ["Z"]
 
 
+def test_verworfene_fehler_fehlen_in_heatmap_und_detail(db_path: Path) -> None:
+    """Von der Lehrkraft verworfene Fehler sind keine Befunde und duerfen weder
+    die Heatmap noch die Loop-Beispiele speisen."""
+    aid = db.insert_abgabe(db_path, None, "6A", "SA1", "x.docx", "verworfen-hash")
+    for typ in ["Z", "Z", "G"]:
+        _bestaetigter_fehler(db_path, aid, "zitat", "korr", typ)
+    with sqlite3.connect(str(db_path)) as conn:
+        erster_z = conn.execute(
+            "SELECT id FROM fehler_historie WHERE typ='Z' ORDER BY id LIMIT 1"
+        ).fetchone()[0]
+    assert db.update_fehler_status(db_path, erster_z, "verworfen")
+
+    heat = {h["typ"]: h for h in db.get_fehler_heatmap(db_path, "6A")}
+    assert heat["Z"]["anzahl"] == 1
+    assert heat["Z"]["prozent"] == 50.0  # Gesamtzahl ohne den verworfenen
+    assert len(db.get_fehler_heatmap_detail(db_path, "6A", "Z")) == 1
+    assert len(db.get_fehler_heatmap_detail(db_path, "6A", "Z", aufgabe="SA1")) == 1
+
+
 def test_fehler_heatmap_detail_with_aufgabe(db_path: Path) -> None:
     """Regressionstest: aufgabe-Zweig referenzierte frueher das nicht existierende
     abgabe.vorname und warf OperationalError."""
     sid = db.insert_schueler(db_path, "6A", "TestA")
     aid = db.insert_abgabe(db_path, sid, "6A", "SA1", "x.docx", "hh")
-    db.insert_fehler(db_path, aid, "das Haus", "das Haus,", "Z", "Komma fehlt")
+    _bestaetigter_fehler(db_path, aid, "das Haus", "das Haus,", "Z", "Komma fehlt")
     detail = db.get_fehler_heatmap_detail(db_path, "6A", "Z", aufgabe="SA1")
     assert len(detail) == 1
     assert detail[0]["vorname"] == "TestA"
@@ -146,9 +193,9 @@ def test_fehler_heatmap_detail_with_aufgabe(db_path: Path) -> None:
 def test_klassenfeedback_haeufigkeit_trennt_unterschiedliche_korrekturen(db_path: Path) -> None:
     """Gleiches Zitat mit verschiedenen Korrekturen darf nicht zusammenfallen."""
     aid = db.insert_abgabe(db_path, None, "6A", "SA1", "x.docx", "haeufigkeit-hash")
-    db.insert_fehler(db_path, aid, "das Haus", "das Haus,", "Z", "Komma fehlt")
-    db.insert_fehler(db_path, aid, "das Haus", "das Haus,", "Z", "Komma fehlt")
-    db.insert_fehler(db_path, aid, "das Haus", "das Haus!", "Z", "Zeichen falsch")
+    _bestaetigter_fehler(db_path, aid, "das Haus", "das Haus,", "Z", "Komma fehlt")
+    _bestaetigter_fehler(db_path, aid, "das Haus", "das Haus,", "Z", "Komma fehlt")
+    _bestaetigter_fehler(db_path, aid, "das Haus", "das Haus!", "Z", "Zeichen falsch")
 
     feedback = db.get_klassen_feedback(db_path, "6A", "SA1")
     varianten = {
@@ -209,6 +256,10 @@ def test_save_analysis_to_db(tmp_path: Path, db_path: Path) -> None:
     # Abgabe + Fehler + Kriterium persistiert
     abg = db.get_abgaben_by_klasse_aufgabe(db_path, "6A", "SA1")
     assert len(abg) == 1 and abg[0]["note"] == 2.0
+    assert db.get_fehler_heatmap(db_path, "6A") == []
+    with sqlite3.connect(db_path) as conn:
+        fid = conn.execute("SELECT id FROM fehler_historie WHERE abgabe_id=?", (aid,)).fetchone()[0]
+    assert db.update_fehler_status(db_path, fid, "uebernommen")
     assert db.get_fehler_heatmap(db_path, "6A")[0]["typ"] == "Z"
     # Duplikat-Schutz: zweiter identischer Aufruf liefert -1
     assert db.save_analysis_to_db(db_path, data, docx, "6A", "SA1") == -1

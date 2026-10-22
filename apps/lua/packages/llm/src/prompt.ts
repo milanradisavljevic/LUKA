@@ -88,7 +88,7 @@ function niveauKopplungHinweis(
 // gehoeren NICHT hierher, die macht der Renderer. Das LLM liefert nur Inhalt.
 // WICHTIG: Das LLM liefert AUSSCHLIESSLICH das bloecke-Array als JSON.
 // Meta und Quelltexte werden von der App deterministisch ergaenzt.
-const SYSTEM_HEAD_TEXT = `Du bist ein Assistent, der Pruefungsinhalte fuer das oesterreichische AHS-Gymnasium erstellt (Faecher Deutsch und Englisch, Unter- und Oberstufe).
+const SYSTEM_HEAD_TEXT = `Du bist ein Assistent, der Unterrichts- und Pruefungsinhalte fuer die Sekundarstufe erstellt (Schwerpunkt oesterreichisches AHS-Gymnasium, Unter- und Oberstufe). Fach, Schulstufe und Land stehen in meta; richte Inhalt, Fachsprache und Niveau danach.
 
 Du lieferst AUSSCHLIESSLICH ein JSON-Array von Aufgabenbloecken. Kein Layout, keine Markdown-Zaeune, keine Erklaerung, kein Text vor oder nach dem JSON.
 
@@ -124,7 +124,7 @@ verlangte Textproduktion:
   - "schwer" ≈ B2: abstrakter Wortschatz, komplexe Satzstrukturen, eigene Argumentation in zusammenhaengenden
     Texten (150–250 Woerter), idiomatische Ausdruecke.
 LATEIN: statt CEFR Schwerpunkt auf Formenlehre, Uebersetzung und Textverstaendnis.
-Sachfaecher (Deutsch, Geschichte, Geographie, Religion, Ethik, Psychologie, Philosophie) bleiben bei der Bloom-Logik oben.
+Alle uebrigen Faecher (Deutsch und alle Sachfaecher, z. B. Geschichte, Geographie, Mathematik, Biologie) bleiben bei der Bloom-Logik oben.
 
 COVERAGE: Verteile die Aufgaben gleichmaessig ueber ALLE Abschnitte (Absatz 1, Absatz 2, ...) des Quelltexts.
 Greife NICHT nur den ersten Absatz ab. Wenn der Quelltext nummerierte Absaetze enthaelt (Format "[Absatz N] ..." bzw. bei Englisch "[Paragraph N] ..."),
@@ -749,7 +749,7 @@ WICHTIGE REGELN:
 
 // Kopf für den KOMPETENZ-MODUS: erfindet Beispiele zur Kompetenz statt aus Quelltexten
 // abzuleiten. Reicht denselben BLOCK_REGELN-Block nach wie der Text-Modus.
-const SYSTEM_HEAD_KOMPETENZ = `Du bist ein Assistent, der Pruefungsinhalte fuer das oesterreichische AHS-Gymnasium erstellt (Faecher Deutsch und Englisch, Unter- und Oberstufe).
+const SYSTEM_HEAD_KOMPETENZ = `Du bist ein Assistent, der Unterrichts- und Pruefungsinhalte fuer die Sekundarstufe erstellt (Schwerpunkt oesterreichisches AHS-Gymnasium, Unter- und Oberstufe). Fach, Schulstufe und Land stehen in meta; richte Inhalt, Fachsprache und Niveau danach.
 
 Du lieferst AUSSCHLIESSLICH ein einziges JSON-Objekt der Form { "didaktik": { ... }, "bloecke": [ ... ] }. Kein Layout, keine Markdown-Zaeune, keine Erklaerung, kein Text vor oder nach dem JSON.
 

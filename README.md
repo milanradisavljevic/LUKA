@@ -2,206 +2,158 @@
 
 # LUKA
 
-**Lehrunterlagen und gezielte Korrektur mit KI — in Minuten statt Abenden.**
+### Prepare a lesson. Review the work. Teach the next step.
 
-*Eine Desktop-App für Lehrkräfte: Arbeitsblätter, Übungen und Schularbeiten
-erstellen, Schülerabgaben korrigieren und daraus gezielte Folgeübungen ableiten
-— alles lokal, mit dem eigenen KI-Schlüssel.*
+A desktop workspace for teachers: create teaching materials, review written submissions,
+and turn recurring mistakes into focused practice.
 
-![Tauri](https://img.shields.io/badge/Tauri-2-24C8DB?logo=tauri&logoColor=white)
-![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
-![Rust](https://img.shields.io/badge/Rust-stable-000000?logo=rust&logoColor=white)
-![SQLite](https://img.shields.io/badge/SQLite-lokal-003B57?logo=sqlite&logoColor=white)
+**Your database and documents stay on your device. AI requests send the required content to your chosen provider, using your own API key.**
 
-![LUKA — Übersicht im „Tinte & Papier"-Design (Stand 1.5.0, siehe Bildhinweis)](screenshots/Übersicht.png)
+[Download for Windows](https://github.com/milanradisavljevic/LUKA/releases/latest) · [Try the samples](samples/) · [User guide — German](docs/ANLEITUNG.md)
+
+![LUKA lesson planning: a synthetic German class, scheduled lessons and linked teaching materials](screenshots/lesson-planning.png)
+
+*A lesson is the starting point: keep the class, topic and teaching material together.*
 
 </div>
 
----
+## One lesson, one connected workflow
 
-## Was ist LUKA?
+Imagine a German lesson on writing a convincing argument. You prepare an exercise,
+review the class's written responses, and notice that conjunctions and comma placement
+need more work. LUKA connects those steps:
 
-LUKA ist ein lokales **Unterrichts- und Korrektur-Tool** für den textbasierten
-Unterricht: Vom Stundenplan über die Unterlage bis zur ausgewerteten Abgabe und
-zur gezielten Folgeübung — alles in einer App. Der Kreislauf beginnt nicht beim
-Dokument, sondern beim **Termin**: Du trägst einmal dein Wochenraster ein, LUKA
-erzeugt daraus die einzelnen Stunden, und an jeder Stunde hängt die Unterlage,
-die du dafür brauchst.
+1. **Prepare:** choose a lesson in your timetable, bring your own source text or start from a topic, and assemble suitable tasks.
+2. **Review:** check the generated worksheet, adjust individual tasks, and export a student version with solutions and optional assessment material.
+3. **Correct:** analyse submissions against a rubric, inspect suggested corrections in context, and record your own feedback and grade.
+4. **Practise:** use the correction findings to prepare a follow-up exercise for the class or an individual learner.
 
-Für die erste Unterlage stehen drei Wege offen:
+The teacher reviews the material and assessment suggestions. AI output is a starting point for that judgement.
 
-- **Aus Quelltext** — Material hochladen oder einfügen (TXT/DOCX/PDF/HTML/URL);
-  daraus entstehen passende Aufgaben.
-- **Ohne Quelltext** — Übung aus Lehrplan-Kompetenz oder freiem Thema.
-- **Schnell-Übung** — ein Thema, ein Aufgabentyp, sofort im Baukasten.
+### From a worksheet to the next exercise
 
-Und aus dem **Stundenplan** heraus: eine Stunde wählen, „Unterlage vorbereiten",
-und LUKA übernimmt Klasse, Fach, Thema und Datum in den Assistenten. Quelltext und
-Aufgaben arbeitest du aus — beim Speichern hängt LUKA die fertige Unterlage
-automatisch an den Termin.
+![German worksheet in LUKA's A4 preview, using a prepared synthetic exercise about arguments and conjunctions](screenshots/german-worksheet.png)
 
-Alles läuft **lokal**: keine Accounts, kein Server, keine Cloud-Datenbank. Die KI
-sprichst du mit deinem **eigenen API-Schlüssel** an (Mistral, Anthropic, OpenAI,
-DeepSeek u. a.) — beim ersten Start führt dich die App durch Einrichtung und
-Verbindungstest.
+*Inspect the worksheet before export. Tasks remain editable; you can regenerate individual blocks.*
 
-```mermaid
-flowchart LR
-  A[Stundenplan] --> B[Wochenraster eintragen]
-  B --> C[Stunden einplanen]
-  C --> D[Unterlage vorbereiten]
-  D --> E[DOCX: Schülerfassung · Lösung · Raster]
-  E --> F[Unterrichtseinsatz]
-  F --> G[Korrektur]
-  G --> H[Fehler-Heatmap]
-  H --> I[Gezielte Folgeübung]
-  I -.-> C
-```
+![Correction workspace with a synthetic submission, highlighted mistakes and suggested corrections](screenshots/correction-review.png)
 
-> **Closed Loop:** Die Korrektur ist in der Desktop-App integriert. Das
-> gebündelte Modul prüft sich beim Öffnen selbst; wenn es nicht verfügbar ist,
-> erklärt die App den Grund und bietet den technischen TUI-Fallback in den
-> erweiterten Einstellungen an.
+*Read suggested corrections alongside the original text, then make your own assessment.*
 
----
+![Follow-up exercise setup populated from the synthetic class's grammar and punctuation findings](screenshots/follow-up-practice.png)
 
-## Highlights
+*Carry the findings into focused practice instead of starting the next worksheet from scratch.*
 
-| Bereich | Was es kann |
+> **About these images:** captured from the current development UI on 20 October 2026.
+> All classes, texts, documents and correction results are prepared synthetic examples.
+> The capture harness supplies desktop-service responses; these images do not demonstrate
+> a live AI run or an installed-app acceptance test. The interface is currently German.
+> [Image details](screenshots/README.md).
+
+## What you can work with
+
+| Your task | LUKA provides |
 |---|---|
-| **Unterrichtsplanung** | Wochenraster einmal pro Schuljahr eintragen, daraus einzelne Stunden einplanen (Woche, Monat, Schuljahr) — **amtliche Schulferien** für Österreich und Deutschland liegen hinterlegt, mit Quelle und Abrufdatum zum Abgleich. Vertretungsstunden ohne Rasterzeile anlegen, einzelne Termine verschieben oder entfallen lassen |
-| **Fächer** | Deutsch, Englisch, Französisch, Spanisch, Italienisch, Latein sowie Geschichte, Geographie, Religion, Ethik, Psychologie, Philosophie — und die neuen Fächer **Medien & Demokratie** und **Informatik & KI** |
-| **Aufgabentypen** | Multiple Choice, Matching, Lückentext, Kategorisierung, Kreuzworträtsel, Wortgitter, Vokabelübung, Verständnisfrage, Schreibaufgabe, Fehlerkorrektur, Rollenspiel mit Rollenkarten u. v. m. |
-| **Differenzierung** | Leichtere/schwerere Varianten auf Knopfdruck; Schwierigkeit nach Bloom, bei Fremdsprachen CEFR A2–B2 |
-| **Aufgaben-Pool & Fachpakete** | Bewährte Aufgaben speichern, filtern, wiederverwenden — und als **Fachpaket (JSON) exportieren/importieren**, mit Vorschau und Duplikat-Kontrolle. Kuratiertes Startpaket liegt bei (`samples/fachpakete/`) |
-| **Korrektur & Folgeübung** | Schülerabgaben mit Rubrik analysieren, Fehlerlisten und Feedback-DOCX erzeugen, Klassen-/Schülerauswertungen ansehen und aus Fehlerschwerpunkten eine Folgeübung starten |
-| **Export** | DOCX (Schülerfassung, Lösung, Korrekturraster, Kompetenznachweis, Selbsteinschätzungsbogen), PDF (via LibreOffice), **Moodle/GIFT** |
-| **Qualität** | Quality-Gate vor dem Export (Lernziel-Abdeckung, Wortzahl); einzelne Blöcke gezielt neu generieren |
-| **Komfort** | Befehlspalette (<kbd>Strg</kbd>/<kbd>⌘</kbd> + <kbd>K</kbd>), Tastenkürzel aus einer Liste, Vorlagen, Verlauf, Favoriten, Dark-Mode, automatische Updates |
+| Plan teaching | Weekly lesson patterns, individual lessons, linked materials and school-holiday information with sources. |
+| Create materials | Source-based, topic-based and curriculum-based exercises; reusable task blocks and subject packages. |
+| Adapt a worksheet | Different task types, difficulty settings, lighter/harder variants and editable previews. |
+| Review written work | Rubric context, suggested corrections, teacher feedback, class summaries and learner histories. |
+| Plan follow-up practice | Exercises informed by recurring errors and selected learning needs. |
+| Take the result elsewhere | DOCX student and solution versions, feedback documents, Moodle/GIFT, and PDF through LibreOffice where configured. |
 
-### Einblicke
+Materials cover languages and selected humanities subjects. Task types include gap fills,
+multiple choice, matching, comprehension, writing, error correction and role cards.
+Coverage and suitability vary by subject, curriculum and task type; check the result before use.
 
-> **Stand der Bilder:** aufgenommen mit **1.5.0** (10.07.2026). Seitdem hat sich
-> die Seitenleiste von fünf auf vier Bereiche geändert und die Startseite zeigt
-> jetzt einen Wochenstreifen. Die Bilder zeigen also den alten Stand — die
-> Bedienung ist weitgehend dieselbe. Neue Aufnahmen stehen aus; siehe
-> [`screenshots/README.md`](screenshots/README.md).
-
-| | |
-|:--:|:--:|
-| ![Generator „Aus Quelltext": Absicht erfassen](screenshots/mit%20Quelltext.png) | ![Schnell-Übung: ein Thema, ein Aufgabentyp](screenshots/Schnellübung.png) |
-| *„Aus Quelltext": Absicht erfassen — Unterlagentyp, Fach/Stufe, Thema* | *Schnell-Übung: ein Thema, ein Aufgabentyp, sofort im Baukasten* |
-| ![Wahl von KI-Anbieter und Modell](screenshots/LLM-Auswahl.png) | ![Generierung läuft](screenshots/Wartescreen.png) |
-| *KI-Anbieter, Modell und Kreativitätsgrad wählen — BYOK, Schlüssel im OS-Schlüsselspeicher (oder `.env.local` als Fallback)* | *Die KI formuliert — mit Fortschritt, Zeitangabe und Abbrechen* |
-| ![Fertig generierte Aufgaben in der A4-Vorschau](screenshots/ausgearbeitete%20Aufgaben.png) | ![Übersicht im Dark-Mode](screenshots/Darkmode.png) |
-| *Fertige Aufgaben in der A4-Vorschau — pro Block „Neu generieren" oder „In Pool"* | *Dieselbe App im warmen Dark-Mode (Papier bei Nacht)* |
-
-> Design „Tinte & Papier": warmer Papiergrund, Tinten-Akzent, handschriftliche
-> Wortmarke, fachbezogene Randillustrationen; Light **und** Dark gleichwertig.
-> Bildliste: [`screenshots/README.md`](screenshots/README.md).
-
----
-
-## Installation
+## Start using LUKA
 
 ### Windows
 
-1. Neueste `LUKA.-.Lehrunterlagen-Tool_*_x64-setup.exe` von den
-   [**Releases**](https://github.com/milanradisavljevic/LUKA/releases/latest) laden
-   und ausführen.
-2. **SmartScreen-Hinweis:** Windows warnt bei neuen, (noch) nicht
-   zertifikats-signierten Programmen. Über **„Weitere Informationen" →
-   „Trotzdem ausführen"** geht es weiter — die App ist quelloffen, dieser Code
-   hier ist genau das, was installiert wird.
-3. Beim ersten Start: KI-Anbieter wählen, API-Schlüssel eintragen, Verbindung
-   testen — fertig.
+1. Open the [latest release](https://github.com/milanradisavljevic/LUKA/releases/latest) and download the `*_x64-setup.exe` installer.
+2. Install LUKA. The installer is not Windows certificate-signed, so SmartScreen may show a warning. Check the download source before deciding whether to continue.
+3. Choose an AI provider in the first-run setup, enter your own API key and test the connection. Provider usage may incur charges.
+4. Try the [synthetic sample submissions](samples/README.md) before using your own classroom material.
 
-### macOS
+**Published baseline:** [v1.5.8 Windows x64 installer](https://github.com/milanradisavljevic/LUKA/releases/tag/v1.5.8), released on 21 October 2026. Windows x64 is the supported desktop target. Other platforms are outside the current delivery scope.
 
-1. Neueste `LUKA.-.Lehrunterlagen-Tool_*_universal.dmg` von den
-   [**Releases**](https://github.com/milanradisavljevic/LUKA/releases/latest) laden,
-   öffnen und die App in **Programme** ziehen.
-2. **Gatekeeper-Hinweis:** Die App ist (noch) nicht mit einem Apple-Entwickler-
-   zertifikat signiert. Beim ersten Öffnen meldet macOS „App ist beschädigt"
-   oder „kann nicht überprüft werden" — das ist normal bei quelloffener
-   Software ohne kostenpflichtiges Apple-Zertifikat, kein Hinweis auf Malware.
-   Seit macOS 15 gibt es den früheren Rechtsklick-„Öffnen"-Trick nicht mehr.
-   So geht's stattdessen:
-   1. App einmal normal per Doppelklick öffnen — die Warnung wegklicken.
-   2. **Systemeinstellungen → Datenschutz & Sicherheit** öffnen, ganz nach
-      unten scrollen und **„Dennoch öffnen"** klicken.
-   3. Nochmal öffnen und bestätigen — ab jetzt startet LUKA normal.
-3. Beim ersten Start: KI-Anbieter wählen, API-Schlüssel eintragen, Verbindung
-   testen — fertig.
+LUKA checks for updates and asks before installation. Signed updater artifacts are separate
+from Windows certificate signing.
 
-Updates holt sich die App danach **automatisch** (signierte Update-Artefakte,
-Nachfrage vor der Installation).
+The [user guide](docs/ANLEITUNG.md) and in-app help explain the workflow in German.
 
-> Schritt-für-Schritt-Handbuch: **In-App-Hilfe** (Sidebar → *Hilfe*) oder
-> [`docs/ANLEITUNG.md`](docs/ANLEITUNG.md).
+### Run from source
 
----
-
-## Aus dem Quellcode starten (Entwicklung)
-
-**Voraussetzungen:** Node ≥ 20, [pnpm](https://pnpm.io), Rust-Toolchain (stable).
-Unter Windows zusätzlich die
-[Tauri-Voraussetzungen](https://tauri.app/start/prerequisites/) (WebView2, MSVC Build Tools).
+Use Node.js 20 or newer, pnpm, a stable Rust toolchain and the
+[Tauri platform prerequisites](https://tauri.app/start/prerequisites/).
+Windows needs the MSVC build tools and WebView2.
 
 ```bash
-cd apps/lua
-pnpm install
-pnpm tauri:dev        # startet die Desktop-App
+git clone https://github.com/milanradisavljevic/LUKA.git
+cd LUKA/apps/lua
+pnpm install --frozen-lockfile
+pnpm --filter "./packages/*" build
+pnpm tauri:dev
 ```
 
----
+Build the workspace packages first: the web app resolves their generated `dist` files.
+For correction in a source checkout, use Python 3.11+ and install the correction core
+in its own environment (Windows PowerShell, starting from the repository root):
 
-## Architektur
+```powershell
+cd apps/natascha
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e .
+```
 
-```
-LUKA/  (Repo: LUKA)
-  apps/
-    lua/        Desktop-App: TypeScript · React · Vite · Tauri (pnpm-Monorepo)
-                packages/ schema · llm · input · renderer · qa · export
-    natascha/   Korrektur-Kern (Python) — als headless Sidecar in LUA eingebaut
-  docs/         Anleitung, Datenschutz, Invarianten, Szenarien
-  samples/      synthetische Beispieldaten + kuratierte Fachpakete
-```
+In LUKA's advanced settings, select that Python executable and the `apps/natascha`
+directory if automatic detection does not find them. A release installer bundles the
+correction sidecar. The Vite browser preview alone does not provide desktop correction
+or file-system commands. See [development notes](AGENTS.md) for the verification commands.
+
+## Data and control
+
+- **Stored locally:** classes, submissions, assessments and other app records in SQLite; exported files in the folder you choose.
+- **Sent for AI requests:** the text, task context or supported document content needed by the selected operation goes to the selected provider. A local database does not make AI processing local.
+- **Names:** recognised class-list names can be replaced with stable aliases for supported text submissions. PDF and image content is not automatically redacted. This is not complete anonymisation.
+- **Credentials:** desktop API keys use the operating-system credential store, with a local `.env.local` fallback where the keyring is unavailable.
+- **Optional network activity:** update checks and a bug-report form. Bug reports send the description and optional contact/technical information you choose, rather than automatically attaching classroom documents.
+- **Backups:** database exports are unencrypted copies. Saving one to a synced folder can transfer it through that folder's cloud service.
+
+Use synthetic or appropriately pseudonymised material when trying the app. Your school
+must determine which provider and processing arrangement is appropriate.
+Read the [data-flow and privacy notes — German](docs/DATENSCHUTZ.md) before classroom use.
+
+## How it fits together
 
 ```mermaid
 flowchart LR
-  UI["React-UI · Vite"] <--> Tauri["Rust / Tauri-Befehle"]
-  Tauri <--> DB[("SQLite · lokal")]
-  Tauri <--> LLM["KI-Anbieter · eigener API-Schlüssel"]
+    Teacher[Teacher] --> UI[React and TypeScript]
+    UI <--> Desktop[Rust and Tauri]
+    Desktop <--> DB[(Local SQLite)]
+    Desktop <--> Correction[Python correction sidecar]
+    Desktop --> Provider[Chosen AI provider]
+    Correction --> Provider
+    UI --> Export[Documents and teaching materials]
 ```
 
-Die React-UI ruft Rust/Tauri-Befehle auf; Rust verwaltet Datenbank,
-Schlüsselspeicher und die KI-Anfragen. Alles liegt in **einer** lokalen
-SQLite-Datei.
+The desktop app combines a TypeScript workspace for document schemas, input, rendering,
+export and quality checks with a Rust backend. The Python correction core remains
+independently usable. The shared database connects teaching materials, assessments
+and follow-up work.
 
----
+## Project status
 
-## Datenschutz
+**Independent open-source project by Milan Radisavljević.** It brings process design,
+document generation and practical AI integration together around a teacher's workflow.
 
-Beim Generieren und Korrigieren werden die jeweils nötigen Texte an den
-gewählten KI-Anbieter übertragen. Bei Textabgaben kann LUKA erkannte Namen aus
-der Klassenliste vor dem Versand durch stabile Aliasse ersetzen; PDF- und
-Bildinhalte werden nicht automatisch redigiert. Datenbank und Exporte bleiben
-**lokal** auf dem Rechner; echte Schülerdaten sind per `.gitignore` vom Repo
-ausgeschlossen. Details: [`docs/DATENSCHUTZ.md`](docs/DATENSCHUTZ.md).
+The screenshots describe the current development checkout, which includes changes beyond
+the latest verified release. See the [changelog](CHANGELOG.md) for released versions and
+unreleased additions. Technical checks do not establish pedagogical quality, teacher
+acceptance or successful installation on every supported system.
 
-## Lizenz
+Current priorities are confirmed teacher findings, consistent assessment profiles, teacher feedback and installed-app testing with synthetic data. English SRDP B1/B2 profiles use their own 0–10 scale; automatic grade suggestions require a teacher-confirmed individual grading key. The new profiles remain subject to specialist teacher acceptance. Microsoft 365 integration is planned; the current main application does not provide a live school connection. AI-generated tasks, corrections
+and grades need teacher review. OCR and document import have format-dependent limits.
 
-Veröffentlicht unter der **MIT-Lizenz** — siehe [`LICENSE`](LICENSE).
-© 2026 Milan Radisavljević.
+## License
 
-## Roadmap
-
-**Offen:** Abnahme des aktuellen Windows-/macOS-Releases mit synthetischen Daten
-· kuratierte Fachpakete und weitere Lehrpläne · Community-Feedback ·
-Schulferien für weitere Schuljahre nachrüsten (bisher Österreich 2025/26 und
-2026/27, Deutschland 2026/27) · Kantone für die Schweiz, falls das jemand
-auswertet, dem die Ferientabelle je Kanton zu aufwendig ist.
-
-**Bewusst nicht geplant:** Synchronisation mit Kalendern oder Aufgabenverwaltern
-(Moodle, iCal) — LUKA bleibt lokal und ohne Konto.
+[MIT](LICENSE) · © 2026 Milan Radisavljević.

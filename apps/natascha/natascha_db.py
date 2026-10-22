@@ -836,7 +836,7 @@ def get_fehler_heatmap(
             total_row = conn.execute(
                 "SELECT COUNT(*) FROM fehler_historie fh"
                 " JOIN abgabe a ON fh.abgabe_id = a.id"
-                " WHERE a.klasse = ? AND a.aufgabe = ?",
+                " WHERE a.klasse = ? AND a.aufgabe = ? AND fh.lehrkraft_aktion IN ('uebernommen', 'geaendert')",
                 (klasse, aufgabe),
             ).fetchone()
             rows = conn.execute(
@@ -844,7 +844,7 @@ def get_fehler_heatmap(
                 SELECT fh.typ, COUNT(*) as anzahl
                 FROM fehler_historie fh
                 JOIN abgabe a ON fh.abgabe_id = a.id
-                WHERE a.klasse = ? AND a.aufgabe = ?
+                WHERE a.klasse = ? AND a.aufgabe = ? AND fh.lehrkraft_aktion IN ('uebernommen', 'geaendert')
                 GROUP BY fh.typ
                 HAVING anzahl >= ?
                 ORDER BY anzahl DESC
@@ -855,7 +855,7 @@ def get_fehler_heatmap(
             total_row = conn.execute(
                 "SELECT COUNT(*) FROM fehler_historie fh"
                 " JOIN abgabe a ON fh.abgabe_id = a.id"
-                " WHERE a.klasse = ?",
+                " WHERE a.klasse = ? AND fh.lehrkraft_aktion IN ('uebernommen', 'geaendert')",
                 (klasse,),
             ).fetchone()
             rows = conn.execute(
@@ -863,7 +863,7 @@ def get_fehler_heatmap(
                 SELECT fh.typ, COUNT(*) as anzahl
                 FROM fehler_historie fh
                 JOIN abgabe a ON fh.abgabe_id = a.id
-                WHERE a.klasse = ?
+                WHERE a.klasse = ? AND fh.lehrkraft_aktion IN ('uebernommen', 'geaendert')
                 GROUP BY fh.typ
                 HAVING anzahl >= ?
                 ORDER BY anzahl DESC
@@ -896,12 +896,12 @@ def get_fehler_heatmap_detail(
         if aufgabe:
             rows = conn.execute(
                 """
-                SELECT fh.zitat, fh.korrektur, fh.erklaerung,
+                SELECT fh.zitat, COALESCE(fh.lehrkraft_korrektur, fh.korrektur) AS korrektur, fh.erklaerung,
                        s.vorname, a.dateiname
                 FROM fehler_historie fh
                 JOIN abgabe a ON fh.abgabe_id = a.id
                 LEFT JOIN schueler s ON a.schueler_id = s.id
-                WHERE a.klasse = ? AND fh.typ = ? AND a.aufgabe = ?
+                WHERE a.klasse = ? AND fh.typ = ? AND a.aufgabe = ? AND fh.lehrkraft_aktion IN ('uebernommen', 'geaendert')
                 ORDER BY fh.zitat
                 LIMIT ?
                 """,
@@ -910,12 +910,12 @@ def get_fehler_heatmap_detail(
         else:
             rows = conn.execute(
                 """
-                SELECT fh.zitat, fh.korrektur, fh.erklaerung,
+                SELECT fh.zitat, COALESCE(fh.lehrkraft_korrektur, fh.korrektur) AS korrektur, fh.erklaerung,
                        s.vorname, a.dateiname
                 FROM fehler_historie fh
                 JOIN abgabe a ON fh.abgabe_id = a.id
                 LEFT JOIN schueler s ON a.schueler_id = s.id
-                WHERE a.klasse = ? AND fh.typ = ?
+                WHERE a.klasse = ? AND fh.typ = ? AND fh.lehrkraft_aktion IN ('uebernommen', 'geaendert')
                 ORDER BY fh.zitat
                 LIMIT ?
                 """,
@@ -1411,7 +1411,12 @@ def save_analysis_to_db(
             }
         for kriterium_name, k_data in bewertung.items():
             if isinstance(k_data, dict):
-                stufe_raw = k_data.get("stufe") or k_data.get("punkte")
+                profil = data.get("bewertungsprofil")
+                if isinstance(profil, dict) and profil.get("id") and profil.get("version"):
+                    kriterium_name = f"{profil['id']}@{profil['version']}::{kriterium_name}"
+                    stufe_raw = k_data.get("punkte")
+                else:
+                    stufe_raw = k_data.get("stufe") if k_data.get("stufe") is not None else k_data.get("punkte")
                 gewicht_raw = k_data.get("gewicht")
                 conn.execute(
                     "INSERT INTO kriterium_historie (abgabe_id, kriterium_name, stufe, gewichtung) VALUES (?, ?, ?, ?)",
@@ -1567,14 +1572,14 @@ def get_klassen_feedback(
             total_fehler_row = conn.execute(
                 "SELECT COUNT(*) FROM fehler_historie fh"
                 " JOIN abgabe a ON fh.abgabe_id = a.id"
-                " WHERE a.klasse = ? AND a.aufgabe = ?",
+                " WHERE a.klasse = ? AND a.aufgabe = ? AND fh.lehrkraft_aktion IN ('uebernommen', 'geaendert')",
                 (klasse, aufgabe),
             ).fetchone()
         else:
             total_fehler_row = conn.execute(
                 "SELECT COUNT(*) FROM fehler_historie fh"
                 " JOIN abgabe a ON fh.abgabe_id = a.id"
-                " WHERE a.klasse = ?",
+                " WHERE a.klasse = ? AND fh.lehrkraft_aktion IN ('uebernommen', 'geaendert')",
                 (klasse,),
             ).fetchone()
         gesamt_fehler = total_fehler_row[0] if total_fehler_row else 0
@@ -1650,6 +1655,10 @@ def get_klassen_feedback(
 
     for k_name, k_data in kriterien.items():
         avg = k_data.get("avg")
+        ist_profil = k_name.startswith("at-srdp-en-") and "::" in k_name
+        # Keine Förderdiagnose aus ungeprüften Profilpunkten ableiten.
+        if ist_profil:
+            continue  # Profilpunkte ohne lehrkraftbestätigte Kriterienentscheidung bleiben eine Vorschlagsanzeige.
         if avg is not None and avg < KRITERIUM_SCHWELLE:
             label = kriterium_labels.get(k_name, k_name.replace("_", " ").title())
             empfehlungen.append({
@@ -1669,12 +1678,12 @@ def get_klassen_feedback(
             if aufgabe:
                 rows = conn.execute(
                     """
-                    SELECT fh.zitat, fh.korrektur, fh.erklaerung, fh.cluster_id,
+                    SELECT fh.zitat, COALESCE(fh.lehrkraft_korrektur, fh.korrektur) AS korrektur, fh.erklaerung, fh.cluster_id,
                            fh.regel_muster, COUNT(*) as haeufigkeit
                     FROM fehler_historie fh
                     JOIN abgabe a ON fh.abgabe_id = a.id
-                    WHERE a.klasse = ? AND a.aufgabe = ? AND fh.typ = ?
-                    GROUP BY fh.zitat, fh.korrektur, fh.erklaerung, fh.cluster_id, fh.regel_muster
+                    WHERE a.klasse = ? AND a.aufgabe = ? AND fh.typ = ? AND fh.lehrkraft_aktion IN ('uebernommen', 'geaendert')
+                    GROUP BY fh.zitat, COALESCE(fh.lehrkraft_korrektur, fh.korrektur), fh.erklaerung, fh.cluster_id, fh.regel_muster
                     ORDER BY haeufigkeit DESC, fh.zitat
                     LIMIT 5
                     """,
@@ -1683,12 +1692,12 @@ def get_klassen_feedback(
             else:
                 rows = conn.execute(
                     """
-                    SELECT fh.zitat, fh.korrektur, fh.erklaerung, fh.cluster_id,
+                    SELECT fh.zitat, COALESCE(fh.lehrkraft_korrektur, fh.korrektur) AS korrektur, fh.erklaerung, fh.cluster_id,
                            fh.regel_muster, COUNT(*) as haeufigkeit
                     FROM fehler_historie fh
                     JOIN abgabe a ON fh.abgabe_id = a.id
-                    WHERE a.klasse = ? AND fh.typ = ?
-                    GROUP BY fh.zitat, fh.korrektur, fh.erklaerung, fh.cluster_id, fh.regel_muster
+                    WHERE a.klasse = ? AND fh.typ = ? AND fh.lehrkraft_aktion IN ('uebernommen', 'geaendert')
+                    GROUP BY fh.zitat, COALESCE(fh.lehrkraft_korrektur, fh.korrektur), fh.erklaerung, fh.cluster_id, fh.regel_muster
                     ORDER BY haeufigkeit DESC, fh.zitat
                     LIMIT 5
                     """,
@@ -2149,7 +2158,7 @@ def _aggregiere_fehlerschwerpunkte(
         return []
     placeholders = ",".join("?" * len(abgabe_ids))
     rows = conn.execute(
-        f"SELECT typ, zitat, korrektur, cluster_id, regel_muster FROM fehler_historie WHERE abgabe_id IN ({placeholders})",
+        f"SELECT typ, zitat, COALESCE(lehrkraft_korrektur, korrektur) AS korrektur, cluster_id, regel_muster FROM fehler_historie WHERE abgabe_id IN ({placeholders}) AND lehrkraft_aktion IN ('uebernommen', 'geaendert')",
         abgabe_ids,
     ).fetchall()
     anzahl: dict[str, int] = {}
@@ -2598,7 +2607,8 @@ def get_klassen_statistik(
     strongest_criterion: str | None = None
     if criteria_averages:
         with_avg = {k: v["avg"] for k, v in criteria_averages.items() if v.get("avg") is not None}
-        if with_avg:
+        profilgruppen = {k.split("::")[0] if "::" in k else "legacy" for k in with_avg}
+        if with_avg and len(profilgruppen) == 1:
             weakest_criterion = min(with_avg, key=lambda k: with_avg[k])
             strongest_criterion = max(with_avg, key=lambda k: with_avg[k])
 

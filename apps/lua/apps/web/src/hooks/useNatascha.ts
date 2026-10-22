@@ -1,3 +1,4 @@
+import type { EnglischRasterOptionen } from "../lib/englischRaster";
 import { beginActivity } from '../lib/workSession';
 import { correctionRuntime } from '../lib/runtimeModel';
 import { useState, useCallback, useRef } from 'react';
@@ -87,6 +88,7 @@ interface AbgabeDetail {
   kriterien: KriteriumRow[];
   fehler: FehlerRow[];
   lehrerFeedback: LehrerFeedbackRow | null;
+  rasterAuswertung?: { bewertungsprofil: string; profil_version: string; punkte: number; max_punkte: number; wortzahl_ist: number; wortzahl_soll: number | null; wortzahl_abzug: number; veto_vorschlag: boolean; pruefung_erforderlich: string[] };
   revisions: { id: number; revisionNo: number; provider: string; model: string; status: string; isActive: boolean; createdAt: string | null }[];
 }
 
@@ -168,7 +170,7 @@ export function useNatascha() {
     filePath: string,
     klasse: string,
     aufgabe: string,
-    opts?: { runtime?: {provider:string;model:string}; fach?: string; schulstufe?: string; textsorte?: string; land?: string; schueler?: string; bewertungsmodus?: string; ausgangstext?: string; ausgangstextDatei?: string; rubric?: string; pseudonymisierung?: boolean; schuelerId?: number; einsatzId?: string; materialId?: string; revisionOfAbgabeId?: number; klasseId?: string },
+    opts?: EnglischRasterOptionen & { runtime?: {provider:string;model:string}; fach?: string; schulstufe?: string; textsorte?: string; land?: string; schueler?: string; bewertungsmodus?: string; ausgangstext?: string; ausgangstextDatei?: string; rubric?: string; pseudonymisierung?: boolean; schuelerId?: number; einsatzId?: string; materialId?: string; revisionOfAbgabeId?: number; klasseId?: string },
   ) => {
     if(analyzeBusy.current) throw new Error('Eine Analyse läuft bereits.');
     analyzeBusy.current=true;
@@ -194,6 +196,8 @@ export function useNatascha() {
         aufgabe,
         fach: opts?.fach,
         schulstufe: opts?.schulstufe,
+        notenschluessel: opts?.notenschluessel,
+        sollWortanzahl: opts?.sollWortanzahl,
         textsorte: opts?.textsorte,
         land: opts?.land,
         schueler: opts?.schueler,
@@ -409,11 +413,13 @@ export function useNatascha() {
     lehrkraftKorrektur?: string,
   ): Promise<boolean> => {
     try {
-      return await invoke<boolean>('db_update_fehler_status', {
+      const saved = await invoke<boolean>('db_update_fehler_status', {
         fehlerId,
         aktion,
         lehrkraftKorrektur: lehrkraftKorrektur ?? null,
       });
+      if (saved) window.dispatchEvent(new CustomEvent('luka:befunde-geaendert'));
+      return saved;
     } catch {
       return false;
     }

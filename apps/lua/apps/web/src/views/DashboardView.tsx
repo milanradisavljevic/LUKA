@@ -1,3 +1,4 @@
+import { useBefundRevision } from "../hooks/useBefundRevision";
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   GraduationCap, AlertTriangle, ClipboardCheck,
@@ -25,10 +26,10 @@ import { StartActionIllustration } from '../components/ui/StartActionIllustratio
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { Tile } from '../components/ui/Tile';
 import {
-  buildPrefillFromHeatmap,
   KATEGORIE_LABEL,
   type NataschaPrefill,
 } from '../lib/nataschaBridge';
+import { baueLoopPrefill } from '../lib/loopPrefill';
 
 interface DashboardViewProps {
   resumeTitle?: string;
@@ -114,7 +115,8 @@ const START_ACTIONS = [
 ];
 
 export function DashboardView({ resumeTitle, onResume, onOpenDocument, onNavigate, onStartQuickExercise, onGenerateUebung, onPlanungTag }: DashboardViewProps = {}) {
-  const { listKlassen, getNotenverteilung, getKlassenTrend, getHeatmap, quelltextGet } = useNatascha();
+  const befundRevision = useBefundRevision();
+  const { listKlassen, getNotenverteilung, getKlassenTrend, getHeatmap, getFehlerDetail, quelltextGet } = useNatascha();
   const [rows, setRows] = useState<KlasseStat[]>([]);
   const [empfehlung, setEmpfehlung] = useState<EmpfehlungDesTages | null>(null);
   const [loading, setLoading] = useState(true);
@@ -205,7 +207,7 @@ export function DashboardView({ resumeTitle, onResume, onOpenDocument, onNavigat
       if (!cancelled) { setRows(stats); setEmpfehlung(nextEmpfehlung); setLoading(false); }
     })();
     return () => { cancelled = true; };
-  }, [listKlassen, klassenMeta, getNotenverteilung, getKlassenTrend, getHeatmap]);
+  }, [listKlassen, klassenMeta, getNotenverteilung, getKlassenTrend, getHeatmap, befundRevision]);
 
   const lastDocument = useMemo(() => {
     const docs = loadDocuments().filter((d) => !d.isDeleted);
@@ -271,20 +273,18 @@ export function DashboardView({ resumeTitle, onResume, onOpenDocument, onNavigat
 
   const handleGenerateEmpfehlung = useCallback(async () => {
     if (!empfehlung || !onGenerateUebung) return;
-    let ausgangstext = '';
-    try {
-      ausgangstext = await quelltextGet(empfehlung.klasse, empfehlung.aufgabe);
-    } catch {
-      ausgangstext = '';
-    }
-    const prefill = buildPrefillFromHeatmap({
+    // Gleiche Vorbefüllung wie Klassen- und Korrekturansicht — inklusive echter
+    // Fehlerzitate für den fehlerkorrektur-Block.
+    const prefill = await baueLoopPrefill({
       klasse: empfehlung.klasse,
       aufgabe: empfehlung.aufgabe,
       heatmap: empfehlung.heatmap,
-      ausgangstext,
+      abgaben: [],
+      quelltextGet: (klasse, aufgabe) => quelltextGet(klasse, aufgabe).catch(() => ''),
+      getFehlerDetail: (klasse, typ, aufgabe, limit) => getFehlerDetail(klasse, typ, aufgabe, limit).catch(() => []),
     });
     if (prefill) onGenerateUebung(prefill);
-  }, [empfehlung, onGenerateUebung, quelltextGet]);
+  }, [empfehlung, onGenerateUebung, quelltextGet, getFehlerDetail]);
 
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto' }}>

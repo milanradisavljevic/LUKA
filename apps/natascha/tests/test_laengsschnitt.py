@@ -7,6 +7,7 @@ natascha_core.build_schueler_profil_prompt() (Schicht 3, Entwurf) ab.
 from __future__ import annotations
 
 import sys
+import sqlite3
 from pathlib import Path
 
 import pytest
@@ -180,6 +181,8 @@ def test_fehlerschwerpunkte_sortiert_und_dedupliziert(db_path: Path) -> None:
     db.insert_fehler(db_path, aid1, "das Haus", "das Haus,", "Z", "Komma")  # Duplikat-Zitat
     db.insert_fehler(db_path, aid2, "im Garten", "im Garten,", "Z", "Komma")
     db.insert_fehler(db_path, aid1, "wahr", "war", "R", "Rechtschreibung")
+    with sqlite3.connect(db_path) as conn:
+        conn.execute("UPDATE fehler_historie SET lehrkraft_aktion='uebernommen'")
     ls = db.get_schueler_laengsschnitt(db_path, sid)
     schwerpunkte = ls["fehlerschwerpunkte"]
     assert schwerpunkte[0]["typ"] == "Z"  # häufigster zuerst
@@ -225,6 +228,8 @@ def test_profil_prompt_enthaelt_keine_personendaten(db_path: Path) -> None:
         db_path, 1, "Felix Müller schrieb", "Felix Müller, schrieb", "Z", "Komma",
         regel_muster="Felix Müller in einem Regelmuster",
     )
+    with sqlite3.connect(db_path) as conn:
+        conn.execute("UPDATE fehler_historie SET lehrkraft_aktion='uebernommen'")
     ls = db.get_schueler_laengsschnitt(db_path, sid)
     # Sicherstellen, dass die Identifikatoren tatsächlich im Aggregat stehen …
     assert ls["schueler"]["vorname"] == "Felix"

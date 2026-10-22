@@ -59,6 +59,27 @@ def test_naechste_schritte_sektion_mit_fehlern() -> None:
     assert "Diese Schwerpunkte üben wir gezielt weiter." in text
 
 
+def test_naechste_schritte_nennen_deutsche_regeln_nur_im_fach_deutsch() -> None:
+    """Der Komma-Tipp (dass, weil, obwohl) ist deutschspezifisch."""
+    fehler = [gf.SprachFehler(zitat="x", korrektur="y", typ="Z", erklaerung="")]
+    deutsch = gf.Document()
+    gf.add_naechste_schritte(deutsch, fehler, "Deutsch")
+    englisch = gf.Document()
+    gf.add_naechste_schritte(englisch, fehler, "Englisch")
+    text_de = "\n".join(p.text for p in deutsch.paragraphs)
+    text_en = "\n".join(p.text for p in englisch.paragraphs)
+    assert "weil, obwohl" in text_de
+    assert "weil, obwohl" not in text_en
+    assert "Zeichensetzung (1×)" in text_en
+
+
+def test_ueberblick_wird_nicht_als_lehrkraft_kommentar_ausgegeben() -> None:
+    """Der Überblick ist KI-Vorschlag; die Überschrift darf ihn nicht der Lehrkraft zuschreiben."""
+    data = gf.load_feedback_json(FIXTURES / "beispiel_englisch_b2_feedback.json")
+    text = "\n".join(p.text for p in gf.build_feedback_document(data).paragraphs)
+    assert "LEHRKRAFT-KOMMENTAR" not in text
+
+
 def test_fehlerprotokoll_kopfzeile_wird_auf_folgeseiten_wiederholt() -> None:
     data = gf.load_feedback_json(FIXTURES / "beispiel_englisch_b2_feedback.json")
     document = gf.build_feedback_document(data)

@@ -249,7 +249,6 @@ export const HELP_SECTIONS: HelpSection[] = [
         </P>
         <Steps items={[
           <><strong>Windows:</strong> Die Datei <code>*_x64-setup.exe</code> aus den Releases herunterladen und ausführen. Windows warnt per <strong>SmartScreen</strong>, weil das Programm noch nicht mit einem Firmen-Zertifikat signiert ist — über „Weitere Informationen" und „Trotzdem ausführen" geht es weiter. Das ist bei quelloffener Software ohne Zertifikat normal.</>,
-          <><strong>macOS:</strong> Die <code>.dmg</code> öffnen und LUKA in „Programme" ziehen. Beim ersten Start meldet Gatekeeper, die App sei nicht überprüfbar: einmal die Warnung wegklicken, dann in <strong>Systemeinstellungen → Datenschutz &amp; Sicherheit</strong> auf „Dennoch öffnen" und noch einmal öffnen.</>,
         ]} />
         <P>
           <strong>Updates:</strong> LUKA prüft von selbst, ob eine neue Version vorliegt, und

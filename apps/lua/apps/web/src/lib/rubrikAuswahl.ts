@@ -9,6 +9,7 @@ export interface RubrikOption {
   aufgabenart?: string;
   k1?: string;
   k3?: string;
+  bewertungsprofil?: string;
 }
 
 export interface RubrikGruppe {

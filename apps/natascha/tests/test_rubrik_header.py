@@ -14,6 +14,7 @@ LEERE_FELDER = {
     "k1": "",
     "k3": "",
     "aufgabenart": "",
+    "bewertungsprofil": "",
 }
 
 
@@ -32,6 +33,7 @@ aufgabenart: verstaendnis
 """
 
     assert parse_rubrik_header(text) == {
+        "bewertungsprofil": "",
         "titel": "SRDP Deutsch Oberstufe",
         "fach": "deutsch",
         "schulstufe": "oberstufe",
@@ -82,3 +84,7 @@ Dieser Inhalt geht an das LLM.
 """
 
     assert strip_rubrik_header(rubric) == "# Unveränderter Inhalt\n\nDieser Inhalt geht an das LLM.\n"
+
+
+def test_englisch_profil_metadatum():
+    assert parse_rubrik_header("<!-- luka-rubrik\nbewertungsprofil: at-srdp-en-b2\n-->\n")["bewertungsprofil"] == "at-srdp-en-b2"

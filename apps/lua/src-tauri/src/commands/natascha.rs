@@ -715,6 +715,8 @@ pub async fn natascha_analyze(
     material_id: Option<String>,
     revision_of_abgabe_id: Option<i64>,
     land: Option<String>,
+    notenschluessel: Option<serde_json::Value>,
+    soll_wortanzahl: Option<u32>,
 ) -> Result<String, String> {
     let mut cmd = build_cli_command(&dir, &python)?;
     if let Some(v) = provider { cmd.arg("--provider").arg(v); }
@@ -781,6 +783,12 @@ pub async fn natascha_analyze(
     }
     if let Some(id) = revision_of_abgabe_id {
         cmd.arg("--revision-of-abgabe-id").arg(id.to_string());
+    }
+    if let Some(ref schluessel) = notenschluessel {
+        cmd.arg("--notenschluessel-json").arg(schluessel.to_string());
+    }
+    if let Some(anzahl) = soll_wortanzahl {
+        cmd.arg("--soll-wortanzahl").arg(anzahl.to_string());
     }
     run_cli_and_capture(cmd, Some(&app), "Korrektur-Analyse").await
 }

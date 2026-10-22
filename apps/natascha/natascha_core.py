@@ -5,6 +5,9 @@ NATASCHA Core – Gemeinsame Logik-Funktionen fuer Wizard und Dashboard.
 
 from __future__ import annotations
 
+from bewertungsprofile import (profil_fuer_raster, schema_fuer_profil, skalen_anweisung,
+                               pruefe_notenschluessel, werte_profil_aus, LEGACY_RASTER_HASHES, PROFIL_VERSION)
+
 import base64
 import copy
 import hashlib
@@ -88,6 +91,13 @@ def _seed_data_dir(bundle_root: Path, data_root: Path) -> None:
                 ziel.mkdir(parents=True, exist_ok=True)
             elif not ziel.exists():
                 _shutil.copy2(quelle, ziel)
+            elif ordner == "rubrics" and quelle.name in LEGACY_RASTER_HASHES:
+                # Nur unveränderte mitgelieferte Altraster aktualisieren.
+                # Persönliche Anpassungen bleiben unangetastet.
+                import hashlib
+                old = ziel.read_text(encoding="utf-8-sig").replace("\r\n", "\n")
+                if hashlib.sha256(old.encode("utf-8")).hexdigest() == LEGACY_RASTER_HASHES[quelle.name]:
+                    _shutil.copy2(quelle, ziel)
 
 
 def _resolve_project_root() -> Path:
@@ -463,7 +473,7 @@ _RUBRIK_HEADER_RE = re.compile(
 # `aufgabenart` steuert die Zusatzanweisungen bei der Erwartungshorizont-Generierung:
 # ein Verständnisraster erwartet Fragen, kein Schreibauftrag.
 _RUBRIK_HEADER_FIELDS = (
-    "titel", "fach", "schulstufe", "textsorte", "k1", "k3", "aufgabenart",
+    "titel", "fach", "schulstufe", "textsorte", "k1", "k3", "aufgabenart", "bewertungsprofil",
 )
 
 
@@ -873,7 +883,10 @@ def _sprachfach_prompt_hinweis(fach: str, textsorte: str) -> str:
     )
 
 
-def load_schema_for_mode(config: dict[str, Any], bewertungsmodus: str) -> dict[str, Any]:
+def load_schema_for_mode(
+    config: dict[str, Any], bewertungsmodus: str, rubric_content: str = "",
+    fach: str = "", land: str = "at",
+) -> dict[str, Any]:
     """Gibt das JSON-Schema zurück — für 'unbenotet' ohne notenempfehlung im required-Array."""
     schema = load_schema(config)
     if bewertungsmodus == "unbenotet":
@@ -887,7 +900,7 @@ def load_schema_for_mode(config: dict[str, Any], bewertungsmodus: str) -> dict[s
         if "notenempfehlung" not in req:
             req.append("notenempfehlung")
         schema = dict(schema, required=req)
-    return schema
+    return schema_fuer_profil(schema, profil_fuer_raster(rubric_content, fach, land))
 
 
 def build_analysis_prompt(
@@ -906,8 +919,8 @@ def build_analysis_prompt(
     land: str = "at",
     dichte_prompt_variante: FehlerdichtePromptVariante = "neutral",
 ) -> str:
-    schema = load_schema_for_mode(config, bewertungsmodus)
-    example = load_example_fixture()
+    schema = load_schema_for_mode(config, bewertungsmodus, rubric_content, fach, land)
+    example = "{}" if profil_fuer_raster(rubric_content, fach, land) else load_example_fixture()
     schema_str = json.dumps(schema, indent=2, ensure_ascii=False)
     example_str = (
         json.dumps(json.loads(example), indent=2, ensure_ascii=False) if example != "{}" else ""
@@ -922,7 +935,9 @@ def build_analysis_prompt(
         else ""
     )
 
-    if bewertungsmodus == "unbenotet":
+    if profil_fuer_raster(rubric_content, fach, land):
+        noten_instruction = "Keine Note erzeugen. Die App verwendet nur einen bestätigten Notenschlüssel.\n"
+    elif bewertungsmodus == "unbenotet":
         noten_instruction = (
             "WICHTIG: Dies ist eine Hausaufgabe — keine Note vergeben.\n"
             "Das Feld 'notenempfehlung' WEGLASSEN (nicht im JSON ausgeben).\n"
@@ -964,10 +979,7 @@ def build_analysis_prompt(
         + criteria_instruction
         + _sachfach_korrektur_hinweis(fach)
         + _sprachfach_prompt_hinweis(fach, textsorte)
-        + "PUNKTE-SKALA: Vergib für jedes Kriterium GENAU eine ganzzahlige Punktzahl von 1 bis 5 "
-        "(1 = nicht erfüllt, 2 = schwach/unzureichend, 3 = ausreichend/befriedigend, "
-        "4 = gut, 5 = sehr gut). Orientiere dich strikt an den Stufenbeschreibungen im Raster. "
-        "Verwende KEINE Dezimalzahlen, keine Werte außerhalb 1–5.\n"
+        + skalen_anweisung(profil_fuer_raster(rubric_content, fach, land))
         + "Erstelle eine Bewertung für jedes Kriterium mit Stufe, Punkten, Stärken, Schwächen und Vorschlägen.\n"
         + noten_instruction
         + "Erstelle außerdem:\n"
@@ -1014,8 +1026,8 @@ def build_vision_prompt(
 
     Der Schülertext ist als beigefügtes Bild/PDF vorhanden — kein docx_text nötig.
     """
-    schema = load_schema_for_mode(config, bewertungsmodus)
-    example = load_example_fixture()
+    schema = load_schema_for_mode(config, bewertungsmodus, rubric_content, fach, land)
+    example = "{}" if profil_fuer_raster(rubric_content, fach, land) else load_example_fixture()
     schema_str = json.dumps(schema, indent=2, ensure_ascii=False)
     example_str = (
         json.dumps(json.loads(example), indent=2, ensure_ascii=False) if example != "{}" else ""
@@ -1030,7 +1042,9 @@ def build_vision_prompt(
         else ""
     )
 
-    if bewertungsmodus == "unbenotet":
+    if profil_fuer_raster(rubric_content, fach, land):
+        noten_instruction = "Keine Note erzeugen. Die App verwendet nur einen bestätigten Notenschlüssel.\n"
+    elif bewertungsmodus == "unbenotet":
         noten_instruction = (
             "WICHTIG: Dies ist eine Hausaufgabe — keine Note vergeben.\n"
             "Das Feld 'notenempfehlung' WEGLASSEN (nicht im JSON ausgeben).\n"
@@ -1081,10 +1095,7 @@ def build_vision_prompt(
         + criteria_instruction
         + _sachfach_korrektur_hinweis(fach)
         + _sprachfach_prompt_hinweis(fach, textsorte)
-        + "PUNKTE-SKALA: Vergib für jedes Kriterium GENAU eine ganzzahlige Punktzahl von 1 bis 5 "
-        "(1 = nicht erfüllt, 2 = schwach/unzureichend, 3 = ausreichend/befriedigend, "
-        "4 = gut, 5 = sehr gut). Orientiere dich strikt an den Stufenbeschreibungen im Raster. "
-        "Verwende KEINE Dezimalzahlen, keine Werte außerhalb 1–5.\n"
+        + skalen_anweisung(profil_fuer_raster(rubric_content, fach, land))
         + "Beziehe sichtbare Lehrermarkierungen/-korrekturen in die Bewertung ein.\n"
         "Erstelle eine Bewertung für jedes Kriterium mit Stufe, Punkten, Stärken, Schwächen und Vorschlägen.\n"
         + noten_instruction
@@ -1238,6 +1249,8 @@ def run_llm_analysis(
     dichte_prompt_variante: FehlerdichtePromptVariante = "neutral",
     rubrik_k1_keys: tuple[str, ...] | None = None,
     rubrik_k3_keys: tuple[str, ...] | None = None,
+    notenschluessel: dict[str, Any] | None = None,
+    soll_wortanzahl: int | None = None,
 ) -> tuple[dict[str, Any] | None, list[str]]:
     """
     Fuehrt die vollstaendige LLM-Analyse durch: Prompt bauen, API aufrufen,
@@ -1267,7 +1280,31 @@ def run_llm_analysis(
     run_model = str(api_snapshot.get("model", ""))
     run_started_at = datetime.now().astimezone().isoformat(timespec="seconds")
 
-    schema = load_schema_for_mode(config, bewertungsmodus)
+    if fach.strip().casefold() == "daf":
+        bewertungsmodus = "unbenotet"
+    try:
+        profil = profil_fuer_raster(rubric_content, fach, land)
+        deklariertes_profil = profil_fuer_raster(rubric_content, "englisch", "at")
+        if deklariertes_profil and not profil:
+            raise ValueError("Dieses SRDP-Profil ist für Englisch in Österreich vorgesehen. Bitte Fach und Land prüfen.")
+    except ValueError as exc:
+        return None, [str(exc)]
+    if (profil is None and fach.strip().casefold() in ("englisch", "english") and land == "at"
+            and re.search(r"(?i)SRDP Englisch B[12]", rubric_content)
+            and re.search(r"0\s*(?:bis|[-–])\s*10", rubric_content)):
+        return None, ["Dieses ältere Englisch-Raster hat keine gültige Profilfassung. Bitte das neue SRDP-Raster wählen oder die eigene Rasterkopie fachlich aktualisieren."]
+    try:
+        pruefe_notenschluessel(notenschluessel)
+        if notenschluessel is not None and not profil:
+            raise ValueError("Dieser Notenschlüssel ist nur für das ausgewählte Englisch-Profil verfügbar.")
+        if soll_wortanzahl is not None and (isinstance(soll_wortanzahl, bool)
+                or not isinstance(soll_wortanzahl, int) or not 1 <= soll_wortanzahl <= 10000):
+            raise ValueError("Die vorgegebene Wortanzahl muss zwischen 1 und 10000 liegen.")
+        if notenschluessel is not None and soll_wortanzahl is None:
+            raise ValueError("Vor einer Notenempfehlung bitte die vorgegebene Wortanzahl festlegen.")
+    except ValueError as exc:
+        return None, [str(exc)]
+    schema = load_schema_for_mode(config, bewertungsmodus, rubric_content, fach, land)
 
     # Duplikat-Erkennung (Hash-Check)
     if ndb is not None and file_path is not None and file_path.exists():
@@ -1465,6 +1502,10 @@ def run_llm_analysis(
                 "rubrik_inhalt": rubric_content,
                 "ausgangstext": ausgangstext_text or "",
                 "bewertungsmodus": bewertungsmodus,
+                "bewertungsprofil_id": profil,
+                "bewertungsprofil_version": PROFIL_VERSION if profil else None,
+                "notenschluessel": notenschluessel,
+                "soll_wortanzahl": soll_wortanzahl,
                 "erwartungshorizont_name": erwartungshorizont_name,
                 "erwartungshorizont": erwartungshorizont or "",
                 "erwartungshorizont_version": erwartungshorizont_version(erwartungshorizont),
@@ -1585,10 +1626,14 @@ def run_llm_analysis(
                 for hinweis in qualitaetswarnungen
             ]
 
+        if bewertungsmodus == "unbenotet":
+            data.pop("notenempfehlung", None)
+            data.pop("notenempfehlung_llm", None)
+
         # Konsistenzcheck: Fehlerliste vs. Sprachrichtigkeits-Note (advisory, L2).
         # Die Warnungen sind Systemhinweise und bewusst von den pädagogischen
         # 'hinweise' des LLM getrennt — sie ändern nie eine Note.
-        if data.get("bewertung") and docx_text_llm and not ist_sachfach(fach):
+        if data.get("bewertung") and docx_text_llm and not ist_sachfach(fach) and not profil:
             fehler_warnungen = konsistenzwarnung_fehler_vs_note(
                 data.get("fehler", []), data["bewertung"], len(docx_text_llm.split())
             )
@@ -1644,7 +1689,20 @@ def run_llm_analysis(
             else None
         )
         notenbasis = sachfach_notenbasis or data.get("bewertung")
-        if bewertungsmodus == "benotet" and isinstance(notenbasis, dict) and notenbasis:
+        if profil:
+            try:
+                auswertung = werte_profil_aus(
+                    data, profil, docx_text_llm if not vision_mode else data.get("transkription", ""),
+                    soll_wortanzahl, notenschluessel, transkript_geprueft=not vision_mode,
+                    benotet=bewertungsmodus == "benotet",
+                )
+            except (ValueError, KeyError, TypeError):
+                return None, ["Die Englisch-Rasterwerte sind unvollständig oder widersprüchlich. Der Lauf wurde nicht gespeichert."]
+            data.setdefault("qualitaetswarnungen", []).extend(
+                {"code": "englisch_raster_pruefen", "message": message}
+                for message in auswertung["pruefung_erforderlich"]
+            )
+        elif bewertungsmodus == "benotet" and isinstance(notenbasis, dict) and notenbasis:
             if "notenempfehlung" in data:
                 data["notenempfehlung_llm"] = data["notenempfehlung"]
             if sachfach_notenbasis:

@@ -1,124 +1,49 @@
 <!-- luka-rubrik
-titel: SRDP Englisch B1
+titel: SRDP Englisch B1 – Rasterpunkte
 fach: englisch
 schulstufe: oberstufe
 textsorte: alle
+bewertungsprofil: at-srdp-en-b1
 -->
 
 # Bewertungsraster: SRDP Englisch B1
 
-## JSON-Kriterien (exakte Schlüssel für die Bewertung — keine anderen verwenden)
+Bewertungsprofil-ID: at-srdp-en-b1
+Profilfassung: 2023.1
+Quelle: https://www.matura.gv.at/fileadmin/user_upload/downloads/Begleitmaterial/LFS/srdp_lfs_beurteilungsraster_b1.pdf
+Quellenabgleich: 2026-10-22. Technischer Pilot; fachliche Lehrkraftabnahme offen.
+
+## JSON-Kriterien (exakte Schlüssel)
 - `task_achievement` — Task Achievement / Aufgabenerfüllung
-- `organisation_layout` — Organisation and Layout / Textaufbau
-- `lexical_range_accuracy` — Lexical Range and Accuracy / Wortschatz
-- `grammatical_range_accuracy` — Grammatical Range and Accuracy / Grammatik
+- `coherence_cohesion` — Coherence and Cohesion / Aufbau und Verknüpfung
+- `lexical_structural_range` — Lexical and Structural Range / sprachliches Spektrum
+- `lexical_structural_accuracy` — Lexical and Structural Accuracy / Sprachrichtigkeit
 
-## Uebersicht
+## Beurteilung
 
-- Gilt fuer Oberstufe Englisch auf B1-Niveau (typisch 5./6. Klasse AHS)
-- Grundlage: analytische Bewertungsraster fuer Lebende Fremdsprachen auf B1-Niveau
-- Vier gleichgewichtete Kriterien
-- Bewertet wird auf einer 11-stufigen Skala von 0 bis 10
-- Ausfuehrliche Deskriptoren liegen fuer die geraden Stufen vor; ungerade Stufen werden als Zwischenstufen verstanden
-- Vetokriterium: Bei klarer Verfehlung der Aufgabenstellung ist im Kriterium `Task Achievement (Erfuellung der Aufgabenstellung)` Stufe 0 zu vergeben; die Gesamtleistung ist dann nicht positiv zu beurteilen
+Vier unabhängige, gleich gewichtete Kriterien mit jeweils ganzzahligen 0–10 Punkten.
+Das vollständige amtliche Raster unter der Quelle bleibt die fachliche Referenz.
+Diese Kurzfassung ersetzt die ausführlichen Deskriptoren nicht.
 
-## Kriterien
+- Aufgabenerfüllung: Arbeitsauftrag, Adressaten, Textsorte, geforderte Inhaltspunkte
+  und ausgeführte Beispiele im konkreten Ausgangstext prüfen.
+- Aufbau und Verknüpfung: nachvollziehbare Gedankenfolge, passende Absätze,
+  Zusammenhang zwischen Sätzen und Abschnitten sowie Textlayout betrachten.
+- Sprachliches Spektrum: Vielfalt und Angemessenheit von Wortschatz UND Satzbau
+  bezogen auf B1 beurteilen; bloße Komplexität ist kein Selbstzweck.
+- Sprachrichtigkeit: lexikalische und grammatische Korrektheit, Orthographie,
+  Zeichensetzung und Verständlichkeit getrennt von sprachlicher Vielfalt prüfen.
 
-1. Task Achievement (Erfuellung der Aufgabenstellung)
-2. Organisation and Layout (Koharenz, Kohasion, Layout)
-3. Lexical Range and Accuracy (Wortschatz)
-4. Grammatical Range and Accuracy (Grammatik)
+Die beschriebenen Ankerstufen sind 0, 2, 4, 6, 8 und 10; Zwischenstufen sind zulässig.
+Stufe 6 bezeichnet die Mindestanforderung des jeweiligen Niveaus.
 
-## B1-Banddeskriptoren
+Aufgabenverfehlung gesondert mit einem Beleg begründen. Nur bei diesem Veto wird
+Task Achievement mit 0 bewertet; die übrigen Kriterien bleiben unbewertet.
+Einzelne fehlende Inhaltspunkte oder eine ungeeignete Textsorte reichen allein
+nicht als Begründung für eine vollständige Aufgabenverfehlung.
 
-### 0 Punkte
-- Arbeitsauftrag deutlich verfehlt oder kaum bearbeitet
-- Textsorte nicht getroffen oder stark unpassend
-- Kommunikation bricht ab; sprachliche Mittel reichen nicht fuer die Aufgabe
+Wortanzahl: Die App zieht bei mehr als 10 Prozent Abweichung von der vorgegebenen
+Wortanzahl genau einen Punkt in Task Achievement ab. Diesen Abzug nicht vorwegnehmen.
 
-### 2 Punkte
-- wesentliche Teile des Arbeitsauftrags nur teilweise bearbeitet
-- Aufbau nur ansatzweise erkennbar
-- sehr begrenzter Wortschatz und einfache Strukturen mit haeufigen Fehlern
-
-### 4 Punkte
-- Arbeitsauftrag grundsaetzlich bearbeitet, aber lueckenhaft oder unausgewogen
-- Text ist einfach aufgebaut; Verknuepfungen sind teilweise mechanisch
-- Wortschatz und Grammatik reichen fuer alltaegliche Situationen, wirken aber oft repetitiv oder unsicher
-
-### 6 Punkte
-- Arbeitsauftrag ueberwiegend erfuellt
-- Textsorte ist erkennbar und meist passend umgesetzt
-- Wortschatz ist ausreichend, um bekannte Themen klar darzustellen
-- Grammatik ist funktional; Fehler kommen vor, stoeren aber nicht dauerhaft
-
-### 8 Punkte
-- Arbeitsauftrag sicher und weitgehend vollstaendig erfuellt
-- Organisation ist klar; Abschnitte und Verknuepfungen stuetzen die Lesbarkeit
-- Wortschatz ist variabler und treffsicherer
-- Grammatik ist ueberwiegend sicher, auch bei etwas komplexeren Strukturen
-
-### 10 Punkte
-- Arbeitsauftrag vollstaendig, adressatenbewusst und souveraen erfuellt
-- Text wirkt geschlossen und gut organisiert
-- Wortschatz ist fuer B1 sehr treffsicher und flexibel
-- Grammatik ist fuer das Niveau sehr sicher und zeigt Kontrolle ueber unterschiedliche Strukturen
-
-### Ungerade Stufen
-
-| Stufe | Einordnung |
-|-------|------------|
-| 1 | zwischen 0 und 2 |
-| 3 | zwischen 2 und 4 |
-| 5 | zwischen 4 und 6 |
-| 7 | zwischen 6 und 8 |
-| 9 | zwischen 8 und 10 |
-
-## Textsorten B1
-
-### Email / Letter (formal and informal)
-- klarer Anlass und passender Adressatenbezug
-- geeignete opening/closing formulas
-- Informationen vollstaendig und logisch angeordnet
-
-### Article
-- ueberschrift oder klarer Einstieg
-- adressatenorientierter, halbformeller Stil
-- nachvollziehbare Hauptaussage mit Beispielen
-
-### Blog post
-- persoenlicher, lesernaher Ton
-- klarer roter Faden
-- passende Schlusswendung oder call to action
-
-### Report
-- sachlicher Stil
-- klare Gliederung mit Beobachtung und Empfehlung bzw. Schluss
-- funktionale headings moeglich
-
-### Story
-- erkennbare Handlung
-- Zeit- und Situationsbezug
-- einfache narrative Koharenz statt blosses Satzreihen
-
-## Notenumrechnung fuer Schularbeiten
-
-- Jedes Kriterium wird mit 0-10 Punkten bewertet
-- Maximalwert: 40 Punkte
-- Empfehlung fuer die schulische Note:
-
-| Gesamtpunkte | Note |
-|--------------|------|
-| 36-40 | 1 - Sehr gut |
-| 30-35 | 2 - Gut |
-| 22-29 | 3 - Befriedigend |
-| 14-21 | 4 - Genuegend |
-| 0-13 oder Task Achievement = 0 | 5 - Nicht genuegend |
-
-Hinweis:
-- Wenn die Schule den offiziellen Schularbeitenrechner verwendet, hat dessen Berechnung Vorrang.
-
-## Quellen
-
-- matura.gv.at, "Bewertungsraster B1 und Begleittext", Stand 03.07.2025
-- matura.gv.at, Bereich "Lebende Fremdsprachen"
+Keine Schulnote durch das Modell. Eine lokale Notenempfehlung benötigt einen
+von der Lehrkraft ausdrücklich ausgewählten und bestätigten Notenschlüssel.

@@ -125,7 +125,7 @@ cd apps/natascha && python3 seed_testdaten.py && python3 natascha_bridge.py TEST
 - **Aktueller Stand (2026-10):** Releases laufen über Tags `vX.Y.Z` und
   `.github/workflows/release.yml`; der jeweils oberste CHANGELOG-Abschnitt ist
   die Update-Notiz. Nächste Schritte: Pilotfeedback von Lehrkräften,
-  installierter Windows-/macOS-Pfad mit synthetischen Daten, weitere
+  installierter Windows-Pfad mit synthetischen Daten, weitere
   Fachpakete/Lehrpläne.
 
 ## KI-Modelle pflegen

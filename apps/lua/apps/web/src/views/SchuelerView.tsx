@@ -1,3 +1,4 @@
+import { useBefundRevision } from "../hooks/useBefundRevision";
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Users, TrendingUp, AlertTriangle, Loader2, BarChart3, ChevronRight, Trash2, UserPlus, UserMinus, Sparkles, Wand2, FileUp, User, School, Archive } from 'lucide-react';
 import { LoadingSpinner } from '../components/LoadingSpinner';
@@ -53,6 +54,7 @@ interface SchuelerViewProps {
 }
 
 export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }: SchuelerViewProps = {}) {
+  const befundRevision = useBefundRevision();
   const { listKlassen, listSchueler, insertSchueler, deleteSchueler, assignSchuelerToKlasse, removeSchuelerFromKlasse, getSchuelerLaengsschnitt, generateSchuelerProfil, getSchuelerProfil, quelltextGet } = useNatascha();
   const { klassen: bekannteKlassen, refresh: refreshKlassenMeta } = useKlassenMeta();
 
@@ -115,6 +117,10 @@ export function SchuelerView({ preselect, onConsumePreselect, onGenerateUebung }
     } catch (e) { setError(String(e)); }
     finally { setLoading(false); }
   }, [getSchuelerLaengsschnitt, getSchuelerProfil]);
+
+  useEffect(() => {
+    if (befundRevision > 0 && selectedSchuelerId !== null) void loadLaengsschnitt(selectedSchuelerId);
+  }, [befundRevision, selectedSchuelerId, loadLaengsschnitt]);
 
   // Cross-Nav: Vorauswahl aus der Korrektur einmalig anwenden.
   useEffect(() => {

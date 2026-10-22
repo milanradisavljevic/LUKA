@@ -5,7 +5,7 @@ erzeugt Arbeitsblätter, Übungen und Schularbeiten, analysiert Schülerabgaben
 mit einer Rubrik und hilft dabei, aus Fehlerschwerpunkten gezielte Folgeübungen
 zu erstellen.
 
-Alles läuft **lokal auf deinem Rechner** mit deinem eigenen API-Schlüssel — keine Accounts, kein Server, keine Cloud-Datenbank.
+Klassen, Materialien und Ergebnisse werden lokal auf deinem Windows-Rechner gespeichert. KI-Anfragen übertragen die freigegebenen Inhalte an den gewählten Anbieter; ein LUKA-Konto ist nicht erforderlich.
 
 ---
 
@@ -37,22 +37,7 @@ nicht mit einem teuren Zertifikat signiert ist — über **„Weitere
 Informationen" → „Trotzdem ausführen"** geht es weiter. Das ist bei
 quelloffener Software ohne Firmen-Zertifikat normal.
 
-### macOS
-
-Neueste `LUKA.-.Lehrunterlagen-Tool_*_universal.dmg` von den
-[Releases](https://github.com/milanradisavljevic/LUKA/releases/latest) laden,
-öffnen und LUKA in **Programme** ziehen.
-
-Auch hier ist die App (noch) nicht mit einem Apple-Entwicklerzertifikat
-signiert: Beim ersten Öffnen meldet **Gatekeeper** „App ist beschädigt" oder
-„kann nicht überprüft werden". Kein Grund zur Sorge — nur kein
-kostenpflichtiges Apple-Zertifikat. Seit macOS 15 fehlt der frühere
-Rechtsklick-„Öffnen"-Trick, deshalb so:
-
-1. App einmal ganz normal per Doppelklick öffnen und die Warnung wegklicken.
-2. **Systemeinstellungen → Datenschutz & Sicherheit** öffnen, nach unten
-   scrollen, **„Dennoch öffnen"** anklicken.
-3. Noch einmal öffnen und bestätigen — danach startet LUKA wie gewohnt.
+Windows x64 ist die unterstützte Zielplattform. Andere Plattformen gehören nicht zum aktuellen Lieferumfang.
 
 ---
 
@@ -567,7 +552,7 @@ Die **Such-/Befehlsleiste** oben im Kopf (oder `Mod`+`K`) durchsucht die gesamte
 
 ## Tastenkürzel
 
-`Mod` steht für `Strg` unter Windows/Linux und `⌘` auf Mac. Die Liste in der App zeigt die Taste, die auf deinem Gerät tatsächlich gilt.
+`Mod` steht unter Windows für `Strg`. Die Liste in der App zeigt die verfügbaren Tastenkombinationen.
 
 ### Überall
 
@@ -636,3 +621,14 @@ Alles andere bleibt **lokal**: Datenbank und Exporte liegen auf deinem Rechner u
 ---
 
 Mehr Details: `docs/DATENSCHUTZ.md` · Anleitung mit mehr Tiefe je Fall: `docs/ANLEITUNG.md` (dieses Dokument).
+
+
+## Neue Englisch-SRDP-Profile (B1/B2)
+
+Die Profile verwenden vier unabhängige Kriterien mit 0–10 Punkten und eigener Profilversion. Wähle das passende Raster im Korrekturauftrag. Alte Auswertungen behalten ihre ursprüngliche Skala. Die neuen Profile benötigen noch die fachliche Abnahme.
+
+Trage die vorgegebene Wortanzahl ein. Bei mehr als zehn Prozent Abweichung zieht die App einmal einen Punkt bei Task Achievement ab und zeigt Rohwerte und Abzug getrennt. Ein Veto-Vorschlag zur Aufgabenverfehlung verlangt eine eigene Lehrkraftprüfung.
+
+Eine automatische Notenempfehlung entsteht nur mit vollständig eingetragenem, ausdrücklich bestätigtem individuellem Notenschlüssel. Änderungen am Auftrag setzen diese Bestätigung zurück. Ohne Schlüssel bleiben die Rasterpunkte sichtbar. Prüfe jeden Vorschlag; ein DOCX-Export bestätigt die Bewertung nicht.
+
+Für Heatmap, Förderung und Folgeübungen zählen nur übernommene oder geänderte Fehlerhinweise. Ungeprüfte Vorschläge und verworfene Hinweise bleiben in der Korrektur sichtbar.

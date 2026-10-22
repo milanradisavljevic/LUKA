@@ -1,4 +1,8 @@
 const BEKANNTE_KRITERIEN: Record<string, string> = {
+  task_achievement: 'Aufgabenerfüllung',
+  coherence_cohesion: 'Aufbau und Verknüpfung',
+  lexical_structural_range: 'Sprachliches Spektrum',
+  lexical_structural_accuracy: 'Sprachrichtigkeit',
   analyse: 'Analyse',
   einleitung_aufbau: 'Einleitung & Aufbau',
   interpretation: 'Interpretation',
@@ -9,6 +13,8 @@ const KLEINZUSCHREIBENDE_WOERTER = new Set(['am', 'an', 'auf', 'aus', 'bei', 'de
 
 /** Macht technische Raster-Schlüssel in der Korrekturansicht lesbar. */
 export function kriteriumAnzeige(name: string): string {
+  const profil = /^(at-srdp-en-b[12])@([^:]+)::(.+)$/.exec(name);
+  if (profil && profil[1] && profil[2] && profil[3]) return `${kriteriumAnzeige(profil[3])} (${profil[1].endsWith('b1') ? 'B1' : 'B2'} · ${profil[2]} · 0–10)`;
   const roh = name.trim();
   if (!roh) return roh;
 

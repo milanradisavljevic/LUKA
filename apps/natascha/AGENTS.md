@@ -38,6 +38,7 @@
 Natascha3/
 ├── natascha.py              # Haupt-Einstieg: Textual-Dashboard (~3200 Zeilen)
 ├── natascha_core.py         # Gemeinsame Logik: Config, LLM-Pipeline, Benotung (~2400 Zeilen)
+├── bewertungsprofile.py      # Versionierte Englisch-SRDP-Profile, lokale Punkte-/Notenauswertung
 ├── natascha_db.py           # SQLite-Persistenz: Schueler, Abgaben, Historie, Heatmap (~700 Zeilen)
 ├── generate_feedback.py     # DOCX-Generator aus JSON (~2000 Zeilen)
 ├── natascha_wizard.py       # Legacy-CLI-Wizard (InquirerPy) (~1244 Zeilen)
@@ -352,3 +353,9 @@ python3 -m pytest tests/test_leseverstaendnis.py -q
 ---
 
 *Diese Datei wurde aus dem tatsächlichen Projektstand abgeleitet. Bei strukturellen Änderungen (neue Module, neue Dependencies, neue Konventionen) muss sie aktualisiert werden.*
+
+## Englisch-SRDP ab 2026-10-22
+
+`bewertungsprofile.py` besitzt die expliziten B1-/B2-Profil-IDs, Profilschemata (0–10), Veto-/Wortzahlregeln und die lokale Auswertung eines ausdrücklich bestätigten individuellen Notenschlüssels. Neue Kriterien werden als `profil@version::kriterium` gespeichert; keine Umrechnung alter Ergebnisse und keine Mischung in Statistikreihen. Der Notenschlüssel gelangt nicht in den Modellprompt. Unveränderte alte Standardraster werden hashgebunden aktualisiert, eigene Raster bleiben erhalten. Technische Tests ersetzen keine fachliche Profilabnahme. Die Legacy-Skala 1–5 bleibt für Deutsch und andere Bestandsraster bestehen.
+
+Befund-Aggregationen verwenden nur `lehrkraft_aktion IN ('uebernommen', 'geaendert')`; die vollständige Prüfliste behält auch offene und verworfene Hinweise. Geänderte Hinweise verwenden die aktuelle `lehrkraft_korrektur`.

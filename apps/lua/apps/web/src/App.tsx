@@ -182,6 +182,8 @@ export default function App() {
   const [bugReportOpen, setBugReportOpen] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [einsatzOffer, setEinsatzOffer] = useState<{ materialId: string; titel: string; klasse: string; lernziele: string[] } | null>(null);
+  // Datum des geplanten Einsatzes — die Lehrkraft wählt es; „heute“ ist nur der Vorschlag.
+  const [einsatzDatum, setEinsatzDatum] = useState<string>(() => heuteIso());
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [tafelOpen, setTafelOpen] = useState(false);
   const [draftAtmosphereFach, setDraftAtmosphereFach] = useState<Fach | null>(null);
@@ -485,6 +487,7 @@ export default function App() {
     }
 
     if (state.generiertesDokument && state.meta.klasse?.trim()) {
+      setEinsatzDatum(heuteIso());
       setEinsatzOffer({
         materialId: id,
         titel: doc.title,
@@ -506,7 +509,7 @@ export default function App() {
       titelSnapshot: einsatzOffer.titel,
       status: 'geplant',
       einsatzArt: 'nur_geplant',
-      geplantAm: heuteIso(),
+      geplantAm: einsatzDatum || heuteIso(),
       lernzieleSnapshot: JSON.stringify(einsatzOffer.lernziele),
     });
     if (created) {
@@ -514,7 +517,7 @@ export default function App() {
       setSaveMsg('Geplanter Einsatz vermerkt');
       window.setTimeout(() => setSaveMsg(null), 2500);
     }
-  }, [einsatzOffer, klassenMeta, upsertEinsatz]);
+  }, [einsatzOffer, einsatzDatum, klassenMeta, upsertEinsatz]);
 
   const handleOpenDocument = useCallback((doc: SavedDocument) => {
     if (!bestaetigeVerwerfen('Aktuellen Stand verwerfen und das gespeicherte Dokument laden?')) {
@@ -910,10 +913,17 @@ if (hydrating) {
             )}
             {einsatzOffer && (
               <div role="status" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.3rem 0.45rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', background: 'var(--color-bg-surface)', fontSize: '0.72rem' }}>
-                <span>Für Klasse {einsatzOffer.klasse} erstellt — für eine Stunde einplanen?</span>
+                <span>Für Klasse {einsatzOffer.klasse} erstellt — einplanen am</span>
+                <input
+                  type="date"
+                  value={einsatzDatum}
+                  onChange={(e) => setEinsatzDatum(e.target.value)}
+                  aria-label="Datum des geplanten Einsatzes"
+                  style={{ fontSize: '0.72rem', padding: '0.15rem 0.3rem' }}
+                />
                 <button
                   className="btn-primary"
-                  onClick={() => { void handleEinsatzOffer(); setActiveView('planung'); }}
+                  onClick={() => { void handleEinsatzOffer(); setPlanungTag(einsatzDatum || null); setActiveView('planung'); }}
                   style={{ fontSize: '0.7rem', padding: '0.25rem 0.45rem' }}
                 >
                   Einplanen
@@ -1025,7 +1035,7 @@ if (hydrating) {
               )}
               {renderView()}
               <div hidden={!isWizard || state.step !== 'generate'}><Step4_Generate state={state} dispatch={dispatch} onOpenTafel={handleOpenTafel} /></div>
-              <div hidden={activeView !== 'korrektur'}><KorrekturView onOpenSchueler={handleOpenSchueler} preselect={pendingKorrektur} onConsumePreselect={() => setPendingKorrektur(null)} /></div>
+              <div hidden={activeView !== 'korrektur'}><KorrekturView onOpenSchueler={handleOpenSchueler} preselect={pendingKorrektur} onConsumePreselect={() => setPendingKorrektur(null)} onGenerateUebung={handleGenerateUebung} /></div>
             </Suspense>
           </div>
         </main>

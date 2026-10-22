@@ -1,17 +1,18 @@
+import { useBefundRevision } from "../hooks/useBefundRevision";
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { GraduationCap, Users, BarChart3, AlertTriangle, TrendingUp, TrendingDown, Download, Wand2, Sparkles, Loader2, School, Plus, Archive, ArchiveRestore, Pencil, Trash2, X, User, ExternalLink, CheckCircle2 } from 'lucide-react';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { EmptyState } from './_EmptyState';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from 'recharts';
-import { loadDocuments, type KlasseInfo } from '../lib/storage';
+import { type KlasseInfo } from '../lib/storage';
 import { useNatascha } from '../hooks/useNatascha';
 import type { KlassenBriefingRow, FehlerTrendPunkt, LoopUebungRow } from '../hooks/useNatascha';
 import { folgeuebungWirkung } from '../lib/loopWirkung';
 import { useKlassenMeta, type KlasseMeta, type KlassenLoeschvorschau } from '../hooks/useKlassenMeta';
 import { KLASSEN_TONE, farbFlaeche, farbListeAusKlassen, klasseFarbStil } from '../lib/klassenFarben';
-import { KATEGORIE_TO_BLOCKTYPEN, fehlerkorrekturZuerst, type NataschaPrefill } from '../lib/nataschaBridge';
-import { FACH_META, schulstufenFuerLand, stufeFromSchulstufe, type Fach, type Land, type Stufe } from '@lehrunterlagen/schema';
-import type { BlockTyp } from '@lehrunterlagen/schema';
+import { type NataschaPrefill } from '../lib/nataschaBridge';
+import { baueLoopPrefill, materialQuelltextAusBibliothek } from '../lib/loopPrefill';
+import { FACH_META, schulstufenFuerLand, stufeFromSchulstufe, type Land } from '@lehrunterlagen/schema';
 import { loadTeacherProfile } from '../lib/profile';
 import { ViewShell } from './_ViewShell';
 import { KiTextBlock } from '../components/KiTextBlock';
@@ -158,6 +159,7 @@ function buildWirksamkeit(punkte: FehlerTrendPunkt[]) {
 }
 
 export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler, onOpenUnterlage, openAbrufcheck, onConsumeAbrufcheck }: Props) {
+  const befundRevision = useBefundRevision();
   const { listKlassen, listAufgaben, getAbgaben, getHeatmap, getKlassenStatistik, getKlassenTrend, getFehlerTrend, getLoopUebungen, getKlassenKalibrierung, getFehlerDetail, exportNotenCsv, generateKlassenBriefing, getKlassenBriefing, quelltextGet } = useNatascha();
   const {
     klassen: klassenMeta,
@@ -275,7 +277,7 @@ export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler,
     listKlassen().then(setKlassen).catch(() => {
       setError('Datenbank nicht erreichbar.');
     });
-  }, [listKlassen]);
+  }, [listKlassen, befundRevision]);
 
   useEffect(() => {
     if (!selectedKlasse) {
@@ -491,7 +493,15 @@ export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler,
     if (selectedKlasse && selectedAufgabe) {
       loadData(selectedKlasse, selectedAufgabe, selectedKlasseId ?? undefined);
     }
-  }, [selectedAufgabe, selectedKlasse, selectedKlasseId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedAufgabe, selectedKlasse, selectedKlasseId, befundRevision]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!befundRevision || !selectedKlasse) return;
+    let active = true;
+    setFehlerDetail(null);
+    void getFehlerTrend(selectedKlasse, selectedKlasseId ?? undefined).then(value => { if (active) setFehlerTrend(value); }).catch(e => { if (active) setError(String(e)); });
+    return () => { active = false; };
+  }, [befundRevision, selectedKlasse, selectedKlasseId, getFehlerTrend]);
 
   const handleHeatmapClick = useCallback(async (typ: string) => {
     if (!selectedKlasse) return;
@@ -501,71 +511,21 @@ export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler,
 
   const handleGenerateUebung = useCallback(async (niveaugruppe?: Niveaugruppe) => {
     if (!selectedKlasse || heatmap.length === 0) return;
-    const top = [...heatmap].filter((h) => h.anzahl > 0).sort((a, b) => b.anzahl - a.anzahl).slice(0, 3);
-    const fokusThemen = top.map((h) => HEATMAP_LABELS[h.typ] ?? h.typ);
-    const arten: BlockTyp[] = [];
-    for (const h of top) {
-      for (const t of (KATEGORIE_TO_BLOCKTYPEN[h.typ as 'R' | 'G' | 'Z' | 'A'] ?? [])) {
-        if (!arten.includes(t)) arten.push(t);
-      }
-    }
-    let ausgangstext = '';
-    const materialId = abgaben.find((a) => a.materialId)?.materialId;
-    if (materialId) {
-      const doc = loadDocuments().find((d) => d.id === materialId);
-      ausgangstext = doc?.snapshot.quelltexte?.map((q) => q.inhalt).filter(Boolean).join('\n\n') ?? '';
-    }
-    if (!ausgangstext && selectedKlasse && selectedAufgabe) {
-      ausgangstext = await quelltextGet(selectedKlasse, selectedAufgabe);
-    }
-    // Echte Klassenfehler der Schwerpunkte nachladen → fehlerkorrektur-Block daraus.
-    const fehler: NataschaPrefill['fehler'] = [];
-    const gesehene = new Set<string>();
-    for (const h of top) {
-      const rows = await getFehlerDetail(selectedKlasse, h.typ, selectedAufgabe ?? undefined, 8, selectedKlasseId);
-      for (const r of rows) {
-        const zitat = (r.zitat ?? '').trim();
-        const korrektur = (r.korrektur ?? '').trim();
-        if (!zitat || !korrektur || zitat === korrektur) continue;
-        const schluessel = `${zitat}→${korrektur}`;
-        if (gesehene.has(schluessel)) continue;
-        gesehene.add(schluessel);
-        fehler.push({ typ: h.typ as 'R' | 'G' | 'Z' | 'A', zitat, korrektur, erklaerung: r.erklaerung ?? undefined, haeufigkeit: r.haeufigkeit, clusterId: r.clusterId ?? undefined, regelMuster: r.regelMuster ?? undefined });
-        if (fehler.length >= 12) break;
-      }
-      if (fehler.length >= 12) break;
-    }
-    const prefill: NataschaPrefill = {
-      thema: `Übung zu Fehlerschwerpunkten – ${selectedKlasse}${selectedAufgabe ? ' · ' + selectedAufgabe : ''}`,
-      // Der Closed Loop übernimmt den Kontext der Klasse bzw. der jüngsten
-      // Abgabe. Fehlen alte Metadaten, lässt Step 0 seine normalen Profilwerte.
-      land: selectedKlasseMeta?.land ?? land,
-      fach: (klassenMeta.find((m) => m.name === selectedKlasse)?.fach
-        ?? abgaben.find((a) => a.fach)?.fach) as Fach | undefined,
-      stufe: (klassenMeta.find((m) => m.name === selectedKlasse)?.stufe
-        ?? (() => {
-          const raw = abgaben.find((a) => a.schulstufe)?.schulstufe;
-          const n = raw ? Number(raw) : NaN;
-          return Number.isFinite(n) ? stufeFromSchulstufe(n, land) : undefined;
-        })()) as Stufe | undefined,
-      schulstufe: (() => {
-        const configured = klassenMeta.find((m) => m.name === selectedKlasse)?.schulstufe;
-        if (configured != null) return configured;
-        const raw = abgaben.find((a) => a.schulstufe)?.schulstufe;
-        const n = raw ? Number(raw) : NaN;
-        return Number.isFinite(n) ? n : undefined;
-      })(),
-      textsorte: abgaben.find((a) => a.textsorte)?.textsorte ?? undefined,
-      fokusThemen,
-      gewuenschteAufgabenarten: fehlerkorrekturZuerst(arten),
-      notizen: `Automatisch aus der Korrektur-Heatmap der Klasse ${selectedKlasse} erzeugt. Schwerpunkte: ${fokusThemen.join(', ')}.`,
-      ausgangstext: ausgangstext || undefined,
-      fehler: fehler.length > 0 ? fehler : undefined,
+    const prefill = await baueLoopPrefill({
+      klasse: selectedKlasse,
+      klasseId: selectedKlasseId,
+      aufgabe: selectedAufgabe,
+      heatmap,
+      abgaben,
+      klasseMeta: selectedKlasseMeta ?? klassenMeta.find((m) => m.name === selectedKlasse),
+      land,
       niveaugruppe,
-      loopQuelle: { klasse: selectedKlasse, aufgabe: selectedAufgabe ?? undefined },
-    };
-    onGenerateUebung?.(prefill);
-  }, [selectedKlasse, selectedKlasseId, selectedAufgabe, heatmap, abgaben, klassenMeta, land, onGenerateUebung, quelltextGet, getFehlerDetail]);
+      quelltextGet,
+      getFehlerDetail,
+      materialQuelltext: materialQuelltextAusBibliothek,
+    });
+    if (prefill) onGenerateUebung?.(prefill);
+  }, [selectedKlasse, selectedKlasseId, selectedAufgabe, selectedKlasseMeta, heatmap, abgaben, klassenMeta, land, onGenerateUebung, quelltextGet, getFehlerDetail]);
 
   const oeffneNiveauVorschau = (gruppe: Niveaugruppe) => {
     const zuordnung: Record<number, Niveaugruppe['id'] | ''> = {};
@@ -928,13 +888,13 @@ export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler,
                 <div style={cardStyle}>
                   <h4 style={{ fontSize: '0.875rem', margin: '0 0 0.75rem' }}>
                     <AlertTriangle size={16} style={{ verticalAlign: -2, marginRight: 6 }} /> Fehler-Heatmap
-                    <InfoDot text="Häufigkeit der Fehlerkategorien (Rechtschreibung/Grammatik/Zeichensetzung/Ausdruck) über alle Abgaben. Klick auf eine Kategorie zeigt Beispielstellen." />
+                    <InfoDot text="Häufigkeit der übernommenen oder geänderten Befunde (Rechtschreibung/Grammatik/Zeichensetzung/Ausdruck). Klick auf eine Kategorie zeigt Beispielstellen." />
                   </h4>
                   {heatmap.length === 0 ? (
                     <EmptyState
                       icon={AlertTriangle}
-                      title="Keine Fehlerdaten"
-                      description="Noch keine analysierten Fehler für diese Aufgabe."
+                      title="Noch keine bestätigten Befunde"
+                      description="Übernimm oder ändere passende Hinweise in der Korrektur. Ungeprüfte und verworfene Vorschläge zählen hier nicht."
                       bordered={false}
                     />
                   ) : (
@@ -1132,7 +1092,7 @@ export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler,
                       <YAxis domain={[1, 5]} tick={{ fontSize: 12 }} reversed />
                       <Tooltip />
                       <Legend />
-                      <Line type="monotone" dataKey="avgNoteApp" name="KI-Note" stroke="var(--color-accent)" strokeWidth={2} dot={{ r: 4 }} connectNulls />
+                      <Line type="monotone" dataKey="avgNoteApp" name="Notenempfehlung" stroke="var(--color-accent)" strokeWidth={2} dot={{ r: 4 }} connectNulls />
                       <Line type="monotone" dataKey="avgNoteLehrer" name="Lehrernote" stroke="#e74c3c" strokeWidth={2} dot={{ r: 4 }} connectNulls />
                     </LineChart>
                   </ResponsiveContainer>
@@ -1142,8 +1102,8 @@ export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler,
               {wirksamkeit.relevant.length >= 2 && (
                 <div style={{ ...cardStyle, marginBottom: '1rem' }}>
                   <h4 style={{ fontSize: '0.875rem', margin: '0 0 0.75rem' }}>
-                    <TrendingDown size={16} style={{ verticalAlign: -2, marginRight: 6 }} /> Wirksamkeit über die Schularbeiten
-                    <InfoDot text="Fehler pro Abgabe je Kategorie über die Schularbeiten hinweg. Sinkt eine Linie nach gezielter Übung, war sie vermutlich wirksam." />
+                    <TrendingDown size={16} style={{ verticalAlign: -2, marginRight: 6 }} /> Entwicklung über die Schularbeiten
+                    <InfoDot text="Fehler pro Abgabe je Kategorie über die Schularbeiten hinweg. Eine sinkende Linie zeigt eine Entwicklung, aber keinen Nachweis, dass eine Übung die Ursache war." />
                   </h4>
                   <ResponsiveContainer width="100%" height={240}>
                     <LineChart data={wirksamkeit.chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
@@ -1217,7 +1177,7 @@ export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler,
                 <div style={{ ...cardStyle, marginBottom: '1rem' }}>
                   <h4 style={{ fontSize: '0.875rem', margin: '0 0 0.75rem' }}>
                     <ExternalLink size={16} style={{ verticalAlign: -2, marginRight: 6 }} /> Folgeübungen (aus Korrekturen erzeugt)
-                    <InfoDot text="Vergleicht den Korrekturlauf vor der Übung mit dem ersten danach (Fehler pro Abgabe). Strukturierte Regelmuster erscheinen zusätzlich, wenn beide Läufe Cluster-Daten enthalten. Läufe am selben Tag bleiben bewusst unberücksichtigt." />
+                    <InfoDot text="Vergleicht den Korrekturlauf vor der Übung mit dem ersten danach (Fehler pro Abgabe). Strukturierte Regelmuster erscheinen zusätzlich, wenn beide Läufe Cluster-Daten enthalten. Zeitlicher Bezug ist das Erstellungsdatum, nicht der Unterrichtseinsatz. Eine spätere Schularbeit ist kein verknüpfter Lernziel-Check. Läufe am selben Tag bleiben unberücksichtigt." />
                   </h4>
                   {loopWirkung.map((l) => (
                     <div key={l.id} style={{ padding: '0.5rem 0', borderBottom: '1px solid var(--color-border)' }}>
@@ -1237,17 +1197,17 @@ export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler,
                       </div>
                       <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)', marginBottom: '0.25rem' }}>
                         Übung erstellt {l.erstelltAm || '—'}
+                        {` · Einsatz: ${chronik.filter(e => e.materialId === l.id && e.status === 'eingesetzt' && e.eingesetztAm).map(e => formatEinsatzDatum(e.eingesetztAm)).join(', ') || 'nicht vermerkt'}`}
                         {l.vor ? ` · davor: ${l.vor.aufgabe}` : ' · keine Schularbeit davor'}
                         {l.nach ? ` · danach: ${l.nach.aufgabe}` : ' · noch keine Schularbeit danach'}
                       </div>
                       {l.deltas.length > 0 && (
                         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                           {l.deltas.map((d) => {
-                            const besser = d.delta < 0;
                             const gleich = d.delta === 0;
-                            const farbe = gleich ? 'var(--color-text-secondary)' : besser ? 'var(--color-success, #27ae60)' : 'var(--color-danger, #c0392b)';
+                            // Bewusst neutral: Vorher/Nachher ohne Kontrollbedingung ist kein Wirkungsnachweis.
                             return (
-                              <span key={d.typ} style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', padding: '0.15rem 0.5rem', fontSize: '0.75rem', color: farbe }}>
+                              <span key={d.typ} style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', padding: '0.15rem 0.5rem', fontSize: '0.75rem', color: 'var(--color-text)' }}>
                                 {HEATMAP_LABELS[d.typ] ?? d.typ}: {d.vor.toFixed(1)} → {d.nach.toFixed(1)}
                                 {!gleich && (d.delta < 0 ? ' ↓' : ' ↑')}
                               </span>
@@ -1263,7 +1223,7 @@ export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler,
                       {l.clusterDeltas.length > 0 && (
                         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.35rem' }}>
                           {l.clusterDeltas.map((delta) => (
-                            <span key={delta.clusterId} style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', padding: '0.15rem 0.5rem', fontSize: '0.72rem', color: delta.delta < 0 ? 'var(--color-success, #27ae60)' : delta.delta > 0 ? 'var(--color-danger, #c0392b)' : 'var(--color-text-secondary)' }}>
+                            <span key={delta.clusterId} style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', padding: '0.15rem 0.5rem', fontSize: '0.72rem', color: 'var(--color-text)' }}>
                               {delta.label}: {delta.vor.toFixed(1)} → {delta.nach.toFixed(1)}
                               {delta.delta < 0 ? ' ↓' : delta.delta > 0 ? ' ↑' : ''}
                             </span>
@@ -1272,6 +1232,9 @@ export function KlassenView({ onGenerateUebung, onOpenKorrektur, onOpenSchueler,
                       )}
                     </div>
                   ))}
+                  <p style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)', margin: '0.75rem 0 0' }}>
+                    Vorher/Nachher-Vergleich, kein Wirkungsnachweis: Aufgabe, Textsorte und Länge der Schularbeiten können sich unterscheiden. Nur übernommene und geänderte Befunde zählen mit.
+                  </p>
                 </div>
               )}
 

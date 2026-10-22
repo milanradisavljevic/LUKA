@@ -1,39 +1,30 @@
-# Screenshots
+# Product images
 
-Diese Bilder werden vom Haupt-`README.md` eingebunden.
+Captured on **20 October 2026** from LUKA development commit `8a3766f`, using
+1440 × 900 pixel browser viewports, the light theme and the unchanged German React UI.
 
-> **Stand: 1.5.0 (10.07.2026), Design „Tinte & Papier".** Seitdem hat sich die
-> Seitenleiste von fünf auf vier Bereiche geändert, die Startseite zeigt einen
-> Wochenstreifen, und die Unterrichtsplanung ist dazugekommen. Die Bilder sind
-> also älter als die Oberfläche; neue Aufnahmen stehen aus.
-
-## Vorhanden
-
-| Datei | Zeigt |
+| File | View |
 |---|---|
-| `Übersicht.png` | Übersicht (Startseite), Light — Stand 1.5.0, vor dem Wochenstreifen (Hero) |
-| `Darkmode.png` | Dieselbe Übersicht im warmen Dark-Mode |
-| `mit Quelltext.png` | Generator „Aus Quelltext" - Schritt *Absicht erfassen* |
-| `Schnellübung.png` | Schnell-Übung - ein Thema, ein Aufgabentyp, sofort im Baukasten |
-| `LLM-Auswahl.png` | Schritt *KI-Modell* - Anbieter, Modell, Kreativitätsgrad (BYOK) |
-| `Wartescreen.png` | Generierung läuft - Fortschritt, Zeitangabe, Abbrechen |
-| `ausgearbeitete Aufgaben.png` | Fertige Aufgaben in der A4-Vorschau - „Neu generieren"/„In Pool" pro Block |
-| `Schülerauswahl.png` | Schüler-Bereich (Korrektur-Teil, nicht im Haupt-README verlinkt) |
+| `lesson-planning.png` | A synthetic German lesson in the weekly planner. |
+| `german-worksheet.png` | Prepared German exercise in the student preview. |
+| `correction-review.png` | A synthetic submission with prepared correction suggestions and highlighted text. |
+| `follow-up-practice.png` | Source and teaching context carried from class correction findings into follow-up preparation. |
 
-## Noch wünschenswert
+## What the images demonstrate
 
-| Vorschlag Datei | View + Zustand |
-|---|---|
-| `Unterrichtsplanung-Woche.png` | Planung, Wochenkarte mit Raster, Ferienbalken und „Stunde hinzufügen" |
-| `Unterrichtsplanung-Monat.png` | Planung, Monatsraster mit schulfreien Tagen |
-| `Planung-Ferien.png` | Planung, Ferienbereich mit Quelle und Abrufdatum zum Vorschlag |
-| `Unterrichtsplanung-Start.png` | Startseite mit Wochenstreifen (sieben Tagen), Sa/So gekennzeichnet |
-| `Aufgaben-Pool.png` | Pool mit Filtern + Import-/Export-Buttons (Fachpakete) |
-| `Fachpaket-Vorschau.png` | Import-Vorschau-Dialog (Anzahl, Fächer, Duplikate) |
-| `Kompetenzaufgabe.png` | „Ohne Quelltext" - Übung aus Lehrplan-Kompetenz |
-| `Docx-Export.png` | Exportierte DOCX (Schülerfassung + Lösung) nebeneinander |
+All classes, people, texts and analysis results are fictitious. The isolated capture
+harness supplies Tauri command responses without opening a real classroom database,
+using stored API keys or making model calls. The prepared worksheet is validated against
+the current document schema. The follow-up image uses the application's actual navigation
+from the class heatmap into exercise preparation.
 
-**Aufnahme-Tipps:** Fenster = 1440×900, einheitliches Theme, mit Beispieldaten
-aus `samples/` füllen, **keine echten Schülernamen im Bild** — auch nicht in der
-Klassenverwaltung der Planung. Format PNG. Für die Planungsbilder genügt eine
-Klasse aus `samples/` und ein Schuljahr, für das Ferien hinterlegt sind.
+These are UI demonstrations with prepared data, not evidence of AI accuracy, a live
+end-to-end correction run, teacher acceptance or installed Windows acceptance.
+Some shown features are newer than the published installer. See the root README and
+changelog for that distinction.
+
+## Earlier images
+
+The other PNG files in this directory are retained historical captures from version
+1.5.0 (10 July 2026). They are no longer used by the root README and should not be used
+to infer the current navigation or layout.

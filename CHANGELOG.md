@@ -5,6 +5,14 @@ Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 (auch andere Coding-Agents) — siehe `AGENTS.md`.
 
+## Unveröffentlicht — 2026-10-22
+
+- Beschreibung und Anleitung nennen Windows als unterstützte Plattform; neue Produktbilder zeigen den Arbeitsablauf mit synthetischen Beispielen.
+- Auswertungen und Folgeübungen berücksichtigen übernommene oder geänderte Fehlerhinweise. Ungeprüfte Vorschläge und verworfene Hinweise bleiben in der Korrektur sichtbar.
+- Folgeübungen lassen sich direkt aus der Korrektur beginnen. Ein Vergleich früherer und späterer Arbeiten zeigt die beobachtete Entwicklung, ohne daraus automatisch einen Übungserfolg abzuleiten.
+- Englisch-SRDP für B1 und B2 verwendet eigene Rasterpunkte von 0 bis 10. Eine Notenempfehlung braucht einen ausdrücklich bestätigten individuellen Notenschlüssel; Aufgabenverfehlung und ungeprüfte Abschriften verlangen eine gesonderte Prüfung. Bitte die neuen Profile vor dem Unterricht fachlich prüfen.
+- Die Rückmeldung kennzeichnet KI-Vorschläge deutlicher. Für neu erstellte Unterlagen lässt sich das Datum des geplanten Einsatzes auswählen.
+
 ## Version 1.5.8 — 2026-10-21
 
 ### Das ist neu

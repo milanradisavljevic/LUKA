@@ -219,6 +219,8 @@ def cmd_analyze(args):
         },
         dichte_prompt_variante=getattr(args, "benchmark_fehlerdichte_prompt", "neutral"),
         land=getattr(args, "land", "at"),
+        notenschluessel=json.loads(getattr(args, "notenschluessel_json", None) or "null"),
+        soll_wortanzahl=getattr(args, "soll_wortanzahl", None),
     )
 
     if data is None:
@@ -1009,6 +1011,8 @@ def main():
     p_analyze.add_argument("--rubric", default="")
     p_analyze.add_argument("--revision-of-abgabe-id", type=int)
     p_analyze.add_argument("--max-retries", type=int, default=3)
+    p_analyze.add_argument("--notenschluessel-json", help="Ausdrücklich bestätigter individueller Englisch-Notenschlüssel")
+    p_analyze.add_argument("--soll-wortanzahl", type=int, help="Vorgegebene Wortanzahl des Schreibauftrags")
     p_analyze.add_argument(
         "--benchmark-fehlerdichte-prompt",
         dest="benchmark_fehlerdichte_prompt",

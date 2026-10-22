@@ -2575,7 +2575,9 @@ class KlassenFeedbackScreen(ModalScreen[None]):
             for key, vals in sorted(crit_avgs.items(), key=lambda x: x[1]["avg"] or 0):
                 lbl = key.replace("_", " ").title()
                 avg_c = vals["avg"] or 0.0
-                bar_filled = round(avg_c / 5 * _BAR_WIDTH)
+                skala = 10 if key.startswith("at-srdp-en-") and "::" in key else 5
+                lbl += f" (0–{skala})" if skala == 10 else " (1–5)"
+                bar_filled = max(0, min(_BAR_WIDTH, round(avg_c / skala * _BAR_WIDTH)))
                 bar_c = "█" * bar_filled + "░" * (_BAR_WIDTH - bar_filled)
                 if key == weakest:
                     style = f"bold {_NOTE_COLORS[5]}"

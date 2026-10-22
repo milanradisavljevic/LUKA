@@ -8,6 +8,12 @@ use crate::commands::db::DbState;
 // bleiben bewusst außen vor.
 const ABGABE_KLASSEN_FILTER: &str = "((?2 IS NULL AND a.klasse=?1) OR a.klasse_id=?2 OR (a.klasse_id IS NULL AND a.klasse=?1 COLLATE NOCASE AND (SELECT COUNT(*) FROM klasse_stammdaten WHERE name=?1 COLLATE NOCASE)=1))";
 
+// Nur übernommene oder geänderte Befunde zählen als Diagnose.
+// Ungeprüfte und verworfene Vorschläge bleiben in der Prüfliste.
+// Die Prüfliste je Abgabe zeigt sie weiterhin an.
+const F_BESTAETIGT: &str = "f.lehrkraft_aktion IN ('uebernommen', 'geaendert')";
+const FH_BESTAETIGT: &str = "fh.lehrkraft_aktion IN ('uebernommen', 'geaendert')";
+
 // Nur Leerraum kanonisieren — Groß-/Kleinschreibung bleibt erhalten, sonst
 // entstehen neue Zeilen ("7a") neben Bestandsdaten ("7A") und Auswertungen
 // spalten sich. Lookup-Toleranz macht COLLATE NOCASE auf der Python-Seite.
@@ -179,12 +185,12 @@ pub(crate) fn fehler_heatmap_impl(conn: &rusqlite::Connection, klasse: String, a
 
 pub(crate) fn fehler_heatmap_by_class_id_impl(conn: &rusqlite::Connection, klasse: &str, klasse_id: Option<&str>, aufgabe: Option<&str>) -> Result<Vec<HeatmapEntry>, String> {
     let data_sql = format!(
-        "SELECT f.typ, COUNT(*) as cnt FROM fehler_historie f JOIN abgabe a ON f.abgabe_id=a.id WHERE {} AND (?3 IS NULL OR a.aufgabe=?3) GROUP BY f.typ ORDER BY cnt DESC",
-        ABGABE_KLASSEN_FILTER,
+        "SELECT f.typ, COUNT(*) as cnt FROM fehler_historie f JOIN abgabe a ON f.abgabe_id=a.id WHERE {} AND {} AND (?3 IS NULL OR a.aufgabe=?3) GROUP BY f.typ ORDER BY cnt DESC",
+        ABGABE_KLASSEN_FILTER, F_BESTAETIGT,
     );
     let total_sql = format!(
-        "SELECT COUNT(*) FROM fehler_historie f JOIN abgabe a ON f.abgabe_id=a.id WHERE {} AND (?3 IS NULL OR a.aufgabe=?3)",
-        ABGABE_KLASSEN_FILTER,
+        "SELECT COUNT(*) FROM fehler_historie f JOIN abgabe a ON f.abgabe_id=a.id WHERE {} AND {} AND (?3 IS NULL OR a.aufgabe=?3)",
+        ABGABE_KLASSEN_FILTER, F_BESTAETIGT,
     );
     let params = rusqlite::params![klasse, klasse_id, aufgabe];
     let total: f64 = conn.query_row(&total_sql, params, |row| row.get::<_, i64>(0)).unwrap_or(0) as f64;
@@ -420,6 +426,7 @@ pub struct AbgabeDetail {
     pub fehler: Vec<FehlerRow>,
     pub lehrer_feedback: Option<LehrerFeedbackRow>,
     pub revisions: Vec<KorrekturRevisionInfo>,
+    pub raster_auswertung: Option<serde_json::Value>,
     /// System-Qualitätswarnungen aus der Analyse-JSON (z. B. Fehlerliste vs.
     /// Sprachrichtigkeits-Note). Advisory — ändern nie eine Note.
     #[serde(default)]
@@ -499,26 +506,23 @@ pub async fn db_get_abgabe_detail(state: tauri::State<'_, DbState>, abgabe_id: i
         .ok()
         .flatten();
 
-    // Qualitätswarnungen aus der Analyse-JSON lesen (advisory, L2). Fehlende/
-    // unlesbare Datei ist kein Fehler — Warnungen sind optional.
-    let qualitaetswarnungen: Vec<QualitaetsWarnung> = feedback_json_path
-        .filter(|p| !p.trim().is_empty())
-        .and_then(|p| std::fs::read_to_string(p).ok())
-        .and_then(|raw| {
-            let value: serde_json::Value = serde_json::from_str(&raw).ok()?;
-            let list = value.get("qualitaetswarnungen")?.as_array()?.clone();
-            Some(
-                list.iter()
-                    .filter_map(|w| {
-                        Some(QualitaetsWarnung {
-                            code: w.get("code")?.as_str()?.to_string(),
-                            message: w.get("message")?.as_str()?.to_string(),
-                        })
-                    })
-                    .collect(),
-            )
-        })
-        .unwrap_or_default();
+    // Der aktive DB-Snapshot ist maßgeblich, auch nach Revisionswechsel.
+    let analyse = conn.query_row(
+        "SELECT analysis_json FROM korrektur_revision WHERE abgabe_id=?1 AND is_active=1",
+        [abgabe_id], |row| row.get::<_, String>(0),
+    ).optional().map_err(|e| format!("Analysefassung lesen: {e}"))?
+        .and_then(|raw| serde_json::from_str::<serde_json::Value>(&raw).ok())
+        .or_else(|| feedback_json_path.filter(|p| !p.trim().is_empty())
+            .and_then(|p| std::fs::read_to_string(p).ok())
+            .and_then(|raw| serde_json::from_str(&raw).ok()));
+    let qualitaetswarnungen: Vec<QualitaetsWarnung> = analyse.as_ref()
+        .and_then(|v| v.get("qualitaetswarnungen")).and_then(|v| v.as_array())
+        .map(|list| list.iter().filter_map(|w| Some(QualitaetsWarnung {
+            code: w.get("code")?.as_str()?.to_string(),
+            message: w.get("message")?.as_str()?.to_string(),
+        })).collect()).unwrap_or_default();
+    let raster_auswertung = analyse.as_ref().and_then(|v| v.get("notendetail"))
+        .filter(|v| v.get("bewertungsprofil").is_some()).cloned();
 
     let kriterien: Vec<KriteriumRow> = {
         let mut stmt = conn.prepare("SELECT id, abgabe_id, kriterium_name, stufe, gewichtung, datum FROM kriterium_historie WHERE abgabe_id=?1 ORDER BY kriterium_name")
@@ -573,7 +577,7 @@ pub async fn db_get_abgabe_detail(state: tauri::State<'_, DbState>, abgabe_id: i
         rows.collect::<Result<Vec<_>, _>>().map_err(|e| format!("Korrektur-revisionen lesen: {e}"))?
     };
 
-    Ok(AbgabeDetail { abgabe, kriterien, fehler, lehrer_feedback, revisions, qualitaetswarnungen })
+    Ok(AbgabeDetail { abgabe, kriterien, fehler, lehrer_feedback, revisions, qualitaetswarnungen, raster_auswertung })
 }
 
 fn snapshot_active_revision(conn: &rusqlite::Connection, abgabe_id: i64) -> Result<(), String> {
@@ -1065,16 +1069,18 @@ pub struct SchuelerLaengsschnitt {
 }
 
 const KRITERIUM_VARIANTS: &[(&[&str], &str)] = &[
-    (&["inhalt", "inhalt/gedankengang", "inhalt/gedanke", "gedankengang", "gedanke", "content"], "inhalt"),
-    (&["textstruktur", "textstruktur/aufbau", "aufbau", "struktur", "organisation", "organization"], "textstruktur"),
-    (&["ausdruck", "ausdruck/stil", "stil", "ausdrucksvermögen", "expression"], "ausdruck"),
-    (&["sprachrichtigkeit", "sprachrichtigkeit/grammatik", "grammatik", "sprache", "language accuracy"], "sprachrichtigkeit"),
+    (&["inhalt", "inhalt/gedankengang", "inhalt/gedanke", "gedankengang", "gedanke", "content", "task_achievement"], "inhalt"),
+    (&["textstruktur", "textstruktur/aufbau", "aufbau", "struktur", "organisation", "organization", "organisation_layout"], "textstruktur"),
+    (&["ausdruck", "ausdruck/stil", "stil", "ausdrucksvermögen", "expression", "lexical_range_accuracy"], "ausdruck"),
+    (&["sprachrichtigkeit", "sprachrichtigkeit/grammatik", "grammatik", "sprache", "language accuracy", "grammatical_range_accuracy"], "sprachrichtigkeit"),
 ];
 
 fn normalisiere_kriterien(rows: &[(String, Option<f64>)]) -> std::collections::HashMap<String, Option<f64>> {
     let mut buckets: std::collections::HashMap<String, Vec<f64>> = std::collections::HashMap::new();
     for (name, stufe) in rows {
         let lower = name.to_lowercase().trim().to_string();
+        // Profilfassungen mit eigener Skala gehören nicht in den Legacy-Kanon.
+        if lower.contains("::") { continue; }
         let matched = KRITERIUM_VARIANTS.iter().find(|(variants, _)| variants.iter().any(|v| lower.contains(v)));
         let key = matched.map(|(_, k)| k.to_string()).unwrap_or_else(|| lower.clone());
         if let Some(val) = stufe {
@@ -1173,7 +1179,7 @@ pub async fn db_get_schueler_laengsschnitt(state: tauri::State<'_, DbState>, sch
             }
 
             let fehler_rows: Vec<(String, Option<String>, Option<String>, Option<String>, Option<String>)> = {
-                let mut s = conn.prepare("SELECT typ, zitat, korrektur, cluster_id, regel_muster FROM fehler_historie WHERE abgabe_id=?1")
+                let mut s = conn.prepare("SELECT typ, zitat, COALESCE(lehrkraft_korrektur, korrektur) AS korrektur, cluster_id, regel_muster FROM fehler_historie WHERE abgabe_id=?1 AND lehrkraft_aktion IN ('uebernommen', 'geaendert')")
                     .map_err(|e| format!("prepare fehler: {}", e))?;
                 let r = s.query_map(rusqlite::params![aid], |row| Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?, row.get::<_, Option<String>>(2)?, row.get::<_, Option<String>>(3)?, row.get::<_, Option<String>>(4)?)))
                     .map_err(|e| format!("query fehler: {}", e))?;
@@ -1348,7 +1354,7 @@ pub(crate) fn fehler_trend_by_class_id_impl(conn: &rusqlite::Connection, klasse:
         });
     }
 
-    let fehler_sql = format!("SELECT a.aufgabe, f.typ, COUNT(*) FROM fehler_historie f JOIN abgabe a ON a.id=f.abgabe_id WHERE {} GROUP BY a.aufgabe, f.typ", ABGABE_KLASSEN_FILTER);
+    let fehler_sql = format!("SELECT a.aufgabe, f.typ, COUNT(*) FROM fehler_historie f JOIN abgabe a ON a.id=f.abgabe_id WHERE {} AND {} GROUP BY a.aufgabe, f.typ", ABGABE_KLASSEN_FILTER, F_BESTAETIGT);
     let mut fehler_stmt = conn.prepare(&fehler_sql).map_err(|e| format!("prepare fehlertrend typen: {}", e))?;
     let fehler_rows = fehler_stmt.query_map(params, |row| {
         Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?, row.get::<_, i64>(2)?))
@@ -1370,9 +1376,9 @@ pub(crate) fn fehler_trend_by_class_id_impl(conn: &rusqlite::Connection, klasse:
                 MIN(NULLIF(TRIM(fh.regel_muster), '')), COUNT(*) \
          FROM fehler_historie fh \
          JOIN abgabe a ON a.id=fh.abgabe_id \
-         WHERE {} AND fh.cluster_id IS NOT NULL AND TRIM(fh.cluster_id) <> '' \
+         WHERE {} AND {} AND fh.cluster_id IS NOT NULL AND TRIM(fh.cluster_id) <> '' \
          GROUP BY a.aufgabe, fh.cluster_id",
-        ABGABE_KLASSEN_FILTER,
+        ABGABE_KLASSEN_FILTER, FH_BESTAETIGT,
     );
     let mut cluster_stmt = conn.prepare(&cluster_sql).map_err(|e| format!("prepare fehlertrend cluster: {}", e))?;
     let cluster_rows = cluster_stmt.query_map(params, |row| {
@@ -1552,12 +1558,12 @@ fn query_fehler_detail_by_class_id(
     limit: i64,
 ) -> Result<Vec<FehlerDetailRow>, String> {
     let sql = format!(
-        "SELECT fh.zitat, fh.korrektur, fh.erklaerung, fh.cluster_id, fh.regel_muster, s.vorname, a.dateiname, \
-         COUNT(*) OVER (PARTITION BY fh.zitat, fh.korrektur, fh.cluster_id, fh.regel_muster) \
+        "SELECT fh.zitat, COALESCE(fh.lehrkraft_korrektur, fh.korrektur) AS korrektur, fh.erklaerung, fh.cluster_id, fh.regel_muster, s.vorname, a.dateiname, \
+         COUNT(*) OVER (PARTITION BY fh.zitat, COALESCE(fh.lehrkraft_korrektur, fh.korrektur), fh.cluster_id, fh.regel_muster) \
          FROM fehler_historie fh JOIN abgabe a ON fh.abgabe_id=a.id \
          LEFT JOIN schueler s ON a.schueler_id=s.id \
-         WHERE {} AND fh.typ=?3 AND (?4 IS NULL OR a.aufgabe=?4) ORDER BY fh.zitat LIMIT ?5",
-        ABGABE_KLASSEN_FILTER,
+         WHERE {} AND {} AND fh.typ=?3 AND (?4 IS NULL OR a.aufgabe=?4) ORDER BY fh.zitat LIMIT ?5",
+        ABGABE_KLASSEN_FILTER, FH_BESTAETIGT,
     );
     let mut stmt = conn.prepare(&sql).map_err(|e| format!("prepare fehler_detail: {e}"))?;
     let rows = stmt.query_map(rusqlite::params![klasse, klasse_id, typ, aufgabe, limit], fehler_detail_aus_row)
@@ -1810,8 +1816,8 @@ mod tests {
         let abgabe2 = conn.last_insert_rowid();
         for abgabe_id in [abgabe1, abgabe1, abgabe2] {
             conn.execute(
-                "INSERT INTO fehler_historie (abgabe_id, zitat, korrektur, typ, cluster_id, regel_muster) \
-                 VALUES (?1, 'das Haus', 'das Haus,', 'Z', 'komma_relativsatz', 'Komma vor Relativsatz')",
+                "INSERT INTO fehler_historie (abgabe_id, zitat, korrektur, typ, cluster_id, regel_muster, lehrkraft_aktion) \
+                 VALUES (?1, 'das Haus', 'das Haus,', 'Z', 'komma_relativsatz', 'Komma vor Relativsatz', 'uebernommen')",
                 rusqlite::params![abgabe_id],
             ).unwrap();
         }
@@ -1837,7 +1843,7 @@ mod tests {
         let abgabe_id = conn.last_insert_rowid();
         for typ in ["Z", "Z", "Z", "G"] {
             conn.execute(
-                "INSERT INTO fehler_historie (abgabe_id, typ) VALUES (?1, ?2)",
+                "INSERT INTO fehler_historie (abgabe_id, typ, lehrkraft_aktion) VALUES (?1, ?2, 'uebernommen')",
                 rusqlite::params![abgabe_id, typ],
             ).unwrap();
         }
@@ -1883,6 +1889,71 @@ mod tests {
     }
 
     #[test]
+    fn verworfene_fehler_fehlen_in_heatmap_trend_und_loop_detail() {
+        let conn = setup();
+        seed(&conn);
+        // Zwei der drei Z-Fehler verwirft die Lehrkraft, einer wird übernommen.
+        conn.execute_batch(
+            "UPDATE fehler_historie SET lehrkraft_aktion='verworfen' \
+               WHERE id IN (SELECT id FROM fehler_historie WHERE typ='Z' ORDER BY id LIMIT 2); \
+             UPDATE fehler_historie SET lehrkraft_aktion='uebernommen' \
+               WHERE typ='Z' AND lehrkraft_aktion IS NULL;",
+        ).unwrap();
+
+        let hm = fehler_heatmap_impl(&conn, "7a".to_string(), None).unwrap();
+        let z = hm.iter().find(|e| e.typ == "Z").unwrap();
+        assert_eq!(z.anzahl, 1);
+        assert!((z.prozent - 50.0).abs() < 0.001, "Gesamtzahl darf Verworfene nicht enthalten");
+
+        let trend = fehler_trend_impl(&conn, "7a").unwrap();
+        assert_eq!(trend[0].fehler.get("Z").copied(), Some(1));
+        assert_eq!(trend[0].fehler.get("G").copied(), Some(1));
+
+        // Die Loop-Vorbefüllung darf verworfene Fehler nicht als Übungsstoff nutzen.
+        let detail = query_fehler_detail(&conn, "7a", "Z", None, 12).unwrap();
+        assert_eq!(detail.len(), 1);
+    }
+
+    #[test]
+    fn profilpunkte_werden_nicht_als_legacy_stufen_normalisiert() {
+        let rows = vec![("task_achievement".to_string(), Some(4.0)),
+                        ("at-srdp-en-b2@2023.1::task_achievement".to_string(), Some(10.0))];
+        assert_eq!(normalisiere_kriterien(&rows)["inhalt"], Some(4.0));
+        let english = vec![("organisation_layout".into(), Some(3.0)), ("lexical_range_accuracy".into(), Some(2.0)), ("grammatical_range_accuracy".into(), Some(1.0))];
+        let norm = normalisiere_kriterien(&english);
+        assert_eq!(norm["textstruktur"], Some(3.0));
+        assert_eq!(norm["ausdruck"], Some(2.0));
+        assert_eq!(norm["sprachrichtigkeit"], Some(1.0));
+        let conn = setup();
+        seed(&conn);
+        for (name, value) in &rows {
+            conn.execute("INSERT INTO kriterium_historie (abgabe_id,kriterium_name,stufe) VALUES (1,?1,?2)", rusqlite::params![name,value]).unwrap();
+        }
+        let stats = query_kriterien_durchschnitt_by_class_id(&conn, "7a", None, None).unwrap();
+        assert_eq!(stats.len(), 2);
+    }
+
+    #[test]
+    fn nur_bestaetigte_befunde_und_aktuelle_lehrkraftkorrektur_werden_weitergegeben() {
+        let conn = setup();
+        seed(&conn);
+        conn.execute("UPDATE fehler_historie SET lehrkraft_aktion=NULL", []).unwrap();
+        let fid: i64 = conn.query_row("SELECT MIN(id) FROM fehler_historie", [], |r| r.get(0)).unwrap();
+        assert!(fehler_heatmap_impl(&conn, "7a".into(), None).unwrap().is_empty());
+        assert!(query_fehler_detail(&conn, "7a", "Z", None, 10).unwrap().is_empty());
+        update_fehler_status_impl(&conn, fid, Some("uebernommen".into()), None).unwrap();
+        assert_eq!(fehler_heatmap_impl(&conn, "7a".into(), None).unwrap()[0].anzahl, 1);
+        assert_eq!(fehler_trend_impl(&conn, "7a").unwrap()[0].fehler["Z"], 1);
+        update_fehler_status_impl(&conn, fid, Some("geaendert".into()), Some("Geprüfte Fassung".into())).unwrap();
+        assert_eq!(query_fehler_detail(&conn, "7a", "Z", None, 10).unwrap()[0].korrektur.as_deref(), Some("Geprüfte Fassung"));
+        update_fehler_status_impl(&conn, fid, Some("verworfen".into()), None).unwrap();
+        assert!(fehler_heatmap_impl(&conn, "7a".into(), None).unwrap().is_empty());
+        update_fehler_status_impl(&conn, fid, None, None).unwrap();
+        assert!(fehler_heatmap_impl(&conn, "7a".into(), None).unwrap().is_empty());
+        assert_eq!(conn.query_row("SELECT COUNT(*) FROM fehler_historie", [], |r| r.get::<_, i64>(0)).unwrap(), 4);
+    }
+
+    #[test]
     fn klassen_analysen_trennen_gleichnamige_jahrgaenge_und_sichere_altzeilen() {
         let conn = setup();
         conn.execute_batch(
@@ -1900,8 +1971,8 @@ mod tests {
         };
         let add_error = |abgabe_id: i64, typ: &str| {
             conn.execute(
-                "INSERT INTO fehler_historie (abgabe_id, typ, zitat, korrektur, cluster_id, regel_muster) \
-                 VALUES (?1, ?2, 'Beispiel', 'Beispiel.', ?2, ?2)",
+                "INSERT INTO fehler_historie (abgabe_id, typ, zitat, korrektur, cluster_id, regel_muster, lehrkraft_aktion) \
+                 VALUES (?1, ?2, 'Beispiel', 'Beispiel.', ?2, ?2, 'uebernommen')",
                 rusqlite::params![abgabe_id, typ],
             ).unwrap();
         };
@@ -1994,7 +2065,7 @@ mod tests {
         abgabe("SA3", "2026-05-01", "t4");
         for (id, typ) in [(a1, "Z"), (a1, "Z"), (a2, "Z"), (a2, "Z"), (a1, "G"), (a3, "Z"), (a3, "G"), (a3, "X")] {
             conn.execute(
-                "INSERT INTO fehler_historie (abgabe_id, typ) VALUES (?1, ?2)",
+                "INSERT INTO fehler_historie (abgabe_id, typ, lehrkraft_aktion) VALUES (?1, ?2, 'uebernommen')",
                 rusqlite::params![id, typ],
             ).unwrap();
         }
@@ -2053,8 +2124,8 @@ mod tests {
             (sa2_a, "Komma vor Relativsatz"),
         ] {
             conn.execute(
-                "INSERT INTO fehler_historie (abgabe_id, typ, cluster_id, regel_muster) \
-                 VALUES (?1, 'Z', 'Z:relativsatz', ?2)",
+                "INSERT INTO fehler_historie (abgabe_id, typ, cluster_id, regel_muster, lehrkraft_aktion) \
+                 VALUES (?1, 'Z', 'Z:relativsatz', ?2, 'uebernommen')",
                 rusqlite::params![abgabe_id, regel],
             ).unwrap();
         }
@@ -2293,7 +2364,7 @@ mod tests {
             "SELECT lehrkraft_aktion FROM fehler_historie WHERE id=?1",
             rusqlite::params![fid], |r| r.get(0),
         ).unwrap();
-        assert_eq!(aktion, None);
+        assert_eq!(aktion.as_deref(), Some("uebernommen"));
 
         // None bleibt erlaubt (Zuruecksetzen)
         assert!(update_fehler_status_impl(&conn, fid, None, None).unwrap());

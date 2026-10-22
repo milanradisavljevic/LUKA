@@ -309,6 +309,7 @@ class FeedbackData:
     srdp_detail: dict[str, Any] | None = None
     folgeuebung: FolgeuebungHinweis | None = None
     sachfach_bewertung: dict[str, CriterionFeedback] | None = None
+    raster_auswertung: dict[str, Any] | None = None
 
 
 @dataclass(slots=True)
@@ -438,16 +439,36 @@ def setup_page(doc: Document, config: dict[str, Any] | None = None) -> None:
 def add_lehrer_kommentar_block(
     doc: Document, data: FeedbackData, bewertungsmodus: str = "benotet"
 ) -> None:
-    """Fügt den holistischen LEHRKRAFT-KOMMENTAR-Block ein.
+    """Fügt den holistischen Überblicksblock ein (vor der Kriterien-Aufschlüsselung).
+
+    Die Inhalte sind ein KI-Vorschlag, den die Lehrkraft prüft. Die Überschrift
+    schreibt sie deshalb bewusst nicht der Lehrkraft zu.
 
     Enthält ZUSAMMENFASSUNG, STÄRKEN, VERBESSERUNGSBEREICHE und NOTENEMPFEHLUNG
     als kompakten Überblick vor der detaillierten Kriterien-Aufschlüsselung.
     Wird nur gerendert wenn mindestens ein Feld vorhanden ist.
     """
-    if not any([data.zusammenfassung, data.staerken_global, data.verbesserungsbereiche]):
+    if not any([data.zusammenfassung, data.staerken_global, data.verbesserungsbereiche, data.raster_auswertung]):
         return
 
-    add_section_header(doc, "LEHRKRAFT-KOMMENTAR")
+    add_section_header(doc, "RÜCKMELDUNG IM ÜBERBLICK")
+    if data.raster_auswertung:
+        raster = data.raster_auswertung
+        doc.add_paragraph(
+            f"Rasterpunkte: {raster['punkte']} / {raster['max_punkte']} "
+            f"({raster['bewertungsprofil']}, Fassung {raster['profil_version']}). "
+            "KI-Vorschlag; fachliche Prüfung durch die Lehrkraft erforderlich."
+        )
+        doc.add_paragraph(
+            f"Wortanzahl: {raster['wortzahl_ist']} / "
+            f"{raster.get('wortzahl_soll') or 'nicht vorgegeben'}. "
+            f"Wortzahlabzug bei Aufgabenerfüllung: {raster.get('wortzahl_abzug', 0)}."
+        )
+        for hinweis in raster.get("pruefung_erforderlich", []):
+            doc.add_paragraph(hinweis)
+        if not data.notenempfehlung:
+            doc.add_paragraph("Keine automatische Notenempfehlung; Notenschlüssel und Prüfbedarf beachten.")
+
 
     if data.zusammenfassung:
         add_section_header(doc, "ZUSAMMENFASSUNG", color=C_PRIMARY)
@@ -1365,6 +1386,8 @@ def parse_feedback_data(payload: dict[str, Any]) -> FeedbackData:
         ),
         folgeuebung=folgeuebung,
         sachfach_bewertung=sachfach_bewertung,
+        raster_auswertung=(payload.get("notendetail") if isinstance(payload.get("notendetail"), dict)
+                           and payload["notendetail"].get("bewertungsprofil") else None),
     )
 
 
@@ -1395,19 +1418,26 @@ def criterion_label(data: FeedbackData, key: str) -> str:
         "erwartungshorizont_bezug": "ERWARTUNGSHORIZONT-BEZUG",
     }
     english_labels = {
+        "coherence_cohesion": "COHERENCE AND COHESION",
+        "lexical_structural_range": "LEXICAL AND STRUCTURAL RANGE",
+        "lexical_structural_accuracy": "LEXICAL AND STRUCTURAL ACCURACY",
         "task_achievement": "TASK ACHIEVEMENT",
         "organisation_layout": "ORGANISATION AND LAYOUT",
         "lexical_range_accuracy": "LEXICAL RANGE AND ACCURACY",
         "grammatical_range_accuracy": "GRAMMATICAL RANGE AND ACCURACY",
     }
-    labels = english_labels if data.fach == "Englisch" else german_labels
+    labels = english_labels if data.fach.casefold() == "englisch" else german_labels
     return labels.get(key, key.replace("_", " ").upper())
 
 
 def ordered_criteria(data: FeedbackData) -> list[CriterionFeedback]:
     """Sortiert Kriterien in einer fachlich passenden Reihenfolge."""
 
-    desired = ENGLISH_ORDER if data.fach == "Englisch" else GERMAN_ORDER
+    if data.raster_auswertung:
+        from bewertungsprofile import KRITERIEN
+        desired = KRITERIEN
+    else:
+        desired = ENGLISH_ORDER if data.fach.casefold() == "englisch" else GERMAN_ORDER
     rank = {name: index for index, name in enumerate(desired)}
     return sorted(data.bewertung, key=lambda item: rank.get(item.key, len(rank)))
 
@@ -1540,7 +1570,9 @@ def add_fehlerprotokoll(doc: Document, fehler_list: list[SprachFehler]) -> None:
 
 
 # Deterministische Übungstipps je Fehlertyp (L3, „Nächste Schritte") — schüler-
-# freundlich, fach- und textsortenneutral, ohne LLM (kein Halluzinationsrisiko).
+# freundlich, textsortenneutral, ohne LLM (kein Halluzinationsrisiko).
+# Die deutschen Tipps nennen deutsche Regeln/Wörter; andere Fächer bekommen die
+# sprachneutrale Fassung (_NAECHSTE_SCHRITTE_TIPPS_NEUTRAL).
 _NAECHSTE_SCHRITTE_TIPPS: dict[str, tuple[str, str]] = {
     "R": (
         "Rechtschreibung",
@@ -1565,7 +1597,24 @@ _NAECHSTE_SCHRITTE_TIPPS: dict[str, tuple[str, str]] = {
 }
 
 
-def add_naechste_schritte(doc: Document, fehler_list: list[SprachFehler]) -> None:
+_NAECHSTE_SCHRITTE_TIPPS_NEUTRAL: dict[str, tuple[str, str]] = {
+    **_NAECHSTE_SCHRITTE_TIPPS,
+    "Z": (
+        "Zeichensetzung",
+        "Suche im Fehlerprotokoll die Regel, gegen die du am häufigsten verstoßen "
+        "hast, und lies deine Sätze vor der Abgabe gezielt darauf durch.",
+    ),
+    "A": (
+        "Ausdruck",
+        "Ersetze allgemeine Wörter durch genauere — ein ein- oder zweisprachiges "
+        "Wörterbuch hilft beim präziseren Formulieren.",
+    ),
+}
+
+
+def add_naechste_schritte(
+    doc: Document, fehler_list: list[SprachFehler], fach: str | None = None
+) -> None:
     """Rendert Übungstipps zu den Top-Fehlerschwerpunkten (L3).
 
     Das Feedback soll nicht bei der Fehlerliste enden: Der Schüler bekommt zu
@@ -1579,9 +1628,11 @@ def add_naechste_schritte(doc: Document, fehler_list: list[SprachFehler]) -> Non
     if not top:
         return
 
+    ist_deutsch = (fach or "Deutsch").strip().casefold() == "deutsch"
+    tipps = _NAECHSTE_SCHRITTE_TIPPS if ist_deutsch else _NAECHSTE_SCHRITTE_TIPPS_NEUTRAL
     add_section_header(doc, "NÄCHSTE SCHRITTE — WORAN DU ARBEITEN KANNST")
     for typ, anzahl in top:
-        eintrag = _NAECHSTE_SCHRITTE_TIPPS.get(typ)
+        eintrag = tipps.get(typ)
         if not eintrag:
             continue
         label, tipp = eintrag
@@ -1779,7 +1830,7 @@ def build_feedback_document(
         add_body(doc, msg)
         add_divider(doc)
 
-    # LEHRKRAFT-KOMMENTAR (Zusammenfassung, Stärken, Note)
+    # Überblick (Zusammenfassung, Stärken, Note)
     add_lehrer_kommentar_block(doc, data, bewertungsmodus=bewertungsmodus)
 
     # Detaillierte Kriterien-Auswertung
@@ -1844,7 +1895,7 @@ def build_feedback_document(
     if data.fehler:
         add_fehlerprotokoll(doc, data.fehler)
         add_divider(doc)
-        add_naechste_schritte(doc, data.fehler)
+        add_naechste_schritte(doc, data.fehler, data.fach)
         add_divider(doc)
 
     if data.folgeuebung:
