@@ -28,6 +28,7 @@ it('zeigt die Neuerungen nach dem Neustart auch mit dem Update-Marker aus 1.5.8'
     await act(async () => root.render(<App />));
     await act(async () => vi.advanceTimersByTimeAsync(5000));
     expect(host.querySelector('h2')?.textContent).toContain(`LUKA ${tauri.version}`);
+    expect(document.activeElement).toBe(host.querySelector('[role="dialog"]'));
     expect(host.querySelector('.release-notes li')?.textContent).toBeTruthy();
     expect(localStorage.getItem('luka-update-pending')).toBeNull();
     await act(async () => host.querySelector('button')?.click());

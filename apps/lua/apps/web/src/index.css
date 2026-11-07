@@ -1637,6 +1637,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 .release-welcome {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   gap: .85rem;
   padding: 1rem;
@@ -1666,6 +1667,11 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   margin: 0;
   font-size: 1.25rem;
   line-height: 1.25;
+}
+.release-notes {
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: .35rem;
 }
 .release-notes h3 {
   margin: .9rem 0 .4rem;

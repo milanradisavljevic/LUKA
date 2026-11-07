@@ -34,7 +34,13 @@ function ReleaseNotes({ body, highlighted = false }: { body: string; highlighted
   if (blocks.length === 0) return null;
 
   return (
-    <div className={highlighted ? 'release-notes' : undefined} style={{ fontSize: '0.8125rem', lineHeight: 1.55, color: 'var(--color-text-primary)' }}>
+    <div
+      className={highlighted ? 'release-notes' : undefined}
+      tabIndex={highlighted ? 0 : undefined}
+      role={highlighted ? 'region' : undefined}
+      aria-label={highlighted ? 'Was ist neu' : undefined}
+      style={{ fontSize: '0.8125rem', lineHeight: 1.55, color: 'var(--color-text-primary)' }}
+    >
       {blocks.map((block, i) => {
         if (block.type === 'list') {
           return (
@@ -69,7 +75,8 @@ function formatBytes(n: number): string {
  */
 export function UpdateDialog({ updater }: Props) {
   const { state, download, install, relaunchNow, dismiss } = updater;
-  const dialogRef = useDialogFocus(state.phase !== 'idle', () => { if (!['downloading','installing'].includes(state.phase)) dismiss(); });
+  const verified = state.phase === 'verified';
+  const dialogRef = useDialogFocus(state.phase !== 'idle', () => { if (!['downloading','installing'].includes(state.phase)) dismiss(); }, verified ? 'dialog' : 'first');
 
   if (state.phase === 'idle') return null;
 
@@ -93,8 +100,9 @@ export function UpdateDialog({ updater }: Props) {
         aria-labelledby="update-dialog-title"
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: state.phase === 'verified' && state.body ? 560 : 440,
-          maxWidth: '100%', maxHeight: '82vh', overflow: 'auto',
+          width: verified && state.body ? 560 : 440,
+          maxWidth: '100%', maxHeight: '82vh', overflow: verified ? 'hidden' : 'auto',
+          display: verified ? 'flex' : undefined, flexDirection: 'column',
           background: 'var(--color-bg-elevated)', borderRadius: 'var(--radius)',
           border: '1px solid var(--color-border)', boxShadow: '0 4px 24px var(--color-shadow)',
           padding: '1.5rem',
@@ -211,7 +219,7 @@ export function UpdateDialog({ updater }: Props) {
             </div>
           </div>
           {state.body && <ReleaseNotes body={state.body} highlighted />}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem', flexShrink: 0 }}>
             <button className="btn-primary" onClick={dismiss}>Weiterarbeiten</button>
           </div>
         </>}
