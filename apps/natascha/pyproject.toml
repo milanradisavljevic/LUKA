@@ -20,6 +20,7 @@ dependencies = [
     "rich>=13",
     "InquirerPy>=0.3",
     "jsonschema>=4.20",
+    "pypdfium2>=4.30,<6",
 ]
 
 [project.optional-dependencies]
@@ -36,6 +37,7 @@ natascha-wizard = "natascha_wizard:main"
 py-modules = [
     "natascha",
     "natascha_core",
+    "scan_input",
     "bewertungsprofile",
     "natascha_db",
     "natascha_wizard",

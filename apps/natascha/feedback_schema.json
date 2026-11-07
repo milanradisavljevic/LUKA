@@ -51,22 +51,34 @@
     },
     "staerken_global": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string"
+      },
       "description": "Genau 3 globale Stärken der Arbeit."
     },
     "verbesserungsbereiche": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string"
+      },
       "description": "Genau 3 konkrete Verbesserungsbereiche."
     },
     "sachfach_bewertung": {
       "type": "object",
       "description": "Separate fachliche Bewertung für Sachfächer, getrennt von Sprachrichtigkeit und Ausdruck.",
       "properties": {
-        "operator_erfuellung": { "$ref": "#/$defs/kriterium" },
-        "inhaltliche_genauigkeit": { "$ref": "#/$defs/kriterium" },
-        "fachbegriffe": { "$ref": "#/$defs/kriterium" },
-        "erwartungshorizont_bezug": { "$ref": "#/$defs/kriterium" }
+        "operator_erfuellung": {
+          "$ref": "#/$defs/kriterium"
+        },
+        "inhaltliche_genauigkeit": {
+          "$ref": "#/$defs/kriterium"
+        },
+        "fachbegriffe": {
+          "$ref": "#/$defs/kriterium"
+        },
+        "erwartungshorizont_bezug": {
+          "$ref": "#/$defs/kriterium"
+        }
       },
       "additionalProperties": false
     },
@@ -79,7 +91,10 @@
       "description": "Pädagogische Randnotizen (Stilbeobachtungen, Stärken, Tipps) — NICHT für Rechtschreib-/Grammatikfehler.",
       "items": {
         "type": "object",
-        "required": ["zitat", "kommentar"],
+        "required": [
+          "zitat",
+          "kommentar"
+        ],
         "properties": {
           "zitat": {
             "type": "string",
@@ -98,7 +113,11 @@
       "description": "Vollständige Liste aller Sprachfehler (R/G/Z/A). Kein Limit.",
       "items": {
         "type": "object",
-        "required": ["zitat", "korrektur", "typ"],
+        "required": [
+          "zitat",
+          "korrektur",
+          "typ"
+        ],
         "properties": {
           "zitat": {
             "type": "string",
@@ -110,7 +129,12 @@
           },
           "typ": {
             "type": "string",
-            "enum": ["R", "G", "Z", "A"],
+            "enum": [
+              "R",
+              "G",
+              "Z",
+              "A"
+            ],
             "description": "R=Rechtschreibung, G=Grammatik, Z=Zeichensetzung, A=Ausdruck/Stil (kanonisches Wording: _fehler_anweisungen in natascha_core.py)"
           },
           "erklaerung": {
@@ -119,12 +143,67 @@
           },
           "vertrauensstufe": {
             "type": "string",
-            "enum": ["hoch", "mittel", "niedrig"],
+            "enum": [
+              "hoch",
+              "mittel",
+              "niedrig"
+            ],
             "description": "Post-hoc berechnete Einschätzung des Zitats (compute_vertrauensstufe, wird nach der LLM-Antwort ergänzt)."
           },
           "korrektur_lokal_ambig": {
             "type": "boolean",
             "description": "true, wenn die korrigierte Form bereits wörtlich im lokalen Satzkontext steht (unsicher, aber kein Entfernungsgrund)."
+          },
+          "befundart": {
+            "type": "string",
+            "enum": [
+              "normfehler",
+              "ausdrucksproblem",
+              "stilalternative",
+              "ungeklaert"
+            ]
+          },
+          "befund_id": {
+            "type": "string"
+          },
+          "textstelle_id": {
+            "type": "string"
+          },
+          "nur_kommentar": {
+            "type": "boolean"
+          },
+          "anker_status": {
+            "type": "string"
+          },
+          "textanker": {
+            "type": "object"
+          },
+          "ki_pruefung": {
+            "type": "object"
+          },
+          "ersetzungspruefung": {
+            "type": "object"
+          },
+          "kontext_widerspruch": {
+            "type": "boolean"
+          },
+          "teiltypen": {
+            "type": "array",
+            "items": {"enum": ["R", "G", "Z", "A"]},
+            "description": "Post-hoc: ein Befund betrifft zwei Regeln (z. B. das/dass + Komma)."
+          },
+          "regel_muster": {
+            "type": "string",
+            "description": "Post-hoc: deterministisches Regel-Etikett für Lerntipps."
+          },
+          "typ_vorher": {
+            "type": ["string", "null"],
+            "description": "Post-hoc: Fehlertyp vor der regelbasierten Typprüfung."
+          },
+          "zusammengefuehrt": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Post-hoc: Kennungen überlappender, zusammengeführter Befunde."
           }
         },
         "additionalProperties": false
@@ -139,6 +218,11 @@
     },
     "notenempfehlung": {
       "$ref": "#/$defs/notenempfehlung"
+    },
+    "bewertungspruefung": {
+      "type": "object",
+      "description": "Versionierte lokale Kriterienprüfung mit Teilbewertungen, Belegdiagnosen und gezielten Prüfaufgaben.",
+      "additionalProperties": true
     },
     "notendetail": {
       "type": "object",
@@ -206,6 +290,10 @@
         "begruendung"
       ],
       "properties": {
+        "vorlaeufig": {
+          "type": "boolean",
+          "description": "Lokal gesetzter Prüfstatus einer noch offenen KI-Notenempfehlung."
+        },
         "durchschnitt": {
           "type": "number"
         },

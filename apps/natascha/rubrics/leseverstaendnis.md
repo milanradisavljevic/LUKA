@@ -6,6 +6,7 @@ textsorte: leseverstaendnis
 aufgabenart: verstaendnis
 k1: sachverstaendnis, detailverstaendnis, schlussfolgern, aufbau_ausgangstext, bedeutungsschicht
 k3: ausdruck, sprachrichtigkeit
+verwendung: bewertung
 -->
 
 # Bewertungsraster: Leseverständnis

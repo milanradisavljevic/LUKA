@@ -7,9 +7,9 @@ export const VERTRAUENS_COLORS: Record<Vertrauensstufe, string> = {
 };
 
 export const VERTRAUENS_LABELS: Record<Vertrauensstufe, string> = {
-  hoch: 'Hohe Sicherheit',
-  mittel: 'Mittlere Sicherheit',
-  niedrig: 'Niedrige Sicherheit',
+  hoch: 'Textstelle eindeutig gefunden – fachliche Prüfung bleibt erforderlich',
+  mittel: 'Textzuordnung mehrdeutig oder ungeprüft',
+  niedrig: 'Textstelle nicht wortgetreu nachgewiesen',
 };
 
 function isStufe(value: string | null | undefined): value is Vertrauensstufe {

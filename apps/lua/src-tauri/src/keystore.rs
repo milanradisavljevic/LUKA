@@ -67,18 +67,43 @@ fn save_to_env_file(provider: &str, key: &str) -> Result<(), String> {
     Ok(())
 }
 
-pub fn save_key(provider: &str, key: &str) -> Result<(), String> {
-    // Versuche zuerst den Keyring.
-    match keyring::Entry::new(SERVICE_NAME, provider)
+fn verify_saved_key(expected: &str, loaded: &str) -> Result<(), String> {
+    if !expected.is_empty() && loaded == expected {
+        Ok(())
+    } else {
+        Err("Nach dem Speichern wurde ein anderer oder kein API-Schlüssel geladen. Bitte den Schlüsselspeicher und vorhandene Umgebungsvariablen prüfen.".to_string())
+    }
+}
+
+fn save_to_keyring(provider: &str, key: &str) -> Result<(), String> {
+    keyring::Entry::new(SERVICE_NAME, provider)
         .and_then(|entry| entry.set_password(key))
-    {
+        .map_err(|_| "System-Schlüsselspeicher nicht beschreibbar.".to_string())?;
+    // Ein neuer Entry muss denselben Wert lesen koennen. Der Mock-Speicher
+    // meldet beim Schreiben Erfolg, verliert ihn aber beim naechsten Entry.
+    let loaded = keyring::Entry::new(SERVICE_NAME, provider)
+        .and_then(|entry| entry.get_password())
+        .map_err(|_| "System-Schlüsselspeicher konnte den gespeicherten Schlüssel nicht erneut laden.".to_string())?;
+    verify_saved_key(key, &loaded)
+}
+
+pub fn save_key(provider: &str, key: &str) -> Result<(), String> {
+    let key = key.trim();
+    if key.is_empty() {
+        return Err("Bitte einen API-Schlüssel eingeben.".to_string());
+    }
+    match save_to_keyring(provider, key) {
         Ok(()) => return Ok(()),
         Err(keyring_err) => {
             eprintln!("[keystore] Keyring-Speicherung fehlgeschlagen ({}), falle auf .env.local zurück.", keyring_err);
         }
     }
     // Fallback: .env.local
-    save_to_env_file(provider, key)
+    save_to_env_file(provider, key)?;
+    // Gleiche Aufloesung wie beim Modellaufruf: ein alter Env-/Keyring-Wert
+    // darf einen neu gespeicherten Schluessel nicht unbemerkt ueberlagern.
+    let loaded = load_key(provider)?;
+    verify_saved_key(key, &loaded)
 }
 
 pub fn load_key(provider: &str) -> Result<String, String> {
@@ -137,6 +162,17 @@ pub fn delete_key(provider: &str) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn save_verification_rejects_missing_and_stale_keys_without_exposing_them() {
+        assert!(verify_saved_key("synthetic-new", "synthetic-new").is_ok());
+        for loaded in ["", "synthetic-old"] {
+            let error = verify_saved_key("synthetic-new", loaded).unwrap_err();
+            assert!(!error.contains("synthetic-new"));
+            assert!(!error.contains("synthetic-old"));
+        }
+        assert!(verify_saved_key("", "").is_err());
+    }
 
     #[test]
     #[ignore = "Benötigt laufenden Secret-Service (nicht in WSL/CI)"]

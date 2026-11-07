@@ -3,6 +3,7 @@ titel: Offener Brief
 fach: deutsch
 schulstufe: oberstufe
 textsorte: offener-brief
+verwendung: bewertung
 -->
 
 # Bewertungsraster: Offener Brief

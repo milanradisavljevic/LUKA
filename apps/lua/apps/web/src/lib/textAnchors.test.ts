@@ -19,7 +19,7 @@ describe('findeTextanker – exakte Treffer', () => {
 
   it('zählt auch überlappende Vorkommen mehrfach', () => {
     // Regression: "aaaa"/"aa" ist mehrdeutig – es wird nie still die erste Stelle genommen
-    const a = findeTextanker('aaaa', 'aa');
+    const a = findeTextanker('!!!!', '!!');
     expect(a.status).toBe('mehrdeutig');
     expect(a.treffer.map(t => t.start)).toEqual([0, 1, 2]);
   });
@@ -40,10 +40,10 @@ describe('findeTextanker – exakte Treffer', () => {
 });
 
 describe('findeTextanker – normalisierter Lauf', () => {
-  it('findet trotz abweichender Gross-/Kleinschreibung', () => {
+  it('lehnt erfundene Gross-/Kleinschreibung ab', () => {
     const a = findeTextanker('Insbesondere auf TikTok', 'insbesondere auf tiktok');
-    expect(a.status).toBe('normalisiert');
-    expect(orte('Insbesondere auf TikTok', 'insbesondere auf tiktok')).toEqual([0]);
+    expect(a.status).toBe('keiner');
+    expect(orte('Insbesondere auf TikTok', 'insbesondere auf tiktok')).toEqual([]);
   });
 
   it('findet trotz Mehrfach-Leerzeichen', () => {
@@ -72,11 +72,11 @@ describe('findeTextanker – normalisierter Lauf', () => {
   });
 
   it('meldet mehrdeutig, wenn der tolerante Lauf mehrfach zuschlaegt', () => {
-    expect(orte('TikTok und TikTok', 'tiktok')).toEqual([0, 11]);
+    expect(orte('TikTok  und  TikTok', 'TikTok')).toEqual([0, 13]);
   });
 
   it('behandelt Umlaute ohne Ersetzung', () => {
-    expect(findeTextanker('Übersicht', 'übersicht').treffer).toEqual([{ start: 0, laenge: 9 }]);
+    expect(findeTextanker('Übersicht', 'Übersicht').treffer).toEqual([{ start: 0, laenge: 9 }]);
   });
 });
 
@@ -101,7 +101,7 @@ describe('findeTextanker – Index-Map stimmt mit dem Originaltext', () => {
   const text = 'Der aufsteigende Trend gilt als gute Werbung für Bücher. Booktok ist neu.';
 
   it('schneidet jede Fundstelle aus dem Originaltext', () => {
-    const a = findeTextanker(text, 'der aufsteigende trend');
+    const a = findeTextanker(text, 'Der aufsteigende Trend');
     expect(a.treffer.length).toBeGreaterThan(0);
     for (const t of a.treffer) {
       const echtesStueck = text.slice(t.start, t.start + t.laenge);
@@ -113,5 +113,12 @@ describe('findeTextanker – Index-Map stimmt mit dem Originaltext', () => {
   it('sortiert die Fundstellen aufsteigend', () => {
     const a = findeTextanker('a b a b a', 'a');
     expect(a.treffer.map(t => t.start)).toEqual([0, 4, 8]);
+  });
+});
+
+
+describe('Wortgrenzen', () => {
+  it('markiert reife nicht innerhalb von unreife', () => {
+    expect(findeTextanker('unreife Zellen', 'reife Zellen').status).toBe('keiner');
   });
 });

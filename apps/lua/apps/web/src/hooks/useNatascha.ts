@@ -40,6 +40,7 @@ interface AbgabeInfo {
   vorname: string | null;
   nachname: string | null;
   note: number | null;
+  notenempfehlungVorlaeufig?: boolean;
   gesamtstufe: number | null;
   wortanzahl: number | null;
   fach: string | null;
@@ -75,6 +76,7 @@ interface FehlerRow {
 }
 
 interface LehrerFeedbackRow {
+  pruefstatus: 'entwurf' | 'freigegeben';
   id: number;
   noteFinal: number | null;
   noteAppSnapshot: number | null;
@@ -84,6 +86,8 @@ interface LehrerFeedbackRow {
 }
 
 interface AbgabeDetail {
+  gegenpruefung?: { status: 'pruefung_erforderlich' | 'abgeschlossen'; version: string } | null;
+  notenempfehlungVorlaeufig?: boolean;
   abgabe: AbgabeInfo;
   kriterien: KriteriumRow[];
   fehler: FehlerRow[];
@@ -141,6 +145,7 @@ export interface RubrikBefund {
 }
 
 export interface KorrekturKontext {
+  grundlageJson?: string;
   id: string;
   klasse: string;
   aufgabe: string;
@@ -166,11 +171,20 @@ export function useNatascha() {
   const [progressStage, setProgressStage] = useState<string | null>(null);
   const [progressMessage, setProgressMessage] = useState<string | null>(null);
 
+  const previewDeleteKorrekturauftrag = useCallback(async (klasse: string, aufgabe: string, klasseId?: string | null) => {
+    return invoke<{abgabeIds: number[]; revisionen: number; lehrkraftRueckmeldungen: number}>('db_preview_delete_korrekturauftrag', {klasse, aufgabe, klasseId: klasseId ?? null});
+  }, []);
+  const deleteKorrekturauftrag = useCallback(async (klasse: string, aufgabe: string, abgabeIds: number[], klasseId?: string | null) => {
+    const result = await invoke<{abgabeIds: number[]}>('db_delete_korrekturauftrag', {klasse, aufgabe, klasseId: klasseId ?? null, erwarteteAbgabeIds: abgabeIds});
+    window.dispatchEvent(new CustomEvent('luka:befunde-geaendert'));
+    return result;
+  }, []);
+
   const analyze = useCallback(async (
     filePath: string,
     klasse: string,
     aufgabe: string,
-    opts?: EnglischRasterOptionen & { runtime?: {provider:string;model:string}; fach?: string; schulstufe?: string; textsorte?: string; land?: string; schueler?: string; bewertungsmodus?: string; ausgangstext?: string; ausgangstextDatei?: string; rubric?: string; pseudonymisierung?: boolean; schuelerId?: number; einsatzId?: string; materialId?: string; revisionOfAbgabeId?: number; klasseId?: string },
+    opts?: EnglischRasterOptionen & { scanReview?: {action:string;session?:string;provider:string;model:string;verifyModel:string}; runtime?: {provider:string;model:string;reasoning?:string}; fach?: string; schulstufe?: string; textsorte?: string; land?: string; schueler?: string; bewertungsmodus?: string; ausgangstext?: string; ausgangstextDatei?: string; grundlageSnapshot?: {rubrik_inhalt: string; ausgangstext: string; grundlage?: import("../lib/correctionRun").ConfirmedCorrectionBasis}; rubric?: string; pseudonymisierung?: boolean; schuelerId?: number; einsatzId?: string; materialId?: string; revisionOfAbgabeId?: number; reanalyzeExisting?: boolean; klasseId?: string },
   ) => {
     if(analyzeBusy.current) throw new Error('Eine Analyse läuft bereits.');
     analyzeBusy.current=true;
@@ -191,6 +205,7 @@ export function useNatascha() {
         dir: settings.nataschaDir ?? '',
         python: settings.pythonCommand ?? '',
         filePath,
+        scanReview: opts?.scanReview,
         klasse,
         klasseId: opts?.klasseId,
         aufgabe,
@@ -204,12 +219,14 @@ export function useNatascha() {
         bewertungsmodus: opts?.bewertungsmodus,
         ausgangstextText: opts?.ausgangstext,
         ausgangstextFile: opts?.ausgangstextDatei,
+        grundlageSnapshot: opts?.grundlageSnapshot,
         rubric: opts?.rubric,
         pseudonymisierung: opts?.pseudonymisierung,
         schuelerId: opts?.schuelerId,
         einsatzId: opts?.einsatzId,
         materialId: opts?.materialId,
         revisionOfAbgabeId: opts?.revisionOfAbgabeId,
+        reanalyzeExisting: opts?.reanalyzeExisting,
       });
       return JSON.parse(result);
     } catch (e) {
@@ -231,7 +248,7 @@ export function useNatascha() {
   const personenVorschau = useCallback(async (
     filePath: string,
     klasse: string,
-    runtime?: {provider:string;model:string},
+    runtime?: {provider:string;model:string;reasoning?:string},
   ): Promise<PersonenVorschau | null> => {
     try {
       const settings = loadSettings();
@@ -288,7 +305,7 @@ export function useNatascha() {
     return invoke<KlassenStatistik>('db_get_klassen_statistik', { klasse, aufgabe: aufgabe ?? null, klasseId: klasseId ?? null });
   }, []);
 
-  const generateFeedbackDocx = useCallback(async (abgabeId: number, output?: string): Promise<{ path: string; abgabe_id: number } | null> => {
+  const generateFeedbackDocx = useCallback(async (abgabeId: number, output?: string, revisionId?: number | null, ansicht: 'schueler' | 'lehrkraft' = 'lehrkraft'): Promise<{ path: string; abgabe_id: number } | null> => {
     try {
       const settings = loadSettings();
       const result = await invoke<string>('natascha_feedback_docx', {
@@ -296,10 +313,12 @@ export function useNatascha() {
         python: settings.pythonCommand ?? '',
         abgabeId,
         output: output ?? null,
+        revisionId: revisionId ?? null,
+        ansicht,
       });
       return JSON.parse(result);
     } catch (e) {
-      return null;
+      throw e;
     }
   }, []);
 
@@ -382,6 +401,23 @@ export function useNatascha() {
 
   const deleteKorrekturRevision = useCallback(async (abgabeId: number, revisionId: number): Promise<boolean> => {
     return invoke<boolean>('db_delete_korrektur_revision', { abgabeId, revisionId });
+  }, []);
+
+  const saveKorrekturReview = useCallback(async (payload: {
+    abgabeId: number; revisionId: number | null; noteFinal: number | null;
+    lehrerKommentar: string; pruefstatus: 'entwurf' | 'freigegeben';
+    aktionen: { id: number; aktion: string | null; korrektur: string | null }[];
+    kriterienEntscheidungen?: Record<string, {stufe: number; begruendung?: string}>;
+  }): Promise<void> => {
+    if (payload.kriterienEntscheidungen !== undefined) {
+      const settings = loadSettings();
+      await invoke('natascha_save_kriterien_review', {dir: settings.nataschaDir ?? '', python: settings.pythonCommand ?? '', payload});
+    } else await invoke('db_save_korrektur_review', payload);
+  }, []);
+
+  const sourceText = useCallback(async (file: string): Promise<{text: string; sha256: string}> => {
+    const settings = loadSettings();
+    return JSON.parse(await invoke<string>('natascha_source_text', {dir: settings.nataschaDir ?? '', python: settings.pythonCommand ?? '', file}));
   }, []);
 
   const upsertLehrerFeedback = useCallback(async (
@@ -658,6 +694,7 @@ export function useNatascha() {
     getNotenverteilung,
     getKlassenStatistik,
     generateFeedbackDocx,
+    sourceText,
     generateErwartungshorizont,
     saveErwartungshorizont,
     getAbgabeDetail,
@@ -665,8 +702,11 @@ export function useNatascha() {
     savePunktebewertung,
     activateKorrekturRevision,
     deleteKorrekturRevision,
+    previewDeleteKorrekturauftrag,
+    deleteKorrekturauftrag,
     getKorrekturKontext,
     upsertLehrerFeedback,
+    saveKorrekturReview,
     updateFehlerStatus,
     listSchueler,
     insertSchueler,

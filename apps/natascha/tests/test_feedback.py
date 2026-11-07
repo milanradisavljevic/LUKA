@@ -246,10 +246,10 @@ def test_summary_table_present_in_output() -> None:
     doc = gf.build_feedback_document(data)
     assert len(doc.tables) >= 2
     noten_table = next(
-        (t for t in doc.tables if any("GESAMTNOTE" in c.text for r in t.rows for c in r.cells)),
+        (t for t in doc.tables if any("KI-Notenempfehlung" in c.text for r in t.rows for c in r.cells)),
         None,
     )
-    assert noten_table is not None, "GESAMTNOTE-Tabelle nicht gefunden"
+    assert noten_table is not None, "Tabelle mit KI-Notenempfehlung nicht gefunden"
 
 
 def test_grade_color_five_stages() -> None:
@@ -453,7 +453,7 @@ def test_docx_zeigt_die_rasterbeschriftung() -> None:
     document = gf.build_feedback_document(data)
     text = "\n".join(paragraph.text for paragraph in document.paragraphs)
 
-    assert "NOTENEMPFEHLUNG (SRDP-basiert)" in text
+    assert "KI-NOTENEMPFEHLUNG – VORSCHLAG (SRDP-basiert)" in text
     assert "Sachverstaendnis + Detailverstaendnis" in text
     assert "Inhalt + Textstruktur" not in text
 
@@ -466,3 +466,84 @@ def test_docx_bleibt_ohne_srdp_bei_gewohnter_ueberschrift() -> None:
 
     assert "NOTENEMPFEHLUNG (SRDP-basiert)" not in text
     assert "NOTENEMPFEHLUNG" in text
+
+def test_language_only_export_accepts_no_content_ratings_and_never_leaks_grades():
+    import pytest
+    payload=json.loads((FIXTURES / "beispiel_deutsch_mit_fehlern.json").read_text(encoding="utf-8"))
+    payload.update(pruefumfang="sprache",bewertung={})
+    data=gf.parse_feedback_data(payload)
+    assert data.bewertung==[] and data.notenempfehlung is None
+    assert data.bewertungsmodus=="unbenotet"
+    data.pruefstatus="freigegeben"
+    data.lehrer_note=2
+    for view in ("schueler","lehrkraft"):
+        document=gf.build_feedback_document(data,original_text="Synthetische Sprachprobe.",ansicht=view,bewertungsmodus="benotet")
+        text="\n".join(p.text for p in document.paragraphs)
+        assert "Synthetische Sprachprobe." in text
+        assert "Empfohlene Note:" not in text
+        assert "LEHRERNOTE:" not in text
+        assert "Note: 2" not in text
+    payload.pop("pruefumfang")
+    with pytest.raises(ValueError,match="nicht-leeres"):
+        gf.parse_feedback_data(payload)
+
+
+def test_empty_content_ratings_require_explicit_language_scope():
+    import pytest
+    payload=json.loads((FIXTURES / "beispiel_deutsch_mit_fehlern.json").read_text(encoding="utf-8"))
+    payload.update(bewertung={},bewertungsmodus="unbenotet")
+    with pytest.raises(ValueError,match="nicht-leeres"):
+        gf.parse_feedback_data(payload)
+
+
+def _tipps(fehler: list, fach: str = "Deutsch") -> str:
+    doc = gf.Document()
+    gf.add_naechste_schritte(doc, fehler, fach)
+    return "\n".join(p.text for p in doc.paragraphs)
+
+
+def test_naechste_schritte_folgen_dem_regelmuster_mit_beispiel() -> None:
+    fehler = [
+        gf.SprachFehler("so das wir", "so dass wir", "R", regel_muster="das_dass"),
+        gf.SprachFehler("weil das", "weil dass", "R", regel_muster="das_dass"),
+        gf.SprachFehler("etwas neues", "etwas Neues", "R", regel_muster="nominalisierung"),
+    ]
+    text = _tipps(fehler)
+    assert "das oder dass (2×)" in text
+    assert "„so das wir“ → „so dass wir“" in text
+    assert "Nominalisierungen (1×)" in text
+
+
+def test_grammatiktipp_nennt_zeitformen_nur_bei_zeitformfehlern() -> None:
+    allgemein = _tipps([gf.SprachFehler("die Kinder spielt", "die Kinder spielen", "G")])
+    assert "Zeitformen" not in allgemein and "Grammatik" in allgemein
+    zeit = _tipps([gf.SprachFehler("er geht", "er ging", "G", erklaerung="Zeitform Präteritum.")])
+    assert "Zeitformen" in zeit
+
+
+def test_ausdruckstipp_ohne_zuspitzungen() -> None:
+    text = _tipps([gf.SprachFehler("unklare Wendung", "präzise Wendung", "A")])
+    assert "Zuspitzungen" not in text
+
+
+def test_das_dass_mit_komma_zaehlt_als_r_und_z() -> None:
+    doc = gf.Document()
+    gf.add_fehlerprotokoll(doc, [
+        gf.SprachFehler("glauben das KI", "glauben, dass KI", "R", befundart="normfehler", teiltypen=["R", "Z"]),
+        gf.SprachFehler("x", "y", "A", befundart="stilalternative"),
+    ])
+    text = "\n".join(p.text for p in doc.paragraphs)
+    assert "R: 1 | G: 0 | Z: 1 | A: 0" in text
+    assert "1 Anregungen / offene Befunde" in text
+
+
+def test_offene_rueckmeldung_nur_markiert_in_lehrkraftansicht(tmp_path) -> None:
+    payload = json.loads((FIXTURES / "beispiel_deutsch_mit_fehlern.json").read_text(encoding="utf-8"))
+    payload["zusammenfassung"] = "Ungeprüfter Überblick."
+    payload["bewertungspruefung"] = {"aussagen": {"zusammenfassung": "offen"}}
+    data = gf.parse_feedback_data(payload)
+    lehrkraft = "\n".join(p.text for p in gf.build_feedback_document(data).paragraphs)
+    assert "Ungeprüfter Überblick." in lehrkraft
+    assert "KI-Gegenprüfung offen" in lehrkraft
+    schueler = "\n".join(p.text for p in gf.build_feedback_document(data, ansicht="schueler").paragraphs)
+    assert "Ungeprüfter Überblick." not in schueler

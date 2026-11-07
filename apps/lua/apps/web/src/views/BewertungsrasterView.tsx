@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Loader2, FileText, Save, Check, Plus, ShieldCheck } from 'lucide-react';
 import { useNatascha, type RubrikBefund } from '../hooks/useNatascha';
 import { ViewShell } from './_ViewShell';
 import { InfoDot } from '../components/ui/InfoDot';
+import { RubricMarkdown } from '../components/RubricMarkdown';
 import { gruppiereRubriken, rubrikLabel, rubrikMetaZeile, type RubrikOption } from '../lib/rubrikAuswahl';
 import { textsortenLabel } from '../lib/textsortenAuswahl';
 import {
@@ -29,6 +30,11 @@ export function BewertungsrasterView() {
   const [rubriken, setRubriken] = useState<RubrikOption[]>([]);
   const [rubricName, setRubricName] = useState('');
   const [rubricContent, setRubricContent] = useState('');
+  const [savedContent, setSavedContent] = useState('');
+  const [editing, setEditing] = useState(false);
+  const loadGeneration = useRef(0);
+  const checkGeneration = useRef(0);
+  const dirty = rubricContent !== savedContent;
   const [rubricLoading, setRubricLoading] = useState(false);
   const [rubricSaving, setRubricSaving] = useState(false);
   const [rubricMsg, setRubricMsg] = useState<string | null>(null);
@@ -61,52 +67,82 @@ export function BewertungsrasterView() {
       });
   }, [listRubrics]);
 
+  useEffect(() => {
+    const guard = (event: BeforeUnloadEvent) => {
+      if (dirty) { event.preventDefault(); event.returnValue = ''; }
+    };
+    window.addEventListener('beforeunload', guard);
+    return () => window.removeEventListener('beforeunload', guard);
+  }, [dirty]);
+  useEffect(() => () => { loadGeneration.current++; checkGeneration.current++; }, []);
+
+  const checkText = useCallback(async (name: string, content: string) => {
+    const token = ++checkGeneration.current;
+    setBefundPrueft(true);
+    try {
+      const result = await checkRubric(name, content);
+      if (token === checkGeneration.current) setBefund(result);
+    } catch (e) {
+      if (token === checkGeneration.current) setRubricMsg(`Prüfung fehlgeschlagen: ${String(e)}`);
+    } finally {
+      if (token === checkGeneration.current) setBefundPrueft(false);
+    }
+  }, [checkRubric]);
+
   const loadRubric = useCallback(async (name: string) => {
+    if (dirty && !window.confirm('Ungespeicherte Änderungen verwerfen und ein anderes Raster öffnen?')) return;
+    const token = ++loadGeneration.current;
+    ++checkGeneration.current;
     setRubricName(name);
     setRubricContent('');
+    setSavedContent('');
+    setEditing(false);
     setRubricMsg(null);
     setBefund(null);
-    if (!name) return;
+    setBefundPrueft(false);
+    if (!name) { setRubricLoading(false); return; }
     setRubricLoading(true);
     try {
       const inhalt = await readRubric(name);
+      if (token !== loadGeneration.current) return;
       setRubricContent(inhalt);
+      setSavedContent(inhalt);
       // Beim Laden mitprüfen: bei den mitgelieferten Rastern ist das der
       // Normalfall, und die Lehrkraft sieht so sofort, ob etwas nicht
       // zusammenpasst, ohne vorher etwas zu tun.
-      setBefundPrueft(true);
-      checkRubric(name, inhalt).then(setBefund).finally(() => setBefundPrueft(false));
+      void checkText(name, inhalt);
     } catch (e) {
-      setRubricMsg(typeof e === 'string' ? e : e instanceof Error ? e.message : 'Laden fehlgeschlagen.');
+      if (token === loadGeneration.current) setRubricMsg(typeof e === 'string' ? e : e instanceof Error ? e.message : 'Laden fehlgeschlagen.');
     } finally {
-      setRubricLoading(false);
+      if (token === loadGeneration.current) setRubricLoading(false);
     }
-  }, [readRubric, checkRubric]);
+  }, [readRubric, checkText, dirty]);
 
   const handleSaveRubric = useCallback(async () => {
     if (!rubricName) return;
+    const token = loadGeneration.current;
     setRubricSaving(true); setRubricMsg(null);
     try {
       const r = await saveRubric(rubricName, rubricContent);
+      if (token !== loadGeneration.current) return;
+      setSavedContent(rubricContent);
       setRubricMsg(`Gespeichert (${rubrikLabel(gewaehlt ?? { filename: r.name })}, ${r.bytes} Bytes).`);
       await listRubrics().then((liste) => setRubriken(liste.rubrics));
       // Nach dem Speichern ist genau der Stand geprüft, der jetzt auf der
       // Platte liegt — nicht der von davor.
-      setBefundPrueft(true);
-      checkRubric(rubricName, rubricContent).then(setBefund).finally(() => setBefundPrueft(false));
+      void checkText(rubricName, rubricContent);
     } catch (e) {
       setRubricMsg(typeof e === 'string' ? e : e instanceof Error ? e.message : 'Speichern fehlgeschlagen.');
     } finally {
       setRubricSaving(false);
     }
-  }, [rubricName, rubricContent, gewaehlt, saveRubric, listRubrics, checkRubric]);
+  }, [rubricName, rubricContent, gewaehlt, saveRubric, listRubrics, checkText]);
 
   /** Prüft den aktuellen Text, ohne zu speichern. */
   const pruefeJetzt = useCallback(() => {
     if (!rubricName || befundPrueft) return;
-    setBefundPrueft(true);
-    checkRubric(rubricName, rubricContent).then(setBefund).finally(() => setBefundPrueft(false));
-  }, [rubricName, rubricContent, checkRubric, befundPrueft]);
+    void checkText(rubricName, rubricContent);
+  }, [rubricName, rubricContent, checkText, befundPrueft]);
 
   /** Vorlage wählen: Titel und Vorschlag für den Dateinamen vorbelegen. */
   const waehleVorlage = useCallback(async (quelle: string) => {
@@ -126,7 +162,7 @@ export function BewertungsrasterView() {
   const dateiName = mitRubrikEndung(neuDateiname);
   const namePruefung = pruefeRubrikName(dateiName);
   const nameVorhanden = rubriken.some((r) => r.filename === dateiName);
-  const kannAnlegen = neuQuelle !== '' && neuTitel.trim() !== '' && namePruefung.ok;
+  const kannAnlegen = !dirty && neuQuelle !== '' && neuTitel.trim() !== '' && namePruefung.ok;
 
   const legeAn = useCallback(async () => {
     if (!kannAnlegen) return;
@@ -177,6 +213,7 @@ export function BewertungsrasterView() {
             </label>
             <select
               value={rubricName}
+              disabled={rubricSaving}
               onChange={(e) => loadRubric(e.target.value)}
               aria-label="Bewertungsraster wählen"
               style={{ minWidth: 260 }}
@@ -194,6 +231,7 @@ export function BewertungsrasterView() {
           {rubricLoading && <Loader2 size={16} className="spin" style={{ marginBottom: 8 }} />}
           <button
             type="button"
+            disabled={dirty || rubricSaving}
             onClick={() => { setNeuOffen(!neuOffen); setNeuFehler(null); }}
             style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.8125rem', padding: '0.35rem 0.8rem' }}
           >
@@ -336,9 +374,15 @@ export function BewertungsrasterView() {
               </div>
             )}
 
-            <textarea
+            <div role="group" aria-label="Rasterdarstellung" style={{ display: 'flex', gap: 8, marginTop: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <button type="button" aria-pressed={!editing} onClick={() => setEditing(false)}>Ansicht</button>
+              <button type="button" aria-pressed={editing} onClick={() => setEditing(true)}>Quelltext bearbeiten</button>
+              {dirty && <span role="status" style={hinweisStyle}>Ungespeicherte Änderungen</span>}
+            </div>
+            {!editing ? <RubricMarkdown source={rubricContent} /> : <textarea
               value={rubricContent}
-              onChange={(e) => setRubricContent(e.target.value)}
+              disabled={rubricSaving}
+              onChange={(e) => { setRubricContent(e.target.value); ++checkGeneration.current; setBefund(null); setBefundPrueft(false); setRubricMsg(null); }}
               spellCheck={false}
               aria-label="Inhalt des Bewertungsrasters"
               style={{
@@ -348,7 +392,7 @@ export function BewertungsrasterView() {
                 background: 'var(--color-bg-base)', padding: '1rem', borderRadius: 'var(--radius)',
                 border: '1px solid var(--color-border)', color: 'var(--color-text-primary)',
               }}
-            />
+            />}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.5rem' }}>
               <button
                 className="btn-primary"

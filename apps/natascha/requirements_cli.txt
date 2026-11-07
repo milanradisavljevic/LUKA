@@ -6,3 +6,4 @@ lxml>=6.1.0
 jsonschema>=4.20
 tomlkit>=0.13
 pillow>=12.2.0
+pypdfium2>=4.30,<6  # Lokale PDF-Seiten fuer Vision-Anbieter

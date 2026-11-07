@@ -3,6 +3,9 @@ titel: Checkliste Textinterpretation
 fach: deutsch
 schulstufe: oberstufe
 textsorte: textinterpretation
+k1: einleitung_aufbau, analyse, interpretation
+k3: sprachrichtigkeit
+verwendung: bewertung
 -->
 
 # Checkliste: Textinterpretation
@@ -37,3 +40,22 @@ textsorte: textinterpretation
 - Die Interpretation ist frei von Fehlern der Orthografie, Grammatik und Zeichensetzung.
 
 *Quelle: Über den Zeilenrand. Maturatraining S. 132, © VERITAS-Verlag, Linz, Caroline Kodym*
+
+
+## Allgemeine Kompetenzstufen (1–5)
+
+| Stufe | Bedeutung |
+|---|---|
+| 1 | nicht erfüllt |
+| 2 | das Wesentliche überwiegend erfüllt |
+| 3 | das Wesentliche zur Gänze erfüllt |
+| 4 | über das Wesentliche hinausgehend erfüllt |
+| 5 | weit über das Wesentliche hinausgehend erfüllt |
+
+Die Stufe bezieht sich jeweils auf die oben beschriebenen Anforderungen des einzelnen Kriteriums. Aufgabenbeispiele gelten nur, wenn die aktuelle Angabe sie tatsächlich verlangt.
+
+## Gewichtung
+- Einleitung_aufbau: 25 %
+- Analyse: 25 %
+- Interpretation: 25 %
+- Sprachrichtigkeit: 25 %

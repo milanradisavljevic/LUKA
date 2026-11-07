@@ -3,6 +3,7 @@ titel: Einfacher Kommentar (Unterstufe)
 fach: deutsch
 schulstufe: unterstufe
 textsorte: kommentar
+verwendung: bewertung
 -->
 
 # Bewertungsraster: Einfacher Kommentar (Unterstufe)

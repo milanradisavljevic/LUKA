@@ -1,5 +1,5 @@
 import { useDialogFocus } from '../hooks/useDialogFocus';
-import { Download, Loader2, RotateCw, X } from 'lucide-react';
+import { CheckCircle2, Download, Loader2, RotateCw, Sparkles, X } from 'lucide-react';
 import type { UseUpdaterReturn } from '../hooks/useUpdater';
 import { parseMiniMarkdown, type InlineSegment, type MiniMarkdownBlock } from '../lib/miniMarkdown';
 
@@ -29,12 +29,12 @@ function renderSegments(segments: InlineSegment[]) {
   });
 }
 
-function ReleaseNotes({ body }: { body: string }) {
+function ReleaseNotes({ body, highlighted = false }: { body: string; highlighted?: boolean }) {
   const blocks: MiniMarkdownBlock[] = parseMiniMarkdown(body);
   if (blocks.length === 0) return null;
 
   return (
-    <div style={{ fontSize: '0.8125rem', lineHeight: 1.55, color: 'var(--color-text-primary)' }}>
+    <div className={highlighted ? 'release-notes' : undefined} style={{ fontSize: '0.8125rem', lineHeight: 1.55, color: 'var(--color-text-primary)' }}>
       {blocks.map((block, i) => {
         if (block.type === 'list') {
           return (
@@ -44,6 +44,10 @@ function ReleaseNotes({ body }: { body: string }) {
               ))}
             </ul>
           );
+        }
+        const [first] = block.segments;
+        if (highlighted && block.segments.length === 1 && first?.bold) {
+          return <h3 key={i}>{first.text}</h3>;
         }
         return (
           <p key={i} style={{ margin: '0 0 0.5rem 0' }}>{renderSegments(block.segments)}</p>
@@ -89,7 +93,8 @@ export function UpdateDialog({ updater }: Props) {
         aria-labelledby="update-dialog-title"
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: 440, maxWidth: '100%', maxHeight: '82vh', overflow: 'auto',
+          width: state.phase === 'verified' && state.body ? 560 : 440,
+          maxWidth: '100%', maxHeight: '82vh', overflow: 'auto',
           background: 'var(--color-bg-elevated)', borderRadius: 'var(--radius)',
           border: '1px solid var(--color-border)', boxShadow: '0 4px 24px var(--color-shadow)',
           padding: '1.5rem',
@@ -198,9 +203,17 @@ export function UpdateDialog({ updater }: Props) {
         )}
         {state.phase === 'installing' && <h2 id="update-dialog-title"><Loader2 className="spin" size={18} /> Installation wird gestartet …</h2>}
         {state.phase === 'verified' && <>
-          <h2 id="update-dialog-title">LUKA {state.currentVersion} ist jetzt aktiv</h2>
-          <p>Das Update wurde beim Neustart bestätigt.</p>
-          <button className="btn-primary" onClick={dismiss}>Weiterarbeiten</button>
+          <div className="release-welcome">
+            <span className="release-welcome-icon"><Sparkles aria-hidden="true" size={22} /></span>
+            <div>
+              <p><CheckCircle2 aria-hidden="true" size={14} /> Update installiert</p>
+              <h2 id="update-dialog-title">Willkommen in LUKA {state.currentVersion}</h2>
+            </div>
+          </div>
+          {state.body && <ReleaseNotes body={state.body} highlighted />}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+            <button className="btn-primary" onClick={dismiss}>Weiterarbeiten</button>
+          </div>
         </>}
         {state.phase === 'installed' && (
           <>

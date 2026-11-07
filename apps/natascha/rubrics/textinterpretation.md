@@ -3,6 +3,7 @@ titel: Textinterpretation
 fach: deutsch
 schulstufe: oberstufe
 textsorte: textinterpretation
+verwendung: bewertung
 -->
 
 # Bewertungsraster: Textinterpretation

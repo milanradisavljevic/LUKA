@@ -1,11 +1,115 @@
 # Changelog
 
+## Version 1.5.9 — 2026-11-07
+
+### Das ist neu
+
+**Von der ersten Durchsicht bis zur nächsten Übung**
+
+Du siehst vor der Korrektur, worauf LUKA sich stützt. Danach kannst du Sprachhinweise prüfen, den Lehrkraftbericht in Word öffnen und aus übernommenen Befunden eine Folgeübung starten.
+
+#### Vor der Korrektur
+
+- **Eine Unterrichtsdatei genügt.** LUKA kann Arbeitsauftrag und Wortzahl aus derselben Datei übernehmen. Beilage und Bewertungsraster siehst du vor dem Start. Ein Erwartungshorizont ist optional.
+- **Sprache separat prüfen.** Auch bei offener Beilage bekommst du Sprachfeedback. Inhaltsbewertung, Wortzahlabzüge und Gesamtnote entfallen in diesem Modus.
+- **Scans am Original prüfen.** Vergleiche unsichere Lesestellen mit dem Scan. Offene Stellen erlauben weiterhin qualitatives Feedback.
+
+#### Bei der Durchsicht
+
+- **Mehr Übersicht bei Sprachhinweisen.** LUKA führt doppelte Hinweise zusammen, trennt Stilideen von Fehlern und behält gültige Teilbewertungen. Neue Befunde aus der Gegenprüfung bleiben zur Entscheidung offen.
+- **Klassenläufe im Blick.** Der Auftrag zeigt den Fortschritt. Du kannst eine Arbeit als neue Korrekturversion prüfen, Markdown-Abgaben verwenden und Raster als lesbares Dokument öffnen.
+- **Englisch-SRDP für B1 und B2.** Die neuen Raster verwenden 0 bis 10 Punkte je Kriterium. Einen Notenvorschlag gibt es erst mit einem von dir bestätigten Notenschlüssel.
+
+#### Für deine Rückmeldung
+
+- **Lehrkraftbericht in Word.** Kommentare bleiben an der Textstelle, Beistrichänderungen sind im Text markiert und Übungstipps greifen konkrete Beispiele auf. Die Dateikarte führt zum Speicherordner.
+- **Aus der Korrektur weiterüben.** Starte eine Folgeübung direkt aus der Arbeit. Auswertungen und Übungen greifen die Hinweise auf, die du übernommen oder geändert hast.
+
+## Unveröffentlicht - 2026-11-06
+
+- Großschreibung nach einer Anrede mit Komma („Liebe Klasse, Haben Sie …“) wird in Deutsch-Arbeiten zuverlässig als Rechtschreibfehler erkannt.
+- Doppelte oder überlappende Sprachhinweise zur selben Stelle werden zu einem Eintrag zusammengefasst. Reine Groß-/Kleinschreibungs- und Beistrichänderungen tragen immer den passenden Fehlertyp; das/dass mit fehlendem Beistrich zählt als Rechtschreib- und Beistrichfehler.
+- Zusätzlich von der Gegenprüfung gefundene Hinweise werden nicht mehr automatisch als bestätigt geführt, sondern warten auf Ihre Entscheidung.
+- Die Übungstipps im Feedback richten sich nach der tatsächlichen Regel (z. B. das/dass, Beistrich bei Nebensätzen) und zeigen ein Beispiel aus dem eigenen Text. Zeitformen werden nur noch erwähnt, wenn solche Fehler vorkommen.
+- Nicht bestätigte Zusammenfassungen und Verbesserungsbereiche bleiben im Lehrkraftbericht mit Prüfvermerk erhalten, statt zu verschwinden. Die Schülerfassung zeigt sie weiterhin nicht.
+- Weniger Fehlwarnungen bei reinen Sprachprüfungen: kein Kriterienhinweis mehr und keine Meldung „technisch unvollständig“, wenn die Gegenprüfung einen Hinweis bewusst offen lässt.
+
+## 2026-11-05 – Verlässliche Korrekturgrundlage
+
+- Der Lehrkraftbericht lässt sich direkt als Word-Datei exportieren. Die Dateikarte zeigt anschließend den Speicherort und öffnet den Ordner. Der Schülerexport wird vorerst nicht angeboten.
+
+- DOCX-Exporte funktionieren auch bei reinen Sprachprüfungen ohne Inhaltsbewertung. Exportfehler werden als solche bezeichnet; die Analyse bleibt erhalten.
+
+- Eine Unterrichtsdatei genügt: Arbeitsaufträge und Wortzahl werden daraus übernommen und im Materialschritt zur Bestätigung angezeigt.
+
+- Unterschiedliche Schreibweisen von Befundverweisen werden eindeutig zugeordnet. Verwertbare Teilprüfungen bleiben bei unvollständigen Antworten erhalten.
+- Vor der Deutsch-Korrektur können Arbeitsauftrag, Beilage, Wortzahl und Kriterien geprüft und bestätigt werden. Der Erwartungshorizont bleibt optional.
+- Sprachfeedback ist auch bei noch offener Beilage möglich, ohne Inhaltsbewertung oder automatische Gesamtnote.
+
+
 Alle nennenswerten Änderungen an **lehr-suite** (NATASCHA × LUA Integration).
 Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 Neueste Einträge oben. Bitte bei jeder substanziellen Änderung hier ergänzen
 (auch andere Coding-Agents) — siehe `AGENTS.md`.
 
-## Unveröffentlicht — 2026-10-22
+## Unveröffentlicht - 2026-11-05
+
+- DeepSeek erhält bei Korrekturen mehr Spielraum für Analyse und Gegenprüfung, insbesondere bei maximalem Denkaufwand. Auch die zulässige Wartezeit berücksichtigt längere Prüfungen.
+
+## Unveröffentlicht - 2026-11-04
+
+- Beistrichfehler werden im Word-Feedback orange unterstrichen und erzeugen keinen Randkommentar mehr. Ihre Erläuterungen bleiben im Fehlerprotokoll erhalten.
+- Die Deutsch-Korrektur prüft gezielter auf doppelte Satzbausteine, unpassende Wortverbindungen und schwer verständliche Formulierungen. Freiwillige Stilvorschläge bleiben von Fehlern getrennt.
+- Von der Gegenprüfung bestätigte Sprachfehler werden nicht mehr wegen einer leeren optionalen Begründung fälschlich als ungeklärt angezeigt.
+- Deutsch-Korrekturen behalten gültige Teilbewertungen. Einzelne fehlerhafte Belege verwerfen nicht mehr das ganze Raster; tatsächlich offene Bewertungskriterien lassen sich gezielt klären, ohne eine neue KI-Korrektur zu starten.
+- Geprüfte Hinweise können gesammelt übernommen werden. Offene Formulierungsvorschläge und freiwillige Stilideen bleiben getrennt sichtbar und müssen nicht einzeln abgearbeitet werden.
+- Der Export bietet ein kurzes Schülerfeedback und einen ausführlichen Lehrkraftbericht. Die Schülerfassung enthält nur übernommene Hinweise und zeigt eine Note erst nach Freigabe.
+- Der gewählte Denkmodus bleibt je Modell gespeichert. Korrekturstapel verwenden eine feste Fassung von Beilage und Bewertungsraster; der verwendete Beilagentext lässt sich einsehen.
+
+## Unveröffentlicht — 2026-11-03
+
+- Beim Wiederöffnen eines Korrekturauftrags öffnen sich Info-Hinweise nicht mehr ungefragt. Die Erklärblasen bleiben vollständig lesbar und überlagern den Fortschritt nicht mit herauslaufendem Text.
+- Die eingeklappte Seitenleiste zeigt das geschwungene „L“ wieder in der Luka-Schreibschrift.
+- Feedback-Dateinamen enthalten die Schülerbezeichnung. Im Korrekturauftrag können neue Namen direkt bei der Dateizuordnung zur Klassenliste hinzugefügt werden.
+- Deutsch-Korrekturen prüfen vorgeschlagene Änderungen zusätzlich am tatsächlich entstehenden Satz. Ungeklärte Ersetzungen bleiben Kommentare; zurückgewiesene KI-Beanstandungen werden ohne ausdrückliche Übernahme durch die Lehrkraft nicht ins Schülerfeedback übernommen.
+- Der Übergang zum SRDP-Raster vermeidet eine zusätzliche Seite nur mit einer Trennlinie.
+- Word-Feedback behält Kommentare auch bei mehreren Änderungen im selben Satz. Größere oder überlappende Umformulierungen bleiben zur Prüfung als Kommentar erhalten.
+- Die Deutsch-Gegenprüfung bestätigt unveränderte Ergebnisse kürzer, prüft Randnotizen einzeln und kann übersehene Sprachhinweise ergänzen. Fehlgeschlagene Prüfschritte lassen sich besser nachvollziehen.
+- Feedback zeigt prozentuale Gewichte korrekt an und erläutert, wenn der Notenvorschlag aus den SRDP-Details entsteht. Ausdruckstipps beziehen sich auf die markierten Formulierungen.
+- Vorläufige KI-Notenvorschläge sind auch in der Übersicht, in Stapelergebnissen und im Noten-CSV gekennzeichnet. Widersprüchliche Prüfergebnisse bleiben sichtbar offen.
+- Deutsch-Korrekturen prüfen Sprachhinweise und Bewertungen in einem zweiten Schritt gegen das gewählte Raster. Offene Widersprüche werden angezeigt; betroffene KI-Notenvorschläge bleiben als vorläufig gekennzeichnet.
+- Bewertungsraster erscheinen als lesbares Dokument mit Überschriften und Tabellen. Der Quelltext bleibt separat bearbeitbar; ungespeicherte Änderungen werden beim Rasterwechsel geschützt.
+- Beide Prüfschritte verwenden dieselbe Aufgabe, Beilage und Rasterfassung. Wort- und Absatzanzahl werden gezählt; bearbeitete eigene Raster bleiben bei Vorlagenupdates erhalten.
+
+## Unveröffentlicht — 2026-11-02
+
+- Korrekturaufträge können vorhandene Arbeiten auf Wunsch erneut korrigieren und als neue Version speichern. Ganze Aufträge lassen sich mit ihren Korrekturen aus LUKA löschen; Originaldateien bleiben erhalten. Info-Hinweise erklären alle fünf Schritte.
+- Feedback-Dokumente enthalten wieder den vollständigen Schülertext. Der Export ist ohne Lehrernote möglich; KI-Vorschlag, Lehrernote und Freigabe werden getrennt ausgewiesen.
+- Korrekturen unterscheiden Sprachfehler, Stilideen und offene Fragen. Bewertungsgrundlagen und SRDP-Beschreibungen werden konsistent verwendet.
+- Für Korrekturen lässt sich der Denkmodus je Modell einstellen. Die Auswahl berücksichtigt die Möglichkeiten des jeweiligen Anbieters.
+
+## Unveröffentlicht — 2026-10-28
+
+- Laufende Korrekturen zeigen ihren Bearbeitungsschritt auch im Auftragsfenster. Das Fenster kann ausgeblendet und der Auftrag wieder geöffnet werden; Abbrechen bleibt eine eigene Aktion.
+
+- Scans können mit OpenAI oder Mistral automatisch gegengelesen werden. LUKA bereitet zunächst eine Vorschau vor, zeigt zweifelhafte Lesarten am Original und speichert die Korrektur erst nach der Übernahme. Bei offenen Lesestellen bleibt das Feedback ohne Rasterpunkte und automatische Note.
+
+- Die Korrekturübersicht zeigt ausgelesene Scans erst nach der bestätigten Abschrift als bereit an. Fehlt die Bestätigung, erklärt LUKA die Sperre und führt direkt zurück zur Abschrift.
+
+- Beim Speichern eines API-Schlüssels prüft LUKA, ob anschließend genau dieser Schlüssel verwendet wird. In der Debian-Entwicklung greift bei nicht dauerhafter Systemablage zuverlässig der vorhandene lokale Datei-Fallback.
+
+## Unveroeffentlicht - 2026-10-27
+
+- Beim Scan-Auslesen werden abgelehnte Anfragen mit HTTP-Status und Fehlercode angezeigt. Fehlendes Guthaben, Zugriffsprobleme und ein veraltetes Korrektur-Modul lassen sich dadurch unterscheiden. Mistral wird ausdrücklich als „Mistral OCR“ angeboten.
+
+- Scans werden vor der Korrektur als Abschrift geprueft. Original und bestaetigte Textfassung bleiben verbunden; Auslesung und Korrektur koennen unterschiedliche Anbieter verwenden. PDF-Textebenen werden zuerst lokal gelesen. Schuelerzuordnungen im Stapel bleiben beim Bestaetigen erhalten.
+
+## Unveröffentlicht - 2026-10-26
+
+- Markdown-Dateien (.md) lassen sich im Korrekturmodul als Abgaben hochladen. Der Originaltext bleibt samt Formatierungszeichen erhalten.
+
+- Eingescannte Korrektur-Abgaben koennen mit OpenAI, Mistral OCR und bildfaehigen DeepSeek-, Kimi- und Qwen-Modellen gelesen werden. Abschriften lassen sich vor der Korrektur bearbeiten und als Text uebernehmen.
+
 
 - Beschreibung und Anleitung nennen Windows als unterstützte Plattform; neue Produktbilder zeigen den Arbeitsablauf mit synthetischen Beispielen.
 - Auswertungen und Folgeübungen berücksichtigen übernommene oder geänderte Fehlerhinweise. Ungeprüfte Vorschläge und verworfene Hinweise bleiben in der Korrektur sichtbar.

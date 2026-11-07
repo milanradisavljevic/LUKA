@@ -15,6 +15,7 @@ LEERE_FELDER = {
     "k3": "",
     "aufgabenart": "",
     "bewertungsprofil": "",
+    "verwendung": "",
 }
 
 
@@ -33,6 +34,7 @@ aufgabenart: verstaendnis
 """
 
     assert parse_rubrik_header(text) == {
+        "verwendung": "",
         "bewertungsprofil": "",
         "titel": "SRDP Deutsch Oberstufe",
         "fach": "deutsch",

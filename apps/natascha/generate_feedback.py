@@ -22,6 +22,8 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Inches, Pt, RGBColor
 
+from sprachregeln import regel_muster
+
 try:
     from lxml import etree as _etree
     _LXML_AVAILABLE = True
@@ -63,133 +65,133 @@ _FEHLER_TYP_COLORS: dict[str, RGBColor] = {
 
 SRDP_WORTLAUT: dict[str, dict[int, str]] = {
     "schreibhandlung": {
-        0: "nicht erfüllt",
-        1: "Schreibhandlung(en) im Sinne der geforderten Textsorte überwiegend realisiert",
-        2: "Schreibhandlung(en) im Sinne der geforderten Textsorte weitgehend realisiert",
-        3: "Schreibhandlung(en) im Sinne der geforderten Textsorte durchgehend realisiert",
-        4: "Schreibhandlung(en) im Sinne der geforderten Textsorte umfassend realisiert",
+        1: "nicht erfüllt",
+        2: "Schreibhandlung(en) im Sinne der geforderten Textsorte überwiegend realisiert",
+        3: "Schreibhandlung(en) im Sinne der geforderten Textsorte weitgehend realisiert",
+        4: "Schreibhandlung(en) im Sinne der geforderten Textsorte durchgehend realisiert",
+        5: "Schreibhandlung(en) im Sinne der geforderten Textsorte umfassend realisiert",
     },
     "arbeitsauftraege": {
-        0: "nicht erfüllt",
-        1: "Arbeitsaufträge überwiegend erfüllt",
-        2: "Arbeitsaufträge weitgehend erfüllt",
-        3: "alle Arbeitsaufträge erfüllt",
-        4: "alle Arbeitsaufträge umfassend erfüllt",
+        1: "nicht erfüllt",
+        2: "Arbeitsaufträge überwiegend erfüllt",
+        3: "Arbeitsaufträge weitgehend erfüllt",
+        4: "alle Arbeitsaufträge erfüllt",
+        5: "alle Arbeitsaufträge umfassend erfüllt",
     },
     "textbeilage": {
-        0: "nicht erfüllt",
-        1: "Textbeilage(n) im Sinne der Arbeitsaufträge überwiegend erfasst",
-        2: "Textbeilage(n) im Sinne der Arbeitsaufträge weitgehend erfasst",
-        3: "Textbeilage(n) im Sinne der Arbeitsaufträge vollständig erfasst",
+        1: "nicht erfüllt",
+        2: "Textbeilage(n) im Sinne der Arbeitsaufträge überwiegend erfasst",
+        3: "Textbeilage(n) im Sinne der Arbeitsaufträge weitgehend erfasst",
         4: "Textbeilage(n) im Sinne der Arbeitsaufträge vollständig erfasst",
+        5: "Textbeilage(n) im Sinne der Arbeitsaufträge vollständig erfasst",
     },
     "sachlich": {
-        0: "nicht erfüllt",
-        1: "sachlich überwiegend richtig",
-        2: "sachlich weitgehend richtig",
-        3: "sachlich richtig",
-        4: "sachlich durchgehend richtig",
+        1: "nicht erfüllt",
+        2: "sachlich überwiegend richtig",
+        3: "sachlich weitgehend richtig",
+        4: "sachlich richtig",
+        5: "sachlich durchgehend richtig",
     },
     "qualitaet": {
-        0: "nicht erfüllt",
-        1: "oberflächlich / wenig treffsicher / reproduzierend",
-        2: "ansatzweise komplex / weitgehend treffsicher / Ansätze zur Eigenständigkeit",
-        3: "komplex / treffsicher / merklich eigenständig",
-        4: "in hohem Maße komplex / treffsicher / eigenständig; ggf. ideenreich",
+        1: "nicht erfüllt",
+        2: "oberflächlich / wenig treffsicher / reproduzierend",
+        3: "ansatzweise komplex / weitgehend treffsicher / Ansätze zur Eigenständigkeit",
+        4: "komplex / treffsicher / merklich eigenständig",
+        5: "in hohem Maße komplex / treffsicher / eigenständig; ggf. ideenreich",
     },
     "kohaerenz": {
-        0: "nicht erfüllt",
-        1: "Text gedanklich und formal überwiegend der Textsorte angemessen strukturiert",
-        2: "Text gedanklich und formal weitgehend der Textsorte angemessen strukturiert",
-        3: (
+        1: "nicht erfüllt",
+        2: "Text gedanklich und formal überwiegend der Textsorte angemessen strukturiert",
+        3: "Text gedanklich und formal weitgehend der Textsorte angemessen strukturiert",
+        4: (
             "Text gedanklich und formal durchgehend der Textsorte angemessen "
             "und klar strukturiert"
         ),
-        4: (
+        5: (
             "Text gedanklich und formal durchgehend der Textsorte angemessen, "
             "klar, zielgerichtet und ggf. eigenständig strukturiert"
         ),
     },
     "bezugnahme": {
-        0: "nicht erfüllt",
-        1: (
+        1: "nicht erfüllt",
+        2: (
             "Bezugnahme auf die Textbeilage(n) im Sinne der geforderten Textsorte "
             "überwiegend erkennbar"
         ),
-        2: "Bezugnahme auf die Textbeilage(n) im Sinne der geforderten Textsorte realisiert",
-        3: "gelungene Verknüpfung mit der/den Textbeilage(n) im Sinne der geforderten Textsorte",
-        4: (
+        3: "Bezugnahme auf die Textbeilage(n) im Sinne der geforderten Textsorte realisiert",
+        4: "gelungene Verknüpfung mit der/den Textbeilage(n) im Sinne der geforderten Textsorte",
+        5: (
             "besonders gelungene Verknüpfung mit der/den Textbeilage(n) im Sinne "
             "der geforderten Textsorte"
         ),
     },
     "kohaesion": {
-        0: "nicht erfüllt",
-        1: "Einsatz passender Kohäsionsmittel überwiegend erkennbar",
-        2: "Einsatz passender Kohäsionsmittel weitgehend erkennbar",
-        3: "nahezu durchgehender Einsatz passender Kohäsionsmittel",
-        4: "durchgehender Einsatz passender Kohäsionsmittel",
+        1: "nicht erfüllt",
+        2: "Einsatz passender Kohäsionsmittel überwiegend erkennbar",
+        3: "Einsatz passender Kohäsionsmittel weitgehend erkennbar",
+        4: "nahezu durchgehender Einsatz passender Kohäsionsmittel",
+        5: "durchgehender Einsatz passender Kohäsionsmittel",
     },
     "situationsadaequat": {
-        0: "nicht erfüllt",
-        1: "überwiegend schreibhandlungs- und situationsadäquate Sprachverwendung",
-        2: "weitgehend schreibhandlungs- und situationsadäquate Sprachverwendung",
-        3: "nahezu durchgehend schreibhandlungs- und situationsadäquate Sprachverwendung",
-        4: "durchgehend schreibhandlungs- und situationsadäquate Sprachverwendung",
+        1: "nicht erfüllt",
+        2: "überwiegend schreibhandlungs- und situationsadäquate Sprachverwendung",
+        3: "weitgehend schreibhandlungs- und situationsadäquate Sprachverwendung",
+        4: "nahezu durchgehend schreibhandlungs- und situationsadäquate Sprachverwendung",
+        5: "durchgehend schreibhandlungs- und situationsadäquate Sprachverwendung",
     },
     "wortwahl": {
-        0: "nicht erfüllt",
-        1: (
+        1: "nicht erfüllt",
+        2: (
             "überwiegend angemessene und semantisch korrekte Ausdrucksweise sowie "
             "geringe Varianz in der Wortwahl"
         ),
-        2: (
+        3: (
             "weitgehend angemessene und semantisch korrekte Ausdrucksweise sowie "
             "variantenreiche Wortwahl"
         ),
-        3: (
+        4: (
             "durchgehend angemessene und semantisch korrekte Ausdrucksweise sowie "
             "präzise und variantenreiche Wortwahl"
         ),
-        4: (
+        5: (
             "durchgehend angemessene und semantisch korrekte Ausdrucksweise sowie "
             "besonders präzise, differenzierte und variantenreiche Wortwahl"
         ),
     },
     "satzstrukturen": {
-        0: "nicht erfüllt",
-        1: "überwiegend gut verständliche bzw. nur wenig variierende Satzstrukturen",
-        2: "weitgehend gut verständliche und variantenreiche Satzstrukturen",
-        3: "durchgehend variantenreiche und komplexe bzw. der Textsorte angemessene Satzstrukturen",
-        4: "besonders variantenreiche und komplexe bzw. der Textsorte angemessene Satzstrukturen",
+        1: "nicht erfüllt",
+        2: "überwiegend gut verständliche bzw. nur wenig variierende Satzstrukturen",
+        3: "weitgehend gut verständliche und variantenreiche Satzstrukturen",
+        4: "durchgehend variantenreiche und komplexe bzw. der Textsorte angemessene Satzstrukturen",
+        5: "besonders variantenreiche und komplexe bzw. der Textsorte angemessene Satzstrukturen",
     },
     "eigenstaendigkeit": {
-        0: "nicht erfüllt",
-        1: "viele an die Textbeilage(n) angelehnte oder wörtlich übernommene Formulierungen",
-        2: "weitgehend eigenständige Formulierungen",
-        3: "nahezu durchgehend eigenständige Formulierungen",
-        4: "durchgehend eigenständige Formulierungen",
+        1: "nicht erfüllt",
+        2: "viele an die Textbeilage(n) angelehnte oder wörtlich übernommene Formulierungen",
+        3: "weitgehend eigenständige Formulierungen",
+        4: "nahezu durchgehend eigenständige Formulierungen",
+        5: "durchgehend eigenständige Formulierungen",
     },
     "orthografie": {
-        0: "nicht erfüllt",
-        1: "überwiegend richtige Anwendung der Regeln der Orthografie",
-        2: "weitgehend richtige Anwendung der Regeln der Orthografie",
-        3: "richtige Anwendung der Regeln der Orthografie; wenige Fehler",
-        4: "orthografisch (nahezu) fehlerfrei",
+        1: "nicht erfüllt",
+        2: "überwiegend richtige Anwendung der Regeln der Orthografie",
+        3: "weitgehend richtige Anwendung der Regeln der Orthografie",
+        4: "richtige Anwendung der Regeln der Orthografie; wenige Fehler",
+        5: "orthografisch (nahezu) fehlerfrei",
     },
     "zeichensetzung": {
-        0: "nicht erfüllt",
-        1: "überwiegend richtige Anwendung der Regeln der Zeichensetzung",
-        2: "weitgehend richtige Anwendung der Regeln der Zeichensetzung",
-        3: "richtige Anwendung der Regeln der Zeichensetzung; wenige Fehler",
-        4: "Zeichensetzung (nahezu) fehlerfrei",
+        1: "nicht erfüllt",
+        2: "überwiegend richtige Anwendung der Regeln der Zeichensetzung",
+        3: "weitgehend richtige Anwendung der Regeln der Zeichensetzung",
+        4: "richtige Anwendung der Regeln der Zeichensetzung; wenige Fehler",
+        5: "Zeichensetzung (nahezu) fehlerfrei",
     },
     "grammatik": {
-        0: "nicht erfüllt",
-        1: "überwiegend richtige Anwendung der Regeln der Grammatik",
-        2: "weitgehend richtige Anwendung der Regeln der Grammatik",
-        3: "richtige Anwendung der Regeln der Grammatik; wenige Fehler",
-        4: "grammatikalisch (nahezu) fehlerfrei",
+        1: "nicht erfüllt",
+        2: "überwiegend richtige Anwendung der Regeln der Grammatik",
+        3: "weitgehend richtige Anwendung der Regeln der Grammatik",
+        4: "richtige Anwendung der Regeln der Grammatik; wenige Fehler",
+        5: "grammatikalisch (nahezu) fehlerfrei",
     },
 }
 
@@ -234,7 +236,7 @@ class CriterionFeedback:
 
     key: str
     stufe: str
-    punkte: float
+    punkte: float | None
     staerken: list[str]
     schwaechen: list[str]
     vorschlaege: list[str]
@@ -248,6 +250,7 @@ class CriterionFeedback:
 class WordLevelHinweis:
     zitat: str
     kommentar: str
+    textstelle_id: str | None = None
 
 
 @dataclass(slots=True)
@@ -256,6 +259,14 @@ class SprachFehler:
     korrektur: str
     typ: str  # "R" | "G" | "Z" | "A"
     erklaerung: str = ""
+    befundart: str | None = None
+    anker_status: str | None = None
+    lehrkraft_aktion: str | None = None
+    textstelle_id: str | None = None
+    nur_kommentar: bool = False
+    ersetzungspruefung: dict | None = None
+    teiltypen: list[str] | None = None  # z. B. das/dass + Komma: ["R", "Z"]
+    regel_muster: str | None = None
 
 
 @dataclass(slots=True)
@@ -310,6 +321,14 @@ class FeedbackData:
     folgeuebung: FolgeuebungHinweis | None = None
     sachfach_bewertung: dict[str, CriterionFeedback] | None = None
     raster_auswertung: dict[str, Any] | None = None
+    lehrer_note: float | None = None
+    lehrer_kommentar: str | None = None
+    pruefstatus: str = "entwurf"
+    bewertungsmodus: str = "benotet"
+    qualitaetswarnungen: list[str] | None = None
+    notenempfehlung_vorlaeufig: bool = False
+    aussagenstatus: dict | None = None
+    pruefnachweis: dict | None = None
 
 
 @dataclass(slots=True)
@@ -470,19 +489,29 @@ def add_lehrer_kommentar_block(
             doc.add_paragraph("Keine automatische Notenempfehlung; Notenschlüssel und Prüfbedarf beachten.")
 
 
+    def offen_vermerk(field: str) -> None:
+        # Nur Lehrkraftansicht: die Schüleransicht blendet offene Felder aus.
+        if (data.aussagenstatus or {}).get(field) == "offen":
+            run = doc.add_paragraph().add_run(_VERMERK_AUSSAGE_OFFEN)
+            run.italic = True
+            run.font.size = Pt(9)
+
     if data.zusammenfassung:
         add_section_header(doc, "ZUSAMMENFASSUNG", color=C_PRIMARY)
+        offen_vermerk("zusammenfassung")
         p = doc.add_paragraph(data.zusammenfassung)
         p.runs[0].font.size = Pt(10)
         p.paragraph_format.space_after = Pt(4)
 
     if data.staerken_global:
         add_section_header(doc, "STÄRKEN", color=C_STRENGTH)
+        offen_vermerk("staerken_global")
         for item in data.staerken_global:
             add_bullet(doc, item, color=C_STRENGTH)
 
     if data.verbesserungsbereiche:
         add_section_header(doc, "VERBESSERUNGSBEREICHE", color=C_WEAKNESS)
+        offen_vermerk("verbesserungsbereiche")
         for item in data.verbesserungsbereiche:
             add_bullet(doc, item, color=C_WEAKNESS)
 
@@ -491,7 +520,7 @@ def add_lehrer_kommentar_block(
     if data.notenempfehlung and bewertungsmodus == "benotet":
         grade_color = _note_color(data.notenempfehlung.note)
         label_run = p.add_run(
-            f"NOTENEMPFEHLUNG: {data.notenempfehlung.note} – {data.notenempfehlung.bezeichnung}"
+            f"KI-NOTENEMPFEHLUNG – {'VORLÄUFIG – PRÜFUNG ERFORDERLICH' if data.notenempfehlung_vorlaeufig else 'VORSCHLAG'}: {data.notenempfehlung.note} – {data.notenempfehlung.bezeichnung}"
         )
         label_run.bold = True
         label_run.font.size = Pt(11)
@@ -525,7 +554,7 @@ def add_lehrer_kommentar_block(
                 f"  Hinweis: Sonderregel – {data.notenempfehlung.sonderregel}",
             )
     else:
-        label_run = p.add_run("Hausaufgabe – keine Benotung")
+        label_run = p.add_run("Bewertung noch offen – keine automatische Note" if bewertungsmodus == "benotet" else "Formatives Feedback – ohne Note")
         label_run.bold = True
         label_run.font.size = Pt(11)
         label_run.font.color.rgb = RGBColor(0x60, 0x60, 0x60)
@@ -602,6 +631,7 @@ def add_legende(doc: Document) -> None:
     items = [
         ("durchgestrichen", "Fehler im Original", C_WEAKNESS),
         ("grün + fett", "Korrektur/Verbesserung", C_STRENGTH),
+        ("orange unterstrichen", "Beistrichstelle, ohne Randkommentar", _FEHLER_TYP_COLORS["Z"]),
         ("Balloon-Kommentare rechts", "Hinweise der Lehrkraft", C_PRIMARY),
     ]
     for mark, meaning, color in items:
@@ -668,7 +698,7 @@ def add_student_text_section(
     add_section_header(doc, "ORIGINALTEXT")
 
     paragraphs_added: list[Any] = []
-    raw_paragraphs = [p for p in original_text.split("\n") if p.strip()]
+    raw_paragraphs = original_text.split("\n")
 
     for para_idx, raw_para in enumerate(raw_paragraphs):
         para = doc.add_paragraph()
@@ -867,326 +897,10 @@ def _attach_word_level_comments(
     student_paragraphs: list | None = None,
     fehler_list: list[SprachFehler] | None = None,
 ) -> None:
-    """Anchors Word comments at the Run level (individual words/phrases).
-
-    Correct Word XML structure for a word-level comment:
-      <w:p>
-        <w:r><w:t>before </w:t></w:r>
-        <w:commentRangeStart w:id="0"/>
-        <w:r><w:t>quote</w:t><w:commentReference w:id="0"/></w:r>
-        <w:commentRangeEnd w:id="0"/>
-        <w:r><w:t> after</w:t></w:r>
-      </w:p>
-    """
     if not _LXML_AVAILABLE:
         return
-
-    try:
-        from docx.opc.packuri import PackURI
-        from docx.opc.part import Part
-    except ImportError:
-        return
-
-
-    root = _etree.Element(f"{{{_W_NS}}}comments", nsmap={"w": _W_NS})
-
-    comment_id = 0
-    paragraph_fallbacks: list[tuple[Any, str]] = []
-    _used_para_ids: set[int] = set()
-
-    text_paragraphs = [p for p in doc.paragraphs if p.text.strip()]
-
-    for hinweis in hinweise_list:
-        if hinweis.zitat.strip():
-            found = False
-            for para in text_paragraphs:
-                result = _find_zitat_in_paragraph(para, hinweis.zitat)
-                if result is None:
-                    continue
-
-                start_idx, end_idx, start_off, end_off = result
-
-                c_el = _etree.SubElement(root, f"{{{_W_NS}}}comment")
-                c_el.set(f"{{{_W_NS}}}id", str(comment_id))
-                c_el.set(f"{{{_W_NS}}}author", author)
-                c_el.set(f"{{{_W_NS}}}date", f"{date.today().isoformat()}T00:00:00Z")
-                c_el.set(f"{{{_W_NS}}}initials", "".join(w[0] for w in author.split()[:2] if w))
-
-                c_p = _etree.SubElement(c_el, f"{{{_W_NS}}}p")
-                c_pPr = _etree.SubElement(c_p, f"{{{_W_NS}}}pPr")
-                c_pStyle = _etree.SubElement(c_pPr, f"{{{_W_NS}}}pStyle")
-                c_pStyle.set(f"{{{_W_NS}}}val", "CommentText")
-                c_r = _etree.SubElement(c_p, f"{{{_W_NS}}}r")
-                c_rPr = _etree.SubElement(c_r, f"{{{_W_NS}}}rPr")
-                c_rStyle = _etree.SubElement(c_rPr, f"{{{_W_NS}}}rStyle")
-                c_rStyle.set(f"{{{_W_NS}}}val", "CommentReference")
-                c_t = _etree.SubElement(c_r, f"{{{_W_NS}}}t")
-                c_t.text = hinweis.kommentar
-                c_t.set("{http://www.w3.org/XML/1998/namespace}space", "preserve")
-
-                if start_idx == end_idx:
-                    # Zitat liegt komplett in einem Run
-                    start_run = para.runs[start_idx]
-                    end_run = start_run
-
-                    if start_off > 0:
-                        before, after = _split_run_at(start_run, start_off)
-                        start_run = after
-                        end_run = after
-
-                    adjusted_end = end_off - start_off
-                    if adjusted_end < len(end_run.text):
-                        before, after = _split_run_at(end_run, adjusted_end)
-                        end_run = before
-
-                    crs = OxmlElement("w:commentRangeStart")
-                    crs.set(qn("w:id"), str(comment_id))
-                    start_run._r.addprevious(crs)
-
-                    cre = OxmlElement("w:commentRangeEnd")
-                    cre.set(qn("w:id"), str(comment_id))
-                    end_run._r.addnext(cre)
-
-                    r_ref = _make_comment_reference_element(comment_id)
-                    cre.addnext(r_ref)
-                else:
-                    # Zitat spannt über mehrere Runs
-                    start_run = para.runs[start_idx]
-                    end_run = para.runs[end_idx]
-
-                    if start_off > 0:
-                        before, after = _split_run_at(start_run, start_off)
-                        start_run = after
-
-                    adjusted_end = end_off  # bereits relativ zum End-Run
-                    if adjusted_end < len(end_run.text):
-                        before, after = _split_run_at(end_run, adjusted_end)
-                        end_run = before
-
-                    crs = OxmlElement("w:commentRangeStart")
-                    crs.set(qn("w:id"), str(comment_id))
-                    start_run._r.addprevious(crs)
-
-                    cre = OxmlElement("w:commentRangeEnd")
-                    cre.set(qn("w:id"), str(comment_id))
-                    end_run._r.addnext(cre)
-
-                    r_ref = _make_comment_reference_element(comment_id)
-                    cre.addnext(r_ref)
-
-                comment_id += 1
-                found = True
-                _used_para_ids.add(id(para))
-                break
-
-            if not found:
-                paragraph_fallbacks.append((None, hinweis.kommentar))
-        else:
-            paragraph_fallbacks.append((None, hinweis.kommentar))
-
-    for s in (extra_strings or []):
-        paragraph_fallbacks.append((None, s))
-
-    fallback_pool = student_paragraphs if student_paragraphs is not None else text_paragraphs
-    for _, comment_text in paragraph_fallbacks:
-        para = next(
-            (p for p in fallback_pool if id(p) not in _used_para_ids),
-            None,
-        )
-        if para is None:
-            break
-        _used_para_ids.add(id(para))
-
-        c_el = _etree.SubElement(root, f"{{{_W_NS}}}comment")
-        c_el.set(f"{{{_W_NS}}}id", str(comment_id))
-        c_el.set(f"{{{_W_NS}}}author", author)
-        c_el.set(f"{{{_W_NS}}}date", f"{date.today().isoformat()}T00:00:00Z")
-        c_el.set(f"{{{_W_NS}}}initials", "".join(w[0] for w in author.split()[:2] if w))
-
-        c_p = _etree.SubElement(c_el, f"{{{_W_NS}}}p")
-        c_pPr = _etree.SubElement(c_p, f"{{{_W_NS}}}pPr")
-        c_pStyle = _etree.SubElement(c_pPr, f"{{{_W_NS}}}pStyle")
-        c_pStyle.set(f"{{{_W_NS}}}val", "CommentText")
-        c_r = _etree.SubElement(c_p, f"{{{_W_NS}}}r")
-        c_rPr = _etree.SubElement(c_r, f"{{{_W_NS}}}rPr")
-        c_rStyle = _etree.SubElement(c_rPr, f"{{{_W_NS}}}rStyle")
-        c_rStyle.set(f"{{{_W_NS}}}val", "CommentReference")
-        c_t = _etree.SubElement(c_r, f"{{{_W_NS}}}t")
-        c_t.text = comment_text
-        c_t.set("{http://www.w3.org/XML/1998/namespace}space", "preserve")
-
-        p_xml = para._p
-        crs = OxmlElement("w:commentRangeStart")
-        crs.set(qn("w:id"), str(comment_id))
-        pPr = p_xml.find(f"{{{_W_NS}}}pPr")
-        if pPr is not None:
-            pPr.addnext(crs)
-        else:
-            p_xml.insert(0, crs)
-        cre = OxmlElement("w:commentRangeEnd")
-        cre.set(qn("w:id"), str(comment_id))
-        p_xml.append(cre)
-        r_ref = _make_comment_reference_element(comment_id)
-        p_xml.append(r_ref)
-
-        comment_id += 1
-
-    # --- Fehler: farbiges Highlight + Balloon-Kommentar ---
-    fehler_search_pool = student_paragraphs if student_paragraphs else text_paragraphs
-    for fehler in (fehler_list or []):
-        try:
-            zitat = fehler.zitat.strip()
-            if not zitat:
-                continue
-
-            for para in fehler_search_pool:
-                # Case-insensitive zitat search: find position in lowercased text,
-                # then retrieve actual text slice for exact matching
-                runs = para.runs
-                if not runs:
-                    continue
-                full_text = "".join(r.text for r in runs)
-                low_pos = full_text.lower().find(zitat.lower())
-                if low_pos == -1:
-                    continue
-                actual_zitat = full_text[low_pos: low_pos + len(zitat)]
-                result = _find_zitat_in_paragraph(para, actual_zitat)
-                if result is None:
-                    continue
-
-                start_idx, end_idx, start_off, end_off = result
-
-                kommentar_text = (
-                    f"[{fehler.typ}] {fehler.erklaerung}" if fehler.erklaerung
-                    else f"[{fehler.typ}]"
-                )
-
-                c_el = _etree.SubElement(root, f"{{{_W_NS}}}comment")
-                c_el.set(f"{{{_W_NS}}}id", str(comment_id))
-                c_el.set(f"{{{_W_NS}}}author", author)
-                c_el.set(f"{{{_W_NS}}}date", f"{date.today().isoformat()}T00:00:00Z")
-                c_el.set(f"{{{_W_NS}}}initials", "".join(w[0] for w in author.split()[:2] if w))
-                c_p = _etree.SubElement(c_el, f"{{{_W_NS}}}p")
-                c_pPr = _etree.SubElement(c_p, f"{{{_W_NS}}}pPr")
-                c_pStyle = _etree.SubElement(c_pPr, f"{{{_W_NS}}}pStyle")
-                c_pStyle.set(f"{{{_W_NS}}}val", "CommentText")
-                c_r = _etree.SubElement(c_p, f"{{{_W_NS}}}r")
-                c_rPr = _etree.SubElement(c_r, f"{{{_W_NS}}}rPr")
-                c_rStyle = _etree.SubElement(c_rPr, f"{{{_W_NS}}}rStyle")
-                c_rStyle.set(f"{{{_W_NS}}}val", "CommentReference")
-                c_t = _etree.SubElement(c_r, f"{{{_W_NS}}}t")
-                c_t.text = kommentar_text
-                c_t.set("{http://www.w3.org/XML/1998/namespace}space", "preserve")
-
-                if fehler.typ == "Z":
-                    # Zeichensetzungsfehler: nur Randkommentar, kein Inline-Markup
-                    comment_id += 1
-                    break
-
-                if start_idx == end_idx:
-                    start_run = para.runs[start_idx]
-                    end_run = start_run
-                    if start_off > 0:
-                        before, after = _split_run_at(start_run, start_off)
-                        if after is not None:
-                            start_run = after
-                        end_run = start_run
-                    adjusted_end = end_off - start_off
-                    if adjusted_end > 0 and adjusted_end < len(end_run.text):
-                        before, after = _split_run_at(end_run, adjusted_end)
-                        if before is not None:
-                            end_run = before
-                else:
-                    start_run = para.runs[start_idx]
-                    end_run = para.runs[end_idx]
-                    if start_off > 0:
-                        before, after = _split_run_at(start_run, start_off)
-                        if after is not None:
-                            start_run = after
-                    if end_off > 0 and end_off < len(end_run.text):
-                        before, after = _split_run_at(end_run, end_off)
-                        if before is not None:
-                            end_run = before
-
-                # Entscheide ob Punkt/Komma-Fehler oder vollständige Korrektur
-                punct_only = is_punctuation_only_fix(fehler.zitat, fehler.korrektur)
-
-                if not punct_only:
-                    # Track-Changes-Stil: Fehler rot + durchgestrichen
-                    p_elem = para._p
-                    in_range = False
-                    for child in p_elem:
-                        if child is start_run._r:
-                            in_range = True
-                        if in_range and child.tag == f"{{{_W_NS}}}r":
-                            rPr = child.find(f"{{{_W_NS}}}rPr")
-                            if rPr is None:
-                                rPr = OxmlElement("w:rPr")
-                                child.insert(0, rPr)
-                            for old_hl in rPr.findall(f"{{{_W_NS}}}highlight"):
-                                rPr.remove(old_hl)
-                            c_xml = rPr.find(f"{{{_W_NS}}}color")
-                            if c_xml is None:
-                                c_xml = OxmlElement("w:color")
-                                rPr.append(c_xml)
-                            c_xml.set(qn("w:val"), "CC0000")
-                            if rPr.find(f"{{{_W_NS}}}strike") is None:
-                                rPr.append(OxmlElement("w:strike"))
-                        if child is end_run._r:
-                            in_range = False
-                            break
-
-                # Grüner Korrektur-Run: bei Satzzeichen nur das Zeichen, sonst volle Korrektur
-                korr_text = (
-                    _find_inserted_punct(fehler.zitat, fehler.korrektur)
-                    if punct_only
-                    else f" {fehler.korrektur}"
-                )
-                korr_r = OxmlElement("w:r")
-                korr_rPr = OxmlElement("w:rPr")
-                korr_color = OxmlElement("w:color")
-                korr_color.set(qn("w:val"), "007000")
-                korr_rPr.append(korr_color)
-                korr_sz = OxmlElement("w:sz")
-                korr_sz.set(qn("w:val"), "18")  # 9 pt
-                korr_rPr.append(korr_sz)
-                korr_szCs = OxmlElement("w:szCs")
-                korr_szCs.set(qn("w:val"), "18")
-                korr_rPr.append(korr_szCs)
-                korr_rPr.append(OxmlElement("w:b"))
-                korr_r.append(korr_rPr)
-                korr_t = OxmlElement("w:t")
-                korr_t.set(qn("xml:space"), "preserve")
-                korr_t.text = korr_text
-                korr_r.append(korr_t)
-                end_run._r.addnext(korr_r)
-
-                # Comment range wraps only the strikethrough text
-                crs = OxmlElement("w:commentRangeStart")
-                crs.set(qn("w:id"), str(comment_id))
-                start_run._r.addprevious(crs)
-
-                # commentRangeEnd goes between end_run and the correction run
-                cre = OxmlElement("w:commentRangeEnd")
-                cre.set(qn("w:id"), str(comment_id))
-                end_run._r.addnext(cre)
-
-                r_ref = _make_comment_reference_element(comment_id)
-                cre.addnext(r_ref)
-
-                comment_id += 1
-                break
-        except Exception as exc:
-            logging.warning("Fehler-Markierung übersprungen: %r — %s", fehler.zitat, exc)
-            continue
-
-    xml_bytes = _etree.tostring(root, xml_declaration=True, encoding="UTF-8", standalone=True)
-    comments_part = Part(
-        PackURI("/word/comments.xml"),
-        _COMMENTS_CONTENT_TYPE,
-        xml_bytes,
-    )
-    doc.part.relate_to(comments_part, _COMMENTS_REL)
+    from feedback_annotations import attach_comments
+    attach_comments(doc, hinweise_list, fehler_list, student_paragraphs, extra_strings, author)
 
 
 def parse_args() -> argparse.Namespace:
@@ -1225,7 +939,7 @@ def ensure_list(value: Any, field_name: str) -> list[str]:
     return value
 
 
-def parse_criterion(key: str, payload: dict[str, Any]) -> CriterionFeedback:
+def parse_criterion(key: str, payload: dict[str, Any], allow_open: bool = False) -> CriterionFeedback:
     """Validiert ein einzelnes Kriterium."""
 
     required = {"stufe", "punkte", "staerken", "schwaechen", "vorschlaege"}
@@ -1234,11 +948,11 @@ def parse_criterion(key: str, payload: dict[str, Any]) -> CriterionFeedback:
         raise ValueError(f"Kriterium '{key}' fehlt: {', '.join(missing)}")
 
     stufe = payload["stufe"]
-    if not isinstance(stufe, (str, int, float)):
+    if not isinstance(stufe, (str, int, float)) and not (allow_open and stufe is None):
         raise ValueError(f"Kriterium '{key}' hat eine ungueltige Stufe.")
 
     punkte = payload["punkte"]
-    if not isinstance(punkte, (int, float)):
+    if not isinstance(punkte, (int, float)) and not (allow_open and punkte is None):
         raise ValueError(f"Kriterium '{key}' hat ungueltige Punkte.")
 
     gewicht = payload.get("gewicht")
@@ -1247,8 +961,8 @@ def parse_criterion(key: str, payload: dict[str, Any]) -> CriterionFeedback:
 
     return CriterionFeedback(
         key=canonical_key(key),
-        stufe=str(stufe),
-        punkte=float(punkte),
+        stufe=str(stufe) if stufe is not None else "Offen – Lesestellen klaeren",
+        punkte=float(punkte) if punkte is not None else None,
         gewicht=float(gewicht) if gewicht is not None else None,
         staerken=ensure_list(payload["staerken"], f"{key}.staerken"),
         schwaechen=ensure_list(payload["schwaechen"], f"{key}.schwaechen"),
@@ -1281,11 +995,12 @@ def parse_feedback_data(payload: dict[str, Any]) -> FeedbackData:
     if missing:
         raise ValueError(f"Feedback-Datensatz fehlt: {', '.join(missing)}")
 
-    if not isinstance(payload["bewertung"], dict) or not payload["bewertung"]:
+    language_only = payload.get("pruefumfang") == "sprache"
+    if not isinstance(payload["bewertung"], dict) or (not payload["bewertung"] and not language_only):
         raise ValueError("Feld 'bewertung' muss ein nicht-leeres Objekt sein.")
 
     notenempfehlung: GradeRecommendation | None = None
-    note_raw = payload.get("notenempfehlung")
+    note_raw = None if language_only else payload.get("notenempfehlung")
     if note_raw and isinstance(note_raw, dict):
         note_required = {"durchschnitt", "note", "bezeichnung", "begruendung"}
         note_missing = sorted(note_required - note_raw.keys())
@@ -1315,17 +1030,17 @@ def parse_feedback_data(payload: dict[str, Any]) -> FeedbackData:
         sonderregel=note_raw.get("sonderregel"),
     )
 
-    criteria = [
-        parse_criterion(key, value) for key, value in payload["bewertung"].items()
+    criteria = [] if language_only else [
+        parse_criterion(key, value, bool(payload.get("scan_review", {}).get("numericBlocked"))) for key, value in payload["bewertung"].items()
     ]
 
     sachfach_bewertung: dict[str, CriterionFeedback] | None = None
-    raw_sachfach = payload.get("sachfach_bewertung")
+    raw_sachfach = None if language_only else payload.get("sachfach_bewertung")
     if raw_sachfach is not None:
         if not isinstance(raw_sachfach, dict):
             raise ValueError("Feld 'sachfach_bewertung' muss ein Objekt sein.")
         sachfach_bewertung = {
-            key: parse_criterion(key, value)
+            key: parse_criterion(key, value, bool(payload.get("scan_review", {}).get("numericBlocked")))
             for key, value in raw_sachfach.items()
             if isinstance(value, dict)
         } or None
@@ -1339,6 +1054,7 @@ def parse_feedback_data(payload: dict[str, Any]) -> FeedbackData:
             hinweise.append(WordLevelHinweis(
                 zitat=str(item.get("zitat", "")),
                 kommentar=str(item.get("kommentar", "")),
+                textstelle_id=item.get("textstelle_id"),
             ))
 
     raw_fehler = payload.get("fehler", [])
@@ -1349,6 +1065,10 @@ def parse_feedback_data(payload: dict[str, Any]) -> FeedbackData:
         # Phase 3: Lehrkraft-Entscheidungen respektieren
         if e.get("lehrkraft_aktion") == "verworfen":
             continue
+        # Zurückgewiesene Beanstandungen bleiben im Analyse-JSON nachvollziehbar.
+        if (isinstance(e.get("ki_pruefung"), dict) and e["ki_pruefung"].get("status") == "verworfen"
+                and e.get("lehrkraft_aktion") not in {"uebernommen", "geaendert"}):
+            continue
         korrektur = str(e.get("korrektur", ""))
         if e.get("lehrkraft_aktion") == "geaendert" and e.get("lehrkraft_korrektur"):
             korrektur = str(e["lehrkraft_korrektur"])
@@ -1357,6 +1077,13 @@ def parse_feedback_data(payload: dict[str, Any]) -> FeedbackData:
             korrektur=korrektur,
             typ=str(e.get("typ", "G")),
             erklaerung=str(e.get("erklaerung", "")),
+            befundart=e.get("befundart"), anker_status=e.get("anker_status"),
+            lehrkraft_aktion=e.get("lehrkraft_aktion"),
+            textstelle_id=e.get("textstelle_id"), nur_kommentar=bool(e.get("nur_kommentar")),
+            ersetzungspruefung=e.get("ersetzungspruefung"),
+            teiltypen=[t for t in e["teiltypen"] if t in {"R", "G", "Z", "A"}] or None
+            if isinstance(e.get("teiltypen"), list) else None,
+            regel_muster=e.get("regel_muster") if isinstance(e.get("regel_muster"), str) else None,
         ))
 
     # Folgeübungen werden nicht aus Analyse-JSON übernommen. Nur der CLI-Pfad
@@ -1382,11 +1109,18 @@ def parse_feedback_data(payload: dict[str, Any]) -> FeedbackData:
             ensure_list(payload.get("verbesserungsbereiche"), "verbesserungsbereiche") or None
         ),
         srdp_detail=(
-            payload.get("srdp_detail") if isinstance(payload.get("srdp_detail"), dict) else None
+            payload.get("srdp_detail") if not language_only and isinstance(payload.get("srdp_detail"), dict) else None
         ),
         folgeuebung=folgeuebung,
+        bewertungsmodus="unbenotet" if language_only else payload.get("bewertungsmodus", "benotet"),
+        qualitaetswarnungen=[str(w.get("message", "")) for w in payload.get("qualitaetswarnungen", []) if isinstance(w, dict) and w.get("message")],
+        notenempfehlung_vorlaeufig=bool(payload.get("notenempfehlung_vorlaeufig") or (isinstance(note_raw, dict) and note_raw.get("vorlaeufig"))),
+        aussagenstatus=payload.get("bewertungspruefung", {}).get("aussagen") if isinstance(payload.get("bewertungspruefung"), dict) else None,
+        pruefnachweis={"bewertung": payload["bewertungspruefung"], "befunde": payload.get("fehler", []),
+            "gegenpruefung": payload.get("gegenpruefung", {}), "reasoning": payload.get("reasoning", {})}
+            if isinstance(payload.get("bewertungspruefung"), dict) else None,
         sachfach_bewertung=sachfach_bewertung,
-        raster_auswertung=(payload.get("notendetail") if isinstance(payload.get("notendetail"), dict)
+        raster_auswertung=(payload.get("notendetail") if not language_only and isinstance(payload.get("notendetail"), dict)
                            and payload["notendetail"].get("bewertungsprofil") else None),
     )
 
@@ -1430,6 +1164,13 @@ def criterion_label(data: FeedbackData, key: str) -> str:
     return labels.get(key, key.replace("_", " ").upper())
 
 
+def weight_percent(data: FeedbackData, criterion: CriterionFeedback) -> str:
+    """Anteilswerte für die Ausgabe umrechnen; Bewertungswerte bleiben unverändert."""
+    weights = [c.gewicht for c in data.bewertung if c.gewicht is not None]
+    factor = 100 if weights and all(0 <= w <= 1 for w in weights) and sum(weights) <= 1.000001 else 1
+    return f"{(criterion.gewicht or 0) * factor:g} %"
+
+
 def ordered_criteria(data: FeedbackData) -> list[CriterionFeedback]:
     """Sortiert Kriterien in einer fachlich passenden Reihenfolge."""
 
@@ -1457,6 +1198,7 @@ def render_list_section(
     if color is not None:
         run.font.color.rgb = color
     paragraph.paragraph_format.space_after = Pt(1)
+    paragraph.paragraph_format.keep_with_next = True
     if entries:
         for entry in entries:
             add_bullet(doc, entry, color=color)
@@ -1475,6 +1217,8 @@ def add_summary_table(
     table = doc.add_table(rows=1 + len(criteria) + extra_rows, cols=3)
     table.style = "Table Grid"
 
+    header = OxmlElement("w:tblHeader")
+    table.rows[0]._tr.get_or_add_trPr().append(header)
     third_col = "Punkte" if bewertungsmodus == "benotet" else "Feedback"
     for cell, text in zip(table.rows[0].cells, ["Kriterium", "Stufe / Bewertung", third_col]):
         p = cell.paragraphs[0]
@@ -1484,6 +1228,7 @@ def add_summary_table(
         run.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
         p.paragraph_format.space_before = Pt(2)
         p.paragraph_format.space_after = Pt(2)
+        p.paragraph_format.keep_with_next = True
         _set_cell_bg(cell, "1F497D")
 
     for row_idx, crit in enumerate(criteria, start=1):
@@ -1506,7 +1251,7 @@ def add_summary_table(
         grade_cells = table.rows[-1].cells
         for cell, text in zip(
             grade_cells,
-            ["GESAMTNOTE", "", f"{note} – {data.notenempfehlung.bezeichnung}"],
+            ["KI-Notenempfehlung" + (" – vorläufig, Prüfung erforderlich" if data.notenempfehlung_vorlaeufig else ""), "", f"{note} – {data.notenempfehlung.bezeichnung}"],
         ):
             p = cell.paragraphs[0]
             run = p.add_run(text)
@@ -1517,7 +1262,23 @@ def add_summary_table(
             p.paragraph_format.space_after = Pt(3)
             _set_cell_bg(cell, str(grade_color))
 
+    for index, row in enumerate(table.rows):
+        row._tr.get_or_add_trPr().append(OxmlElement("w:cantSplit"))
+        if len(table.rows) <= 8:
+            for cell in row.cells:
+                for paragraph in cell.paragraphs:
+                    paragraph.paragraph_format.keep_with_next = index < len(table.rows)-1
     doc.add_paragraph()
+
+
+def befund_label(fehler: SprachFehler) -> str:
+    if fehler.befundart == "stilalternative":
+        return "Anregung"
+    if fehler.befundart == "ungeklaert":
+        return "Zu prüfen"
+    if fehler.ersetzungspruefung is not None and fehler.ersetzungspruefung.get("status") != "bestaetigt":
+        return "Ersatz prüfen"
+    return fehler.typ
 
 
 def add_fehlerprotokoll(doc: Document, fehler_list: list[SprachFehler]) -> None:
@@ -1546,10 +1307,12 @@ def add_fehlerprotokoll(doc: Document, fehler_list: list[SprachFehler]) -> None:
         hdr[i]._tc.get_or_add_tcPr().append(shading)
 
     for nr, fehler in enumerate(fehler_list, start=1):
-        row = table.add_row().cells
+        row_object = table.add_row()
+        row_object._tr.get_or_add_trPr().append(OxmlElement("w:cantSplit"))
+        row = row_object.cells
         row[0].text = str(nr)
         typ_p = row[1].paragraphs[0]
-        typ_run = typ_p.add_run(fehler.typ)
+        typ_run = typ_p.add_run(befund_label(fehler))
         typ_run.bold = True
         typ_run.font.color.rgb = _FEHLER_TYP_COLORS.get(fehler.typ, RGBColor(0, 0, 0))
         row[2].text = fehler.zitat
@@ -1557,12 +1320,20 @@ def add_fehlerprotokoll(doc: Document, fehler_list: list[SprachFehler]) -> None:
         row[4].text = fehler.erklaerung
 
     counts: dict[str, int] = {"R": 0, "G": 0, "Z": 0, "A": 0}
+    offen = 0
     for f in fehler_list:
-        counts[f.typ] = counts.get(f.typ, 0) + 1
+        if f.befundart in {"stilalternative", "ungeklaert"}:
+            offen += 1
+            continue
+        # Ein Befund kann zwei Regeln betreffen (das/dass + Komma).
+        for typ in f.teiltypen or [f.typ]:
+            counts[typ] = counts.get(typ, 0) + 1
     summary = (
         f"R: {counts['R']} | G: {counts['G']} | Z: {counts['Z']} | A: {counts['A']}"
-        f" — Gesamt: {len(fehler_list)} Fehler"
+        f" — {sum(counts.values())} Fehlerhinweise; {offen} Anregungen / offene Befunde"
     )
+    if not sum(counts.values()) and fehler_list:
+        summary += ". Keine bestätigten Fehler; die offenen Hinweise müssen noch geprüft werden."
     p = doc.add_paragraph()
     run = p.add_run(summary)
     run.bold = True
@@ -1581,8 +1352,8 @@ _NAECHSTE_SCHRITTE_TIPPS: dict[str, tuple[str, str]] = {
     ),
     "G": (
         "Grammatik",
-        "Markiere in deinen Sätzen die Satzkerne (Wer tut was?) und prüfe die "
-        "Zeitformen — lies den Satz danach noch einmal langsam durch.",
+        "Markiere in deinen Sätzen die Satzkerne (Wer tut was?) und prüfe, ob Subjekt, "
+        "Verb und Endungen zusammenpassen — lies den Satz danach noch einmal langsam durch.",
     ),
     "Z": (
         "Zeichensetzung",
@@ -1591,14 +1362,107 @@ _NAECHSTE_SCHRITTE_TIPPS: dict[str, tuple[str, str]] = {
     ),
     "A": (
         "Ausdruck",
-        "Ersetze Füllwörter (sozusagen, eigentlich, sehr) durch konkretere Wörter — "
-        "ein Synonymwörterbuch hilft beim präziseren Formulieren.",
+        "Prüfe die im Fehlerprotokoll markierten Wortverbindungen im vollständigen Satz "
+        "und benenne möglichst genau, was du ausdrücken möchtest.",
     ),
 }
+
+# Deutsch: Tipps je Regel-Etikett (sprachregeln.regel_muster). Fehlende Etiketten
+# fallen auf die Tipps je Fehlertyp zurück.
+_TIPPS_NACH_MUSTER: dict[str, tuple[str, str]] = {
+    "rechtschreibung": _NAECHSTE_SCHRITTE_TIPPS["R"],
+    "grammatik": _NAECHSTE_SCHRITTE_TIPPS["G"],
+    "zeichensetzung": _NAECHSTE_SCHRITTE_TIPPS["Z"],
+    "komma": _NAECHSTE_SCHRITTE_TIPPS["Z"],
+    "ausdruck": _NAECHSTE_SCHRITTE_TIPPS["A"],
+    "anrede_klein": (
+        "Kleinschreibung nach der Anrede",
+        "Nach einer Anrede mit Komma schreibst du klein weiter – außer das nächste Wort "
+        "ist ein Nomen oder die Höflichkeitsform „Sie“.",
+    ),
+    "nominalisierung": (
+        "Großschreibung von Nominalisierungen",
+        "Steht vor einem Adjektiv oder Verb ein Begleiter wie etwas, viel, nichts, das "
+        "oder beim, wird es zum Nomen und großgeschrieben: etwas Gutes, beim Lesen.",
+    ),
+    "gross_klein": (
+        "Groß- und Kleinschreibung",
+        "Frage dich bei jedem großgeschriebenen Wort: Ist es ein Nomen, ein Name oder ein "
+        "Satzanfang? Nur dann schreibst du groß.",
+    ),
+    "satzanfang": (
+        "Großschreibung am Satzanfang",
+        "Nach Punkt, Frage- und Ausrufezeichen schreibst du groß – nach einem Doppelpunkt "
+        "dann, wenn ein vollständiger Satz folgt.",
+    ),
+    "eigenname": (
+        "Eigennamen",
+        "Übernimm Namen von Personen, Orten und Werken genau aus der Vorlage.",
+    ),
+    "das_dass": (
+        "das oder dass",
+        "Kannst du das Wort durch dieses, jenes oder welches ersetzen, schreibst du das. "
+        "Sonst ist es die Konjunktion dass – davor steht ein Komma.",
+    ),
+    "komma_infinitiv": (
+        "Komma bei Infinitivgruppen",
+        "Ein Komma ist nötig, wenn die Gruppe mit zu durch um, ohne, statt, anstatt, außer "
+        "oder als eingeleitet wird oder ein Wort wie es, dazu oder daran auf sie verweist.",
+    ),
+    "komma_nebensatz": (
+        "Komma bei Nebensätzen",
+        "Nebensätze beginnen oft mit dass, weil, wenn, ob, wie oder einem Relativpronomen. "
+        "Trenne sie vorne und hinten durch ein Komma vom Hauptsatz.",
+    ),
+    "komma_einschub": (
+        "Komma bei Einschüben und Zusätzen",
+        "Nachgestellte Zusätze und Erläuterungen (zum Beispiel …) trennst du durch Kommas ab.",
+    ),
+    "bindestrich": (
+        "Ergänzungsstrich",
+        "Lässt du einen gleichen Wortteil weg, setzt du einen Strich: Lese- und Schreibzeit.",
+    ),
+    "getrennt_zusammen": (
+        "Getrennt- und Zusammenschreibung",
+        "Schlage unsichere Verbindungen im Wörterbuch nach: Ist es ein Wort oder sind es zwei?",
+    ),
+    "kongruenz": (
+        "Übereinstimmung von Subjekt und Verb",
+        "Suche zu jedem Verb sein Subjekt: Steht das Subjekt in der Mehrzahl, steht auch "
+        "das Verb in der Mehrzahl.",
+    ),
+    "kasus": (
+        "Fälle und Endungen",
+        "Prüfe, welchen Fall das Verb oder die Präposition verlangt (helfen + Dativ, "
+        "wegen + Genitiv), und passe Artikel und Endungen an.",
+    ),
+    "zeitform": (
+        "Zeitformen",
+        "Bleib innerhalb eines Abschnitts in einer Zeitform und wechsle nur, wenn sich die "
+        "Zeit tatsächlich ändert.",
+    ),
+    "satzbau": (
+        "Satzbau",
+        "Lies jeden Satz einzeln: Hat er ein Subjekt und ein vollständiges Prädikat? Teile "
+        "Sätze, in denen du selbst den Faden verlierst.",
+    ),
+    "wortbedeutung": (
+        "Wortbedeutung",
+        "Prüfe bei den markierten Wörtern, ob sie genau das bedeuten, was du meinst – ein "
+        "Wörterbuch hilft bei Wörtern, die ähnlich klingen.",
+    ),
+}
+
+_VERMERK_AUSSAGE_OFFEN = "(KI-Gegenprüfung offen – bitte vor der Weitergabe prüfen.)"
 
 
 _NAECHSTE_SCHRITTE_TIPPS_NEUTRAL: dict[str, tuple[str, str]] = {
     **_NAECHSTE_SCHRITTE_TIPPS,
+    "G": (
+        "Grammatik",
+        "Markiere in deinen Sätzen die Satzkerne (Wer tut was?) und prüfe die "
+        "Zeitformen — lies den Satz danach noch einmal langsam durch.",
+    ),
     "Z": (
         "Zeichensetzung",
         "Suche im Fehlerprotokoll die Regel, gegen die du am häufigsten verstoßen "
@@ -1621,25 +1485,36 @@ def add_naechste_schritte(
     seinen 2–3 häufigsten Fehlertypen je einen konkreten Übungstipp. Rein
     deterministisch aus den (bereits lehrkraftgefilterten) Typ-Counts.
     """
-    counts: dict[str, int] = {}
+    ist_deutsch = (fach or "Deutsch").strip().casefold() == "deutsch"
+    # Deutsch gruppiert nach Regel-Etikett, andere Fächer nach Fehlertyp.
+    gruppen: dict[str, list[SprachFehler]] = {}
     for f in fehler_list:
-        counts[f.typ] = counts.get(f.typ, 0) + 1
-    top = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))[:3]
+        if ist_deutsch:
+            key = f.regel_muster or regel_muster(
+                {"zitat": f.zitat, "korrektur": f.korrektur, "typ": f.typ, "erklaerung": f.erklaerung}
+            )
+            key = key if key in _TIPPS_NACH_MUSTER else f.typ
+        else:
+            key = f.typ
+        gruppen.setdefault(key, []).append(f)
+    top = sorted(gruppen.items(), key=lambda kv: (-len(kv[1]), kv[0]))[:3]
     if not top:
         return
 
-    ist_deutsch = (fach or "Deutsch").strip().casefold() == "deutsch"
-    tipps = _NAECHSTE_SCHRITTE_TIPPS if ist_deutsch else _NAECHSTE_SCHRITTE_TIPPS_NEUTRAL
+    tipps = {**_NAECHSTE_SCHRITTE_TIPPS, **_TIPPS_NACH_MUSTER} if ist_deutsch else _NAECHSTE_SCHRITTE_TIPPS_NEUTRAL
     add_section_header(doc, "NÄCHSTE SCHRITTE — WORAN DU ARBEITEN KANNST")
-    for typ, anzahl in top:
-        eintrag = tipps.get(typ)
+    for key, eintraege in top:
+        eintrag = tipps.get(key)
         if not eintrag:
             continue
         label, tipp = eintrag
         p = doc.add_paragraph()
-        run = p.add_run(f"{label} ({anzahl}×): ")
+        run = p.add_run(f"{label} ({len(eintraege)}×): ")
         run.bold = True
         p.add_run(tipp)
+        beispiel = eintraege[0]
+        if ist_deutsch and beispiel.zitat and beispiel.korrektur and "\n" not in beispiel.korrektur:
+            p.add_run(f" Beispiel aus deinem Text: „{beispiel.zitat}“ → „{beispiel.korrektur}“.").italic = True
     p = doc.add_paragraph()
     run = p.add_run("Diese Schwerpunkte üben wir gezielt weiter.")
     run.italic = True
@@ -1684,9 +1559,12 @@ def _add_srdp_table(
     table.style = "Table Grid"
 
     hdr = table.rows[0].cells
+    header = OxmlElement("w:tblHeader")
+    table.rows[0]._tr.get_or_add_trPr().append(header)
     for cell, heading in zip(hdr, ("Kriterium", "Einschätzung", "Begründung")):
         cell.text = heading
         for p in cell.paragraphs:
+            p.paragraph_format.keep_with_next = True
             for r in p.runs:
                 r.bold = True
                 r.font.size = Pt(9)
@@ -1697,11 +1575,16 @@ def _add_srdp_table(
 
     for key, label in kriterien:
         entry = data.get(key) or {}
-        stufe = int(entry.get("stufe", 0))
+        stufe = entry.get("stufe")
         begruendung = str(entry.get("begruendung", ""))
-        einschaetzung = SRDP_WORTLAUT.get(key, {}).get(stufe, f"Stufe {stufe}")
+        if type(stufe) is int and 1 <= stufe <= 5:
+            einschaetzung = SRDP_WORTLAUT.get(key, {}).get(stufe, f"Stufe {stufe}")
+        else:
+            einschaetzung = "Offen – Lehrkraftprüfung erforderlich"
+            begruendung = "Für dieses Kriterium fehlt eine ausreichend belegte abschließende Bewertung."
 
         row = table.add_row()
+        row._tr.get_or_add_trPr().append(OxmlElement("w:cantSplit"))
 
         p = row.cells[0].paragraphs[0]
         r = p.add_run(label)
@@ -1720,8 +1603,13 @@ def _add_srdp_table(
 
 def add_srdp_raster(doc: Document, srdp_detail: dict[str, Any]) -> None:
     """Fügt den ausgefüllten SRDP-Beurteilungsraster als Tabellen ins Dokument ein."""
-    doc.add_page_break()
+    # Ein Trenner direkt vor dem Seitenwechsel kann allein auf eine zusätzliche
+    # Seite rutschen. Der neue Abschnitt selbst trägt den Seitenwechsel.
+    if doc.paragraphs and doc.paragraphs[-1].text == "-" * 56:
+        divider = doc.paragraphs[-1]._p
+        divider.getparent().remove(divider)
     add_section_header(doc, "BEURTEILUNG NACH SRDP-RASTER")
+    doc.paragraphs[-1].paragraph_format.page_break_before = True
 
     gesamteindruck = srdp_detail.get("gesamteindruck", "")
     if gesamteindruck:
@@ -1769,9 +1657,10 @@ def add_srdp_raster(doc: Document, srdp_detail: dict[str, Any]) -> None:
         ("grammatik", "Grammatik"),
     ])
 
-    doc.add_paragraph()
-    p = doc.add_paragraph()
-    p.add_run("Zentrale Verbesserungshinweise").bold = True
+    if any(srdp_detail.get(key) for key in ("verbesserung_inhaltlich", "verbesserung_strukturell", "verbesserung_sprachlich")):
+        doc.add_paragraph()
+        p = doc.add_paragraph()
+        p.add_run("Zentrale Verbesserungshinweise").bold = True
     for key, label in [
         ("verbesserung_inhaltlich", "Inhaltlich"),
         ("verbesserung_strukturell", "Strukturell"),
@@ -1787,6 +1676,105 @@ def add_srdp_raster(doc: Document, srdp_detail: dict[str, Any]) -> None:
             r2.font.size = Pt(10)
 
 
+def build_student_feedback(data: FeedbackData, config, original_text: str | None, bewertungsmodus: str) -> Document:
+    """Kurze, ausschließlich freigegebene Rückmeldung aus denselben Ergebnisdaten."""
+    import copy
+    data = copy.deepcopy(data)
+    if data.aussagenstatus is not None:
+        for field in ("zusammenfassung", "staerken_global", "verbesserungsbereiche"):
+            if data.aussagenstatus.get(field) not in {"bestaetigt", "korrigiert"}:
+                setattr(data, field, None)
+    data.fehler = [f for f in data.fehler or [] if f.lehrkraft_aktion in {"uebernommen", "geaendert"}]
+    data.hinweise = []
+    doc = Document()
+    setup_page(doc, config)
+    doc.styles["Normal"].font.size = Pt(11)
+    for style_name in ("Title", "Heading 1", "Heading 2", "Heading 3"):
+        doc.styles[style_name].font.color.rgb = RGBColor(0, 0, 0)
+    title = doc.add_paragraph("Rückmeldung zu deiner Arbeit", style="Title")
+    for run in title.runs:
+        run.font.color.rgb = RGBColor(0, 0, 0)
+    if data.schueler:
+        doc.add_paragraph(data.schueler)
+    if data.pruefstatus != "freigegeben":
+        doc.add_paragraph("Entwurf – Lehrkraftprüfung noch offen")
+    if data.zusammenfassung:
+        doc.add_paragraph(data.zusammenfassung)
+    for heading, values in (("Das gelingt dir", data.staerken_global), ("Deine nächsten Schritte", data.verbesserungsbereiche)):
+        chosen = list(dict.fromkeys(values or []))[:3]
+        if chosen:
+            add_heading(doc, heading, level=2)
+            for value in chosen:
+                add_bullet(doc, value)
+    if data.lehrer_kommentar:
+        doc.add_paragraph(data.lehrer_kommentar)
+    if data.pruefstatus == "freigegeben" and bewertungsmodus == "benotet":
+        grade = data.lehrer_note if data.lehrer_note is not None else (data.notenempfehlung.note if data.notenempfehlung else None)
+        if grade is not None:
+            doc.add_paragraph(f"Note: {grade:g}")
+    if original_text and original_text.strip():
+        doc.add_page_break()
+        doc.add_paragraph("Durchgestrichen: ursprüngliche Formulierung. Grün: übernommener Vorschlag. Orange unterstrichen: Beistrichstelle ohne Randkommentar. Kommentare erläutern die übrigen Hinweise.")
+        from correction_quality import finding_spans
+        for finding in data.fehler:
+            spans = finding_spans(original_text, {"zitat": finding.zitat, "textstelle_id": finding.textstelle_id})
+            finding.anker_status = "eindeutig" if len(spans) == 1 else "mehrdeutig"
+        paragraphs = add_student_text_section(doc, original_text, data)
+        _attach_word_level_comments(doc, [], author=((config or {}).get("docx", {}).get("teacher_name") or "Lehrkraft"), student_paragraphs=paragraphs, fehler_list=data.fehler)
+    for element in (doc.styles.element, doc.element):
+        for border in list(element.iter(qn("w:pBdr"))):
+            border.getparent().remove(border)
+    for paragraph in doc.paragraphs:
+        if paragraph.style.name.startswith("Heading") or paragraph.text == "ORIGINALTEXT":
+            for run in paragraph.runs:
+                run.font.color.rgb = RGBColor(0, 0, 0)
+    return doc
+
+
+def add_pruefnachweis(doc: Document, proof: dict) -> None:
+    """Vollständiger Nachweis bleibt ausschließlich in der Lehrkraftansicht."""
+    doc.add_page_break()
+    add_section_header(doc, "PRÜFNACHWEIS FÜR DIE LEHRKRAFT")
+    review = proof.get("gegenpruefung", {})
+    add_body(doc, f"Gegenprüfung: {review.get('version', 'keine Versionsangabe')}")
+    if review.get("grundlage_hash"):
+        add_body(doc, f"Laufgrundlage: {review['grundlage_hash']}")
+    reasoning = proof.get("reasoning", {})
+    if isinstance(reasoning, dict) and reasoning.get("selection"):
+        add_body(doc, f"Verwendeter Denkmodus: {reasoning['selection']}")
+    check = proof.get("bewertung", {})
+    for task in check.get("aufgaben", []):
+        add_bullet(doc, f"Offene Prüfaufgabe – {task['kriterium']}: {task['beschreibung']}")
+    for key, entry in check.get("kriterien", {}).items():
+        add_heading(doc, key, level=3)
+        level = f", Stufe {entry['stufe']}" if entry.get("stufe") is not None else ""
+        add_body(doc, f"Status: {entry.get('status', 'offen')}{level}")
+        if entry.get("begruendung"):
+            add_body(doc, entry["begruendung"])
+        for quote in entry.get("belege", []):
+            text = quote.get("zitat", "") if isinstance(quote, dict) else quote
+            add_bullet(doc, f"Verankerter Originalbeleg: {text}")
+    for diagnostic in check.get("belegdiagnosen", []):
+        quote = diagnostic.get("beleg", "")
+        text = quote.get("zitat", "") if isinstance(quote, dict) else str(quote)
+        add_bullet(doc, f"Verworfener Beleg ({diagnostic.get('kriterium', '')}): {text}. {diagnostic.get('grund', '')}")
+    for field, status in check.get("aussagen", {}).items():
+        add_body(doc, f"Rückmeldungsfeld {field}: {status}")
+    for finding in proof.get("befunde", []):
+        if not isinstance(finding, dict):
+            continue
+        add_heading(doc, f"Befund {finding.get('befund_id', '')}: {finding.get('zitat', '')}", level=3)
+        add_body(doc, f"Art: {finding.get('befundart', 'ungeklärt')}; Anker: {finding.get('anker_status', 'ungeklärt')}; Lehrkraft: {finding.get('lehrkraft_aktion') or 'offen'}")
+        for label, key in (("Beanstandung", "ki_pruefung"), ("Ersetzung", "ersetzungspruefung")):
+            decision = finding.get(key) or {}
+            add_body(doc, f"{label}: {decision.get('status', 'ungeklärt')}. {decision.get('begruendung', '')}")
+        replacement = finding.get("lehrkraft_korrektur") if finding.get("lehrkraft_aktion") == "geaendert" else finding.get("korrektur")
+        if replacement:
+            add_body(doc, f"Vorschlag (Prüfstatus siehe oben): {replacement}")
+        if finding.get("erklaerung"):
+            add_body(doc, finding["erklaerung"])
+
+
 def build_feedback_document(
     data: FeedbackData,
     config: dict[str, Any] | None = None,
@@ -1794,9 +1782,16 @@ def build_feedback_document(
     source_note: str | None = None,
     aufgabe_label: str = "",
     bewertungsmodus: str = "benotet",
+    ansicht: str = "lehrkraft",
 ) -> Document:
     """Erstellt das DOCX-Dokument im Stil einer authentischen Lehrkraft-Korrektur."""
 
+    if ansicht not in {"schueler", "lehrkraft"}:
+        raise ValueError("Ungültige Feedbackansicht.")
+    if ansicht == "schueler":
+        return build_student_feedback(data, config, original_text, "unbenotet" if data.bewertungsmodus != "benotet" else bewertungsmodus)
+    if data.bewertungsmodus != "benotet" or any(c.punkte is None for c in data.bewertung):
+        bewertungsmodus = "unbenotet"
     doc = Document()
     setup_page(doc, config)
 
@@ -1811,6 +1806,10 @@ def build_feedback_document(
     # Originaltext mit Inline-Korrekturen und Word-Balloons
     text_paragraphs: list[Any] = []
     if original_text and original_text.strip():
+        from correction_quality import finding_spans
+        for finding in data.fehler or []:
+            matches = finding_spans(original_text, {"zitat": finding.zitat, "textstelle_id": finding.textstelle_id})
+            finding.anker_status = "eindeutig" if len(matches) == 1 else "mehrdeutig" if matches else "nicht_gefunden"
         text_paragraphs = add_student_text_section(doc, original_text, data)
 
         # Balloon-Kommentare: hinweise (Wortebene) + vorschläge (Absatz-Ebene)
@@ -1831,23 +1830,38 @@ def build_feedback_document(
         add_divider(doc)
 
     # Überblick (Zusammenfassung, Stärken, Note)
+    if data.qualitaetswarnungen:
+        add_section_header(doc, "PRÜFBEDARF")
+        for warning in data.qualitaetswarnungen:
+            add_bullet(doc, warning)
+    add_body(doc, "Lehrkraftprüfung: " + ("freigegeben" if data.pruefstatus == "freigegeben" else "Entwurf – Prüfung offen"))
+    if data.lehrer_kommentar:
+        add_section_header(doc, "KOMMENTAR DER LEHRKRAFT")
+        add_body(doc, data.lehrer_kommentar)
+    if data.lehrer_note is not None and bewertungsmodus == "benotet":
+        add_body(doc, f"LEHRERNOTE: {data.lehrer_note:g}")
     add_lehrer_kommentar_block(doc, data, bewertungsmodus=bewertungsmodus)
 
     # Detaillierte Kriterien-Auswertung
+    if any(c.punkte is None for c in data.bewertung):
+        bewertungsmodus = "unbenotet"
     if bewertungsmodus == "benotet":
         add_summary_table(doc, data, bewertungsmodus=bewertungsmodus)
         add_divider(doc)
 
     for index, criterion in enumerate(ordered_criteria(data), start=1):
+        section_start = len(doc.paragraphs)
         add_section_header(doc, f"{index}. {criterion_label(data, criterion.key)}")
         if bewertungsmodus == "benotet":
             points_text = f"{criterion.punkte:g} Punkte"
             if criterion.gewicht is not None:
-                points_text = f"{points_text} | Gewicht: {criterion.gewicht:g} %"
+                points_text = f"{points_text} | Gewicht: {weight_percent(data, criterion)}"
             add_label(doc, "Bewertung", f"{criterion.stufe} [{points_text}]")
         doc.add_paragraph()
 
         render_list_section(doc, "Stärken:", criterion.staerken, color=C_STRENGTH)
+        for paragraph in doc.paragraphs[section_start:-1]:
+            paragraph.paragraph_format.keep_with_next = True
         doc.add_paragraph()
 
         if criterion.rhetorische_figuren:
@@ -1895,7 +1909,9 @@ def build_feedback_document(
     if data.fehler:
         add_fehlerprotokoll(doc, data.fehler)
         add_divider(doc)
-        add_naechste_schritte(doc, data.fehler, data.fach)
+        regel_fehler = [f for f in data.fehler if f.befundart not in {"stilalternative", "ungeklaert"}]
+        if regel_fehler:
+            add_naechste_schritte(doc, regel_fehler, data.fach)
         add_divider(doc)
 
     if data.folgeuebung:
@@ -1908,15 +1924,16 @@ def build_feedback_document(
         add_divider(doc)
 
     if data.notenempfehlung and bewertungsmodus == "benotet":
+        grade_start = len(doc.paragraphs)
         has_k1k3 = (
             data.notenempfehlung.k1_note is not None
             or data.notenempfehlung.k3_note is not None
         )
-        if has_k1k3:
-            add_section_header(doc, "NOTENEMPFEHLUNG (SRDP-basiert)")
-        else:
-            add_section_header(doc, "NOTENEMPFEHLUNG")
+        grade_heading = "KI-NOTENEMPFEHLUNG – VORLÄUFIG" if data.notenempfehlung_vorlaeufig else "KI-NOTENEMPFEHLUNG – VORSCHLAG"
+        add_section_header(doc, grade_heading + (" (SRDP-basiert)" if has_k1k3 else ""))
         add_divider(doc)
+        if data.srdp_detail:
+            add_body(doc, "Die KI-Notenempfehlung wird aus den in diesem Dokument ausgewiesenen SRDP-Detailbewertungen verdichtet. Die vier Hauptkriterien sind eigenständige Gesamteinschätzungen und können davon abweichen.")
 
         if has_k1k3:
             # Die Bereichsbeschriftung kommt aus dem Raster, sobald es eigene
@@ -1944,7 +1961,7 @@ def build_feedback_document(
                 label = criterion_label(data, criterion.key).title()
                 value = f"{criterion.stufe} ({criterion.punkte:g} Punkte)"
                 if criterion.gewicht is not None:
-                    value = f"{value} x {criterion.gewicht:g} %"
+                    value = f"{value} x {weight_percent(data, criterion)}"
                 add_label(doc, label, value)
 
         add_label(doc, "Durchschnitt", f"{data.notenempfehlung.durchschnitt:.2f}")
@@ -1952,7 +1969,7 @@ def build_feedback_document(
         note_paragraph = doc.add_paragraph()
         note_paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
         note_run = note_paragraph.add_run(
-            f"Empfohlene Note: {data.notenempfehlung.note} – {data.notenempfehlung.bezeichnung}"
+            f"{'Vorläufige KI-Notenempfehlung – Prüfung erforderlich' if data.notenempfehlung_vorlaeufig else 'Empfohlene Note'}: {data.notenempfehlung.note} – {data.notenempfehlung.bezeichnung}"
         )
         note_run.bold = True
         note_run.font.size = Pt(12)
@@ -1971,15 +1988,18 @@ def build_feedback_document(
             doc,
             "Die Note ist eine Empfehlung; die endgültige Entscheidung trifft die Lehrkraft.",
         )
+        for paragraph in doc.paragraphs[grade_start:-1]:
+            paragraph.paragraph_format.keep_with_next = True
     else:
-        add_section_header(doc, "HAUSAUFGABE – KEINE BENOTUNG")
+        add_section_header(doc, "BEWERTUNG NOCH OFFEN" if bewertungsmodus == "benotet" else "FORMATIVES FEEDBACK – OHNE NOTE")
         add_divider(doc)
         add_body(
             doc,
-            "Gemäß österreichischem Schulrecht dürfen Hausaufgaben nicht benotet werden. "
-            "Die obenstehende Rückmeldung dient ausschließlich der Förderung.",
+            "Die erforderlichen Bewertungskriterien sind noch nicht vollständig geklärt. Es wird keine automatische Note ausgegeben." if bewertungsmodus == "benotet" else "Diese Rückmeldung dient dem Lernen. Es wird keine Note ausgegeben.",
         )
         add_divider(doc)
+    if data.pruefnachweis:
+        add_pruefnachweis(doc, data.pruefnachweis)
     return doc
 
 

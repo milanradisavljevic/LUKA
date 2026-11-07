@@ -38,6 +38,7 @@ describe('VERTRAUENS Constants', () => {
   it('covers all three stufen', () => {
     expect(Object.keys(VERTRAUENS_COLORS).sort()).toEqual(['hoch', 'mittel', 'niedrig']);
     expect(Object.keys(VERTRAUENS_LABELS).sort()).toEqual(['hoch', 'mittel', 'niedrig']);
-    expect(VERTRAUENS_LABELS.hoch).toContain('Sicherheit');
+    expect(VERTRAUENS_LABELS.hoch).toContain('Textstelle');
+    expect(VERTRAUENS_LABELS.hoch).toContain('fachliche Prüfung');
   });
 });

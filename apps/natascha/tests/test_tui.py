@@ -192,8 +192,8 @@ def test_check_agent_availability_returns_dict() -> None:
         assert name in availability
 
 
-def test_is_vision_capable_returns_false_for_mistral() -> None:
-    assert not is_vision_capable("mistral", "mistral-small-latest")
+def test_is_vision_capable_uses_ocr_for_mistral() -> None:
+    assert is_vision_capable("mistral", "mistral-small-latest")
 
 
 def test_init_image_asset_exists() -> None:

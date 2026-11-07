@@ -3,6 +3,7 @@ titel: Empfehlung / Rezension
 fach: deutsch
 schulstufe: oberstufe
 textsorte: empfehlung-rezension
+verwendung: bewertung
 -->
 
 # Bewertungsraster: Empfehlung / Rezension

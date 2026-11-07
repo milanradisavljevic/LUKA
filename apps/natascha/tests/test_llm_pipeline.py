@@ -77,7 +77,7 @@ def test_run_llm_api_dispatches_mistral_openai_compatible(monkeypatch) -> None:
     assert kwargs["extra_body"] == {"response_format": {"type": "json_object"}}
 
 
-def test_run_llm_api_dispatches_deepseek_with_thinking_disabled_and_dynamic_budget(monkeypatch) -> None:
+def test_run_llm_api_dispatches_deepseek_with_thinking_disabled_and_32k_budget(monkeypatch) -> None:
     monkeypatch.setenv("DEEPSEEK_API_KEY", "test-deepseek-key")
     config = _load_config()
     config["api"]["provider"] = "deepseek"
@@ -101,7 +101,7 @@ def test_run_llm_api_dispatches_deepseek_with_thinking_disabled_and_dynamic_budg
         "response_format": {"type": "json_object"},
         "thinking": {"type": "disabled"},
     }
-    assert kwargs["max_tokens"] == 8192
+    assert kwargs["max_tokens"] == 32768
 
 
 class _FakeOpenAICompatResponse:
@@ -118,7 +118,7 @@ class _FakeOpenAICompatResponse:
         return json.dumps(self._payload).encode("utf-8")
 
 
-def test_reasoning_content_fallback(monkeypatch) -> None:
+def test_reasoning_content_is_never_a_final_answer(monkeypatch) -> None:
     payload = {
         "choices": [
             {
@@ -144,7 +144,8 @@ def test_reasoning_content_fallback(monkeypatch) -> None:
         timeout=5,
     )
 
-    assert result == "Gedankengang"
+    assert result.startswith("FEHLER: [schema_invalid]")
+    assert "Gedankengang" not in result
 
 
 def test_length_error_when_answer_missing(monkeypatch) -> None:
@@ -193,6 +194,7 @@ def test_rate_limit_is_not_retried_and_raw_body_is_hidden(monkeypatch) -> None:
     monkeypatch.setattr(nc.urllib.request, "urlopen", fail_with_429)
     result = nc._call_openai_compat("https://api.deepseek.com/v1", "key", "deepseek-flash", "Ping", timeout=5)
     assert result.startswith("FEHLER: [rate_limited]")
+    assert '"status": 429' in result
     assert calls == [1]
 
 
@@ -374,7 +376,7 @@ class TestRunLlmAnalysis:
         with patch.object(nc, "run_llm_api", side_effect=self._mock_api_success):
             data, errors = nc.run_llm_analysis(
                 docx_text="Testtext",
-                rubric_content="Rubrik",
+                rubric_content=(Path(nc.__file__).parent / "rubrics/deutsch_unterstufe.md").read_text(encoding="utf-8"),
                 fach="Deutsch",
                 schulstufe="Oberstufe",
                 textsorte="Eroerterung",
@@ -392,7 +394,7 @@ class TestRunLlmAnalysis:
         with patch.object(nc, "run_llm_api", return_value=json.dumps(fixture, ensure_ascii=False)):
             data, errors = nc.run_llm_analysis(
                 docx_text="Testtext",
-                rubric_content="Rubrik",
+                rubric_content=(Path(nc.__file__).parent / "rubrics/deutsch_unterstufe.md").read_text(encoding="utf-8"),
                 fach="Deutsch",
                 schulstufe="Oberstufe",
                 textsorte="Eroerterung",
@@ -415,7 +417,7 @@ class TestRunLlmAnalysis:
         with patch.object(nc, "run_llm_api", side_effect=mock_api):
             data, errors = nc.run_llm_analysis(
                 docx_text="Schülertext",
-                rubric_content="Rubrik",
+                rubric_content=(Path(nc.__file__).parent / "rubrics/deutsch_unterstufe.md").read_text(encoding="utf-8"),
                 fach="Deutsch",
                 schulstufe="Unterstufe",
                 textsorte="Kommentar",
@@ -443,7 +445,7 @@ class TestRunLlmAnalysis:
         with patch.object(nc, "run_llm_api", side_effect=mock_with_recovery):
             data, errors = nc.run_llm_analysis(
                 docx_text="Testtext",
-                rubric_content="Rubrik",
+                rubric_content=(Path(nc.__file__).parent / "rubrics/deutsch_unterstufe.md").read_text(encoding="utf-8"),
                 fach="Deutsch",
                 schulstufe="Oberstufe",
                 textsorte="Eroerterung",
@@ -459,7 +461,7 @@ class TestRunLlmAnalysis:
         with patch.object(nc, "run_llm_api", side_effect=self._mock_api_invalid_json):
             data, errors = nc.run_llm_analysis(
                 docx_text="Testtext",
-                rubric_content="Rubrik",
+                rubric_content=(Path(nc.__file__).parent / "rubrics/deutsch_unterstufe.md").read_text(encoding="utf-8"),
                 fach="Deutsch",
                 schulstufe="Oberstufe",
                 textsorte="Eroerterung",
@@ -482,7 +484,7 @@ class TestRunLlmAnalysis:
         with patch.object(nc, "run_llm_api", side_effect=mock_api_error):
             data, errors = nc.run_llm_analysis(
                 docx_text="Testtext",
-                rubric_content="Rubrik",
+                rubric_content=(Path(nc.__file__).parent / "rubrics/deutsch_unterstufe.md").read_text(encoding="utf-8"),
                 fach="Deutsch",
                 schulstufe="Oberstufe",
                 textsorte="Eroerterung",
@@ -505,7 +507,7 @@ class TestRunLlmAnalysis:
         with patch.object(nc, "run_llm_api", side_effect=mock_api_error):
             data, errors = nc.run_llm_analysis(
                 docx_text="Testtext",
-                rubric_content="Rubrik",
+                rubric_content=(Path(nc.__file__).parent / "rubrics/deutsch_unterstufe.md").read_text(encoding="utf-8"),
                 fach="Englisch",
                 schulstufe="Oberstufe",
                 textsorte="Essay",
@@ -525,7 +527,7 @@ class TestRunLlmAnalysis:
 
         data, errors = nc.run_llm_analysis(
             docx_text="Testtext",
-            rubric_content="Rubrik",
+            rubric_content=(Path(nc.__file__).parent / "rubrics/deutsch_unterstufe.md").read_text(encoding="utf-8"),
             fach="Deutsch",
             schulstufe="Oberstufe",
             textsorte="Eroerterung",
@@ -567,7 +569,7 @@ def test_extract_json_handles_nested_braces():
         with patch.object(nc, "run_llm_api", side_effect=mock_schema_then_success):
             data, errors = nc.run_llm_analysis(
                 docx_text="Testtext",
-                rubric_content="Rubrik",
+                rubric_content=(Path(nc.__file__).parent / "rubrics/deutsch_unterstufe.md").read_text(encoding="utf-8"),
                 fach="Deutsch",
                 schulstufe="Oberstufe",
                 textsorte="Eroerterung",
@@ -594,7 +596,7 @@ def test_extract_json_handles_nested_braces():
             with patch.object(nc, "generate_srdp_detail") as srdp_mock:
                 data, errors = nc.run_llm_analysis(
                     docx_text="Testtext",
-                    rubric_content="Rubrik",
+                    rubric_content=(Path(nc.__file__).parent / "rubrics/deutsch_unterstufe.md").read_text(encoding="utf-8"),
                     fach="Englisch",
                     schulstufe="Oberstufe",
                     textsorte="Essay",
@@ -618,7 +620,7 @@ def test_extract_json_handles_nested_braces():
             with patch.object(nc, "generate_srdp_detail", return_value=None) as srdp_mock:
                 data, errors = nc.run_llm_analysis(
                     docx_text="Testtext",
-                    rubric_content="Rubrik",
+                    rubric_content=(Path(nc.__file__).parent / "rubrics/deutsch_unterstufe.md").read_text(encoding="utf-8"),
                     fach="Deutsch",
                     schulstufe="Oberstufe",
                     textsorte="Eroerterung",
@@ -814,13 +816,13 @@ class TestDropDuplicateFehler:
         assert len(result) == 2
         assert result[0]["zitat"] == "erster"
 
-    def test_case_insensitive_duplikat(self) -> None:
+    def test_case_changes_are_not_the_same_correction(self) -> None:
         fehler = [
             {"zitat": "Geht gut", "korrektur": "geht besser", "typ": "G"},
             {"zitat": "geht gut", "korrektur": "Geht besser", "typ": "G"},
         ]
         result = nc.drop_duplicate_fehler(fehler)
-        assert len(result) == 1
+        assert len(result) == 2
 
     def test_leere_liste(self) -> None:
         assert nc.drop_duplicate_fehler([]) == []
@@ -919,13 +921,13 @@ class TestComputeVertrauensstufe:
         fehler = [{"zitat": "entdecken Das", "korrektur": "entdecken. Das", "typ": "Z"}]
         result = nc.compute_vertrauensstufe(fehler, self.TEXT)
         # Streift-Treffer (ohne Satzzeichen matcht) → mittel
-        assert result[0]["vertrauensstufe"] in ("hoch", "mittel")
+        assert result[0]["vertrauensstufe"] == "niedrig"
 
     def test_langes_zitat_mittel(self) -> None:
         zitat = "Die neue Literatur wird durch Social Media bestimmt und das ist wichtig"
         fehler = [{"zitat": zitat, "korrektur": "besser", "typ": "A"}]
         result = nc.compute_vertrauensstufe(fehler, self.TEXT)
-        assert result[0]["vertrauensstufe"] == "mittel"
+        assert result[0]["vertrauensstufe"] == "niedrig"
 
     def test_korrektur_im_text_runtergestuft(self) -> None:
         # Korrektur kommt im Text vor → Pseudo-Korrektur-Signal → nicht hoch
@@ -944,7 +946,7 @@ class TestComputeVertrauensstufe:
     def test_kein_text_pauschal_mittel(self) -> None:
         fehler = [{"zitat": "test", "korrektur": "test2", "typ": "G"}]
         result = nc.compute_vertrauensstufe(fehler, None)
-        assert result[0]["vertrauensstufe"] == "mittel"
+        assert result[0]["vertrauensstufe"] == "niedrig"
 
 
 # =====================================================================
@@ -1209,3 +1211,26 @@ class TestKonsistenzwarnungFehlerVsNote:
 
     def test_ohne_wortanzahl_kein_check(self) -> None:
         assert nc.konsistenzwarnung_fehler_vs_note([{"zitat": "x"}], self._bewertung(4), 0) == []
+
+
+@pytest.mark.parametrize("suffix,encoding", [(".md", "utf-8"), (".MD", "utf-8-sig"), (".md", "cp1252")])
+def test_markdown_submission_preserves_original_text(tmp_path, suffix, encoding):
+    # Markup und Fehler bleiben erhalten, damit Zitatanker zum Original passen.
+    text = "# Bewerbung\n\nIch **habbe** gro\u00dfe Freude.\n- Ein [Link](https://example.org)\n"
+    source = tmp_path / ("abgabe" + suffix)
+    source.write_bytes(text.encode(encoding))
+    assert nc.read_submission_text(source) == text
+    assert nc.count_words(source) == len(text.split())
+    assert not nc.is_vision_file(source)
+
+
+@pytest.mark.parametrize("value", ["Klammer } im Text", "{ Text }", 'Zitat " und Backslash \\'])
+def test_json_string_boundaries(value):
+    payload = {"text": value, "nested": {"n": 1}}
+    assert nc.extract_json_from_llm("Antwort: " + json.dumps(payload) + " Ende.") == payload
+
+
+@pytest.mark.parametrize("raw", ['{"x":1} {"x":2}', '{"x":1,"x":2}', '{"x":{"y":1}', '{"x":"offen'])
+def test_json_ambiguous_or_truncated_rejected(raw):
+    with pytest.raises(json.JSONDecodeError):
+        nc.extract_json_from_llm(raw)

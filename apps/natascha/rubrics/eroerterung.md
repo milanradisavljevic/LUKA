@@ -3,11 +3,20 @@ titel: Erörterung
 fach: deutsch
 schulstufe: oberstufe
 textsorte: eroerterung
+verwendung: bewertung
 -->
 
 # Bewertungsraster: Erörterung
 
+## JSON-Kriterien (exakte Schlüssel für die Bewertung)
+- `inhalt` — Inhalt und Aufgabenerfüllung
+- `aufbau` — Aufbau und Struktur
+- `ausdruck` — Ausdruck und Stil
+- `sprachrichtigkeit` — Sprachrichtigkeit
+
 ## Kategorien und Kriterien
+
+Hinweis: Die folgenden Bezüge auf Thema 1, Thema 2, KI und Hausaufgaben sind Beispiele einer früheren Angabe. Sie sind nur dann Anforderungen, wenn der aktuelle Arbeitsauftrag sie enthält.
 
 ### 1) Inhalt
 - Alle Arbeitsaufträge inhaltlich umgesetzt
@@ -60,3 +69,16 @@ textsorte: eroerterung
 - Aufbau: 25 %
 - Ausdruck: 25 %
 - Sprachrichtigkeit: 25 %
+
+
+## Allgemeine Kompetenzstufen (1–5)
+
+| Stufe | Bedeutung |
+|---|---|
+| 1 | nicht erfüllt |
+| 2 | das Wesentliche überwiegend erfüllt |
+| 3 | das Wesentliche zur Gänze erfüllt |
+| 4 | über das Wesentliche hinausgehend erfüllt |
+| 5 | weit über das Wesentliche hinausgehend erfüllt |
+
+Die Stufe bezieht sich jeweils auf die oben beschriebenen Anforderungen des einzelnen Kriteriums. Aufgabenbeispiele gelten nur, wenn die aktuelle Angabe sie tatsächlich verlangt.

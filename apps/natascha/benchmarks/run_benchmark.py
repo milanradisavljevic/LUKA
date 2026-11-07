@@ -27,6 +27,8 @@ BENCH_DIR = Path(__file__).resolve().parent
 CASES_DIR = BENCH_DIR / "cases"
 EVAL_FILE = BENCH_DIR / "evaluation.json"
 NATASCHA_ROOT = BENCH_DIR.parent
+if str(NATASCHA_ROOT) not in sys.path:
+    sys.path.insert(0, str(NATASCHA_ROOT))
 MANIFEST_FILE = CASES_DIR / "manifest.json"
 CASE_ID_PATTERN = re.compile(r"^case-[a-z0-9][a-z0-9-]{0,62}$")
 ALLOWED_DATA_CLASSES = {"synthetic", "pseudonymized"}
@@ -36,7 +38,7 @@ ALLOWED_DATA_CLASSES = {"synthetic", "pseudonymized"}
 # bleibt beim neutralen Globalwert (Datensicherheit: Whitelist).
 ALLOWED_CONFIG_KEYS = {
     "klasse", "aufgabe", "fach", "land", "schulstufe", "textsorte", "rubric",
-    "bewertungsmodus",
+    "bewertungsmodus", "sourceFile", "basisFile",
 }
 
 # Neutrale Konfiguration fuer synthetische Referenzfaelle. Reale Klassen- und
@@ -61,7 +63,13 @@ PROMPT_VERSION_FILES = (
     "natascha_db.py",
     "natascha_config.toml",
     "feedback_schema.json",
-    "tests/fixtures/beispiel_deutsch_kommentar.json",
+    "correction_quality.py",
+    "deutsch_review.py",
+    "generate_feedback.py",
+    "feedback_annotations.py",
+    "deutsch_raster_seed.py",
+    "model_reasoning.py",
+    "correction_basis.py",
 )
 PROMPT_VERSION_DIRS = ("prompts", "rubrics")
 
@@ -126,10 +134,25 @@ def load_case_manifest(manifest_path: Path = MANIFEST_FILE) -> tuple[str, list[d
                     raise ValueError(f"Fall-Config-Feld nicht erlaubt: {key}")
                 if not isinstance(value, str) or not value.strip():
                     raise ValueError(f"Fall-Config-Wert muss nichtleerer String sein: {key}")
-                per_case_config[key] = value.strip()
+                if key == "sourceFile":
+                    source = (cases_root / value).resolve()
+                    if source.parent != cases_root or source.suffix.lower() not in {".txt", ".md", ".docx"} or not source.is_file():
+                        raise ValueError("Beilage muss neben dem synthetischen Fall liegen.")
+                    per_case_config[key] = str(source)
+                else:
+                    per_case_config[key] = value.strip()
         seen_ids.add(case_id)
         cases.append({"id": case_id, "path": docx_path, "config": per_case_config})
     return data_class, cases
+
+
+def source_for_case(docx_path: Path, config: dict[str, str]) -> Path | None:
+    if not config.get("sourceFile"):
+        return None
+    source = Path(config["sourceFile"]).resolve()
+    if source.parent != docx_path.resolve().parent or source.suffix.lower() not in {".txt", ".md", ".docx"} or not source.is_file():
+        raise ValueError("Beilage muss neben dem synthetischen Fall liegen.")
+    return source
 
 
 def build_cli_args(
@@ -140,10 +163,12 @@ def build_cli_args(
     config: dict[str, str],
     max_retries: int,
     prompt_variant: str = "neutral",
+    reasoning: str | None = None,
 ) -> list[str]:
     """Baut den Analyse-Aufruf; Pseudonymisierung bleibt bewusst aktiviert."""
     if prompt_variant not in {"neutral", "legacy"}:
         raise ValueError("Unbekannte Fehlerdichte-Promptvariante.")
+    source = source_for_case(docx_path, config)
     return [
         sys.executable,
         str(NATASCHA_ROOT / "natascha_cli.py"),
@@ -163,6 +188,8 @@ def build_cli_args(
         "--max-retries", str(max_retries),
         "--benchmark-fehlerdichte-prompt", prompt_variant,
         "--quiet",
+        *(["--ausgangstext-file", str(source)] if source else []),
+        *(["--reasoning", reasoning] if reasoning is not None else []),
     ]
 
 
@@ -178,6 +205,8 @@ def validate_analysis_schema(analysis: object) -> tuple[bool, str | None]:
         schema = json.loads((NATASCHA_ROOT / "feedback_schema.json").read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return False, "schema_unavailable"
+    if str(analysis.get("fach", "")).casefold().startswith("deutsch") and analysis.get("land") == "de":
+        schema["$defs"]["notenempfehlung"]["properties"]["note"]["maximum"] = 6
     errors = list(Draft202012Validator(schema).iter_errors(analysis))
     return not errors, (None if not errors else "schema_invalid")
 
@@ -186,8 +215,11 @@ def review_data_from_analysis(analysis: dict) -> dict[str, object]:
     """Erzeugt einen lokalen Prüfauszug ohne Rohtext, Pfade oder Personenfelder."""
     fehler = analysis.get("fehler", [])
     notenempfehlung = analysis.get("notenempfehlung", {})
-    limits = {"zitat": 200, "korrektur": 200, "typ": 40, "erklaerung": 500}
+    limits = {"zitat": 200, "korrektur": 200, "typ": 40, "erklaerung": 500, "befundart": 40}
     return {
+        "gegenpruefung": {"status": analysis.get("gegenpruefung", {}).get("status"),
+                          "version": analysis.get("gegenpruefung", {}).get("version")},
+        "notenempfehlungVorlaeufig": bool(analysis.get("notenempfehlung_vorlaeufig")),
         "fehler": [
             {
                 key: item[key][:limits[key]] if isinstance(item[key], str) else item[key]
@@ -251,6 +283,7 @@ def run_single_case(
     dry_run: bool = False,
     prompt_variant: str = "neutral",
     include_review_data: bool = False,
+    reasoning: str | None = None,
 ) -> dict[str, object]:
     """Fuehrt einen einzelnen sicheren Benchmark-Fall aus."""
     if prompt_variant not in {"neutral", "legacy"}:
@@ -259,6 +292,22 @@ def run_single_case(
     docx_path = Path(case["path"])
     # Per-Case-Config (4C.1): Whitelist-Override schlaegt den globalen Wert.
     case_config = {**config, **dict(case.get("config") or {})}
+    source = source_for_case(docx_path, case_config)
+    rubric_root = (NATASCHA_ROOT / "rubrics").resolve()
+    rubric_path = (rubric_root / case_config["rubric"]).resolve()
+    rubric_hash = (hashlib.sha256(rubric_path.read_bytes()).hexdigest()
+                   if rubric_path.is_relative_to(rubric_root) and rubric_path.is_file() else None)
+    basis_path = None
+    if case_config.get("basisFile"):
+        basis_path = (docx_path.parent / case_config["basisFile"]).resolve()
+        if basis_path.parent != docx_path.parent or not basis_path.is_file():
+            raise ValueError("Die bestätigte Grundlage muss im lokalen Fallordner liegen.")
+        from correction_basis import validate_basis
+        snapshot = json.loads(basis_path.read_text(encoding="utf-8"))
+        validate_basis(snapshot["grundlage"])
+        if snapshot["grundlage"]["pruefumfang"] != "vollstaendig":
+            raise ValueError("Der Referenzvergleich benötigt eine vollständige Grundlage.")
+        rubric_hash = hashlib.sha256(snapshot["grundlage"]["rubrik_inhalt"].encode()).hexdigest()
     entry: dict[str, object] = {
         "caseId": case_id,
         "klasse": case_config["klasse"],
@@ -276,9 +325,15 @@ def run_single_case(
         "schemaValid": None,
         "qualityWarningCount": 0,
         "promptVariant": prompt_variant,
+        "sourceHash": hashlib.sha256(docx_path.read_bytes()).hexdigest(),
+        "basisHash": hashlib.sha256((source.read_bytes() if source else b"") + json.dumps({k:v for k,v in case_config.items() if k != "sourceFile"}, sort_keys=True).encode()).hexdigest(),
+        "reasoning": reasoning,
+        "rubricHash": rubric_hash,
         "errorCode": None,
     }
 
+    if basis_path:
+        entry["basisHash"] = hashlib.sha256(basis_path.read_bytes()).hexdigest()
     if dry_run:
         entry["status"] = "dry_run"
         print(f"  -> {case_id} [DRY-RUN]")
@@ -292,15 +347,17 @@ def run_single_case(
         with tempfile.TemporaryDirectory(prefix="luka_bench_") as temp_dir:
             db_path = Path(temp_dir) / f"{uuid.uuid4().hex}.db"
             args = build_cli_args(
-                docx_path, provider, model, db_path, case_config, max_retries, prompt_variant
+                docx_path, provider, model, db_path, case_config, max_retries, prompt_variant, reasoning
             )
+            if basis_path:
+                args.extend(["--grundlage-snapshot-file", str(basis_path)])
             proc = subprocess.run(
                 args,
                 capture_output=True,
                 text=True,
                 encoding="utf-8",
                 errors="replace",
-                timeout=300,
+                timeout=1500 if reasoning not in (None, "off") else 300,
                 cwd=str(NATASCHA_ROOT),
             )
         elapsed_ms = int((time.monotonic() - start) * 1000)
@@ -329,6 +386,11 @@ def run_single_case(
             note = (analysis.get("notenempfehlung") or {}).get("note")
             entry["fehlerAnzahl"] = len(fehler_list) if isinstance(fehler_list, list) else None
             entry["note"] = note
+            entry["gradeProvisional"] = bool(analysis.get("notenempfehlung_vorlaeufig"))
+            check = analysis.get("gegenpruefung")
+            entry["reviewStatus"] = check.get("status") if isinstance(check, dict) else None
+            entry["apiCalls"] = analysis.get("laufmetadaten", {}).get("api_aufrufe", [])
+            entry["findingKinds"] = {kind: sum(1 for finding in fehler_list if finding.get("befundart") == kind) for kind in ("normfehler", "ausdrucksproblem", "stilalternative", "ungeklaert")}
         entry["schemaValid"] = schema_valid
         warnings = result.get("qualityWarnings", []) if isinstance(result, dict) else []
         entry["qualityWarningCount"] = len(warnings) if isinstance(warnings, list) else 0
@@ -363,6 +425,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="LUKA Benchmark-Runner")
     parser.add_argument("--provider", default="deepseek")
     parser.add_argument("--model", default="deepseek-flash")
+    parser.add_argument("--reasoning", default=None, help="Modellbezogener Denkmodus; wird im Vergleich protokolliert")
+    parser.add_argument("--comparison-run", action="store_true", help="Separater Modell-/Denkmodusvergleich, kein Freigabelauf")
     parser.add_argument("--max-retries", type=int, default=3)
     parser.add_argument(
         "--dry-run", action="store_true", help="Manifest und Ablauf ohne API-Aufruf pruefen"
@@ -388,6 +452,7 @@ def main() -> int:
             "für die Lehrkraftprüfung speichern"
         ),
     )
+    parser.add_argument("--reference-round", action="store_true", help="Drei bestätigte pseudonymisierte Fälle; DeepSeek Flash/max, höchstens sechs Aufrufversuche")
     args = parser.parse_args()
 
     config = dict(DEFAULT_CONFIG)
@@ -400,6 +465,13 @@ def main() -> int:
         print(f"Fehler: {error}", file=sys.stderr)
         return 1
 
+    if args.reference_round:
+        if data_class != "pseudonymized" or len(cases) != 3 or any(not case.get("config", {}).get("basisFile") for case in cases):
+            print("Referenzrunde benötigt drei pseudonymisierte Fälle mit bestätigter Grundlage.", file=sys.stderr)
+            return 1
+        args.provider, args.model, args.reasoning, args.max_retries = "deepseek", "deepseek-flash", "max", 1
+        args.comparison_run = True
+
     print(f"Benchmark: {len(cases)} Faelle, Provider={args.provider}, Model={args.model}")
     if args.dry_run:
         print("(Dry-Run — keine API-Aufrufe)")
@@ -408,7 +480,7 @@ def main() -> int:
         run_single_case(
             case, args.provider, args.model, config, args.max_retries,
             dry_run=args.dry_run, prompt_variant=args.prompt_variant,
-            include_review_data=args.include_review_data,
+            include_review_data=args.include_review_data, reasoning=args.reasoning,
         )
         for case in cases
     ]
@@ -427,6 +499,8 @@ def main() -> int:
             "date": datetime.now(timezone.utc).isoformat(),
             "provider": args.provider,
             "model": args.model,
+            "reasoning": args.reasoning,
+            "comparisonOnly": args.comparison_run or args.reasoning not in (None, "off"),
             "dataClass": data_class,
             "caseIds": [case["id"] for case in cases],
             "promptVersion": prompt_version(),

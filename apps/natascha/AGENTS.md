@@ -281,9 +281,8 @@ k3: ausdruck, sprachrichtigkeit
 **Warum `k1`/`k3`?** Oberstufe/AT rechnet die Note aus vier festen
 SRDP-Hauptkriterien. Ein Raster mit eigenen Kriterien fällt dort sonst auf die
 Mittelstufe 3.0 zurück und ergibt konstant Note 3. Wer `k1`/`k3` setzt,
-bestimmt die Aufteilung selbst — und der zweite LLM-Call für die
-SRDP-Subkriterien entfällt, weil er die *Schreibhandlung* bewertet und die
-eigene Note überschreiben würde.
+bestimmt die Aufteilung selbst. Die Deutsch-Gegenprüfung verwendet dann diese
+eigenen Kriterien; die 15 SRDP-Schreibkriterien werden nicht zusätzlich erzwungen.
 
 ### Fallen beim Schreiben
 
@@ -359,3 +358,82 @@ python3 -m pytest tests/test_leseverstaendnis.py -q
 `bewertungsprofile.py` besitzt die expliziten B1-/B2-Profil-IDs, Profilschemata (0–10), Veto-/Wortzahlregeln und die lokale Auswertung eines ausdrücklich bestätigten individuellen Notenschlüssels. Neue Kriterien werden als `profil@version::kriterium` gespeichert; keine Umrechnung alter Ergebnisse und keine Mischung in Statistikreihen. Der Notenschlüssel gelangt nicht in den Modellprompt. Unveränderte alte Standardraster werden hashgebunden aktualisiert, eigene Raster bleiben erhalten. Technische Tests ersetzen keine fachliche Profilabnahme. Die Legacy-Skala 1–5 bleibt für Deutsch und andere Bestandsraster bestehen.
 
 Befund-Aggregationen verwenden nur `lehrkraft_aktion IN ('uebernommen', 'geaendert')`; die vollständige Prüfliste behält auch offene und verworfene Hinweise. Geänderte Hinweise verwenden die aktuelle `lehrkraft_korrektur`.
+
+
+## Scan-Pruefsitzungen
+
+`scan_review.py` verwaltet lokale, hashgebundene OCR-Pruefsitzungen unter output/ocr/reviews.
+`run_llm_analysis(persist=False, scan_text=...)` erzeugt eine Vorschau ohne Abgabe-
+oder Revisionsspeicherung; `persist_analysis_result` ist der gemeinsame Speicherpfad.
+Die CLI-Erweiterung `analyze --scan-action prepare|commit` nutzt denselben Kontext.
+`scan-review` liest Sitzungen oder setzt eine revisionsgebundene Lehrerentscheidung.
+Offene Lesefragen bleiben aus Fehlerhistorie und numerischen Empfehlungen heraus.
+
+## Korrekturqualität und Denkmodus ab 2026-11-02
+
+Feedback-Dateinamen kommen zentral aus `feedback_filename.py`: bestätigter Name aus der Abgabezuordnung, sonst Quelldateiname, jeweils mit Abgabe-ID und bereinigten Dateinamenzeichen. Tauri übergibt standardmäßig `feedback-docx --output-dir`; ausdrücklich gesetzte `--output`-Pfade behalten Vorrang. Die bestätigte DB-Zuordnung wird beim Export auch als Schülername im Dokument verwendet. Das ändert keine Analyse oder Bewertung. Namen können im Korrekturauftrag über den bestehenden Schüler-INSERT angelegt und anschließend über ihre ID zugeordnet werden; Pseudonymisierung verwendet weiterhin die Klassenliste.
+
+`model_reasoning.py` besitzt die modellbezogenen Denkoptionen und nativen API-Parameter.
+Die App fragt dieselbe Tabelle mit `model-options` ab. `correction_quality.py` prüft
+wortgetreue Anker, Änderungsdubletten und die KI-Gegenprüfung. Diese ersetzt keine
+Lehrkraftentscheidung. Export und Freigabe sind getrennt; `pruefstatus` gehört auch
+zum Revisionssnapshot. Neue Revisionen speichern Schülertext und SHA-256 in `basis_json`.
+
+
+## Deutsch-Gegenprüfung ab 2026-11-03
+
+`deutsch_review.py` v4 legt dem vorhandenen zweiten Aufruf einzeln zusammengesetzte Ergebniskontexte vor. `correction_quality.replacement_context` verwendet vollständige Originalabsätze (keine heuristischen Satzgrenzen) und eine text-/anker-/ersatzgebundene Prüfsumme. Die optionale `ersetzungspruefung` bestätigt Grammatik, Bereich und Bedeutung; bei geänderten oder neu gefundenen Ersetzungen muss der zurückgegebene Ergebniskontext exakt passen. Ohne ausdrückliche Bestätigung bleibt der Vorschlag Kommentar. `ki_pruefung.status=verworfen` bedeutet eine falsche Beanstandung, keine Lehrkraftentscheidung: im Analyse-JSON erhalten, im DOCX ohne explizite Übernahme ausgelassen. Alte Revisionen werden nicht nachträglich geprüft oder umgeschrieben. Es bleiben zwei Aufrufe.
+
+`feedback_annotations.py` verankert sämtliche Word-Kommentare vor den Texteingriffen am unveränderten Original. Überlappende oder zu weit reichende Ersatztexte bleiben Kommentare. `deutsch_review.py` v3 akzeptiert kompakte Bestätigungen, S-IDs für Originalzeilen, einzeln geprüfte Randnotizen und eindeutig verankerte zusätzliche Befunde. Vergrößerte Ersetzungsbereiche müssen den ursprünglichen Befund enthalten. Alte Antwortformate bleiben lesbar. Aufrufbelege speichern Phase, Status, Dauer und verfügbare Abschluss-/Fehlergründe sowie Ausgabegrenzen, niemals Prompts oder Antworttexte.
+
+`deutsch_review.py` erstellt den Rastervertrag und die gemeinsame, versionierte Bewertungsgrundlage. Jeder Deutsch-Lauf verwendet Analyse und rasterbezogene Gegenprüfung; 15 SRDP-Details nur bei passenden AT-Oberstufenrastern. Der zweite Aufruf prüft auch die Hauptkriterien und Befunde. Nur vollständige, belegte Änderungen gehen in die unveränderte Notenberechnung ein. Offene Fragen behalten einen ausdrücklich vorläufigen Vorschlag. `gegenpruefung`, Ursprungsbewertungen und die Vorläufigkeit bleiben im Analyse-JSON; Grundlagenversion und Hash im Revisionssnapshot. Fehlende Kriterien erzeugen keine stillen mittleren Werte. `deutsch_raster_seed.py` erlaubt nur hashgebundene Updates unveränderter Vorlagen. Referenzen/Selbstchecks tragen `verwendung:` und bleiben lesbar, sind aber keine Notenraster.
+
+## Kriterienklärung und Exportansichten ab 2026-11-04
+
+`deutsch_review.py` v5 prüft Belege und Detailkriterien einzeln. Zusätzliche ungültige Zitate verwerfen keine vorhandenen eindeutigen Belege. `bewertungspruefung` enthält Kriterienstatus, Belegdiagnosen, geprüfte Aussagen und gezielte Aufgaben. Tatsächlich offene benotungsrelevante Kriterien verhindern eine automatische Gesamtnote; es gibt keinen Rückfall auf andere Hauptkriterien. Referenzen auf verworfene Befunde und ungeklärte quellenabhängige Aussagen bleiben offen.
+
+`review_resolution.py` verwendet dieselben bestehenden Notenfunktionen für explizite Lehrkraftentscheidungen. `review-save` speichert Entscheidungen, Befundaktionen und Freigabe atomar und revisionsgebunden. `lehrer_pruefung_json` ist additiv und getrennt von der unveränderten `analysis_json`; beide DB-Initialisierungen müssen diese Spalte ergänzen. Alte Revisionen werden nicht automatisch nachgeprüft.
+
+`feedback-docx --ansicht schueler|lehrkraft` behält als CLI-Default die ausführliche Lehrkraftansicht. Die kurze Schüleransicht enthält höchstens drei Stärken und drei nächste Schritte, nur ausdrücklich übernommene Befunde und eine Note erst nach Freigabe. `source-text` liest eine Beilage ohne Modellaufruf; `analyze --grundlage-snapshot-file` verwendet eingefrorenen Rasterinhalt und Beilagentext aus der App. Es bleiben zwei reguläre Modellaufrufe.
+
+`feedback_annotations.py` markiert reine Beistrichänderungen am unveränderten Original orange und unterstrichen, ohne Word-Kommentar. Andere Zeichen- und Wortänderungen behalten ihre Kommentare. Erläuterungen bleiben im Fehlerprotokoll. `correction_quality.german_usage_guidance` gibt Text-/Vision-Analyse und Deutsch-Gegenprüfung denselben Prüfauftrag für doppelte Satzbausteine, unpassende Wortverbindungen und kontextbezogene Ausdrucksprobleme; freiwillige Stilalternativen bleiben getrennt. Beispiele und Regressionstexte sind synthetisch.
+
+Deutsch-Gegenprüfung v6 behandelt bei `status=bestaetigt` eine leere oder fehlende optionale Begründung gleich. Die Anker-, Befundart- und Ersetzungsprüfungen bleiben erforderlich; andere Entscheidungen brauchen weiterhin eine Begründung.
+
+## DeepSeek-Budgets ab 2026-11-05
+
+Der Python-Korrekturpfad verwendet für `deepseek-flash` und `deepseek-v4-pro`
+32.768 Tokens ohne Denken, 65.536 bei `low`/`high` oder Anbieterstandard und
+131.072 bei `max`. Denken und Endantwort teilen sich dieses Budget. Die
+ausgewählte Denkstufe wird nicht still reduziert. Analyse, Gegenprüfung und
+weitere Python-Aufrufe verwenden dieselbe Auflösung in `_deepseek_max_tokens`.
+Die HTTP-Wartezeit beträgt mit Denken mindestens 600 s, bei `max` 1.200 s.
+Die Anbietergrenze (384K Ausgabe, 1M Kontext) bleibt davon getrennt; historische
+Modelle behalten ihre bisherigen Grenzen. Aufrufbelege enthalten das tatsächlich
+gesendete Budget. Quelle: DeepSeek Chat Completions / Models & Pricing, 2026-11-05.
+
+**Getrennter LUA-Pfad:** Die Unterlagenerstellung läuft über
+`apps/lua/src-tauri/src/adapters/openai_compat.rs`, aktuell mit 16.000 Tokens.
+Diese Änderung des Korrekturpfads passt den Rust-Adapter nicht an. Eine künftig
+abweichende LUA-Budgetpolitik muss dort eigens umgesetzt und geprüft werden;
+die Grenzen beider Pfade dürfen nicht als gemeinsame DeepSeek-Grenze gelten.
+
+
+## Bestätigte Grundlage ab 2026-11-05
+
+`correction_basis.py` prüft den neuen optionalen Grundlagenvertrag in
+`correction_basis.grundlage` bzw. `--grundlage-snapshot-file`. Der Deutsch-Dialog
+verwendet ihn obligatorisch. Sprachmodus und vollständige Prüfung sind getrennt;
+ein ausdrücklich leerer Erwartungshorizont darf nicht aus der Konfiguration
+nachgeladen werden. Alte Aufrufer ohne neuen Vertrag bleiben kompatibel.
+`grundlage_json` im Korrekturauftrag wird in Python und Rust additiv ergänzt.
+Rohantwort und normalisierte Gegenprüfung bleiben getrennt erhalten.
+
+
+## Deutsch-Gegenprüfung v7 und Sprachregeln ab 2026-11-06
+
+`sprachregeln.py` (stdlib, ohne Modell) enthält enge, deterministische Regeln: `anrede_kleinschreibung` (Großschreibung nach Anrede mit Komma am Textanfang; nur geschlossene Wortliste oder Verb + Personalpronomen, Nomen und Höflichkeitsform bleiben unberührt), `aenderungsart`/`pruefe_fehlertyp` (reine Groß-/Klein-, das/dass-, Bindestrich- und Getrennt-/Zusammenänderungen → R, reine Beistrichänderung → Z, das/dass + Beistrich → R mit `teiltypen: ["R","Z"]`, alter Typ in `typ_vorher`) und `regel_muster` (Etikett für die regelbezogenen Übungstipps in `generate_feedback`). `deutsch_review._regelpruefung` wendet das nach jeder Gegenprüfung an, auch bei unvollständiger Antwort; `natascha_core` setzt Typ und Etikett zusätzlich im allgemeinen Analysepfad.
+
+`correction_quality.deduplicate` führt auch überlappende Änderungen zusammen (enthaltener Befund mit bereits enthaltenem Ersatz oder sich schneidende Änderungsspannen). Vorrang: geprüfter Befund mit bestätigter Ersetzung, dann größere Spanne; zusammengeführte IDs stehen in `zusammengefuehrt`.
+
+Gegenprüfung v7: `neue_befunde` erhalten `ki_pruefung.status=ungeklaert` (`vorgeschlagene_befundart` behält den Modellvorschlag) und stützen keine Kriterien. Eigene Modell-IDs (`neu-…`) werden still aus `befund_ids` entfernt. Ein begründetes `ungeklaert` ist keine Technikdiagnose mehr, Verweise darauf stützen aber keine abschließende Aussage. Im Sprachmodus wird `kriterienpruefung` ignoriert (`review_shape_valid(..., kriterien_erwartet=False)`). Nicht bestätigte globale Aussagen behalten den Ursprungswert mit `bewertungspruefung.aussagen[feld]="offen"` (Lehrkraftansicht mit Vermerk, Schüleransicht ohne). `pruefbedarf`, der genau einen Befund nennt, steht in dessen `ki_pruefung.pruefbedarf`. Neue Post-hoc-Felder sind in `feedback_schema.json` zugelassen. `filter_title_false_positives` lässt Kleinschreibungsbefunde nach einer Komma-Anredezeile stehen.

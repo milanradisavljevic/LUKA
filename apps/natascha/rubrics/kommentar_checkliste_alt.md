@@ -3,9 +3,16 @@ titel: Kommentar (Checkliste, alt)
 fach: deutsch
 schulstufe: oberstufe
 textsorte: kommentar
+verwendung: bewertung
 -->
 
 # Bewertungsraster: Kommentar
+
+## JSON-Kriterien (exakte Schlüssel für die Bewertung)
+- `inhalt` — Inhalt und Aufgabenerfüllung
+- `aufbau` — Aufbau und Struktur
+- `ausdruck` — Ausdruck und Stil
+- `sprachrichtigkeit` — Sprachrichtigkeit
 
 ## Checkliste Kriterien
 
@@ -49,6 +56,19 @@ textsorte: kommentar
 
 ## Gewichtung
 - Inhalt und Argumentation: 30 %
-- Aufbau und Struktur: 25 %
+- Aufbau: 25 %
 - Stil und Ausdruck: 25 %
 - Sprachrichtigkeit: 20 %
+
+
+## Allgemeine Kompetenzstufen (1–5)
+
+| Stufe | Bedeutung |
+|---|---|
+| 1 | nicht erfüllt |
+| 2 | das Wesentliche überwiegend erfüllt |
+| 3 | das Wesentliche zur Gänze erfüllt |
+| 4 | über das Wesentliche hinausgehend erfüllt |
+| 5 | weit über das Wesentliche hinausgehend erfüllt |
+
+Die Stufe bezieht sich jeweils auf die oben beschriebenen Anforderungen des einzelnen Kriteriums. Aufgabenbeispiele gelten nur, wenn die aktuelle Angabe sie tatsächlich verlangt.

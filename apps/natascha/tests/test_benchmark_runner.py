@@ -12,6 +12,31 @@ from pathlib import Path
 
 import pytest
 
+
+def test_model_comparison_is_separate_and_does_not_invent_quality_or_cost():
+    spec = importlib.util.spec_from_file_location("compare_runs", Path(__file__).resolve().parents[1] / "benchmarks/compare_runs.py")
+    module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+    first = {"metadata": {"dataClass":"synthetic","provider":"deepseek","model":"deepseek-v4-pro","reasoning":"off"},
+             "runs":[{"caseId":"case-001","status":"erfolg","sourceHash":"same","laufzeitMs":100}]}
+    second = json.loads(json.dumps(first)); second["metadata"]["reasoning"]="high"
+    result = module.compare(first,second)
+    assert result["comparisonOnly"] is True
+    assert result["first"]["falseErrors"] is None and result["second"]["costUsd"] is None
+    second["runs"][0]["sourceHash"]="changed"
+    with pytest.raises(ValueError, match="identisch"):
+        module.compare(first,second)
+
+
+def test_explicit_thinking_comparison_never_counts_as_existing_gate():
+    assert not benchmark_evaluator.ist_vollstaendiger_lauf({"metadata":{"comparisonOnly":True}})
+
+
+def test_runner_forwards_reasoning_without_changing_default(tmp_path):
+    args = benchmark_runner.build_cli_args(tmp_path / "case.docx", "deepseek", "deepseek-v4-pro", tmp_path / "test.db", benchmark_runner.DEFAULT_CONFIG, 1, reasoning="high")
+    assert args[args.index("--reasoning")+1] == "high"
+    default = benchmark_runner.build_cli_args(tmp_path / "case.docx", "deepseek", "deepseek-flash", tmp_path / "test.db", benchmark_runner.DEFAULT_CONFIG, 1)
+    assert "--reasoning" not in default
+
 RUNNER_PATH = Path(__file__).resolve().parent.parent / "benchmarks" / "run_benchmark.py"
 SPEC = importlib.util.spec_from_file_location("benchmark_runner", RUNNER_PATH)
 assert SPEC is not None and SPEC.loader is not None
@@ -531,3 +556,27 @@ def test_referenzabgleich_verlangt_reviewdaten_und_passende_fallmenge() -> None:
             [{"caseId": "case-002", "status": "erfolg", "reviewData": {"fehler": []}}],
             references,
         )
+
+
+def test_comparison_source_cannot_leave_the_synthetic_case_folder(tmp_path):
+    case_dir=tmp_path / "cases"; case_dir.mkdir()
+    outside=tmp_path / "private.txt"; outside.write_text("synthetic placeholder",encoding="utf-8")
+    config={**benchmark_runner.DEFAULT_CONFIG,"sourceFile":str(outside)}
+    with pytest.raises(ValueError, match="Beilage"):
+        benchmark_runner.build_cli_args(case_dir / "case.docx","deepseek","deepseek-v4-pro",tmp_path / "test.db",config,1)
+
+
+def test_pseudonymized_comparison_requires_opt_in_and_reports_explanations():
+    spec = importlib.util.spec_from_file_location("compare_extra", Path(__file__).resolve().parents[1] / "benchmarks/compare_runs.py")
+    module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+    p={"metadata":{"dataClass":"pseudonymized"},"runs":[{"caseId":"case-001","status":"erfolg","sourceHash":"same","basisHash":"same","rubricHash":"same"}]}
+    with pytest.raises(ValueError):module.compare(p,p)
+    assert module.compare(p,p,allow_pseudonymized=True)["first"]["safetyAssessment"]=="offen"
+    p["runs"][0]["qualityReview"]={key:None for key in ("falseErrors","missedErrors","usableSuggestions","suggestionCount","gradePlausible")}
+    assert module.compare(p,p,allow_pseudonymized=True)["first"]["safetyAssessment"]=="offen"
+    p["runs"][0]["qualityReview"]={"falseErrors":0,"missedErrors":2,"usableSuggestions":4,"suggestionCount":4,"gradePlausible":True,"falseReasons":1,"meaningChanges":0}
+    report=module.compare(p,p,allow_pseudonymized=True)
+    assert report["first"]["safetyAssessment"]=="nicht_bestanden"
+    assert report["first"]["falseReasons"]==1
+    other=json.loads(json.dumps(p));other["runs"][0]["basisHash"]="changed"
+    with pytest.raises(ValueError):module.compare(p,other,allow_pseudonymized=True)

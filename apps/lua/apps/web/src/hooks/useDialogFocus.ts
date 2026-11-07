@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-export function useDialogFocus(open: boolean, close: () => void) {
+export function useDialogFocus(open: boolean, close: () => void, initialFocus: 'first' | 'dialog' = 'first') {
  const ref=useRef<HTMLDivElement>(null); const closeRef=useRef(close); closeRef.current=close;
  useEffect(()=>{
   if(!open) return;
@@ -9,8 +9,10 @@ export function useDialogFocus(open: boolean, close: () => void) {
    // Tabulator-Pfad" — solche Elemente gehören nicht in die Falle, sonst
    // müsste man durch 30 Trefferzeilen durchtabben, um zum Schließen zu kommen.
    const items=()=>Array.from(dialog.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]')).filter(el=>el.offsetParent!==null&&Number(el.getAttribute('tabindex'))>=0);
-  (items()[0] ?? dialog).focus();
-  const handler=(e:KeyboardEvent)=>{ if(e.key==='Escape'){e.preventDefault();closeRef.current();} if(e.key==='Tab'){const all=items(),first=all[0],last=all[all.length-1];if(!first){e.preventDefault();dialog.focus();}else if(e.shiftKey && (document.activeElement===first || document.activeElement===dialog)){e.preventDefault();last?.focus();}else if(!e.shiftKey && document.activeElement===last){e.preventDefault();first.focus();}} };
-  dialog.addEventListener('keydown',handler); return ()=>{dialog.removeEventListener('keydown',handler);previous?.focus();};
- },[open]); return ref;
+  (initialFocus === 'dialog' ? dialog : items()[0] ?? dialog).focus();
+  // Nach dem React-Ereignis behandeln, damit z.B. Escape zunächst eine offene
+  // Info-Blase schließen kann, ohne zugleich den gesamten Auftrag auszublenden.
+  const handler=(e:KeyboardEvent)=>{ if(!dialog.contains(e.target as Node)||e.defaultPrevented)return; if(e.key==='Escape'){e.preventDefault();closeRef.current();} if(e.key==='Tab'){const all=items(),first=all[0],last=all[all.length-1];if(!first){e.preventDefault();dialog.focus();}else if(e.shiftKey && (document.activeElement===first || document.activeElement===dialog)){e.preventDefault();last?.focus();}else if(!e.shiftKey && (document.activeElement===last || document.activeElement===dialog)){e.preventDefault();first.focus();}} };
+  document.addEventListener('keydown',handler); return ()=>{document.removeEventListener('keydown',handler);if(previous?.isConnected)previous.focus();};
+ },[open,initialFocus]); return ref;
 }

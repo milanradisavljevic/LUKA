@@ -31,6 +31,8 @@ export type ActiveView =
 export interface AppSettings {
   defaultProvider: LlmProvider;
   defaultModel: string;
+  /** Denkoption je API-Anbieter und Modell; nur für Korrekturen. */
+  correctionReasoning?: Record<string, string>;
   defaultKreativitaet: number;
   defaultAusgabeSprache: string;
   judgeEnabled?: boolean;

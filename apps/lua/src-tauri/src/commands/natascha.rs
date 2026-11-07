@@ -445,6 +445,12 @@ fn emit_stderr_progress(line: &str, app: Option<&AppHandle>, job_id: u64) {
             "input" => "input",
             "rubric" => "rubric",
             "llm" => "llm",
+            "scan_ocr" => "scan_ocr",
+            "scan_analysis" => "scan_analysis",
+            "scan_verify" => "scan_verify",
+            "scan_reassess" => "scan_reassess",
+            "scan_ready" => "scan_ready",
+            "scan_commit" => "scan_commit",
             "done" => "done",
             "error" => "error",
             "timeout" => "timeout",
@@ -554,7 +560,7 @@ async fn run_cli_and_capture(
         } else {
             stderr_captured.as_str()
         };
-        return Err(categorize_cli_error(detail_source));
+        return Err(categorize_cli_operation_error(detail_source, label));
     }
     emit_progress(app, Some(job_id), "done", format!("{label} abgeschlossen"));
     Ok(stdout_result.trim().to_string())
@@ -625,9 +631,75 @@ pub fn natascha_cancel(app: AppHandle, job_id: Option<u64>) -> Result<(), String
     Ok(())
 }
 
+/// Lokale Exportfehler dürfen nicht als gescheiterte Modellanalyse erscheinen.
+fn categorize_cli_operation_error(stderr: &str, label: &str) -> String {
+    if label != "Korrektur-DOCX" { return categorize_cli_error(stderr); }
+    let error = stderr.to_lowercase();
+    if error.contains("feld 'bewertung'") {
+        return "DOCX-Export fehlgeschlagen: Die gespeicherte Bewertung konnte nicht gelesen werden. Die Analyse bleibt erhalten; bitte das lokale Korrektur-Modul aktualisieren.".into();
+    }
+    if error.contains("schülertext") || error.contains("schuelertext") {
+        return "DOCX-Export fehlgeschlagen: Der gespeicherte Originaltext ist für diese Korrekturversion nicht verlässlich verfügbar. Die Analyse bleibt erhalten; bitte Originaldatei und Korrekturversion prüfen.".into();
+    }
+    if error.contains("permission denied") || error.contains("errno 13") || error.contains("zugriff verweigert") {
+        return "DOCX-Export fehlgeschlagen: Kein Schreibzugriff auf den Zielordner. Bitte den Zielordner und gegebenenfalls eine bereits geöffnete DOCX-Datei prüfen.".into();
+    }
+    "DOCX-Export fehlgeschlagen. Die Analyse bleibt erhalten. Bitte Zielordner und lokales Korrektur-Modul prüfen; eine neue Modellanalyse ist dafür nicht erforderlich.".into()
+}
+
 /// Uebersetzt typische CLI/LLM-Fehler in verstaendliche Meldungen (statt Traceback).
 fn categorize_cli_error(stderr: &str) -> String {
+    // Der Python-Vertrag enthaelt nur technische Metadaten, keine Rohantworten.
+    // Vor den heuristischen Textsuchen auswerten (z.B. param=response_format).
+    for line in stderr.lines() {
+        if let Some((_, detail)) = line.split_once("[provider_http] ") {
+            if let Ok(data) = serde_json::from_str::<serde_json::Value>(detail) {
+                if let Some(status @ 100..=599) = data["status"].as_u64() {
+                    let provider = match data["provider"].as_str().unwrap_or("") {
+                        "OpenAI" => "OpenAI", "Mistral OCR" => "Mistral OCR",
+                        "Mistral" => "Mistral", "DeepSeek" => "DeepSeek",
+                        "Kimi" => "Kimi", "Qwen" => "Qwen", _ => "KI-Anbieter",
+                    };
+                    let field = |name: &str| -> String {
+                        data[name].as_str().filter(|v| !v.is_empty() && v.len() <= 80
+                            && v.bytes().all(|c| c.is_ascii_alphanumeric() || b"_.[]-".contains(&c))
+                            && !["sk-", "bearer", "base64"].iter().any(|s| v.to_lowercase().contains(s)))
+                            .unwrap_or("").to_string()
+                    };
+                    let code = field("code");
+                    let error_type = field("type");
+                    let param = field("param");
+                    let billing = error_type == "insufficient_quota" || matches!(code.as_str(),
+                        "insufficient_quota" | "billing_hard_limit_reached" |
+                        "organization_spend_limit_exceeded" | "project_spend_limit_exceeded" |
+                        "organization_usage_limit_exceeded" | "project_usage_limit_exceeded" |
+                        "credit_balance_too_low");
+                    let hint = if billing || status == 402 {
+                        "API-Kontingent oder Guthaben aufgebraucht. Bitte Guthaben und Ausgabenlimit beim Anbieter prüfen; Warten allein behebt das nicht."
+                    } else {
+                        match status {
+                            401 => "Der Anbieter hat die Anmeldung abgelehnt. Bitte den hinterlegten API-Schlüssel prüfen.",
+                            403 => "Der Anbieter verweigert den Zugriff. Bitte Berechtigungen für Konto und Modell prüfen.",
+                            404 => "Das angefragte Modell oder der API-Endpunkt wurde nicht gefunden. Bitte Modellzugang und Anfrage prüfen.",
+                            400 | 413 | 415 | 422 => "Der Anbieter hat die Anfrage abgelehnt. Bitte Anfrageformat, Dateigröße und Modellunterstützung prüfen.",
+                            429 => "Anbieter-Limit erreicht. Bitte Fehlercode und Kontingent prüfen; bei einem Ratenlimit später manuell erneut versuchen.",
+                            500..=599 => "Der Anbieter meldet einen Serverfehler. Bitte später manuell erneut versuchen.",
+                            _ => "Der Anbieter hat die Anfrage abgelehnt. Bitte die technischen Angaben prüfen.",
+                        }
+                    };
+                    let mut message = format!("{provider}: HTTP {status}. {hint}");
+                    for (label, value) in [("Fehlercode", code), ("Fehlertyp", error_type), ("Parameter", param)] {
+                        if !value.is_empty() { message.push_str(&format!(" {label}: {value}.")); }
+                    }
+                    return message;
+                }
+            }
+        }
+    }
     let s = stderr.to_lowercase();
+    if s.contains("invalid choice: 'ocr'") || s.contains("unrecognized arguments: ocr") {
+        return "Das verwendete Korrektur-Modul enthält den Befehl zum Scan-Auslesen noch nicht. Bitte LUKA und Korrektur-Modul gemeinsam aktualisieren.".into();
+    }
     if s.contains("[rate_limited]") || s.contains("429") || s.contains("rate limit") {
         return "Anbieter-Ratenlimit erreicht. Bitte 1–2 Minuten warten und dann manuell erneut versuchen.".into();
     }
@@ -681,7 +753,7 @@ fn categorize_cli_error(stderr: &str) -> String {
         ""
     };
     if hint.is_empty() {
-        "Analyse fehlgeschlagen. Bitte ausgewählten Anbieter und Modell prüfen und manuell erneut versuchen.".into()
+        "Analyse fehlgeschlagen. Die Ursache konnte nicht zugeordnet werden. Bitte das lokale Korrektur-Modul prüfen.".into()
     } else {
         hint.to_string()
     }
@@ -699,6 +771,7 @@ pub async fn natascha_analyze(
     aufgabe: String,
     provider: Option<String>,
     model: Option<String>,
+    reasoning: Option<String>,
     fach: Option<String>,
     schulstufe: Option<String>,
     textsorte: Option<String>,
@@ -707,6 +780,7 @@ pub async fn natascha_analyze(
     ausgangstext: Option<String>,
     ausgangstext_text: Option<String>,
     ausgangstext_file: Option<String>,
+    grundlage_snapshot: Option<serde_json::Value>,
     erwartungshorizont: Option<String>,
     rubric: Option<String>,
     pseudonymisierung: Option<bool>,
@@ -714,9 +788,11 @@ pub async fn natascha_analyze(
     einsatz_id: Option<String>,
     material_id: Option<String>,
     revision_of_abgabe_id: Option<i64>,
+    reanalyze_existing: Option<bool>,
     land: Option<String>,
     notenschluessel: Option<serde_json::Value>,
     soll_wortanzahl: Option<u32>,
+    scan_review: Option<serde_json::Value>,
 ) -> Result<String, String> {
     let mut cmd = build_cli_command(&dir, &python)?;
     if let Some(v) = provider { cmd.arg("--provider").arg(v); }
@@ -727,6 +803,13 @@ pub async fn natascha_analyze(
         .arg(&klasse)
         .arg("--aufgabe")
         .arg(&aufgabe);
+    let _grundlage_input = if let Some(snapshot) = grundlage_snapshot {
+        let input = ReviewInput(std::env::temp_dir().join(format!("luka-grundlage-{}.json", uuid::Uuid::new_v4())));
+        std::fs::write(&input.0, snapshot.to_string()).map_err(|_| "Die Bewertungsgrundlage konnte nicht vorbereitet werden.".to_string())?;
+        cmd.arg("--grundlage-snapshot-file").arg(&input.0);
+        Some(input)
+    } else { None };
+    if let Some(ref v) = reasoning { cmd.arg("--reasoning").arg(v); }
     if let Some(ref id) = klasse_id {
         cmd.arg("--klasse-id").arg(id);
     }
@@ -784,11 +867,20 @@ pub async fn natascha_analyze(
     if let Some(id) = revision_of_abgabe_id {
         cmd.arg("--revision-of-abgabe-id").arg(id.to_string());
     }
+    if reanalyze_existing == Some(true) {
+        cmd.arg("--reanalyze-existing");
+    }
     if let Some(ref schluessel) = notenschluessel {
         cmd.arg("--notenschluessel-json").arg(schluessel.to_string());
     }
     if let Some(anzahl) = soll_wortanzahl {
         cmd.arg("--soll-wortanzahl").arg(anzahl.to_string());
+    }
+    if let Some(review) = scan_review {
+        for (field, flag) in [("action", "--scan-action"), ("session", "--scan-session"),
+            ("provider", "--ocr-provider"), ("model", "--ocr-model"), ("verifyModel", "--verify-model")] {
+            if let Some(value) = review.get(field).and_then(|v| v.as_str()) { cmd.arg(flag).arg(value); }
+        }
     }
     run_cli_and_capture(cmd, Some(&app), "Korrektur-Analyse").await
 }
@@ -796,6 +888,39 @@ pub async fn natascha_analyze(
 /// Redaktionsvorschau: welche Personenangaben aus der Klassenliste würden vor
 /// dem LLM-Versand ersetzt (kein LLM-Call). Gibt JSON `{ funde, visionModus,
 /// klassenlisteLeer }` zurück.
+#[tauri::command]
+pub async fn natascha_ocr(
+    app: AppHandle,
+    dir: String,
+    python: String,
+    file_path: String,
+    provider: String,
+    model: String,
+    reviewed_text: Option<String>,
+) -> Result<String, String> {
+    if let Some(text) = reviewed_text {
+        if text.trim().is_empty() || text.len() > 2_000_000 {
+            return Err("Bitte eine lesbare Abschrift mit maximal 2 MB uebernehmen.".into());
+        }
+        let folder = crate::db::home_dir()
+            .ok_or("Home-Verzeichnis nicht gefunden.")?
+            .join("lehr-suite-bridge").join("ocr");
+        std::fs::create_dir_all(&folder).map_err(|_| "OCR-Ordner nicht schreibbar.")?;
+        let id = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)
+            .map_err(|_| "Systemzeit nicht verfuegbar.")?.as_nanos();
+        let target = folder.join(format!("abschrift-{id}.txt"));
+        std::fs::write(&target, text).map_err(|_| "Abschrift konnte nicht gespeichert werden.")?;
+        let mut cmd = build_cli_command(&dir, &python)?;
+        cmd.arg("--provider").arg(provider).arg("--model").arg(model)
+            .arg("ocr").arg(file_path).arg("--approved-text-file").arg(target);
+        return run_cli_and_capture(cmd, None, "Abschrift bestaetigen").await;
+    }
+    let mut cmd = build_cli_command(&dir, &python)?;
+    cmd.arg("--provider").arg(provider).arg("--model").arg(model)
+        .arg("ocr").arg(file_path);
+    run_cli_and_capture(cmd, Some(&app), "Scan auslesen").await
+}
+
 #[tauri::command]
 pub async fn natascha_personen_vorschau(
     provider: Option<String>,
@@ -832,7 +957,9 @@ pub async fn natascha_feedback_docx(
     python: String,
     abgabe_id: i64,
     output: Option<String>,
+    revision_id: Option<i64>,
     bewertungsmodus: Option<String>,
+    ansicht: Option<String>,
 ) -> Result<String, String> {
     // Name der Lehrkraft aus dem lokalen LUKA-Profil: Kommentare und
     // Metadaten der Feedback-DOCX sollen die tatsächliche Lehrkraft
@@ -852,12 +979,17 @@ pub async fn natascha_feedback_docx(
     };
     let mut cmd = build_cli_command(&dir, &python)?;
     cmd.arg("feedback-docx").arg(abgabe_id.to_string());
-    // Immer einen expliziten Zielpfad übergeben: der Python-Default wäre
+    if let Some(view) = ansicht {
+        if !matches!(view.as_str(), "schueler" | "lehrkraft") { return Err("Ungültige Feedbackansicht.".into()); }
+        cmd.arg("--ansicht").arg(view);
+    }
+    if let Some(id) = revision_id { cmd.arg("--revision-id").arg(id.to_string()); }
+    // Immer einen expliziten Zielordner übergeben: der Python-Default wäre
     // Path.cwd() = Exe-Verzeichnis (z. B. Program Files) — dort ist Schreiben
     // oft verboten und die Datei für die Lehrkraft unauffindbar. Ablage im
     // Bridge-Ordner, den „Ordner öffnen“ in der UI direkt anzeigen kann.
-    let ziel = match output {
-        Some(v) => v,
+    match output {
+        Some(v) => { cmd.arg("--output").arg(v); }
         None => {
             let ordner = crate::db::home_dir()
                 .ok_or_else(|| "Home-Verzeichnis nicht gefunden.".to_string())?
@@ -865,13 +997,11 @@ pub async fn natascha_feedback_docx(
                 .join("feedback");
             std::fs::create_dir_all(&ordner)
                 .map_err(|e| format!("Feedback-Ordner konnte nicht erstellt werden: {e}"))?;
-            ordner
-                .join(format!("feedback_{abgabe_id}.docx"))
-                .to_string_lossy()
-                .into_owned()
+            // Der Sidecar kennt die bestätigte Person und erzeugt denselben
+            // lesbaren Dateinamen für App- und direkte CLI-Exporte.
+            cmd.arg("--output-dir").arg(ordner);
         }
-    };
-    cmd.arg("--output").arg(&ziel);
+    }
     if let Some(ref v) = bewertungsmodus {
         cmd.arg("--bewertungsmodus").arg(v);
     }
@@ -879,6 +1009,27 @@ pub async fn natascha_feedback_docx(
         cmd.arg("--lehrer").arg(v);
     }
     run_cli_and_capture(cmd, None, "Korrektur-DOCX").await
+}
+
+struct ReviewInput(std::path::PathBuf);
+impl Drop for ReviewInput {
+    fn drop(&mut self) { let _ = std::fs::remove_file(&self.0); }
+}
+
+#[tauri::command]
+pub async fn natascha_save_kriterien_review(dir: String, python: String, payload: serde_json::Value) -> Result<String, String> {
+    let input = ReviewInput(std::env::temp_dir().join(format!("luka-review-{}.json", uuid::Uuid::new_v4())));
+    std::fs::write(&input.0, payload.to_string()).map_err(|_| "Prüfentscheidungen konnten nicht vorbereitet werden.".to_string())?;
+    let mut cmd = build_cli_command(&dir, &python)?;
+    cmd.arg("review-save").arg("--payload-file").arg(&input.0);
+    run_cli_and_capture(cmd, None, "Kriterienprüfung speichern").await
+}
+
+#[tauri::command]
+pub async fn natascha_source_text(dir: String, python: String, file: String) -> Result<String, String> {
+    let mut cmd = build_cli_command(&dir, &python)?;
+    cmd.arg("source-text").arg("--file").arg(file);
+    run_cli_and_capture(cmd, None, "Beilagentext lesen").await
 }
 
 /// Generiert einen Erwartungshorizont via CLI.
@@ -1266,6 +1417,27 @@ pub async fn natascha_schueler_profil(
 
 #[cfg(test)]
 mod tests {
+    #[tokio::test]
+    #[ignore = "Startet den tatsächlichen lokalen Python-Sidecar; separat mit synthetischer DB ausführen"]
+    async fn native_sidecar_deutsch_raster_contract() {
+        let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../natascha").canonicalize().unwrap();
+        let synthetic_db = std::env::temp_dir().join(format!("luka-sidecar-{}.db", uuid::Uuid::new_v4()));
+        crate::db::set_db_path(Some(synthetic_db.clone()));
+        let mut cmd = build_cli_command(dir.to_str().unwrap(), "").unwrap();
+        cmd.args(["read-rubric", "--name", "meinungsrede.md"]);
+        let out = cmd.output().await.unwrap();
+        let mut export_help = build_cli_command(dir.to_str().unwrap(), "").unwrap();
+        export_help.args(["feedback-docx", "1", "--help"]);
+        let help = export_help.output().await.unwrap();
+        crate::db::set_db_path(None);
+        let _ = std::fs::remove_file(&synthetic_db);
+        assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+        let value: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+        assert!(value.to_string().contains("verwendung: bewertung"), "Es wurde eine veraltete Rasterfassung gestartet");
+        assert!(help.status.success(), "{}", String::from_utf8_lossy(&help.stderr));
+        assert!(String::from_utf8_lossy(&help.stdout).contains("--output-dir"), "Der gestartete Sidecar unterstützt die benannten Feedback-Exporte noch nicht");
+    }
+
     use super::*;
 
     #[test]
@@ -1431,6 +1603,49 @@ mod tests {
     }
 
     #[test]
+    fn categorize_cli_error_old_ocr_sidecar() {
+        let msg = categorize_cli_error("natascha_cli: error: argument command: invalid choice: 'ocr' (choose from analyze)");
+        assert!(msg.contains("Korrektur-Modul"));
+        assert!(msg.contains("aktualisieren"));
+        assert!(!msg.contains("Anbieter"));
+    }
+
+    #[test]
+    fn categorize_cli_error_preserves_http_metadata_before_format_heuristics() {
+        let msg = categorize_cli_error(r#"{"stage":"ocr","message":"start"}
+Fehler: FEHLER: [provider_http] {"provider":"OpenAI","status":400,"code":"invalid_value","type":"invalid_request_error","param":"response_format"}"#);
+        assert!(msg.contains("OpenAI: HTTP 400"));
+        assert!(msg.contains("Fehlercode: invalid_value"));
+        assert!(msg.contains("Parameter: response_format"));
+        assert!(!msg.contains("Ungültiges KI-Ergebnis"));
+    }
+
+    #[test]
+    fn categorize_cli_error_distinguishes_quota_from_rate_limit() {
+        for (provider, code) in [("OpenAI", "insufficient_quota"), ("OpenAI", "project_spend_limit_exceeded")] {
+            let msg = categorize_cli_error(&format!(r#"FEHLER: [provider_http] {{"provider":"{provider}","status":429,"code":"{code}"}}"#));
+            assert!(msg.contains("HTTP 429"));
+            assert!(msg.contains("Guthaben"));
+            assert!(msg.contains("Warten allein behebt das nicht"));
+        }
+        let msg = categorize_cli_error(r#"FEHLER: [provider_http] {"provider":"OpenAI","status":429,"code":"rate_limit_exceeded"}"#);
+        assert!(msg.contains("Ratenlimit"));
+        assert!(!msg.contains("aufgebraucht"));
+        let mistral = categorize_cli_error(r#"FEHLER: [rate_limited] [provider_http] {"provider":"Mistral OCR","status":429,"code":"1300","type":"rate_limited"}"#);
+        assert!(mistral.contains("HTTP 429"));
+        assert!(mistral.contains("Fehlercode: 1300"));
+        assert!(!mistral.contains("aufgebraucht"));
+    }
+
+    #[test]
+    fn categorize_cli_error_http_does_not_expose_raw_fields() {
+        let msg = categorize_cli_error(r#"FEHLER: [provider_http] {"provider":"OpenAI","status":403,"code":"sk-secret","message":"PRIVATE DOCUMENT","param":"data:image/png;base64,PRIVATE"}"#);
+        assert!(msg.contains("HTTP 403"));
+        assert!(!msg.contains("PRIVATE"));
+        assert!(!msg.contains("sk-secret"));
+    }
+
+    #[test]
     fn categorize_cli_error_rate_limit() {
         let msg = categorize_cli_error("HTTP 429: rate limit exceeded");
         assert!(msg.contains("Ratenlimit"));
@@ -1459,6 +1674,19 @@ mod tests {
     fn categorize_cli_error_empty_response() {
         let msg = categorize_cli_error("leere antwort vom Server");
         assert!(msg.contains("KI-Antwort war leer"));
+    }
+
+    #[test]
+    fn export_error_never_claims_analysis_failed() {
+        for error in ["Fehler: Feld 'bewertung' muss ein nicht-leeres Objekt sein.", "unknown private provider response"] {
+            let msg = categorize_cli_operation_error(error, "Korrektur-DOCX");
+            assert!(msg.contains("DOCX-Export fehlgeschlagen"));
+            assert!(!msg.contains("Analyse fehlgeschlagen"));
+            assert!(!msg.contains("private provider response"));
+        }
+        let msg = categorize_cli_operation_error("Permission denied", "Korrektur-DOCX");
+        assert!(msg.contains("Zielordner"));
+        assert!(!msg.contains("Bewertungsraster"));
     }
 
     #[test]
@@ -1522,4 +1750,40 @@ mod tests {
         // JSON ohne stage → wird ignoriert (kein Panic)
         emit_stderr_progress(r#"{"message":"test"}"#, None, 42);
     }
+}
+
+#[tauri::command]
+pub async fn natascha_scan_review(dir: String, python: String, session: String,
+    revision: Option<u64>, issue: Option<String>, choice: Option<String>) -> Result<String, String> {
+    let mut cmd = build_cli_command(&dir, &python)?;
+    cmd.arg("scan-review").arg(session);
+    let mut temporary = None;
+    if let Some(issue_id) = issue {
+        let value = choice.ok_or("Bitte eine Lesart waehlen.")?;
+        if value.len() > 400_000 { return Err("Die Lesart ist zu lang.".into()); }
+        let path = std::env::temp_dir().join(format!("luka-review-{}-{}.txt", std::process::id(), next_job_id()));
+        std::fs::write(&path, value).map_err(|_| "Lesart konnte nicht gespeichert werden.")?;
+        cmd.arg("--revision").arg(revision.ok_or("Prueffassung fehlt.")?.to_string())
+            .arg("--issue").arg(issue_id).arg("--choice-file").arg(&path);
+        temporary = Some(path);
+    }
+    let result = run_cli_and_capture(cmd, None, "Scan-Pruefung").await;
+    if let Some(path) = temporary { let _ = std::fs::remove_file(path); }
+    result
+}
+
+#[tauri::command]
+pub async fn natascha_scan_review_image(dir: String, python: String, session: String, issue: String) -> Result<String, String> {
+    let mut cmd=build_cli_command(&dir,&python)?;
+    cmd.arg("scan-review").arg(session).arg("--image-id").arg(issue);
+    let raw=run_cli_and_capture(cmd,None,"Original ansehen").await?;
+    serde_json::from_str::<String>(&raw).map_err(|_| "Originalbild konnte nicht gelesen werden.".into())
+}
+
+/// Liefert Denkoptionen aus der Fähigkeitstabelle des tatsächlich gestarteten Sidecars.
+#[tauri::command]
+pub async fn natascha_model_options(dir: String, python: String, provider: String, model: String) -> Result<String, String> {
+    let mut cmd = build_cli_command(&dir, &python)?;
+    cmd.arg("--provider").arg(provider).arg("--model").arg(model).arg("model-options");
+    run_cli_and_capture(cmd, None, "Denkoptionen").await
 }

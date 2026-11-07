@@ -2,6 +2,9 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import { execSync } from 'child_process';
+import { existsSync, readFileSync } from 'node:fs';
+import { extractReleaseNotes } from './releaseNotes.mjs';
+import tauri from '../../src-tauri/tauri.conf.json';
 
 // Git-Kurz-Hash für die Versionsanzeige im Dev-Build: macht sichtbar, welcher
 // Stand gerade läuft (die Versionsnummer ändert sich nur bei Releases).
@@ -13,10 +16,15 @@ function gitCommit(): string {
   }
 }
 
+const changelog = path.resolve(__dirname, '../../../../CHANGELOG.md');
+
 export default defineConfig({
   plugins: [react()],
   define: {
     __GIT_COMMIT__: JSON.stringify(gitCommit()),
+    __INSTALLED_RELEASE_NOTES__: JSON.stringify(
+      existsSync(changelog) ? extractReleaseNotes(readFileSync(changelog, 'utf8'), tauri.version) : '',
+    ),
   },
   server: {
     strictPort: true,

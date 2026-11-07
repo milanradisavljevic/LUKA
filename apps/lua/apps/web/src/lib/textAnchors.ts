@@ -1,7 +1,7 @@
 /** Wie gut sich ein Zitat im Schülertext wiederfinden lässt.
  *  - `eindeutig`    exakt, genau eine Fundstelle
  *  - `mehrdeutig`   exakt, mehrere Fundstellen (wird nie als eindeutig ausgegeben)
- *  - `normalisiert` nur nach Kleinschreibung/Whitespace-Kollaps gefunden
+ *  - `normalisiert` nur nach Anpassung von Abständen gefunden
  *  - `keiner`       keine Fundstelle -> der Vorschlag bleibt unverortet in der Liste
  */
 export type AnkerStatus = 'eindeutig' | 'mehrdeutig' | 'normalisiert' | 'keiner';
@@ -22,19 +22,24 @@ export interface Textanker {
 export const LEERER_ANKER: Textanker = Object.freeze({ status: 'keiner', treffer: [] });
 
 const WHITESPACE = /\s/;
+const WORD = /[\p{L}\p{N}_]/u;
+function wortgrenzen(text: string, quote: string, start: number, end: number): boolean {
+  return !(WORD.test(quote[0] ?? '') && start > 0 && WORD.test(text[start-1]!))
+    && !(WORD.test(quote[quote.length-1] ?? '') && end < text.length && WORD.test(text[end]!));
+}
 
 function alleVorkommen(text: string, quote: string): number[] {
   const treffer: number[] = [];
   // Schrittweite 1: überlappende Vorkommen zählen mit ("aaaa" / "aa" -> 0, 1, 2).
   let i = text.indexOf(quote);
   while (i >= 0) {
-    treffer.push(i);
+    if (wortgrenzen(text, quote, i, i + quote.length)) treffer.push(i);
     i = text.indexOf(quote, i + 1);
   }
   return treffer;
 }
 
-/** Kleinschreibung + Whitespace-Runen auf ein Leerzeichen einklappen und dabei
+/** Whitespace-Runen auf ein Leerzeichen einklappen und dabei
  *  die Index-Map zurückrechnen, damit Fundstellen im Originaltext bleiben. */
 function normalisiere(text: string): { text: string; start: number[]; ende: number[] } {
   const zeichen: string[] = [];
@@ -51,7 +56,7 @@ function normalisiere(text: string): { text: string; start: number[]; ende: numb
       i = j;
       continue;
     }
-    zeichen.push(text[i]!.toLowerCase());
+    zeichen.push(text[i]!);
     start.push(i);
     ende.push(i);
     i++;
@@ -66,7 +71,7 @@ function normalisiere(text: string): { text: string; start: number[]; ende: numb
  *    werden verworfen. Ein einzelner Umbruch ist nur ein Umbruch im Absatz und
  *    bleibt zulaessig - Rohtexte sind oft hart umgebrochen. */
 function normalisierteVorkommen(text: string, quote: string): AnkerTreffer[] {
-  const gesucht = quote.replace(/\s+/g, ' ').trim().toLowerCase();
+  const gesucht = quote.replace(/\s+/g, ' ').trim();
   if (!gesucht) return [];
   const norm = normalisiere(text);
   const treffer: AnkerTreffer[] = [];
@@ -78,7 +83,7 @@ function normalisierteVorkommen(text: string, quote: string): AnkerTreffer[] {
     while (ende > start && WHITESPACE.test(text[ende - 1]!)) ende--;
     while (start < ende && WHITESPACE.test(text[start]!)) start++;
     const abschnitt = text.slice(start, ende);
-    if (ende > start && (abschnitt.match(/[\r\n]/g)?.length ?? 0) < 2) {
+    if (wortgrenzen(text, gesucht, start, ende) && ende > start && (abschnitt.match(/[\r\n]/g)?.length ?? 0) < 2) {
       treffer.push({ start, laenge: ende - start });
     }
     i = norm.text.indexOf(gesucht, i + 1);

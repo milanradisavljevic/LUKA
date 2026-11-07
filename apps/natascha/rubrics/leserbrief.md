@@ -3,6 +3,7 @@ titel: Leserbrief
 fach: deutsch
 schulstufe: oberstufe
 textsorte: leserbrief
+verwendung: bewertung
 -->
 
 # Bewertungsraster: Leserbrief

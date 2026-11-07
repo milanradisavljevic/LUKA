@@ -33,5 +33,13 @@ export const MODEL_MAP: Record<string, string> = {
   'Qwen 3.5 Plus': 'qwen3.5-plus',
 };
 export function correctionRuntime(settings: AppSettings) {
- return { provider: PROVIDER_KEY_IDS[settings.defaultProvider] ?? settings.defaultProvider, model: MODEL_MAP[settings.defaultModel] ?? settings.defaultModel };
+ const provider = PROVIDER_KEY_IDS[settings.defaultProvider] ?? settings.defaultProvider;
+ const model = MODEL_MAP[settings.defaultModel] ?? settings.defaultModel;
+ return { provider, model, reasoning: settings.correctionReasoning?.[`${provider}:${model}`] };
+}
+
+/** Mistral liest Scans ueber den OCR-Dienst, unabhaengig vom Korrekturmodell. */
+export function scanRuntime(provider: string, model: string, fallback: { provider: string; model: string }) {
+  const id = provider ? (PROVIDER_KEY_IDS[provider] ?? provider) : fallback.provider;
+  return { provider: id, model: id === 'mistral' ? 'mistral-ocr-latest' : (model ? (MODEL_MAP[model] ?? model) : fallback.model) };
 }

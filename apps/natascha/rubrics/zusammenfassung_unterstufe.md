@@ -3,6 +3,7 @@ titel: Zusammenfassung (Unterstufe)
 fach: deutsch
 schulstufe: unterstufe
 textsorte: zusammenfassung
+verwendung: bewertung
 -->
 
 # Bewertungsraster: Zusammenfassung (Unterstufe)

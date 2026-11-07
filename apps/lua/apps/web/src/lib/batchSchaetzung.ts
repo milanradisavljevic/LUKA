@@ -19,13 +19,14 @@ export interface BatchSchaetzung {
 
 export function schaetzeBatch(
   dateien: { woerter?: number | null; visionModus?: boolean }[],
+  aufrufeProAbgabe = 1,
 ): BatchSchaetzung {
   const gezahlt = dateien.filter((d) => typeof d.woerter === 'number' && (d.woerter ?? 0) > 0);
   const woerter = gezahlt.length > 0
     ? gezahlt.reduce((sum, d) => sum + (d.woerter ?? 0), 0)
     : null;
-  const eingabeTokens = woerter !== null ? Math.round(woerter * TOKEN_PRO_WORT) : null;
-  const antwortTokens = dateien.length * ANTWORT_TOKENS_PRO_ABGABE;
+  const eingabeTokens = woerter !== null ? Math.round(woerter * TOKEN_PRO_WORT * aufrufeProAbgabe) : null;
+  const antwortTokens = dateien.length * ANTWORT_TOKENS_PRO_ABGABE * aufrufeProAbgabe;
   return {
     dateien: dateien.length,
     woerter,

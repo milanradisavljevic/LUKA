@@ -66,6 +66,8 @@ impl Adapter for OpenAiCompatAdapter {
 
         let mut body_map = serde_json::Map::new();
         body_map.insert("model".to_string(), serde_json::Value::String(req.model.clone()));
+        // LUA-Unterlagenerstellung: eigene Budgetpolitik. Der Python-Korrekturpfad
+        // räumt DeepSeek seit 2026-11-05 bis 128K ein; siehe apps/natascha/AGENTS.md.
         body_map.insert(token_field.to_string(), serde_json::Value::Number(16000.into()));
         if accepts_temperature(&req.provider, &req.model) {
             body_map.insert("temperature".to_string(), serde_json::Value::from(req.temperature));

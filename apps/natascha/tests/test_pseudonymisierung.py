@@ -120,7 +120,7 @@ def test_dsgvo_regression_kein_klarname_im_prompt(tmp_path):
     with patch.object(nc, "run_llm_api", side_effect=fake_api):
         data, errors = nc.run_llm_analysis(
             docx_text="TokenA SuffixA schreibt über den Klimawandel. TokenA findet das Thema wichtig.",
-            rubric_content="Rubrik",
+            rubric_content=(Path(nc.__file__).parent / "rubrics/srdp_deutsch_oberstufe.md").read_text(encoding="utf-8"),
             fach="Deutsch",
             schulstufe="Oberstufe",
             textsorte="Eroerterung",
@@ -131,6 +131,8 @@ def test_dsgvo_regression_kein_klarname_im_prompt(tmp_path):
         )
 
     assert data is not None
+    basis = json.loads(prompts[0].split("<grundlage>\n")[1].split("\n</grundlage>")[0])
+    assert basis["textfakten"]["wortzahl"] == 11
     assert prompts, "kein LLM-Call erfolgt"
     for p in prompts:
         assert "TokenA" not in p and "SuffixA" not in p, "Klarname im Prompt gefunden"

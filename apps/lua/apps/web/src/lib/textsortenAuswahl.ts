@@ -16,6 +16,7 @@ const DE_UNTERSTUFE_TEXTSORTEN = [
   'Zusammenfassung',
   'Kommentar',
   'Leserbrief',
+  'Bewerbungsschreiben',
 ];
 
 export function istEnglischFach(fach?: string | null): boolean {

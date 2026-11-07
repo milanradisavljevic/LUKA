@@ -67,13 +67,13 @@ describe('baueFehlerSegmente – mehrdeutige Zitate', () => {
 
   it('überdeckt auch überlappende Fundstellen desselben Zitats ohne Lücke', () => {
     // "aa" in "aaaa" trifft 0, 1 und 2 – 0|2 und 2|4 ergeben zusammen die ganze Stelle
-    const e = baueFehlerSegmente('aaaa', [f(1, 'aa')]);
+    const e = baueFehlerSegmente('!!!!', [f(1, '!!')]);
     expect(e.segmente.map(s => [s.start, s.ende])).toEqual([[0, 2], [2, 4]]);
     expect(e.ohnePlatz).toEqual([]);
   });
 
   it('meldet normalisierte Treffer nicht als mehrdeutig', () => {
-    const e = baueFehlerSegmente(TEXT, [f(1, 'booktok TREND')]);
+    const e = baueFehlerSegmente('Neuer Booktok   trend.', [f(1, 'Booktok trend')]);
     expect(e.anker.get(1)!.status).toBe('normalisiert');
     expect(e.segmente.every(s => s.mehrdeutig)).toBe(false);
   });
@@ -87,8 +87,8 @@ describe('baueFehlerSegmente – Überlappungen', () => {
   });
 
   it('ist bei Kollision stabil und unabhängig von der Listenreihenfolge', () => {
-    const vorwaerts = baueFehlerSegmente('aaaa', [f(5, 'aa'), f(3, 'aa')]);
-    const rueckwaerts = baueFehlerSegmente('aaaa', [f(3, 'aa'), f(5, 'aa')]);
+    const vorwaerts = baueFehlerSegmente('!!!!', [f(5, '!!'), f(3, '!!')]);
+    const rueckwaerts = baueFehlerSegmente('!!!!', [f(3, '!!'), f(5, '!!')]);
     expect(vorwaerts.segmente.map(s => s.fehlerId)).toEqual(rueckwaerts.segmente.map(s => s.fehlerId));
     expect(vorwaerts.segmente.map(s => s.fehlerId)).toEqual([3, 3]);
   });
@@ -112,13 +112,13 @@ describe('baueFehlerSegmente – Überlappungen', () => {
   });
 
   it('liefert niemals zwei Segmente mit demselben Start', () => {
-    const e = baueFehlerSegmente('aaaa', [f(1, 'aa'), f(2, 'aaa'), f(3, 'a')]);
+    const e = baueFehlerSegmente('!!!!', [f(1, '!!'), f(2, '!!!'), f(3, '!')]);
     const starts = e.segmente.map(s => s.start);
     expect(new Set(starts).size).toBe(starts.length);
   });
 
   it('lässt die Segmente sich nie überschneiden', () => {
-    const e = baueFehlerSegmente('aaaa', [f(1, 'aa'), f(2, 'aaa'), f(3, 'a')]);
+    const e = baueFehlerSegmente('!!!!', [f(1, '!!'), f(2, '!!!'), f(3, '!')]);
     for (let i = 1; i < e.segmente.length; i++) {
       expect(e.segmente[i]!.start).toBeGreaterThanOrEqual(e.segmente[i - 1]!.ende);
     }
@@ -142,7 +142,7 @@ describe('baueFehlerSegmente – leere Eingaben', () => {
 
 describe('primaerStart', () => {
   it('liefert null, wenn der Vorschlag keine gerenderte Stelle hat', () => {
-    const e = baueFehlerSegmente('aaaa', [f(1, 'aa'), f(2, 'aa')]);
+    const e = baueFehlerSegmente('!!!!', [f(1, '!!'), f(2, '!!')]);
     expect(primaerStart(e, 1)).toBe(0);
     expect(primaerStart(e, 2)).toBeNull();
     expect(primaerStart(e, 99)).toBeNull();
@@ -151,7 +151,7 @@ describe('primaerStart', () => {
 
 describe('baueFehlerSegmente – Segmentgrenzen sind exakt', () => {
   it('schneidet jedes Segment so, dass der Wortlaut im Text wieder stimmt', () => {
-    const e = baueFehlerSegmente(TEXT, [f(1, 'booktok trend'), f(2, 'aufsteigende')]);
+    const e = baueFehlerSegmente(TEXT, [f(1, 'Booktok trend'), f(2, 'aufsteigende')]);
     expect(e.segmente.map(s => TEXT.slice(s.start, s.ende))).toEqual(['Booktok trend', 'aufsteigende']);
   });
 

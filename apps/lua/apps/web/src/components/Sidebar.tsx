@@ -3,7 +3,7 @@ import { Home,BookOpen,SpellCheck,Library,School,Settings,HelpCircle,ChevronLeft
 import type { ActiveView } from '../lib/types';
 import { WORK_AREAS,workArea } from '../lib/workNavigation';
 import { FEATURES } from '../lib/features';
-import { BrandSignature } from './BrandLogo';
+import { BrandSignature, WORDMARK_STYLE } from './BrandLogo';
 import type { UseUpdaterReturn } from '../hooks/useUpdater';
 /** An den Bereichsnamen gehängt, nicht an die Position: sonst verschiebt eine
  *  Umordnung der Bereiche stillschweigend die Icons. */
@@ -15,7 +15,7 @@ export function Sidebar({currentView,onViewChange,onNewDocument,onBugReport,upda
  const tauri=Boolean((window as any).__TAURI_INTERNALS__);
  const updateNotified=updater?.state.notified ?? false;
  return <aside className={'luka-sidebar'+(collapsed?' is-collapsed':'')} aria-label="Hauptnavigation">
-  <div className="luka-sidebar-brand">{collapsed ? 'L' : <BrandSignature size={40} showMark={false} showTagline={false}/>}</div>
+  <div className="luka-sidebar-brand">{collapsed ? <span aria-label="Luka" style={WORDMARK_STYLE}>L</span> : <BrandSignature size={40} showMark={false} showTagline={false}/>}</div>
   <button className="sidebar-new" onClick={onNewDocument} title="Neue Unterlage"><Plus size={18}/>{!collapsed && 'Neue Unterlage'}</button>
  <nav>{WORK_AREAS.map((area)=>{if(!FEATURES.natascha && area.view==='korrektur')return null;const Icon=icons[area.label]??Home;return <button key={area.view} onClick={()=>onViewChange(area.view)} aria-label={area.label} title={area.label} aria-current={active===area?'page':undefined}><Icon size={20}/>{!collapsed && area.label}</button>;})}</nav>
   <div className="sidebar-bottom"><button onClick={()=>onViewChange('settings')} aria-label="Einstellungen" title="Einstellungen" aria-current={currentView==='settings'?'page':undefined}><Settings size={18}/>{!collapsed && 'Einstellungen'}</button><button onClick={onBugReport} aria-label="Fehler melden" title="Fehler melden"><Bug size={18}/>{!collapsed && 'Fehler melden'}</button><button onClick={()=>onViewChange('help')} aria-label="Hilfe" title="Hilfe"><HelpCircle size={18}/>{!collapsed && 'Hilfe'}</button>

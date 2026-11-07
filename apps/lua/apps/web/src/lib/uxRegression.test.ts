@@ -9,7 +9,7 @@ describe('UX regression',()=>{
     // Ein Zitat, das mehrfach vorkommt, wird nie still auf die erste Stelle gesetzt –
     // es wird als mehrdeutig ausgewiesen und alle Fundstellen werden gezeigt.
     expect(findeTextanker('one two one','one').status).toBe('mehrdeutig');
-    expect(findeTextanker('aaaa','aa').status).toBe('mehrdeutig');
+    expect(findeTextanker('!!!!','!!').status).toBe('mehrdeutig');
     expect(findeTextanker('one two','two').status).toBe('eindeutig');
   });
   it('keeps the generated document on navigation and identifies changed inputs',()=>{const doc={} as never;const state={generiertesDokument:doc,meta:{}} as unknown as AppState;expect(wizardReducer(state,{type:'SET_STEP',step:'baukasten'}).generiertesDokument).toBe(doc);const changed=wizardReducer(state,{type:'SET_META',meta:{titel:'Changed'} as never});expect(changed.generiertesDokument).toBe(doc);expect(changed.generatedOutdated).toBe(true);expect(wizardReducer(changed,{type:'SET_GENERIERTES_DOKUMENT',dokument:doc}).generatedOutdated).toBe(false);});

@@ -2,6 +2,11 @@ import { describe, it, expect } from 'vitest';
 import { schaetzeBatch, formatTokenzahl, ANTWORT_TOKENS_PRO_ABGABE } from './batchSchaetzung';
 
 describe('schaetzeBatch (L2, Batch-Mengenschätzung)', () => {
+  it('berücksichtigt Analyse und Gegenprüfung für Deutsch', () => {
+    const s = schaetzeBatch([{ woerter: 500 }], 2);
+    expect(s.eingabeTokens).toBe(1500);
+    expect(s.antwortTokens).toBe(2 * ANTWORT_TOKENS_PRO_ABGABE);
+  });
   it('summiert Wortzahlen und rechnet Tokens konservativ hoch', () => {
     const s = schaetzeBatch([
       { woerter: 400 },

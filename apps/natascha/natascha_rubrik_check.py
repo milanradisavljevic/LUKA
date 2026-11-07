@@ -83,6 +83,10 @@ def pruefe_rubrik(dateiname: str, text: str) -> Befund:
         if not header.get(feld, "").strip():
             fehler.append(f"Header-Feld `{feld}:` fehlt im luka-rubrik-Kommentar")
 
+    if header.get("verwendung") in {"referenz", "selbstcheck"}:
+        hinweise.append("Checkliste oder Referenz — kein eigenständiges Bewertungsraster für eine Korrektur.")
+        return Befund(dateiname, fehler, hinweise)
+
     kriterien = extract_criteria_keys(text)
     if not kriterien:
         # Ohne verbindliche Schluessel prueft der Rest nichts. Kein Fehler:

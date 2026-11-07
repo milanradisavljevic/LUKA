@@ -1,3 +1,4 @@
+import { CorrectionReasoningSelect, correctionReasoningKey } from '../components/CorrectionReasoningSelect';
 import { useEffect, useState, useRef } from 'react';
 import { Check, Database, Download, RefreshCw, Terminal, Loader2 } from 'lucide-react';
 import type { AppSettings, LlmProvider } from '../lib/types';
@@ -393,6 +394,12 @@ export function SettingsView() {
                 <option key={m} value={m}>{m}</option>
               ))}
             </select>
+          </div>
+
+          <div>
+            <CorrectionReasoningSelect provider={settings.defaultProvider} model={settings.defaultModel}
+              value={settings.correctionReasoning?.[correctionReasoningKey(settings.defaultProvider, settings.defaultModel)]}
+              onChange={value => update({ correctionReasoning: { ...settings.correctionReasoning, [correctionReasoningKey(settings.defaultProvider, settings.defaultModel)]: value } })} />
           </div>
 
           <div>

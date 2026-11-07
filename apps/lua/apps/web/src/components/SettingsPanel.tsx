@@ -4,6 +4,7 @@ import { AlertTriangle, CheckCircle2, ExternalLink, Eye, Loader2, Save, ShieldCh
 import type { LlmProvider } from '../lib/types';
 import { LLM_PROVIDERS } from '../lib/constants';
 import {
+  assertStoredProviderKey,
   classifyProviderTestError,
   ensurePrimaryProviderKey,
   getPrimaryProviderKeyId,
@@ -78,7 +79,7 @@ export function SettingsPanel({ mode = 'settings', onKeySaved, onVerifiedContinu
       await invoke('save_api_key', { provider: keyId, key: key.trim() });
 
       const stored=await invoke<string>('load_api_key',{provider:keyId});
-      if(!stored || !stored.trim()) throw new Error('Der Schlüssel konnte nicht dauerhaft gespeichert werden. Bitte erneut versuchen.');
+      assertStoredProviderKey(key, stored);
       setSaved(prev=>({...prev,[providerId]:true}));
       if(test) {
         markProviderSetupVerified(providerId);

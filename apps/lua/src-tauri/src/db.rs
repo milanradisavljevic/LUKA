@@ -61,6 +61,7 @@ pub fn init_schema(conn: &Connection) -> Result<(), String> {
     // nachdem die Cluster-Spalte auch bei Alt-Datenbanken sicher existiert.
     conn.execute_batch("CREATE INDEX IF NOT EXISTS idx_fehler_cluster ON fehler_historie(cluster_id);")
         .map_err(|e| format!("Fehler-Cluster-Index anlegen fehlgeschlagen: {}", e))?;
+    migrate_review_status(conn)?;
     migrate_korrektur_revisionen(conn)?;
     migrate_pool_local_metadata(conn)?;
     migrate_lua_klassen_identity(conn)?;
@@ -484,6 +485,10 @@ fn migrate_fehler_cluster_columns(conn: &Connection) -> Result<(), String> {
         .map_err(|e| format!("Fehler-Cluster-Migration lesen fehlgeschlagen: {e}"))?
         .collect::<Result<_, _>>()
         .map_err(|e| format!("Fehler-Cluster-Migration auswerten fehlgeschlagen: {e}"))?;
+    if !columns.contains("befundart") {
+        conn.execute_batch("ALTER TABLE fehler_historie ADD COLUMN befundart TEXT;")
+            .map_err(|e| format!("Befundart ergänzen: {e}"))?;
+    }
     if !columns.contains("cluster_id") {
         conn.execute_batch("ALTER TABLE fehler_historie ADD COLUMN cluster_id TEXT;")
             .map_err(|e| format!("Fehler-Cluster-Spalte ergänzen fehlgeschlagen: {e}"))?;
@@ -527,6 +532,19 @@ fn migrate_generated_materials_loop_columns(conn: &Connection) -> Result<(), Str
 }
 
 /// Übernimmt vorhandene Abgaben und ihre aktuell sichtbaren Bewertungen als Revision 1.
+fn migrate_review_status(conn: &Connection) -> Result<(), String> {
+    for (table, column) in [("lehrer_feedback", "pruefstatus"), ("korrektur_revision", "lehrer_pruefstatus")] {
+        let mut stmt = conn.prepare(&format!("PRAGMA table_info({table})")).map_err(|e| e.to_string())?;
+        let columns = stmt.query_map([], |row| row.get::<_, String>(1)).map_err(|e| e.to_string())?
+            .collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())?;
+        if !columns.iter().any(|name| name == column) {
+            conn.execute_batch(&format!("ALTER TABLE {table} ADD COLUMN {column} TEXT NOT NULL DEFAULT 'freigegeben';"))
+                .map_err(|e| format!("Prüfstatus ergänzen: {e}"))?;
+        }
+    }
+    Ok(())
+}
+
 fn migrate_korrektur_revisionen(conn: &Connection) -> Result<(), String> {
     let revision_columns = {
         let mut stmt = conn.prepare("PRAGMA table_info(korrektur_revision)")
@@ -537,9 +555,20 @@ fn migrate_korrektur_revisionen(conn: &Connection) -> Result<(), String> {
             .map_err(|e| format!("Korrekturversions-Spalten auswerten: {e}"))?;
         rows
     };
+    let basis_columns: Vec<String> = conn.prepare("PRAGMA table_info(korrekturauftrag)")
+        .map_err(|e| e.to_string())?.query_map([], |row| row.get(1))
+        .map_err(|e| e.to_string())?.collect::<Result<_, _>>().map_err(|e| e.to_string())?;
+    if !basis_columns.iter().any(|column| column == "grundlage_json") {
+        conn.execute_batch("ALTER TABLE korrekturauftrag ADD COLUMN grundlage_json TEXT NOT NULL DEFAULT '{}';")
+            .map_err(|e| e.to_string())?;
+    }
     if !revision_columns.contains("basis_json") {
         conn.execute_batch("ALTER TABLE korrektur_revision ADD COLUMN basis_json TEXT NOT NULL DEFAULT '{}';")
             .map_err(|e| format!("Korrekturversions-Grundlage ergänzen: {e}"))?;
+    }
+    if !revision_columns.contains("lehrer_pruefung_json") {
+        conn.execute_batch("ALTER TABLE korrektur_revision ADD COLUMN lehrer_pruefung_json TEXT NOT NULL DEFAULT '{}';")
+            .map_err(|e| format!("Kriterienprüfung ergänzen: {e}"))?;
     }
     let abgaben = {
         let mut stmt = conn

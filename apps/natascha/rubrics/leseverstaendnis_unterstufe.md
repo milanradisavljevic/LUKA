@@ -4,6 +4,7 @@ fach: deutsch
 schulstufe: unterstufe
 textsorte: leseverstaendnis
 aufgabenart: verstaendnis
+verwendung: bewertung
 -->
 
 # Bewertungsraster: Leseverständnis (Unterstufe)

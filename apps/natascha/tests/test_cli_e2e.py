@@ -49,6 +49,15 @@ def run_cli(db_path: Path, *args: str) -> dict:
     return json.loads(proc.stdout)
 
 
+@pytest.mark.parametrize("switch,expected", [([], False), (["--reanalyze-existing"], True)])
+def test_cli_accepts_explicit_reanalysis_per_request(monkeypatch, switch, expected):
+    received = []
+    monkeypatch.setattr(sys, "argv", [str(CLI), "analyze", "synthetic.docx", "--klasse", "TEST", "--aufgabe", "Rede", *switch])
+    monkeypatch.setattr(cli, "cmd_analyze", lambda args: received.append(args.reanalyze_existing) or 0)
+    assert cli.main() == 0
+    assert received == [expected]
+
+
 def test_cli_readonly_commands_against_temp_db(tmp_path: Path) -> None:
     db_path = tmp_path / "natascha.db"
 
@@ -332,6 +341,7 @@ def test_feedback_docx_json_pfad_filtert_nach_lehrkraft(tmp_path: Path) -> None:
     abgabe_id = db.insert_abgabe(
         db_path,
         None, "CLI-TEST", "SA1", "json-path.docx", "h-docx-pfad",
+        rohtext="offen raus geaendert",
         feedback_json_path=str(json_path),
         fach="Deutsch", schulstufe="Oberstufe", textsorte="Kommentar",
         rubrik="srdp_deutsch_oberstufe.md",
@@ -394,3 +404,24 @@ def test_load_rubric_header_safe_ueberlebt_non_utf8(tmp_path: Path) -> None:
 
     missing = cli._load_rubric_header_safe(nc, tmp_path / "fehlt.md", "fehlt.md")
     assert missing == {"filename": "fehlt.md"}
+
+
+@pytest.mark.parametrize("view", ["schueler","lehrkraft"])
+def test_language_only_revision_exports_without_any_content_criteria(tmp_path, view):
+    from docx import Document
+    db_path=tmp_path/"language.db";db.init_db(db_path)
+    source=tmp_path/"synthetisch.docx"
+    document=Document();document.add_paragraph("Wir lernen gemeinsam.");document.save(source)
+    payload={"datei":source.name,"textsorte":"Meinungsrede","fach":"Deutsch","schulstufe":"Oberstufe","rubrik":"meinungsrede.md","bewertung":{},"fehler":[],"pruefumfang":"sprache","bewertungsmodus":"unbenotet","bewertungspruefung":{"version":1,"status":"vollstaendig","kriterien":{},"aufgaben":[]}}
+    aid=db.save_analysis_to_db(db_path,payload,source,"TEST","Rede",rohtext="Wir lernen gemeinsam.",correction_basis={"bewertungsmodus":"unbenotet"})
+    with sqlite3.connect(db_path) as conn:
+        revision=conn.execute("SELECT id FROM korrektur_revision WHERE abgabe_id=? AND is_active=1",(aid,)).fetchone()[0]
+        before=conn.execute("SELECT analysis_json FROM korrektur_revision WHERE id=?",(revision,)).fetchone()[0]
+    out=tmp_path/f"{view}.docx"
+    result=run_cli(db_path,"feedback-docx",str(aid),"--revision-id",str(revision),"--ansicht",view,"--output",str(out))
+    assert result["abgabe_id"]==aid and out.is_file()
+    exported=Document(out)
+    assert "Wir lernen gemeinsam." in "\n".join(p.text for p in exported.paragraphs)
+    with sqlite3.connect(db_path) as conn:
+        assert conn.execute("SELECT analysis_json FROM korrektur_revision WHERE id=?",(revision,)).fetchone()[0]==before
+        assert conn.execute("SELECT note FROM abgabe WHERE id=?",(aid,)).fetchone()[0] is None

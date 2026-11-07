@@ -3,6 +3,7 @@ titel: Deutsch Unterstufe
 fach: deutsch
 schulstufe: unterstufe
 textsorte: alle
+verwendung: bewertung
 -->
 
 # Bewertungsraster: Deutsch Unterstufe

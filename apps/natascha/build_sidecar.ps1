@@ -29,6 +29,7 @@ $mode = if ($OneDir) { "--onedir" } else { "--onefile" }
   --add-data "rubrics;rubrics" `
   --add-data "prompts;prompts" `
   --collect-data textual `
+  --collect-all pypdfium2 `
   natascha_cli.py
 if ($LASTEXITCODE -ne 0) { throw "PyInstaller-Build ist fehlgeschlagen." }
 

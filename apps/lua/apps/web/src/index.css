@@ -1317,6 +1317,13 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .correction-import label { display:block; margin-bottom:.35rem; }
 .correction-file-row { display:grid; grid-template-columns:minmax(0,1fr) minmax(160px,1fr) auto; gap:.65rem; align-items:center; padding:.75rem 0; border-bottom:1px solid var(--color-border); font-size:.875rem; }
 .correction-file-row strong { overflow-wrap:anywhere; }
+.schueler-zuordnung { min-width:0; }
+.schueler-zuordnung > select { width:100%; }
+.schueler-zuordnung-neu { margin-top:.5rem; padding:.65rem; border:1px solid var(--color-border); border-radius:var(--radius); background:var(--color-bg-surface); }
+.schueler-zuordnung-neu label { font-size:.75rem; }
+.schueler-zuordnung-neu input { display:block; width:100%; box-sizing:border-box; margin:.2rem 0 .5rem; }
+.schueler-zuordnung-neu small { display:block; color:var(--color-text-secondary); }
+.schueler-zuordnung-aktionen { display:flex; flex-wrap:wrap; gap:.35rem; margin-top:.5rem; }
 .queue-results,.runtime-summary,.session-warning { margin:1rem 0; padding:1rem; border:1px solid var(--color-border); border-radius:var(--radius); background:var(--color-bg-surface); }
 .session-warning { color:var(--color-error); }
 .correction-import h4 { margin:1rem 0 .5rem; }
@@ -1609,3 +1616,67 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 @media(max-width:700px) { .monatszelle {min-height:4rem;} .monatsstunde-zeit {display:none;} }
 
 
+.correction-progress-track {height:8px;border-radius:6px;overflow:hidden;background:var(--color-border);margin:.7rem 0;}
+.correction-progress-motion {height:100%;width:36%;border-radius:inherit;background:var(--color-accent);animation:correction-progress-slide 2s ease-in-out infinite;}
+@keyframes correction-progress-slide {0%{transform:translateX(-100%)}100%{transform:translateX(380%)}}
+@media (prefers-reduced-motion:reduce){.correction-progress-motion{animation:none;width:100%;opacity:.55}}
+
+.rubric-markdown { margin-top: .75rem; padding: clamp(.75rem, 3vw, 1.5rem); border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-bg-base); color: var(--color-text-primary); line-height: 1.65; overflow-wrap: anywhere; }
+.rubric-markdown > :first-child { margin-top: 0; }
+.rubric-markdown h1 { font-size: 1.5rem; line-height: 1.3; }
+.rubric-markdown h2 { font-size: 1.2rem; margin-top: 1.7rem; }
+.rubric-markdown h3 { font-size: 1rem; margin-top: 1.3rem; }
+.rubric-markdown li { margin-block: .25rem; }
+.rubric-markdown blockquote { margin-inline: 0; padding-left: 1rem; border-left: 3px solid var(--color-accent); color: var(--color-text-secondary); }
+.rubric-markdown code { font-size: .875em; white-space: pre-wrap; }
+.rubric-markdown .rubric-table-scroll { overflow-x: auto; max-width: 100%; margin-block: 1rem; }
+.rubric-markdown table { border-collapse: collapse; width: 100%; font-size: .875rem; }
+.rubric-markdown th, .rubric-markdown td { border: 1px solid var(--color-border); padding: .5rem .65rem; text-align: left; min-width: 5rem; vertical-align: top; }
+.rubric-markdown th { background: var(--color-bg-elevated); font-weight: 600; }
+.rubric-markdown .contains-task-list { list-style: none; padding-left: .5rem; }
+
+.release-welcome {
+  display: flex;
+  align-items: center;
+  gap: .85rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  background: var(--color-bg-selected);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+.release-welcome-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 2.65rem;
+  height: 2.65rem;
+  color: var(--color-accent);
+  background: var(--color-bg-elevated);
+  border-radius: var(--radius);
+}
+.release-welcome p {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  margin: 0 0 .2rem;
+  font-size: .75rem;
+  color: var(--color-text-secondary);
+}
+.release-welcome h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  line-height: 1.25;
+}
+.release-notes h3 {
+  margin: .9rem 0 .4rem;
+  padding-top: .7rem;
+  border-top: 1px solid var(--color-border);
+  font-size: .9rem;
+}
+.release-notes h3:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+  font-size: 1rem;
+}
+.release-notes li::marker { color: var(--color-accent); }

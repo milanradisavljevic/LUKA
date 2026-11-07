@@ -66,3 +66,49 @@ python benchmarks/run_benchmark.py --provider deepseek --model deepseek-flash --
 python benchmarks/evaluiere.py --a-b --input ab-legacy.json
 python benchmarks/evaluiere.py --a-b --input ab-neutral.json --vergleich ab-legacy.json
 ```
+
+
+## Getrennter Vergleich von Modellen und Denkmodus
+
+`run_benchmark.py --comparison-run --reasoning high --provider deepseek --model deepseek-v4-pro --dry-run`
+prüft den Ablauf ohne Versand. Ohne `--dry-run` entstehen kostenpflichtige API-Aufrufe.
+`--reasoning` verwendet die modellbezogenen Optionen aus `model-options` (z. B. `off`,
+`high`, `max`). Vergleichsläufe zählen ausdrücklich nicht zum bestehenden Flash-Gate.
+Für jedes Paar dasselbe Manifest, dieselben Bewertungsgrundlagen und unabhängige Läufe
+verwenden. Nur eine Bedingung gleichzeitig ändern. Ein nicht zur Promptentwicklung
+verwendeter Teil des synthetischen Referenzsatzes bleibt für die Schlussprüfung zurück.
+
+`compare_runs.py erster-lauf.json zweiter-lauf.json --output vergleich.json` vergleicht
+vollständige synthetische Protokolle und prüft gleiche Text-Prüfsummen. Dauer und
+API-Verbrauch werden mitgeführt. Fachliche Kennzahlen werden nur nach einer unabhängigen,
+verblindeten Prüfung aus `qualityReview` je Fall aggregiert: `falseErrors`, `missedErrors`,
+`usableSuggestions`, `suggestionCount`, `gradePlausible` (bool). Fehlende Beurteilungen
+bleiben offen. `costUsd` darf nur mit belegten Kosten ergänzt werden; fehlende Kosten
+werden nicht aus vermuteten Preisen erfunden. Kein Ergebnis stellt automatisch ein
+Standardmodell um oder ersetzt die fachliche Freigabe.
+
+
+## Deutsch-Gegenprüfung als separater Referenzvergleich
+
+`python deutsch_referenz.py` erzeugt sechs rein synthetische Fälle unter `cases_deutsch_review_v1/`, einschließlich Beilagen und getrennten Prüferwartungen. Vorhandene Ordner werden nicht überschrieben. Die Prüferwartungen enthalten keine vorgetäuschten Lehrkraftnoten: fachliche Abnahme und Notenspannen sind ausdrücklich offen.
+
+Zunächst ohne API testen:
+
+```bash
+python benchmarks/run_benchmark.py --manifest benchmarks/cases_deutsch_review_v1/manifest.json --comparison-run --dry-run --model deepseek-v4-pro --reasoning high --output deutsch-review-dryrun.json
+```
+
+Den Runner aus `apps/natascha/` aufrufen (`python benchmarks/run_benchmark.py ...`). Für den späteren Promptvergleich dieselben Fälle, Rasterinhalte, Modellkennung und Denkoption verwenden; beide Codefassungen in isolierten Checkouts ausführen und ihre Protokolle mit `compare_runs.py` vergleichen. Promptfingerabdrücke erfassen auch die Deutsch-Gegenprüfung und die in Word verwendeten Detaildeskriptoren. `gradeProvisional` und `reviewStatus` machen offene Prüfungen sichtbar. Protokolle erst nach unabhängiger fachlicher Sichtung mit `qualityReview` ergänzen. Modell- oder Denkmodusänderungen in eigenen Paarvergleichen prüfen. Kein Vergleich gibt automatisch ein Modell oder Release frei.
+
+
+## Pseudonymisierte Referenzrunde
+
+Lokale Vergleichsläufe können mit `compare_runs.py ... --allow-pseudonymized`
+ausdrücklich pseudonymisierte Fälle vergleichen. Datenklassen müssen übereinstimmen;
+das synthetische Modellgate bleibt unverändert. `qualityReview.falseReasons` zählt
+falsche Begründungen, `meaningChanges` sinnverändernde vorbereitete Ersetzungen.
+Fehlende Fachurteile ergeben `safetyAssessment: offen`, niemals eine Freigabe.
+Die erste Referenzrunde umfasst drei geprüfte Arbeiten mit identischer bestätigter
+Grundlage. Zuerst DeepSeek Flash/max, höchstens sechs Aufrufversuche ohne automatische
+Wiederholungsserie. OpenAI und Mistral werden erst nach dieser Auswertung festgelegt.
+Referenzurteile und Notenspannen gehören niemals in den Analyseprompt.

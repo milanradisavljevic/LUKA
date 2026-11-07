@@ -3,6 +3,7 @@ titel: Bericht (Unterstufe)
 fach: deutsch
 schulstufe: unterstufe
 textsorte: bericht
+verwendung: bewertung
 -->
 
 # Bewertungsraster: Bericht (Unterstufe)

@@ -97,9 +97,41 @@ def _ib_paper1_source_text(source_text: str | None, source_path: Path | None, nc
     return extracted
 
 
+def cmd_ocr(args):
+    """Scan separat auslesen, lokal wiederverwenden und vor Korrektur pruefen."""
+    import natascha_core as nc
+    nc._load_dotenv()
+    config = nc.load_config()
+    config["api"] = {**config.get("api", {})}
+    config["api"]["provider"] = _PROVIDER_OVERRIDE or "mistral"
+    config["api"]["model"] = _MODEL_OVERRIDE or "mistral-ocr-latest"
+    source = Path(args.file).resolve()
+    if args.approved_text_file:
+        text = Path(args.approved_text_file).read_text(encoding="utf-8")
+        nc.approve_scan(source, text, config, config["api"]["provider"], config["api"]["model"])
+        _json_out({"path": str(source), "geprueft": True})
+        return 0
+    result = nc.extract_scan(source, config)
+    from scan_input import pdf_images
+    block, _ = nc.encode_file_for_vision(source)
+    previews = pdf_images(block) if source.suffix.lower() == ".pdf" else [block]
+    result = {**result, "preview_pages": [f"data:{p['source']['media_type']};base64,{p['source']['data']}" for p in previews]}
+    if args.output:
+        target = Path(args.output).resolve()
+        source = Path(args.file).resolve()
+        if target == source or target.suffix.lower() != ".txt":
+            raise ValueError("Bitte eine separate TXT-Zieldatei waehlen.")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(result["transkription"], encoding="utf-8")
+    _json_out(result)
+    return 0
+
+
 def cmd_analyze(args):
     _progress("start", "Analyse wird vorbereitet")
     nc, ndb, config, db_path = _load_env_and_config()
+    if getattr(args, "reasoning", None) is not None:
+        config.setdefault("api", {})["reasoning"] = args.reasoning
     file_path = Path(args.file).resolve()
     args.klasse = ndb.normalize_klasse(args.klasse)
     args.aufgabe = ndb.normalize_aufgabe(args.aufgabe)
@@ -110,7 +142,7 @@ def cmd_analyze(args):
     _progress("input", "Rubrik und Abgabe werden gelesen")
     docx_text = nc.read_submission_text(file_path)
     api = config.get("api", {})
-    if nc.is_vision_file(file_path) and not nc.is_vision_capable(
+    if not getattr(args, "scan_action", None) and nc.is_vision_file(file_path) and not docx_text and not nc.is_vision_capable(
         str(api.get("provider", "")), str(api.get("model", "")), file_path
     ):
         raise ValueError("Der ausgewählte Anbieter unterstützt diese PDF-/Bilddatei nicht. Bitte Anbieter ändern oder DOCX/TXT/ODT verwenden.")
@@ -130,9 +162,13 @@ def cmd_analyze(args):
         rubric_name = (nc.list_all_rubrics(config) or [""])[0]
     if not rubric_name:
         raise ValueError("Kein passendes Bewertungsraster vorhanden. Bitte ein Raster auswählen.")
-    rubric = nc.load_rubric(rubric_name, config)
+    snapshot_path = getattr(args, "grundlage_snapshot_file", None)
+    snapshot = json.loads(Path(snapshot_path).read_text(encoding="utf-8")) if snapshot_path else None
+    if snapshot is not None and (not isinstance(snapshot, dict) or not all(isinstance(snapshot.get(k), str) for k in ("rubrik_inhalt", "ausgangstext")) or not snapshot["rubrik_inhalt"].strip()):
+        raise ValueError("Die eingefrorene Bewertungsgrundlage ist unvollständig.")
+    rubric = snapshot["rubrik_inhalt"] if snapshot is not None else nc.load_rubric(rubric_name, config)
     rubric_path = nc.resolve_path(config, "rubrics") / rubric_name
-    rubric_header = nc.parse_rubrik_header(rubric_path.read_text(encoding="utf-8")) if rubric_path and rubric_path.exists() else {}
+    rubric_header = nc.parse_rubrik_header(rubric)
     rubrik_titel = rubric_header.get("titel", "") or rubric_name
     is_ib_paper1 = rubric_header.get("aufgabenart", "").strip().casefold() == "ib-paper1"
     auftrag_key = "|".join([
@@ -140,7 +176,7 @@ def cmd_analyze(args):
         args.einsatz_id or "", args.material_id or "",
     ])
     korrekturauftrag_id = "ka-" + hashlib.sha256(auftrag_key.encode("utf-8")).hexdigest()[:24]
-    erwartungshorizont_text = nc.load_erwartungshorizont(config, args.klasse, args.aufgabe) or ""
+    erwartungshorizont_text = snapshot.get("grundlage", {}).get("erwartungshorizont", "") if snapshot is not None and "grundlage" in snapshot else nc.load_erwartungshorizont(config, args.klasse, args.aufgabe) or ""
 
     ausgangstext_path = None
     if args.ausgangstext_file or args.ausgangstext:
@@ -150,6 +186,8 @@ def cmd_analyze(args):
     # --ausgangstext-Schalter bleibt als kompatibler Dateipfad erhalten;
     # neue Aufrufer verwenden die eindeutig benannten Varianten.
     ausgangstext_text = args.ausgangstext_text
+    if snapshot is not None:
+        ausgangstext_text, ausgangstext_path = snapshot["ausgangstext"], None
 
     if is_ib_paper1:
         ausgangstext_text = _ib_paper1_source_text(ausgangstext_text, ausgangstext_path, nc)
@@ -165,7 +203,7 @@ def cmd_analyze(args):
 
     started = time.monotonic()
     _progress("llm", "LLM-Analyse läuft")
-    data, errors = nc.run_llm_analysis(
+    analysis_args = dict(
         docx_text=docx_text,
         rubric_content=rubric,
         fach=fach,
@@ -183,6 +221,8 @@ def cmd_analyze(args):
         aufgabe=args.aufgabe,
         erwartungshorizont_name=args.erwartungshorizont or "",
         rubric_name=rubric_name,
+        rubrik_k1_keys=nc.rubric_area_keys(rubric_header, "k1"),
+        rubrik_k3_keys=nc.rubric_area_keys(rubric_header, "k3"),
         pseudonymisierung=not args.keine_pseudonymisierung,
         db_path_override=db_path,
         bestaetigte_schueler_id=args.schueler_id,
@@ -194,7 +234,9 @@ def cmd_analyze(args):
         rubrik_titel=rubrik_titel,
         erwartungshorizont=erwartungshorizont_text,
         revision_of_abgabe_id=args.revision_of_abgabe_id,
+        reanalyze_existing=args.reanalyze_existing,
         correction_basis={
+            **({"grundlage": snapshot["grundlage"]} if snapshot is not None and "grundlage" in snapshot else {}),
             "klasse": args.klasse,
             "aufgabe": args.aufgabe,
             "fach": fach,
@@ -222,6 +264,14 @@ def cmd_analyze(args):
         notenschluessel=json.loads(getattr(args, "notenschluessel_json", None) or "null"),
         soll_wortanzahl=getattr(args, "soll_wortanzahl", None),
     )
+
+    if getattr(args, "scan_action", None):
+        import scan_review
+        result = scan_review.process(analysis_args, config, args.ocr_provider, args.ocr_model,
+            args.verify_model, args.scan_action, args.scan_session)
+        _json_out(result)
+        return 0
+    data, errors = nc.run_llm_analysis(**analysis_args)
 
     if data is None:
         print("Analyse fehlgeschlagen:", file=sys.stderr)
@@ -261,11 +311,12 @@ def cmd_personen_vorschau(args):
         print(f"Datei nicht gefunden: {file_path}", file=sys.stderr)
         return 1
 
-    vision = nc.is_vision_file(file_path)
+    approved_text = nc.read_submission_text(file_path)
+    vision = nc.is_vision_file(file_path) and not approved_text
     api_cfg = config.get("api", {})
     provider = str(api_cfg.get("provider", "anthropic"))
     model = str(api_cfg.get("model", ""))
-    text = ""
+    text = approved_text
     if not vision:
         try:
             text = nc.read_submission_text(file_path)
@@ -288,6 +339,7 @@ def cmd_personen_vorschau(args):
                 for f in funde
             ],
             "visionModus": vision,
+            "transkriptGeprueft": bool(approved_text) and nc.is_vision_file(file_path),
             "visionFaehig": (not vision) or nc.is_vision_capable(provider, model, file_path),
             "klassenlisteLeer": len(roster) == 0,
             # L2: Wortzahl für die Batch-Mengenschätzung im Korrektur-Dialog
@@ -664,6 +716,11 @@ def cmd_feedback_docx(args):
     conn = sqlite3.connect(str(db_path))
     conn.row_factory = sqlite3.Row
     row = conn.execute("SELECT * FROM abgabe WHERE id = ?", (abgabe_id,)).fetchone()
+    student_name = ""
+    if row is not None and row["schueler_id"]:
+        student = conn.execute("SELECT vorname, nachname FROM schueler WHERE id=?", (row["schueler_id"],)).fetchone()
+        if student:
+            student_name = " ".join(str(part).strip() for part in student if part and str(part).strip())
     conn.close()
     if row is None:
         print(f"Abgabe-ID {abgabe_id} nicht gefunden", file=sys.stderr)
@@ -672,11 +729,27 @@ def cmd_feedback_docx(args):
 
     feedback_json_path = abgabe.get("feedback_json_path", "")
     data = None
+    revision_id = getattr(args, "revision_id", None)
+    revision = (ndb.get_korrektur_revision(db_path, revision_id) if revision_id
+                else ndb.get_korrektur_revision_for_abgabe(db_path, abgabe_id))
+    if revision_id and (not revision or revision["abgabe_id"] != abgabe_id):
+        print("Korrekturversion gehört nicht zu dieser Abgabe.", file=sys.stderr)
+        return 1
+    basis = json.loads(revision.get("basis_json", "{}")) if revision else {}
     try:
-        revision = ndb.get_korrektur_revision_for_abgabe(db_path, abgabe_id)
         payload = json.loads(revision.get("analysis_json", "{}")) if revision else None
         if isinstance(payload, dict) and payload:
-            _merge_lehrkraft_aktionen(db_path, abgabe_id, payload)
+            from review_resolution import apply_saved_resolution
+            payload = apply_saved_resolution(payload, json.loads(revision.get("lehrer_pruefung_json", "{}")))
+            if revision.get("is_active") and not revision_id:
+                _merge_lehrkraft_aktionen(db_path, abgabe_id, payload)
+            else:
+                snapshot = json.loads(revision.get("fehler_json", "[]"))
+                for item in payload.get("fehler", []):
+                    for saved in snapshot:
+                        if all(item.get(key) == saved.get(key) for key in ("zitat", "korrektur", "typ")):
+                            item.update({key: saved.get(key) for key in ("lehrkraft_aktion", "lehrkraft_korrektur")})
+                            break
             data = gf.parse_feedback_data(payload)
     except (OSError, ValueError, TypeError):
         data = None
@@ -708,10 +781,67 @@ def cmd_feedback_docx(args):
     if getattr(args, "lehrer", None) and args.lehrer.strip():
         config.setdefault("docx", {})["teacher_name"] = args.lehrer.strip()
 
-    doc = gf.build_feedback_document(data, config=config, bewertungsmodus=args.bewertungsmodus)
-    output = args.output or str(Path.cwd() / f"feedback_{abgabe_id}.docx")
+    from correction_quality import text_hash
+    original_text = basis.get("schuelertext") or (abgabe.get("rohtext") if not revision or revision.get("is_active") else "")
+    if original_text and basis.get("schuelertext_hash") and text_hash(original_text) != basis["schuelertext_hash"]:
+        print("Die gespeicherte Schülertextfassung passt nicht zur Korrekturversion.", file=sys.stderr)
+        return 1
+    if not original_text:
+        source = Path(abgabe.get("dateiname", ""))
+        if source.is_file() and ndb._file_hash(source) == abgabe.get("datei_hash"):
+            original_text = nc.read_docx_text(source) if source.suffix.lower() == ".docx" else source.read_text(encoding="utf-8")
+    if not original_text or not original_text.strip():
+        print("Kein verlässlicher Schülertext für diese Korrekturversion gespeichert. Bitte die Originaldatei erneut zuordnen.", file=sys.stderr)
+        return 1
+    mode = basis.get("bewertungsmodus") or data.bewertungsmodus
+    mode = getattr(args, "bewertungsmodus", None) or mode
+    if mode in {"formativ", "unbenotet"}:
+        mode = "unbenotet"
+    if revision and (revision_id or not revision.get("is_active")):
+        data.lehrer_note = revision.get("lehrer_note_final")
+        data.lehrer_kommentar = revision.get("lehrer_kommentar")
+        data.pruefstatus = revision.get("lehrer_pruefstatus", "entwurf")
+        if not revision.get("lehrer_feedback_erstellt_am"):
+            data.pruefstatus = "entwurf"
+    else:
+        with sqlite3.connect(str(db_path)) as conn:
+            conn.row_factory = sqlite3.Row
+            teacher = conn.execute("SELECT note_final, lehrer_kommentar, pruefstatus FROM lehrer_feedback WHERE abgabe_id=?", (abgabe_id,)).fetchone()
+        if teacher:
+            data.lehrer_note, data.lehrer_kommentar, data.pruefstatus = tuple(teacher)
+    if student_name and student_name.casefold() not in {"unbekannt", "unknown", "unbekannt unbekannt"}:
+        data.schueler = student_name
+    doc = gf.build_feedback_document(data, config=config, original_text=original_text, bewertungsmodus=mode, ansicht=getattr(args, "ansicht", "lehrkraft"))
+    from feedback_filename import feedback_filename
+    directory = Path(getattr(args, "output_dir", None) or Path.cwd())
+    name = feedback_filename(abgabe_id, student_name, abgabe.get("dateiname", ""))
+    if getattr(args, "ansicht", "lehrkraft") == "schueler":
+        name = str(Path(name).with_stem(Path(name).stem + "_kurz"))
+    output = args.output or str(directory / name)
+    Path(output).parent.mkdir(parents=True, exist_ok=True)
     doc.save(output)
     _json_out({"path": output, "abgabe_id": abgabe_id})
+    return 0
+
+
+def cmd_model_options(args):
+    from model_reasoning import model_options
+    _json_out(model_options(args.runtime_provider, args.runtime_model))
+    return 0
+
+
+def cmd_review_save(args):
+    from review_resolution import save_review
+    _, _, _, db_path = _load_env_and_config()
+    save_review(db_path, json.loads(Path(args.payload_file).read_text(encoding="utf-8")))
+    _json_out({"saved": True})
+    return 0
+
+
+def cmd_source_text(args):
+    import natascha_core as nc
+    text = nc._lies_ausgangstext_datei(Path(args.file).expanduser()).strip()
+    _json_out({"text": text, "sha256": hashlib.sha256(text.encode()).hexdigest()})
     return 0
 
 
@@ -992,6 +1122,7 @@ def main():
 
     # analyze
     p_analyze = sub.add_parser("analyze", help="LLM-Analyse einer Schuelerabgabe")
+    p_analyze.add_argument("--grundlage-snapshot-file")
     p_analyze.add_argument("file", help="Pfad zur DOCX/PDF-Datei")
     p_analyze.add_argument("--klasse", required=True)
     p_analyze.add_argument("--klasse-id", default=None, help="Stabile Identität der Klasse (bei LUA-Aufruf).")
@@ -1001,6 +1132,7 @@ def main():
     p_analyze.add_argument("--textsorte", default="")
     p_analyze.add_argument("--land", default="at", choices=["at", "de"], help="Land/Skala: at=SRDP 1-5 (Default), de=Klassenarbeit 1-6")
     p_analyze.add_argument("--schueler", default="")
+    p_analyze.add_argument("--reasoning", default=None)
     p_analyze.add_argument("--bewertungsmodus", default="benotet", choices=["benotet", "formativ"])
     p_analyze.add_argument("--ausgangstext", default=None, help=argparse.SUPPRESS)
     p_analyze.add_argument("--ausgangstext-text", default=None)
@@ -1010,6 +1142,7 @@ def main():
     p_analyze.add_argument("--erwartungshorizont", default="")
     p_analyze.add_argument("--rubric", default="")
     p_analyze.add_argument("--revision-of-abgabe-id", type=int)
+    p_analyze.add_argument("--reanalyze-existing", action="store_true", help="Bereits korrigierte Arbeiten als neue Korrekturversion erneut analysieren")
     p_analyze.add_argument("--max-retries", type=int, default=3)
     p_analyze.add_argument("--notenschluessel-json", help="Ausdrücklich bestätigter individueller Englisch-Notenschlüssel")
     p_analyze.add_argument("--soll-wortanzahl", type=int, help="Vorgegebene Wortanzahl des Schreibauftrags")
@@ -1036,6 +1169,23 @@ def main():
         "(Standard ist Ersetzen vor dem LLM-Versand).",
     )
 
+    p_analyze.add_argument("--scan-action", choices=("prepare", "commit"))
+    p_analyze.add_argument("--scan-session")
+    p_analyze.add_argument("--ocr-provider")
+    p_analyze.add_argument("--ocr-model")
+    p_analyze.add_argument("--verify-model")
+    p_review = sub.add_parser("scan-review", help="Lokale Scan-Pruefsitzung lesen oder entscheiden")
+    p_review.add_argument("session")
+    p_review.add_argument("--image-id")
+    p_review.add_argument("--revision", type=int)
+    p_review.add_argument("--issue")
+    p_review.add_argument("--choice-file")
+
+    p_ocr = sub.add_parser("ocr", help="Scan ohne Bewertung auslesen (Standard: Mistral OCR)")
+    p_ocr.add_argument("file")
+    p_ocr.add_argument("--approved-text-file")
+    p_ocr.add_argument("--output", help="Bearbeitbare Abschrift als TXT speichern")
+
     # srdp-detail
     p_srdp = sub.add_parser("srdp-detail", help="SRDP-Detail fuer bestehende Analyse")
     p_srdp.add_argument("abgabe_id", type=int)
@@ -1053,11 +1203,21 @@ def main():
     p_briefing.add_argument("--provider", default="")
     p_briefing.add_argument("--model", default="")
 
+    sub.add_parser("model-options", help="Unterstützte Denkoptionen ohne API-Aufruf")
+    p_rs = sub.add_parser("review-save", help="Kriterienentscheidungen und Freigabe atomar ohne Modellaufruf speichern")
+    p_rs.add_argument("--payload-file", required=True)
+    p_source = sub.add_parser("source-text", help="Tatsächlich verwendeten Beilagentext lokal auslesen")
+    p_source.add_argument("--file", required=True)
+
     # feedback-docx
     p_docx = sub.add_parser("feedback-docx", help="Feedback-DOCX generieren")
     p_docx.add_argument("abgabe_id", type=int)
-    p_docx.add_argument("--output", default=None)
-    p_docx.add_argument("--bewertungsmodus", default="benotet")
+    target = p_docx.add_mutually_exclusive_group()
+    target.add_argument("--output", default=None)
+    target.add_argument("--output-dir", default=None, help="Zielordner; Dateiname enthält Schülerbezeichnung und Abgabe-ID")
+    p_docx.add_argument("--bewertungsmodus", default=None, choices=["benotet", "formativ", "unbenotet"])
+    p_docx.add_argument("--revision-id", type=int, default=None)
+    p_docx.add_argument("--ansicht", choices=["schueler", "lehrkraft"], default="lehrkraft")
     p_docx.add_argument(
         "--lehrer",
         default=None,
@@ -1141,12 +1301,34 @@ def main():
         parser.print_help()
         return 1
 
+    def cmd_scan_review(args):
+        import scan_review
+        nc, _, config, _ = _load_env_and_config()
+        if args.image_id:
+            session = scan_review.load(config, args.session)
+            issue = next(i for i in session["issues"] if i["id"] == args.image_id)
+            image = scan_review.region_image(Path(session["source"]), issue["page"], issue.get("box"))
+            _json_out("data:image/jpeg;base64," + image["source"]["data"])
+            return 0
+        if args.issue:
+            result = scan_review.resolve(config, args.session, args.revision, args.issue,
+                Path(args.choice_file).read_text(encoding="utf-8"))
+        else:
+            result = scan_review.public(scan_review.load(config, args.session))
+        _json_out(result)
+        return 0
+
     commands = {
+        "scan-review": cmd_scan_review,
         "analyze": cmd_analyze,
+        "ocr": cmd_ocr,
         "srdp-detail": cmd_srdp_detail,
         "schueler-profil": cmd_schueler_profil,
         "klassen-briefing": cmd_klassen_briefing,
         "feedback-docx": cmd_feedback_docx,
+        "model-options": cmd_model_options,
+        "review-save": cmd_review_save,
+        "source-text": cmd_source_text,
         "erwartungshorizont": cmd_erwartungshorizont,
         "erwartungshorizont-save": cmd_erwartungshorizont_save,
         "add-klasse": cmd_add_klasse,

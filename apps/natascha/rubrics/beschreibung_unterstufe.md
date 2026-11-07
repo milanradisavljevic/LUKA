@@ -3,6 +3,7 @@ titel: Beschreibung (Unterstufe)
 fach: deutsch
 schulstufe: unterstufe
 textsorte: beschreibung
+verwendung: bewertung
 -->
 
 # Bewertungsraster: Beschreibung (Unterstufe)

@@ -49,7 +49,7 @@ describe('textsortenFuer', () => {
 
   it('deutsch + unterstufe → altersgerechte DE-Liste plus Leseverständnis', () => {
     expect(textsortenFuer('deutsch', 'unterstufe')).toEqual([
-      'Erzählung', 'Beschreibung', 'Bericht', 'Zusammenfassung', 'Kommentar', 'Leserbrief',
+      'Erzählung', 'Beschreibung', 'Bericht', 'Zusammenfassung', 'Kommentar', 'Leserbrief', 'Bewerbungsschreiben',
       ...LESEVERSTAENDNIS_AUFGABENARTEN,
     ]);
   });
@@ -58,7 +58,7 @@ describe('textsortenFuer', () => {
     expect(textsortenFuer('', 'oberstufe')).toEqual([
       ...SRDP_DEUTSCH_TEXTSORTEN, ...LESEVERSTAENDNIS_AUFGABENARTEN,
     ]);
-    expect(textsortenFuer(undefined, undefined)).toHaveLength(7);
+    expect(textsortenFuer(undefined, undefined)).toHaveLength(8);
   });
 
   it('Leseverständnis steht in keiner Schreibtextsorten-Liste', () => {

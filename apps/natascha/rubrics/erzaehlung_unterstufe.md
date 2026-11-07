@@ -3,6 +3,7 @@ titel: Erzählung (Unterstufe)
 fach: deutsch
 schulstufe: unterstufe
 textsorte: erzaehlung
+verwendung: bewertung
 -->
 
 # Bewertungsraster: Erzählung (Unterstufe)

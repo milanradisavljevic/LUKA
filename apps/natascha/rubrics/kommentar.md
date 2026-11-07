@@ -3,6 +3,7 @@ titel: Kommentar
 fach: deutsch
 schulstufe: oberstufe
 textsorte: kommentar
+verwendung: bewertung
 -->
 
 # Bewertungsraster: Kommentar

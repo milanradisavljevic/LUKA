@@ -140,7 +140,7 @@ im eingebauten Korrektur-Modul oder — nur als technischer Fallback — über e
 lokale NATASCHA-Installation.
 
 1. Öffne **Korrektur → Neue Analyse**. Wähle Klasse und Aufgabe und lade eine
-   Schülerabgabe als DOCX, PDF oder TXT hoch. Mehrere Dateien können als
+   Schülerabgabe als DOCX, PDF, TXT oder Markdown (.md) hoch. Markdown wird wortgetreu mit seinen Formatierungszeichen eingelesen. Bei PDFs wird zuerst lokal nach einer Textebene gesucht. Bei Scans steht neben der Datei "Scan auslesen und prüfen" zur Verfügung. Unter "Auslese-Anbieter" kann unabhängig vom Korrekturmodell eine andere KI gewählt werden. Vergleichen Sie die Abschrift mit der daneben angezeigten Originalseite. Berichtigen Sie Lesefehler, erhalten Sie Fehler des Schülertexts und entfernen Sie mitgelesene Lehrermarkierungen. "Geprüfte Abschrift verwenden" speichert eine versionierte Textfassung zum unveränderten Original. Erst dann ist die Korrektur möglich. Bei geänderter Abschrift wird eine neue Korrekturfassung erstellt. Mehrere Dateien können als
    Stapel verarbeitet werden.
 2. Hinterlege optional das **Ausgangsmaterial** als Text oder Datei. Für
    textgebundene Aufgaben wird es empfohlen, weil es gemeinsam mit der Rubrik
@@ -168,6 +168,13 @@ lokale NATASCHA-Installation.
 4. Nach der Analyse siehst du Note, Kriterien, Fehlerliste und den markierten
    Text. Eine bestätigte Schülerzuordnung hat Vorrang vor der Dateinamen-
    Erkennung. Eigene Lehrernote und Kommentar kannst du speichern.
+
+   In **Abgaben** kannst du im Zuordnungsfeld **Namen hinzufügen …** wählen,
+   einen Vornamen oder eine Bezeichnung und optional einen Nachnamen eingeben.
+   **Speichern & zuordnen** ergänzt die Klassenliste und ordnet die Datei zu.
+   Feedback-Dateien heißen zum Beispiel `feedback_Nina_Muster_42.docx`.
+   Ohne Schülerzuordnung steht stattdessen der ursprüngliche Dateiname darin;
+   die Abgabe-ID hält auch gleichnamige Arbeiten auseinander.
 
    Jeder KI-Vorschlag in der Fehlerliste zeigt eine **Vertrauensstufe** als
    farbigen Punkt: grün (hohe Sicherheit), gelb (mittlere Sicherheit) rot
@@ -207,8 +214,8 @@ lokale NATASCHA-Installation.
    - **Verwerfen** — der Vorschlag wird gestrichen und erscheint weder im
      Text noch im Feedback-DOCX.
 
-   Die Aktionen werden erst beim Klick auf **Freigeben** in der Datenbank
-   gespeichert. Verworfene Fehler erscheinen im markierten Text grau und
+   Die Aktionen werden beim **Freigeben** und vor dem **Feedback-DOCX**-Export
+   gespeichert. Der Export allein gibt eine Korrektur nicht frei. Verworfene Fehler erscheinen im markierten Text grau und
    durchgestrichen, geänderte farbig hervorgehoben. Die Farbe im Text sagt
    immer den **Fehlertyp**, nie den Bearbeitungsstand — übernommene Vorschläge
    sind nur etwas kräftiger hinterlegt.
@@ -520,11 +527,47 @@ Raster selbst vor → Abgaben hinzufügen → starten.
 
 ### Bearbeiten
 
-Der **Rubrik-Editor** in derselben Ansicht öffnet jedes Raster als Text. Nach
-einer Änderung **Rubrik speichern** – die Änderung wirkt bei der nächsten
-Korrektur mit diesem Raster. Die Kriterien-Schlüssel in der Liste *JSON-Kriterien*
-sind für LUKA verbindlich: Wenn du sie umbenennst, muss die *Gewichtung* unten
-mitziehen, sonst geht dieser Anteil in der Note verloren.
+Unter **Bewertungsraster** öffnet sich zunächst eine formatierte **Ansicht** mit
+Überschriften, Listen und Tabellen. **Quelltext bearbeiten** öffnet die bearbeitbare
+Fassung. Zwischen beiden Ansichten kannst du wechseln, ohne etwas zu speichern.
+Erst **Speichern** übernimmt die Änderung für künftige Korrekturen. Bei einem
+Rasterwechsel fragt LUKA nach, bevor ungespeicherte Änderungen verworfen werden.
+
+Die Kriterien-Schlüssel in der Liste *JSON-Kriterien* sind für LUKA verbindlich:
+Wenn du sie umbenennst, müssen Gewichtung und gegebenenfalls Kompetenzbereiche
+dazu passen. Unvollständige Deutsch-Raster werden vor einer Korrektur erklärt.
+Reine Selbstchecklisten und Referenztabellen bleiben lesbar, ersetzen aber kein
+Bewertungsraster. Eigene Anpassungen werden bei Vorlagenupdates nicht überschrieben.
+
+### Fachliche Gegenprüfung bei Deutsch
+
+Word-Kommentare werden am unveränderten Originaltext verankert. Große Umformulierungen kleiner Textstellen und überlappende Vorschläge bleiben als Kommentar zur Prüfung erhalten, damit keine Satzteile doppelt eingefügt werden. Die Gegenprüfung kann zusätzliche, zuvor übersehene Sprachhinweise ergänzen und Randnotizen einzeln überprüfen. Bei einer SRDP-Detailbewertung erklärt das Feedback, dass die KI-Note aus diesen Details berechnet wird; die vier Hauptkriterien sind daneben eigenständige Gesamteinschätzungen.
+
+Eine Deutsch-Korrektur besteht aus Analyse und Gegenprüfung. Beide verwenden
+dieselbe Aufgabe, Beilage, Rasterfassung und denselben Erwartungshorizont. Die
+Prüfung richtet sich nach den Kriterien des gewählten Rasters; beim
+Leseverständnis werden zum Beispiel Verständnisleistungen geprüft. Wort- und
+Absatzanzahl stammen aus einer lokalen Zählung.
+
+Die Gegenprüfung sieht außerdem, wie jeder vorgeschlagene Ersatz im vollständigen
+Satzkontext tatsächlich aussieht. Nicht ausdrücklich bestätigte Ersetzungen bleiben
+als Kommentar zur Prüfung erhalten. Eine zurückgewiesene KI-Beanstandung bleibt in
+LUKA nachvollziehbar, erscheint aber ohne ausdrückliche Übernahme durch die Lehrkraft
+nicht im Schülerfeedback. Das verwendet weiterhin dieselben zwei Prüfschritte.
+
+Belegte Änderungen der Bewertung werden in den KI-Vorschlag übernommen.
+Bleiben wesentliche Fragen offen oder scheitert die Gegenprüfung, erscheint
+**„Vorläufig – Prüfung erforderlich“** bei der berechenbaren KI-Notenempfehlung
+in LUKA und im Word-Feedback. Verwertbare Rückmeldungen bleiben erhalten.
+Formative Korrekturen bleiben ohne Gesamtnote. Die KI-Gegenprüfung ersetzt weder
+deine Prüfung noch deine Freigabe. Frühere Korrekturversionen werden nicht neu bewertet.
+
+Der vorläufige Status steht auch direkt bei der KI-Note in der Übersicht und im
+Stapelergebnis. Im Noten-CSV ergänzt die letzte Spalte **KI-Prüfstatus** die
+bisherigen Werte. Bei alten Auswertungen bedeutet **„Keine KI-Gegenprüfung
+protokolliert“**, dass keine neue Gegenprüfung gespeichert ist. Das ist keine
+nachträgliche Bestätigung. Beim Wechsel einer Korrekturversion wechselt auch der
+angezeigte Prüfstatus.
 
 ### In der Unterlagenerstellung
 
@@ -632,3 +675,121 @@ Trage die vorgegebene Wortanzahl ein. Bei mehr als zehn Prozent Abweichung zieht
 Eine automatische Notenempfehlung entsteht nur mit vollständig eingetragenem, ausdrücklich bestätigtem individuellem Notenschlüssel. Änderungen am Auftrag setzen diese Bestätigung zurück. Ohne Schlüssel bleiben die Rasterpunkte sichtbar. Prüfe jeden Vorschlag; ein DOCX-Export bestätigt die Bewertung nicht.
 
 Für Heatmap, Förderung und Folgeübungen zählen nur übernommene oder geänderte Fehlerhinweise. Ungeprüfte Vorschläge und verworfene Hinweise bleiben in der Korrektur sichtbar.
+
+
+### Scans automatisch gegenprüfen
+
+Bei Scan-Abgaben mit OpenAI oder Mistral wählen Sie nach Klasse,
+Raster und Material „Scan und Korrektur vorbereiten“. Bei Mistral werden OCR und
+Bildmodell getrennt angezeigt. Die Bildprüfung bleibt beim Auslese-Anbieter.
+Die Vorschau zeigt offene Lesestellen und automatische Berichtigungen.
+Öffnen Sie das Original, wählen Sie eine Lesart oder kennzeichnen Sie „Nicht lesbar“.
+Eine automatische Berichtigung lässt sich zurücknehmen. Nach eigenen Änderungen
+aktualisieren Sie die Vorschau. Erst „Entwurf übernehmen“ speichert eine Korrektur.
+Offene Lesestellen erlauben qualitative Rückmeldung; Rasterpunkte und automatische
+Note bleiben offen. Die vollständige Abschrift ist optional aufklappbar.
+Zwischenstände bleiben lokal gespeichert und werden bei unverändertem Auftrag
+wieder aufgenommen. Zwei übereinstimmende Bildlesungen garantieren keine fehlerfreie
+Abschrift. Die fachliche Freigabe bleibt bei der Lehrkraft.
+
+Im Stapel wird jede Scan-Vorschau separat vorbereitet und übernommen. Über die
+Auswahl der Scan-Vorschauen können Sie zwischen den vorbereiteten Arbeiten wechseln.
+
+Während einer Korrektur zeigt das Auftragsfenster den aktuellen Bearbeitungsschritt.
+Mit „Im Hintergrund weiterarbeiten“ blenden Sie es aus. Der Auftrag läuft weiter,
+solange LUKA geöffnet bleibt. „Auftrag öffnen“ führt zurück; nur die separate
+Abbrechen-Aktion beendet den laufenden Auftrag. Der Balken zeigt Aktivität und
+Bearbeitungsschritte, keine geschätzte Restzeit.
+
+
+### Feedback ohne Lehrernote und Denkmodus
+
+Eine Lehrernote ist freiwillig. Im Lehrkraftbericht bleibt die vollständige
+**KI-Notenempfehlung als Vorschlag** sichtbar. Die Schülerfassung zeigt eine Note
+erst nach ausdrücklicher Freigabe. Eine eigene Lehrernote hat dort Vorrang und kann
+wieder entfernt werden. Bei ausdrücklich formativem Feedback werden keine Noten
+ausgegeben. **Freigeben** bleibt eine eigene Entscheidung.
+
+Das Word-Feedback enthält den vollständigen gespeicherten Schülertext. Bestätigte
+Korrekturversionen behalten ihre zugehörige Textfassung. Stilideen und offene Befunde
+erscheinen als Anregungen beziehungsweise Prüfbedarf und werden nicht wie sichere
+Normfehler durchgestrichen.
+
+Unter **Einstellungen → Standard-Vorgaben → Denkmodus für Korrekturen** kannst du
+je Modell eine Einstellung speichern. Änderungen im Korrekturauftrag werden ebenfalls
+für dieses Modell gespeichert. Angeboten werden nur die Möglichkeiten des gewählten Modells;
+nicht jedes Modell erlaubt das Abschalten. Mehr Denkaufwand kann mehr Zeit und
+Kosten verursachen und ersetzt die fachliche Prüfung nicht. Diese Auswahl gilt
+für Korrekturen, nicht für das Auslesen von Scans oder die Erstellung von Unterlagen.
+
+### Erneut korrigieren und einen Auftrag löschen
+
+Im letzten Schritt des Korrekturauftrags schaltet **Bereits korrigierte Arbeiten erneut
+korrigieren** die Wiederverwendung unveränderter Ergebnisse für diesen Auftrag aus.
+LUKA erstellt neue Korrekturversionen; frühere Ergebnisse, Noten und Kommentare bleiben
+in der Versionsgeschichte erhalten. Die Auswahl gilt für einzelne Arbeiten und Stapel
+und ist bei einem neuen Auftrag ausgeschaltet. **Neu korrigieren** bei einer bestehenden
+Arbeit aktiviert sie gezielt für diese Arbeit. Neue KI-Aufrufe verursachen erneut Kosten.
+
+Mit **Auftrag löschen** im Kopf der Abgabenliste entfernst du alle gespeicherten
+Korrekturen zur ausgewählten Aufgabe, einschließlich Retro-Importen, Versionen und
+Lehrkraftnoten. LUKA nennt vorher die Anzahl und verlangt eine Bestätigung. Originaldateien,
+exportierte Dokumente, Klassen und Schüler bleiben erhalten. Die Löschung aus LUKA
+kann nicht rückgängig gemacht werden. Bereits exportierte Dateien können durch einen
+späteren Retro-Import wieder eingelesen werden.
+
+Die kleinen **Info-i** an den fünf Schritten erklären die jeweilige Auswahl. Die Hinweise
+öffnen sich beim Darüberfahren, Anklicken oder Tastaturfokus. Escape schließt den Hinweis.
+
+### Hinweise gesammelt prüfen und kurze Rückmeldungen ausgeben
+
+Die Deutsch-Korrektur unterscheidet vorbereitete Hinweise, offene Entscheidungen und
+freiwillige Stilideen. Mit **Vorbereitete Hinweise gesammelt übernehmen** bestätigst du
+die fachlich und im Satz geprüften Vorschläge. Bereits bearbeitete Hinweise bleiben erhalten.
+Einzelne Vorschläge kannst du weiterhin ändern oder verwerfen. Die KI-Prüfung ersetzt deine
+Entscheidung nicht.
+
+Offene Formulierungsvorschläge müssen nicht einzeln abgearbeitet werden. Sie erscheinen
+zunächst nicht im Schülerfeedback. Fehlt dagegen bei einem Bewertungskriterium eine
+ausreichende Grundlage, behält LUKA die übrigen Teilbewertungen und zeigt das betreffende
+Kriterium zur gezielten Prüfung an. Wähle die passende Stufe und speichere die Prüfung;
+die Note wird ohne weiteren KI-Aufruf neu berechnet. Solange erforderliche Kriterien
+offen sind, bleibt die automatische Gesamtnote leer. Eine eigene Lehrernote kannst du
+unabhängig davon vergeben.
+
+**Schülerfeedback** enthält bis zu drei Stärken, drei nächste Schritte und den Originaltext
+mit deinen übernommenen Hinweisen. Eine Note erscheint nach ausdrücklicher Freigabe.
+**Lehrkraftbericht** enthält die ausführliche Bewertung und alle Prüfnachweise. Exportieren
+allein gibt eine Rückmeldung nicht frei.
+
+Die Auswahl des Denkmodus im Korrekturauftrag wird für das jeweilige Modell gespeichert.
+Beim Start werden Denkmodus, Beilagentext und Rasterfassung für den gesamten Stapel
+festgehalten. Den aus einer Datei gelesenen Beilagentext kannst du einsehen. Prüfe eine
+beschädigte oder widersprüchliche Beilage anhand deiner tatsächlichen Unterrichtsfassung;
+LUKA rekonstruiert fehlende Quelleninhalte nicht selbstständig.
+
+
+## Deutsch: Grundlage vor der Korrektur prüfen
+
+Im Schritt „Bewertungsgrundlage prüfen“ wählen Sie „Vollständig prüfen“ oder
+„Nur Sprache prüfen“. Eine Datei darf Ausgangstext, Arbeitsauftrag und Umfang gemeinsam enthalten.
+LUKA liest beim Öffnen des Materialschritts Datei und Raster automatisch.
+Eindeutig erkennbare Arbeitsaufträge und Wortzahlen werden vorbelegt; prüfen Sie
+diese Angaben und ergänzen Sie nur fehlende oder uneindeutige Angaben (z. B. `400–500`,
+`450` oder `keine Vorgabe`). Gleichen
+Sie den ausgelesenen Text mit der Unterrichtsfassung ab und bestätigen Sie die
+Grundlage. Bei Änderungen ist eine neue Bestätigung nötig.
+
+Der Erwartungshorizont ist optional. Sie können einen vorhandenen übernehmen,
+einen eigenen Text eingeben oder einmal einen KI-Vorschlag erzeugen und prüfen.
+Ein leeres Feld bedeutet ausdrücklich: ohne Erwartungshorizont korrigieren.
+
+„Nur Sprache prüfen“ ist auch bei einer noch offenen Beilage möglich. Inhalt
+und Umfangsabzüge sind dann nicht beauftragt; es gibt keine automatische
+Gesamtnote. Die spätere vollständige Prüfung erzeugt eine neue Korrekturversion.
+
+LUKA unterscheidet technische Antwortprobleme, offene Bewertungsgrundlagen und
+fachliche Entscheidungen. Eindeutige Varianten von Befundverweisen werden
+selbstständig zugeordnet. Technische Verweise müssen nicht manuell repariert
+werden. Auch gegengeprüfte Hinweise bleiben KI-Vorschläge und benötigen Ihre
+fachliche Prüfung.

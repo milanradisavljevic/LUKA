@@ -1,10 +1,20 @@
+import {TeacherReportFile} from "../components/TeacherReportFile";
+import {exportTeacherReport} from "../lib/teacherReportExport";
+import {inferCorrectionBasis, correctionBasisBlocker} from "../lib/correctionBasisInput";
+import {confirmedBasisHashInput, type ConfirmedCorrectionBasis} from "../lib/correctionRun";
+import { CorrectionReasoningSelect, correctionReasoningKey, loadCorrectionReasoningOptions } from '../components/CorrectionReasoningSelect';
+import { CorrectionProgress } from '../components/CorrectionProgress';
+import { SchuelerZuordnung, vorhandenePerson } from '../components/SchuelerZuordnung';
+import { ScanReviewPanel } from '../components/ScanReviewPanel';
+import type { ScanReviewSession, ScanReviewIssue } from '../lib/scanReview';
 import { EnglischRasterOptionen } from "../components/EnglischRasterOptionen";
 import { englischRasterOptionen, LEERER_ENGLISCH_ENTWURF, type EnglischRasterEntwurf } from "../lib/englischRaster";
 import { useLocalDraft, beginActivity } from '../lib/workSession';
 import { baueFehlerSegmente, primaerStart, type FehlerAktion, type SegmentErgebnis } from '../lib/fehlerSegmente';
+import { befundPruefstatus, befundGruppe, vorbereiteteBefunde, uebernehmeVorbereiteteBefunde, type BefundPruefung, type BewertungsPruefung, type KriterienEntscheidungen } from '../lib/befundPruefung';
 import { sortiereFehler, SORTIER_MODI, type SortierModus } from '../lib/korrekturSortierung';
 import { zentriereInPaneWennNoetig } from '../lib/paneScroll';
-import { MODEL_MAP } from '../lib/runtimeModel';
+import { MODEL_MAP, scanRuntime } from '../lib/runtimeModel';
 import { LLM_PROVIDERS, PROVIDER_KEY_IDS } from '../lib/constants';
 import { textsortenFuer, textsortenHint } from '../lib/textsortenAuswahl';
 import { aufgabenSchluessel, entscheideVorfuellung } from '../lib/quelltextVorfuellung';
@@ -17,7 +27,7 @@ import type { NataschaPrefill } from '../lib/nataschaBridge';
 import { LandSchema } from '@lehrunterlagen/schema';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { PunkteKorrekturPanel } from '../components/PunkteKorrekturPanel';
-import { loadDocuments, loadSettings, subscribeSettings } from '../lib/storage';
+import { loadDocuments, loadSettings, saveSettings, subscribeSettings } from '../lib/storage';
 import { useNatascha, type PersonenVorschau, type RubrikListe, type SchuelerInfo, type KorrekturKontext } from '../hooks/useNatascha';
 import { useEinsatz, type EinsatzRecord } from '../hooks/useEinsatz';
 import { fuegeAnlageHinzuDirekt } from '../hooks/usePlanung';
@@ -28,9 +38,11 @@ import { anzeigeName } from '../lib/anzeigeName';
 import { kriteriumAnzeige } from '../lib/kriteriumAnzeige';
 import { gruppiereRubriken, rubrikLabel, rubrikPasstZurTextsorte } from '../lib/rubrikAuswahl';
 import { InfoDot } from '../components/ui/InfoDot';
+import { Notenvorschlag, notenvorschlagText } from '../components/Notenvorschlag';
 import { isKorrekturReady, type KorrekturStatus } from '../lib/korrekturStatus';
 import { averageVertrauensstufe, VERTRAUENS_COLORS, VERTRAUENS_LABELS } from '../lib/vertrauensstufe';
-import { createCorrectionRunSnapshot, shouldShowCorrectionRunError } from '../lib/correctionRun';
+import { createCorrectionRunSnapshot, correctionTextHash, correctionRunContextKey, shouldShowCorrectionRunError } from '../lib/correctionRun';
+import { correctionSubmissionBlocker, isSubmissionReady } from '../lib/correctionSubmission';
 import { korrekturLandFuerProfil, korrekturLandHinweis, istGueltigeLehrernote, maxLehrernote } from '../lib/korrekturLand';
 import { schaetzeBatch, formatTokenzahl, ANTWORT_TOKENS_PRO_ABGABE } from '../lib/batchSchaetzung';
 import { loadTeacherProfile } from '../lib/profile';
@@ -39,9 +51,10 @@ function isTauri(): boolean {
   return typeof window !== 'undefined' && (window as any).__TAURI_INTERNALS__ !== undefined;
 }
 
-interface FehlerRow { id: number; zitat: string | null; korrektur: string | null; typ: string; erklaerung: string | null; vertrauensstufe: string | null; lehrkraftAktion: string | null; lehrkraftKorrektur: string | null }
+interface FehlerRow { befund?: BefundPruefung; id: number; zitat: string | null; korrektur: string | null; typ: string; erklaerung: string | null; vertrauensstufe: string | null; lehrkraftAktion: string | null; lehrkraftKorrektur: string | null }
 
 interface AbgabeDetail {
+  scanReview?: {openCount:number; numericBlocked:boolean};
   rasterAuswertung?: { bewertungsprofil: string; profil_version: string; punkte: number; max_punkte: number; wortzahl_ist: number; wortzahl_soll: number | null; wortzahl_abzug: number; veto_vorschlag: boolean; pruefung_erforderlich: string[] };
   abgabe: {
     id: number;
@@ -55,6 +68,7 @@ interface AbgabeDetail {
     vorname: string | null;
     nachname: string | null;
     note: number | null;
+    notenempfehlungVorlaeufig?: boolean;
     gesamtstufe: number | null;
     wortanzahl: number | null;
     fach: string | null;
@@ -69,7 +83,12 @@ interface AbgabeDetail {
   };
   kriterien: { id: number; kriteriumName: string; stufe: number | null; gewichtung: number | null }[];
   fehler: FehlerRow[];
-  lehrerFeedback: { id: number; noteFinal: number | null; noteAppSnapshot: number | null; lehrerKommentar: string | null; erstelltAm: string | null; geaendertAm: string | null } | null;
+  reasoning?: {selection:string};
+  bewertungspruefung?: BewertungsPruefung | null;
+  lehrerPruefung?: {version: number; entscheidungen: KriterienEntscheidungen} | null;
+  gegenpruefung?: {status: 'pruefung_erforderlich' | 'abgeschlossen'; version: string} | null;
+  notenempfehlungVorlaeufig?: boolean;
+  lehrerFeedback: { pruefstatus: 'entwurf' | 'freigegeben'; id: number; noteFinal: number | null; noteAppSnapshot: number | null; lehrerKommentar: string | null; erstelltAm: string | null; geaendertAm: string | null } | null;
   revisions: { id: number; revisionNo: number; provider: string; model: string; status: string; isActive: boolean; createdAt: string | null }[];
   qualitaetswarnungen?: { code: string; message: string }[];
 }
@@ -103,6 +122,7 @@ function analyseHinweise(result: unknown): string[] {
   return Array.isArray(errors) ? errors.filter((entry): entry is string => typeof entry === 'string') : [];
 }
 
+const DENK_LABELS: Record<string,string> = {default:'Modellstandard',off:'Aus',on:'Ein',low:'Gering',medium:'Mittel',high:'Hoch',xhigh:'Sehr hoch',max:'Maximal'};
 const FEHLER_COLORS: Record<string, string> = { R: '#e74c3c', G: '#27ae60', Z: '#3498db', A: '#f39c12' };
 const FEHLER_LABELS: Record<string, string> = { R: 'Rechtschreibung', G: 'Grammatik', Z: 'Zeichensetzung', A: 'Ausdruck' };
 
@@ -199,7 +219,7 @@ interface KorrekturViewProps {
 }
 
 export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, onGenerateUebung }: KorrekturViewProps = {}) {
-  const { getHeatmap, getFehlerDetail, analyze, activeJobId, cancel, analyzing, progressStage, progressMessage, listKlassen, listAufgaben, getAbgaben, getAbgabeDetail, getKorrekturKontext, upsertLehrerFeedback, getPunktebewertung, savePunktebewertung, updateFehlerStatus, activateKorrekturRevision, deleteKorrekturRevision, generateFeedbackDocx, retroImport, personenVorschau, listSchueler, listRubrics, quelltextGet } = useNatascha();
+  const { getHeatmap, getFehlerDetail, analyze, activeJobId, cancel, analyzing, progressStage, progressMessage, listKlassen, listAufgaben, getAbgaben, getAbgabeDetail, getKorrekturKontext, saveKorrekturReview, getPunktebewertung, savePunktebewertung, updateFehlerStatus, activateKorrekturRevision, deleteKorrekturRevision, previewDeleteKorrekturauftrag, deleteKorrekturauftrag, generateFeedbackDocx, generateErwartungshorizont, sourceText, readRubric, retroImport, personenVorschau, listSchueler, insertSchueler, listRubrics, quelltextGet } = useNatascha();
   const { list: listEinsaetze } = useEinsatz();
   const { klassen: klassenMeta, refresh: refreshKlassenMeta } = useKlassenMeta();
 
@@ -232,6 +252,7 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
   const [error, setError] = useState<string | null>(null);
   const [analysisFailure, setAnalysisFailure] = useState<string | null>(null);
   const [revisionOfAbgabeId, setRevisionOfAbgabeId] = useState<number | null>(null);
+  const [reanalyzeExisting, setReanalyzeExisting] = useState(false);
 
   const [showPreview, setShowPreview] = useState(true);
 
@@ -269,6 +290,8 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
   const [pseudoVorschauBusy, setPseudoVorschauBusy] = useState(false);
   // Bestätigte Schülerzuordnung: '' = Automatik (Namensheuristik).
   const [klasseSchueler, setKlasseSchueler] = useState<SchuelerInfo[]>([]);
+  const [addingStudent, setAddingStudent] = useState(false);
+  const studentListRequest = useRef(0);
   const [zuordnungId, setZuordnungId] = useState<number | ''>('');
   const zuordnungTouchedRef = useRef(false);
 
@@ -303,7 +326,62 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
   const [exportBusy,setExportBusy]=useState(false);
   const exportLock=useRef(false);
   const [assignments,setAssignments]=useLocalDraft<Record<string,number | ''>>('correction-assignments',{});
+  const [ocrReview, setOcrReview] = useState<{file: string; text: string; previews: string[]} | null>(null);
+  const [scanReview, setScanReview] = useState<ScanReviewSession | null>(null);
+  const [scanReviews, setScanReviews] = useState<Record<string,ScanReviewSession>>({});
+  const [scanReviewBusy, setScanReviewBusy] = useState(false);
+  const [verifyModel, setVerifyModel] = useState('mistral-small-2603');
+  const [ocrProvider, setOcrProvider] = useState('');
+  const [ocrModel, setOcrModel] = useState('');
+  const [ocrPage, setOcrPage] = useState(0);
+  const [ocrZoom, setOcrZoom] = useState(100);
+  const [ocrBusy, setOcrBusy] = useState(false);
+  const [analyzeReasoning, setAnalyzeReasoning] = useState<string | undefined>();
+  const [kriterienEntscheidungen, setKriterienEntscheidungen] = useState<KriterienEntscheidungen>({});
+  const kriterienDirty = JSON.stringify(kriterienEntscheidungen) !== JSON.stringify(selectedAbgabe?.lehrerPruefung?.entscheidungen ?? {});
+  const [basisTask,setBasisTask] = useLocalDraft('basis-task','');
+  const [basisAmount,setBasisAmount] = useLocalDraft('basis-amount','keine Vorgabe');
+  const [basisSource,setBasisSource] = useLocalDraft('basis-source','offen');
+  const [basisEh,setBasisEh] = useLocalDraft('basis-eh','');
+  const [basisScope,setBasisScope] = useState<'sprache'|'vollstaendig'>('vollstaendig');
+  const [basisConfirmed,setBasisConfirmed] = useState(false);
+  const [basisBusy,setBasisBusy] = useState(false);
+  const [basisRubric,setBasisRubric] = useState('');
+  const [basisLoading,setBasisLoading] = useState(false);
+  const [basisLoadError,setBasisLoadError] = useState('');
+  const autoBasis = useRef({key:'',task:'',amount:'',hash:'',rubric:''});
+  useEffect(() => {setBasisConfirmed(false);}, [basisTask,basisAmount,basisEh,basisScope,analyzeAusgangstext,analyzeAusgangstextDatei,selectedRubrik,analyzeKlasse,analyzeAufgabe]);
+  useEffect(()=>{
+    let active=true;
+    setBasisTask('');setBasisEh('');setBasisAmount('keine Vorgabe');setBasisSource('offen');setBasisRubric('');
+    if(analyzeKlasse && analyzeAufgabe) void getKorrekturKontext(analyzeKlasse,analyzeAufgabe).then(context=>{
+      if(!active)return;
+      try {const b=JSON.parse(context?.grundlageJson??'{}');if(b.version===1){setBasisTask(b.aufgabenstellung??'');setBasisEh(b.erwartungshorizont??'');setBasisAmount(b.umfangsvorgabe??'keine Vorgabe');setBasisSource(b.quellenstatus??'offen');}}
+      catch { /* Alte Grundlagen werden nicht still als bestätigt übernommen. */ }
+    }).catch(()=>{});
+    return ()=>{active=false;};
+  },[analyzeKlasse,analyzeAufgabe,getKorrekturKontext]);
+  const [sourcePreview, setSourcePreview] = useState<{text: string; sha256: string} | null>(null);
   const [settings,setSettings]=useState(loadSettings);
+  const prepareCorrectionRun = async (input: Parameters<typeof createCorrectionRunSnapshot>[0]) => {
+    try {
+      const options = await loadCorrectionReasoningOptions(input.provider, input.model);
+      const reasoning = input.reasoning ?? options.default;
+      if (!options.options.some(option => option.id === reasoning)) throw new Error('Der gewählte Denkmodus wird von diesem Modell nicht unterstützt. Bitte die Auswahl prüfen.');
+      const source = analyzeAusgangstextDatei ? await sourceText(analyzeAusgangstextDatei) : {text: input.basis.ausgangstext, sha256: await correctionTextHash(input.basis.ausgangstext)};
+      const rubricContent = await readRubric(input.basis.rubrik);
+      setSourcePreview(source);
+      let grundlage: ConfirmedCorrectionBasis | undefined;
+      if ((analyseKlasseMeta?.fach ?? '').toLowerCase().startsWith('deutsch')) {
+        const problem = correctionBasisBlocker({scope:basisScope,loading:basisLoading,loaded:Boolean(basisRubric && sourcePreview),task:basisTask,amount:basisAmount,confirmed:basisConfirmed});
+        if (problem) {setAnalyzeStep(3);throw new Error(problem);}
+        if (basisScope === 'vollstaendig' && (sourcePreview?.sha256 !== source.sha256 || basisRubric !== rubricContent)) {setBasisConfirmed(false);setAnalyzeStep(3);throw new Error('Datei oder Bewertungsraster wurden geändert. Bitte die aktualisierte Grundlage in Schritt 3 erneut prüfen.');}
+        grundlage = {version:1,pruefumfang:basisScope,aufgabenstellung:basisTask,ausgangstext:source.text,rubrik_inhalt:rubricContent,erwartungshorizont:basisEh,umfangsvorgabe:basisAmount,quellenstatus:basisSource};
+        grundlage.bestaetigung_hash = basisConfirmed ? await correctionTextHash(confirmedBasisHashInput(grundlage)) : undefined;
+      }
+      return createCorrectionRunSnapshot({...input, reasoning, basis: {...input.basis, grundlage, ausgangstext: source.text, ausgangstextHash: source.sha256, rubrikInhalt: rubricContent, rubrikHash: await correctionTextHash(rubricContent)}});
+    } catch (error) { setError(error instanceof Error ? error.message : String(error)); return null; }
+  };
   useEffect(()=>subscribeSettings(setSettings),[]);
   // Effektiver Runtime: Wizard-Overrides wenn gesetzt, sonst Settings
   const effectiveRuntime = useMemo(() => {
@@ -312,8 +390,10 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
     return {
       provider: PROVIDER_KEY_IDS[pKey] ?? pKey,
       model: MODEL_MAP[mLabel] ?? mLabel,
+      reasoning: analyzeReasoning ?? settings.correctionReasoning?.[correctionReasoningKey(pKey,mLabel)],
     };
-  }, [analyzeProvider, analyzeModel, settings.defaultProvider, settings.defaultModel]);
+  }, [analyzeProvider, analyzeModel, analyzeReasoning, settings.defaultProvider, settings.defaultModel, settings.correctionReasoning]);
+  useEffect(() => { setAnalyzeReasoning(undefined); }, [effectiveRuntime.provider, effectiveRuntime.model]);
   const [queueContext,setQueueContext]=useLocalDraft('correction-context','');
   // Misst das gewählte Raster Verstehen statt Schreibfähigkeit? Dann ist der
   // Ausgangstext keine Empfehlung, sondern Voraussetzung — das steht so im
@@ -332,22 +412,25 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
   }, [analyzeKlasse, analyzeKlasseId, analyzeAufgabe, selectedRubrik, analyzeAusgangstext, analyzeAusgangstextDatei, selectedEinsatzId]);
   const verstaendnisGewaehlt = istVerstaendnisRubrik(gewaehltesRubrik);
   const hatAusgangstext = Boolean(analyzeAusgangstext.trim() || analyzeAusgangstextDatei.trim());
-  const contextKey=JSON.stringify([analyzeKlasse,analyzeKlasseId,analyzeAufgabe,selectedRubrik,analyzeAusgangstext,analyzeAusgangstextDatei,selectedEinsatzId,effectiveRuntime.provider,effectiveRuntime.model,pseudoAktiv,assignments,revisionOfAbgabeId,englischProfil,englischEntwurf]);
+  const contextKey=JSON.stringify([analyzeKlasse,analyzeKlasseId,analyzeAufgabe,selectedRubrik,analyzeAusgangstext,analyzeAusgangstextDatei,selectedEinsatzId,effectiveRuntime.provider,effectiveRuntime.model,effectiveRuntime.reasoning,pseudoAktiv,assignments,revisionOfAbgabeId,reanalyzeExisting,englischProfil,englischEntwurf,basisTask,basisAmount,basisSource,basisEh,basisScope,basisConfirmed,basisRubric,sourcePreview?.sha256,basisLoading]);
   const [fileChecks,setFileChecks]=useState<Record<string,PersonenVorschau | null>>({});
   const [checkingFiles,setCheckingFiles]=useState(false);
-  const closeAnalyze = useCallback(() => {
-    if (analyzing || batchRunning) return;
-    setAnalysisFailure(null);
-    setError(null);
-    setRevisionOfAbgabeId(null);
-    setAnalyzeOpen(false);
-  }, [analyzing, batchRunning]);
-  const modalRef=useDialogFocus(analyzeOpen,closeAnalyze);
+  const scanReadingRuntime = scanRuntime(ocrProvider, ocrModel, effectiveRuntime);
+  const autoScanProvider = ['openai','mistral'].includes(scanReadingRuntime.provider);
+  const automaticScan = autoScanProvider && isVisionPath(analyzeFile);
+  const preparationChecks = Object.fromEntries(Object.entries(fileChecks).map(([file,check]) => [file, autoScanProvider && isVisionPath(file) && check ? {...check, visionModus:false,visionFaehig:true} : check]));
+  const studentContext = JSON.stringify([analyzeKlasse, analyzeKlasseId, analyzeOpen]);
+  const studentContextRef = useRef(studentContext); studentContextRef.current = studentContext;
+  const submissionBlocker = addingStudent ? 'Der Name wird noch gespeichert. Bitte kurz warten.' : correctionSubmissionBlocker({ files: batchFiles, checks: preparationChecks, readingScan: ocrBusy, reviewingScan: ocrReview !== null, checkingFiles });
+  const readyFileCount = batchFiles.filter(file => isSubmissionReady(preparationChecks[file])).length;
+  // Ausblenden veraendert weder den laufenden Auftrag noch seine Grundlage.
+  const closeAnalyze = useCallback(() => { setAnalyzeOpen(false); }, []);
+  const modalRef=useDialogFocus(analyzeOpen,closeAnalyze,'dialog');
   const queueRunning=analyzing || batchRunning;
   const selectFiles=useCallback((paths:string[])=>{
-    const accepted=paths.filter(f=>/\.(docx|pdf|txt|odt|jpe?g|png)$/i.test(f));
-    if(accepted.length!==paths.length)setError('Einige Dateien wurden nicht übernommen. Unterstützt: DOCX, PDF, TXT, ODT, JPG, PNG.');
-    setBatchFiles(accepted);setAnalyzeFile(accepted[0] ?? '');setBatchResults([]);setAssignments({});
+    const accepted=paths.filter(f=>/\.(docx|pdf|txt|md|odt|jpe?g|png)$/i.test(f));
+    if(accepted.length!==paths.length)setError('Einige Dateien wurden nicht übernommen. Unterstützt: DOCX, PDF, TXT, MD, ODT, JPG, PNG.');
+    setScanReview(null);setScanReviews({});setBatchFiles(accepted);setAnalyzeFile(accepted[0] ?? '');setBatchResults([]);setAssignments({});
   },[setBatchFiles,setAnalyzeFile,setBatchResults,setAssignments]);
   const changeFeedback=(note:string,comment:string)=>{
     setTeacherNote(note);setTeacherComment(comment);
@@ -546,6 +629,31 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
         ? analyseKlassen.find((klasse) => klasse.name === analyzeKlasse) : undefined),
     [analyseKlassen, analyzeKlasse, analyzeKlasseId],
   );
+  const isGermanCorrection = (analyseKlasseMeta?.fach ?? '').toLowerCase().startsWith('deutsch');
+  const basisBlocker = isGermanCorrection ? correctionBasisBlocker({scope:basisScope,loading:basisLoading,loaded:Boolean(basisRubric && sourcePreview) && !basisLoadError,task:basisTask,amount:basisAmount,confirmed:basisConfirmed}) : null;
+  useEffect(()=>{
+    if (!analyzeOpen || analyzeStep!==3 || !isGermanCorrection) return;
+    let active=true;
+    setBasisLoading(true);setBasisLoadError('');
+    const rubric = selectedRubrik || rubrikListe.defaultRubric;
+    const key = JSON.stringify([analyzeKlasse,analyzeAufgabe,analyzeAusgangstextDatei,analyzeAusgangstext]);
+    void Promise.all([
+      analyzeAusgangstextDatei ? sourceText(analyzeAusgangstextDatei) : correctionTextHash(analyzeAusgangstext).then(sha256=>({text:analyzeAusgangstext,sha256})),
+      readRubric(rubric),
+    ]).then(([source,content])=>{
+      if(!active)return;
+      const inferred=inferCorrectionBasis(source.text);
+      const previous=autoBasis.current;
+      const amount=inferred.wordChoices.length===1?inferred.wordChoices[0]!:'';
+      setBasisTask(value=>previous.key!==key || !value.trim() || value===previous.task ? inferred.task : value);
+      setBasisAmount(value=>previous.key!==key || !value.trim() || value===previous.amount ? amount : value);
+      if(previous.hash!==source.sha256 || previous.rubric!==content)setBasisConfirmed(false);
+      autoBasis.current={key,task:inferred.task,amount,hash:source.sha256,rubric:content};
+      setSourcePreview(source);setBasisRubric(content);
+    }).catch(error=>{if(active){setSourcePreview(null);setBasisRubric('');setBasisConfirmed(false);setBasisLoadError(error instanceof Error?error.message:String(error));}})
+      .finally(()=>{if(active)setBasisLoading(false);});
+    return ()=>{active=false;};
+  },[analyzeOpen,analyzeStep,isGermanCorrection,analyzeKlasse,analyzeAufgabe,analyzeAusgangstextDatei,analyzeAusgangstext,selectedRubrik,rubrikListe.defaultRubric,sourceText,readRubric]);
   const analyseKlasseKey = analyseKlasseMeta?.key ?? `legacy:${analyzeKlasse}`;
 
   useEffect(() => {
@@ -639,6 +747,7 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
       if (request !== detailRequest.current) return;
       if (detail) {
         setSelectedAbgabe(detail);
+        setKriterienEntscheidungen(detail.lehrerPruefung?.entscheidungen ?? {});
         const draft=feedbackRef.current[abgabeId];
         setTeacherNote(draft?.note ?? detail.lehrerFeedback?.noteFinal?.toString() ?? '');
         setTeacherComment(draft?.comment ?? detail.lehrerFeedback?.lehrerKommentar ?? '');
@@ -667,63 +776,47 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preselect]);
 
-  const handleSaveFeedback = useCallback(async () => {
+  const handleSaveFeedback = useCallback(async (pruefstatus: 'entwurf' | 'freigegeben' = 'freigegeben') => {
     if (!selectedAbgabe || saveLock.current) return false;
-    const note=teacherNote.trim() ? Number(teacherNote) : null;
-    if(note === null || !istGueltigeLehrernote(note, korrekturLand)){setError(`Bitte eine gültige Lehrernote zwischen 1 und ${maxLehrernote(korrekturLand)} eingeben.`);return false;}
-    const savedNote=teacherNote, savedComment=teacherComment;
-    saveLock.current=true;
-    const finish=beginActivity('Feedback speichern');
-    setSaving(true);
-    setSaveMsg(null);
-    const ok = await upsertLehrerFeedback(
-      selectedAbgabe.abgabe.id,
-      selectedAbgabe.abgabe.klasse,
-      selectedAbgabe.abgabe.aufgabe,
-      teacherNote ? parseFloat(teacherNote) : null,
-      teacherComment || null,
-      selectedAbgabe.abgabe.schuelerId ?? null,
-    );
-    // Phase 3: offene Lehrkraft-Aktionen an DB senden
-    let aktionenOk = true;
-    if (ok) {
-      const pending = Object.entries(fehlerAktionen);
-      for (const [idStr, a] of pending) {
-        const saved = await updateFehlerStatus(Number(idStr), a.aktion, a.korrektur);
-        if (!saved) aktionenOk = false;
-      }
-      if (pending.length > 0 && aktionenOk) {
-        setSelectedAbgabe(current => {
-          if (!current || current.abgabe.id !== selectedAbgabe.abgabe.id) return current;
-          return {
-            ...current,
-            fehler: current.fehler.map(f => {
-              const a = fehlerAktionen[f.id];
-              if (!a || a.aktion === null) return f;
-              return { ...f, lehrkraftAktion: a.aktion, lehrkraftKorrektur: a.korrektur ?? f.lehrkraftKorrektur };
-            }),
-          };
-        });
-        setFehlerAktionen({});
-      }
+    const note = teacherNote.trim() ? Number(teacherNote) : null;
+    if (note !== null && !istGueltigeLehrernote(note, korrekturLand)) {
+      setError(`Bitte eine gültige Lehrernote zwischen 1 und ${maxLehrernote(korrekturLand)} eingeben oder das Feld leer lassen.`);
+      return false;
     }
-    if (ok && aktionenOk) {
-      setSaveMsg('Freigegeben und gespeichert');
-      setFeedbackDrafts(previous=>{const next={...previous};const draft=next[selectedAbgabe.abgabe.id];if(!draft || (draft.note===savedNote && draft.comment===savedComment))delete next[selectedAbgabe.abgabe.id];return next;});
-      setTimeout(() => setSaveMsg(null), 2000);
-      const savedFeedback={id:selectedAbgabe.lehrerFeedback?.id ?? 0,noteFinal:note,noteAppSnapshot:selectedAbgabe.abgabe.note,lehrerKommentar:teacherComment || null,erstelltAm:null,geaendertAm:null};
-      setSelectedAbgabe(current=>current?.abgabe.id===selectedAbgabe.abgabe.id ? {...current,lehrerFeedback:savedFeedback,abgabe:{...current.abgabe,hatLehrerFeedback:true,noteFinal:note}} : current);
-      setAbgaben(rows=>rows.map(row=>row.id===selectedAbgabe.abgabe.id ? {...row,hatLehrerFeedback:true,noteFinal:note}:row));
-    } else if (ok) {
-      setError('Feedback gespeichert, aber Lehrkraft-Aktionen konnten nicht gespeichert werden — bitte erneut speichern.');
-    } else {
-      setError('Speichern fehlgeschlagen');
-    }
-    setSaving(false);saveLock.current=false;finish();
-    return ok;
-  }, [selectedAbgabe, teacherNote, teacherComment, upsertLehrerFeedback, updateFehlerStatus, fehlerAktionen, loadDetail, saving, setFeedbackDrafts, korrekturLand]);
+    saveLock.current = true; setSaving(true); setSaveMsg(null);
+    const finish = beginActivity('Feedback speichern');
+    const id = selectedAbgabe.abgabe.id;
+    try {
+      await saveKorrekturReview({
+        abgabeId: id, revisionId: selectedAbgabe.abgabe.revisionId, noteFinal: note,
+        lehrerKommentar: teacherComment, pruefstatus,
+        aktionen: Object.entries(fehlerAktionen).map(([key, value]) => ({id: Number(key), aktion: value.aktion, korrektur: value.korrektur ?? null})),
+        ...(selectedAbgabe.bewertungspruefung ? {kriterienEntscheidungen} : {}),
+      });
+      const savedFeedback = { id: selectedAbgabe.lehrerFeedback?.id ?? 0, noteFinal: note,
+        noteAppSnapshot: selectedAbgabe.abgabe.note, lehrerKommentar: teacherComment || null,
+        pruefstatus, erstelltAm: null, geaendertAm: null };
+      setSelectedAbgabe(current => current?.abgabe.id === id ? {
+        ...current, lehrerFeedback: savedFeedback,
+        abgabe: {...current.abgabe, hatLehrerFeedback: pruefstatus === 'freigegeben', noteFinal: note},
+        fehler: current.fehler.map(f => {
+          const action = fehlerAktionen[f.id];
+          return action ? {...f, lehrkraftAktion: action.aktion, lehrkraftKorrektur: action.korrektur ?? null} : f;
+        }),
+      } : current);
+      setAbgaben(rows => rows.map(row => row.id === id ? {...row, hatLehrerFeedback: pruefstatus === 'freigegeben', noteFinal: note} : row));
+      setFehlerAktionen({});
+      setFeedbackDrafts(previous => { const next = {...previous}; delete next[id]; return next; });
+      setSaveMsg(pruefstatus === 'freigegeben' ? 'Freigegeben und gespeichert' : 'Entwurf gespeichert – Prüfung offen');
+      await loadDetail(id);
+      await loadAbgaben(selectedAbgabe.abgabe.klasse, selectedAbgabe.abgabe.aufgabe);
+      return true;
+    } catch (e) { setError(String(e)); return false; }
+    finally { setSaving(false); saveLock.current = false; finish(); }
+  }, [selectedAbgabe, teacherNote, teacherComment, saveKorrekturReview, fehlerAktionen, setFeedbackDrafts, korrekturLand, kriterienEntscheidungen, loadDetail, loadAbgaben]);
 
   const [retroBusy, setRetroBusy] = useState(false);
+  const [deleteAuftragBusy, setDeleteAuftragBusy] = useState(false);
   const handleFolgeuebung = useCallback(async () => {
     if (!onGenerateUebung || !selectedKlasse || !selectedAufgabe) return;
     setLoopBusy(true);
@@ -756,6 +849,31 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
     }
   }, [onGenerateUebung, selectedKlasse, selectedAufgabe, abgaben, klassenMeta, profilLand, getHeatmap, quelltextGet, getFehlerDetail]);
 
+  const handleDeleteAuftrag = async () => {
+    if (!selectedKlasse || !selectedAufgabe || queueRunning || retroBusy || saving || exportBusy || deleteAuftragBusy) return;
+    const klasse = selectedKlasse; const aufgabe = selectedAufgabe;
+    const ids = [...new Set(abgaben.map(item => item.klasseId).filter((id): id is string => Boolean(id)))];
+    const klasseId = ids.length === 1 ? ids[0] : undefined;
+    setDeleteAuftragBusy(true); setError(null);
+    const finish = beginActivity('Korrekturauftrag löschen');
+    try {
+      const preview = await previewDeleteKorrekturauftrag(klasse, aufgabe, klasseId);
+      const message = `Korrekturauftrag „${aufgabe}“ in ${klasse} löschen?\n\n${preview.abgabeIds.length} Arbeiten, ${preview.revisionen} gespeicherte Korrekturversionen und ${preview.lehrkraftRueckmeldungen} aktuelle Lehrkraft-Rückmeldungen werden aus LUKA entfernt. Auch Retro-Importe zu dieser Aufgabe werden erfasst.\n\nOriginaldateien, exportierte Dokumente, Klassen und Schüler bleiben erhalten. Die Löschung kann nicht rückgängig gemacht werden.`;
+      if (!window.confirm(message)) return;
+      await deleteKorrekturauftrag(klasse, aufgabe, preview.abgabeIds, klasseId);
+      setSelectedAbgabe(null); setKorrekturKontext(null); setAbgaben([]);
+      if (analyzeKlasse === klasse && analyzeAufgabe === aufgabe) {
+        setAnalyzeFile(''); setBatchFiles([]); setBatchResults([]); setAssignments({});
+        setAnalyzeAufgabe(''); setAnalyzeAusgangstext(''); setAnalyzeAusgangstextDatei('');
+        setRevisionOfAbgabeId(null); setReanalyzeExisting(false); setScanReview(null); setScanReviews({});
+      }
+      await loadAufgaben(klasse);
+      setKlassen(await listKlassen());
+      setAnalyzeSuccess(`Korrekturauftrag „${aufgabe}“ gelöscht (${preview.abgabeIds.length} Arbeiten).`);
+    } catch (error) { setError(error instanceof Error ? error.message : String(error)); }
+    finally { finish(); setDeleteAuftragBusy(false); }
+  };
+
   const handleRetroImport = useCallback(async () => {
     if (!selectedKlasse) return;
     setRetroBusy(true);
@@ -778,37 +896,16 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
 
   const handleGenerateDocx = useCallback(async () => {
     if (!selectedAbgabe || exportLock.current) return;
-    // Phase 3: Hinweis wenn Fehler offen/verworfen — Lehrkraft soll wissen,
-    // was ins DOCX kommt.
-    const total = selectedAbgabe.fehler.length;
-    const aktionCount = (a: string) => selectedAbgabe.fehler.filter(f =>
-      (fehlerAktionen[f.id]?.aktion ?? f.lehrkraftAktion) === a
-    ).length;
-    const verworfen = aktionCount('verworfen');
-    const offen = total - aktionCount('uebernommen') - aktionCount('geaendert') - verworfen;
-    if (verworfen > 0 || offen > 0) {
-      const msg = `Vor dem DOCX-Export:\n`
-        + `• ${total - verworfen} Vorschläge werden übernommen\n`
-        + (verworfen > 0 ? `• ${verworfen} verworfen (nicht im DOCX)\n` : '')
-        + (offen > 0 ? `• ${offen} noch nicht geprüft (werden übernommen)\n` : '')
-        + `\nFortfahren?`;
-      if (!window.confirm(msg)) return;
-    }
     exportLock.current=true;setExportBusy(true);
     const finish=beginActivity('Feedback exportieren');
     try {
-    if (!await handleSaveFeedback()) return;
-    setError(null);
-    setDocxErfolg(null);
-    setFeedbackAmTermin(false);
-    const result = await generateFeedbackDocx(selectedAbgabe.abgabe.id);
-    if (result) {
-      setDocxErfolg(result.path);
-    } else {
-      setError('DOCX-Erstellung fehlgeschlagen');
-    }
-    } finally {exportLock.current=false;setExportBusy(false);finish();}
-  }, [selectedAbgabe, fehlerAktionen, generateFeedbackDocx, handleSaveFeedback, saving]);
+    setError(null);setDocxErfolg(null);setFeedbackAmTermin(false);
+    const pending = kriterienDirty || Boolean(feedbackDrafts[selectedAbgabe.abgabe.id]) || Object.keys(fehlerAktionen).length > 0;
+    const path = await exportTeacherReport({abgabeId:selectedAbgabe.abgabe.id,revisionId:selectedAbgabe.abgabe.revisionId,
+      savePending:pending ? ()=>handleSaveFeedback('entwurf') : undefined,generate:generateFeedbackDocx});
+    if (path) setDocxErfolg(path);
+    } catch(e) { setError(String(e)); } finally {exportLock.current=false;setExportBusy(false);finish();}
+  }, [selectedAbgabe, fehlerAktionen, generateFeedbackDocx, handleSaveFeedback, saving, feedbackDrafts, kriterienDirty]);
 
   const handleShowDocx = useCallback(async () => {
     if (!docxErfolg) return;
@@ -848,6 +945,7 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
   }, [selectedAbgabe?.abgabe.id]);
 
   const handleOpenAnalyze = useCallback(() => {
+    setReanalyzeExisting(false);
     setError(null);
     setAnalysisFailure(null);
     setRevisionOfAbgabeId(null);
@@ -886,6 +984,7 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
     setAnalysisFailure(null);
     setAnalyzeSuccess(null);
     setRevisionOfAbgabeId(selectedAbgabe.abgabe.id);
+    setReanalyzeExisting(true);
     setAnalyzeKlasse(selectedAbgabe.abgabe.klasse);
     setAnalyzeKlasseId(selectedAbgabe.abgabe.klasseId ?? '');
     setAnalyzeAufgabe(selectedAbgabe.abgabe.aufgabe);
@@ -965,17 +1064,36 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
 
   // Schülerliste der Klasse für die bestätigte Zuordnung laden.
   useEffect(() => {
+    const request = ++studentListRequest.current;
     if (!analyzeOpen || !analyzeKlasse.trim() || !isTauri()) {
       setKlasseSchueler([]);
       return;
     }
     let aktiv = true;
     const t = setTimeout(async () => {
-      const rows = await listSchueler(analyzeKlasse.trim());
-      if (aktiv) setKlasseSchueler(rows);
+      const rows = await listSchueler(analyzeKlasse.trim(), analyzeKlasseId || null);
+      if (aktiv && request === studentListRequest.current) setKlasseSchueler(rows);
     }, 400);
     return () => { aktiv = false; clearTimeout(t); };
-  }, [analyzeOpen, analyzeKlasse, listSchueler]);
+  }, [analyzeOpen, analyzeKlasse, analyzeKlasseId, listSchueler]);
+
+  const createAndAssignStudent = useCallback(async (vorname: string, nachname: string): Promise<number> => {
+    if (!analyzeKlasse.trim()) throw new Error('Bitte zuerst eine Klasse auswählen.');
+    const expectedContext = studentContext;
+    ++studentListRequest.current;
+    setAddingStudent(true);
+    try {
+      const classId = analyseKlasseMeta?.id ?? (analyzeKlasseId || null);
+      const rows = await listSchueler(analyzeKlasse.trim(), classId);
+      if (studentContextRef.current !== expectedContext) throw new Error('Die Klasse wurde gewechselt. Bitte den Namen erneut zuordnen.');
+      const existing = vorhandenePerson(rows, vorname, nachname);
+      if (existing) { setKlasseSchueler(rows); return existing.id; }
+      const id = await insertSchueler(analyzeKlasse.trim(), vorname, nachname || null, classId);
+      if (studentContextRef.current !== expectedContext) throw new Error('Der Name wurde in der ursprünglichen Klasse gespeichert. Bitte dort erneut auswählen.');
+      setKlasseSchueler([...rows, { id, klasse: analyzeKlasse.trim(), vorname, nachname: nachname || null, createdAt: null }]);
+      return id;
+    } finally { setAddingStudent(false); }
+  }, [analyzeKlasse, analyzeKlasseId, analyseKlasseMeta?.id, studentContext, insertSchueler, listSchueler]);
 
   // Datei gewechselt → Zuordnung zurücksetzen, Automatik-Vorschlag darf wieder greifen.
   useEffect(() => {
@@ -991,15 +1109,12 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
     if (dateiTreffer.length === 1) setZuordnungId(dateiTreffer[0]!.schuelerId);
   }, [pseudoVorschau]);
 
-  const handleAnalyze = useCallback(async () => {
+  const handleAnalyze = useCallback(async (commitScan = false) => {
     if (englischFehler) { setError(englischFehler); return; }
     if (!analyzeFile || !analyzeKlasse || !analyzeAufgabe) return;
-    if (isVisionPath(analyzeFile) && (!pseudoVorschau || pseudoVorschauBusy)) {
-      setError('Die PDF/Bild-Prüfung läuft noch. Bitte kurz warten, bis die Anbieter-Unterstützung geprüft ist.');
-      return;
-    }
-    if (pseudoVorschau?.visionModus && !pseudoVorschau.visionFaehig) {
-      setError('Diese PDF/Bild-Abgabe kann mit dem konfigurierten KI-Anbieter nicht analysiert werden. Bitte einen Vision-fähigen Anbieter oder DOCX/TXT verwenden.');
+    if (submissionBlocker || (!automaticScan && !isSubmissionReady(fileChecks[analyzeFile]))) {
+      setError(submissionBlocker ?? 'Bitte die ausgewählte Abgabe in Schritt 4 prüfen.');
+      setAnalyzeStep(4);
       return;
     }
     setError(null);
@@ -1007,9 +1122,11 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
     setAnalyzeSuccess(null);
     const einsatz = einsatzOptions.find((e) => e.id === selectedEinsatzId);
     let result;
-    const correctionRun = createCorrectionRunSnapshot({
+    const correctionRun = await prepareCorrectionRun({
       provider: effectiveRuntime.provider,
       model: effectiveRuntime.model,
+      reasoning: effectiveRuntime.reasoning,
+      reanalyzeExisting,
       pseudonymization: pseudoAktiv,
       basis: {
         klasse: analyzeKlasse,
@@ -1020,8 +1137,11 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
         materialId: einsatz?.materialId ?? null,
       },
     });
-    try { result = await analyze(analyzeFile, analyzeKlasse, analyzeAufgabe, { ...englischOptionen, runtime: { provider: correctionRun.provider, model: correctionRun.model }, fach: analyseKlasseMeta?.fach || undefined, schulstufe: analyseKlasseMeta?.schulstufe || undefined, textsorte: analyzeTextsorte || undefined, land: korrekturLand ?? 'at', ausgangstext: analyzeAusgangstextDatei ? undefined : (analyzeAusgangstext.trim() || undefined), ausgangstextDatei: analyzeAusgangstextDatei || undefined, rubric: correctionRun.basis.rubrik || undefined, pseudonymisierung: correctionRun.privacyMode === 'pseudonymisiert', schuelerId: assignments[analyzeFile] || (zuordnungId === '' ? undefined : zuordnungId), einsatzId: correctionRun.basis.unterrichtseinsatzId ?? undefined, materialId: correctionRun.basis.materialId ?? undefined, revisionOfAbgabeId: revisionOfAbgabeId ?? undefined, klasseId: analyseKlasseMeta?.id });
+    if (!correctionRun) return;
+    try { result = await analyze(analyzeFile, analyzeKlasse, analyzeAufgabe, { ...englischOptionen,
+        scanReview: automaticScan ? {action: commitScan ? 'commit' : 'prepare', session:commitScan ? scanReview?.id : undefined, provider:scanReadingRuntime.provider, model:scanReadingRuntime.model, verifyModel:scanReadingRuntime.provider==='mistral'?verifyModel:scanReadingRuntime.model} : undefined, runtime: { provider: correctionRun.provider, model: correctionRun.model, reasoning: correctionRun.reasoning }, fach: analyseKlasseMeta?.fach || undefined, schulstufe: analyseKlasseMeta?.schulstufe || undefined, textsorte: analyzeTextsorte || undefined, land: korrekturLand ?? 'at', ausgangstext: correctionRun.basis.ausgangstext, grundlageSnapshot: {rubrik_inhalt: correctionRun.basis.rubrikInhalt ?? '', ausgangstext: correctionRun.basis.ausgangstext, grundlage: correctionRun.basis.grundlage}, rubric: correctionRun.basis.rubrik || undefined, reanalyzeExisting: correctionRun.reanalyzeExisting, pseudonymisierung: correctionRun.privacyMode === 'pseudonymisiert', schuelerId: assignments[analyzeFile] || (zuordnungId === '' ? undefined : zuordnungId), einsatzId: correctionRun.basis.unterrichtseinsatzId ?? undefined, materialId: correctionRun.basis.materialId ?? undefined, revisionOfAbgabeId: revisionOfAbgabeId ?? undefined, klasseId: analyseKlasseMeta?.id });
     } catch(e) { setAnalysisFailure(e instanceof Error ? e.message : String(e)); setAnalyzeStep(5); return; }
+    if (result?.scan_review) { setScanReview(result.scan_review); setScanReviews(prev=>({...prev,[analyzeFile]:result.scan_review})); setAnalyzeStep(5); return; }
     const resultErrors = analyseHinweise(result);
     const duplicate = resultErrors.some((entry) => /duplikat|bereits analysiert/i.test(entry));
     if (result) {
@@ -1033,7 +1153,10 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
       }
       setQueueContext(contextKey);
       setBatchResults([{file:analyzeFile,ok:!duplicate,msg:duplicate ? 'Bereits analysiert' : 'KI-Vorschlag vorhanden — bitte prüfen'}]);
-      setAnalyzeOpen(false);
+      const remaining = {...scanReviews}; delete remaining[analyzeFile]; setScanReviews(remaining);
+      const next = Object.keys(remaining)[0];
+      setScanReview(next ? remaining[next]! : null);
+      if (next) { setAnalyzeFile(next); setAnalyzeStep(5); } else setAnalyzeOpen(false);
       setRevisionOfAbgabeId(null);
       // Die Grundlage bleibt für weitere Abgaben und Wiederaufnahme erhalten.
       const refreshed = await listKlassen();
@@ -1044,7 +1167,24 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
     } else {
       setAnalysisFailure('Analyse fehlgeschlagen. Bitte Anbieter und Modell prüfen und manuell erneut versuchen.');
     }
-  }, [englischFehler, englischProfil, englischEntwurf, effectiveRuntime.provider, effectiveRuntime.model, revisionOfAbgabeId, contextKey, rubrikListe.defaultRubric, assignments, analyze, analyzeFile, analyzeKlasse, analyzeKlasseId, analyzeAufgabe, analyseKlasseMeta, analyzeAusgangstext, analyzeAusgangstextDatei, listKlassen, loadAufgaben, pseudoVorschau, pseudoVorschauBusy, pseudoAktiv, selectedRubrik, zuordnungId, einsatzOptions, selectedEinsatzId]);
+  }, [scanReviews, automaticScan, scanReview, scanReadingRuntime.provider, scanReadingRuntime.model, verifyModel, englischFehler, englischProfil, englischEntwurf, effectiveRuntime.provider, effectiveRuntime.model, effectiveRuntime.reasoning, revisionOfAbgabeId, reanalyzeExisting, contextKey, rubrikListe.defaultRubric, assignments, analyze, analyzeFile, analyzeKlasse, analyzeKlasseId, analyzeAufgabe, analyseKlasseMeta, analyzeAusgangstext, analyzeAusgangstextDatei, listKlassen, loadAufgaben, submissionBlocker, fileChecks, pseudoAktiv, selectedRubrik, zuordnungId, einsatzOptions, selectedEinsatzId]);
+
+  const resolveScan = async (issue: ScanReviewIssue, choice: string) => {
+    if (!scanReview) return;
+    setScanReviewBusy(true);
+    try {
+      const {invoke} = await import('@tauri-apps/api/core'); const cfg=loadSettings();
+      const updated=await invoke<ScanReviewSession>('natascha_scan_review', {dir:cfg.nataschaDir??'',python:cfg.pythonCommand??'',session:scanReview.id,revision:scanReview.revision,issue:issue.id,choice}); setScanReview(updated);setScanReviews(prev=>({...prev,[analyzeFile]:updated}));
+    } catch(e) { setError(String(e)); } finally {setScanReviewBusy(false);}
+  };
+  const scanImageCache = useRef(new Map<string,Promise<string>>());
+  const scanImage = async (issue:ScanReviewIssue) => {
+    const {invoke}=await import('@tauri-apps/api/core');const cfg=loadSettings();
+    const key=JSON.stringify([scanReview?.id,issue.page,issue.box]);
+    let pending=scanImageCache.current.get(key);
+    if(!pending){pending=invoke<string>('natascha_scan_review_image',{dir:cfg.nataschaDir??'',python:cfg.pythonCommand??'',session:scanReview?.id,issue:issue.id});scanImageCache.current.set(key,pending);void pending.catch(()=>scanImageCache.current.delete(key));}
+    return pending;
+  };
 
   /** Aktuelle Lehrkraftentscheidung: lokaler Overlay schlägt die gespeicherte Aktion. */
   const aktionVon = useCallback((id: number): FehlerAktion => {
@@ -1061,7 +1201,7 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
       id: f.id,
       zitat: f.zitat,
       typ: f.typ,
-      aktion: aktionVon(f.id),
+      aktion: befundPruefstatus(f.befund, aktionVon(f.id)).beanstandungVerworfen ? 'verworfen' : aktionVon(f.id),
     })));
   }, [selectedAbgabe, aktionVon]);
 
@@ -1072,7 +1212,7 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
   const sortiert = useMemo(() => {
     if (!selectedAbgabe) return null;
     const gefiltert = nurUnsichere
-      ? selectedAbgabe.fehler.filter(f => f.vertrauensstufe === 'mittel' || f.vertrauensstufe === 'niedrig')
+      ? selectedAbgabe.fehler.filter(f => f.vertrauensstufe === 'mittel' || f.vertrauensstufe === 'niedrig' || f.befund?.befundart === 'ungeklaert' || f.befund?.ki_pruefung?.status === 'widerspruch' || befundPruefstatus(f.befund).ersetzungOffen)
       : selectedAbgabe.fehler;
     return sortiereFehler(gefiltert, sortierung, {
       startVon: id => segmentErgebnis ? primaerStart(segmentErgebnis, id) : null,
@@ -1140,20 +1280,57 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
   }, [selectedAbgabe, segmentErgebnis, sortiert, aktiveFehlerId, hoverFehlerId, zeigeNummern, registriereMarkierung, waehleAusText]);
 
   const pickFile=useCallback(async()=>{
-    try{const {open}=await import('@tauri-apps/plugin-dialog');const paths=await open({multiple:revisionOfAbgabeId === null,filters:[{name:'Abgaben',extensions:['docx','pdf','txt','odt','jpg','jpeg','png']}]});if(paths)selectFiles(Array.isArray(paths)?paths:[paths]);}
+    try{const {open}=await import('@tauri-apps/plugin-dialog');const paths=await open({multiple:revisionOfAbgabeId === null,filters:[{name:'Abgaben',extensions:['docx','pdf','txt','md','odt','jpg','jpeg','png']}]});if(paths)selectFiles(Array.isArray(paths)?paths:[paths]);}
     catch{setError('Die Dateiauswahl konnte nicht geöffnet werden. Bitte erneut versuchen.');}
   },[selectFiles, revisionOfAbgabeId]);
+
+  const readScan = async (file: string) => {
+    setOcrBusy(true);
+    try {
+      const { invoke } = await import('@tauri-apps/api/core');
+      const cfg = loadSettings();
+      const raw = await invoke<string>('natascha_ocr', {
+        dir: cfg.nataschaDir ?? '', python: cfg.pythonCommand ?? '', filePath: file,
+        ...scanRuntime(ocrProvider, ocrModel, effectiveRuntime), reviewedText: null,
+      });
+      const result = JSON.parse(raw) as {transkription: string; preview_pages?: string[]};
+      setOcrPage(0);
+      setOcrReview({file, text: result.transkription, previews: result.preview_pages ?? []});
+    } catch (e) { setError(String(e)); }
+    finally { setOcrBusy(false); }
+  };
+  const adoptScan = async () => {
+    if (!ocrReview) return;
+    setOcrBusy(true);
+    try {
+      const { invoke } = await import('@tauri-apps/api/core');
+      const cfg = loadSettings();
+      const raw = await invoke<string>('natascha_ocr', {
+        dir: cfg.nataschaDir ?? '', python: cfg.pythonCommand ?? '', filePath: ocrReview.file,
+        ...scanRuntime(ocrProvider, ocrModel, effectiveRuntime), reviewedText: ocrReview.text,
+      });
+      const {path} = JSON.parse(raw) as {path: string};
+      const assignment = assignments[ocrReview.file];
+      setFileChecks(prev => { const next = {...prev}; delete next[path]; return next; });
+      const preview = await personenVorschau(path, analyzeKlasse, effectiveRuntime);
+      setFileChecks(prev => ({...prev, [path]: preview}));
+      if (analyzeFile === path) setPseudoVorschau(preview);
+      if (assignment) setAssignments(prev => ({...prev, [path]: assignment}));
+      setOcrReview(null);
+    } catch (e) { setError(String(e)); }
+    finally { setOcrBusy(false); }
+  };
 
   const pickSourceFile = useCallback(async () => {
     try {
       const { open } = await import('@tauri-apps/plugin-dialog');
       const selected = await open({ multiple: false, filters: [{ name: 'Ausgangsmaterial', extensions: ['docx', 'pdf', 'txt', 'md'] }] });
-      if (typeof selected === 'string') setAnalyzeAusgangstextDatei(selected);
-    } catch {
-      const value = prompt('Pfad zum Ausgangsmaterial:');
-      if (value) setAnalyzeAusgangstextDatei(value);
-    }
-  }, []);
+      if (typeof selected === 'string') {
+        setAnalyzeAusgangstextDatei(selected);
+        setSourcePreview(await sourceText(selected));
+      }
+    } catch (error) { setSourcePreview(null); setError(error instanceof Error ? error.message : String(error)); }
+  }, [sourceText]);
 
   const baseName = (p: string) => p.split(/[/\\]/).pop() || p;
 
@@ -1161,7 +1338,7 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
   const handleBatchAnalyze = useCallback(async () => {
     if (englischFehler) { setError(englischFehler); return; }
     if (batchStarting.current || batchFiles.length === 0 || !analyzeKlasse || !analyzeAufgabe) return;
-    if(checkingFiles || batchFiles.some(file=>!fileChecks[file])) {setError('Bitte zuerst die Dateiprüfung vollständig abschließen.');return;}
+    if(submissionBlocker) {setError(submissionBlocker);setAnalyzeStep(4);return;}
     batchStarting.current=true;
     const finishActivity=beginActivity('Korrekturstapel');
     try {
@@ -1174,18 +1351,20 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
     batchCancelRef.current = false;
 
     const visionFiles = batchFiles.filter(isVisionPath);
-    if (visionFiles.length > 0) {
+    if (visionFiles.length > 0 && !autoScanProvider) {
       const visionChecks = await Promise.all(visionFiles.map((file) => personenVorschau(file, analyzeKlasse, effectiveRuntime)));
-      if (visionChecks.some((preview) => !preview || (preview.visionModus && !preview.visionFaehig))) {
+      if (visionChecks.some((preview) => !isSubmissionReady(preview))) {
         setBatchRunning(false);
-        setError('Mindestens eine PDF/Bild-Abgabe kann mit dem konfigurierten KI-Anbieter nicht analysiert werden. Bitte einen Vision-fähigen Anbieter oder DOCX/TXT verwenden.');
+        setError('Bitte zuerst alle Scan-Abschriften in Schritt 4 prüfen und bestätigen.');
         return;
       }
     }
 
-    const correctionRun = createCorrectionRunSnapshot({
+    const correctionRun = await prepareCorrectionRun({
       provider: effectiveRuntime.provider,
       model: effectiveRuntime.model,
+      reasoning: effectiveRuntime.reasoning,
+      reanalyzeExisting,
       pseudonymization: pseudoAktiv,
       basis: {
         klasse: analyzeKlasse,
@@ -1196,9 +1375,12 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
         materialId: einsatzOptions.find((item) => item.id === selectedEinsatzId)?.materialId ?? null,
       },
     });
+    if (!correctionRun) return;
+    const runContextKey = correctionRunContextKey(contextKey, correctionRun);
+    const prepared: Record<string,ScanReviewSession> = {};
     const failedRuns: string[] = [];
-    const results: { file: string; ok: boolean; msg: string }[] = queueContext === contextKey ? batchResults.filter(r=>r.ok && batchFiles.includes(r.file)) : [];
-    setQueueContext(contextKey);
+    const results: { file: string; ok: boolean; msg: string }[] = queueContext === runContextKey ? batchResults.filter(r=>r.ok && batchFiles.includes(r.file)) : [];
+    setQueueContext(runContextKey);
     for (let i = 0; i < batchFiles.length; i++) {
       if (batchCancelRef.current) break;
       const file = batchFiles[i]!;
@@ -1206,12 +1388,20 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
       setBatchCurrent(i + 1);
       try {
         const einsatz = einsatzOptions.find((e) => e.id === selectedEinsatzId);
-        const result = await analyze(file, analyzeKlasse, analyzeAufgabe, { ...englischOptionen, runtime: { provider: correctionRun.provider, model: correctionRun.model }, fach: analyseKlasseMeta?.fach || undefined, schulstufe: analyseKlasseMeta?.schulstufe || undefined, textsorte: analyzeTextsorte || undefined, land: korrekturLand ?? 'at', ausgangstext: analyzeAusgangstextDatei ? undefined : (analyzeAusgangstext.trim() || undefined), ausgangstextDatei: analyzeAusgangstextDatei || undefined, rubric: correctionRun.basis.rubrik || undefined, pseudonymisierung: correctionRun.privacyMode === 'pseudonymisiert', schuelerId: assignments[file] || undefined, einsatzId: correctionRun.basis.unterrichtseinsatzId ?? undefined, materialId: correctionRun.basis.materialId ?? undefined, klasseId: analyseKlasseMeta?.id });
-        if (result) {
+        const result = await analyze(file, analyzeKlasse, analyzeAufgabe, { ...englischOptionen,
+          scanReview:autoScanProvider&&isVisionPath(file)?{action:'prepare',provider:scanReadingRuntime.provider,model:scanReadingRuntime.model,verifyModel:scanReadingRuntime.provider==='mistral'?verifyModel:scanReadingRuntime.model}:undefined, runtime: { provider: correctionRun.provider, model: correctionRun.model, reasoning: correctionRun.reasoning }, fach: analyseKlasseMeta?.fach || undefined, schulstufe: analyseKlasseMeta?.schulstufe || undefined, textsorte: analyzeTextsorte || undefined, land: korrekturLand ?? 'at', ausgangstext: correctionRun.basis.ausgangstext, grundlageSnapshot: {rubrik_inhalt: correctionRun.basis.rubrikInhalt ?? '', ausgangstext: correctionRun.basis.ausgangstext, grundlage: correctionRun.basis.grundlage}, rubric: correctionRun.basis.rubrik || undefined, reanalyzeExisting: correctionRun.reanalyzeExisting, pseudonymisierung: correctionRun.privacyMode === 'pseudonymisiert', schuelerId: assignments[file] || undefined, einsatzId: correctionRun.basis.unterrichtseinsatzId ?? undefined, materialId: correctionRun.basis.materialId ?? undefined, klasseId: analyseKlasseMeta?.id });
+        if (result?.scan_review) {
+          prepared[file]=result.scan_review;
+          setScanReviews(prev=>({...prev,[file]:result.scan_review}));
+          results.push({file,ok:false,msg:'Vorschau vorbereitet – bitte übernehmen'});
+        } else if (result) {
           const note = result?.analysis?.notenempfehlung?.note;
+          const provisional = result.analysis?.notenempfehlung_vorlaeufig === true
+            || result.analysis?.notenempfehlung?.vorlaeufig === true
+            || result.analysis?.gegenpruefung?.status === 'pruefung_erforderlich';
           const resultErrors = analyseHinweise(result);
           const duplicate = resultErrors.some((entry) => /duplikat|bereits analysiert/i.test(entry));
-          results.push({ file, ok: !duplicate, msg: duplicate ? 'Übersprungen (bereits analysiert)' : `${note != null ? `Note ${note}` : 'OK'}${resultErrors.length ? ` · ${resultErrors.join(' ')}` : ''}` });
+          results.push({ file, ok: !duplicate, msg: duplicate ? 'Übersprungen (bereits analysiert)' : `${notenvorschlagText(note, provisional)}${resultErrors.length ? ` · ${resultErrors.join(' ')}` : ''}` });
         } else {
           failedRuns.push(`${baseName(file)}: Analyse fehlgeschlagen.`);
           results.push({ file, ok: false, msg: 'Nicht abgeschlossen — Details in Schritt 5' });
@@ -1223,6 +1413,8 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
       setBatchResults([...results]);
     }
 
+    const firstPrepared=Object.keys(prepared)[0];
+    if(firstPrepared){setAnalyzeFile(firstPrepared);setScanReview(prepared[firstPrepared]!);setAnalyzeStep(5);}
     setBatchRunning(false);
     const okCount = results.filter((r) => r.ok).length;
     setAnalyzeSuccess(`Stapel fertig: ${okCount}/${batchFiles.length} erfolgreich${batchCancelRef.current ? ' (abgebrochen)' : ''}.`);
@@ -1235,7 +1427,7 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
     if (analyzeKlasse) await loadAufgaben(analyzeKlasse);
     } catch(e) {setAnalysisFailure(e instanceof Error ? e.message : 'Der Korrekturstapel konnte nicht abgeschlossen werden.');setAnalyzeStep(5);}
     finally {setBatchRunning(false);batchStarting.current=false;finishActivity();}
-  }, [englischFehler, englischProfil, englischEntwurf, effectiveRuntime.provider, effectiveRuntime.model, contextKey, queueContext, rubrikListe.defaultRubric, assignments, batchResults, checkingFiles, fileChecks, batchFiles, analyzeKlasse, analyzeAufgabe, analyseKlasseMeta, analyzeAusgangstext, analyzeAusgangstextDatei, analyze, personenVorschau, listKlassen, loadAufgaben, pseudoAktiv, selectedRubrik, einsatzOptions, selectedEinsatzId]);
+  }, [autoScanProvider, scanReadingRuntime.provider, scanReadingRuntime.model, verifyModel, englischFehler, englischProfil, englischEntwurf, effectiveRuntime.provider, effectiveRuntime.model, effectiveRuntime.reasoning, contextKey, queueContext, rubrikListe.defaultRubric, assignments, batchResults, submissionBlocker, batchFiles, analyzeKlasse, analyzeAufgabe, analyseKlasseMeta, analyzeAusgangstext, analyzeAusgangstextDatei, analyze, personenVorschau, listKlassen, loadAufgaben, pseudoAktiv, selectedRubrik, einsatzOptions, selectedEinsatzId]);
 
   const cardStyle = {
     padding: '1.25rem', border: '1px solid var(--color-border)',
@@ -1289,42 +1481,11 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
         </section>
       )}
 
-      {(batchRunning || analyzing) && (
-        <div role="status" style={{ marginBottom: '0.75rem' }}>
-          {batchRunning ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ fontSize: '0.8125rem' }}>Stapel: Datei {batchCurrent} von {batchFiles.length}</span>
-              <div style={{ flex: 1, height: 6, background: 'var(--color-border)', borderRadius: 3, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${batchFiles.length > 0 ? (batchCurrent / batchFiles.length) * 100 : 0}%`, background: 'var(--color-accent)', borderRadius: 3, transition: 'width 0.3s ease' }} />
-              </div>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <div style={{ width: 16, height: 16, border: '2px solid var(--color-accent)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                <span style={{ fontSize: '0.8125rem' }}>{progressMessage || 'KI-Vorschlag wird erstellt'}</span>
-              </div>
-              <div style={{ display: 'flex', gap: '0.25rem', fontSize: '0.6875rem', color: 'var(--color-text-secondary)' }}>
-                {['input', 'rubric', 'llm', 'done'].map((phase, i) => {
-                  const phaseLabels: Record<string, string> = { input: 'Abgabe lesen', rubric: 'Grundlage laden', llm: 'KI analysiert', done: 'Ergebnis speichern' };
-                  const phases = ['input', 'rubric', 'llm', 'done'];
-                  const currentIdx = progressStage ? phases.indexOf(progressStage) : -1;
-                  const active = i <= currentIdx;
-                  return (
-                    <span key={phase} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', color: active ? 'var(--color-accent)' : undefined, fontWeight: active ? 600 : 400 }}>
-                      {active ? '\u2713' : '\u25CB'} {phaseLabels[phase]}
-                    </span>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-          <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}> — du kannst innerhalb von LUKA weiterarbeiten.</span>
-        </div>
-      )}
-      <div style={{marginBottom:'1rem'}}><button className="btn-secondary" disabled={queueRunning} onClick={()=>{setBatchFiles([]);setBatchResults([]);setAnalyzeFile('');setAnalyzeKlasse('');setAnalyzeAufgabe('');setSelectedRubrik('');setAnalyzeTextsorte('');setAnalyzeProvider('');setAnalyzeModel('');setAnalyzeAusgangstext('');setAnalyzeAusgangstextDatei('');setSelectedEinsatzId('');setAssignments({});setPseudoAktiv(true);setError(null);setAnalysisFailure(null);setRevisionOfAbgabeId(null);setAnalyzeSuccess(null);setAnalyzeStep(1);setAnalyzeOpen(true);}}>Neuer Korrekturauftrag</button></div>
+      {!analyzeOpen && (batchRunning || analyzing) && <CorrectionProgress reducedMotion={settings.reduceMotion} stage={progressStage} message={progressMessage} current={batchCurrent} total={batchFiles.length} onOpen={()=>setAnalyzeOpen(true)}/>}
+      {!analyzeOpen && !queueRunning && scanReview && <div role="status" style={{margin:'1rem 0'}}>Die Scan-Vorschau ist bereit. <button type="button" className="btn-primary" onClick={()=>{setAnalyzeStep(5);setAnalyzeOpen(true);}}>Lesestellen prüfen und Entwurf übernehmen</button></div>}
+      <div style={{marginBottom:'1rem'}}><button className="btn-secondary" disabled={queueRunning} onClick={()=>{setBatchFiles([]);setBatchResults([]);setAnalyzeFile('');setAnalyzeKlasse('');setAnalyzeAufgabe('');setSelectedRubrik('');setAnalyzeTextsorte('');setAnalyzeProvider('');setAnalyzeModel('');setAnalyzeAusgangstext('');setAnalyzeAusgangstextDatei('');setSelectedEinsatzId('');setAssignments({});setPseudoAktiv(true);setError(null);setAnalysisFailure(null);setRevisionOfAbgabeId(null);setReanalyzeExisting(false);setAnalyzeSuccess(null);setAnalyzeStep(1);setAnalyzeOpen(true);}}>Neuer Korrekturauftrag</button></div>
       {batchResults.length>0 && !analyzeOpen && <details className="queue-results"><summary>Letzter Auftrag: {batchResults.filter(r=>r.ok).length} abgeschlossen</summary>{batchResults.map(r=><p key={r.file}>{baseName(r.file)} — {r.msg}</p>)}<button className="btn-secondary" onClick={()=>setAnalyzeOpen(true)}>Auftrag öffnen / fehlende Dateien fortsetzen</button></details>}
-      <div className="correction-workspace" style={{ display: 'grid', gridTemplateColumns: 'minmax(180px, 240px) minmax(0, 1fr)', gap: '1.25rem' }}>
+      <div className="correction-workspace" aria-busy={deleteAuftragBusy} style={{ pointerEvents: deleteAuftragBusy ? 'none' : undefined, opacity: deleteAuftragBusy ? 0.7 : undefined, display: 'grid', gridTemplateColumns: 'minmax(180px, 240px) minmax(0, 1fr)', gap: '1.25rem' }}>
           <div style={cardStyle}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
               <GraduationCap size={16} style={{ color: 'var(--color-accent)' }} />
@@ -1432,12 +1593,18 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
                   <button
                     className="btn-secondary"
                     onClick={handleRetroImport}
-                    disabled={retroBusy || !selectedKlasse}
+                    disabled={retroBusy || deleteAuftragBusy || queueRunning || !selectedKlasse}
                     title="Bestehende Analyse-JSONs (output/…/feedback_data) in die Datenbank importieren"
                     style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.7rem', padding: '0.25rem 0.6rem' }}
                   >
                     {retroBusy ? <Loader2 size={12} className="spin" /> : <FileDown size={12} style={{ transform: 'rotate(180deg)' }} />} Retro-Import
                   </button>
+                  <button type="button" className="btn-secondary" onClick={() => void handleDeleteAuftrag()}
+                    disabled={!selectedAufgabe || queueRunning || retroBusy || saving || exportBusy || deleteAuftragBusy}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.7rem', padding: '0.25rem 0.6rem', color: 'var(--color-error)' }}>
+                    {deleteAuftragBusy ? <Loader2 size={12} className="spin" /> : <Trash2 size={12} />} Auftrag löschen
+                  </button>
+                  <InfoDot text="Entfernt alle gespeicherten Korrekturen zur ausgewählten Aufgabe, einschließlich Retro-Importen, Korrekturversionen und Lehrkraftnoten. Vorher siehst du die Anzahl und bestätigst die Löschung. Originaldateien und exportierte Dokumente bleiben auf der Festplatte." />
                   {onGenerateUebung && (() => {
                     const geprueft = abgaben.filter((a) => a.hatLehrerFeedback).length;
                     const bereit = !!selectedAufgabe && geprueft > 0;
@@ -1480,7 +1647,7 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
                           style={{ borderBottom: '1px solid var(--color-border)', cursor: 'pointer', background: selectedAbgabe?.abgabe.id === a.id ? 'var(--color-highlight-bg)' : 'transparent' }}
                         >
                           <td style={{ padding: '0.375rem 0.5rem' }} title={a.dateiname}>{schuelerName(a)}</td>
-                          <td style={{ textAlign: 'center', padding: '0.375rem 0.5rem' }}>{a.note !== null ? a.note.toFixed(1) : '—'}</td>
+                          <td style={{ textAlign: 'center', padding: '0.375rem 0.5rem' }}><Notenvorschlag note={a.note} vorlaeufig={a.notenempfehlungVorlaeufig} /></td>
                           <td style={{ textAlign: 'center', padding: '0.375rem 0.5rem' }}>
                             {a.hatLehrerFeedback ? <strong>{a.noteFinal !== null ? a.noteFinal.toFixed(1) : '—'}</strong> : '—'}
                           </td>
@@ -1508,30 +1675,12 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
                     ) : schuelerName(selectedAbgabe.abgabe)}
                     {' '}— {selectedAbgabe.abgabe.aufgabe}
                   </h4>
-                  <button className="btn-secondary" onClick={handleGenerateDocx} disabled={saving || exportBusy} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.75rem', padding: '0.25rem 0.625rem' }}>
-                    <FileDown size={14} /> Feedback-DOCX
+                  <button className="btn-secondary" onClick={() => void handleGenerateDocx()} disabled={saving || exportBusy} style={{display:'inline-flex',alignItems:'center',gap:'.4rem'}}>
+                    {exportBusy ? <Loader2 size={15} className="animate-spin"/> : <FileDown size={15}/>} {exportBusy?'Lehrkraftbericht wird erstellt …':'Lehrkraftbericht als Word'}
                   </button>
                 </div>
-
-                {docxErfolg && (
-                  <div role="status" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', padding: '0.5rem 0.75rem', marginBottom: '1rem', border: '1px solid color-mix(in srgb, var(--color-success) 40%, var(--color-border))', borderRadius: 'var(--radius)', background: 'color-mix(in srgb, var(--color-success-bg, #f0fdf4) 60%, var(--color-bg-surface))', fontSize: '0.8125rem' }}>
-                    <CheckCircle2 size={15} style={{ color: 'var(--color-success)', flexShrink: 0 }} />
-                    <span style={{ flex: 1, minWidth: 180 }}>
-                      Feedback-DOCX erstellt: <strong>{docxErfolg.split(/[/\\]/).pop()}</strong>
-                    </span>
-                    <button className="btn-secondary" onClick={handleShowDocx} style={{ fontSize: '0.75rem', padding: '0.25rem 0.625rem' }}>
-                      Ordner öffnen
-                    </button>
-                    {selectedAbgabe.abgabe.unterrichtseinsatzId && (
-                      <button className="btn-secondary" onClick={() => void handleFeedbackAmTermin()} disabled={feedbackAmTermin} style={{ fontSize: '0.75rem', padding: '0.25rem 0.625rem' }}>
-                        {feedbackAmTermin ? 'Am Termin abgelegt' : 'Am Termin ablegen'}
-                      </button>
-                    )}
-                    <button className="btn-secondary" aria-label="Hinweis schließen" title="Schließen" onClick={() => setDocxErfolg(null)} style={{ padding: '0.2rem 0.45rem' }}>
-                      ×
-                    </button>
-                  </div>
-                )}
+                <p style={{fontSize:'.75rem',color:'var(--color-text-secondary)'}}>Der Lehrkraftbericht enthält die Korrektur und den Prüfstand. Ungeprüfte KI-Hinweise bleiben als Vorschläge gekennzeichnet. Der Export gibt keine Schülerfassung frei.</p>
+                {docxErfolg && <TeacherReportFile path={docxErfolg} onOpenFolder={()=>void handleShowDocx()} onClose={()=>setDocxErfolg(null)} onAttach={selectedAbgabe.abgabe.unterrichtseinsatzId ? ()=>void handleFeedbackAmTermin() : undefined} attached={feedbackAmTermin}/>}
 
                 <PunkteKorrekturPanel
                   abgabeId={selectedAbgabe.abgabe.id}
@@ -1548,7 +1697,7 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
                       <div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>Notenempfehlung</div>
                         <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-accent)' }}>
-                          {selectedAbgabe.abgabe.note !== null ? selectedAbgabe.abgabe.note.toFixed(1) : '—'}
+                          <Notenvorschlag note={selectedAbgabe.abgabe.note} vorlaeufig={selectedAbgabe.notenempfehlungVorlaeufig || selectedAbgabe.abgabe.notenempfehlungVorlaeufig} />
                         </div>
                       </div>
                       {selectedAbgabe.lehrerFeedback && (
@@ -1572,6 +1721,7 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
 
                     <div style={{ padding: '0.65rem 0.75rem', marginBottom: '1rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', background: 'var(--color-bg-base)', fontSize: '0.75rem' }}>
                       <strong>KI-Lauf:</strong> {selectedAbgabe.abgabe.provider ?? 'Anbieter unbekannt'} · {selectedAbgabe.abgabe.model ?? 'Modell unbekannt'}
+                      {selectedAbgabe.reasoning && <> · Denkmodus: {DENK_LABELS[selectedAbgabe.reasoning.selection] ?? selectedAbgabe.reasoning.selection}</>}
                       {selectedAbgabe.revisions.find((revision) => revision.isActive) && <> · Version {selectedAbgabe.revisions.find((revision) => revision.isActive)?.revisionNo}</>}
                     </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginBottom: '1rem' }}>
@@ -1583,10 +1733,10 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
                           {selectedAbgabe.revisions.map((revision) => (
                             <div key={revision.id} style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
-                              <button className="btn-secondary" aria-pressed={revision.isActive} onClick={() => void handleActivateRevision(revision.id)} style={{ flex: 1, textAlign: 'left', fontSize: '0.72rem', borderColor: revision.isActive ? 'var(--color-accent)' : undefined }}>
+                              <button className="btn-secondary" aria-pressed={revision.isActive} disabled={saving || exportBusy} onClick={() => void handleActivateRevision(revision.id)} style={{ flex: 1, textAlign: 'left', fontSize: '0.72rem', borderColor: revision.isActive ? 'var(--color-accent)' : undefined }}>
                                 Version {revision.revisionNo} · {revision.provider} · {revision.model}{revision.isActive ? ' · aktiv' : ''}
                               </button>
-                              <button className="btn-secondary" title={`Version ${revision.revisionNo} löschen`} aria-label={`Version ${revision.revisionNo} löschen`} onClick={() => void handleDeleteRevision(revision.id)} style={{ padding: '0.3rem' }}><Trash2 size={13} /></button>
+                              <button className="btn-secondary" disabled={saving || exportBusy} title={`Version ${revision.revisionNo} löschen`} aria-label={`Version ${revision.revisionNo} löschen`} onClick={() => void handleDeleteRevision(revision.id)} style={{ padding: '0.3rem' }}><Trash2 size={13} /></button>
                             </div>
                           ))}
                         </div>
@@ -1616,14 +1766,16 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
                       </div>
                     )}
 
-                    {(selectedAbgabe.qualitaetswarnungen?.length ?? 0) > 0 && (
+                    {selectedAbgabe.qualitaetswarnungen?.some(w=>w.code==='sprachmodus') && <p role="status">Nur Sprache geprüft · Inhalt und Umfangsabzug nicht beauftragt · keine automatische Gesamtnote.</p>}
+                    {selectedAbgabe.scanReview && <p role="status">Bildabgleich durchgeführt · {selectedAbgabe.scanReview.openCount} Lesestellen offen{selectedAbgabe.scanReview.numericBlocked ? ' – qualitative Rückmeldung, keine Rasterpunkte oder automatische Note' : ''}.</p>}
+                    {(selectedAbgabe.qualitaetswarnungen?.filter(w => !['bewertung_kriterium_offen','sprachmodus'].includes(w.code)).length ?? 0) > 0 && (
                       <div role="alert" style={{ marginBottom: '1rem', padding: '0.625rem 0.75rem', border: '1px solid color-mix(in srgb, var(--color-warning, #f59e0b) 55%, var(--color-border))', borderRadius: 'var(--radius)', background: 'var(--color-bg-surface, #fffaf0)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8125rem', fontWeight: 700, marginBottom: '0.25rem' }}>
-                          <AlertTriangle size={14} /> Qualitätsprüfung — bitte kurz prüfen
+                          <AlertTriangle size={14} /> {selectedAbgabe.qualitaetswarnungen?.some(w => w.code === "antwort_technisch_unvollstaendig") ? "Antwort technisch unvollständig" : selectedAbgabe.qualitaetswarnungen?.some(w => ["umfangsvorgabe_pruefen", "bewertungsgrundlage_pruefen"].includes(w.code)) ? "Bewertungsgrundlage offen" : "Fachliche Entscheidung erforderlich"}
                         </div>
-                        <ul style={{ margin: 0, paddingLeft: '1.1rem', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
-                          {(selectedAbgabe.qualitaetswarnungen ?? []).map((w, i) => <li key={i}>{w.message}</li>)}
-                        </ul>
+                        <details><summary>Weitere Prüfnachweise anzeigen</summary><ul style={{ margin: 0, paddingLeft: '1.1rem', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+                          {[...new Set((selectedAbgabe.qualitaetswarnungen ?? []).filter(w => !['bewertung_kriterium_offen','sprachmodus'].includes(w.code)).map(w => w.message))].map(message => <li key={message}>{message}</li>)}
+                        </ul></details>
                       </div>
                     )}
                     {selectedAbgabe.fehler.length > 0 && sortiert && (() => {
@@ -1639,8 +1791,9 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
                       // „Nur unsichere“ (L2): Review-Modus für die Ampel — zeigt
                       // gelb/rot, damit die Lehrkraft gezielt die kritischen
                       // Vorschläge durchgeht.
-                      const unsicherCount = selectedAbgabe.fehler.filter(f => f.vertrauensstufe === 'mittel' || f.vertrauensstufe === 'niedrig').length;
+                      const unsicherCount = selectedAbgabe.fehler.filter(f => f.vertrauensstufe === 'mittel' || f.vertrauensstufe === 'niedrig' || f.befund?.befundart === 'ungeklaert' || f.befund?.ki_pruefung?.status === 'widerspruch' || befundPruefstatus(f.befund).ersetzungOffen).length;
                       const zugeordnet = sortiert.zugeordnet;
+                      const vorbereitetIds = new Set(vorbereiteteBefunde(selectedAbgabe.fehler).map(f => f.id));
                       const verwaist = sortiert.nichtZuordenbar;
                       const pill = (an: boolean) => ({
                         background: an ? 'var(--color-accent)' : 'transparent',
@@ -1659,16 +1812,17 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
                        *  Aktionsknöpfe darin zu verschachteln. */
                       const karte = (f: FehlerRow) => {
                         const aktion = aktionVon(f.id);
+                        const pruefung = befundPruefstatus(f.befund, aktion);
                         const stufe = f.vertrauensstufe;
                         const effektiveKorrektur = fehlerAktionen[f.id]?.korrektur ?? f.lehrkraftKorrektur ?? f.korrektur;
                         const isEditing = editFehlerId === f.id;
-                        const isVerworfen = aktion === 'verworfen';
+                        const isVerworfen = aktion === 'verworfen' || pruefung.beanstandungVerworfen;
                         const isAktiv = aktiveFehlerId === f.id;
                         const nr = sortiert.nummern.get(f.id);
                         const ankerStatus = segmentErgebnis?.anker.get(f.id)?.status;
                         const ohneStelle = ankerStatus === 'keiner';
                         const verdraengt = segmentErgebnis?.ohnePlatz.includes(f.id) ?? false;
-                        const farbe = isVerworfen ? '#999' : FEHLER_COLORS[f.typ] ?? '#999';
+                        const farbe = isVerworfen || f.befund?.befundart === 'ungeklaert' ? '#999' : f.befund?.befundart === 'stilalternative' ? '#346fa1' : FEHLER_COLORS[f.typ] ?? '#999';
                         const sprungTitel = ohneStelle
                           ? 'Zitat nicht im Schülertext auffindbar'
                           : verdraengt
@@ -1696,7 +1850,7 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
                                     <span className="fehler-nummer" style={{ color: farbe }} aria-hidden="true">{nr}</span>
                                   )}
                                   <span style={{ fontSize: '0.75rem', fontWeight: 600, color: farbe, textDecoration: isVerworfen ? 'line-through' : 'none' }}>
-                                    {FEHLER_LABELS[f.typ] ?? f.typ}
+                                    {pruefung.beanstandungVerworfen ? 'KI-Beanstandung zurückgewiesen – kein Schülerfehler' : f.befund?.befundart === 'stilalternative' ? 'Stilidee – freiwillig' : f.befund?.befundart === 'ungeklaert' ? 'Offener Befund – bitte prüfen' : FEHLER_LABELS[f.typ] ?? f.typ}
                                   </span>
                                 </span>
                                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
@@ -1706,7 +1860,7 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
                                     </span>
                                   )}
                                   {stufe && (stufe in VERTRAUENS_LABELS) && (
-                                    <span role="img" aria-label={`Vertrauensstufe: ${VERTRAUENS_LABELS[stufe as keyof typeof VERTRAUENS_LABELS]}`} title={VERTRAUENS_LABELS[stufe as keyof typeof VERTRAUENS_LABELS]} style={{ width: 8, height: 8, borderRadius: '50%', background: VERTRAUENS_COLORS[stufe as keyof typeof VERTRAUENS_COLORS] ?? '#999', flexShrink: 0 }} />
+                                    <span role="img" aria-label={`Textzuordnung: ${VERTRAUENS_LABELS[stufe as keyof typeof VERTRAUENS_LABELS]}`} title={VERTRAUENS_LABELS[stufe as keyof typeof VERTRAUENS_LABELS]} style={{ width: 8, height: 8, borderRadius: '50%', background: VERTRAUENS_COLORS[stufe as keyof typeof VERTRAUENS_COLORS] ?? '#999', flexShrink: 0 }} />
                                   )}
                                   {aktion === 'uebernommen' && <Check size={13} aria-label="übernommen" style={{ color: '#27ae60' }} />}
                                   {aktion === 'geaendert' && <Pencil size={13} aria-label="geändert" style={{ color: '#9b59b6' }} />}
@@ -1718,6 +1872,8 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
                                   Karte ist eine Fläche – bleibt aber markierbar, und es gibt
                                   genau einen Tabstopp statt drei verschachtelter Bedienelemente. */}
                               {!isEditing && effektiveKorrektur && <span style={{ display: 'block', fontSize: '0.75rem', marginTop: '0.125rem', color: aktion === 'geaendert' ? '#9b59b6' : undefined }}>→ {effektiveKorrektur}</span>}
+                              {f.befund?.ki_pruefung && <span style={{display:'block',fontSize:'0.6875rem'}}>KI-Gegenprüfung: {f.befund.ki_pruefung.status === 'nicht_geprueft' ? 'offen' : f.befund.ki_pruefung.status}{f.befund.ki_pruefung.begruendung ? ` · ${f.befund.ki_pruefung.begruendung}` : ''}</span>}
+                              {pruefung.ersetzungOffen && !pruefung.beanstandungVerworfen && <span style={{display:'block',fontSize:'0.6875rem'}}>Ersetzung im Satz prüfen – nur Kommentar.{f.befund?.ersetzungspruefung?.begruendung ? ` ${f.befund.ersetzungspruefung.begruendung}` : ''}</span>}
                               {!isEditing && f.erklaerung && <span style={{ display: 'block', fontSize: '0.6875rem', color: 'var(--color-text-secondary)', marginTop: '0.25rem' }}>{f.erklaerung}</span>}
                             </button>
                             {isEditing && (
@@ -1799,7 +1955,7 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
                             Fehler ({zugeordnet.length + verwaist.length === total ? total : `${zugeordnet.length + verwaist.length} von ${total}`})
                           </h5>
                           <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)', display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
-                            <button type="button" aria-pressed={nurUnsichere} onClick={() => setNurUnsichere(v => !v)} style={pill(nurUnsichere)} title="Zeigt nur Vorschläge mittlerer und niedriger Vertrauensstufe">
+                            <button type="button" aria-pressed={nurUnsichere} onClick={() => setNurUnsichere(v => !v)} style={pill(nurUnsichere)} title="Zeigt Vorschläge mit unsicherer Textzuordnung oder offener Gegenprüfung">
                               Nur unsichere ({unsicherCount})
                             </button>
                             {uebernommen > 0 && <span style={{ color: '#27ae60' }} title={`${uebernommen} übernommen`} aria-label={`${uebernommen} übernommen`}>✓ {uebernommen}</span>}
@@ -1807,7 +1963,7 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
                             {verworfen > 0 && <span style={{ color: '#e74c3c' }} title={`${verworfen} verworfen`} aria-label={`${verworfen} verworfen`}>✕ {verworfen}</span>}
                             {offen > 0 && <span style={{ color: 'var(--color-text-secondary)' }} title={`${offen} offen`} aria-label={`${offen} offen`}>○ {offen}</span>}
                             {avgStufe && (
-                              <span role="img" aria-label={`Durchschnittliche Vertrauensstufe: ${VERTRAUENS_LABELS[avgStufe]}`} title={VERTRAUENS_LABELS[avgStufe]} style={{ width: 8, height: 8, borderRadius: '50%', background: VERTRAUENS_COLORS[avgStufe], display: 'inline-block' }} />
+                              <span role="img" aria-label={`Durchschnittliche Textzuordnung: ${VERTRAUENS_LABELS[avgStufe]}`} title={VERTRAUENS_LABELS[avgStufe]} style={{ width: 8, height: 8, borderRadius: '50%', background: VERTRAUENS_COLORS[avgStufe], display: 'inline-block' }} />
                             )}
                           </span>
                         </div>
@@ -1841,7 +1997,16 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
                           Ein Klick auf einen Vorschlag holt die Stelle im Schülertext in den Blick. Die Nummer auf der Karte steht auch am Text.
                         </p>
                         <div ref={fehlerListeRef} style={{ maxHeight: '48vh', overflowY: 'auto', paddingRight: '0.25rem' }}>
-                          {zugeordnet.map(karte)}
+                          <h6>Zur Übernahme vorbereitet</h6>
+                          <button type="button" className="btn-secondary" disabled={saving || exportBusy} onClick={() => {
+                            setFehlerAktionen(previous => uebernehmeVorbereiteteBefunde(selectedAbgabe.fehler,previous));
+                          }}>Vorbereitete Hinweise gesammelt übernehmen</button>
+                          {zugeordnet.filter(f => vorbereitetIds.has(f.id)).map(karte)}
+                          <details><summary>Entscheidung erforderlich – offene Hinweise sind im Schülerfeedback zunächst ausgeschlossen</summary>
+                            {zugeordnet.filter(f => befundGruppe(f.befund) === 'entscheidung' || (befundGruppe(f.befund) === 'vorbereitet' && !vorbereitetIds.has(f.id))).map(karte)}
+                          </details>
+                          <details><summary>Optionale Anregungen</summary>{zugeordnet.filter(f => befundGruppe(f.befund) === 'anregung').map(karte)}</details>
+                          <details><summary>Zurückgewiesene Beanstandungen</summary>{zugeordnet.filter(f => befundGruppe(f.befund) === 'verworfen').map(karte)}</details>
                           {verwaist.length > 0 && (
                             <>
                               <div className="fehler-gruppe">
@@ -1860,15 +2025,35 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
 
                     <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '1rem' }}>
                       <h5 style={{ fontSize: '0.875rem', margin: '0 0 0.75rem' }}>Lehrkraftprüfung</h5>
-                      <p>{selectedAbgabe.lehrerFeedback && !feedbackDrafts[selectedAbgabe.abgabe.id] ? 'Freigegeben' : 'KI-Vorschlag — Prüfung offen'}</p>
+                      {(selectedAbgabe.bewertungspruefung?.aufgaben.length ?? 0) > 0 && <div>
+                        <p>Nur diese Bewertungskriterien sind noch offen. Gültige Teilbewertungen bleiben erhalten.</p>
+                        {selectedAbgabe.bewertungspruefung?.aufgaben.map(task => task.pruefart === "technik" ? <p key={task.id}>Antwort technisch unvollständig. Dieses Kriterium bleibt gesperrt; eine manuelle Reparatur von Befundverweisen ist nicht erforderlich.</p> : <label key={task.id} style={{display:'block',marginBottom:'.75rem'}}>
+                          {task.beschreibung}
+                          <select disabled={saving || exportBusy} value={kriterienEntscheidungen[task.kriterium]?.stufe ?? ''} onChange={event => {
+                            const value = event.target.value;
+                            setKriterienEntscheidungen(previous => {const next = {...previous}; if (value) next[task.kriterium] = {stufe:Number(value),begruendung:'Von der Lehrkraft geprüft.'}; else delete next[task.kriterium]; return next;});
+                          }}><option value="">Noch offen</option>{[1,2,3,4,5].map(level => <option key={level} value={level}>Stufe {level}{task.stufe === level ? ' – vorgeschlagen' : ''}</option>)}</select>
+                        </label>)}
+                      </div>}
+                      {Object.keys(kriterienEntscheidungen).length > 0 && <details><summary>Eigene Kriterienentscheidungen</summary>
+                        {Object.entries(kriterienEntscheidungen).map(([key, decision]) => <label key={key} style={{display:'block'}}>
+                          {kriteriumAnzeige(key.split('.').pop() ?? key)}
+                          <select value={decision.stufe} disabled={saving || exportBusy} onChange={event => setKriterienEntscheidungen(previous => ({...previous,[key]:{...decision,stufe:Number(event.target.value)}}))}>
+                            {[1,2,3,4,5].map(level => <option key={level} value={level}>Stufe {level}</option>)}
+                          </select>
+                          <button type="button" disabled={saving || exportBusy} onClick={() => setKriterienEntscheidungen(previous => {const next={...previous};delete next[key];return next;})}>Entscheidung zurücksetzen</button>
+                        </label>)}
+                      </details>}
+                      <p style={{fontSize:"0.75rem"}}>Die Lehrernote ist optional. Die Schülerfassung enthält nur übernommene Hinweise; eine Note erscheint erst nach Freigabe. Offene Formulierungsvorschläge müssen nicht einzeln abgearbeitet werden.</p>
+                      <p>{selectedAbgabe.lehrerFeedback?.pruefstatus === 'freigegeben' && !kriterienDirty && Object.keys(fehlerAktionen).length === 0 && !feedbackDrafts[selectedAbgabe.abgabe.id] ? 'Freigegeben' : 'KI-Vorschlag — Prüfung offen'}</p>
                       <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '0.75rem', alignItems: 'start' }}>
                         <label style={{ fontSize: '0.8125rem', fontWeight: 600, lineHeight: '2' }}>Note</label>
                         <input
-                          type="number" min="1" max="5" step="0.25"
+                          type="number" min="1" max={maxLehrernote(korrekturLand)} step="0.25"
                           value={teacherNote}
                           disabled={saving || exportBusy}
                           onChange={(e) => changeFeedback(e.target.value,teacherComment)}
-                          placeholder="1 – 5"
+                          placeholder="Optional"
                           style={{ width: '100%', boxSizing: 'border-box' }}
                         />
                         <label style={{ fontSize: '0.8125rem', fontWeight: 600, lineHeight: '2' }}>Kommentar</label>
@@ -1882,7 +2067,7 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
                         />
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.75rem' }}>
-                        <button className="btn-primary" onClick={handleSaveFeedback} disabled={saving} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                        <button className="btn-primary" onClick={() => void handleSaveFeedback()} disabled={saving} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
                           <Save size={14} /> {saving ? 'Speichern …' : 'Freigeben'}
                         </button>
                         <button className="btn-secondary" disabled={saving} onClick={async()=>{if(await handleSaveFeedback()){const next=abgaben.find(a=>a.id!==selectedAbgabe?.abgabe.id && !a.hatLehrerFeedback);if(next)await loadDetail(next.id);else setSaveMsg('Alle angezeigten Abgaben sind geprüft.');}}}>Freigeben und nächste</button>
@@ -1971,18 +2156,26 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
                   {s > 1 && <span style={{ margin: '0 0.125rem' }}>·</span>}
                   <span style={{ fontWeight: analyzeStep === s ? 700 : 400, color: analyzeStep === s ? 'var(--color-text)' : undefined }}>
                     {s}. {s === 1 ? 'Klasse & Aufgabe' : s === 2 ? 'Textsorte & Raster' : s === 3 ? 'Material' : s === 4 ? 'Abgaben' : 'Übersicht'}
+                    <InfoDot text={[
+                      'Wähle Klasse und Aufgabe. Sie ordnen die Ergebnisse zu. Anbieter, Modell und Denkmodus bestimmen, welche KI diesen Auftrag bearbeitet.',
+                      'Wähle die Textsorte und das passende Bewertungsraster. Das Raster legt fest, nach welchen Kriterien die Arbeit beurteilt wird.',
+                      'Hinterlege den Ausgangstext mit Arbeitsaufträgen und den Erwartungshorizont. So kann die KI Inhalt und Aufgabenerfüllung am richtigen Material prüfen.',
+                      'Füge die Schülerarbeiten hinzu und prüfe die Personenzuordnung. Bei Scans bestätigst du zuerst die Abschrift; offene Lesestellen bleiben als unsicher gekennzeichnet.',
+                      'Prüfe Grundlage, Zuordnung und KI-Auswahl vor dem Start. Hier kannst du bereits korrigierte Arbeiten erneut bearbeiten lassen. Ergebnisse bleiben Vorschläge, bis du sie prüfst und freigibst.',
+                    ][s - 1]!} />
                   </span>
                 </span>
               ))}
             </div>
 
             {error && <p role="alert" className="session-warning">{error}</p>}
+            {queueRunning && <div style={{position:"sticky",top:0,zIndex:2,background:"var(--color-bg-base)"}}><CorrectionProgress reducedMotion={settings.reduceMotion} stage={progressStage} message={progressMessage} current={batchCurrent} total={batchFiles.length}/></div>}
             <fieldset disabled={queueRunning} style={{border:0,padding:0,margin:0,minWidth:0}}>
 
             {/* ─── Schritt 1: Klasse & Aufgabe + Anbieter/Modell ─── */}
             {analyzeStep === 1 && (<>
               <div style={{ marginBottom: '0.75rem' }}>
-                <label>Unterrichtseinsatz <span style={{ color: 'var(--color-text-secondary)', fontWeight: 400 }}>(optional)</span></label>
+                <label>Unterrichtseinsatz <InfoDot text="Verknüpft die Korrektur mit einer gespeicherten Unterlage. Vorhandenes Ausgangsmaterial und Raster können übernommen werden. Ohne Verknüpfung wählst du die Grundlage selbst." /><span style={{ color: 'var(--color-text-secondary)', fontWeight: 400 }}>(optional)</span></label>
                 <select
                   value={selectedEinsatzId}
                   onChange={(e) => handleEinsatzChange(e.target.value)}
@@ -2064,19 +2257,25 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   <select
                     value={analyzeProvider || settings.defaultProvider}
-                    onChange={(e) => { setAnalysisFailure(null); setError(null); setAnalyzeProvider(e.target.value); setAnalyzeModel(LLM_PROVIDERS.find(p => p.id === e.target.value)?.models[0] ?? ''); }}
+                    onChange={(e) => { setAnalysisFailure(null); setError(null); setAnalyzeReasoning(undefined); setAnalyzeProvider(e.target.value); setAnalyzeModel(LLM_PROVIDERS.find(p => p.id === e.target.value)?.models[0] ?? ''); }}
                     style={{ flex: 1 }}
                   >
                     {LLM_PROVIDERS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
                   </select>
                   <select
                     value={analyzeModel || settings.defaultModel}
-                    onChange={(e) => { setAnalysisFailure(null); setError(null); setAnalyzeModel(e.target.value); }}
+                    onChange={(e) => { setAnalysisFailure(null); setError(null); setAnalyzeReasoning(undefined); setAnalyzeModel(e.target.value); }}
                     style={{ flex: 1 }}
                   >
                     {(LLM_PROVIDERS.find(p => p.id === (analyzeProvider || settings.defaultProvider))?.models ?? []).map((m) => <option key={m} value={m}>{m}</option>)}
                   </select>
                 </div>
+                <CorrectionReasoningSelect provider={effectiveRuntime.provider} model={effectiveRuntime.model} value={effectiveRuntime.reasoning} onChange={value => {
+                  setAnalyzeReasoning(value);
+                  const current = loadSettings();
+                  saveSettings({...current, correctionReasoning: {...current.correctionReasoning, [correctionReasoningKey(effectiveRuntime.provider,effectiveRuntime.model)]: value}});
+                }} disabled={analyzing || batchRunning} />
+                <p>Denkmodus: {DENK_LABELS[effectiveRuntime.reasoning ?? 'default'] ?? effectiveRuntime.reasoning}</p>
                 <p style={{ margin: '0.25rem 0 0', fontSize: '0.6875rem', color: 'var(--color-text-secondary)' }}>
                   Standard: {LLM_PROVIDERS.find(p => p.id === settings.defaultProvider)?.label} · {settings.defaultModel}
                 </p>
@@ -2148,72 +2347,90 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
 
             {/* ─── Schritt 3: Ausgangsmaterial & Erwartungshorizont ─── */}
             {analyzeStep === 3 && (<>
-              <div style={{ marginBottom: '0.75rem' }}>
-                <label>
-                  {verstaendnisGewaehlt ? 'Ausgangstext' : 'Ausgangsmaterial'}{' '}
-                  {verstaendnisGewaehlt
-                    ? <span style={{ color: verstaendnisGewaehlt && !hatAusgangstext ? 'var(--color-warning, #b8860b)' : 'var(--color-text-secondary)', fontWeight: 400 }}>erforderlich</span>
-                    : <span style={{ color: 'var(--color-text-secondary)', fontWeight: 400 }}>(optional)</span>}
-                </label>
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                  <input
-                    type="text"
-                    value={analyzeAusgangstextDatei ? baseName(analyzeAusgangstextDatei) : analyzeAusgangstext}
-                    onChange={(e) => { setAnalyzeAusgangstextDatei(''); setAnalyzeAusgangstext(e.target.value); setAusgangstextHerkunft(''); }}
-                    placeholder="Text eingeben oder Datei wählen"
-                    style={{ flex: 1 }}
-                  />
-                  <button type="button" className="btn-secondary" onClick={pickSourceFile} style={{ flexShrink: 0 }}>
-                    Datei
-                  </button>
-                </div>
-                {analyzeAusgangstextDatei && (
-                  <p style={{ margin: '0.25rem 0 0', fontSize: '0.72rem', color: 'var(--color-text-secondary)' }}>
-                    Datei: {baseName(analyzeAusgangstextDatei)}
-                    <button type="button" className="btn-ghost" onClick={() => { setAnalyzeAusgangstextDatei(''); setAusgangstextHerkunft(''); }} style={{ marginLeft: '0.5rem', fontSize: '0.72rem' }}>entfernen</button>
-                  </p>
-                )}
-                {ausgangstextHerkunft && (
-                  <p style={{ margin: '0.25rem 0 0', fontSize: '0.6875rem', color: 'var(--color-text-secondary)' }}>
-                    {ausgangstextHerkunft}
-                  </p>
-                )}
-                <p style={{ margin: '0.25rem 0 0', fontSize: '0.6875rem', color: 'var(--color-text-secondary)' }}>
-                  {verstaendnisGewaehlt
-                    ? 'Dieses Raster misst Verstehen, nicht Schreibfähigkeit. Ohne den Ausgangstext prüft LUKA nur die Antwort, nicht das Verständnis — die Note ist dann nicht aussagekräftig.'
-                    : 'Bei textgebundenen Aufgaben (Textanalyse, Textinterpretation) wird der Quelltext empfohlen.'}
-                </p>
-                {verstaendnisGewaehlt && !hatAusgangstext && (
-                  <p style={{ margin: '0.35rem 0 0', fontSize: '0.6875rem', color: 'var(--color-warning, #b8860b)' }}>
-                    Du kannst trotzdem korrigieren — dann bewertet LUKA nur, was an der Antwort
-                    steht. Gib besser den Text ein oder wähle die Datei.
-                  </p>
-                )}
+              <h4>Deine Unterrichtsdatei</h4>
+              <p>Eine Datei genügt. Sie kann den Ausgangstext, die Arbeitsaufträge und die Wortzahl gemeinsam enthalten.</p>
+              <div style={{display:'flex',gap:'.5rem',alignItems:'center',marginBottom:'.75rem'}}>
+                <strong style={{flex:1}}>{analyzeAusgangstextDatei ? baseName(analyzeAusgangstextDatei) : 'Text direkt eingeben'}</strong>
+                <button type="button" className="btn-secondary" onClick={pickSourceFile}>{analyzeAusgangstextDatei?'Andere Datei wählen':'Datei wählen'}</button>
+                {analyzeAusgangstextDatei && <button type="button" className="btn-ghost" onClick={()=>{setAnalyzeAusgangstextDatei('');setAnalyzeAusgangstext('');setSourcePreview(null);}}>Entfernen</button>}
               </div>
+              {!analyzeAusgangstextDatei && <label>Ausgangstext einschließlich Arbeitsauftrag<textarea rows={7} value={analyzeAusgangstext} onChange={e=>{setAnalyzeAusgangstext(e.target.value);setSourcePreview(null);}} placeholder="Text und Aufgabenstellung aus deiner Unterrichtsunterlage"/></label>}
+              {basisLoading && <p role="status">Datei und Bewertungsraster werden gelesen …</p>}
+              {basisLoadError && <p role="alert">{basisLoadError}</p>}
+              {sourcePreview && analyzeAusgangstextDatei && <details open><summary>Ausgelesener Text aus deiner Datei</summary><pre style={{whiteSpace:'pre-wrap',maxHeight:'16rem',overflow:'auto'}}>{sourcePreview.text || 'Kein lesbarer Text gefunden. Du kannst den Unterrichtstext direkt einfügen.'}</pre><button type="button" className="btn-ghost" onClick={()=>{setAnalyzeAusgangstext(sourcePreview.text);setAnalyzeAusgangstextDatei('');setBasisConfirmed(false);}}>Ausgelesenen Text bearbeiten</button></details>}
+              {isGermanCorrection && <section aria-label="Bewertungsgrundlage prüfen">
+                <h4>Aus dieser Datei übernommen — bitte prüfen</h4>
+                <label>Prüfumfang<select value={basisScope} onChange={e=>setBasisScope(e.target.value as 'sprache'|'vollstaendig')}><option value="vollstaendig">Vollständig prüfen</option><option value="sprache">Nur Sprache prüfen</option></select></label>
+                {sourcePreview && inferCorrectionBasis(sourcePreview.text).ambiguousTask && <p role="status">Deine Datei enthält mehrere Aufgaben. Übernimm unten nur den Arbeitsauftrag, den die Klasse bearbeitet hat.</p>}
+                <label>Arbeitsauftrag aus deiner Datei<textarea value={basisTask} onChange={e=>setBasisTask(e.target.value)} rows={5} placeholder="LUKA übernimmt einen eindeutig erkennbaren Arbeitsauftrag automatisch. Falls er fehlt, kannst du ihn hier ergänzen."/></label>
+                <label>Wortzahl aus dem Arbeitsauftrag<input value={basisAmount} onChange={e=>setBasisAmount(e.target.value)} placeholder="z. B. 500–600"/></label>
+                {sourcePreview && inferCorrectionBasis(sourcePreview.text).wordChoices.length>1 && <p>Mehrere Angaben gefunden: {inferCorrectionBasis(sourcePreview.text).wordChoices.map(choice=><button type="button" className="btn-secondary" key={choice} onClick={()=>setBasisAmount(choice)}>{choice} Wörter verwenden</button>)}</p>}
+                <button type="button" className="btn-ghost" onClick={()=>setBasisAmount('keine Vorgabe')}>Keine Wortzahlvorgabe</button>
+                {basisRubric && <details><summary>Bewertungskriterien anzeigen</summary><pre style={{whiteSpace:'pre-wrap',maxHeight:'16rem',overflow:'auto'}}>{basisRubric}</pre></details>}
+                <details open={basisEh.trim()?true:undefined} style={{margin:'.75rem 0'}}><summary>Erwartungshorizont ergänzen (optional)</summary>
+                  <label>Erwartungshorizont<textarea value={basisEh} onChange={e=>setBasisEh(e.target.value)} rows={4}/></label>
+                  <p>Du kannst ohne Erwartungshorizont fortfahren. Ein KI-Vorschlag muss vor der Verwendung geprüft werden.</p>
+                  <button type="button" className="btn-secondary" disabled={basisBusy || basisLoading || !basisTask.trim() || !sourcePreview} onClick={async()=>{setBasisBusy(true);try{const result=await generateErwartungshorizont(analyzeKlasse,analyzeAufgabe,effectiveRuntime.provider,effectiveRuntime.model,undefined,basisTask+'\n'+(sourcePreview?.text??''));const proposal=JSON.parse(result);if(typeof proposal.erwartungshorizont!=="string")throw new Error("Der Erwartungshorizont konnte nicht gelesen werden.");setBasisEh(proposal.erwartungshorizont);setBasisConfirmed(false);}catch(e){setError(String(e));}finally{setBasisBusy(false);}}}>Erwartungshorizont vorschlagen (KI-Aufruf)</button>
+                  <button type="button" className="btn-ghost" disabled={basisBusy} onClick={async()=>{try{const context=await getKorrekturKontext(analyzeKlasse,analyzeAufgabe);setBasisEh(context?.erwartungshorizont??'');setBasisConfirmed(false);}catch(e){setError(String(e));}}}>Hinterlegten Erwartungshorizont übernehmen</button>
+                </details>
+                {basisScope==='vollstaendig' ? <label style={{display:'block',margin:'.75rem 0'}}><input type="checkbox" checked={basisConfirmed} disabled={basisLoading || !basisRubric || !sourcePreview || Boolean(basisLoadError) || !basisTask.trim() || Boolean(correctionBasisBlocker({scope:basisScope,loading:false,loaded:true,task:basisTask,amount:basisAmount,confirmed:true}))} onChange={e=>{setBasisSource(sourcePreview?.text.trim()?'bestaetigt':'nicht_noetig');setBasisConfirmed(e.target.checked);setError(null);}}/> Arbeitsauftrag, ausgelesener Text, Wortzahl und Bewertungskriterien stimmen.</label> : <p>Nur Sprachfeedback — Inhalt und Umfangsabzug sind nicht beauftragt. Es gibt keine automatische Gesamtnote.</p>}
+                {basisBlocker && !basisLoading && <p role="status">{basisBlocker.replace('Bitte in Schritt 3','Bitte hier')}</p>}
+              </section>}
             </>)}
             {/* ─── Schritt 4: Abgaben hinzufügen ─── */}
             {analyzeStep === 4 && (<>
               <h4 style={{ fontSize: '0.875rem', margin: '0 0 0.5rem' }}>Dateien auswählen</h4>
               <button type="button" className="file-drop" onClick={pickFile} style={{width:'100%',padding:'1.25rem',border:'2px dashed var(--color-border)',background:dragActive?'var(--color-bg-selected)':'var(--color-bg-base)',borderRadius:'var(--radius)'}}>
-                <Upload size={20}/> Dateien hierher ziehen oder auswählen<br/><small>Eine oder mehrere Abgaben · DOCX, PDF, TXT, ODT, JPG, PNG</small>
+                <Upload size={20}/> Dateien hierher ziehen oder auswählen<br/><small>Eine oder mehrere Abgaben · DOCX, PDF, TXT, MD, ODT, JPG, PNG</small>
               </button>
 
-              {batchFiles.map(file=><div className="correction-file-row" key={file}>
-                <div><strong>{baseName(file)}</strong><div>{checkingFiles && !fileChecks[file] ? 'Wird geprüft …' : !fileChecks[file] ? 'Prüfung nicht abgeschlossen' : fileChecks[file]?.visionModus ? 'PDF/Bild: Datei wird unverändert übertragen' : 'Textdatei geprüft'}</div></div>
-                <select aria-label={'Schülerzuordnung für '+baseName(file)} value={assignments[file] ?? ''} onChange={e=>setAssignments(prev=>({...prev,[file]:e.target.value ? Number(e.target.value):''}))}>
-                  <option value="">Automatische Zuordnung — bitte prüfen</option>{klasseSchueler.map(person=><option key={person.id} value={person.id}>{person.vorname} {person.nachname}</option>)}
+              <details style={{margin: '0.75rem 0'}}>
+                <summary>Auslese-Anbieter (unabhaengig von der Korrektur)</summary>
+                <select aria-label="Anbieter fuer die Auslesung" value={ocrProvider} disabled={ocrBusy} onChange={e => {setOcrProvider(e.target.value); setOcrModel(LLM_PROVIDERS.find(p => p.id === e.target.value)?.models[0] ?? '');}}>
+                  <option value="">Bevorzugte KI verwenden</option>
+                  {LLM_PROVIDERS.map(p => <option key={p.id} value={p.id}>{p.id === 'mistral' ? 'Mistral OCR' : p.label}</option>)}
                 </select>
+                {scanRuntime(ocrProvider, ocrModel, effectiveRuntime).provider === 'mistral' ? <p>Auslesung: Mistral OCR · Bildprüfung <select aria-label="Modell für den Bildabgleich" value={verifyModel} onChange={e=>setVerifyModel(e.target.value)}><option value="mistral-small-2603">Mistral Small 4</option><option value="mistral-medium-3-5">Mistral Medium 3.5</option><option value="mistral-large-4">Mistral Large 4</option></select></p> : ocrProvider && <select aria-label="Modell fuer die Auslesung" value={ocrModel} disabled={ocrBusy} onChange={e => setOcrModel(e.target.value)}>
+                  {(LLM_PROVIDERS.find(p => p.id === ocrProvider)?.models ?? []).map(m => <option key={m} value={m}>{m}</option>)}
+                </select>}
+                <p>Bei Mistral liest der OCR-Dienst die Seiten aus. Die Korrektur verwendet weiterhin das oben gewaehlte Modell. Bilddateien werden zur Auslesung an den Auslese-Anbieter uebertragen.</p>
+              </details>
+              {ocrBusy && <p role="status">Scan wird verarbeitet ...</p>}
+              {ocrReview && <div style={{margin: '1rem 0'}}>
+                <h4>Abschrift prüfen: {baseName(ocrReview.file)}</h4>
+                <p>Vergleichen Sie die Abschrift mit dem Scan. Lesefehler berichtigen, Fehler des Schülertexts erhalten. Lehrermarkierungen gehören nicht zur Abschrift. Wählen Sie anschließend „Geprüfte Abschrift verwenden“, um die Korrektur freizugeben.</p>
+                {ocrReview.previews.length > 0 && <div>
+                  <label>Originalseite <select aria-label="Originalseite" value={ocrPage} onChange={e => setOcrPage(Number(e.target.value))}>
+                    {ocrReview.previews.map((_, i) => <option key={i} value={i}>{i + 1}</option>)}
+                  </select></label>
+                  <label> Vergroesserung <input aria-label="Original vergroessern" type="range" min="100" max="250" step="25" value={ocrZoom} onChange={e => setOcrZoom(Number(e.target.value))} /> {ocrZoom}%</label>
+                </div>}
+                <div style={{display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '1rem'}}>
+                <div style={{maxHeight: '32rem', overflow: 'auto'}}>{ocrReview.previews[ocrPage] && <img src={ocrReview.previews[ocrPage]} alt={`Originalscan Seite ${ocrPage + 1}`} style={{width: `${ocrZoom}%`, maxWidth: 'none'}} />}</div>
+                <textarea aria-label="Abschrift bearbeiten" value={ocrReview.text}
+                  onChange={e => setOcrReview({...ocrReview, text: e.target.value})}
+                  style={{width: '100%', minHeight: '32rem'}} />
+                </div>
+                <button type="button" className="btn-primary" disabled={ocrBusy || !ocrReview.text.trim()} onClick={() => void adoptScan()}>Geprüfte Abschrift verwenden</button>
+                <button type="button" className="btn-secondary" disabled={ocrBusy} onClick={() => setOcrReview(null)}>Verwerfen</button>
+              </div>}
+              {batchFiles.map(file=><div className="correction-file-row" key={file}>
+                <div><strong>{baseName(file)}</strong><div>{checkingFiles && !fileChecks[file] ? 'Wird geprüft …' : !fileChecks[file] ? 'Prüfung nicht abgeschlossen' : fileChecks[file]?.visionModus ? 'Scan: bitte zuerst auslesen und Abschrift bestaetigen' : 'Textdatei geprüft'}</div></div>
+                <SchuelerZuordnung key={analyseKlasseKey + ':' + file} label={'Schülerzuordnung für '+baseName(file)} personen={klasseSchueler} value={assignments[file] ?? ''} disabled={analyzing || batchRunning || addingStudent} onCreate={createAndAssignStudent} onChange={id=>setAssignments(prev=>({...prev,[file]:id}))} />
+                {isVisionPath(file) && !automaticScan && <button type="button" className="btn-secondary" disabled={ocrBusy || analyzing} onClick={() => void readScan(file)}>Scan auslesen und prüfen</button>}
                 <button type="button" className="btn-secondary" onClick={()=>selectFiles(batchFiles.filter(p=>p!==file))} aria-label={'Entfernen: '+baseName(file)}>Entfernen</button>
               </div>)}
 
               {batchFiles.length >= 2 && (() => {
-                const sch = schaetzeBatch(batchFiles.map(file => fileChecks[file] ?? {}));
+                const aufrufe = analyseKlasseMeta?.fach?.toLowerCase().startsWith('deutsch') ? 2 : 1;
+                const sch = schaetzeBatch(batchFiles.map(file => fileChecks[file] ?? {}), aufrufe);
                 return (
                   <div style={{ marginTop: '0.75rem', padding: '0.5rem 0.75rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', background: 'var(--color-bg-base)', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
                     <strong style={{ color: 'var(--color-text)' }}>Mengenschätzung:</strong>{' '}
                     {sch.woerter !== null
                       ? <>≈ {formatTokenzahl(sch.gesamtTokens ?? 0)} Tokens gesamt ({sch.dateien} Abgaben, davon ≈ {formatTokenzahl(sch.eingabeTokens ?? 0)} Eingabe)</>
-                      : <>{sch.dateien} Abgaben, je ≈ {formatTokenzahl(ANTWORT_TOKENS_PRO_ABGABE)} Antwort-Tokens</>}
+                      : <>{sch.dateien} Abgaben, je ≈ {formatTokenzahl(ANTWORT_TOKENS_PRO_ABGABE * aufrufe)} Antwort-Tokens</>}
+                    {aufrufe === 2 && <> · Analyse und Gegenprüfung: zwei Aufrufe je Arbeit, Denkaufwand und Bewertungsgrundlage können den Verbrauch erhöhen.</>}
                     {' '}— bei Ratenlimits den Stapel zeitlich staffeln.
                   </div>
                 );
@@ -2222,24 +2439,15 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
               {batchResults.length>0 && <div role="status" className="queue-results"><strong>Letzter Bearbeitungsstand</strong>{batchResults.map(r=><p key={r.file}>{baseName(r.file)} — {r.ok?'KI-Vorschlag vorhanden':'Nicht abgeschlossen'} · {r.msg}</p>)}</div>}
 
               {/* Bestätigte Zuordnung für Einzeldatei */}
-              {batchFiles.length === 0 && klasseSchueler.length > 0 && (
+              {batchFiles.length === 0 && analyzeFile && (
                 <div style={{ marginTop: '0.75rem' }}>
                   <label>Schüler:in (Zuordnung)</label>
-                  <select
-                    value={zuordnungId === '' ? '' : String(zuordnungId)}
-                    onChange={(e) => {
+                  <SchuelerZuordnung key={analyseKlasseKey} label="Schülerzuordnung" personen={klasseSchueler} value={zuordnungId} disabled={analyzing || addingStudent} onCreate={createAndAssignStudent}
+                    onChange={(id) => {
                       zuordnungTouchedRef.current = true;
-                      setZuordnungId(e.target.value === '' ? '' : Number(e.target.value));
+                      setZuordnungId(id);
                     }}
-                    style={{ width: '100%' }}
-                  >
-                    <option value="">Automatisch (aus Dateiname erkennen)</option>
-                    {klasseSchueler.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.vorname}{s.nachname ? ` ${s.nachname}` : ''}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
               )}
 
@@ -2306,6 +2514,10 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
 
             {/* ─── Schritt 5: Übersicht & Start ─── */}
             {analyzeStep === 5 && (<>
+              {automaticScan && <p>Scan-Auslesung und Bildabgleich: {scanReadingRuntime.provider} · {scanReadingRuntime.provider==='mistral'?verifyModel:scanReadingRuntime.model}. Die Korrektur wird zuerst als Vorschau vorbereitet.</p>}
+              {Object.keys(scanReviews).length>1 && <label>Scan-Vorschau auswählen <select value={analyzeFile} onChange={e=>{setAnalyzeFile(e.target.value);setScanReview(scanReviews[e.target.value]??null);}}>{Object.keys(scanReviews).map(file=><option key={file} value={file}>{baseName(file)}</option>)}</select></label>}
+              {scanReview && automaticScan && <ScanReviewPanel session={scanReview} busy={analyzing||scanReviewBusy} onResolve={(i,c)=>void resolveScan(i,c)} onPrepare={()=>void handleAnalyze()} onCommit={()=>void handleAnalyze(true)} onImage={scanImage}/>}
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {/* Klasse + Aufgabe */}
                 <div style={{ padding: '0.625rem 0.75rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', background: 'var(--color-bg-base)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -2364,7 +2576,7 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     {batchFiles.map(file => {
                       const check = fileChecks[file];
-                      const hasIssue = !check || (check.visionModus && !check.visionFaehig);
+                      const hasIssue = !automaticScan && !isSubmissionReady(check);
                       return (
                         <div key={file} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.625rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', background: hasIssue ? 'var(--color-bg-error, #fef2f2)' : 'var(--color-bg-base)' }}>
                           {hasIssue
@@ -2375,7 +2587,9 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
                             <div style={{ fontSize: '0.8125rem', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{baseName(file)}</div>
                             <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)' }}>
                               {!check ? 'Nicht geprüft'
-                                : check.visionModus && !check.visionFaehig ? 'KI-Anbieter unterstützt dieses Format nicht'
+                                : automaticScan ? 'Bereit zur automatischen Scan- und Korrekturvorschau'
+                                : check.visionModus ? 'Scan-Abschrift noch nicht bestätigt – bitte in Schritt 4 prüfen und übernehmen'
+                                : !check.visionFaehig ? 'KI-Anbieter unterstützt dieses Format nicht'
                                 : assignments[file] || zuordnungId ? `Zugeordnet: ${klasseSchueler.find(s => s.id === Number(assignments[file] || zuordnungId))?.vorname ?? '?'}`
                                 : 'Automatische Zuordnung (Namenserkennung)'
                               }
@@ -2386,6 +2600,17 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
                     })}
                   </div>
                 )}
+
+                <div style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', padding: '0.75rem' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                    <input type="checkbox" role="switch" checked={reanalyzeExisting} disabled={revisionOfAbgabeId !== null} onChange={event => setReanalyzeExisting(event.target.checked)} />
+                    Bereits korrigierte Arbeiten erneut korrigieren
+                    <InfoDot text="Erstellt bei bereits vorhandenen Arbeiten eine neue Korrekturversion. Frühere Ergebnisse bleiben erhalten. Diese Auswahl gilt nur für diesen Auftrag." />
+                  </label>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', margin: '0.35rem 0 0' }}>
+                    {reanalyzeExisting ? 'Es entstehen neue Korrekturversionen. Bisherige Ergebnisse bleiben erhalten. Es fallen neue KI-Aufrufe an.' : 'Unveränderte Arbeiten mit derselben Korrekturgrundlage werden übersprungen.'}
+                  </p>
+                </div>
 
                 {/* Was das Ergebnis gut macht – bevor die Lehrkraft startet. */}
                 <div
@@ -2409,9 +2634,9 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
                             : 'Ausgangstext fehlt – die Korrektur stützt sich dann nur auf den Schülertext.',
                       },
                       {
-                        ok: batchFiles.length > 0,
+                        ok: batchFiles.length > 0 && readyFileCount === batchFiles.length,
                         text: batchFiles.length > 0
-                          ? `${batchFiles.length} Abgabe(n) bereit`
+                          ? `${readyFileCount} von ${batchFiles.length} Abgabe(n) bereit`
                           : 'Noch keine Abgabe hinzugefügt.',
                       },
                     ].map((hinweis) => (
@@ -2426,10 +2651,14 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
                 </div>
 
                 {/* Runtime + Datenschutz */}
+                {submissionBlocker && <div role="status" style={{ fontSize: '0.8125rem', border: '1px solid var(--color-warning, #b45309)', borderRadius: 'var(--radius)', padding: '0.625rem 0.75rem' }}>
+                  <p style={{ margin: '0 0 0.5rem' }}>{submissionBlocker}</p>
+                  <button type="button" className="btn-secondary" onClick={() => setAnalyzeStep(4)}>Abgaben und Abschrift prüfen</button>
+                </div>}
                 <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', padding: '0.5rem 0' }}>
                   <strong>KI-Anbieter:</strong> {LLM_PROVIDERS.find(p => p.id === (analyzeProvider || settings.defaultProvider))?.label ?? effectiveRuntime.provider} · {analyzeModel || settings.defaultModel}
                   {' · '}
-                  <strong>Datenschutz:</strong> {pseudoAktiv ? 'Pseudonymisierung aktiv' : 'Namen werden übertragen'}
+                  <strong>Datenschutz:</strong> {batchFiles.some(file => fileChecks[file]?.visionModus) ? 'Originalscans werden zur Auslesung unveraendert uebertragen' : pseudoAktiv ? 'Pseudonymisierung des Texts aktiv' : 'Namen werden uebertragen'}
                 </div>
               </div>
             </>)}
@@ -2449,9 +2678,10 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
               </div>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 {queueRunning ? (
+                  <><button type="button" className="btn-secondary" onClick={closeAnalyze}>Im Hintergrund weiterarbeiten</button>
                   <button className="btn-secondary" disabled={!batchRunning && activeJobId===null} onClick={async () => { if(batchRunning){batchCancelRef.current=true;}else if(activeJobId!==null && !await cancel(activeJobId)){setError('Der Auftrag konnte noch nicht abgebrochen werden. Bitte erneut versuchen.');} }} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
                     <XCircle size={14} /> {batchRunning ? 'Stapel nach laufender Datei stoppen' : 'Analyse abbrechen'}
-                  </button>
+                  </button></>
                 ) : (
                   <>
                     <button className="btn-secondary" onClick={closeAnalyze}>Entwurf schließen</button>
@@ -2461,7 +2691,8 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
                         onClick={() => setAnalyzeStep((s) => (s + 1) as 1 | 2 | 3 | 4 | 5)}
                         disabled={
                           (analyzeStep === 1 && (!analyzeKlasse || !analyzeAufgabe)) ||
-                          (analyzeStep === 4 && batchFiles.length === 0)
+                          (analyzeStep === 3 && (Boolean(basisBlocker) || basisBusy)) ||
+                          (analyzeStep === 4 && Boolean(submissionBlocker))
                         }
                       >
                         Weiter
@@ -2469,13 +2700,13 @@ export function KorrekturView({ onOpenSchueler, preselect, onConsumePreselect, o
                     ) : (
                       <>
                         {batchFiles.length > 1 ? (
-                          <button className="btn-primary" onClick={handleBatchAnalyze} disabled={Boolean(englischFehler) || checkingFiles || !analyzeKlasse || !analyzeAufgabe || batchFiles.some(file=>!fileChecks[file] || !fileChecks[file]?.visionFaehig)} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
-                            <Files size={14} /> Stapel analysieren ({batchFiles.length})
+                          <button className="btn-primary" onClick={handleBatchAnalyze} disabled={Boolean(basisBlocker) || basisBusy || Boolean(submissionBlocker) || Boolean(englischFehler) || !analyzeKlasse || !analyzeAufgabe} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                            <Files size={14} /> {autoScanProvider ? 'Stapel vorbereiten' : 'Stapel analysieren'} ({batchFiles.length})
                           </button>
                         ) : (
-                          <button className="btn-primary" onClick={handleAnalyze} disabled={Boolean(englischFehler) || checkingFiles || !fileChecks[analyzeFile] || analyzing || !analyzeFile || !analyzeKlasse || !analyzeAufgabe || (isVisionPath(analyzeFile) && (pseudoVorschauBusy || !pseudoVorschau || !pseudoVorschau.visionFaehig))} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                          <button className="btn-primary" onClick={()=>void handleAnalyze()} disabled={Boolean(basisBlocker) || basisBusy || Boolean(submissionBlocker) || Boolean(englischFehler) || (!automaticScan && !isSubmissionReady(fileChecks[analyzeFile])) || analyzing || !analyzeFile || !analyzeKlasse || !analyzeAufgabe} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
                             {analyzing ? <Loader2 size={14} className="spin" /> : <Upload size={14} />}
-                            {analyzing ? 'Analysiere …' : analysisFailure ? 'Erneut versuchen' : batchFiles.length === 1 ? 'KI-Vorschlag erstellen' : `KI-Vorschlag für ${batchFiles.length} Abgaben erstellen`}
+                            {analyzing ? 'Analysiere …' : analysisFailure ? 'Erneut versuchen' : automaticScan ? 'Scan und Korrektur vorbereiten' : batchFiles.length === 1 ? 'KI-Vorschlag erstellen' : `KI-Vorschlag für ${batchFiles.length} Abgaben erstellen`}
                           </button>
                         )}
                       </>

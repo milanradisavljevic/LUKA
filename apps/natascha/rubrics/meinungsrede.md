@@ -3,6 +3,7 @@ titel: Meinungsrede
 fach: deutsch
 schulstufe: oberstufe
 textsorte: meinungsrede
+verwendung: bewertung
 -->
 
 # Bewertungsraster: Meinungsrede

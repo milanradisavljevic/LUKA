@@ -25,6 +25,7 @@ export function useUpdater() {
       if (pending) {
         localStorage.removeItem(PENDING);
         setState({ ...IDLE, phase:pending === current ? 'verified' : 'error', currentVersion:current, version:pending,
+          body: pending === current ? __INSTALLED_RELEASE_NOTES__ : null,
           error:pending === current ? null : 'Das Update wurde nicht abgeschlossen. LUKA läuft weiterhin mit Version ' + current + '. Bitte die reguläre Installation prüfen und das Update erneut laden.' });
         return;
       }

@@ -44,6 +44,8 @@ apps/natascha/benchmarks/*
 !apps/natascha/benchmarks/README.md
 !apps/natascha/benchmarks/run_benchmark.py
 !apps/natascha/benchmarks/evaluiere.py
+!apps/natascha/benchmarks/compare_runs.py
+!apps/natascha/benchmarks/deutsch_referenz.py
 apps/natascha/abgegebene Arbeiten/
 apps/natascha/Screenshots/
 

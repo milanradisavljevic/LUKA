@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  assertStoredProviderKey,
   buildProviderTestPayload,
   classifyProviderTestError,
   ensurePrimaryProviderKey,
@@ -17,6 +18,14 @@ import {
 import { LLM_PROVIDERS } from './constants';
 
 describe('providerSetup', () => {
+  it('akzeptiert nach dem Speichern nur den tatsaechlich eingegebenen Schluessel', () => {
+    expect(() => assertStoredProviderKey(' synthetic-new ', 'synthetic-new')).not.toThrow();
+    for (const stored of ['', 'synthetic-old']) {
+      expect(() => assertStoredProviderKey('synthetic-new', stored)).toThrow('nicht korrekt gespeichert');
+    }
+    expect(() => assertStoredProviderKey('', '')).toThrow();
+  });
+
   it('loest Claude auf den Runtime-Provider anthropic auf', () => {
     expect(getPrimaryProviderKeyId('claude')).toBe('anthropic');
   });

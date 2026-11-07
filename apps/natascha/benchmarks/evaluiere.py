@@ -330,6 +330,8 @@ def ist_vollstaendiger_lauf(
     metadata = evaluation.get("metadata")
     if not isinstance(metadata, dict):
         return False
+    if metadata.get("comparisonOnly") or metadata.get("reasoning") not in (None, "off"):
+        return False
     if (
         metadata.get("provider") != erwarteter_provider
         or metadata.get("model") != erwartetes_modell

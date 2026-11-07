@@ -33,7 +33,7 @@ const LISTE = [
   F(11, 'Insbesondere auf TikTok', 'A', 'niedrig'),
   F(12, 'aufsteigende', 'A', 'mittel'),
   F(13, 'auf TikTok verlassen', 'G', 'hoch'),
-  F(14, 'lesbare Bücher', 'A', null),
+  F(14, 'Lesbare Bücher', 'A', null),
 ];
 
 describe('Korrektur-Zuordnung: Liste und Text zeigen dasselbe', () => {

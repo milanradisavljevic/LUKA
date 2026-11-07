@@ -3,6 +3,7 @@ titel: SRDP Deutsch Oberstufe
 fach: deutsch
 schulstufe: oberstufe
 textsorte: alle
+verwendung: bewertung
 -->
 
 # Bewertungsraster: SRDP Deutsch Oberstufe

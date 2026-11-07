@@ -9,3 +9,5 @@ pillow>=12.2.0       # Security: CVE-2026-40192/-42309/-42310/-42311, PYSEC-2026
 # InquirerPy>=0.3.4
 # Optional: pyfiglet (fuer alternatives ASCII-Logo)
 # Optional: anthropic>=0.40.0 (fuer API-Modus)
+
+pypdfium2>=4.30,<6  # Lokale PDF-Seiten fuer Vision-Anbieter

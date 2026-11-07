@@ -32,6 +32,12 @@ export interface ProviderTestPayload {
 
 export const PROVIDER_SETUP_VERIFIED_KEY = 'luka-provider-setup-verified';
 
+export function assertStoredProviderKey(expected: string, stored: string): void {
+  if (!expected.trim() || stored?.trim() !== expected.trim()) {
+    throw new Error('Der eingegebene API-Schlüssel wurde nicht korrekt gespeichert. Bitte erneut speichern und testen.');
+  }
+}
+
 export const PROVIDER_ONBOARDING: Record<LlmProvider, ProviderOnboardingInfo> = {
   claude: {
     setupUrl: 'https://console.anthropic.com/settings/keys',

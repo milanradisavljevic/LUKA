@@ -22,6 +22,7 @@ import threading
 import time
 import tomllib
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import datetime
 from dataclasses import dataclass
@@ -29,6 +30,12 @@ from pathlib import Path
 from typing import Any, Literal
 
 import tomlkit
+
+from model_reasoning import resolve_reasoning
+from correction_quality import (PROMPT_VERSION, anchor_findings, apply_countercheck, deduplicate, find_spans, quality_examples)
+from sprachregeln import pruefe_fehlertyp, regel_muster
+import deutsch_review as dr
+from deutsch_raster_seed import LEGACY_DEUTSCH_HASHES
 
 if sys.version_info < (3, 11):
     print("Python 3.11+ wird benoetigt.")
@@ -91,12 +98,14 @@ def _seed_data_dir(bundle_root: Path, data_root: Path) -> None:
                 ziel.mkdir(parents=True, exist_ok=True)
             elif not ziel.exists():
                 _shutil.copy2(quelle, ziel)
-            elif ordner == "rubrics" and quelle.name in LEGACY_RASTER_HASHES:
+            elif ordner == "rubrics" and quelle.name in (LEGACY_RASTER_HASHES | LEGACY_DEUTSCH_HASHES):
                 # Nur unveränderte mitgelieferte Altraster aktualisieren.
                 # Persönliche Anpassungen bleiben unangetastet.
                 import hashlib
                 old = ziel.read_text(encoding="utf-8-sig").replace("\r\n", "\n")
-                if hashlib.sha256(old.encode("utf-8")).hexdigest() == LEGACY_RASTER_HASHES[quelle.name]:
+                if hashlib.sha256(old.encode("utf-8")).hexdigest() in {
+                    LEGACY_RASTER_HASHES.get(quelle.name), LEGACY_DEUTSCH_HASHES.get(quelle.name)
+                }:
                     _shutil.copy2(quelle, ziel)
 
 
@@ -190,6 +199,8 @@ def resolve_path(config: dict[str, Any], key: str) -> Path:
 
 def count_words(path: Path) -> int:
     try:
+        if path.suffix.lower() in {".txt", ".md"}:
+            return len(read_submission_text(path).split())
         if path.suffix.lower() == ".odt":
             text = read_odt_text(path)
             return len(text.split())
@@ -206,14 +217,15 @@ def read_submission_text(file_path: Path) -> str:
         return read_docx_text(file_path)
     if suffix == ".odt":
         return read_odt_text(file_path)
-    if suffix == ".txt":
+    if suffix in {".txt", ".md"}:
         try:
             return file_path.read_text(encoding="utf-8-sig")
         except UnicodeDecodeError:
             return file_path.read_text(encoding="cp1252")
     if is_vision_file(file_path):
-        return ""
-    raise ValueError("Dieses Dateiformat wird nicht unterstützt. Bitte DOCX, TXT, ODT, PDF, JPG oder PNG verwenden.")
+        approved = approved_scan(file_path)
+        return approved["transkription"] if approved else ""
+    raise ValueError("Dieses Dateiformat wird nicht unterstützt. Bitte DOCX, TXT, MD, ODT, PDF, JPG oder PNG verwenden.")
 
 
 def read_docx_text(docx_path: Path, preserve_italic: bool = True) -> str:
@@ -310,20 +322,8 @@ def read_docx_rich(docx_path: Path) -> str:
 # ---------------------------------------------------------------------------
 
 _VISION_EXTENSIONS: frozenset[str] = frozenset({".pdf", ".jpg", ".jpeg", ".png"})
-_OPENAI_VISION_MODELS: frozenset[str] = frozenset({
-    "gpt-4o",
-    "gpt-4o-mini",
-    "gpt-4.1",
-    "gpt-4.1-mini",
-    "gpt-4-turbo",
-    "gpt-5",
-    "gpt-5.1",
-    "gpt-5.2",
-})
-
-
 def is_vision_file(path: Path) -> bool:
-    """True wenn der Dateityp Vision-Analyse erfordert (PDF, JPEG, PNG)."""
+    """PDFs und Bilder erfordern OCR oder Vision."""
     return path.suffix.lower() in _VISION_EXTENSIONS
 
 
@@ -335,26 +335,9 @@ def get_file_size_kb(path: Path) -> int:
 
 
 def is_vision_capable(provider: str, model: str, file_path: Path | None = None) -> bool:
-    """True wenn Provider+Modell die gegebene Datei per Vision analysieren kann.
-
-    file_path: Wenn angegeben, wird auch der Dateityp geprüft.
-    OpenAI unterstützt Bilder, aber keine nativen PDFs.
-    """
-    p = provider.lower()
-    if p == "anthropic":
-        return True  # alle aktuellen Claude-Modelle unterstützen Vision + PDF
-    if p == "openai":
-        if file_path is not None and file_path.suffix.lower() == ".pdf":
-            return False  # OpenAI hat keinen nativen PDF-Support
-        return model in _OPENAI_VISION_MODELS
-    if p == "qwen":
-        if file_path is not None and file_path.suffix.lower() == ".pdf":
-            return False
-        m = model.lower()
-        return "vl" in m or "omni" in m
-    if p == "mistral":
-        return False  # Mistral wird in dieser Integration nur fuer Text genutzt
-    return False  # GLM, Kimi, Mistral, Ollama: kein Vision-Support
+    """Scan-Verarbeitung inklusive OCR und lokaler PDF-Aufbereitung."""
+    from scan_input import scan_capable
+    return scan_capable(provider, model)
 
 
 def encode_file_for_vision(path: Path) -> tuple[dict, bool]:
@@ -473,7 +456,7 @@ _RUBRIK_HEADER_RE = re.compile(
 # `aufgabenart` steuert die Zusatzanweisungen bei der Erwartungshorizont-Generierung:
 # ein Verständnisraster erwartet Fragen, kein Schreibauftrag.
 _RUBRIK_HEADER_FIELDS = (
-    "titel", "fach", "schulstufe", "textsorte", "k1", "k3", "aufgabenart", "bewertungsprofil",
+    "titel", "fach", "schulstufe", "textsorte", "k1", "k3", "aufgabenart", "bewertungsprofil", "verwendung",
 )
 
 
@@ -670,7 +653,17 @@ def load_schema(config: dict[str, Any]) -> dict[str, Any]:
     schema_path = resolve_path(config, "schema")
     if not schema_path.exists():
         return {}
-    return json.loads(schema_path.read_text(encoding="utf-8"))
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    # Auch ältere, bereits geseedete Schema-Kopien akzeptieren die neuen Felder.
+    props = schema.get("properties", {}).get("fehler", {}).get("items", {}).get("properties", {})
+    props.update({"befundart": {"type": "string", "enum": ["normfehler", "ausdrucksproblem", "stilalternative", "ungeklaert"]},
+                  "befund_id": {"type": "string"}, "anker_status": {"type": "string"},
+                  "textanker": {"type": "object"}, "ki_pruefung": {"type": "object"}, "kontext_widerspruch": {"type": "boolean"},
+                  "ersetzungspruefung": {"type": "object"}, "nur_kommentar": {"type": "boolean"}, "textstelle_id": {"type": "string"}})
+    grade_schema = schema.get("$defs", {}).get("notenempfehlung")
+    if isinstance(grade_schema, dict):
+        grade_schema.setdefault("properties", {})["vorlaeufig"] = {"type": "boolean"}
+    return schema
 
 
 def load_example_fixture() -> str:
@@ -714,7 +707,11 @@ def _fehler_anweisungen(
         "- 'fehler': VOLLSTÄNDIGE Liste ALLER Sprachfehler im Schülertext. KEIN LIMIT.\n"
         "  Jeder Eintrag: 'zitat' (1–6 Wörter, wortgetreu), 'korrektur' (korrekte Fassung),\n"
         "  'typ' (R=Rechtschreibung, G=Grammatik, Z=Zeichensetzung, A=Ausdruck/Stil — Register, Wortwahl),\n"
-        "  'erklaerung' (optional, 1 Satz Regelhinweis).\n"
+        "  'erklaerung' (1 Satz Regelhinweis) und 'befundart': normfehler, ausdrucksproblem, stilalternative oder ungeklaert.\n"
+        "  Normfehler verletzt eine konkrete Norm; Ausdrucksproblem beeinträchtigt Bedeutung oder Verständlichkeit.\n"
+        "  Stilalternativen sind freiwillige Anregungen und KEINE Fehler. Unklare Lesarten oder Quellenfragen sind ungeklärt.\n"
+        "  Bewahre Bedeutung, persönliche Stimme, zulässige Varianten und den mündlichen Charakter einer Rede.\n"
+        "  Behaupte Eigenschaften, Stärken und Schwächen nur mit Belegen aus genau dieser Arbeit.\n"
     )
     if ist_englisch:
         beispiele = (
@@ -889,17 +886,20 @@ def load_schema_for_mode(
 ) -> dict[str, Any]:
     """Gibt das JSON-Schema zurück — für 'unbenotet' ohne notenempfehlung im required-Array."""
     schema = load_schema(config)
+    if dr.ist_deutsch(fach):
+        schema = copy.deepcopy(schema)
+        if land == "de" and isinstance(schema.get("$defs", {}).get("notenempfehlung"), dict):
+            schema["$defs"]["notenempfehlung"]["properties"]["note"]["maximum"] = 6
+        for key, description in (("staerken_global", "Belegbare globale Stärken; keine feste Anzahl, darf leer sein."),
+                                 ("verbesserungsbereiche", "Belegbare Verbesserungsbereiche; keine feste Anzahl, darf leer sein.")):
+            schema["properties"][key]["description"] = description
     if bewertungsmodus == "unbenotet":
         schema = dict(schema)
         schema["properties"] = {
             k: v for k, v in schema.get("properties", {}).items() if k != "notenempfehlung"
         }
         schema["required"] = [r for r in schema.get("required", []) if r != "notenempfehlung"]
-    else:
-        req = list(schema.get("required", []))
-        if "notenempfehlung" not in req:
-            req.append("notenempfehlung")
-        schema = dict(schema, required=req)
+    schema["required"] = [key for key in schema.get("required", []) if key != "notenempfehlung"]
     return schema_fuer_profil(schema, profil_fuer_raster(rubric_content, fach, land))
 
 
@@ -918,13 +918,11 @@ def build_analysis_prompt(
     erwartungshorizont_name: str = "",
     land: str = "at",
     dichte_prompt_variante: FehlerdichtePromptVariante = "neutral",
+    bewertungsgrundlage: dict[str, Any] | None = None,
 ) -> str:
     schema = load_schema_for_mode(config, bewertungsmodus, rubric_content, fach, land)
-    example = "{}" if profil_fuer_raster(rubric_content, fach, land) else load_example_fixture()
     schema_str = json.dumps(schema, indent=2, ensure_ascii=False)
-    example_str = (
-        json.dumps(json.loads(example), indent=2, ensure_ascii=False) if example != "{}" else ""
-    )
+    example_str = quality_examples(fach, textsorte)
 
     criteria_keys = extract_criteria_keys(rubric_content)
     criteria_instruction = (
@@ -939,11 +937,11 @@ def build_analysis_prompt(
         noten_instruction = "Keine Note erzeugen. Die App verwendet nur einen bestätigten Notenschlüssel.\n"
     elif bewertungsmodus == "unbenotet":
         noten_instruction = (
-            "WICHTIG: Dies ist eine Hausaufgabe — keine Note vergeben.\n"
+            "WICHTIG: Dies ist eine formative Korrektur — keine Note vergeben.\n"
             "Das Feld 'notenempfehlung' WEGLASSEN (nicht im JSON ausgeben).\n"
         )
     else:
-        noten_instruction = "Berechne eine Notenempfehlung.\n"
+        noten_instruction = "Keine Schulnote berechnen. Das Feld notenempfehlung weglassen; die App berechnet die Empfehlung aus den Kriterien.\n"
 
     # Nur der Kopf ist land-spezifisch; der Rest des Prompts bleibt identisch
     # (Benchmark-Baseline: AT-Pfad byte-gleich).
@@ -957,6 +955,7 @@ def build_analysis_prompt(
         + f"Fach: {fach}\nSchulstufe: {schulstufe}\nTextsorte: {textsorte}\n"
         + (f"Schüler/in: {schueler}\n" if schueler else "")
         + "\n"
+        + (dr.grundlagenblock(bewertungsgrundlage) if bewertungsgrundlage is not None else
         "BEWERTUNGSRASTER:\n---\n"
         f"{rubric_content}\n---\n\n"
         + _erwartungshorizont_block(config, klasse, aufgabe, override_name=erwartungshorizont_name)
@@ -969,29 +968,32 @@ def build_analysis_prompt(
             if ausgangstext_text is not None else ""
         )
         + "SCHÜLERTEXT:\n---\n"
-        f"{docx_text}\n---\n\n"
+        f"{docx_text}\n---\n\n")
+        +
         "JSON-SCHEMA (dein Output MUSS konform sein):\n---\n"
         f"{schema_str}\n---\n\n"
-        "BEISPIEL-JSON:\n---\n"
+        "KLEINE REGELBEISPIELE (keine Angaben zur vorliegenden Arbeit):\n---\n"
         f"{example_str}\n---\n\n"
         "AUFGABE:\n"
         "Analysiere den Schülertext anhand des Bewertungsrasters.\n"
+        "Metadaten: datei=abgabe; rubrik=Bewertungsraster (nur dieser kurze Name, NICHT den Rastertext kopieren).\n"
+        "Feedbacktexte richten sich direkt an Lernende. Keine internen Überlegungen, Berechnungen oder JSON-Anweisungen in Feedbackfeldern.\n"
         + criteria_instruction
         + _sachfach_korrektur_hinweis(fach)
         + _sprachfach_prompt_hinweis(fach, textsorte)
         + skalen_anweisung(profil_fuer_raster(rubric_content, fach, land))
         + "Erstelle eine Bewertung für jedes Kriterium mit Stufe, Punkten, Stärken, Schwächen und Vorschlägen.\n"
+        + ("Für dieses 1–5-Raster sind stufe und punkte dieselbe numerische Kompetenzstufe (keine Schulnote).\n" if not profil_fuer_raster(rubric_content, fach, land) else "")
         + noten_instruction
         + "Erstelle außerdem:\n"
         "- 'zusammenfassung': 2-3 Sätze holistische Gesamteinschätzung der Arbeit.\n"
-        "- 'staerken_global': Liste von genau 3 globalen Stärken der Arbeit (kurze Strings).\n"
-        "- 'verbesserungsbereiche': Liste von genau 3 konkreten Verbesserungsbereichen (kurze Strings).\n"
-        "- 'hinweise': Liste von 2–4 pädagogischen Randnotizen auf Wortebene (Stilbeobachtungen,\n"
-        "  Stärken, Registerfragen) — NICHT für Rechtschreib-/Grammatikfehler.\n"
+        "- 'staerken_global': Liste belegbarer globaler Stärken; nur sinnvolle Beobachtungen, darf leer sein.\n"
+        "- 'verbesserungsbereiche': Liste belegbarer Verbesserungsbereiche; keine feste Anzahl, darf leer sein.\n"
+        "- 'hinweise': Liste sinnvoller, belegter pädagogischer Randnotizen auf Wortebene (Stilbeobachtungen,\n"
+        "  Stärken, Registerfragen) — NICHT für Rechtschreib-, Grammatik- oder Zeichensetzungsfehler.\n"
         "  Jeder Eintrag ist ein Objekt mit:\n"
         "  'zitat': GENAU 1–5 Wörter aus dem Schülertext (wortgetreu, kein ganzer Satz!)\n"
         "  'kommentar': kurze direkte Anmerkung dazu, wie eine Randnotiz einer Lehrerin\n"
-        "  Beispiel: {\"zitat\": \"mega geil\", \"kommentar\": \"Register überdenken — zu umgangssprachlich\"}\n"
         "  WICHTIG: 'zitat' darf NIE länger als 5 Wörter sein. Keine ganzen Sätze als Zitat!\n"
         + _fehler_anweisungen(fach, len(docx_text.split()), land, dichte_prompt_variante)
         + "ACHTUNG: Trage Sprachfehler AUSSCHLIESSLICH im Top-Level-Array 'fehler' ein. "
@@ -1027,11 +1029,8 @@ def build_vision_prompt(
     Der Schülertext ist als beigefügtes Bild/PDF vorhanden — kein docx_text nötig.
     """
     schema = load_schema_for_mode(config, bewertungsmodus, rubric_content, fach, land)
-    example = "{}" if profil_fuer_raster(rubric_content, fach, land) else load_example_fixture()
     schema_str = json.dumps(schema, indent=2, ensure_ascii=False)
-    example_str = (
-        json.dumps(json.loads(example), indent=2, ensure_ascii=False) if example != "{}" else ""
-    )
+    example_str = quality_examples(fach, textsorte)
 
     criteria_keys = extract_criteria_keys(rubric_content)
     criteria_instruction = (
@@ -1046,11 +1045,11 @@ def build_vision_prompt(
         noten_instruction = "Keine Note erzeugen. Die App verwendet nur einen bestätigten Notenschlüssel.\n"
     elif bewertungsmodus == "unbenotet":
         noten_instruction = (
-            "WICHTIG: Dies ist eine Hausaufgabe — keine Note vergeben.\n"
+            "WICHTIG: Dies ist eine formative Korrektur — keine Note vergeben.\n"
             "Das Feld 'notenempfehlung' WEGLASSEN (nicht im JSON ausgeben).\n"
         )
     else:
-        noten_instruction = "Berechne eine Notenempfehlung.\n"
+        noten_instruction = "Keine Schulnote berechnen. Das Feld notenempfehlung weglassen; die App berechnet die Empfehlung aus den Kriterien.\n"
 
     # Nur der Kopf ist land-spezifisch (Spiegel zu build_analysis_prompt).
     if land == "de":
@@ -1088,7 +1087,7 @@ def build_vision_prompt(
         "und Anmerkungen der Lehrkraft, und analysiere die Arbeit anhand des Bewertungsrasters.\n\n"
         "JSON-SCHEMA (dein Output MUSS konform sein):\n---\n"
         f"{schema_str}\n---\n\n"
-        "BEISPIEL-JSON:\n---\n"
+        "KLEINE REGELBEISPIELE (keine Angaben zur vorliegenden Arbeit):\n---\n"
         f"{example_str}\n---\n\n"
         "AUFGABE:\n"
         "Analysiere die im Bild/PDF sichtbare handgeschriebene Schülerarbeit anhand des Rasters.\n"
@@ -1104,14 +1103,13 @@ def build_vision_prompt(
         "(inklusive aller Absätze, Überschrift falls vorhanden, und Zeilenumbrüche als \\n). "
         "Handschriftliche Lehrermarkierungen NICHT einschließen — nur den Schülertext selbst.\n"
         "- 'zusammenfassung': 2-3 Sätze holistische Gesamteinschätzung der Arbeit.\n"
-        "- 'staerken_global': Liste von genau 3 globalen Stärken der Arbeit (kurze Strings).\n"
-        "- 'verbesserungsbereiche': Liste von genau 3 konkreten Verbesserungsbereichen (kurze Strings).\n"
-        "- 'hinweise': Liste von 2–4 pädagogischen Randnotizen auf Wortebene (Stilbeobachtungen,\n"
-        "  Stärken, Registerfragen) — NICHT für Rechtschreib-/Grammatikfehler.\n"
+        "- 'staerken_global': Liste belegbarer globaler Stärken; nur sinnvolle Beobachtungen, darf leer sein.\n"
+        "- 'verbesserungsbereiche': Liste belegbarer Verbesserungsbereiche; keine feste Anzahl, darf leer sein.\n"
+        "- 'hinweise': Liste sinnvoller, belegter pädagogischer Randnotizen auf Wortebene (Stilbeobachtungen,\n"
+        "  Stärken, Registerfragen) — NICHT für Rechtschreib-, Grammatik- oder Zeichensetzungsfehler.\n"
         "  Jeder Eintrag ist ein Objekt mit:\n"
         "  'zitat': GENAU 1–5 Wörter aus dem Schülertext (wortgetreu, kein ganzer Satz!)\n"
         "  'kommentar': kurze direkte Anmerkung dazu, wie eine Randnotiz einer Lehrerin\n"
-        "  Beispiel: {\"zitat\": \"mega geil\", \"kommentar\": \"Register überdenken — zu umgangssprachlich\"}\n"
         "  WICHTIG: 'zitat' darf NIE länger als 5 Wörter sein. Keine ganzen Sätze als Zitat!\n"
         + _fehler_anweisungen(fach, 0, land, dichte_prompt_variante)
         + "ACHTUNG: Trage Sprachfehler AUSSCHLIESSLICH im Top-Level-Array 'fehler' ein. "
@@ -1127,20 +1125,29 @@ def build_vision_prompt(
 
 
 def extract_json_from_llm(text: str) -> dict[str, Any]:
-    fenced = re.search(r"```(?:json)?\s*\n?(.*?)```", text, re.DOTALL)
-    candidate = fenced.group(1).strip() if fenced else text.strip()
-    start = candidate.find("{")
-    if start != -1:
-        depth = 0
-        for i, ch in enumerate(candidate[start:], start):
-            if ch == "{":
-                depth += 1
-            elif ch == "}":
-                depth -= 1
-                if depth == 0:
-                    candidate = candidate[start : i + 1]
-                    break
-    return json.loads(candidate)
+    def pairs(items):
+        result = {}
+        for key, value in items:
+            if key in result and json.dumps(result[key], sort_keys=True) != json.dumps(value, sort_keys=True):
+                raise json.JSONDecodeError("Widersprüchlicher doppelter Schlüssel", text, 0)
+            result[key] = value
+        return result
+
+    decoder = json.JSONDecoder(object_pairs_hook=pairs)
+    start = text.find("{")
+    if start < 0:
+        raise json.JSONDecodeError("Kein Ergebnisobjekt", text, 0)
+    result, end = decoder.raw_decode(text, start)
+    tail = text[end:]
+    # Ein zweites Ergebnis ist keine eindeutige Antwort. Freier Nachtext bleibt erlaubt.
+    for match in re.finditer(r"\{", tail):
+        try:
+            other, _ = decoder.raw_decode(tail, match.start())
+        except json.JSONDecodeError:
+            continue
+        if isinstance(other, dict):
+            raise json.JSONDecodeError("Mehrere Ergebnisobjekte", text, end + match.start())
+    return result
 
 
 def _inline_schema_refs(schema: dict[str, Any]) -> dict[str, Any]:
@@ -1243,6 +1250,7 @@ def run_llm_analysis(
     rubrik_titel: str = "",
     erwartungshorizont: str = "",
     revision_of_abgabe_id: int | None = None,
+    reanalyze_existing: bool = False,
     klasse_id: str | None = None,
     correction_basis: dict[str, Any] | None = None,
     land: str = "at",
@@ -1251,6 +1259,8 @@ def run_llm_analysis(
     rubrik_k3_keys: tuple[str, ...] | None = None,
     notenschluessel: dict[str, Any] | None = None,
     soll_wortanzahl: int | None = None,
+    persist: bool = True,
+    scan_text: str | None = None,
 ) -> tuple[dict[str, Any] | None, list[str]]:
     """
     Fuehrt die vollstaendige LLM-Analyse durch: Prompt bauen, API aufrufen,
@@ -1278,6 +1288,10 @@ def run_llm_analysis(
     api_snapshot = config.setdefault("api", {})
     run_provider = str(api_snapshot.get("provider", "unbekannt"))
     run_model = str(api_snapshot.get("model", ""))
+    try:
+        reasoning = resolve_reasoning(run_provider, run_model, api_snapshot.get("reasoning"))
+    except ValueError as exc:
+        return None, [str(exc)]
     run_started_at = datetime.now().astimezone().isoformat(timespec="seconds")
 
     if fach.strip().casefold() == "daf":
@@ -1304,15 +1318,91 @@ def run_llm_analysis(
             raise ValueError("Vor einer Notenempfehlung bitte die vorgegebene Wortanzahl festlegen.")
     except ValueError as exc:
         return None, [str(exc)]
+    frozen_basis = (correction_basis or {}).get("grundlage")
+    scope = "vollstaendig"
+    if frozen_basis is not None:
+        if not dr.ist_deutsch(fach):
+            return None, ["Die bestätigte Grundlage ist derzeit für Deutsch vorgesehen."]
+        from correction_basis import validate_basis
+        try:
+            frozen_basis = validate_basis(frozen_basis)
+        except ValueError as exc:
+            return None, [str(exc)]
+        scope = frozen_basis["pruefumfang"]
+        rubric_content = frozen_basis["rubrik_inhalt"]
+        ausgangstext_text = frozen_basis["ausgangstext"] if scope == "vollstaendig" else ""
+        ausgangstext_path = None
+        erwartungshorizont = frozen_basis["erwartungshorizont"] if scope == "vollstaendig" else ""
+        erwartungshorizont_name = ""
+        config = copy.deepcopy(config)
+        config["_erwartungshorizont_snapshot"] = erwartungshorizont
+        if scope == "sprache":
+            bewertungsmodus = "unbenotet"
     schema = load_schema_for_mode(config, bewertungsmodus, rubric_content, fach, land)
 
+    if scope == "sprache":
+        schema = copy.deepcopy(schema)
+        schema["properties"]["bewertung"]["minProperties"] = 0
+        schema["properties"]["bewertung"]["maxProperties"] = 0
+    rastervertrag = None
+    if cancel_event is not None and cancel_event.is_set():
+        return None, ["Analyse abgebrochen"]
+    if dr.ist_deutsch(fach):
+        rastervertrag = dr.rastervertrag(rubric_content, land=land, schulstufe=schulstufe,
+                                         benotet=bewertungsmodus == "benotet")
+        if rastervertrag["fehler"]:
+            return None, rastervertrag["fehler"]
+    if scope == "sprache" and rastervertrag:
+        rastervertrag["kriterien"] = {}
+        rastervertrag["srdp_detail"] = False
+    # Explizite Auswahl zuerst; beide Aufrufe und der Revisionssnapshot
+    # erhalten exakt dieselbe aufgelöste Fassung.
+    if "_erwartungshorizont_snapshot" in config:
+        erwartungshorizont = config["_erwartungshorizont_snapshot"]
+    elif erwartungshorizont_name:
+        eh_path = resolve_path(config, "rubrics") / erwartungshorizont_name
+        if not eh_path.is_file():
+            return None, ["Der ausgewählte Erwartungshorizont wurde nicht gefunden."]
+        erwartungshorizont = eh_path.read_text(encoding="utf-8")
+    elif not erwartungshorizont:
+        erwartungshorizont = load_erwartungshorizont(config, klasse, aufgabe) or ""
+
+    context_digest = hashlib.sha256(json.dumps({
+        **({"deutsch_review_version": dr.VERSION} if dr.ist_deutsch(fach) else {}),
+        "rubric": rubric_content, "fach": fach, "stufe": schulstufe,
+        "textsorte": textsorte, "land": land, "modus": bewertungsmodus,
+        "source": ausgangstext_text or "",
+        "source_file": hashlib.sha256(ausgangstext_path.read_bytes()).hexdigest() if ausgangstext_path and ausgangstext_path.is_file() else "",
+        "provider": run_provider, "model": run_model, "reasoning": reasoning["selection"], "prompt_version": PROMPT_VERSION,
+        "basis": correction_basis or {}, "notenschluessel": notenschluessel,
+        "soll": soll_wortanzahl,
+    }, sort_keys=True, default=str).encode()).hexdigest()
+
     # Duplikat-Erkennung (Hash-Check)
-    if ndb is not None and file_path is not None and file_path.exists():
+    if persist and ndb is not None and file_path is not None and file_path.exists():
         try:
             db_path = db_path_override or ndb.get_db_path(config)
             ndb.init_db(db_path)
             file_hash = ndb._file_hash(file_path)
             existing = ndb.get_abgabe_by_hash(db_path, file_hash)
+            if existing and reanalyze_existing:
+                try:
+                    target = ndb.reanalysis_target(existing, klasse, aufgabe, klasse_id, bestaetigte_schueler_id)
+                except ValueError as exc:
+                    return None, [str(exc)]
+                if revision_of_abgabe_id is None:
+                    revision_of_abgabe_id = target
+            approved_version = approved_scan(file_path, config) if is_vision_file(file_path) else None
+            if existing and approved_version and revision_of_abgabe_id is None:
+                previous_path = Path(existing.get("feedback_json_path") or "__missing__")
+                previous = json.loads(previous_path.read_text(encoding="utf-8")) if previous_path.is_file() else {}
+                if previous.get("_transcript_sha256") != approved_version["text_sha256"]:
+                    revision_of_abgabe_id = int(existing["id"])
+            if existing and revision_of_abgabe_id is None:
+                previous_path = Path(existing.get("feedback_json_path") or "__missing__")
+                previous = json.loads(previous_path.read_text(encoding="utf-8")) if previous_path.is_file() else {}
+                if previous.get("_correction_context") != context_digest:
+                    revision_of_abgabe_id = int(existing["id"])
             if revision_of_abgabe_id is not None:
                 if not existing or int(existing.get("id", -1)) != revision_of_abgabe_id:
                     return None, ["Die ausgewählte Originaldatei stimmt nicht mit der Abgabe überein."]
@@ -1365,23 +1455,23 @@ def run_llm_analysis(
                 ausgangstext_warnings.append(f"Ausgangstext nicht lesbar: {e}")
         elif suf in _VISION_EXTENSIONS:
             provider = config.get("api", {}).get("provider", "anthropic").lower()
-            if provider == "mistral":
-                ausgangstext_warnings.append(
-                    "Ausgangstext wird mit Mistral nicht als Vision verarbeitet; "
-                    "bitte DOCX/Text verwenden."
-                )
-            elif provider == "openai" and suf == ".pdf":
-                ausgangstext_warnings.append(
-                    "Ausgangstext PDF wird mit OpenAI übersprungen "
-                    "(kein nativer PDF-Support)."
-                )
-            else:
-                try:
-                    ausgangstext_vision_block, _ = encode_file_for_vision(ausgangstext_path)
-                except (ValueError, OSError) as e:
-                    ausgangstext_warnings.append(f"Ausgangstext Enkodierung fehlgeschlagen: {e}")
+            if not is_vision_capable(provider, run_model, ausgangstext_path):
+                return None, ["Das gewaehlte Modell kann den gescannten Ausgangstext nicht lesen."]
+            try:
+                ausgangstext_vision_block, _ = encode_file_for_vision(ausgangstext_path)
+            except (ValueError, OSError):
+                return None, ["Der gescannte Ausgangstext konnte nicht gelesen werden."]
 
-    vision_mode = file_path is not None and is_vision_file(file_path)
+    approved = approved_scan(file_path, config) if file_path and is_vision_file(file_path) else None
+    if file_path and is_vision_file(file_path) and not approved and scan_text is None:
+        return None, ["Bitte zuerst den Scan auslesen und die Abschrift pruefen."]
+    if scan_text is not None:
+        if persist:
+            return None, ["Eine Scan-Vorschau muss zuerst freigegeben werden."]
+        docx_text = scan_text
+    elif approved:
+        docx_text = approved["transkription"]
+    vision_mode = file_path is not None and is_vision_file(file_path) and not approved and scan_text is None
 
     # Pseudonymisierung: Namen aus der Klassenliste werden vor dem Versand an
     # den externen Anbieter durch Aliasse ersetzt (Datenminimierung, P0).
@@ -1429,11 +1519,28 @@ def run_llm_analysis(
                     "Personenangaben wurden NICHT ersetzt."
                 )
 
+    from correction_quality import word_requirement
+    umfang, umfang_warnung = word_requirement(ausgangstext_text or "", rubric_content, soll_wortanzahl)
+    if frozen_basis is not None:
+        umfang = frozen_basis["umfangsvorgabe"] if scope == "vollstaendig" else ""
+        umfang_warnung = ""
+    if umfang_warnung:
+        ausgangstext_warnings.append(umfang_warnung)
+    bewertungsgrundlage = {
+        "version": dr.VERSION, "fach": fach, "land": land, "schulstufe": schulstufe, "textsorte": textsorte,
+        "schuelertext": docx_text_llm,
+        "textfakten": {**dr.textfakten(docx_text), "fassung": "Originaltext vor einer etwaigen Pseudonymisierung; Namen-Aliasse können die sichtbare Wortzahl verändern"},
+        "rubrik_inhalt": rubric_content, "rastervertrag": rastervertrag,
+        "beilage_und_arbeitsauftraege": ausgangstext_text or "",
+        "erwartungshorizont": erwartungshorizont,
+        "umfangsvorgabe": umfang, "bewertungsmodus": bewertungsmodus,
+        "pruefumfang": scope, "aufgabenstellung": (frozen_basis or {}).get("aufgabenstellung", ""),
+    }
+    bewertungsgrundlage["hash"] = dr.digest(bewertungsgrundlage)
+
     if vision_mode:
-        if config.get("api", {}).get("provider", "anthropic").lower() == "mistral":
-            return None, ausgangstext_warnings + [
-                "Mistral unterstützt in dieser Integration nur Textdateien."
-            ]
+        if not is_vision_capable(run_provider, run_model, file_path):
+            return None, ["Das gewaehlte Modell unterstuetzt diese Scan-Abgabe nicht."]
         try:
             vision_block, _ = encode_file_for_vision(file_path)  # type: ignore[arg-type]
             vision_content: list[dict] | None = (
@@ -1470,6 +1577,7 @@ def run_llm_analysis(
                 erwartungshorizont_name=erwartungshorizont_name,
                 land=land,
                 dichte_prompt_variante=dichte_prompt_variante,
+                bewertungsgrundlage=bewertungsgrundlage if rastervertrag else None,
             )
             effective_max_retries = max(1, max_retries)
         else:
@@ -1481,9 +1589,21 @@ def run_llm_analysis(
                 erwartungshorizont_name=erwartungshorizont_name,
                 land=land,
                 dichte_prompt_variante=dichte_prompt_variante,
+                bewertungsgrundlage=bewertungsgrundlage if rastervertrag else None,
             )
             effective_max_retries = max(1, max_retries)
 
+    if not rastervertrag:
+        original_prompt = dr.grundlagenblock(bewertungsgrundlage) + original_prompt
+    if frozen_basis is not None:
+        original_prompt = ("VERBINDLICHER ARBEITSAUFTRAG: " + frozen_basis["aufgabenstellung"] +
+            "\nVERBINDLICHER UMFANG: " + umfang + "\nAllgemeine Rasterbeispiele haben keinen Vorrang.\n" + original_prompt)
+        if scope == "sprache":
+            original_prompt = ("NUR SPRACHE PRÜFEN: ausschließlich Sprachbefunde und sprachliche Rückmeldung. "
+                "Keine Inhaltsbewertung, Quellenurteile, Umfangsabzüge oder Note. bewertung muss {} sein. "
+                "Antworte als JSON gemäß diesem Schema: " + json.dumps(schema, ensure_ascii=False) +
+                "\n" + _fehler_anweisungen(fach, land=land) + "\nSCHÜLERTEXT:\n" + docx_text_llm)
+    current_prompt = original_prompt
     errors: list[str] = list(ausgangstext_warnings)
     current_prompt = original_prompt
     correction_run = CorrectionRun(
@@ -1493,6 +1613,13 @@ def run_llm_analysis(
         basis_json=json.dumps(
             {
                 **(correction_basis or {}),
+                "prompt_version": PROMPT_VERSION,
+                "bewertungsgrundlage_version": dr.VERSION,
+                "bewertungsgrundlage_hash": bewertungsgrundlage["hash"],
+                "rastervertrag": rastervertrag,
+                "textfakten": bewertungsgrundlage["textfakten"],
+                "reasoning": reasoning,
+                "umfangsvorgabe": umfang,
                 "klasse": klasse,
                 "aufgabe": aufgabe,
                 "fach": fach,
@@ -1501,6 +1628,8 @@ def run_llm_analysis(
                 "land": land,
                 "rubrik_inhalt": rubric_content,
                 "ausgangstext": ausgangstext_text or "",
+                "ausgangstext_hash": hashlib.sha256((ausgangstext_text or "").encode()).hexdigest(),
+                "rubrik_hash": hashlib.sha256(rubric_content.encode()).hexdigest(),
                 "bewertungsmodus": bewertungsmodus,
                 "bewertungsprofil_id": profil,
                 "bewertungsprofil_version": PROFIL_VERSION if profil else None,
@@ -1558,6 +1687,10 @@ def run_llm_analysis(
                         _key, attempt, _repair_err,
                     )
 
+        if scope == "sprache":
+            data["bewertung"] = {}
+            for key in ("notenempfehlung", "notendetail", "srdp_detail", "sachfach_bewertung"):
+                data.pop(key, None)
         # Gegen Schema validieren
         validation_errors = validate_against_schema(data, schema)
         if validation_errors:
@@ -1570,6 +1703,25 @@ def run_llm_analysis(
             )
             time.sleep(_RETRY_BACKOFF_SECONDS * attempt)
             continue
+
+        if rastervertrag:
+            criteria = data.get("bewertung", {})
+            invalid_keys = set(criteria) != set(rastervertrag["kriterien"])
+            invalid_values = any(not isinstance(v, dict) or type(v.get("punkte")) is not int
+                                 or not 1 <= v["punkte"] <= 5 for v in criteria.values())
+            if invalid_keys or invalid_values:
+                errors.append("Die Rasterkriterien sind unvollständig oder enthalten ungültige Stufen. Es wurde keine Note berechnet.")
+                return None, errors
+
+        # Im Legacy-Raster sind Punkte und Kompetenzstufe dieselbe 1–5-Skala.
+        # Modell-Wortlaute bleiben als Herkunftsinformation erhalten, nie als DB-Zahl.
+        if not profil:
+            for key, criterion in data.get("bewertung", {}).items():
+                points = criterion.get("punkte")
+                if type(points) in (int, float) and 1 <= points <= 5:
+                    if criterion.get("stufe") != points:
+                        data.setdefault("stufenwortlaute_llm", {})[key] = criterion.get("stufe")
+                    criterion["stufe"] = points
 
         # Metadaten-Override: bekannte Werte aus Ordnerstruktur/Config haben Vorrang vor LLM
         if file_path is not None:
@@ -1605,6 +1757,17 @@ def run_llm_analysis(
             data["fehler"] = filter_title_false_positives(data["fehler"], docx_text_llm)
             data["fehler"] = verify_fehler_extent(data["fehler"], docx_text_llm)
 
+        if docx_text_llm and not vision_mode:
+            data["fehler"] = deduplicate(anchor_findings(data.get("fehler", []), docx_text_llm))
+            for finding in data["fehler"]:
+                # Fehlertyp folgt der tatsächlichen Änderung (z. B. reine Kommaänderung = Z).
+                pruefe_fehlertyp(finding)
+                finding["regel_muster"] = regel_muster(finding)
+            data["hinweise"] = [h for h in data.get("hinweise", []) if isinstance(h, dict) and find_spans(docx_text_llm, h.get("zitat", ""))]
+        data["bewertungsmodus"] = bewertungsmodus
+        data["prompt_version"] = PROMPT_VERSION
+        data["reasoning"] = reasoning
+
         # Vertrauensstufe post-hoc berechnen (nach Schema-Validierung,
         # bricht feedback_schema.json nicht — Pattern wie data["datei"]).
         if data.get("fehler"):
@@ -1626,6 +1789,11 @@ def run_llm_analysis(
                 for hinweis in qualitaetswarnungen
             ]
 
+        if any(f.get("kontext_widerspruch") for f in data.get("fehler", [])):
+            data.setdefault("qualitaetswarnungen", []).append({"code":"regelkontext_pruefen", "message":"Mindestens eine Regelbegründung passt nicht zum Satzkontext. Diese Hinweise bleiben ungeklärt und sind keine sicheren Fehler."})
+        if umfang_warnung:
+            data.setdefault("qualitaetswarnungen", []).append({"code": "umfangsvorgabe_pruefen", "message": umfang_warnung})
+
         if bewertungsmodus == "unbenotet":
             data.pop("notenempfehlung", None)
             data.pop("notenempfehlung_llm", None)
@@ -1635,7 +1803,7 @@ def run_llm_analysis(
         # 'hinweise' des LLM getrennt — sie ändern nie eine Note.
         if data.get("bewertung") and docx_text_llm and not ist_sachfach(fach) and not profil:
             fehler_warnungen = konsistenzwarnung_fehler_vs_note(
-                data.get("fehler", []), data["bewertung"], len(docx_text_llm.split())
+                [f for f in data.get("fehler", []) if f.get("befundart") not in {"stilalternative", "ungeklaert"}], data["bewertung"], len(docx_text_llm.split())
             )
             if fehler_warnungen:
                 for w in fehler_warnungen:
@@ -1667,7 +1835,44 @@ def run_llm_analysis(
         # Kriterien der Englisch-Rubrik via KRITERIUM_KEY_VARIANTS).
         # Ebenso bei einem Raster mit eigener k1:/k3:-Deklaration — siehe
         # srdp_detail_noetig() fuer die sechs Voraussetzungen im Einzelnen.
-        if srdp_detail_noetig(
+        if rastervertrag:
+            print(json.dumps({"stage": "review", "message": "Schritt 2 von 2: Befunde und Bewertung werden gegengeprüft"}, ensure_ascii=False), file=sys.stderr, flush=True)
+            previous_phase = config.get("_llm_phase")
+            config["_llm_phase"] = "gegenpruefung"
+            review_failure = None
+            try:
+                raw_review = run_llm_api(dr.review_prompt(bewertungsgrundlage, data), config,
+                                         cancel_event=cancel_event,
+                                         **({"vision_content": vision_content} if vision_content else {}))
+                review = extract_json_from_llm(raw_review) if not raw_review.startswith("FEHLER") else None
+                if review is None:
+                    code = re.search(r"\[([a-zA-Z0-9_]+)\]", raw_review)
+                    review_failure = code.group(1) if code else "schema_invalid"
+                elif not dr.review_shape_valid(review, kriterien_erwartet=bool(rastervertrag["kriterien"])):
+                    review_failure = "review_format_invalid"
+            except Exception:
+                logging.warning("Deutsch-Gegenprüfung konnte nicht abgeschlossen werden.")
+                review = None
+                review_failure = "review_exception"
+            finally:
+                if previous_phase is None:
+                    config.pop("_llm_phase", None)
+                else:
+                    config["_llm_phase"] = previous_phase
+            if cancel_event is not None and cancel_event.is_set():
+                return None, errors + ["Analyse abgebrochen"]
+            checked = copy.deepcopy(data)
+            try:
+                dr.apply_review(checked, review, bewertungsgrundlage)
+            except (ValueError, TypeError, KeyError, AttributeError):
+                # Eine beschädigte zweite Antwort darf verwertbares Feedback
+                # weder verlieren noch als vollständig geprüft ausgeben.
+                checked = copy.deepcopy(data)
+                dr.apply_review(checked, None, bewertungsgrundlage)
+                review_failure = "review_format_invalid"
+            checked["gegenpruefung"]["technik"] = {"status": "fehlgeschlagen" if review_failure else "antwort_verarbeitet", "fehlercode": review_failure}
+            data = checked
+        elif srdp_detail_noetig(
             bewertungsmodus=bewertungsmodus,
             hat_text=bool(docx_text_llm),
             vision_modus=vision_mode,
@@ -1676,10 +1881,14 @@ def run_llm_analysis(
             rubrik_mapped=rubrik_mapped,
         ):
             srdp = generate_srdp_detail(
-                docx_text_llm, data, config, cancel_event=cancel_event, textsorte=textsorte
+                docx_text_llm, data, config, cancel_event=cancel_event, textsorte=textsorte,
+                bewertungsgrundlage=bewertungsgrundlage, vision_content=vision_content
             )
             if srdp:
                 data["srdp_detail"] = srdp
+                apply_countercheck(data, srdp, docx_text_llm)
+            else:
+                data.setdefault("qualitaetswarnungen", []).append({"code":"srdp_detail_offen", "message":"Die SRDP-Gegenprüfung ist nicht vollständig. Eine Notenempfehlung beruht gegebenenfalls nur auf den Hauptkriterien und muss fachlich geprüft werden."})
 
         # App-Notenberechnung — aus SRDP-Detail wenn vorhanden, sonst Fallback auf Hauptanalyse.
         # DE nutzt die 1-6-Klassenarbeit-Skala (berechne_note_de), AT bleibt unverändert.
@@ -1702,6 +1911,12 @@ def run_llm_analysis(
                 {"code": "englisch_raster_pruefen", "message": message}
                 for message in auswertung["pruefung_erforderlich"]
             )
+        elif data.get("bewertungspruefung", {}).get("status") == "offen":
+            # Keine stillschweigende Ersatzbewertung bei unvollständiger
+            # fachlicher Grundlage. Teilbewertungen bleiben im Ergebnis.
+            data.pop("notenempfehlung", None)
+            data.pop("notendetail", None)
+            data.pop("notenempfehlung_llm", None)
         elif bewertungsmodus == "benotet" and isinstance(notenbasis, dict) and notenbasis:
             if "notenempfehlung" in data:
                 data["notenempfehlung_llm"] = data["notenempfehlung"]
@@ -1743,6 +1958,11 @@ def run_llm_analysis(
                 data["notenempfehlung"]["k3_schnitt"] = app_note.get("k3_schnitt")
             data["notendetail"] = app_note
 
+        if data.get("notenempfehlung_vorlaeufig") and data.get("notenempfehlung"):
+            data["notenempfehlung"]["vorlaeufig"] = True
+        if cancel_event is not None and cancel_event.is_set():
+            return None, errors + ["Analyse abgebrochen"]
+
         # Aliasse in der Antwort zurücksetzen, BEVOR gespeichert wird: Zitate
         # müssen zum Original-rohtext passen (Annotation), Feedback-Texte sollen
         # die Lehrkraft mit echtem Namen erreichen. Nur die Übertragung war
@@ -1750,74 +1970,22 @@ def run_llm_analysis(
         if pseudo_funde and pseu is not None:
             data = pseu.ruecksetze_personenangaben(data, pseudo_funde)
 
-        # In Datenbank speichern (Tracking, Heatmap, Duplikat-Erkennung)
-        if ndb is not None and file_path is not None and file_path.exists():
+        if docx_text and not vision_mode:
+            anchor_findings(data.get("fehler", []), docx_text)
+        data["laufmetadaten"] = {"api_aufrufe": config.get("_llm_usage", []), "prompt_version": PROMPT_VERSION, "reasoning": reasoning["selection"]}
+        if scope == "sprache":
+            data.setdefault("qualitaetswarnungen", []).append({"code": "sprachmodus", "message": "Nur Sprache geprüft. Inhaltsbewertung und Umfangsabzug sind nicht beauftragt; es gibt keine automatische Gesamtnote."})
+        data["pruefumfang"] = scope
+        data["_correction_context"] = context_digest
+        if approved:
+            data["_transcript_sha256"] = approved["text_sha256"]
+            data["_original_scan"] = str(file_path)
+
+        if persist:
             try:
-                db_path = db_path_override or ndb.get_db_path(config)
-                ndb.init_db(db_path)
-                wortanzahl = count_words(file_path)
-
-                # Analyse-JSON auf Platte schreiben, damit feedback-docx
-                # darauf zugreifen kann (feedback_json_path in abgabe-Tabelle)
-                json_path_str = ""
-                if klasse and aufgabe:
-                    auf_cfg = get_aufgabe_cfg(config, klasse, aufgabe)
-                    auf_out = auf_cfg.get("output", "")
-                    fb_dir = (
-                        PROJECT_ROOT / auf_out / "feedback_data"
-                        if auf_out
-                        else resolve_path(config, "output") / "feedback_data"
-                    )
-                    try:
-                        import json as _json_mod
-                        fb_dir.mkdir(parents=True, exist_ok=True)
-                        json_file = fb_dir / f"{file_path.stem}_analysis.json"
-                        json_file.write_text(
-                            _json_mod.dumps(data, ensure_ascii=False, indent=2, default=str),
-                            encoding="utf-8",
-                        )
-                        json_path_str = str(json_file)
-                    except Exception:
-                        pass
-
-                abgabe_id = ndb.save_analysis_to_db(
-                    db_path=db_path,
-                    data=data,
-                    file_path=file_path,
-                    klasse=klasse,
-                    aufgabe=aufgabe,
-                    rohtext=docx_text,
-                    wortanzahl=wortanzahl,
-                    feedback_json_path=json_path_str,
-                    bestaetigte_schueler_id=bestaetigte_schueler_id,
-                    unterrichtseinsatz_id=unterrichtseinsatz_id,
-                    material_id=material_id,
-                    korrekturauftrag_id=korrekturauftrag_id,
-                    rubrik_inhalt=rubrik_inhalt,
-                    rubrik_titel=rubrik_titel,
-                    erwartungshorizont=erwartungshorizont,
-                    provider=correction_run.provider,
-                    model=correction_run.model,
-                    privacy_mode=correction_run.privacy_mode,
-                    revision_of_abgabe_id=revision_of_abgabe_id,
-                    correction_basis=json.loads(correction_run.basis_json),
-                    started_at=correction_run.started_at,
-                    klasse_id=klasse_id,
-                )
-                if abgabe_id and abgabe_id > 0:
-                    data["_abgabe_id"] = abgabe_id
-                    data["_revision_id"] = data.get("_revision_id")
-                else:
-                    # save gab -1 (Duplikat): bestehende Abgabe-ID nachschlagen,
-                    # damit Lehrer-Feedback trotzdem zugeordnet werden kann
-                    existing = ndb.get_abgabe_by_hash(
-                        db_path, ndb._file_hash(file_path)
-                    )
-                    if existing and existing.get("id"):
-                        data["_abgabe_id"] = existing["id"]
-            except Exception:
-                logging.exception("Korrekturergebnis konnte nicht revisionssicher gespeichert werden")
-                return None, ["[provider_unavailable] Das Ergebnis konnte nicht sicher gespeichert werden. Bitte erneut versuchen."]
+                persist_analysis_result(data, locals())
+            except ValueError as exc:
+                return None, [str(exc)]
 
         # Warnhinweise (Ausgangstext, Pseudonymisierung) auch bei Erfolg
         # zurückgeben — die Lehrkraft soll sehen, was übertragen wurde.
@@ -1898,53 +2066,22 @@ def drop_satzzeichen_anhaengsel(fehler_list: list[dict], schuelertext: str) -> l
 
 
 def verify_fehler_against_text(fehler_list: list[dict], schuelertext: str) -> list[dict]:
-    """Entfernt halluzinierte Fehler deren Zitat nicht im Text vorkommt."""
-    if not fehler_list or not schuelertext:
+    """Nur wortgetreue, vollständige Textstellen zulassen; keine erfundene Schreibung."""
+    if not schuelertext:
         return fehler_list or []
-
-    normalized_text = " ".join(schuelertext.lower().split())
-
-    verified: list[dict] = []
-    removed: list[str] = []
-
-    for fehler in fehler_list:
-        zitat = fehler.get("zitat", "").strip()
-        if not zitat:
-            continue
-
-        normalized_zitat = " ".join(zitat.lower().split())
-
-        if normalized_zitat in normalized_text:
-            verified.append(fehler)
-            continue
-
-        # Toleranter Fallback ohne Satzzeichen — aber NICHT für Zeichensetzungs-
-        # Fehler: bei typ=Z ist das Satzzeichen die Substanz des Zitats. Ein
-        # Z-Zitat, das nur ohne Satzzeichen matcht, ist eine Halluzination
-        # (Live-Eval P2b: Mistral erfand fehlende Punkte, die im Text stehen).
-        if fehler.get("typ") != "Z":
-            stripped_zitat = re.sub(r"[^\w\s]", "", normalized_zitat)
-            stripped_text = re.sub(r"[^\w\s]", "", normalized_text)
-            if stripped_zitat and stripped_zitat in stripped_text:
-                verified.append(fehler)
-                continue
-
-        removed.append(zitat)
-
-    if removed:
-        logging.warning(
-            "Halluzinierte Fehler entfernt (%d): %s",
-            len(removed),
-            ", ".join(f"'{z}'" for z in removed[:5]),
-        )
-
-    return verified
+    return [finding for finding in (fehler_list or []) if find_spans(schuelertext, finding.get("zitat", ""))]
 
 
 def filter_title_false_positives(fehler_list: list, schuelertext: str) -> list:
     """Entfernt falsche R-Fehler bei Großschreibung am Absatz-/Titelanfang."""
     paragraphs = [p.strip() for p in schuelertext.split("\n") if p.strip()]
-    first_words = {p.split()[0].lower() for p in paragraphs if p.split()}
+    # Nach einer Anrede mit Komma ist Kleinschreibung am Absatzanfang richtig;
+    # diese Absätze sind keine Titel-/Satzanfänge.
+    first_words = {
+        p.split()[0].lower()
+        for i, p in enumerate(paragraphs)
+        if p.split() and not (i and paragraphs[i - 1].endswith(","))
+    }
     filtered = []
     for f in fehler_list:
         if f.get("typ") == "R" and "klein" in f.get("erklaerung", "").lower():
@@ -1959,31 +2096,7 @@ def filter_title_false_positives(fehler_list: list, schuelertext: str) -> list:
 
 
 def drop_duplicate_fehler(fehler_list: list[dict]) -> list[dict]:
-    """Entfernt doppelte Fehler-Eintraege (gleiches zitat+korrektur+typ).
-
-    Live-Eval P2: Modelle liefern gelegentlich denselben Fehler doppelt —
-    unbrauchbar fuer Feedback und verfaelscht die Fehleranzahl.
-    Reihenfolge wird erhalten: der erste Eintrag gewinnt.
-    """
-    if not fehler_list:
-        return []
-    gesehen: set[tuple[str, str, str]] = set()
-    behalten: list[dict] = []
-    entfernt = 0
-    for fehler in fehler_list:
-        key = (
-            " ".join((fehler.get("zitat") or "").split()).lower(),
-            " ".join((fehler.get("korrektur") or "").split()).lower(),
-            fehler.get("typ") or "",
-        )
-        if key in gesehen:
-            entfernt += 1
-            continue
-        gesehen.add(key)
-        behalten.append(fehler)
-    if entfernt:
-        logging.warning("Doppelte Fehler-Eintraege entfernt: %d", entfernt)
-    return behalten
+    return deduplicate(fehler_list or [])
 
 
 def konsistenzwarnung_fehler_vs_note(
@@ -2110,59 +2223,11 @@ def compute_vertrauensstufe(
     schuelertext: str | None,
     vision_mode: bool = False,
 ) -> list[dict]:
-    """Berechnet post-hoc die Vertrauensstufe pro Fehler-Eintrag.
-
-    Liefert jedem ueberlebenden Eintrag ein Feld ``vertrauensstufe`` mit
-    ``"hoch"``, ``"mittel"`` oder ``"niedrig"``. Die Stufe wird NACH der
-    Schema-Validierung angehaengt (Pattern wie data["datei"]) und bricht
-    feedback_schema.json nicht.
-
-    Signale:
-    - Exakter Zitat-Treffer + <=6 Woerter ohne lokale Korrektur-Ambiguität -> hoch
-    - Satzzeichen-streift getroffen, 7-12 Woerter, Titelanfang-ambig,
-      Satzzeichen-Anhaengsel legitim, oder Vision-Modus -> mittel
-    - Sonst (Restposten der ueberlebt hat) -> niedrig
-    """
-    if not fehler_list:
-        return []
-
-    normalized_text = " ".join((schuelertext or "").lower().split())
-    stripped_text = re.sub(r"[^\w\s]", "", normalized_text) if normalized_text else ""
-
-    paragraphs = [p.strip().lower() for p in (schuelertext or "").split("\n") if p.strip()]
-    first_words = {p.split()[0] for p in paragraphs if p.split()}
-
-    for fehler in fehler_list:
-        if vision_mode or not normalized_text:
-            fehler["vertrauensstufe"] = "mittel"
-            continue
-
-        zitat = " ".join((fehler.get("zitat") or "").lower().split())
-        wortanzahl = len(zitat.split())
-
-        # Exakter Treffer?
-        exakt = zitat and zitat in normalized_text
-        # Satzzeichen-streift getroffen?
-        stripped_zitat = re.sub(r"[^\w\s]", "", zitat)
-        streift = bool(stripped_zitat) and bool(stripped_text) and stripped_zitat in stripped_text
-
-        lokal_ambig = bool(fehler.get("korrektur_lokal_ambig"))
-
-        # Titelanfang-ambig (R + "klein" + Absatzanfang)?
-        titel_ambig = (
-            fehler.get("typ") == "R"
-            and "klein" in (fehler.get("erklaerung") or "").lower()
-            and bool(zitat.split())
-            and zitat.split()[0] in first_words
-        )
-
-        if exakt and wortanzahl <= 6 and not lokal_ambig and not titel_ambig:
-            fehler["vertrauensstufe"] = "hoch"
-        elif exakt or streift or titel_ambig or lokal_ambig or wortanzahl > 6:
-            fehler["vertrauensstufe"] = "mittel"
-        else:
-            fehler["vertrauensstufe"] = "niedrig"
-
+    """Technische Textzuordnung, ausdrücklich keine fachliche Sicherheit."""
+    for finding in fehler_list:
+        spans = find_spans(schuelertext or "", finding.get("zitat", ""))
+        finding["vertrauensstufe"] = ("hoch" if len(spans) == 1 and not finding.get("korrektur_lokal_ambig")
+                                      else "mittel" if spans or vision_mode else "niedrig")
     return fehler_list
 
 
@@ -2200,9 +2265,13 @@ def generate_srdp_detail(
     config: dict[str, Any],
     cancel_event: threading.Event | None = None,
     textsorte: str = "",
+    bewertungsgrundlage: dict[str, Any] | None = None,
+    vision_content: list[dict] | None = None,
 ) -> dict[str, Any] | None:
     """Zweiter LLM-Call: SRDP-Detailbewertung mit 15 Unterkriterien (Option A)."""
-    bewertung_json = json.dumps(hauptanalyse.get("bewertung", {}), ensure_ascii=False, indent=2)
+    bewertung_json = json.dumps({key: hauptanalyse.get(key) for key in ("bewertung", "zusammenfassung", "staerken_global", "verbesserungsbereiche", "hinweise")}, ensure_ascii=False, indent=2)
+    grundlage_json = json.dumps(bewertungsgrundlage or {}, ensure_ascii=False)
+    befund_json = json.dumps(hauptanalyse.get("fehler", []), ensure_ascii=False)
     textsorte_upper = textsorte.upper() if textsorte else "TEXTSORTE"
     textsorte_hint = (
         f"TEXTSORTE: {textsorte}\n\n"
@@ -2217,7 +2286,16 @@ def generate_srdp_detail(
         "und die Hauptanalyse dazu.\n\n"
         f"{textsorte_hint}"
         f"SCHÜLERTEXT:\n---\n{schuelertext}\n---\n\n"
-        f"HAUPTANALYSE (Zusammenfassung):\n{bewertung_json}\n\n"
+        f"VERBINDLICHE BEWERTUNGSGRUNDLAGE:\n{grundlage_json}\n\n"
+        f"HAUPTANALYSE (zu prüfen, keine verbindliche Bewertung):\n{bewertung_json}\n\n"
+        f"BEFUNDE ZUR GEGENPRÜFUNG:\n{befund_json}\n\n"
+        "Prüfe jeden Befund gegen Original, Satzkontext und Textsorte, besonders Stil statt Normfehler.\n"
+        "Prüfe auch Randnotizen und Aussagen über Stärken/Schwächen; melde unbelegte Aussagen als pruefbedarf.\n"
+        "Ergänze befundpruefung: Liste mit befund_id, status (bestaetigt/widerspruch/ungeklaert), befundart und begruendung.\n"
+        "Ergänze pruefbedarf: Liste ungeklärter Quellen-/Aufgaben-/Bewertungswidersprüche.\n"
+        "Jedes Detailkriterium enthält zusätzlich belege: Liste wortgetreuer Zitate aus dem SCHÜLERTEXT.\n"
+        "Negative Urteile benötigen belastbare Belege; unklare Lesarten begründen keinen sicheren Abzug.\n"
+        "Die Umfangsvorgabe der bestätigten Aufgabe hat Vorrang vor allgemeinen Rasterangaben.\n"
         "Erstelle eine Detailbewertung nach dem SRDP-Beurteilungsraster. "
         "Für jedes der folgenden 15 Kriterien:\n"
         "- Eine ganzzahlige Kompetenzstufe (1-5)\n"
@@ -2229,29 +2307,31 @@ def generate_srdp_detail(
         "Bewerte jedes Detail eigenständig anhand des Schülertexts.\n\n"
         "Antworte als JSON mit diesem Schema:\n"
         '{\n'
+        '  "befundpruefung": [{"befund_id": "ID aus BEFUNDE", "status": "bestaetigt", "befundart": "normfehler", "begruendung": "Konkrete Prüfung im vollständigen Satz"}],\n'
+        '  "pruefbedarf": [],\n'
         '  "gesamteindruck": "3-5 Sätze Gesamteinschätzung",\n'
         '  "k1_inhalt": {\n'
-        '    "schreibhandlung": {"stufe": 3, "begruendung": "..."},\n'
-        '    "arbeitsauftraege": {"stufe": 3, "begruendung": "..."},\n'
-        '    "textbeilage": {"stufe": 3, "begruendung": "..."},\n'
-        '    "sachlich": {"stufe": 3, "begruendung": "..."},\n'
-        '    "qualitaet": {"stufe": 3, "begruendung": "..."}\n'
+        '    "schreibhandlung": {"stufe": 3, "begruendung": "...", "belege": ["wortgetreues Zitat"]},\n'
+        '    "arbeitsauftraege": {"stufe": 3, "begruendung": "...", "belege": ["wortgetreues Zitat"]},\n'
+        '    "textbeilage": {"stufe": 3, "begruendung": "...", "belege": ["wortgetreues Zitat"]},\n'
+        '    "sachlich": {"stufe": 3, "begruendung": "...", "belege": ["wortgetreues Zitat"]},\n'
+        '    "qualitaet": {"stufe": 3, "begruendung": "...", "belege": ["wortgetreues Zitat"]}\n'
         '  },\n'
         '  "k1_textstruktur": {\n'
-        '    "kohaerenz": {"stufe": 3, "begruendung": "..."},\n'
-        '    "bezugnahme": {"stufe": 3, "begruendung": "..."},\n'
-        '    "kohaesion": {"stufe": 3, "begruendung": "..."}\n'
+        '    "kohaerenz": {"stufe": 3, "begruendung": "...", "belege": ["wortgetreues Zitat"]},\n'
+        '    "bezugnahme": {"stufe": 3, "begruendung": "...", "belege": ["wortgetreues Zitat"]},\n'
+        '    "kohaesion": {"stufe": 3, "begruendung": "...", "belege": ["wortgetreues Zitat"]}\n'
         '  },\n'
         '  "k3_stil": {\n'
-        '    "situationsadaequat": {"stufe": 3, "begruendung": "..."},\n'
-        '    "wortwahl": {"stufe": 3, "begruendung": "..."},\n'
-        '    "satzstrukturen": {"stufe": 3, "begruendung": "..."},\n'
-        '    "eigenstaendigkeit": {"stufe": 3, "begruendung": "..."}\n'
+        '    "situationsadaequat": {"stufe": 3, "begruendung": "...", "belege": ["wortgetreues Zitat"]},\n'
+        '    "wortwahl": {"stufe": 3, "begruendung": "...", "belege": ["wortgetreues Zitat"]},\n'
+        '    "satzstrukturen": {"stufe": 3, "begruendung": "...", "belege": ["wortgetreues Zitat"]},\n'
+        '    "eigenstaendigkeit": {"stufe": 3, "begruendung": "...", "belege": ["wortgetreues Zitat"]}\n'
         '  },\n'
         '  "k3_sprachnormen": {\n'
-        '    "orthografie": {"stufe": 3, "begruendung": "..."},\n'
-        '    "zeichensetzung": {"stufe": 3, "begruendung": "..."},\n'
-        '    "grammatik": {"stufe": 3, "begruendung": "..."}\n'
+        '    "orthografie": {"stufe": 3, "begruendung": "...", "belege": ["wortgetreues Zitat"]},\n'
+        '    "zeichensetzung": {"stufe": 3, "begruendung": "...", "belege": ["wortgetreues Zitat"]},\n'
+        '    "grammatik": {"stufe": 3, "begruendung": "...", "belege": ["wortgetreues Zitat"]}\n'
         '  },\n'
         '  "verbesserung_inhaltlich": "2-3 Sätze",\n'
         '  "verbesserung_strukturell": "2-3 Sätze",\n'
@@ -2265,7 +2345,7 @@ def generate_srdp_detail(
     )
 
     try:
-        raw = run_llm_api(prompt, config, cancel_event=cancel_event)
+        raw = run_llm_api(prompt, config, cancel_event=cancel_event, **({"vision_content": vision_content} if vision_content else {}))
     except Exception as e:
         logging.warning("SRDP-Detailbewertung fehlgeschlagen (API): %s", e)
         return None
@@ -3001,7 +3081,9 @@ def _erwartungshorizont_block(
     config: dict[str, Any], klasse: str, aufgabe: str, override_name: str = ""
 ) -> str:
     """Gibt den Erwartungshorizont-Block für den Prompt zurück, oder '' wenn nicht konfiguriert."""
-    if override_name:
+    if "_erwartungshorizont_snapshot" in config:
+        erwartung = config["_erwartungshorizont_snapshot"]
+    elif override_name:
         eh_path = resolve_path(config, "rubrics") / override_name
         erwartung = eh_path.read_text(encoding="utf-8") if eh_path.exists() else None
     elif klasse and aufgabe:
@@ -3635,6 +3717,113 @@ def _call_ollama_native(
         return "FEHLER: [provider_unavailable] Der lokale KI-Aufruf ist fehlgeschlagen."
 
 
+def approved_scan(file_path: Path, config: dict | None = None) -> dict | None:
+    config = config or load_config()
+    digest = hashlib.sha256(file_path.read_bytes()).hexdigest()
+    path = resolve_path(config, "output") / "ocr" / ("approved-" + digest + ".json")
+    if path.is_file():
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if data.get("source_sha256") == digest and data.get("geprueft") is True:
+            return data
+    return None
+
+
+def approve_scan(file_path: Path, text: str, config: dict, provider: str, model: str) -> dict:
+    if not text.strip():
+        raise ValueError("Die Abschrift ist leer.")
+    digest = hashlib.sha256(file_path.read_bytes()).hexdigest()
+    revision = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    data = {"source_sha256": digest, "original": str(file_path.resolve()),
+            "transkription": text, "text_sha256": revision, "geprueft": True,
+            "provider": provider, "model": model,
+            "confirmed_at": datetime.now().astimezone().isoformat()}
+    folder = resolve_path(config, "output") / "ocr"
+    folder.mkdir(parents=True, exist_ok=True)
+    content = json.dumps(data, ensure_ascii=False, indent=2)
+    (folder / f"r-{digest[:16]}-{revision[:16]}.json").write_text(content, encoding="utf-8")
+    target = folder / f"approved-{digest}.json"
+    temporary = target.with_suffix(".tmp")
+    temporary.write_text(content, encoding="utf-8")
+    temporary.replace(target)
+    return data
+
+
+def extract_scan(file_path: Path, config: dict, cancel_event=None) -> dict:
+    """Separate, wiederverwendbare OCR ohne Benotung oder Schreibkorrektur."""
+    provider = str(config.get("api", {}).get("provider", ""))
+    model = str(config.get("api", {}).get("model", ""))
+    if not is_vision_file(file_path):
+        raise ValueError("Dieses Dateiformat braucht keine OCR.")
+    block, _ = encode_file_for_vision(file_path)
+    if file_path.suffix.lower() == ".pdf":
+        import pypdfium2 as pdfium
+        pages = []
+        with pdfium.PdfDocument(str(file_path)) as document:
+            for number in range(len(document)):
+                page = document[number]
+                textpage = page.get_textpage()
+                text = textpage.get_text_range()
+                textpage.close()
+                page.close()
+                pages.append({"seite": number + 1, "text": text})
+        if pages and all(len(p["text"].strip()) >= 40 for p in pages):
+            return {"anbieter": "lokal", "modell": "PDF-Textebene",
+                    "seiten": pages, "transkription": "\n\n".join(p["text"] for p in pages),
+                    "geprueft": False}
+    if not is_vision_capable(provider, model, file_path):
+        raise ValueError("Dieses Modell unterstuetzt die Scan-Datei nicht.")
+    engine = "mistral-ocr-latest" if provider == "mistral" else model
+    fingerprint = hashlib.sha256(
+        ("ocr-v2|" + provider + "|" + engine).encode() + file_path.read_bytes()
+    ).hexdigest()
+    cache = resolve_path(config, "output") / "ocr" / (fingerprint + ".json")
+    if cache.is_file():
+        try:
+            cached = json.loads(cache.read_text(encoding="utf-8"))
+            if cached.get("transkription", "").strip() and cached.get("fingerprint") == fingerprint:
+                return cached
+        except (OSError, ValueError, TypeError):
+            pass
+    if provider == "mistral":
+        from scan_input import mistral_ocr
+        key = os.environ.get("MISTRAL_API_KEY", "")
+        if not key:
+            raise ValueError("MISTRAL_API_KEY fehlt. Bitte in LUKA hinterlegen.")
+        result = mistral_ocr(block, key, os.environ.get("MISTRAL_BASE_URL", "https://api.mistral.ai/v1"),
+                             config.get("agent", {}).get("timeout_seconds", 120), cancel_event)
+    else:
+        prompt = (
+            "Schreibe ausschliesslich den handschriftlichen Schuelertext wortgetreu ab. "
+            "Bewahre ALLE Rechtschreib-, Grammatik- und Zeichensetzungsfehler, "
+            "Absatzstruktur und sichtbare Streichungen. Keine Verbesserung oder Bewertung. "
+            "Keine Aufgabenstellung, keine Lehrerkorrekturen. Unleserliches als [unleserlich] "
+            "markieren, niemals ergaenzen. Antworte ausschliesslich als JSON mit "
+            "seiten: [{seite: 1, text: ...}, ...] in Originalreihenfolge."
+        )
+        raw = run_llm_api(prompt, config, cancel_event=cancel_event, vision_content=[block])
+        if raw.startswith("FEHLER:"):
+            raise ValueError(raw)
+        data = extract_json_from_llm(raw)
+        if isinstance(data, str):
+            data = json.loads(data)
+        pages = data.get("seiten") if isinstance(data, dict) else None
+        if not isinstance(pages, list) or not pages:
+            raise ValueError("OCR hat keine auswertbaren Seiten geliefert.")
+        for page in pages:
+            if not isinstance(page, dict) or not isinstance(page.get("text"), str) or not page["text"].strip():
+                raise ValueError("Mindestens eine OCR-Seite ist leer. Bitte Scan pruefen.")
+        result = {"anbieter": provider, "modell": model, "seiten": pages,
+                  "transkription": "\n\n".join(p["text"] for p in pages), "geprueft": False}
+    if cancel_event is not None and cancel_event.is_set():
+        raise ValueError("Abgebrochen")
+    result["fingerprint"] = fingerprint
+    cache.parent.mkdir(parents=True, exist_ok=True)
+    temporary = cache.with_suffix(".tmp")
+    temporary.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
+    temporary.replace(cache)
+    return result
+
+
 def _call_openai_compat(
     base_url: str,
     api_key: str,
@@ -3645,25 +3834,28 @@ def _call_openai_compat(
     cancel_event: threading.Event | None = None,
     vision_content: list[dict] | None = None,
     max_tokens: int = 16384,
+    usage_sink: list[dict] | None = None,
 ) -> str:
     """Ruft eine OpenAI-kompatible Chat-API auf (GLM, Kimi, OpenAI, Ollama).
 
     vision_content: Anthropic-formatierte Content-Blöcke (image-Typ).
-    Wird in OpenAI image_url-Format konvertiert. PDF-Blöcke werden übersprungen
-    (OpenAI unterstützt kein natives PDF).
+    OpenAI erhaelt PDFs als file-Content; andere Bildmodelle erhalten gerenderte Seiten.
     """
     if cancel_event is not None and cancel_event.is_set():
         return "FEHLER: Abgebrochen"
     url = base_url.rstrip("/") + "/chat/completions"
 
     if vision_content:
-        openai_parts: list[dict] = []
-        for block in vision_content:
-            if block.get("type") == "image":
-                src = block["source"]
-                data_url = f"data:{src['media_type']};base64,{src['data']}"
-                openai_parts.append({"type": "image_url", "image_url": {"url": data_url}})
-            # PDF-Blöcke (type == "document") werden nicht konvertiert
+        from scan_input import chat_parts
+        try:
+            openai_parts = chat_parts(
+                vision_content, base_url.rstrip("/") == "https://api.openai.com/v1",
+                cancel_event,
+            )
+        except Exception:
+            if cancel_event is not None and cancel_event.is_set():
+                return "FEHLER: Abgebrochen"
+            return "FEHLER: [scan_invalid] Scan konnte nicht aufbereitet werden. Bitte PDF pruefen oder aufteilen (maximal 30 Seiten)."
         openai_parts.append({"type": "text", "text": prompt})
         message_content: str | list = openai_parts
     else:
@@ -3673,7 +3865,7 @@ def _call_openai_compat(
         "model": model,
         "messages": [{"role": "user", "content": message_content}],
     }
-    if base_url.rstrip("/") == "https://api.openai.com/v1" and (
+    if model == "kimi-k3" or base_url.rstrip("/") == "https://api.openai.com/v1" and (
         model.startswith(("gpt-5", "gpt-6")) or model.startswith("o")
     ):
         body["max_completion_tokens"] = max_tokens
@@ -3687,29 +3879,37 @@ def _call_openai_compat(
         "Authorization": f"Bearer {api_key}",
     }
     req = urllib.request.Request(url, data=payload, headers=headers, method="POST")
+    receipt = {"model": model, "usage": {}, "max_ausgabetokens": max_tokens}
+    if usage_sink is not None:
+        usage_sink.append(receipt)
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             resp_data = json.loads(resp.read())
         choice = (resp_data.get("choices") or [{}])[0]
+        receipt.update(model=resp_data.get("model", model), usage=resp_data.get("usage", {}),
+                       abschlussgrund=choice.get("finish_reason") if choice.get("finish_reason") in {"stop", "length", "tool_calls", "content_filter"} else "unbekannt")
         message = choice.get("message", {}) or {}
         finish_reason = choice.get("finish_reason", "")
         content = message.get("content", "") or ""
         if finish_reason == "length":
             return "FEHLER: [output_truncated] Die KI-Antwort wurde abgeschnitten. Dieser Lauf wurde nicht gespeichert; bitte später manuell erneut versuchen."
-        if not str(content).strip():
-            reasoning_content = message.get("reasoning_content", "") or ""
-            if str(reasoning_content).strip():
-                return reasoning_content
+        if cancel_event is not None and cancel_event.is_set():
+            return "FEHLER: Abgebrochen"
+        if isinstance(content, list):
+            content = "".join(item.get("text", "") for item in content if isinstance(item, dict) and item.get("type") == "text")
+        if not isinstance(content, str) or not content.strip():
             return "FEHLER: [schema_invalid] Der Anbieter hat keine auswertbare Antwort geliefert."
         return content
     except urllib.error.HTTPError as e:
-        if e.code == 429:
-            return "FEHLER: [rate_limited] Das Anbieter-Limit ist erreicht. Bitte 1–2 Minuten warten und manuell erneut versuchen."
-        if e.code in (401, 403):
-            return "FEHLER: [provider_unavailable] Der Anbieter hat die Anfrage abgelehnt. Bitte API-Zugang und Anbieterauswahl prüfen."
-        if e.code == 400:
-            return "FEHLER: [schema_invalid] Der Anbieter konnte die strukturierte Anfrage nicht verarbeiten. Bitte Modell/Format prüfen."
-        return "FEHLER: [provider_unavailable] Der KI-Anbieter ist derzeit nicht verfügbar. Bitte später erneut versuchen."
+        receipt["http_status"] = e.code
+        from scan_input import provider_http_error
+        host = urllib.parse.urlparse(base_url).hostname
+        provider = {
+            "api.openai.com": "OpenAI", "api.mistral.ai": "Mistral",
+            "api.deepseek.com": "DeepSeek", "api.moonshot.ai": "Kimi",
+            "dashscope-intl.aliyuncs.com": "Qwen",
+        }.get(host, "KI-Anbieter")
+        return provider_http_error(e, provider)
     except (urllib.error.URLError, TimeoutError, ConnectionError):
         if cancel_event is not None and cancel_event.is_set():
             return "FEHLER: Abgebrochen"
@@ -3731,8 +3931,10 @@ _MODEL_LIMITS: dict[str, dict[str, int]] = {
     "mistral-small-latest": {"context": 256_000, "max_output": 16_000},
     # DeepSeek
     "deepseek-chat": {"context": 128_000, "max_output": 16_000},
-    "deepseek-v4-pro": {"context": 128_000, "max_output": 32_000},
-    "deepseek-flash": {"context": 1_000_000, "max_output": 32_000},
+    # Anbietergrenzen, nicht das operative Request-Budget (Stand 2026-11-05).
+    # https://api-docs.deepseek.com/quick_start/pricing/
+    "deepseek-v4-pro": {"context": 1_000_000, "max_output": 393_216},
+    "deepseek-flash": {"context": 1_000_000, "max_output": 393_216},
     "mistral-large-4": {"context": 1_000_000, "max_output": 32_000},
     # Claude
     "claude-opus-5-5": {"context": 1_000_000, "max_output": 32_000},
@@ -3816,6 +4018,23 @@ def _dynamic_max_tokens(model: str, prompt: str) -> int:
     return min(model_max, max(4096, needed))
 
 
+def _deepseek_max_tokens(model: str, prompt: str, parameters: dict[str, Any]) -> int:
+    """Gemeinsames Budget für Denken UND Endantwort, in allen Korrekturphasen.
+
+    DeepSeek-Standard: 64K mit Denken, 128K bei max. Ohne Denken räumen wir
+    32K ein. Die gewählte Denkstufe bleibt unverändert; historische Modelle
+    behalten ihr eigenes Limit. Der Rust-Adapter für LUA-Unterlagen hat eine
+    gesonderte Budgetpolitik (siehe apps/natascha/AGENTS.md).
+    Quelle: https://api-docs.deepseek.com/api/create-chat-completion/ (2026-11-05).
+    """
+    if model not in {"deepseek-flash", "deepseek-v4-pro"}:
+        return _dynamic_max_tokens(model, prompt)
+    if parameters.get("thinking", {}).get("type") == "disabled":
+        return 32_768
+    # Auch ohne explizite Parameter ist Denken beim Anbieter eingeschaltet.
+    return 131_072 if parameters.get("reasoning_effort") == "max" else 65_536
+
+
 def _is_model_unavailable_error(response: str) -> bool:
     """Erkennt typische Fehlermeldungen zu nicht verfügbaren Modellen."""
     if not response.startswith("FEHLER:"):
@@ -3862,10 +4081,40 @@ def run_llm_api(
     schema: dict[str, Any] | None = None,
     vision_content: list[dict] | None = None,
 ) -> str:
+    """Datenminimierter Aufrufbeleg; keine Prompts, Antworten oder Schlüssel speichern."""
+    import time
+
+    sink = config.setdefault("_llm_usage", [])
+    before = len(sink)
+    started = time.monotonic()
+    result = ""
+    try:
+        result = _run_llm_api(prompt, config, cancel_event=cancel_event, schema=schema, vision_content=vision_content)
+        return result
+    finally:
+        if len(sink) == before:
+            sink.append({"model": config.get("api", {}).get("model", ""), "usage": {}})
+        code = re.search(r"\[([a-zA-Z0-9_]+)\]", result)
+        failed = result.startswith("FEHLER") or not result
+        for receipt in sink[before:]:
+            receipt.update(phase=config.get("_llm_phase", "analyse"),
+                           dauer_ms=round((time.monotonic()-started)*1000),
+                           status="abgebrochen" if cancel_event is not None and cancel_event.is_set() else "fehlgeschlagen" if failed else "antwort_erhalten")
+            if failed:
+                receipt["fehlercode"] = code.group(1) if code else "provider_error"
+
+
+def _run_llm_api(
+    prompt: str,
+    config: dict[str, Any],
+    cancel_event: threading.Event | None = None,
+    schema: dict[str, Any] | None = None,
+    vision_content: list[dict] | None = None,
+) -> str:
     """Dispatcht den LLM-Aufruf je nach konfiguriertem Provider.
 
     vision_content: Liste von Anthropic-Content-Blöcken (image/document).
-    Wird an vision-fähige Provider weitergereicht; nicht-vision-fähige ignorieren es.
+    Wird vollstaendig weitergereicht; Textmodelle lehnen Scans vor dem Versand ab.
     """
     if cancel_event is not None and cancel_event.is_set():
         return "FEHLER: Abgebrochen"
@@ -3876,10 +4125,23 @@ def run_llm_api(
     if not model:
         return "FEHLER: [provider_unavailable] Für den ausgewählten Anbieter ist kein Modell festgelegt. Bitte Modell ausdrücklich auswählen."
 
+    try:
+        reasoning = resolve_reasoning(provider, model, api_cfg.get("reasoning"))
+    except ValueError as exc:
+        return "FEHLER: [reasoning_unsupported] " + str(exc)
+    usage_sink = config.setdefault("_llm_usage", [])
+    reason_params = reasoning["parameters"]
+    thinking_budget = 32768 if reasoning["explicit_thinking"] else 16384
+    if reasoning["explicit_thinking"]:
+        timeout = max(timeout, 600 if reasoning["selection"] == "max" else 300)
+    if vision_content and not is_vision_capable(provider, model):
+        return "FEHLER: [scan_unsupported] Dieses Modell kann keine Scans lesen. Bitte ein bildfaehiges Modell waehlen."
+
     if provider == "anthropic":
         return run_anthropic_api(
             prompt, model, timeout, cancel_event=cancel_event,
-            schema=schema, vision_content=vision_content,
+            schema=schema, vision_content=vision_content, reasoning_parameters=reason_params,
+            max_tokens=thinking_budget, usage_sink=usage_sink,
         )
 
     if provider == "deepseek":
@@ -3890,18 +4152,23 @@ def run_llm_api(
         budget_error = _check_context_budget(provider, selected_model, prompt)
         if budget_error:
             return budget_error
+        max_tokens = _deepseek_max_tokens(selected_model, prompt, reason_params)
+        # 128K Denken plus Endantwort kann länger als die bisherigen 600 s
+        # dauern. Nicht vorher durch den HTTP-Timeout abschneiden.
+        if max_tokens >= 65_536:
+            timeout = max(timeout, 1200 if max_tokens >= 131_072 else 600)
         return _call_openai_compat(
             "https://api.deepseek.com/v1",
             api_key,
             selected_model,
             prompt,
             timeout,
-            cancel_event=cancel_event,
+            cancel_event=cancel_event, vision_content=vision_content,
             extra_body={
                 "response_format": {"type": "json_object"},
-                "thinking": {"type": "disabled"},
+                **reason_params,
             },
-            max_tokens=_dynamic_max_tokens(selected_model, prompt),
+            max_tokens=max_tokens, usage_sink=usage_sink,
         )
 
     if provider == "qwen":
@@ -3919,7 +4186,8 @@ def run_llm_api(
             selected_model,
             prompt,
             timeout,
-            extra_body={"enable_thinking": False},
+            extra_body=reason_params,
+            max_tokens=thinking_budget, usage_sink=usage_sink,
             cancel_event=cancel_event,
             vision_content=vision_content,
         )
@@ -3929,6 +4197,22 @@ def run_llm_api(
         if not api_key:
             return "FEHLER: MISTRAL_API_KEY nicht gesetzt (.env prüfen)"
         base_url = os.environ.get("MISTRAL_BASE_URL", "https://api.mistral.ai/v1")
+        if vision_content:
+            from scan_input import mistral_ocr
+            extracted = []
+            try:
+                for number, block in enumerate(vision_content, 1):
+                    ocr = mistral_ocr(block, api_key, base_url, timeout, cancel_event)
+                    extracted.append(f"DOKUMENT {number} (ungepruefte OCR-Abschrift):\n" + ocr["transkription"])
+            except ValueError as exc:
+                return f"FEHLER: [ocr_failed] {exc}"
+            except Exception:
+                return "FEHLER: [ocr_failed] Die OCR-Antwort konnte nicht gelesen werden."
+            prompt = ("Die beigefuegten Scans liegen nachfolgend als OCR-Abschrift vor. "
+                      "Lese diese statt der Bilder. Bewahre die Originalschreibweise. "
+                      "Lehrermarkierungen und Aufgabenstellungen gehoeren nicht zum Schuelertext. "
+                      "Kennzeichne unsichere Lesarten; erfinde keine fehlenden Woerter.\n\n"
+                      + "\n\n".join(extracted) + "\n\n" + prompt)
         selected_model = model
         # Kontext-Budget pruefen vor dem API-Aufruf
         budget_error = _check_context_budget(provider, selected_model, prompt)
@@ -3941,9 +4225,9 @@ def run_llm_api(
             selected_model,
             prompt,
             timeout,
-            extra_body={"response_format": {"type": "json_object"}},
+            extra_body={"response_format": {"type": "json_object"}, **reason_params},
             cancel_event=cancel_event,
-            max_tokens=max_out,
+            max_tokens=max(max_out, thinking_budget) if reasoning["explicit_thinking"] else max_out, usage_sink=usage_sink,
         )
         # Keine automatische Ersatzmodellwahl — klarer Fehler statt Anbieterwechsel.
         if response.startswith("FEHLER:") and _is_model_unavailable_error(response):
@@ -3959,8 +4243,8 @@ def run_llm_api(
             return "FEHLER: KIMI_API_KEY nicht gesetzt (.env prüfen)"
         base_url = os.environ.get("KIMI_BASE_URL", "https://api.moonshot.ai/v1")
         return _call_openai_compat(
-            base_url, api_key, model, prompt, timeout,
-            cancel_event=cancel_event,
+            base_url, api_key, model, prompt, timeout, extra_body=reason_params, max_tokens=thinking_budget, usage_sink=usage_sink,
+            cancel_event=cancel_event, vision_content=vision_content,
         )
 
     if provider == "openai":
@@ -3970,6 +4254,7 @@ def run_llm_api(
         selected_model = model
         return _call_openai_compat(
             "https://api.openai.com/v1", api_key, selected_model, prompt, timeout,
+            extra_body=reason_params, max_tokens=thinking_budget, usage_sink=usage_sink,
             cancel_event=cancel_event, vision_content=vision_content,
         )
 
@@ -4019,6 +4304,9 @@ def run_anthropic_api(
     cancel_event: threading.Event | None = None,
     schema: dict[str, Any] | None = None,
     vision_content: list[dict] | None = None,
+    reasoning_parameters: dict | None = None,
+    max_tokens: int = 16384,
+    usage_sink: list[dict] | None = None,
 ) -> str:
     """Ruft die Anthropic Messages API auf.
 
@@ -4033,8 +4321,8 @@ def run_anthropic_api(
     try:
         import anthropic
     except ImportError:
-        return "FEHLER: anthropic-Paket nicht installiert (pip install anthropic)"
-    client = anthropic.Anthropic(api_key=api_key)
+        anthropic = None
+    client = anthropic.Anthropic(api_key=api_key) if anthropic is not None else None
 
     needs_pdf_beta = vision_content and any(b.get("type") == "document" for b in vision_content)
     if vision_content:
@@ -4044,10 +4332,11 @@ def run_anthropic_api(
 
     call_kwargs: dict[str, Any] = dict(
         model=model,
-        max_tokens=16384,
+        max_tokens=max_tokens,
         messages=[{"role": "user", "content": message_content}],
         timeout=timeout,
     )
+    call_kwargs.update(reasoning_parameters or {})
     if needs_pdf_beta:
         call_kwargs["extra_headers"] = {"anthropic-beta": "pdfs-2024-09-25"}
     if schema:
@@ -4057,7 +4346,7 @@ def run_anthropic_api(
             "description": "Bewertungsergebnis der Schülerarbeit als strukturiertes JSON",
             "input_schema": tool_schema,
         }]
-        if model.startswith(_CLAUDE_OHNE_ERZWUNGENEN_TOOL):
+        if model.startswith(_CLAUDE_OHNE_ERZWUNGENEN_TOOL) or (reasoning_parameters or {}).get("thinking", {}).get("type") in {"adaptive", "enabled"}:
             # Diese Modelle denken immer mit und lehnen einen erzwungenen
             # Tool-Aufruf mit HTTP 400 ab; der Aufruf wird im Prompt verlangt.
             call_kwargs["tool_choice"] = {"type": "auto"}
@@ -4066,7 +4355,32 @@ def run_anthropic_api(
             call_kwargs["tool_choice"] = {"type": "tool", "name": "feedback_result"}
 
     try:
-        response = client.messages.create(**call_kwargs)
+        if client is not None:
+            response = client.messages.create(**call_kwargs)
+        else:
+            # Gleicher API-Vertrag auch ohne native SDK-Abhaengigkeiten.
+            from types import SimpleNamespace
+            payload = {k: v for k, v in call_kwargs.items() if k not in {"timeout", "extra_headers"}}
+            headers = {"Content-Type": "application/json", "x-api-key": api_key,
+                       "anthropic-version": "2023-06-01", **call_kwargs.get("extra_headers", {})}
+            req = urllib.request.Request("https://api.anthropic.com/v1/messages",
+                data=json.dumps(payload).encode("utf-8"), headers=headers)
+            try:
+                with urllib.request.urlopen(req, timeout=timeout) as result:
+                    body = json.loads(result.read())
+            except urllib.error.HTTPError as exc:
+                exc.status_code = exc.code
+                raise
+            response = SimpleNamespace(content=[SimpleNamespace(**block) for block in body.get("content", [])], usage=body.get("usage", {}), model=body.get("model", model), stop_reason=body.get("stop_reason"))
+        if cancel_event is not None and cancel_event.is_set():
+            return "FEHLER: Abgebrochen"
+        if usage_sink is not None:
+            usage = getattr(response, "usage", {})
+            usage_sink.append({"model": getattr(response, "model", model), "usage": usage.model_dump() if hasattr(usage, "model_dump") else usage if isinstance(usage, dict) else {},
+                               "max_ausgabetokens": max_tokens,
+                               "abschlussgrund": getattr(response, "stop_reason", None) if getattr(response, "stop_reason", None) in {"end_turn", "max_tokens", "tool_use", "stop_sequence", "refusal"} else "unbekannt"})
+        if getattr(response, "stop_reason", None) == "max_tokens":
+            return "FEHLER: [output_truncated] Die endgültige KI-Antwort wurde abgeschnitten."
         if schema:
             for block in response.content:
                 if block.type == "tool_use":
@@ -4624,3 +4938,92 @@ def docx_to_pdf(docx_path: Path, out_path: Path | None = None) -> Path | None:
         pass
 
     return None
+
+
+def persist_analysis_result(data: dict, context: dict) -> dict:
+    """Nur hier werden freigegebene Ergebnisse dauerhaft gespeichert."""
+    file_path = context.get("file_path")
+    config = context.get("config")
+    db_path_override = context.get("db_path_override")
+    docx_text = context.get("docx_text")
+    klasse = context.get("klasse")
+    aufgabe = context.get("aufgabe")
+    bestaetigte_schueler_id = context.get("bestaetigte_schueler_id")
+    unterrichtseinsatz_id = context.get("unterrichtseinsatz_id")
+    material_id = context.get("material_id")
+    korrekturauftrag_id = context.get("korrekturauftrag_id")
+    rubrik_inhalt = context.get("rubrik_inhalt")
+    rubrik_titel = context.get("rubrik_titel")
+    erwartungshorizont = context.get("erwartungshorizont")
+    revision_of_abgabe_id = context.get("revision_of_abgabe_id")
+    klasse_id = context.get("klasse_id")
+    correction_run = context["correction_run"]
+    # In Datenbank speichern (Tracking, Heatmap, Duplikat-Erkennung)
+    if ndb is not None and file_path is not None and file_path.exists():
+        try:
+            db_path = db_path_override or ndb.get_db_path(config)
+            ndb.init_db(db_path)
+            wortanzahl = len(docx_text.split()) if docx_text else count_words(file_path)
+
+            # Analyse-JSON auf Platte schreiben, damit feedback-docx
+            # darauf zugreifen kann (feedback_json_path in abgabe-Tabelle)
+            json_path_str = ""
+            if klasse and aufgabe:
+                auf_cfg = get_aufgabe_cfg(config, klasse, aufgabe)
+                auf_out = auf_cfg.get("output", "")
+                fb_dir = (
+                    PROJECT_ROOT / auf_out / "feedback_data"
+                    if auf_out
+                    else resolve_path(config, "output") / "feedback_data"
+                )
+                try:
+                    import json as _json_mod
+                    fb_dir.mkdir(parents=True, exist_ok=True)
+                    json_file = fb_dir / f"{file_path.stem}_{hashlib.sha256(file_path.read_bytes()).hexdigest()[:12]}_{time.time_ns()}_analysis.json"
+                    json_file.write_text(
+                        _json_mod.dumps(data, ensure_ascii=False, indent=2, default=str),
+                        encoding="utf-8",
+                    )
+                    json_path_str = str(json_file)
+                except Exception:
+                    pass
+
+            abgabe_id = ndb.save_analysis_to_db(
+                db_path=db_path,
+                data=data,
+                file_path=file_path,
+                klasse=klasse,
+                aufgabe=aufgabe,
+                rohtext=docx_text or data.get("transkription", ""),
+                wortanzahl=wortanzahl or len(data.get("transkription", "").split()),
+                feedback_json_path=json_path_str,
+                bestaetigte_schueler_id=bestaetigte_schueler_id,
+                unterrichtseinsatz_id=unterrichtseinsatz_id,
+                material_id=material_id,
+                korrekturauftrag_id=korrekturauftrag_id,
+                rubrik_inhalt=rubrik_inhalt,
+                rubrik_titel=rubrik_titel,
+                erwartungshorizont=erwartungshorizont,
+                provider=correction_run.provider,
+                model=correction_run.model,
+                privacy_mode=correction_run.privacy_mode,
+                revision_of_abgabe_id=revision_of_abgabe_id,
+                correction_basis=json.loads(correction_run.basis_json),
+                started_at=correction_run.started_at,
+                klasse_id=klasse_id,
+            )
+            if abgabe_id and abgabe_id > 0:
+                data["_abgabe_id"] = abgabe_id
+                data["_revision_id"] = data.get("_revision_id")
+            else:
+                # save gab -1 (Duplikat): bestehende Abgabe-ID nachschlagen,
+                # damit Lehrer-Feedback trotzdem zugeordnet werden kann
+                existing = ndb.get_abgabe_by_hash(
+                    db_path, ndb._file_hash(file_path)
+                )
+                if existing and existing.get("id"):
+                    data["_abgabe_id"] = existing["id"]
+        except Exception:
+            logging.exception("Korrekturergebnis konnte nicht revisionssicher gespeichert werden")
+            raise ValueError("Das Ergebnis konnte nicht sicher gespeichert werden.")
+    return data

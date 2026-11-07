@@ -3,6 +3,7 @@ titel: Textanalyse
 fach: deutsch
 schulstufe: oberstufe
 textsorte: textanalyse
+verwendung: bewertung
 -->
 
 # Bewertungsraster: Textanalyse

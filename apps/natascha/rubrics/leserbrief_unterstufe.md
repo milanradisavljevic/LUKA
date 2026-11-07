@@ -3,6 +3,7 @@ titel: Leserbrief (Unterstufe)
 fach: deutsch
 schulstufe: unterstufe
 textsorte: leserbrief
+verwendung: bewertung
 -->
 
 # Bewertungsraster: Leserbrief (Unterstufe)

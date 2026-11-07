@@ -3,6 +3,7 @@ titel: Rhetorische Figuren
 fach: deutsch
 schulstufe: oberstufe
 textsorte: alle
+verwendung: referenz
 -->
 
 # Rhetorische Figuren – Referenztabelle

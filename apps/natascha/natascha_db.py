@@ -115,6 +115,7 @@ CREATE TABLE IF NOT EXISTS fehler_historie (
     zitat TEXT,
     korrektur TEXT,
     typ TEXT NOT NULL,
+    befundart TEXT,
     erklaerung TEXT,
     cluster_id TEXT,
     regel_muster TEXT,
@@ -137,6 +138,7 @@ CREATE TABLE IF NOT EXISTS lehrer_feedback (
     klasse TEXT NOT NULL,
     aufgabe TEXT NOT NULL,
     note_final REAL,
+    pruefstatus TEXT NOT NULL DEFAULT 'freigegeben',
     note_app_snapshot REAL,
     lehrer_kommentar TEXT,
     pdf_pfad TEXT,
@@ -175,6 +177,8 @@ CREATE TABLE IF NOT EXISTS korrektur_revision (
     lehrer_kommentar TEXT,
     lehrer_feedback_erstellt_am TEXT,
     lehrer_feedback_geaendert_am TEXT,
+    lehrer_pruefstatus TEXT NOT NULL DEFAULT 'freigegeben',
+    lehrer_pruefung_json TEXT NOT NULL DEFAULT '{}',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     completed_at TIMESTAMP,
     UNIQUE(abgabe_id, revision_no)
@@ -237,6 +241,7 @@ CREATE TABLE IF NOT EXISTS korrekturauftrag (
     rubrik TEXT NOT NULL DEFAULT '',
     rubrik_titel TEXT NOT NULL DEFAULT '',
     rubrik_inhalt TEXT NOT NULL DEFAULT '',
+    grundlage_json TEXT NOT NULL DEFAULT '{}',
     erwartungshorizont TEXT NOT NULL DEFAULT '',
     unterrichtseinsatz_id TEXT,
     material_id TEXT,
@@ -280,12 +285,25 @@ def init_db(db_path: Path | str) -> None:
         for column in ("korrekturauftrag_id", "unterrichtseinsatz_id", "material_id"):
             if column not in columns:
                 conn.execute(f"ALTER TABLE abgabe ADD COLUMN {column} TEXT")
+        basis_columns = {row[1] for row in conn.execute("PRAGMA table_info(korrekturauftrag)")}
+        if "grundlage_json" not in basis_columns:
+            conn.execute("ALTER TABLE korrekturauftrag ADD COLUMN grundlage_json TEXT NOT NULL DEFAULT '{}'")
         revision_columns = {row[1] for row in conn.execute("PRAGMA table_info(korrektur_revision)")}
         if "basis_json" not in revision_columns:
             conn.execute("ALTER TABLE korrektur_revision ADD COLUMN basis_json TEXT NOT NULL DEFAULT '{}' ")
-        _migrate_korrektur_revisionen(conn)
+        if "lehrer_pruefung_json" not in revision_columns:
+            conn.execute("ALTER TABLE korrektur_revision ADD COLUMN lehrer_pruefung_json TEXT NOT NULL DEFAULT '{}'")
+        _migrate_review_status(conn)
         _migrate_fehler_historie_columns(conn)
+        _migrate_korrektur_revisionen(conn)
         _migrate_klasse_stammdaten(conn)
+
+
+def _migrate_review_status(conn: sqlite3.Connection) -> None:
+    for table, column in (("lehrer_feedback", "pruefstatus"), ("korrektur_revision", "lehrer_pruefstatus")):
+        columns = {row[1] for row in conn.execute(f"PRAGMA table_info({table})")}
+        if column not in columns:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} TEXT NOT NULL DEFAULT 'freigegeben'")
 
 
 def _migrate_klasse_stammdaten(conn: sqlite3.Connection) -> None:
@@ -414,24 +432,24 @@ def _migrate_korrektur_revisionen(conn: sqlite3.Connection) -> None:
             dict(row)
             for row in conn.execute(
                 "SELECT zitat, korrektur, typ, erklaerung, cluster_id, regel_muster, vertrauensstufe, "
-                "lehrkraft_aktion, lehrkraft_korrektur FROM fehler_historie "
+                "lehrkraft_aktion, lehrkraft_korrektur, befundart FROM fehler_historie "
                 "WHERE abgabe_id=? ORDER BY id",
                 (abgabe_id,),
             ).fetchall()
         ]
         feedback = conn.execute(
-            "SELECT note_final, note_app_snapshot, lehrer_kommentar, erstellt_am, geaendert_am "
+            "SELECT note_final, note_app_snapshot, lehrer_kommentar, erstellt_am, geaendert_am, pruefstatus "
             "FROM lehrer_feedback WHERE abgabe_id=?",
             (abgabe_id,),
         ).fetchone()
         conn.execute(
             "UPDATE korrektur_revision SET kriterien_json=?, fehler_json=?, "
             "lehrer_note_final=?, lehrer_note_app_snapshot=?, lehrer_kommentar=?, "
-            "lehrer_feedback_erstellt_am=?, lehrer_feedback_geaendert_am=? WHERE id=?",
+            "lehrer_feedback_erstellt_am=?, lehrer_feedback_geaendert_am=?, lehrer_pruefstatus=? WHERE id=?",
             (
                 json.dumps(kriterien, ensure_ascii=False),
                 json.dumps(fehler, ensure_ascii=False),
-                *(tuple(feedback) if feedback else (None, None, None, None, None)),
+                *(tuple(feedback) if feedback else (None, None, None, None, None, "entwurf")),
                 revision_id,
             ),
         )
@@ -453,21 +471,21 @@ def _snapshot_active_revision(conn: sqlite3.Connection, abgabe_id: int) -> None:
     )]
     fehler = [dict(row) for row in conn.execute(
         "SELECT zitat, korrektur, typ, erklaerung, cluster_id, regel_muster, vertrauensstufe, "
-        "lehrkraft_aktion, lehrkraft_korrektur FROM fehler_historie "
+        "lehrkraft_aktion, lehrkraft_korrektur, befundart FROM fehler_historie "
         "WHERE abgabe_id=? ORDER BY id", (abgabe_id,),
     )]
     feedback = conn.execute(
-        "SELECT note_final, note_app_snapshot, lehrer_kommentar, erstellt_am, geaendert_am "
+        "SELECT note_final, note_app_snapshot, lehrer_kommentar, erstellt_am, geaendert_am, pruefstatus "
         "FROM lehrer_feedback WHERE abgabe_id=?", (abgabe_id,),
     ).fetchone()
     conn.execute(
         "UPDATE korrektur_revision SET kriterien_json=?, fehler_json=?, "
         "lehrer_note_final=?, lehrer_note_app_snapshot=?, lehrer_kommentar=?, "
-        "lehrer_feedback_erstellt_am=?, lehrer_feedback_geaendert_am=? WHERE id=?",
+        "lehrer_feedback_erstellt_am=?, lehrer_feedback_geaendert_am=?, lehrer_pruefstatus=? WHERE id=?",
         (
             json.dumps(kriterien, ensure_ascii=False),
             json.dumps(fehler, ensure_ascii=False),
-            *(tuple(feedback) if feedback else (None, None, None, None, None)),
+            *(tuple(feedback) if feedback else (None, None, None, None, None, "entwurf")),
             revision_id,
         ),
     )
@@ -496,7 +514,7 @@ def _migrate_fehler_historie_columns(conn: sqlite3.Connection) -> None:
     """Ergänzt die Phase-3-Spalten (Vertrauensstufe, Lehrkraft-Aktionen) auch in
     bereits vorhandenen Datenbanken — SCHEMA_SQL legt sie nur bei Neuanlage an."""
     fehler_columns = {row[1] for row in conn.execute("PRAGMA table_info(fehler_historie)")}
-    for column in ("cluster_id", "regel_muster", "vertrauensstufe", "lehrkraft_aktion", "lehrkraft_korrektur"):
+    for column in ("befundart", "cluster_id", "regel_muster", "vertrauensstufe", "lehrkraft_aktion", "lehrkraft_korrektur"):
         if column not in fehler_columns:
             conn.execute(f"ALTER TABLE fehler_historie ADD COLUMN {column} TEXT")
     context_columns = {row[1] for row in conn.execute("PRAGMA table_info(korrekturauftrag)")}
@@ -694,6 +712,16 @@ def insert_abgabe(
         return int(cur.lastrowid)  # type: ignore[arg-type]
 
 
+def reanalysis_target(existing: dict[str, Any], klasse: str, aufgabe: str,
+                      klasse_id: str | None = None, schueler_id: int | None = None) -> int:
+    """Erneute Korrektur darf eine vorhandene Arbeit nicht anders zuordnen."""
+    different_class = (existing.get("klasse_id") != klasse_id) if klasse_id and existing.get("klasse_id") else existing.get("klasse") != klasse
+    different_person = schueler_id is not None and existing.get("schueler_id") is not None and int(existing["schueler_id"]) != schueler_id
+    if different_class or existing.get("aufgabe") != aufgabe or different_person:
+        raise ValueError("Diese Datei gehört bereits zu einer anderen Klasse, Aufgabe oder Person. Bitte die vorhandene Abgabe öffnen; erneut korrigieren ändert ihre Zuordnung nicht.")
+    return int(existing["id"])
+
+
 def get_abgabe_by_hash(db_path: Path | str, datei_hash: str) -> dict[str, Any] | None:
     """Prueft, ob eine Datei schon analysiert wurde (Duplikat-Erkennung)."""
     with sqlite3.connect(str(db_path)) as conn:
@@ -836,7 +864,7 @@ def get_fehler_heatmap(
             total_row = conn.execute(
                 "SELECT COUNT(*) FROM fehler_historie fh"
                 " JOIN abgabe a ON fh.abgabe_id = a.id"
-                " WHERE a.klasse = ? AND a.aufgabe = ? AND fh.lehrkraft_aktion IN ('uebernommen', 'geaendert')",
+                " WHERE a.klasse = ? AND a.aufgabe = ? AND fh.lehrkraft_aktion IN ('uebernommen', 'geaendert') AND COALESCE(fh.befundart, 'normfehler') NOT IN ('stilalternative', 'ungeklaert')",
                 (klasse, aufgabe),
             ).fetchone()
             rows = conn.execute(
@@ -844,7 +872,7 @@ def get_fehler_heatmap(
                 SELECT fh.typ, COUNT(*) as anzahl
                 FROM fehler_historie fh
                 JOIN abgabe a ON fh.abgabe_id = a.id
-                WHERE a.klasse = ? AND a.aufgabe = ? AND fh.lehrkraft_aktion IN ('uebernommen', 'geaendert')
+                WHERE a.klasse = ? AND a.aufgabe = ? AND fh.lehrkraft_aktion IN ('uebernommen', 'geaendert') AND COALESCE(fh.befundart, 'normfehler') NOT IN ('stilalternative', 'ungeklaert')
                 GROUP BY fh.typ
                 HAVING anzahl >= ?
                 ORDER BY anzahl DESC
@@ -855,7 +883,7 @@ def get_fehler_heatmap(
             total_row = conn.execute(
                 "SELECT COUNT(*) FROM fehler_historie fh"
                 " JOIN abgabe a ON fh.abgabe_id = a.id"
-                " WHERE a.klasse = ? AND fh.lehrkraft_aktion IN ('uebernommen', 'geaendert')",
+                " WHERE a.klasse = ? AND fh.lehrkraft_aktion IN ('uebernommen', 'geaendert') AND COALESCE(fh.befundart, 'normfehler') NOT IN ('stilalternative', 'ungeklaert')",
                 (klasse,),
             ).fetchone()
             rows = conn.execute(
@@ -863,7 +891,7 @@ def get_fehler_heatmap(
                 SELECT fh.typ, COUNT(*) as anzahl
                 FROM fehler_historie fh
                 JOIN abgabe a ON fh.abgabe_id = a.id
-                WHERE a.klasse = ? AND fh.lehrkraft_aktion IN ('uebernommen', 'geaendert')
+                WHERE a.klasse = ? AND fh.lehrkraft_aktion IN ('uebernommen', 'geaendert') AND COALESCE(fh.befundart, 'normfehler') NOT IN ('stilalternative', 'ungeklaert')
                 GROUP BY fh.typ
                 HAVING anzahl >= ?
                 ORDER BY anzahl DESC
@@ -901,7 +929,7 @@ def get_fehler_heatmap_detail(
                 FROM fehler_historie fh
                 JOIN abgabe a ON fh.abgabe_id = a.id
                 LEFT JOIN schueler s ON a.schueler_id = s.id
-                WHERE a.klasse = ? AND fh.typ = ? AND a.aufgabe = ? AND fh.lehrkraft_aktion IN ('uebernommen', 'geaendert')
+                WHERE a.klasse = ? AND fh.typ = ? AND a.aufgabe = ? AND fh.lehrkraft_aktion IN ('uebernommen', 'geaendert') AND COALESCE(fh.befundart, 'normfehler') NOT IN ('stilalternative', 'ungeklaert')
                 ORDER BY fh.zitat
                 LIMIT ?
                 """,
@@ -915,7 +943,7 @@ def get_fehler_heatmap_detail(
                 FROM fehler_historie fh
                 JOIN abgabe a ON fh.abgabe_id = a.id
                 LEFT JOIN schueler s ON a.schueler_id = s.id
-                WHERE a.klasse = ? AND fh.typ = ? AND fh.lehrkraft_aktion IN ('uebernommen', 'geaendert')
+                WHERE a.klasse = ? AND fh.typ = ? AND fh.lehrkraft_aktion IN ('uebernommen', 'geaendert') AND COALESCE(fh.befundart, 'normfehler') NOT IN ('stilalternative', 'ungeklaert')
                 ORDER BY fh.zitat
                 LIMIT ?
                 """,
@@ -1075,6 +1103,13 @@ def import_json_to_db(
         else:
             schueler_id = schueler["id"]
 
+    frozen = (correction_basis or {}).get("grundlage")
+    if korrekturauftrag_id and frozen is not None:
+        from correction_basis import validate_basis
+        validate_basis(frozen)
+        with sqlite3.connect(str(db_path)) as basis_conn:
+            basis_conn.execute("UPDATE korrekturauftrag SET grundlage_json=?, aufgabenstellung=?, erwartungshorizont=? WHERE id=?", (json.dumps(frozen, ensure_ascii=False), frozen["aufgabenstellung"], frozen["erwartungshorizont"], korrekturauftrag_id))
+
     note_data = data.get("notenempfehlung", {})
     note = note_data.get("note")
     gesamtstufe = note_data.get("durchschnitt")
@@ -1117,7 +1152,7 @@ def import_json_to_db(
                 db_path,
                 abgabe_id,
                 kriterium_name,
-                float(stufe_raw) if stufe_raw is not None else None,
+                float(stufe_raw) if isinstance(stufe_raw,(int,float)) or isinstance(stufe_raw,str) and stufe_raw.replace(".","",1).isdigit() else float(k_data["punkte"]) if k_data.get("punkte") is not None else None,
                 float(gewicht_raw) / 100 if isinstance(gewicht_raw, (int, float)) else None,
             )
 
@@ -1306,6 +1341,11 @@ def save_analysis_to_db(
 
     # Abgabe und Revision werden in einer Transaktion gespeichert. Bei einer
     # erneuten Korrektur bleibt die Quelldatei/Abgabe erhalten.
+    correction_basis = dict(correction_basis or {})
+    if rohtext:
+        correction_basis["schuelertext"] = rohtext
+        correction_basis["schuelertext_hash"] = hashlib.sha256(rohtext.encode("utf-8")).hexdigest()
+    correction_basis["bewertungsmodus"] = data.get("bewertungsmodus", correction_basis.get("bewertungsmodus", "benotet"))
     init_db(db_path)
     with sqlite3.connect(str(db_path), timeout=30) as conn:
         conn.row_factory = sqlite3.Row
@@ -1432,8 +1472,8 @@ def save_analysis_to_db(
         for fehler in data.get("fehler", []):
             conn.execute(
                 "INSERT INTO fehler_historie"
-                " (abgabe_id, zitat, korrektur, typ, erklaerung, cluster_id, regel_muster, vertrauensstufe)"
-                " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                " (abgabe_id, zitat, korrektur, typ, erklaerung, cluster_id, regel_muster, vertrauensstufe, befundart)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     abgabe_id,
                     fehler.get("zitat", ""),
@@ -1443,6 +1483,7 @@ def save_analysis_to_db(
                     fehler.get("cluster_id") or fehler.get("clusterId"),
                     fehler.get("regel_muster") or fehler.get("regelMuster"),
                     fehler.get("vertrauensstufe"),
+                    fehler.get("befundart"),
                 ),
             )
         revision_cur = conn.execute(
@@ -1572,14 +1613,14 @@ def get_klassen_feedback(
             total_fehler_row = conn.execute(
                 "SELECT COUNT(*) FROM fehler_historie fh"
                 " JOIN abgabe a ON fh.abgabe_id = a.id"
-                " WHERE a.klasse = ? AND a.aufgabe = ? AND fh.lehrkraft_aktion IN ('uebernommen', 'geaendert')",
+                " WHERE a.klasse = ? AND a.aufgabe = ? AND fh.lehrkraft_aktion IN ('uebernommen', 'geaendert') AND COALESCE(fh.befundart, 'normfehler') NOT IN ('stilalternative', 'ungeklaert')",
                 (klasse, aufgabe),
             ).fetchone()
         else:
             total_fehler_row = conn.execute(
                 "SELECT COUNT(*) FROM fehler_historie fh"
                 " JOIN abgabe a ON fh.abgabe_id = a.id"
-                " WHERE a.klasse = ? AND fh.lehrkraft_aktion IN ('uebernommen', 'geaendert')",
+                " WHERE a.klasse = ? AND fh.lehrkraft_aktion IN ('uebernommen', 'geaendert') AND COALESCE(fh.befundart, 'normfehler') NOT IN ('stilalternative', 'ungeklaert')",
                 (klasse,),
             ).fetchone()
         gesamt_fehler = total_fehler_row[0] if total_fehler_row else 0
@@ -1682,7 +1723,7 @@ def get_klassen_feedback(
                            fh.regel_muster, COUNT(*) as haeufigkeit
                     FROM fehler_historie fh
                     JOIN abgabe a ON fh.abgabe_id = a.id
-                    WHERE a.klasse = ? AND a.aufgabe = ? AND fh.typ = ? AND fh.lehrkraft_aktion IN ('uebernommen', 'geaendert')
+                    WHERE a.klasse = ? AND a.aufgabe = ? AND fh.typ = ? AND fh.lehrkraft_aktion IN ('uebernommen', 'geaendert') AND COALESCE(fh.befundart, 'normfehler') NOT IN ('stilalternative', 'ungeklaert')
                     GROUP BY fh.zitat, COALESCE(fh.lehrkraft_korrektur, fh.korrektur), fh.erklaerung, fh.cluster_id, fh.regel_muster
                     ORDER BY haeufigkeit DESC, fh.zitat
                     LIMIT 5
@@ -1696,7 +1737,7 @@ def get_klassen_feedback(
                            fh.regel_muster, COUNT(*) as haeufigkeit
                     FROM fehler_historie fh
                     JOIN abgabe a ON fh.abgabe_id = a.id
-                    WHERE a.klasse = ? AND fh.typ = ? AND fh.lehrkraft_aktion IN ('uebernommen', 'geaendert')
+                    WHERE a.klasse = ? AND fh.typ = ? AND fh.lehrkraft_aktion IN ('uebernommen', 'geaendert') AND COALESCE(fh.befundart, 'normfehler') NOT IN ('stilalternative', 'ungeklaert')
                     GROUP BY fh.zitat, COALESCE(fh.lehrkraft_korrektur, fh.korrektur), fh.erklaerung, fh.cluster_id, fh.regel_muster
                     ORDER BY haeufigkeit DESC, fh.zitat
                     LIMIT 5
@@ -1813,7 +1854,7 @@ def get_notenverteilung(
         conn.row_factory = sqlite3.Row
         rows = conn.execute(
             f"""
-            SELECT a.note, lf.note_final
+            SELECT a.note, CASE WHEN lf.pruefstatus='freigegeben' THEN lf.note_final END AS note_final
             FROM abgabe a
             LEFT JOIN lehrer_feedback lf ON lf.abgabe_id = a.id
             WHERE {where}
@@ -1862,7 +1903,7 @@ def get_klassen_kalibrierung(
                 AVG(lf.note_final) as lehrer_avg
             FROM lehrer_feedback lf
             JOIN abgabe a ON a.id = lf.abgabe_id
-            WHERE {where_a} AND lf.note_final IS NOT NULL
+            WHERE {where_a} AND lf.note_final IS NOT NULL AND lf.pruefstatus='freigegeben'
             """,
             params,
         ).fetchone()
@@ -1943,7 +1984,7 @@ def get_klassen_trend(
                 COUNT(*) as n_mit_feedback
             FROM lehrer_feedback lf
             JOIN abgabe a ON a.id = lf.abgabe_id
-            WHERE a.klasse = ? AND lf.note_final IS NOT NULL
+            WHERE a.klasse = ? AND lf.note_final IS NOT NULL AND lf.pruefstatus='freigegeben'
             GROUP BY a.aufgabe
             """,
             (klasse,),
@@ -2073,7 +2114,7 @@ def has_lehrer_feedback_for_file(db_path: Path | str, datei_hash: str) -> bool:
             """
             SELECT 1 FROM lehrer_feedback lf
             JOIN abgabe a ON lf.abgabe_id = a.id
-            WHERE a.datei_hash = ? AND lf.note_final IS NOT NULL
+            WHERE a.datei_hash = ? AND lf.note_final IS NOT NULL AND lf.pruefstatus='freigegeben' AND lf.pruefstatus='freigegeben'
             """,
             (datei_hash,),
         ).fetchone()
@@ -2158,7 +2199,7 @@ def _aggregiere_fehlerschwerpunkte(
         return []
     placeholders = ",".join("?" * len(abgabe_ids))
     rows = conn.execute(
-        f"SELECT typ, zitat, COALESCE(lehrkraft_korrektur, korrektur) AS korrektur, cluster_id, regel_muster FROM fehler_historie WHERE abgabe_id IN ({placeholders}) AND lehrkraft_aktion IN ('uebernommen', 'geaendert')",
+        f"SELECT typ, zitat, COALESCE(lehrkraft_korrektur, korrektur) AS korrektur, cluster_id, regel_muster FROM fehler_historie WHERE abgabe_id IN ({placeholders}) AND lehrkraft_aktion IN ('uebernommen', 'geaendert') AND COALESCE(befundart, 'normfehler') NOT IN ('stilalternative', 'ungeklaert')",
         abgabe_ids,
     ).fetchall()
     anzahl: dict[str, int] = {}

@@ -10,41 +10,13 @@
 //
 // Erwartet CHANGELOG.md im aktuellen Arbeitsverzeichnis (Repo-Root).
 import { readFileSync, appendFileSync } from 'node:fs';
+import { extractReleaseNotes } from '../../apps/lua/apps/web/releaseNotes.mjs';
 
 const FALLBACK_NOTES = 'Details im CHANGELOG.';
 
-function extractTopSection(changelogText) {
-  const lines = changelogText.split(/\r?\n/);
-  let headerCount = 0;
-  let inWhatsNew = false;
-  const body = [];
-
-  for (const line of lines) {
-    if (/^## /.test(line)) {
-      headerCount += 1;
-      if (headerCount === 2) break;
-      continue; // Überschriftenzeile selbst nicht mit übernehmen
-    }
-    if (headerCount === 1) {
-      if (/^### /.test(line)) {
-        if (/^### Das ist neu\s*$/i.test(line)) {
-          inWhatsNew = true;
-          continue;
-        }
-        if (inWhatsNew) break;
-        continue;
-      }
-      if (inWhatsNew) body.push(line);
-    }
-  }
-
-  let notes = body.join('\n').trim();
-  return notes;
-}
-
 function main() {
   const changelogText = readFileSync('CHANGELOG.md', 'utf8');
-  const notes = extractTopSection(changelogText) || FALLBACK_NOTES;
+  const notes = extractReleaseNotes(changelogText) || FALLBACK_NOTES;
 
   const outputPath = process.env.GITHUB_OUTPUT;
   if (!outputPath) {

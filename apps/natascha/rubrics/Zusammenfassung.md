@@ -3,6 +3,7 @@ titel: Zusammenfassung
 fach: deutsch
 schulstufe: unterstufe
 textsorte: zusammenfassung
+verwendung: selbstcheck
 -->
 
 # Checkliste für deine Texte

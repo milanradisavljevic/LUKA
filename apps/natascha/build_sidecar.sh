@@ -43,6 +43,7 @@ build_arch() {
     --add-data "$ROOT/rubrics:rubrics" \
     --add-data "$ROOT/prompts:prompts" \
     --collect-data textual \
+    --collect-all pypdfium2 \
     "$ROOT/natascha_cli.py"
   cp "$BUILD_DIR/$target/natascha-cli-$target" "$OUT_DIR/natascha-cli-$target"
 }
